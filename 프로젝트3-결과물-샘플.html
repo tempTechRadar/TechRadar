@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>프로젝트 3 결과물 샘플</title>
+<style>
+:root {
+  --bg: #ffffff; --ink: #111418; --muted: #5b6573; --line: #d5dbe3; --card: #f6f8fb;
+  --watch: #cfe6f7; --watch-ink: #0b4a73; --inc: #ffe3cc; --inc-ink: #8a3d00;
+  --know: #e4e8ee; --know-ink: #2f3a48; --accent: #e8741a; --ok: #1d7a46; --bad: #c62828;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1216; --ink: #eef1f5; --muted: #9aa5b4; --line: #323a46; --card: #171c22;
+    --watch: #123a57; --watch-ink: #bfe1fa; --inc: #4a2a10; --inc-ink: #ffd2ad;
+    --know: #232a33; --know-ink: #d6dde7; --accent: #ff9442; --ok: #62c58c; --bad: #ff7b7b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1216; --ink: #eef1f5; --muted: #9aa5b4; --line: #323a46; --card: #171c22;
+  --watch: #123a57; --watch-ink: #bfe1fa; --inc: #4a2a10; --inc-ink: #ffd2ad;
+  --know: #232a33; --know-ink: #d6dde7; --accent: #ff9442; --ok: #62c58c; --bad: #ff7b7b;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.7; font-size: 16px;
+  font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+nav.top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+nav.top div { max-width: 1040px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; }
+nav.top a { color: var(--muted); text-decoration: none; font-size: 13.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; }
+nav.top a:hover { border-color: var(--accent); color: var(--accent); }
+main { max-width: 1040px; margin: 0 auto; padding: 20px 16px 80px; }
+.banner { border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+h1 { font-size: 30px; line-height: 1.3; margin: 22px 0 8px; }
+h2 { font-size: 24px; margin: 64px 0 8px; padding-top: 14px; border-top: 2px solid var(--line); }
+h2 .n { color: var(--accent); margin-right: 8px; }
+h3 { font-size: 18px; margin: 32px 0 6px; }
+p { margin: 8px 0; }
+.lead { font-size: 17px; color: var(--muted); margin: 0 0 16px; }
+.sum { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 14px 0; }
+.sum ul { margin: 0; padding-left: 20px; }
+svg { width: 100%; height: auto; display: block; margin: 12px 0; }
+svg text { font-family: inherit; fill: var(--ink); }
+.b-watch { fill: var(--watch); stroke: var(--watch-ink); }
+.b-inc { fill: var(--inc); stroke: var(--inc-ink); }
+.b-know { fill: var(--know); stroke: var(--know-ink); }
+.b-plain { fill: var(--card); stroke: var(--line); }
+.b-acc { fill: var(--card); stroke: var(--accent); stroke-width: 2.5; }
+.t-watch { fill: var(--watch-ink) !important; } .t-inc { fill: var(--inc-ink) !important; }
+.t-know { fill: var(--know-ink) !important; } .t-muted { fill: var(--muted) !important; } .t-acc { fill: var(--accent) !important; }
+.n-ok { fill: var(--ok); fill-opacity: .2; stroke: var(--ok); stroke-width: 2; } .n-bad { fill: var(--bad); fill-opacity: .2; stroke: var(--bad); stroke-width: 2.5; } .n-wait { fill: var(--accent); fill-opacity: .15; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.arrow { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+.dash { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14.5px; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; min-width: 110px; }
+th { background: var(--card); white-space: nowrap; }
+code { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 13.5px; font-family: ui-monospace, Menlo, monospace; }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: 13.5px; line-height: 1.55; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 12px 0; }
+.card { border: 1px solid; border-radius: 12px; padding: 12px 14px; font-size: 14.5px; }
+.card h4 { margin: 0 0 4px; font-size: 16px; }
+.card p { margin: 0; }
+.c-watch { background: var(--watch); border-color: var(--watch-ink); color: var(--watch-ink); }
+.c-inc { background: var(--inc); border-color: var(--inc-ink); color: var(--inc-ink); }
+.c-know { background: var(--know); border-color: var(--know-ink); color: var(--know-ink); }
+.c-plain { background: var(--card); border-color: var(--line); }
+.c-acc { background: var(--card); border-color: var(--accent); border-width: 2px; }
+.tip { border-left: 4px solid var(--accent); background: var(--card); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 14px 0; font-size: 15px; }
+.warn { border-left: 4px solid var(--watch-ink); background: var(--card); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 14px 0; font-size: 15px; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 10px 46px; position: relative; font-size: 15px; }
+.steps li::before { content: counter(s); position: absolute; left: 12px; top: 9px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; text-align: center; line-height: 24px; font-size: 13px; }
+.checks { list-style: none; padding: 0; margin: 10px 0; }
+.checks li { padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 14.5px; }
+.checks label { display: flex; gap: 10px; cursor: pointer; align-items: flex-start; }
+.checks input { margin-top: 6px; accent-color: var(--accent); }
+.grp { font-weight: 700; margin: 18px 0 2px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } h1 { font-size: 25px; } h2 { font-size: 21px; } }
+</style>
+<style>
+.say{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 14px;margin:12px 0;font-size:15.5px}
+.say b.l{display:block;color:var(--accent);font-size:12.5px;margin-bottom:4px;letter-spacing:.02em}
+.say p{margin:6px 0}
+.file{border:1px solid var(--line);border-radius:10px;margin:12px 0;overflow:hidden}
+.file>.fn{background:var(--know);color:var(--know-ink);font-weight:700;font-size:13.5px;padding:6px 12px;font-family:ui-monospace,Menlo,monospace}
+.file>.fb{padding:10px 14px;font-size:14.5px}
+.file>.fb p{margin:6px 0}
+.mock{border:2px solid var(--line);border-radius:12px;margin:12px 0;overflow:hidden;background:var(--bg)}
+.mock .bar{background:var(--know);color:var(--know-ink);font-size:12.5px;padding:6px 12px;font-family:ui-monospace,Menlo,monospace}
+.mock .in{padding:12px 14px;font-size:14.5px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.kpi div{border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center;background:var(--card)}
+.kpi b{display:block;font-size:22px}
+.tag{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12.5px;font-weight:700;border:1px solid}
+.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.bad{color:var(--bad);border-color:var(--bad)}.tag.wait{color:var(--accent);border-color:var(--accent)}
+.btn{display:inline-block;border-radius:8px;padding:4px 14px;font-weight:700;font-size:14px;background:var(--accent);color:#fff;margin-right:6px}
+.btn.g{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.chat .q{background:var(--know);border-radius:12px 12px 2px 12px;padding:8px 12px;margin:6px 0 6px 20%}
+.chat .a{background:var(--card);border:1px solid var(--line);border-radius:12px 12px 12px 2px;padding:8px 12px;margin:6px 20% 6px 0}
+.chat .src{font-size:12.5px;color:var(--muted);margin-top:4px}
+.good{border-left:4px solid var(--ok);padding-left:12px}.weak{border-left:4px solid var(--bad);padding-left:12px}
+@media(max-width:760px){.kpi{grid-template-columns:repeat(2,1fr)}.chat .q{margin-left:6%}.chat .a{margin-right:6%}}
+</style>
+</head>
+<body>
+<nav class="top"><div><a href="#a">이 샘플</a><a href="#b">저장소</a><a href="#c">문제정의</a><a href="#d">기획 문서</a><a href="#e">데이터 수집</a><a href="#f">화면</a><a href="#g">위키</a><a href="#h">하네스</a><a href="#i">확인 기록</a><a href="#j">발표</a><a href="#k">개인 결과물</a><a href="#l">좋은 예와 아쉬운 예</a></div></nav>
+<main>
+<div class="banner">비공개 초안입니다. 모두 지어낸 가상 샘플이고, 수강생에게 보이지 않는 로컬 파일입니다. 배포하지 않았습니다.</div>
+<h1>프로젝트 3 결과물 샘플: 마감지기</h1>
+<p class="lead">학생들이 마지막에 내는 결과물이 어떤 모습인지 한 서비스로 보여 주는 페이지입니다. 장마다 읽을 말이 붙어 있습니다.</p>
+<h2 id="a">먼저 이 샘플이 무엇인지</h2>
+<div class="sum"><ul>
+<li>이 페이지는 학생들이 낼 결과물이 <b>어떤 모습인지</b> 보여 주는 가상 샘플입니다. 실제 팀의 것이 아닙니다.</li>
+<li>예시 서비스는 <b>마감지기</b>입니다. 취업 준비생이 관심 공고를 등록해 두면 마감일이 바뀔 때 알려 주고, 승인하면 지원 일정을 고칩니다.</li>
+<li>이야기 속 사용자 민지와 인터뷰 내용은 모두 지어낸 것입니다. 팀은 실제 사람을 만나 자기 것으로 채웁니다.</li>
+<li>장마다 <b>읊을 말</b>을 붙였습니다. 소리 내어 읽으면 그대로 설명이 됩니다.</li>
+</ul></div>
+<table>
+<tr><th>가상 팀</th><td>세 명. 하은(문제 정의와 데이터), 도윤(앱과 DB), 서아(사건과 흐름 화면). 모두 PR을 올리고 서로 리뷰합니다.</td></tr>
+<tr><th>한 줄 소개</th><td>관심 공고의 마감이 바뀌면 알려 주고, 사용자가 승인하면 지원 일정을 고쳐 주는 서비스</td></tr>
+<tr><th>자료</th><td>공개된 채용 공고 페이지 세 곳. 한 곳은 공공 API, 두 곳은 직접 만든 크롤러. 시연용 가짜 공고도 따로 있음</td></tr>
+<tr><th>알파</th><td>승인한 일정을 구글 캘린더에도 넣어 주는 기능</td></tr>
+</table><div class="say"><b class="l">읊을 말</b><p>이 페이지는 완성본을 보여 주려는 게 아니에요. 여러분이 마지막에 뭘 내는지 감을 잡으라고 만든 샘플이에요.</p><p>주제는 채용 공고 마감 알리미, 이름은 마감지기로 지어 봤어요. 민지라는 취준생도 제가 지어낸 사람이에요. 여러분은 꼭 실제로 사람을 만나서 자기 이야기로 바꿔야 해요.</p></div>
+<h2 id="b">저장소는 이렇게 생깁니다</h2>
+<pre style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;overflow:auto">마감지기/
+  README.md            실행 방법, 서비스 주소, 발표 주소, 팀원과 PR 번호
+  CLAUDE.md            팀 규칙 (읽을 문서, 고칠 범위, 승인 규칙)
+  .claude/agents/      spec-checker.md, qa-runner.md
+  interviews/          민지.md, 현우.md, ai-인터뷰.md
+  docs/                문제정의, IA, uj, prd, 데이터설계, spec, plan, intent,
+                       data-sources, connectors, agents, flow, wiki-chat, qa, debug-note
+  watch/               공고 읽는 코드 세 개, 같은 모양으로 바꾸는 코드
+  incident/            마감 비교, 사건 만들기, 알림, 승인
+  knowledge/           처리 기록, 과거 사건 찾기
+  sim/  eval/          가짜 공고와 채점 파일, 정답 샘플
+  flow/                flow.json, 흐름 화면 코드
+  wiki/                프로젝트 위키 (index, log, 연결지도, 주제 쪽)
+  chat/                위키 챗봇 화면과 서버 코드
+  app/                 웹앱 (로그인, 입력, 대시보드, 관리자)
+  slides/index.html    발표 슬라이드</pre><div class="say"><b class="l">읊을 말</b><p>저장소 모양은 이래요. 이름은 바꿔도 돼요. 대신 README에서 "이건 여기 있어요" 하고 연결만 해 주세요.</p><p>심사하는 사람이 처음 여는 파일이 README예요. 거기서 길을 잃으면 아무리 잘 만들어도 안 보여요.</p></div>
+<h2 id="c">문제정의 샘플</h2>
+<div class="file"><div class="fn">docs/문제정의.md</div><div class="fb"><p><b>한 문장.</b> 취업 준비생은 관심 공고의 마감이 바뀐 것을 늦게 알아서, 지원 기회를 놓치거나 서류를 급하게 낸다.</p>
+<p><b>누가.</b> 지원 공고 열 개 안팎을 동시에 보는 취업 준비생. 공고 사이트를 매일 한 번 이상 직접 열어 확인한다.</p>
+<p><b>얼마나 잃나.</b> 인터뷰한 세 명 중 두 명이 최근 석 달 안에 마감 변경을 놓친 적이 있다. 민지는 서류 마감이 20일에서 18일로 당겨진 걸 19일에 알았다.</p>
+<p><b>지금 쓰는 방법.</b> 즐겨찾기를 열어 하나씩 확인하기, 캘린더에 마감일을 손으로 적기. 시간이 하루 15분쯤 든다고 했다.</p>
+<p><b>근거.</b> 인터뷰 2명(사람), 인터뷰 1명(AI가 맡은 역할극, 구분 표시), 공고 사이트 변경 이력 관찰 3곳.</p>
+<p><b>반대 근거와 모르는 것.</b> 현우는 "알림이 와도 어차피 매일 들어가서 본다"고 했다. 알림이 행동을 바꾸는지는 아직 모른다. 마감 변경이 얼마나 자주 일어나는지는 세 곳을 2주 지켜본 값뿐이다.</p>
+<p><b>후보와 탈락.</b> 지원사업 공지, 구매 가격 변동도 검토했다. 인터뷰할 사람을 구하기 어려워 접었다.</p>
+<p><b>문제에서 기능까지.</b> 근거(민지의 놓침) → 사건(마감 앞당김) → 조치(지원 일정 수정안 승인) → 검증(가짜 공고로 감지 채점).</p></div></div><div class="say"><b class="l">읊을 말</b><p>문제정의는 이 프로젝트에서 제일 크게 봐요. 그래서 한 장이지만 칸이 많아요.</p><p>먼저 한 문장. 누가 뭘 놓쳐서 뭘 잃는지. 그다음에 근거예요. 민지가 그랬다는 건 가정이지만, 여러분은 진짜 인터뷰로 채워야 해요.</p><p>현우의 반대 의견도 일부러 적었어요. 불리한 말을 적어 두는 팀이 신뢰가 가요. 그리고 마지막 줄을 보세요. 근거에서 사건으로, 사건에서 조치로, 조치에서 검증으로 이어져요. 이 줄이 끊기면 기능이 근거 없이 떠 있는 거예요.</p></div>
+<h2 id="d">기획 문서 샘플</h2>
+<div class="file"><div class="fn">docs/IA.md (발췌)</div><div class="fb"><p>메뉴: 내 공고 / 변경 알림 / 처리 기록 / 관리자(관리자만) / 팀 문서 챗봇(팀원만)</p><p>화면: 로그인 → 내 공고 목록 → 공고 추가 → 변경 알림 상세(승인과 거절) → 처리 기록 검색</p></div></div><div class="file"><div class="fn">docs/uj.md (발췌)</div><div class="fb"><p>민지가 아침에 알림을 받는다 → 알림을 눌러 "A사 백엔드 인턴 마감 20일에서 18일"을 본다 → 수정 안을 보고 승인한다 → 일정이 바뀌고 처리 기록에 남는다 → 나중에 비슷한 공고가 바뀌면 지난 기록이 같이 보인다.</p></div></div><div class="file"><div class="fn">docs/prd.md (발췌)</div><div class="fb"><p>요구 R3. 저장해 둔 마감일과 새 마감일이 다르면 변경 사건을 만든다. (출처: 문제정의 근거 1, uj 1단계)</p><p>요구 R5. 사용자가 승인하기 전에는 지원 일정을 바꾸지 않는다. (출처: 인터뷰 민지, uj 3단계)</p><p>이번에 안 하는 것: 이메일 자동 지원, 공고 추천.</p></div></div><div class="file"><div class="fn">docs/데이터설계.md (표 이름과 칸)</div><div class="fb"><table><tr><th>표</th><th>칸</th><th>연결</th></tr><tr><td>users</td><td>id, 이메일, 역할</td><td></td></tr><tr><td>tracked_jobs</td><td>id, user_id, 공고 주소, 목표일, 메모, 작성 시각</td><td>users</td></tr><tr><td>snapshots</td><td>id, 공고 주소, 제목, 마감일, 읽은 시각, 출처, 실수집 여부</td><td>주소로 tracked_jobs와 연결</td></tr><tr><td>incidents</td><td>id, job_id, 이전 마감, 새 마감, 상태</td><td>tracked_jobs</td></tr><tr><td>approvals</td><td>id, incident_id, 승인자, 결과, 시각, 사유</td><td>incidents</td></tr><tr><td>runs / run_steps</td><td>실행 id, 시작 방식, 상태 / 단계 이름, 들어온 것, 나간 것, 오류</td><td>흐름 화면이 읽음</td></tr><tr><td>chat_logs</td><td>질문, 찾은 쪽, 답, 시각</td><td>팀원만</td></tr></table><p>접근 규칙: 사용자는 자기 tracked_jobs와 incidents만 읽고 고친다. 관리자는 전체를 읽되 승인은 대신하지 못한다.</p></div></div><div class="file"><div class="fn">docs/spec.md (발췌: 승인 규칙)</div><div class="fb"><p>1. incidents.상태가 "승인 대기"인 동안 지원 일정 표는 바뀌지 않는다.</p><p>2. 승인하면 일정을 새 마감일로 고치고 approvals에 한 줄을 남긴다.</p><p>3. 거절하면 일정은 그대로이고 사건은 "거절됨"이 된다.</p><p>4. 같은 공고의 같은 변경으로는 사건을 두 번 만들지 않는다.</p></div></div><div class="file"><div class="fn">docs/plan.md (조각 표)</div><div class="fb"><table><tr><th>조각</th><th>담당</th><th>브랜치</th><th>끝났다는 기준</th><th>PR</th></tr><tr><td>공고 읽기와 같은 모양으로 바꾸기</td><td>하은</td><td>feat/watch</td><td>세 곳에서 제목, 주소, 마감일이 같은 모양으로 저장됨</td><td>#4</td></tr><tr><td>마감 비교와 사건 만들기</td><td>서아</td><td>feat/incident</td><td>가짜 공고 20건에서 사건 8건</td><td>#9</td></tr><tr><td>로그인, 입력, 대시보드</td><td>도윤</td><td>feat/app</td><td>새로고침해도 남고 남의 것은 안 보임</td><td>#7</td></tr><tr><td>승인 화면</td><td>도윤</td><td>feat/approve</td><td>승인 전 일정 안 바뀜</td><td>#14</td></tr><tr><td>흐름 화면</td><td>서아</td><td>feat/flow</td><td>상자 색과 오류가 실행 기록에서 그려짐</td><td>#16</td></tr></table></div></div><div class="file"><div class="fn">docs/intent.md (승인 화면 작업)</div><div class="fb"><p><b>문제.</b> 승인 전에 일정이 바뀌는 오류가 QA에서 나왔다.</p><p><b>기대 결과.</b> 승인 대기 상태에서는 일정이 그대로다.</p><p><b>영향 범위.</b> approve 화면과 일정 저장 함수만. 알림 코드는 건드리지 않는다.</p><p><b>제약.</b> 승인 기록은 지우지 않는다.</p><p><b>열린 질문.</b> 승인 후 되돌리기를 지원할지.</p></div></div><div class="say"><b class="l">읊을 말</b><p>문서마다 한 번에 다 읽으려 하지 마세요. 어디가 어디로 이어지는지만 보세요.</p><p>prd의 R5를 보세요. "승인 전엔 일정을 안 바꾼다." 옆에 출처가 적혀 있죠. 인터뷰와 uj에서 왔다는 뜻이에요. 이게 spec의 규칙 1번이 되고, plan의 승인 화면 조각이 되고, PR 14번이 돼요.</p><p>intent는 작업 하나마다 고치는 다섯 칸이에요. 지금 이 작업이 왜 필요한지, 어디까지 건드리는지 적어 두면 Claude도 범위를 안 넘어요.</p></div>
+<h2 id="e">데이터 수집 샘플</h2>
+<div class="file"><div class="fn">docs/data-sources.md</div><div class="fb"><table><tr><th>소스</th><th>방법</th><th>간격</th><th>확인한 것</th><th>실패하면</th></tr><tr><td>공고 사이트 A</td><td>공공 API (키는 서버 환경변수)</td><td>하루 4번</td><td>이용 약관, 하루 호출 한도 1,000회</td><td>수집 오류로 기록하고 이전 값을 유지</td></tr><tr><td>공고 사이트 B</td><td>직접 만든 크롤러</td><td>하루 2번, 요청 사이 3초</td><td>공개 페이지만, robots 허용 확인(10월 20일)</td><td>3번 다시 시도 뒤 오류 기록</td></tr><tr><td>공고 사이트 C</td><td>Firecrawl (키는 서버에만)</td><td>하루 1번</td><td>무료 한도 안에서 쓰는지 대시보드로 확인</td><td>한도 초과면 건너뛰고 관리자에게 표시</td></tr></table></div></div><div class="file"><div class="fn">수집 결과 샘플 (같은 모양으로 바꾼 뒤)</div><div class="fb"><pre style="margin:0;font-size:13px;overflow:auto">{ "출처": "사이트B", "주소": "https://example.com/jobs/1031", "제목": "백엔드 인턴",
+  "마감일": "2026-11-18", "읽은 시각": "2026-11-09T09:00", "실수집": true }</pre></div></div><div class="say"><b class="l">읊을 말</b><p>데이터는 세 가지 방법 중에서 골라요. 마감지기는 셋을 다 썼어요.</p><p>표를 보면 소스마다 얼마나 자주 읽는지, 약관을 확인했는지, 실패하면 어떻게 하는지가 적혀 있어요. 이걸 안 적으면 어느 날 갑자기 막혔을 때 이유를 몰라요.</p><p>아래 JSON은 세 곳에서 읽은 걸 같은 모양으로 맞춘 결과예요. "실수집"이 true면 진짜로 읽어 온 거고, 시연용 가짜는 false로 표시해요.</p></div>
+<h2 id="f">화면 샘플</h2>
+<div class="mock"><div class="bar">/dashboard  (사용자: 민지)</div><div class="in"><div class="kpi"><div><b>9</b>관심 공고</div><div><b>3</b>변경 감지</div><div><b>1</b>승인 대기</div><div><b>2</b>처리 완료</div></div><table><tr><th>공고</th><th>이전 마감</th><th>새 마감</th><th>상태</th></tr><tr><td>A사 백엔드 인턴</td><td>11/20</td><td>11/18</td><td><span class="tag wait">승인 대기</span></td></tr><tr><td>B사 데이터 분석</td><td>12/02</td><td>12/05</td><td><span class="tag ok">처리 완료</span></td></tr><tr><td>C사 서비스 기획</td><td>11/25</td><td>11/25</td><td>변화 없음</td></tr></table></div></div><div class="mock"><div class="bar">/incidents/12  (변경 알림 상세)</div><div class="in"><p><b>A사 백엔드 인턴</b> 마감이 <b>11/20에서 11/18</b>로 앞당겨졌습니다. (읽은 시각 11/09 09:00, 출처 사이트B)</p><p>수정안: 내 지원 일정의 서류 마감을 11/18로 바꿉니다. 승인하기 전에는 아무것도 바뀌지 않습니다.</p><p><span class="btn">승인</span><span class="btn g">거절</span></p><p style="font-size:13px;color:var(--muted)">비슷한 과거 기록: 8월 D사 인턴 마감 앞당김, 그때는 승인해서 처리함 (기록 보기)</p></div></div><div class="mock"><div class="bar">/admin  (관리자만)</div><div class="in"><table><tr><th>회원</th><th>입력 공고</th><th>사건</th><th>대기</th></tr><tr><td>minji@</td><td>9</td><td>3</td><td>1</td></tr><tr><td>hyunwoo@</td><td>6</td><td>1</td><td>0</td></tr></table><p>수집 실패: 사이트B 어제 18:00 시간 초과 <span class="tag bad">실패</span> → 3번 다시 시도 뒤 오류 기록 &nbsp; <span class="btn g">지금 한 번 실행</span></p></div></div><div class="mock"><div class="bar">/admin/flow  (흐름 화면)</div><div class="in"><svg viewBox="0 0 1000 350" role="img" aria-label="흐름 화면 예시: 여덟 상자가 이어지고 아래에 실행 목록과 상자 상세가 있음">
+  <defs><marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+  <rect class="n-ok" x="10" y="40" width="100" height="56" rx="10"/><text x="60" y="73" text-anchor="middle" font-size="14" font-weight="700">가져오기</text>
+  <path class="arrow" d="M110 68 L135 68" marker-end="url(#ahs)"/>
+  <text x="122" y="32" text-anchor="middle" font-size="11" class="t-muted">12건</text>
+  <rect class="n-ok" x="135" y="40" width="100" height="56" rx="10"/><text x="185" y="73" text-anchor="middle" font-size="14" font-weight="700">같은 모양</text>
+  <path class="arrow" d="M235 68 L260 68" marker-end="url(#ahs)"/>
+  <text x="247" y="32" text-anchor="middle" font-size="11" class="t-muted">12건</text>
+  <rect class="n-ok" x="260" y="40" width="100" height="56" rx="10"/><text x="310" y="73" text-anchor="middle" font-size="14" font-weight="700">비교</text>
+  <path class="arrow" d="M360 68 L385 68" marker-end="url(#ahs)"/>
+  <text x="372" y="32" text-anchor="middle" font-size="11" class="t-muted">3건</text>
+  <rect class="n-ok" x="385" y="40" width="100" height="56" rx="10"/><text x="435" y="73" text-anchor="middle" font-size="14" font-weight="700">사건</text>
+  <path class="arrow" d="M485 68 L510 68" marker-end="url(#ahs)"/>
+  <text x="497" y="32" text-anchor="middle" font-size="11" class="t-muted">3건</text>
+  <rect class="n-ok" x="510" y="40" width="100" height="56" rx="10"/><text x="560" y="73" text-anchor="middle" font-size="14" font-weight="700">알림</text>
+  <path class="arrow" d="M610 68 L635 68" marker-end="url(#ahs)"/>
+  <text x="622" y="32" text-anchor="middle" font-size="11" class="t-muted">3건</text>
+  <rect class="n-wait" x="635" y="40" width="100" height="56" rx="10"/><text x="685" y="73" text-anchor="middle" font-size="14" font-weight="700">사람 승인</text>
+  <path class="arrow" d="M735 68 L760 68" marker-end="url(#ahs)"/>
+  <rect class="b-plain" x="760" y="40" width="100" height="56" rx="10"/><text x="810" y="73" text-anchor="middle" font-size="14" font-weight="700">조치</text>
+  <path class="arrow" d="M860 68 L885 68" marker-end="url(#ahs)"/>
+  <rect class="b-plain" x="885" y="40" width="100" height="56" rx="10"/><text x="935" y="73" text-anchor="middle" font-size="14" font-weight="700">기록</text>
+  <rect class="b-plain" x="10" y="125" width="590" height="190" rx="10"/>
+  <text x="26" y="151" font-size="14" font-weight="700">실행 목록</text>
+  <text x="26" y="184" font-size="13" class="t-muted">09:00 예약 실행</text><text x="170" y="184" font-size="13" style="fill:var(--ok)">성공</text><text x="230" y="184" font-size="13">8.2초 · 공고 12건에서 사건 3건</text>
+  <text x="26" y="222" font-size="13" class="t-muted">09:14 지금 실행</text><text x="170" y="222" font-size="13" style="fill:var(--bad)">실패</text><text x="230" y="222" font-size="13">비교 상자에서 멈춤: 마감일 칸이 비어 있음</text>
+  <text x="26" y="260" font-size="13" class="t-muted">09:20 시뮬레이터</text><text x="170" y="260" font-size="13" class="t-acc">승인 대기</text><text x="250" y="260" font-size="13">사건 1건이 사람 승인을 기다림</text>
+  <text x="26" y="298" font-size="12" class="t-muted">줄을 누르면 그 실행의 상자 색이 위 그림에 다시 나타납니다</text>
+  <rect class="b-plain" x="620" y="125" width="370" height="190" rx="10"/>
+  <text x="636" y="151" font-size="14" font-weight="700">상자를 누르면 (예: 비교)</text>
+  <text x="636" y="182" font-size="13">들어온 것: 공고 12건</text>
+  <text x="636" y="208" font-size="13">나간 것: 사건 후보 3건</text>
+  <text x="636" y="234" font-size="13">걸린 시간: 0.4초</text>
+  <text x="636" y="260" font-size="13">오류: 없음</text>
+  <text x="636" y="298" font-size="12" class="t-muted">비밀값과 개인정보는 가려서 보여 줌</text>
+  <text x="10" y="338" font-size="12" class="t-muted">초록 실선 성공 · 빨강 실패 · 주황 점선 승인 대기 · 회색 아직 안 켜짐</text>
+</svg></div></div><div class="mock"><div class="bar">/admin/chat  (팀 문서 챗봇)</div><div class="in"><div class="chat"><div class="q">승인 전에 일정을 바꾸지 못하게 하는 규칙은 어디에 있어?</div><div class="a">승인 규칙 쪽에 있습니다. 승인 대기 상태에서는 일정 표가 바뀌지 않고, 승인하면 새 마감일로 고친 뒤 기록을 남깁니다.<div class="src">출처: wiki/승인-규칙.md ← docs/spec.md 승인 절 · PR #14 · QA 7번</div></div><div class="q">대표님 점심 메뉴는?</div><div class="a">위키에 없습니다.</div></div></div></div><div class="say"><b class="l">읊을 말</b><p>화면은 다섯 개만 보여 드릴게요.</p><p>첫째, 사용자 대시보드. 숫자는 진짜 DB 값이고 누르면 목록으로 가요. 둘째, 알림 상세. 승인 버튼 위에 "승인 전엔 아무것도 안 바뀐다"고 적혀 있어요. 사람이 마지막에 결정한다는 뜻이에요. 셋째, 관리자 화면. 수집이 실패한 곳과 "지금 한 번 실행" 버튼이 있어요. 시연할 때 이 버튼이 유용해요.</p><p>넷째가 이번 프로젝트의 중심이에요. 흐름 화면. 상자가 줄지어 있고 초록은 성공이에요. 사람 승인 상자가 주황 점선으로 멈춰 있죠? 지금 승인을 기다린다는 뜻이에요. 아래 실행 목록에는 실패한 실행도 있어요. 마감일 칸이 비어서 비교 상자에서 멈췄다고 적혀 있어요. 이게 미리 그려 둔 그림이 아니라 DB의 실행 기록에서 그려졌다는 걸 꼭 보여 주세요.</p><p>다섯째는 챗봇. 질문하면 답과 함께 어느 문서에서 왔는지 보여 줘요. 위키에 없는 건 없다고 해요.</p></div>
+<h2 id="g">프로젝트 위키 샘플</h2>
+<div class="file"><div class="fn">wiki/승인-규칙.md</div><div class="fb"><p><b>요약.</b> 승인 대기 중에는 지원 일정이 바뀌지 않고, 승인하면 새 마감일로 고친 뒤 기록을 남긴다.</p><p><b>규칙.</b> 승인 전 일정 고정(출처: docs/spec.md 승인 절 1). 승인 기록은 지우지 않음(출처: docs/intent.md 제약).</p><p><b>관련.</b> [[알림-기준]] · [[수집-소스]] · [[처리-기록-찾기]]</p><p><b>충돌.</b> prd R5는 "거절하면 일정 그대로"를 적었지만 spec은 거절 뒤 사건을 닫는지 적지 않았다. 두 문서의 출처를 함께 남기고 팀이 정한다.</p></div></div><table><tr><th>요구</th><th>화면 (IA)</th><th>여정 (uj)</th><th>데이터</th><th>규칙 (spec)</th><th>조각 (plan)</th><th>의도 (intent)</th><th>PR</th><th>QA</th></tr><tr><td>R3 마감 비교</td><td>변경 알림</td><td>1단계</td><td>snapshots, incidents</td><td>비교 규칙 4</td><td>마감 비교</td><td>-</td><td>#9</td><td>3번</td></tr><tr><td>R5 승인 전 고정</td><td>알림 상세</td><td>3단계</td><td>approvals</td><td>승인 규칙 1</td><td>승인 화면</td><td>승인 화면 작업</td><td>#14</td><td>7번</td></tr><tr><td>R7 위키 챗봇</td><td>챗봇</td><td>-</td><td>chat_logs</td><td>-</td><td>챗봇</td><td>-</td><td>#18</td><td><span class="tag bad">없음</span></td></tr></table><div class="say"><b class="l">읊을 말</b><p>위키 쪽 하나를 볼게요. 요약, 규칙, 관련 쪽 링크, 그리고 충돌이 있어요.</p><p>충돌 칸을 보세요. prd와 spec이 거절 뒤 처리를 다르게 적었어요. 위키는 한쪽을 고르지 않고 둘 다 적어요. 고르는 건 사람이에요.</p><p>아래 표가 연결 지도예요. 한 줄이 요구 하나가 어디로 갔는지 보여 줘요. 맨 아래 줄을 보세요. R7은 QA가 비어 있어요. 연결 지도가 이렇게 빈 곳을 찾아 줘요. 이게 문서를 위키로 묶어 두는 이유예요.</p></div>
+<h2 id="h">하네스 기록 샘플 (에이전트와 커넥터)</h2>
+<div class="file"><div class="fn">docs/agents.md</div><div class="fb"><table><tr><th>에이전트</th><th>맡긴 일</th><th>받은 결과</th><th>사람이 확인한 것</th><th>잘 안 된 점</th><th>근거</th></tr><tr><td>spec-checker (검토자)</td><td>prd와 spec이 서로 맞는지 읽기만</td><td>어긋난 곳 2개 목록</td><td>하은이 두 곳을 열어 봄. 하나는 코드, 하나는 문서를 고침</td><td>처음엔 파일을 직접 고치려 해서 "읽기만"을 지시에 추가</td><td>PR #14 리뷰</td></tr><tr><td>qa-runner (실행자)</td><td>승인 거절 저장 실패 세 경우 눌러 보기</td><td>Pass 5, Fail 1</td><td>서아가 Fail 1건을 직접 재현</td><td>스크린샷이 없어서 증거를 남기라고 시킴</td><td>docs/qa.md</td></tr></table><p>쓰지 않은 큰 일: 수집 코드는 한 사람이 처음부터 끝까지 맡아서 에이전트를 나누지 않았다. 나눌 만큼 독립된 일이 아니었다.</p></div></div><div class="file"><div class="fn">docs/connectors.md</div><div class="fb"><table><tr><th>서비스</th><th>목적</th><th>한 일</th><th>결과</th><th>앱 실행에도 쓰나</th></tr><tr><td>Supabase</td><td>DB 확인</td><td>incidents 표의 접근 규칙을 조회로 검사</td><td>다른 사용자의 행이 안 읽힘(캡처)</td><td>예, 앱의 DB</td></tr><tr><td>GitHub</td><td>PR 상태 확인</td><td>열린 PR과 리뷰 대기 목록</td><td>README의 PR 표</td><td>아니오, 개발 중에만</td></tr></table></div></div><div class="say"><b class="l">읊을 말</b><p>에이전트 몇 개 썼느냐는 안 봐요. 뭘 맡겼고 사람이 어떻게 확인했는지를 봐요.</p><p>spec-checker 줄을 보세요. 읽기만 시켰는데 처음엔 파일을 고치려 했어요. 그래서 지시에 "읽기만"을 더했다고 적었어요. 이런 실패와 고친 기록이 점수가 되는 부분이에요.</p><p>아래에 "쓰지 않은 큰 일"도 적었어요. 나눌 만큼 독립된 일이 아니라서 안 썼다는 이유예요. 억지로 늘리지 않았다는 게 보여서 좋아요.</p></div>
+<h2 id="i">확인 기록 샘플 (채점, QA, 오류, 챗봇)</h2>
+<div class="file"><div class="fn">eval/ 결과 (가짜 공고 20건)</div><div class="fb"><table><tr><th>정답 사건</th><th>맞힌 것</th><th>놓친 것</th><th>잘못 울린 것</th></tr><tr><td>8건</td><td>7건</td><td>1건 (마감일 형식이 달랐음)</td><td>1건 (마감 글자가 다른데 날짜는 같음)</td></tr></table><p>실행 날짜 11월 9일, 대상 버전 main 3f2c1a0. 놓친 1건은 날짜 읽는 코드를 고쳐 다음 실행에서 맞힘.</p></div></div><div class="file"><div class="fn">docs/qa.md</div><div class="fb"><table><tr><th>#</th><th>검사</th><th>결과</th><th>수행자</th><th>증거</th></tr><tr><td>1</td><td>다시 로그인해도 입력이 남는다</td><td><span class="tag ok">Pass</span></td><td>도윤</td><td>qa/01.png</td></tr><tr><td>7</td><td>승인 전 일정이 안 바뀐다</td><td><span class="tag bad">Fail</span> → 고친 뒤 Pass</td><td>서아</td><td>qa/07-before.png, 07-after.png</td></tr><tr><td>9</td><td>남의 공고가 안 보인다</td><td><span class="tag ok">Pass</span></td><td>하은</td><td>qa/09.png</td></tr><tr><td>11</td><td>매일 9시 예약 실행</td><td><span class="tag wait">No Run</span></td><td>-</td><td>내일 확인 예정</td></tr></table></div></div><div class="file"><div class="fn">docs/debug-note.md (한 건)</div><div class="fb"><p><b>증상.</b> 승인 대기인데 일정 표의 마감일이 바뀌어 있었다.</p><p><b>재현.</b> 알림 상세에서 승인을 누르지 않고 새로고침하면 바뀐다.</p><p><b>원인.</b> 사건을 만들 때 일정 표도 같이 고치는 코드가 있었다.</p><p><b>수정.</b> 일정 수정은 승인 함수 안으로만 옮김(PR #14). <b>재검사.</b> QA 7번 Pass.</p></div></div><div class="file"><div class="fn">docs/wiki-chat.md (정답표와 결과)</div><div class="fb"><table><tr><th>질문</th><th>종류</th><th>챗봇 답</th><th>맞나</th></tr><tr><td>승인 규칙은 어느 문서에 있어?</td><td>위키에 있음</td><td>spec 승인 절, 출처 표시</td><td>맞음</td></tr><tr><td>수집 간격은 어디에 있어?</td><td>위키에 있음</td><td>data-sources 표</td><td>맞음</td></tr><tr><td>이 요구는 어느 PR에서 만들었어?</td><td>위키에 있음</td><td>PR 14 (맞음)</td><td>맞음</td></tr><tr><td>대표님 점심 메뉴는?</td><td>위키에 없음</td><td>위키에 없습니다</td><td>맞음</td></tr><tr><td>spec과 prd가 다른 곳 있어?</td><td>어긋남 찾기</td><td>"다른 곳이 없습니다" (실제로는 거절 뒤 처리가 다름)</td><td>틀림: 충돌 쪽을 못 찾음, 찾는 낱말에 "거절"을 넣도록 고침</td></tr></table></div></div><div class="say"><b class="l">읊을 말</b><p>감지가 맞는지는 말로 하지 않고 숫자로 보여 줘요. 정답 8건 중 7건을 맞히고 1건을 놓쳤고 1건은 잘못 울렸어요. 놓친 이유도 적혀 있죠.</p><p>QA는 Pass, Fail, No Run을 구분해요. 7번을 보세요. 처음엔 Fail이었고 고친 뒤에 Pass예요. 증거 사진도 전과 후가 있어요. 11번은 No Run이에요. 안 해 봤으면 안 했다고 적는 거예요. 이걸 Pass로 적으면 안 돼요.</p><p>챗봇 정답표는 다섯 개 중 네 개를 맞혔어요. 틀린 하나를 숨기지 않고 왜 틀렸는지, 어떻게 고쳤는지 적었어요.</p></div>
+<h2 id="j">발표 슬라이드 샘플 (12장)</h2>
+<table><tr><th>장</th><th>제목</th><th>담는 것</th></tr><tr><td>1</td><td>문제</td><td>민지가 놓친 마감. 인터뷰 세 명, 한 명은 반대 의견. 지금은 하루 15분을 써서 직접 확인</td></tr><tr><td>2</td><td>지켜본 곳</td><td>세 곳, 세 가지 방법(공공 API, 크롤러, Firecrawl). 막혔을 때 어떻게 했는지</td></tr><tr><td>3</td><td>입력과 운영 화면</td><td>입력한 공고가 DB에 저장되고 수집한 공고와 이어지는 모습. 관리자 권한 구분</td></tr><tr><td>4</td><td>사건과 대응</td><td>마감이 앞당겨지면 사건, 알림, 사람 승인</td></tr><tr><td>5</td><td>시연</td><td>가짜 공고를 쏘면 흐름 화면의 상자가 차례로 켜짐. 사람 승인에서 멈췄다가 이어짐</td></tr><tr><td>6</td><td>일부러 실패</td><td>마감일 칸을 비우면 비교 상자가 빨개지고 오류 기록이 남음</td></tr><tr><td>7</td><td>확인</td><td>채점 7/8, 놓친 1건과 잘못 울린 1건, 합친 뒤 잡은 오류(승인 전 일정 변경)</td></tr><tr><td>8</td><td>문서 위키와 챗봇</td><td>연결 지도를 보여 주고 챗봇에게 PR 번호를 물어봄. 틀린 답 한 개와 고친 방법</td></tr><tr><td>9</td><td>커넥터</td><td>Supabase와 GitHub를 어디에 썼는지</td></tr><tr><td>10</td><td>하네스와 서브에이전트</td><td>spec-checker가 파일을 고치려 한 실패, 지시를 고친 뒤 결과</td></tr><tr><td>11</td><td>팀원별 기여</td><td>맡은 조각, PR과 리뷰 번호, 함께 잡은 오류</td></tr><tr><td>12</td><td>다음에 해 볼 것</td><td>알림이 행동을 바꾸는지 사람 인터뷰로 확인, 다음 개선 하나</td></tr></table><div class="say"><b class="l">읊을 말</b><p>발표는 열두 장이에요. 앞의 다섯 장이 길고 뒤로 갈수록 짧아져요. 문제에 가장 많은 시간을 써요.</p><p>5번째 장이 시연이에요. 말로 설명하지 말고 가짜 공고를 직접 쏴서 상자가 켜지는 걸 보여 주세요. 그다음 6번째 장에서 일부러 망가뜨려 보세요. 빨간 상자와 오류 기록이 나오면 청중이 이해해요.</p><p>슬라이드도 Vercel에 올려서 주소 하나로 발표해요. 발표 전날 다른 기기에서 열어 보고요.</p></div>
+<h2 id="k">개인 결과물 샘플</h2>
+<div class="file"><div class="fn">개인: 포트폴리오 (HTML 한 페이지) 구성</div><div class="fb"><p>맨 위 한 줄 소개 → 내가 맡은 조각(서아: 마감 비교, 사건 만들기, 흐름 화면) → 화면 캡처 두 장 → 숫자 하나(채점 7/8) → 내가 올린 PR 세 개와 리뷰 두 개 링크 → 배운 것과 다음에 해 볼 것 → 연락처</p></div></div><div class="file"><div class="fn">개인: 이력서 한 줄 예시</div><div class="fb"><p>마감지기(채용 공고 마감 알림 서비스) 팀 프로젝트: 공고 20건 감지 채점에서 정답 사건 8건 중 7건 검출. 흐름 화면(실행 기록 기반 시각화)과 사건 생성 로직을 맡아 PR 4건, 리뷰 3건 진행.</p></div></div><div class="file"><div class="fn">vibelog 한 편 (예)</div><div class="fb"><p><b>제목.</b> 승인 전에 일정이 바뀌어 있었다</p><p>QA를 하다가 승인 버튼을 안 눌렀는데 일정이 바뀐 걸 봤다. Claude에게 고치라고 하기 전에 재현부터 했다. 원인은 사건을 만들 때 일정까지 같이 고치는 코드였다. CLAUDE.md에 "승인 전에는 일정 수정 금지"를 적었고, QA 스킬에 이 경우를 넣었다. 다음 PR에서도 같은 검사가 돌았다.</p></div></div><div class="say"><b class="l">읊을 말</b><p>팀 과제와 별도로 각자 세 개를 내요. 포트폴리오, 이력서, vibelog예요.</p><p>이력서 한 줄을 보세요. "열심히 했다"가 아니라 숫자와 맡은 일이 있어요. 8건 중 7건, PR 네 건, 리뷰 세 건. 팀 프로젝트의 기록이 곧 이력서 재료가 돼요.</p><p>vibelog는 일기가 아니에요. 뭘 만났고 어떻게 고쳤고 규칙에 뭘 남겼는지를 적어요.</p></div>
+<h2 id="l">좋은 결과와 아쉬운 결과</h2>
+<div class="cols"><div class="good"><h3>이렇게 쓰면 믿음이 갑니다</h3><ul><li>문제정의에 인터뷰 몇 명인지와 반대 의견이 있음</li><li>QA에 Fail과 No Run이 솔직하게 적혀 있음</li><li>흐름 화면이 DB 실행 기록에서 그려짐</li><li>에이전트가 실패한 일과 고친 지시가 적혀 있음</li><li>챗봇의 틀린 답을 숨기지 않음</li></ul></div><div class="weak"><h3>이렇게 쓰면 확인이 어렵습니다</h3><ul><li>"사용자들이 불편해한다"만 있고 누구인지 모름</li><li>QA가 전부 Pass이고 증거가 없음</li><li>흐름 화면 불빛이 미리 그린 그림</li><li>에이전트 이름 목록만 있고 결과가 없음</li><li>챗봇이 위키에 없는 질문에 그럴듯하게 답함</li></ul></div></div><div class="say"><b class="l">읊을 말</b><p>마지막으로 비교 하나만 할게요. 왼쪽이 믿음이 가는 쪽이고 오른쪽이 확인이 안 되는 쪽이에요.</p><p>공통점이 하나 있어요. 왼쪽은 전부 직접 해 보고 남긴 흔적이에요. 오른쪽은 말만 있어요. 여러분도 한 줄 쓸 때마다 "이걸 어디서 확인하지?"를 생각하면 돼요.</p></div>
+</main>
+</body>
+</html>
