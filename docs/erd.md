@@ -241,6 +241,8 @@ UK: (kind, ecosystem, value).
 | status | text | ✔ | | `waiting` / `running` / `succeeded` / `failed` / `awaiting_judgment` |
 | input_summary · output_summary | text | | | 가린 뒤의 요약 |
 | api_url · http_status · duration_ms | text · int · int | | | 호출 내용(비밀값 제외) |
+| count_in · count_out | int | | | 들어온 건수 · 나간 건수(흐름 화면 화살표 위 숫자) |
+| branch_counts | jsonb | | | 분기 상자의 갈래별 건수. 예: `{"사건": 3, "변화 없음": 9, "수집 오류": 0}` |
 | error_kind | text | | | `timeout` / `network` / `rate_limited` / `http_status` / `parse` |
 | error_message | text | | | 가린 뒤의 오류 |
 | started_at · finished_at | timestamptz | | | |
@@ -252,6 +254,7 @@ UK: (kind, ecosystem, value).
 | tech_id | uuid | ✔ | FK→technologies | |
 | metric | text | ✔ | | `grade`, `version`, `activity`, `downloads`, `status` … |
 | prev_value · curr_value | jsonb | | | 이전 값 → 현재 값 |
+| change_size | text | | | **바뀐 정도**(예: "등급 통과 → 위험(2단계)", "주간 다운로드 +12%", "새 버전 1.4.1 → 1.4.2"). 안내서의 같은 모양 칸 |
 | run_id | uuid | ✔ | FK→runs | |
 | observed_at | timestamptz | ✔ | | |
 | is_simulated | bool | ✔ | | |
@@ -413,4 +416,5 @@ UK: (kind, ecosystem, value).
 
 ## 바뀐 기록
 
+- 2026-11-18 안내서 흐름 그림과 대조: `run_steps`에 `count_in`·`count_out`·`branch_counts`(화살표·갈래별 건수), `observations`에 `change_size`(바뀐 정도)
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
