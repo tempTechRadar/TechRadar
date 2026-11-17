@@ -73,6 +73,7 @@
   - 되돌리기 어렵거나 안내서와 다르게 가는 결정 → `docs/adr/`
   - 새 용어나 용어 변경 → `docs/GLOSSARY.md`
   - 서브에이전트 사용 → `docs/agents.md` · 커넥터 사용 → `docs/connectors.md` · 오류와 해결 → `docs/debug-note.md`
+  - 한 단계가 끝나면(PR, 문서 승인, 조각 완료, QA, 오류 해결, 인터뷰 정리) → `abbs-log` 스킬로 각자의 abbsbook에 화면 이미지와 함께 기록. 개인 설정(`.claude/CLAUDE.md`)에 스케치북이 있는 사람만. 세팅 방법은 스킬 0절
 - **끝낼 때:** `docs/intent.md`의 결과 칸, `docs/worklog.md`의 오늘 날짜 항목(한 일과 누가 했는지, 정한 일과 이유, 막힌 일, 아직 안 된 것)을 채운다. 사람만 할 수 있는 기록(vibelog, 인터뷰)은 마지막 답변에서 상기시킨다.
 
 ## 10. Git·배포·보안
