@@ -5,3 +5,7 @@
 !.claude/agents/
 node_modules/
 !.claude/skills/
+
+# 강사의 비공개 초안·연락처가 들어 있어 저장소에 올리지 않는다(로컬에만, ADR 0004 2026-11-18)
+프로젝트3-안내서.html
+프로젝트3-결과물-샘플.html
