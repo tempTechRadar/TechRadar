@@ -5,7 +5,7 @@
 ---
 
 ## I-016 · 2026-11-17 · IA 팀 인터뷰 1차 반영
-- 브랜치: `docs/ia-draft-1117` (PR #17 `docs/meeting-prep-1117` 위, base는 main). 회의 양식 D8은 `docs/meeting-prep-1117`에
+- 브랜치: `docs/ia-draft-1117` (PR #17이 합쳐져 최신 main 위로 옮김). 회의 양식 D8은 따로 `docs/meeting-d8-1117`에(푸시 전 확인해 보니 PR #17이 이미 합쳐져 있어 새 브랜치로)
 - 출처: `docs/ia.md` 7절 IA-Q1–Q8, `grilling` 인터뷰 2라운드(채팅, 팀원 1명), `docs/문제정의.md` 6절 우선순위, `interviews/2026-11-17-그룹1-사람.md`
 
 | 칸 | 내용 |
