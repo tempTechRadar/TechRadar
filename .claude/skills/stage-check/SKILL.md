@@ -33,7 +33,7 @@ description: TechRadar 프로젝트의 산출물을 프로젝트3 안내서 기�
    - AI 인터뷰·가짜 데이터가 실제 근거처럼 쓰였는지 (`interviews/`의 사람/AI 표시, 근거 표의 칸 구분)
    - 비밀값이 저장소에 있는지: `.env`가 추적되는지(`git ls-files`), 키처럼 보이는 문자열(`sk-`, `ghp_`, `service_role`, `eyJ` 로 시작하는 긴 토큰). 검색 대상은 `git ls-files -co --exclude-standard`(올라갈 파일)이고, `.claude/skills/`는 뺀다(이 스킬의 설명 글이 걸리기 때문).
    - 인터뷰 대상의 이름·연락처가 적혔는지. 열린 PR에 인터뷰 파일이 있으면 그 파일도 본다(합치면 바로 저장소에 남기 때문).
-   - 팀 저장소 공개 여부 (안내서는 비공개 요구). `curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/<owner>/<repo>` 가 200이면 공개다.
+   - 팀 저장소 공개 여부 (안내서는 비공개 요구, 단 ADR 0004로 제출 직전까지 공개 허용 → 9단계 전까지는 ➖, 9단계에서는 비공개 여부를 꼭 확인). `curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/<owner>/<repo>` 가 200이면 공개다.
 
 5. **보고** (아래 양식 그대로)
 
