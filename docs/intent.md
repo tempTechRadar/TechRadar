@@ -4,8 +4,24 @@
 
 ---
 
+## I-015 · 2026-11-17 · main에 빠진 회의 양식 다시 올리기
+- 브랜치: `docs/meeting-prep-1117` (최신 `origin/main`에서 시작)
+- 출처: `docs/debug-note.md` 2026-11-17 PR #16 줄, I-013
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | PR #16이 합쳐진 뒤 푸시해서 회의 양식 커밋 2개가 main에 없다. 내일(11-18 10:00) 회의 전에 팀원이 봐야 한다 |
+| 기대 결과 | 두 커밋을 main 기준 새 PR로 올림, 오류 기록 |
+| 영향 범위 | `docs/팀토론-문제정의-승인.md`, `docs/intent.md`, `docs/worklog.md`, `docs/debug-note.md` |
+| 제약 | 내용은 바꾸지 않고 옮기기만. 리뷰 후 합치기 |
+| 열린 질문 | 없음 |
+
+**결과:** 커밋 2개를 cherry-pick, debug-note 한 줄, 새 PR
+
+---
+
 ## I-013 · 2026-11-17 · 문제정의 승인 회의 준비
-- 브랜치: `docs/problem-def-gaps-1117` (PR #16과 함께 리뷰·합침)
+- 브랜치: `docs/problem-def-gaps-1117` → PR #16이 먼저 합쳐져 main에 빠짐 → `docs/meeting-prep-1117`로 다시 올림(I-015)
 - 출처: 안내서 5장 "팀원끼리 먼저 이야기해 볼 질문", `docs/문제정의.md` 6·11절, stage-check 1단계(팀 토론 기록 ❌)
 
 | 칸 | 내용 |
