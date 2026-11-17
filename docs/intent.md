@@ -4,6 +4,23 @@
 
 ---
 
+## I-021 · 2026-11-17 · 로그인을 노션 + 구글로, Firecrawl 쓰는 곳 정하기
+- 브랜치: `docs/first-read-rule-1117` (PR #25에 이어서)
+- 출처: 팀원 질문(로그인 관리 부담, Firecrawl 사용법), ADR 0007, `docs/prd.md` F1·F2·F8, skills.sh·anthropic.com robots.txt(2026-11-17 확인)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 이메일 로그인은 비밀번호·메일 흐름 관리 부담이 있다. Firecrawl은 "API 없는 페이지 1곳"으로만 적혀 있어 무엇에 쓰는지 없었다 |
+| 기대 결과 | 로그인 방법과 테스트 방법, Firecrawl 대상과 이유를 ADR·prd·IA·uj·데이터설계·출처 문서에 |
+| 영향 범위 | ADR 0007, `docs/prd.md`, `docs/ia.md`, `docs/uj.md`, `docs/데이터설계.md`, `docs/GLOSSARY.md`, `docs/data-sources.md`, `docs/intent.md`, `docs/worklog.md` |
+| 제약 | 실제 구글·노션 로그인 화면은 Claude가 대신 들어가지 않는다. skills.sh 이용약관은 쓰기 전에 사람이 확인 |
+| 열린 질문 | 구글 앱 심사 필요 여부·운영 모드 전환, Firecrawl 무료 한도, skills.sh 약관 (prd O7·O8) |
+
+**결과:** G1–G3 전부 추천대로. 로그인은 노션 + 구글만(이메일 테스트 계정은 개발·QA 환경만), 구글 사용자는 설정에서 노션 연결, Firecrawl은 skills.sh 인기 페이지 1곳(스킬 설치 수, 3순위). 사람이 할 일에 구글 OAuth 클라이언트·skills.sh 약관 확인 추가
+**추가(갈라진 세션에서 사용자가 정함):** 보안 검사 주기(매일 OSV·새 버전 확인 → 바뀌었을 때+주 1회 위험 패턴 검사 → 바뀔 때만 등급 재계산, Claude 호출 없음)를 데이터설계 8절·PRD-F8·F10·ADR 0008에, "누군가의 내 기술"을 "사용자 중 한 명 이상이 쓰는 기술"로(데이터설계·용어집·브리핑)
+
+---
+
 ## I-020 · 2026-11-17 · 2단계 점검에서 나온 것: 첫 등록 알림 규칙, 팀원 실명
 - 브랜치: `docs/first-read-rule-1117` (최신 main, PR #23·#24 합친 뒤)
 - 출처: stage-check 2단계 점검(채팅 보고, 2026-11-17), ADR 0004 원문, `docs/데이터설계.md`, `docs/prd.md` F11·F12·F14
