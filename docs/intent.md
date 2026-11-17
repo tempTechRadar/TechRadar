@@ -4,6 +4,22 @@
 
 ---
 
+## I-018 · 2026-11-17 · prd 인터뷰와 초안 (노션 로그인·연동 포함)
+- 브랜치: `docs/prd-draft-1117` (최신 main, PR #18–#20 합친 뒤). 회의 양식 D2 수정은 따로 `docs/meeting-d2-1117`
+- 출처: 안내서 한눈에 보기(필수 8가지)·3장(Supabase/Appwrite, 정기 실행)·6장, `docs/ia.md`, `docs/uj.md` 6절 prd 후보 13개, `docs/data-sources.md`, Supabase 커넥터 조회(2026-11-17)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 화면과 여정은 있지만 무엇을 만들어야 끝인지(요구·끝 기준), 필수 8가지가 어디서 채워지는지, 저장소 선택 이유가 없다 |
+| 기대 결과 | `docs/prd.md`: 필수 8가지 대응표, 기능 요구 PRD-F·품질 요구 PRD-NF(출처·끝 기준), 기술 선택과 이유, 안 할 것, 사람이 할 일, 열린 질문 |
+| 영향 범위 | `docs/prd.md`(새로), `docs/adr/0007-…`(새로), `docs/ia.md`(IA-1·IA-3·IA-19·D2), `docs/uj.md`(UJ-B), `docs/GLOSSARY.md`, `docs/connectors.md`, `docs/팀토론-문제정의-승인.md`(D2, 별도 브랜치), `docs/intent.md`, `docs/worklog.md` |
+| 제약 | Supabase 새 프로젝트는 만들지 않는다(외부 생성은 묻고 나서). 노션 비밀값은 다루지 않는다. 확인하지 못한 노션·Supabase 동작은 "확인하지 못함"으로 |
+| 열린 질문 | `docs/prd.md` 7절 O1–O6 |
+
+**결과:** 인터뷰 3라운드(팀원 1명): P1–P9 추천대로(Supabase, 출처 OSV·MCP 레지스트리·GitHub, 시뮬레이터·채점, Next.js+Vercel, AI는 네 곳, 안 할 것, 지도 3초, 챗봇 한도). **로그인 노션 + 이메일**: 쌓인 기술 목록을 노션 데이터베이스로 보내기 위해(N1–N7 추천대로, 관리자는 DB 역할 칸). `docs/prd.md`(F31개, NF7개), ADR 0007, IA-19 추가, D2를 "노션으로 보내기"로 구체화. 기존 Supabase "tech-radar-agent"는 참고·처음 데이터 출처로만. 팀 승인 전
+
+---
+
 ## I-017 · 2026-11-17 · 사용자 여정(uj) 인터뷰와 초안
 - 브랜치: `docs/uj-draft-1117` (IA PR #19 위에서 시작, PR base는 main. 푸시 전에 #19가 합쳐졌는지 확인)
 - 출처: 안내서 6장 uj("사건 알림을 받고, 승인하고, 기록되기까지 한 사람의 하루"), 결과물 샘플의 uj 발췌, `docs/ia.md`(IA-n), `docs/문제정의.md` 1·2·4·7절, 인터뷰 2건, CLAUDE.md 3절 불변 규칙
