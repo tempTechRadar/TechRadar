@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { readServiceRoleKey, readSupabasePublicConfig } from "@/lib/env";
+import { readServiceRoleKey, readSupabasePublicConfig } from "../env.ts";
 
 /**
  * 서비스 키 Supabase 클라이언트(서버 전용, RLS를 건너뜀). 주인: 김영식(A).
