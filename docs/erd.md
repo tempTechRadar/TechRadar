@@ -77,6 +77,7 @@ erDiagram
     uuid project_id FK
     uuid tech_id FK
     text origin
+    text grade "my version"
   }
   changes {
     uuid id PK
@@ -146,8 +147,13 @@ erDiagram
 | read_at | timestamptz | | | 마지막으로 읽은 시각 |
 | collect_error_kind | text | | | 이 줄을 못 읽었을 때 오류 종류 |
 | added_by | uuid | ✔ | FK→profiles | 누가 넣었나 |
+| grade | text | ✔ | | **내 버전**의 보안 등급 `pass` / `caution` / `danger` / `unknown`. 기본 `unknown`. 쓰기는 서버 |
+| grade_reason · grade_evidence · grade_rule_version · graded_at | text · jsonb · text · timestamptz | | | `technologies`의 같은 이름 칸과 같은 뜻, 단 이 줄의 `version` 기준 |
+| last_checked_ok_at | timestamptz | | | 이 버전의 마지막 확인 성공 시각(SPEC-1 "수집 오류 (마지막 확인 …)") |
 
 UK: (project_id, tech_id), (project_id, manual_name).
+
+**왜 등급이 두 곳에:** OSV 취약점은 버전마다 다르다(0.1.15 위험, 0.1.16 아님). 기술 키에는 버전이 없어서 `technologies.grade` 한 칸에 쓰면 다른 사람이 다른 버전을 읽을 때 덮어쓴다. 그래서 **내 기술 목록·알림은 `my_technologies.grade`(내 버전)**를 보고, `technologies.grade`는 버전과 상관없는 판단(위험 패턴, 카탈로그·지도의 대표 등급)에 쓴다. 같은 기술·같은 버전을 쓰는 사람은 한 번 조회한 결과를 함께 받는다. 사용자는 이 칸들을 고칠 수 없다(고칠 수 있는 칸은 `hidden_at`·`manual_name`·`version`만).
 
 ### 2.3 기술 카탈로그 (공용)
 
@@ -418,10 +424,13 @@ UK: (kind, ecosystem, value).
 | profiles · projects · my_technologies · technologies · sources · runs · run_steps · observations · changes · alerts · audit_logs | ✔ | ✔ (RLS 켜짐) | ✔ | — |
 | categories | ✔ (2.3) | ✔ | ✔ | P-30 대신 P-2에서 만듦: `technologies.category_id`가 가리켜서 |
 | judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표의 `fixed_version` 줄은 PR #28(ADR 0012)에 있음. 둘이 합쳐지면 같아짐 |
-| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs | ✔ | 아직 없음 | — | P-30(M1 마이그레이션)에서 만든다 |
+| my_technologies 내 버전 등급 칸 (2026-11-18, P-3) | ✔ (2.2) | ✔ 6칸, 사용자 고치기 권한은 `hidden_at`·`manual_name`·`version`만 | ✔ | 마이그레이션 `202611181600_P-3_my_tech_grade.sql`(DB 이름 `p3_my_tech_grade`). 시험 4개 기대값 |
+| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs (2026-11-18, P-30) | ✔ | ✔ (RLS 켜짐, 공개 테이블 20개 모두 켜짐) | ✔ | 마이그레이션 `202611181700_P-30_m1_tables.sql`(DB 이름 `p30_m1_tables`). erd에 없던 것을 더함: `rule_lists` 종류별 칸 check, `tech_relations` 확정 ⇔ 확정 시각 check, 7개 모두 지우기 금지, 관리자는 관계의 확정 칸 3개만 고침. 허용 목록 처음 값 28줄. 시험 `rls_m1.sql` 23개 기대값 |
 | 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
 
 ## 바뀐 기록
+- 2026-11-18 P-30: M1 테이블 7개를 실제 DB에 만듦(7절). 칸은 2절 그대로, 지우기 금지와 확정 칸만 고치기를 더함
+- 2026-11-18 P-3 코드 검토: `my_technologies`에 내 버전 등급 칸(`grade`·`grade_reason`·`grade_evidence`·`grade_rule_version`·`graded_at`·`last_checked_ok_at`). `technologies.grade` 한 칸이면 다른 버전을 쓰는 사람끼리 등급을 덮어써서(사용자 결정 "칸 추가"). 사용자가 고칠 수 있는 칸을 `hidden_at`·`manual_name`·`version`으로 좁힘. 마이그레이션 `202611181600_P-3_my_tech_grade.sql`
 
 - 2026-11-18 안내서 흐름 그림과 대조: `run_steps`에 `count_in`·`count_out`·`branch_counts`(화살표·갈래별 건수), `observations`에 `change_size`(바뀐 정도)
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
