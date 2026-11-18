@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
-import { filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, type TechFilter } from "@/lib/domain/my-tech-view";
+import { filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import { registerProject } from "./actions";
 import { toggleHidden } from "./tech-actions";
@@ -11,12 +11,16 @@ export type MyTech = {
   read_at: string | null; collect_error_kind: string | null; grade: Grade; grade_reason: string | null; last_checked_ok_at: string | null;
   technologies: { tech_key: string; display_name: string } | null;
 };
-export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; my_technologies: MyTech[] };
+// runs: 이 프로젝트의 읽기 실행들(RLS로 본인의 첫 읽기·다시 읽기만 보임). 마지막 읽기 상태 안내(readStatusNotice)에 쓴다. 빠지면 "읽은 기록 없음"으로 보인다.
+export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; my_technologies: MyTech[]; runs?: ReadRun[] };
 
 /** back = 보던 화면(keepView 글). 숨기기·되돌리기 뒤에 같은 화면으로 돌아오게 폼에 싣는다. */
 export function ProjectTechs({ project, filter, back }: { project: ProjectRow; filter: TechFilter; back: string }) {
   const shown = filterTechs(project.my_technologies, filter);
   const hiddenCount = project.my_technologies.filter((m) => m.hidden_at).length;
+  // 읽기가 끝까지 되지 않았으면 목록이 비었거나 일부여도 "없음"·"전부"라고 하지 않는다(불변 2)
+  const notice = readStatusNotice(project.kind, project.runs, new Date());
+  const emptyText = project.my_technologies.length > 0 ? "고른 조건에 맞는 기술이 없어요." : notice ? "" : "읽은 AI 코딩 도구가 없어요.";
   return (
     <section className="card" aria-labelledby={`p-${project.id}`}>
       <h2 id={`p-${project.id}`}>{project.name}</h2>
@@ -30,8 +34,9 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
           </form>
         </div>
       )}
+      {notice && <p className="notice notice-error" role="status">{notice}</p>}
       {hiddenCount > 0 && !filter.showHidden && <p className="muted">숨긴 기술 {hiddenCount}개는 목록에서 뺐어요. '숨긴 기술도 보기'를 켜면 되돌릴 수 있어요.</p>}
-      {shown.length === 0 ? <p>{project.my_technologies.length === 0 ? "읽은 AI 코딩 도구가 없어요." : "고른 조건에 맞는 기술이 없어요."}</p> : <TechTable techs={shown} back={back} />}
+      {shown.length === 0 ? (emptyText && <p>{emptyText}</p>) : <TechTable techs={shown} back={back} />}
     </section>
   );
 }
