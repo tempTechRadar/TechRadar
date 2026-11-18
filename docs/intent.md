@@ -4,6 +4,20 @@
 
 ---
 
+## I-042 · 2026-11-18 · P-18 관리자 화면 — 읽기 화면 다섯 개와 순수 함수 (영역 C, 차세일)
+- 브랜치: `feat/P-18-admin` (worktree `C:\bootcamp\TechRadar-P18`, origin/main 위). 번호는 I-039(PR #46)·I-040(PR #47)·I-041(P-17) 다음
+- 출처: `docs/plan.md` P-18, PRD-F3·F24·F27, IA-12–15·17, ADR 0015·0016, 불변 1·5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 관리자가 회원별 등록, 수집 자료, 모든 알림의 처리 현황, 수집 실행과 오류, 분류 확인을 한곳에서 볼 화면이 없다(흐름 화면·시뮬레이터만 있음) |
+| 기대 결과 | `/admin` 첫 화면과 탭 다섯 개(회원별 등록·수집 자료·알림과 처리 현황·수집 실행과 오류·분류 확인). 회원·출처·상태·종류·기간으로 거르기. 일반 계정은 화면에서 막히고 DB는 RLS가 0줄로 막는다. 알림 화면에 판단 버튼이 없다 |
+| 영향 범위 | `lib/admin/`(새: admin-filter, admin-summaries, admin-access와 시험 3개), `lib/server/admin-queries.ts`·`admin-gate.ts`(새), `app/admin/`(새: page, admin-shell, admin.css, members, observations, alerts, runs, classify), `app/layout.tsx`(메뉴 링크 한 줄) |
+| 제약 | 로그인한 관리자 권한의 클라이언트로만 읽음(서비스 키 안 씀). 이번엔 읽기만: 규칙 고치기·같은 역할 확정·갈래 확정은 담당자·시각·사유(audit_logs)를 함께 남겨야 해서 자리만(버튼 꺼 둠). "지금 한 번 실행"은 P-17이 연결(자리만) |
+| 열린 질문 | 관리자 쓰기(규칙 고치기·확정)를 서버 동작 하나로 묶어 audit_logs와 같은 트랜잭션에 넣을지(DB 함수 필요하면 마이그레이션 리뷰). 일반 계정으로 관리자 주소를 실제로 열어 보는 확인은 로그인 계정이 있는 사람과 함께 |
+| 결과 | 2026-11-18: 순수 함수 시험 12개 + 관문 시험 5개(관리자만, 판단 쓰기 없음, 쓰기·서버 동작 없음, 서비스 키 없음). 전체 시험 189 통과·실패 0(할 일 1개는 기존), 타입 검사 통과. 못 한 것: `next build`(worktree의 node_modules 연결을 Turbopack이 못 찾음), 실제 DB로 화면 열기, 화면 캡처 |
+
+---
 ## I-038 · 2026-11-18 · P-19 설치 프롬프트·가져오기 — 순수 함수 (영역 C, 차세일)
 - 브랜치: `feat/P-19-install-prompt` (worktree `C:\bootcamp\TechRadar-P19`, origin/main 위). 번호 I-034는 P-5(PR #40)가 씀
 - 출처: `docs/plan.md` P-19, SPEC-4.3·6.1·6.2·6.3, PRD-F25·F33, ADR 0009·0012, IA-22

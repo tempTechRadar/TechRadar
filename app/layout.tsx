@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Link href="/projects">내 프로젝트</Link>
           <Link href="/alerts">알림</Link>
           <Link href="/login">로그인</Link>
-          <Link href="/admin/flow">흐름(관리자)</Link>
+          <Link href="/admin">관리자</Link>
         </nav>
         {children}
       </body>
