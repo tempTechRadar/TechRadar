@@ -1,0 +1,63 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { getMyAlert } from "@/lib/server/alert-queries";
+import { getCurrentUser } from "@/lib/server/current-user";
+import { getServerSupabase } from "@/lib/supabase/server";
+import "../alerts.css";
+
+// 알림 상세(IA-7, PRD-F15). 판단하기 카드는 P-8, 대응안 초안·비슷한 지난 판단은 P-13·P-15에서 붙인다.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const { id } = await params;
+  if (!UUID.test(id)) notFound(); // 형식이 틀린 id는 DB가 오류로 답하므로 "불러오지 못함"과 섞이지 않게 먼저 거른다
+  const supabase = (await getServerSupabase())!;
+  const loaded = await getMyAlert(supabase, user.id, id).then((record) => ({ record }), (e) => { console.error("알림 상세 조회 실패", e); return null; });
+
+  if (loaded === null) return <LoadError id={id} />;
+  if (loaded.record === null) notFound();
+  const view = toAlertView(loaded.record);
+  return (
+    <main className="alerts">
+      <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
+      <h1>{view.title}</h1>
+      <p>
+        <span className={`badge badge-${view.kindTone}`}>{view.kindLabel}</span>{" "}
+        <span className={`badge badge-${view.statusTone}`}>{view.statusLabel}</span>
+      </p>
+      {view.lines.length > 0 && (
+        <article className="card" aria-labelledby="changed-title">
+          <h2 id="changed-title">무엇이 바뀌었나</h2>
+          <dl className="kv">
+            {view.lines.map((line) => {
+              const [label, ...rest] = line.split(": ");
+              return <Row key={label} label={label} value={rest.join(": ")} />;
+            })}
+          </dl>
+        </article>
+      )}
+    </main>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </>
+  );
+}
+
+function LoadError({ id }: { id: string }) {
+  return (
+    <main className="alerts">
+      <div className="notice notice-error" role="alert">
+        <strong>알림을 불러오지 못했어요.</strong> 알림이 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요. <Link href={`/alerts/${id}`}>다시 불러오기</Link>
+      </div>
+    </main>
+  );
+}
