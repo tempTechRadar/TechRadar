@@ -1,4 +1,5 @@
 // 흐름 그림(SVG). 색은 colorize()가 실제 기록에서 정한 값만 쓴다(불변 6). 색만으로 구분하지 않게 글자로도 적는다.
+import { LABEL_H, labelWidth, placeLabel, type Rect } from "@/lib/flow/edge-label";
 import { BOX, layoutFlow } from "@/lib/flow/layout";
 import type { Colored, NodeState } from "@/lib/flow/status";
 import type { Flow } from "@/lib/flow/types";
@@ -12,8 +13,6 @@ const LOOK: Record<NodeState, { fill: string; stroke: string; label: string; das
   disabled: { fill: "#f6f5f1", stroke: "#cfcabe", label: "꺼 둠(3순위)", dash: "3 4" },
 };
 
-/** 꼬리표 폭: 한글·기호는 넓고 영문·숫자는 좁다. */
-const tagWidth = (s: string) => [...s].reduce((w, c) => w + (c.charCodeAt(0) < 128 ? 6.8 : 11), 14);
 
 /** 이름을 한 줄 11자 안팎, 최대 두 줄로 나눈다. */
 function wrap(name: string): string[] {
@@ -52,18 +51,19 @@ type DiagramProps = {
   selected?: string;
 };
 
-function EdgeLabel({ x, y, text }: { x: number; y: number; text: string }) {
-  const w = tagWidth(text);
+/** 자리(r)는 placeLabel이 상자와 겹치지 않게 고른다 */
+function EdgeLabel({ r, text }: { r: Rect; text: string }) {
   return (
-    <g transform={`translate(${x - w / 2} ${y - 9})`} aria-hidden="true">
-      <rect width={w} height={18} rx={9} fill="#fff" stroke="#8a857a" />
-      <text x={w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={600} fill="#2c2a26">{text}</text>
+    <g transform={`translate(${r.x} ${r.y})`} aria-hidden="true">
+      <rect width={r.w} height={LABEL_H} rx={LABEL_H / 2} fill="#fff" stroke="#8a857a" />
+      <text x={r.w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={600} fill="#2c2a26">{text}</text>
     </g>
   );
 }
 
 export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: DiagramProps) {
-  const { nodes, edges, width, height } = layoutFlow(flow);
+  const layout = layoutFlow(flow);
+  const { nodes, edges, width, height } = layout;
   return (
     <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: "#fbfaf7" }}>
       <svg role="img" aria-label="흐름 그림" width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
@@ -101,7 +101,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
               <text x={BOX.w / 2} y={BOX.h - 8} textAnchor="middle" fontSize={11} fill="#5b564c">{look.label}</text>
               {n.badge && (
                 <g transform={`translate(8 -10)`}>
-                  <rect width={tagWidth(n.badge)} height={18} rx={9} fill="#2c2a26" />
+                  <rect width={labelWidth(n.badge)} height={18} rx={9} fill="#2c2a26" />
                   <text x={7} y={13} fontSize={10.5} fill="#fff">{n.badge}</text>
                 </g>
               )}
@@ -110,7 +110,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
           return nodeHref ? <a key={n.id} href={nodeHref(n.id)} aria-label={`${n.name} 상세 보기`}>{box}</a> : box;
         })}
         {edgeLabels && edges.filter((e) => edgeLabels.has(`${e.from}>${e.to}`)).map((e) => (
-          <EdgeLabel key={`label:${e.from}>${e.to}`} x={e.mx} y={e.my} text={edgeLabels.get(`${e.from}>${e.to}`)!} />
+          <EdgeLabel key={`label:${e.from}>${e.to}`} r={placeLabel(e, edgeLabels.get(`${e.from}>${e.to}`)!, layout)} text={edgeLabels.get(`${e.from}>${e.to}`)!} />
         ))}
       </svg>
     </div>
