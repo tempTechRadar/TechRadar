@@ -69,6 +69,21 @@
 
 ---
 
+## I-P-20c-fail-demo · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
+- 번호: I-040(P-20b, PR #47)·I-042(P-18, PR #52)가 열려 있고 main은 I-043까지라 **I-044**
+- 브랜치: `feat/P-20c-fail-demo` (worktree `C:\bootcamp\TechRadar-DEMO`, origin/main 13fd4c0 위)
+- 출처: `docs/plan.md` P-20 끝 기준(실패 시연 5가지), `docs/flow.md` 4절, PRD-F28·F29·F30, 불변 1·2·4·6, SPEC-8(요청 간격)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 발표에서 일부러 실패를 보여 줄 버튼이 없다. 정기 수집기(P-9)가 아직 없어 지금 실행으로는 실행 기록이 생기지 않고, 판단 뒤 조치 상자(action_record)를 칠하는 기록도 없다 |
+| 기대 결과 | `/admin/demo`에서 ①수집 오류 ②사건 아님 ③중복 ④판단 대기 ⑤저장 실패를 버튼으로 재현. 모두 실제 경로(지금 실행 묶음·시뮬레이터·판단 저장의 실패 처리)를 타고, 흐름 화면은 그 기록대로만 칠해진다 |
+| 영향 범위 | `lib/demo/`(새: demo-switch, judgment-hooks, demo-collectors와 시험 4개), `lib/server/action-record.ts`(새, 시험), `lib/server/simulator.ts`(upsertSource·ensureTechnology export만), `app/admin/demo/`(새: page, actions), `app/admin/flow/page.tsx`(링크 한 줄) |
+| 제약 | 시연 스위치는 `ENABLE_FAIL_DEMO=true`이고 운영(VERCEL_ENV=production)이 아닐 때만(테스트 로그인과 같은 방식). 남의 파일(lib/env.ts 김영식, app/alerts/[id]/actions.ts 황재웅)은 고치지 않음(V13). 가짜 표시 줄만 만들고 진짜 사용자 알림·판단은 건드리지 않음. OSV 요청 간격 1초 이상 |
+| 열린 질문 | ⑤와 조치 상자는 판단 서버 동작(황재웅 님 파일)에서 `maybeFailForDemo`·`recordActionOutcome`(+`actionOutcomeOf`)를 부르는 몇 줄이 있어야 켜진다(PR 본문에 그대로 적고 황재웅 님 확인 후 연결). 채점 버튼은 PR #47 합친 뒤 |
+| 결과 | 2026-11-18: 시험 새 22개(스위치 5, 저장 실패 주입 3, 수집기 5, 조치 기록 5, 경계 4), main 합친 뒤 전체 284 통과·실패 0(할 일 1은 기존), 타입 검사 통과. 실제 OSV로 틀린 주소 404→상태 코드, 고친 버전 0건→등급 unknown 확인. 못 한 것: 실제 DB·화면에서 버튼 누르기(서비스 키·시연 계정 필요), `next build`(worktree node_modules 연결 문제) |
+
+---
 ## I-043 · 2026-11-18 · P-3 보강 — 저장소 404를 "없음"으로 보지 않기(D-7)·불변 2 시험(D-8)·`used` 값(Y-3) (영역 A, 김영식)
 - 번호: I-040은 P-20b(PR #47), I-041은 P-17, I-042는 P-18(PR #52)이 먼저 써서 **I-043**
 - 브랜치: `fix/P-3-collect-errors` (처음 main 23fb81a에서 시작, 작업 중 앞서간 main(7732e08)을 따라감. 새 worktree `.claude/worktrees/p3-followup`)

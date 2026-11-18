@@ -24,7 +24,7 @@ const METRIC = "osv_advisory";
 
 const fail = (what: string, message?: string) => new Error(`${what}: ${message ?? "빈 응답"}`);
 
-async function upsertSource(db: SupabaseClient): Promise<string> {
+export async function upsertSource(db: SupabaseClient): Promise<string> {
   const row = { name: SOURCE_NAME, method: "api", priority: 99, enabled: false }; // 꺼 둔 출처: 진짜 수집이 쓰지 않는다
   const { data, error } = await db.from("sources").upsert(row, { onConflict: "name" }).select("id").single();
   if (error || !data) throw fail("가짜 출처를 저장하지 못함", error?.message);
@@ -36,7 +36,7 @@ async function upsertSource(db: SupabaseClient): Promise<string> {
  * 등급 칸은 채우지 않는다: 이 줄은 진짜 사용자 등록에도 쓰일 수 있어 가짜 등급이 보이면 안 된다.
  * 두 번 동시에 눌러도 깨지지 않게 upsert(겹치면 무시) 뒤 다시 읽는다.
  */
-async function ensureTechnology(db: SupabaseClient, techKey: string): Promise<string> {
+export async function ensureTechnology(db: SupabaseClient, techKey: string): Promise<string> {
   const found = await db.from("technologies").select("id").eq("tech_key", techKey).maybeSingle();
   if (found.error) throw fail("기술을 찾지 못함", found.error.message);
   if (found.data) return found.data.id as string;
