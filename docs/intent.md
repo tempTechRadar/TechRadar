@@ -20,6 +20,22 @@
 
 ---
 
+## I-030 · 2026-11-18 · P-4 실행 기록 도구 (영역 C, 차세일)
+- 브랜치: `feat/P-4-run-log` (최신 main, P-2·P-29 합친 뒤)
+- 출처: `docs/plan.md` P-4, PRD-F26·F28, SPEC-8(비밀값 가리기), erd `runs`·`run_steps`, 불변 6, `lib/server/run-log.ts`(P-29가 만든 자리)
+
+| 칸 | 내용 |
+|**결과:** `startRun`(runs에 "실행 중" 한 줄, id 반환)·`recordStep`(요약·오류·호출 주소 가리기, 끝난 단계만 끝난 시각)·`finishRun`(상태·건수) 구현. 비밀값 가리기는 `sk-`·`ghp_`·`sb_secret_`·JWT·Bearer·`KEY=`/`TOKEN:` 값·주소의 `?token=` 값. 가짜 DB 시험 11개, 전체 18/18, 타입 검사 통과. **못 한 것:** 실제 DB에 쓰기(서비스 키 필요), `stepName`이 `flow.json` 상자 id와 같은지 검사(P-6에서 붙일지 정함).
+
+---|---|
+| 문제 | A·B가 만드는 수집·알림·판단 단계가 `runs`·`run_steps`에 기록을 남겨야 흐름 화면(P-6)이 그 기록으로 칠한다. 지금은 `startRun`·`recordStep`이 자리만 있고 호출하면 오류가 난다. 기록에 비밀값이 섞여 공개 저장소·화면에 새면 안 된다 |
+| 기대 결과 | A·B가 `startRun` 하나, `recordStep` 하나로 단계를 남긴다(들어온·나간·갈래별 건수, 호출 주소·응답 코드·걸린 시간, 오류 종류). 요약·오류·호출 주소는 저장 전에 `***`로 가린다. 실행이 끝나면 `finishRun`으로 상태·건수를 닫는다 |
+| 영향 범위 | `lib/server/run-log.ts`(채움), `lib/domain/redact.ts`(새, 가리기 함수), `lib/domain/redact.test.ts`·`lib/server/run-log.test.ts`(새) |
+| 제약 | 서비스 키로만 쓴다(사용자 화면은 읽기만, RLS). 비밀값 가리기는 SPEC-8 목록(`sk-`·`ghp_`·`eyJ…`·`KEY=`·`TOKEN=` 뒤 값)을 따른다. 새 라이브러리 없음. `startRun`·`recordStep` 이름·인자는 P-29에서 정한 대로 바꾸지 않고, `finishRun`만 더한다 |
+| 열린 질문 | 실제 DB에 쓰는 시험은 서비스 키가 필요하다(내 `.env.local`은 비워 둠). 지금은 가짜 DB로 시험하고 실제 DB 확인은 키가 있는 사람(김영식)과 함께 |
+
+---
+
 ## I-029 · 2026-11-18 · P-2 M0 테이블 마이그레이션 + 공용 서버 함수 자리(P-29)
 - 브랜치: `feat/P-2-migration-m0` (최신 main, P-1 합친 뒤)
 - 출처: `docs/plan.md` P-2·P-29, erd 0·2·4절, spec 3.1·7.3·10-1, ADR 0010·0012, 불변 1·3·4·5. 사용자 "진행해줘"(다른 세션에서 전달), DB 적용은 "적용해"
