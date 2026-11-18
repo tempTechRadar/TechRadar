@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "status": "초안, 2026-11-18. docs/flow.md를 함께 본다. 흐름 화면(IA-16)과 내 실행 기록(IA-11)은 이 파일의 상자·화살표 위에 runs·run_steps의 실제 기록을 칠한다.",
+  "node_types": {
+    "start": "시작(트리거)",
+    "api": "API 호출(바깥 서비스, 상자 위에 작은 표시)",
+    "transform": "변환",
+    "branch": "분기",
+    "human": "사람 판단",
+    "db": "DB 저장"
+  },
+  "nodes": [
+    { "id": "start_schedule", "type": "start", "name": "예약 (매일 06:00)", "run_trigger": "schedule", "config": { "cron_utc": "0 21 * * *" } },
+    { "id": "start_manual", "type": "start", "name": "지금 실행 버튼", "run_trigger": "manual" },
+    { "id": "start_simulator", "type": "start", "name": "시뮬레이터", "run_trigger": "simulator" },
+    { "id": "start_first_read", "type": "start", "name": "처음 등록 읽기", "run_trigger": "first_read" },
+    { "id": "start_user_reread", "type": "start", "name": "다시 읽기 버튼", "run_trigger": "user_reread" },
+    { "id": "start_scoring", "type": "start", "name": "채점", "run_trigger": "scoring" },
+
+    { "id": "fetch_osv", "type": "api", "name": "취약점 가져오기", "badge": "OSV", "priority": 1, "config": { "source": "osv", "batch": true } },
+    { "id": "fetch_registry", "type": "api", "name": "MCP 레지스트리 가져오기", "badge": "MCP 레지스트리", "priority": 1, "config": { "source": "mcp_registry", "mode": "updated_since" } },
+    { "id": "fetch_github", "type": "api", "name": "저장소 정보 가져오기", "badge": "GitHub", "priority": 1, "config": { "source": "github", "token": "서버 환경변수" } },
+    { "id": "fetch_downloads", "type": "api", "name": "다운로드 수 가져오기", "badge": "npm·PyPI", "priority": 1, "config": { "source": ["npm_downloads", "pypi_downloads"] } },
+    { "id": "fetch_popularity", "type": "api", "name": "인기 신호 가져오기", "badge": "HF·HN·Firecrawl", "priority": 3, "enabled": false, "config": { "source": ["hf", "hn", "firecrawl_skills_sh"] } },
+
+    { "id": "fetch_repo", "type": "api", "name": "내 저장소 파일 읽기", "badge": "GitHub", "priority": 1, "config": { "files": ["package.json", "requirements.txt", ".mcp.json", ".claude/skills/*/"] } },
+    { "id": "extract_my_tech", "type": "transform", "name": "내 기술 뽑기 (기술 키)", "priority": 1, "config": { "rules": "SPEC-7", "allowlist": "rule_lists.allow_package" } },
+
+    { "id": "normalize", "type": "transform", "name": "같은 모양으로", "priority": 1, "config": { "fields": ["source", "tech_key", "metric", "prev_value", "curr_value", "change_size", "observed_at"] } },
+    { "id": "compare", "type": "transform", "name": "이전 값과 비교", "priority": 1 },
+    { "id": "grade", "type": "transform", "name": "등급 계산 (코드 규칙)", "priority": 1, "config": { "rules": "SPEC-1, SPEC-2", "rule_version": "v1" } },
+
+    { "id": "is_event", "type": "branch", "name": "사건인가?", "priority": 1, "config": { "rules": "SPEC-3" } },
+    { "id": "no_change", "type": "db", "name": "변화 없음 기록", "priority": 1, "config": { "table": "run_steps" } },
+    { "id": "collect_error", "type": "db", "name": "수집 오류 기록", "priority": 1, "config": { "table": "run_steps, technologies.collect_error_kind" } },
+
+    { "id": "save_change", "type": "db", "name": "변경 저장 (중복 막기)", "priority": 1, "config": { "table": "changes", "unique": "dedupe_key" } },
+    { "id": "summarize", "type": "api", "name": "대응안 초안", "badge": "Claude", "priority": 1, "config": { "once_per": "change", "limit": "SPEC-9" } },
+    { "id": "notify", "type": "db", "name": "알림 만들기 (앱 안)", "priority": 1, "config": { "table": "alerts", "unique": "user_id + dedupe_key", "channel": "in_app" } },
+    { "id": "human_judgment", "type": "human", "name": "사람 판단", "priority": 1, "config": { "choices": ["candidate", "hold"], "admin_can_judge": false } },
+    { "id": "action_record", "type": "db", "name": "조치와 기록", "priority": 1, "config": { "table": "judgments", "action": ["candidate_recorded", "hold_reason_recorded"] } },
+
+    { "id": "scenario", "type": "api", "name": "적용 시나리오 (요청할 때, 참고 자료)", "badge": "Claude", "priority": 1, "config": { "trigger": "사용자 요청", "limit": "사용자당 하루 5번", "not_an_action": true } },
+
+    { "id": "score", "type": "transform", "name": "채점 (정답 사례와 비교)", "priority": 1, "config": { "answers": "spec.md 10절 G1–G9, sim/" } },
+    { "id": "score_save", "type": "db", "name": "채점 결과 저장", "priority": 1, "config": { "table": "runs, eval/" } }
+  ],
+  "edges": [
+    { "from": "start_schedule", "to": "fetch_osv", "when": "항상" },
+    { "from": "start_schedule", "to": "fetch_registry", "when": "항상" },
+    { "from": "start_schedule", "to": "fetch_github", "when": "항상" },
+    { "from": "start_schedule", "to": "fetch_downloads", "when": "항상" },
+    { "from": "start_schedule", "to": "fetch_popularity", "when": "3순위가 켜졌을 때" },
+    { "from": "start_manual", "to": "fetch_osv", "when": "항상" },
+    { "from": "start_manual", "to": "fetch_registry", "when": "항상" },
+    { "from": "start_manual", "to": "fetch_github", "when": "항상" },
+    { "from": "start_manual", "to": "fetch_downloads", "when": "항상" },
+    { "from": "start_simulator", "to": "normalize", "when": "가짜 취약점·가짜 새 기술을 넣음(is_simulated)" },
+
+    { "from": "start_first_read", "to": "fetch_repo", "when": "항상" },
+    { "from": "start_user_reread", "to": "fetch_repo", "when": "항상" },
+    { "from": "fetch_repo", "to": "extract_my_tech", "when": "읽기 성공" },
+    { "from": "fetch_repo", "to": "collect_error", "when": "읽기 실패" },
+    { "from": "extract_my_tech", "to": "grade", "when": "내 기술마다" },
+
+    { "from": "fetch_osv", "to": "normalize", "when": "성공" },
+    { "from": "fetch_registry", "to": "normalize", "when": "성공" },
+    { "from": "fetch_github", "to": "normalize", "when": "성공" },
+    { "from": "fetch_downloads", "to": "normalize", "when": "성공" },
+    { "from": "fetch_popularity", "to": "normalize", "when": "성공" },
+    { "from": "fetch_osv", "to": "collect_error", "when": "실패" },
+    { "from": "fetch_registry", "to": "collect_error", "when": "실패" },
+    { "from": "fetch_github", "to": "collect_error", "when": "실패" },
+    { "from": "fetch_downloads", "to": "collect_error", "when": "실패" },
+
+    { "from": "normalize", "to": "compare", "when": "항상" },
+    { "from": "compare", "to": "grade", "when": "항상" },
+    { "from": "grade", "to": "is_event", "when": "항상" },
+    { "from": "is_event", "to": "save_change", "when": "예: 위험으로 바뀜 / 처음 확인한 위험 / 같은 역할 새 기술(SPEC-3)" },
+    { "from": "is_event", "to": "no_change", "when": "아니오: 같은 값, 통과↔주의, 고쳐짐(SPEC-3.4)" },
+    { "from": "save_change", "to": "summarize", "when": "새 변경일 때(중복이면 멈춤)" },
+    { "from": "summarize", "to": "notify", "when": "성공 또는 실패(실패해도 알림은 만들고 초안 칸은 '만들지 못함')" },
+    { "from": "notify", "to": "human_judgment", "when": "그 기술을 쓰는 사람마다(시뮬레이터는 시연 계정만)" },
+    { "from": "human_judgment", "to": "scenario", "when": "사용자가 요청하면(판단 전후 언제든, 조치 아님)" },
+    { "from": "human_judgment", "to": "action_record", "when": "적용 후보 또는 보류를 누른 뒤에만" },
+
+    { "from": "start_scoring", "to": "score", "when": "항상" },
+    { "from": "score", "to": "score_save", "when": "항상" }
+  ]
+}
