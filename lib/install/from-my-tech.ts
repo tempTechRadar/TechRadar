@@ -42,9 +42,8 @@ const linkOf = (url: string | null) => (url && url.startsWith("https://github.co
 
 /**
  * pinned: 보안 경고에서 "고친 버전으로 올리기(적용 후보)"를 고른 내 기술 id → 고친 버전(ADR 0012).
- * includeDanger: 위험이지만 사용자가 직접 넣겠다고 고른 내 기술 id.
  */
-export function toInstallItems(rows: MyTechRow[], pinned: Map<string, string>, includeDanger: Set<string>): { items: InstallItem[]; notIncluded: NotIncluded[] } {
+export function toInstallItems(rows: MyTechRow[], pinned: Map<string, string>): { items: InstallItem[]; notIncluded: NotIncluded[] } {
   const items: InstallItem[] = [];
   const notIncluded: NotIncluded[] = [];
   for (const r of rows) {
@@ -64,7 +63,6 @@ export function toInstallItems(rows: MyTechRow[], pinned: Map<string, string>, i
     };
     if (r.grade === "danger" && !item.pinTo) {
       item.danger = { reason: r.grade_reason ?? "", fixedVersion: fixedVersionOf(r.grade_evidence) };
-      item.userIncluded = includeDanger.has(r.id);
     }
     items.push(item);
   }
