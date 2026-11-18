@@ -6,6 +6,22 @@
 
 ---
 
+## I-doc-fixes-3 · 2026-11-18 · 문서 점검 2차 팀 결정 반영: v1 범위 정리(ADR 0019)와 열린 질문 닫기
+- 브랜치: `docs/doc-fixes-3` (origin/main d77cadd 위, 새 worktree `.claude/worktrees/doc-fixes-3`)
+- 출처: 사용자 "진행"(결과 보고 뒤 `grilling` 6문항을 추천대로 정함). 근거: `docs/문서점검-20261118.md`의 Y-4 ②·Y-8·Y-9·Y-11 ②③④⑤⑥, 2차 점검에서 새로 나온 빈틈(PRD-F6의 `requirements.txt`·스킬 읽기를 맡은 조각 없음)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 점검이 "팀 결정이 필요하다"고 남긴 항목이 열려 있고, 요구는 있는데 맡은 조각이 없거나(`requirements.txt`·스킬 읽기, 주 숫자, NF2~NF5) 문서가 코드와 달랐다(재시도 횟수). 열린 질문 몇 개는 사실 확인만 하면 닫힌다 |
+| 기대 결과 | 결정 6개가 ADR 0019와 prd·plan·spec·flow·ia·데이터설계·문제정의에 같은 말로 들어가고, 사실 확인(Vercel·OSV·구글 로그인)이 근거 URL과 함께 문서에 적힌다. 1순위 PRD 개수(27개)는 그대로다 |
+| 영향 범위 | `docs/`(prd·plan·spec·flow·ia·데이터설계·문제정의·data-sources·문제정의 v5 머리), `docs/adr/0019`(새)·0008 개정. 코드·DB·`flow.json`·시험 파일은 손대지 않음 |
+| 제약 | 사용자가 추천대로 정한 것만 반영한다(팀 확인은 GitHub의 PR에서). 사실 확인은 공식 문서 원문 기준이고, 원문에 없는 것은 "확인하지 못함"으로 남긴다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 주 숫자 PRD-F44는 erd `grade_views` 정의와 같게 적었다(처음엔 앱이 열어 본 것을 기록하지 않는다고 잘못 썼다가 검토에서 바로잡음). 재시도는 다음 시도 시각만 적고 다시 돌리는 코드가 아직 없고, `lib/schedule/retry.ts` 주석·`/admin/run-now` 화면 문구·`docs/qa-c.md` C9는 아직 "2·4·8분 최대 3번"이라 차세일이 고칠지 정한다. P-9e가 하루 안에 끝나는지. 구글 로그인 기본 범위의 심사 면제는 문서에 직접 말이 없어 사람이 배포 전에 확인. 정기 실행이 06:00~06:59 사이에 도는 것을 시연에서 어떻게 말할지 |
+
+**결과:** 팀 결정 6개를 ADR 0019와 prd·plan·spec·flow·ia·데이터설계·문제정의에 반영했고, 열린 질문 사실 확인(Vercel·OSV·구글 로그인)을 공식 문서 원문 인용으로 spec SQ4·데이터설계 DQ5·prd O7·data-sources에 적었다. 읽기 전용 검토 도우미가 내 틀린 문장(주 숫자 근거 "앱은 열어 본 것을 기록하지 않는다")과 옛 문구·모순 7곳을 잡아 고쳤다(`docs/agents.md`). 질문 때 "정기 수집이 같은 방식인지 확인 못 함"이라 한 것은 코드를 열어 보니 정기 수집이 `collect_error`를 단계로 기록하고 있어 문서에 사실대로 적었다. 못 한 것: P-9e·남의 줄 시험 4개 테이블(구현), 코드 주석·`/admin/run-now` 문구의 "2·4·8분", Fluid compute 사용 여부 확인.
+
+---
+
 ## I-record-status-at-merge · 2026-11-18 · 합친 뒤 기록 고치기 반복을 끊는 규칙 제안 (CLAUDE.md 9절 한 항목, 김영식)
 - 브랜치: `docs/record-status-at-merge` (최신 main `955e6a9`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "1"(후보 중 규칙 제안 선택). 근거: `I-P-11-merged-record`·`I-P-16-merged-record`·`I-P-9-merged-record`·`I-P-11-insert-columns-merged-record`의 열린 질문, `CLAUDE.md` 9절
