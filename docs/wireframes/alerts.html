@@ -109,6 +109,68 @@
       </form>
     </section>
 
+    <section id="opportunity" class="sheet" aria-labelledby="opp-title">
+      <p class="muted"><a href="#list">← 알림 목록으로</a></p>
+      <h1 id="opp-title">[적용 기회] 같은 역할의 새 기술 sample-mcp-d (내 기술: sample-mcp-a)</h1>
+      <p><span class="badge badge-neutral">적용 기회</span> <span class="badge badge-warning">판단 대기</span></p>
+
+      <article class="card" aria-labelledby="why-title">
+        <h2 id="why-title">나오게 된 이유</h2>
+        <p>내 기술(sample-mcp-a)과 같은 역할로 확정됐어요. 확정한 날: 11월 18일.</p>
+      </article>
+
+      <article class="card" aria-labelledby="compare-title">
+        <h2 id="compare-title">비교</h2>
+        <p class="muted">알림이 만들어진 때의 값이에요. 항목마다 출처를 붙였어요.</p>
+        <table class="compare">
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">내 기술 sample-mcp-a</th><th scope="col">새 기술 sample-mcp-d</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">하는 일</th>
+              <td data-label="내 기술">원격 MCP 서버에 연결해 줘요 <a class="source" href="#">출처</a></td>
+              <td data-label="새 기술">원격 MCP 연결 프록시 <a class="source" href="#">출처</a></td>
+            </tr>
+            <tr>
+              <th scope="row">보안 등급과 이유</th>
+              <td data-label="내 기술"><span class="badge badge-warning">주의</span> 덜 심각한 알려진 문제가 1건 있어요 <a class="source" href="#">출처</a></td>
+              <td data-label="새 기술"><span class="badge badge-success">통과</span> 알려진 문제가 없어요 <span class="source muted">출처 찾지 못함</span></td>
+            </tr>
+            <tr>
+              <th scope="row">최근 업데이트</th>
+              <td data-label="내 기술">2026-11-11 (릴리스) <a class="source" href="#">출처</a></td>
+              <td data-label="새 기술">2026-11-18 (커밋) <a class="source" href="#">출처</a></td>
+            </tr>
+            <tr>
+              <th scope="row">사용량</th>
+              <td data-label="내 기술">주간 12,000회 다운로드 <span class="source muted">출처 찾지 못함</span></td>
+              <td data-label="새 기술">찾지 못함</td>
+            </tr>
+            <tr>
+              <th scope="row">라이선스</th>
+              <td data-label="내 기술">MIT <a class="source" href="#">출처</a></td>
+              <td data-label="새 기술">Apache-2.0 <a class="source" href="#">출처</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <form class="card" aria-labelledby="opp-judge-title">
+        <h2 id="opp-judge-title">판단하기</h2>
+        <p class="muted">저장하기 전에는 아무것도 바뀌지 않아요.</p>
+        <label for="opp-hold-reason">보류하는 이유 (보류할 때만, 5자 이상)</label>
+        <textarea id="opp-hold-reason" aria-describedby="opp-hold-help"></textarea>
+        <p id="opp-hold-help" class="muted">이유가 5자 미만이면 보류 버튼이 눌리지 않아요.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary">적용 후보</button>
+          <button type="button" class="btn">보류</button>
+          <button type="button" class="btn">적용 시나리오 만들기</button>
+        </div>
+        <p class="muted">적용 기회는 위험을 고치는 알림이 아니라서 <strong>고친 버전 없이도 적용 후보</strong>로 고를 수 있어요.</p>
+      </form>
+    </section>
+
     <section id="states" class="sheet" aria-labelledby="states-title">
       <h2 id="states-title">비어 있을 때와 실패했을 때</h2>
       <p class="muted">"없음"과 "불러오지 못함"은 다르게 보여 줘요(알림이 없다고 잘못 믿지 않도록).</p>

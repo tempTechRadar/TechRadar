@@ -11,6 +11,7 @@ const securityRecord: AlertRecord = {
   projectName: "TechRadar",
   sourceFile: "package.json",
   judgment: null,
+  comparison: null,
   change: {
     kind: "grade_to_danger",
     techName: "mcp-remote",

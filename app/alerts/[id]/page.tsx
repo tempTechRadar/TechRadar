@@ -6,10 +6,11 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { readSimilarJudgments } from "@/lib/server/similar-judgments";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { JudgmentForm } from "./judgment-form";
+import { ComparisonCard, ReasonCard } from "./opportunity-cards";
 import { SimilarCard } from "./similar-card";
 import "../alerts.css";
 
-// 알림 상세(IA-7, PRD-F15). 대응안 초안은 P-13, 적용 시나리오는 P-13 인프라(Claude 한도) 뒤에 붙인다.
+// 알림 상세(IA-7, PRD-F15). 적용 기회는 이유와 비교표(P-14). 대응안 초안은 P-13, 적용 시나리오는 P-13 인프라(Claude 한도) 뒤에 붙인다.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +44,8 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           </dl>
         </article>
       )}
+      {view.reasonLine && <ReasonCard line={view.reasonLine} />}
+      {view.comparison && <ComparisonCard comparison={view.comparison} />}
       <SimilarCard similar={similar} />
       {view.judgmentLine ? (
         <article className="card" aria-labelledby="judged-title">

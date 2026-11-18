@@ -70,6 +70,7 @@ test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼�
         currValue: { grade: "danger" },
       },
       judgment: null,
+      comparison: null,
     },
   ]);
 });
@@ -114,4 +115,24 @@ test("판단한 알림은 판단 결과(적용 후보·보류, 이유, 고친 �
   const expected = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null, judgedAt: "2026-11-18T05:00:00Z" };
   assert.deepEqual(fromObject.judgment, expected);
   assert.deepEqual(fromArray.judgment, expected);
+});
+
+test("적용 기회 알림은 저장해 둔 비교표(두 기술 이름·확정한 시각·5항목)도 읽고, 모양이 맞지 않으면 null로 둔다", async () => {
+  const stored = {
+    myTechName: "mcp-mine",
+    newTechName: "mcp-new",
+    confirmedAt: "2026-11-18T01:00:00Z",
+    rows: [{ item: "라이선스", mine: { value: "MIT", source: null }, theirs: { value: "Apache-2.0", source: "https://github.com/o/new" } }],
+  };
+  const withComparison = { ...alertRow("a1", "user-a", "2026-11-18T01:30:00Z"), kind: "opportunity", comparison: stored };
+  const oldShape = { ...withComparison, comparison: [{ item: "예전 모양(표 5줄만)" }] };
+  const broken = { ...withComparison, comparison: "깨진 값" };
+
+  const [ok] = await listMyAlerts(fakeDb([withComparison]).db, "user-a");
+  const [old] = await listMyAlerts(fakeDb([oldShape]).db, "user-a");
+  const [bad] = await listMyAlerts(fakeDb([broken]).db, "user-a");
+
+  assert.deepEqual(ok.comparison, stored);
+  assert.equal(old.comparison, null);
+  assert.equal(bad.comparison, null);
 });

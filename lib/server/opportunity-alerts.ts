@@ -9,7 +9,7 @@ type Input = { changeId: string; techId: string; onlyDemo?: boolean };
 type Result = { created: number; people: number };
 
 const COMPARABLE_COLUMNS =
-  "id, tech_key, created_at, grade, grade_reason, grade_evidence, one_liner, one_liner_source, last_activity_at, last_activity_kind, repo_url, license, signals";
+  "id, tech_key, display_name, created_at, grade, grade_reason, grade_evidence, one_liner, one_liner_source, last_activity_at, last_activity_kind, repo_url, license, signals";
 
 // 짝은 작은 id가 a라서 새 기술이 어느 쪽에 있어도 상대편을 가져온다.
 async function readRelations(db: SupabaseClient, techId: string): Promise<OpportunityRelation[]> {
@@ -51,9 +51,19 @@ export async function createOpportunityAlerts(db: SupabaseClient, input: Input):
   });
   const people = new Set(usages.filter((u) => relatedIds.includes(u.techId)).map((u) => u.userId)).size;
   if (alerts.length === 0) return { created: 0, people };
-  const rows = alerts.map((alert) => ({
-    user_id: alert.userId, change_id: input.changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey,
-    comparison: buildComparison(toComparable(techs.get(alert.myTechId)!), toComparable(newTech)),
-  }));
+  const confirmedAt = new Map(relations.map((r) => [r.otherTechId, r.confirmedAt]));
+  // 알림 상세가 "나오게 된 이유"와 표 머리를 그리도록, 표 5줄과 함께 두 기술 이름·같은 역할로 확정한 시각도 만들 때 값으로 저장한다
+  const rows = alerts.map((alert) => {
+    const mine = techs.get(alert.myTechId)!;
+    return {
+      user_id: alert.userId, change_id: input.changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey,
+      comparison: {
+        myTechName: mine.display_name,
+        newTechName: newTech.display_name,
+        confirmedAt: confirmedAt.get(alert.myTechId) ?? null,
+        rows: buildComparison(toComparable(mine), toComparable(newTech)),
+      },
+    };
+  });
   return { created: await writeAlerts(db, rows), people };
 }
