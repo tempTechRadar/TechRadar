@@ -9,6 +9,7 @@ export type AlertRecord = {
   createdAt: string;
   projectName: string | null;
   sourceFile: string | null;
+  judgment: { decision: "candidate" | "hold"; reason: string | null; fixedVersion: string | null } | null;
   change: {
     kind: string;
     techName: string;
@@ -29,11 +30,16 @@ export type AlertView = {
   title: string;
   subtitle: string;
   lines: string[];
+  /** 판단을 마친 알림의 "내 판단" 한 줄. 아직이면 null */
+  judgmentLine: string | null;
+  /** 보안 경고인데 고친 버전이 아직 없으면 false: 적용 후보로 저장할 수 없다(ADR 0012) */
+  canCandidate: boolean;
 };
 
 type Evidence = { id?: string; severity?: string; url?: string };
 type Value = { grade?: string; reason?: string; fixed_version?: string | null; evidence?: Evidence[] };
 
+const NOT_FOUND = "찾지 못함";
 const GRADE_LABEL: Record<string, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
 
 const listTime = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
@@ -49,6 +55,7 @@ const KIND_LABEL: Record<AlertKind, { label: string; tone: "danger" | "neutral" 
 export function toAlertView(record: AlertRecord): AlertView {
   const { change } = record;
   const kind = KIND_LABEL[record.kind];
+  const curr = asValue(change.currValue);
   const base = {
     id: record.id,
     kindLabel: kind.label,
@@ -57,10 +64,11 @@ export function toAlertView(record: AlertRecord): AlertView {
     createdAt: record.createdAt,
     createdAtLabel: listTime.format(new Date(record.createdAt)),
     subtitle: subtitleOf(record),
+    judgmentLine: judgmentLineOf(record.judgment),
+    canCandidate: record.kind !== "security" || Boolean(curr.fixed_version),
   };
   // 보안 경고만 문구를 만든다. 적용 기회·모델 종료의 상세는 P-14에서 채운다.
   if (record.kind !== "security") return { ...base, title: `[${kind.label}] ${change.techName}`, lines: [] };
-  const curr = asValue(change.currValue);
   const cause = curr.evidence?.[0];
   const prevGrade = asValue(change.prevValue).grade;
   const message = buildAlertMessage({
@@ -80,5 +88,14 @@ export function toAlertView(record: AlertRecord): AlertView {
 
 function subtitleOf(record: AlertRecord): string {
   const where = record.projectName ? `내 프로젝트: ${record.projectName}` : "프로젝트 밖(내 컴퓨터)";
-  return record.change.kind === "first_seen_danger" ? `첫 점검 · ${where}` : where;
+  const withKind = record.change.kind === "first_seen_danger" ? `첫 점검 · ${where}` : where;
+  return record.judgment ? `${withKind} · 판단: ${DECISION_LABEL[record.judgment.decision]}` : withKind;
+}
+
+const DECISION_LABEL = { candidate: "적용 후보", hold: "보류" };
+
+function judgmentLineOf(judgment: AlertRecord["judgment"]): string | null {
+  if (!judgment) return null;
+  if (judgment.decision === "hold") return `보류 · 이유: ${judgment.reason ?? NOT_FOUND}`;
+  return judgment.fixedVersion ? `적용 후보 · 고친 버전 ${judgment.fixedVersion}` : "적용 후보";
 }

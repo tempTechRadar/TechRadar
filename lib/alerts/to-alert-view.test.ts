@@ -9,6 +9,7 @@ const securityRecord: AlertRecord = {
   createdAt: "2026-11-18T01:30:00Z",
   projectName: "TechRadar",
   sourceFile: "package.json",
+  judgment: null,
   change: {
     kind: "grade_to_danger",
     techName: "mcp-remote",
@@ -84,4 +85,23 @@ test("목록의 시각은 한국 시간 '11월 18일 10:30' 형식이다", () =>
   const view = toAlertView(securityRecord);
 
   assert.equal(view.createdAtLabel, "11월 18일 10:30");
+});
+
+test("판단한 알림은 부제에 판단이 붙고 상세에 '내 판단' 줄이 생긴다(보류는 이유, 적용 후보는 고친 버전)", () => {
+  const hold = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null } });
+  const candidate = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "candidate", reason: null, fixedVersion: "0.1.16" } });
+
+  assert.equal(hold.subtitle, "내 프로젝트: TechRadar · 판단: 보류");
+  assert.equal(hold.judgmentLine, "보류 · 이유: 지금은 바꿀 시간이 없어요");
+  assert.equal(candidate.subtitle, "내 프로젝트: TechRadar · 판단: 적용 후보");
+  assert.equal(candidate.judgmentLine, "적용 후보 · 고친 버전 0.1.16");
+  assert.equal(toAlertView(securityRecord).judgmentLine, null);
+});
+
+test("보안 경고에 고친 버전이 없으면 적용 후보를 고를 수 없다(보류만). 다른 알림은 늘 고를 수 있다", () => {
+  const noFix = { ...securityRecord, change: { ...securityRecord.change, currValue: { grade: "danger", fixed_version: null } } };
+
+  assert.equal(toAlertView(securityRecord).canCandidate, true);
+  assert.equal(toAlertView(noFix).canCandidate, false);
+  assert.equal(toAlertView({ ...noFix, kind: "opportunity" }).canCandidate, true);
 });
