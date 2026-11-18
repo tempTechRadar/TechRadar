@@ -40,7 +40,7 @@ export function planRows(items: InstallItem[], techIds: Map<string, string>, exi
   return { rows, alreadyThere };
 }
 
-async function localProjectId(db: SupabaseClient, userId: string): Promise<string> {
+export async function localProjectId(db: SupabaseClient, userId: string): Promise<string> {
   const found = await db.from("projects").select("id").eq("owner_id", userId).eq("kind", "local").maybeSingle();
   if (found.error) throw new Error(`프로젝트 밖 칸을 읽지 못했어요: ${found.error.message}`);
   if (found.data) return found.data.id as string;
