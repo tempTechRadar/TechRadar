@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-28-qa-c · 2026-11-18 · P-28 QA 시트 영역 C 행 (영역 C, 차세일)
+- 브랜치: `docs/P-28-qa-c` (worktree `C:\bootcamp\TechRadar-QA`, main 515bc3e)
+- 출처: `docs/plan.md` P-28, `rules/qa.md`, `docs/qa.md`, 안내서 12장, C 영역 조각의 끝 기준(P-4·5·6·17·18·19·20)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | C 영역 조각이 합쳐졌거나 PR 중인데 QA 시트에 C 행이 없다. 무엇을 Claude가 확인했고 무엇을 사람이 확인해야 하는지 나뉘어 있지 않다 |
+| 기대 결과 | 1차(Claude 직접): 실제로 돌린 것만 Pass/Fail과 증거, 안 돌린 것은 No Run과 이유. 2차(사람): 로그인·시연 계정·서비스 키·배포가 필요한 확인을 순서·주의·원상복구와 함께. 끝 기준과 하나씩 대조 |
+| 영향 범위 | `docs/qa-c.md`(새), `docs/qa.md`(링크 한 줄) |
+| 제약 | 근거 없는 Pass 금지(V6). 실제 DB·로그인·배포 주소는 쓰지 않음. 시트(Google Sheets)는 주소·커넥터 승인 전이라 문서에 먼저(시트 옮기기 대기) |
+| 열린 질문 | QA 시트 주소. C6(흐름 샘플 ③ 장면) 고치기를 이 PR에 넣을지 따로 할지. Next.js 보안 업그레이드 권고를 누가 언제 할지 |
+| 결과 | 2026-11-18: 1차 15행(Pass 13·Fail 1·No Run 1), 2차 12행(모두 No Run, 사람 몫). main 시험 269 통과·실패 0, 기록 검사 7 통과, 타입 오류 0. PR 브랜치 4개(#52·#53·#47·#54) 모두 시험 실패 0·타입 오류 0. 로그인 전 관리자 주소 5개 → /login, 예약 API 비밀값 없으면 401. Fail 1: 흐름 샘플 ③ 장면이 정정된 flow.md 4절과 다름 |
+
+---
 ## I-record-github-union · 2026-11-18 · PR 화면에서 worklog·intent 충돌이 계속 나는 원인 확인
 - 브랜치: `docs/record-github-union` (최신 main feba290, 새 worktree `.claude/worktrees/record-github-union`)
 - 출처: 사용자 "worklog랑 intent pr에서 자꾸 충돌나는 원인" → "진행". 앞선 작업 `I-record-merge-first-sync`(PR #57, ADR 0017)의 후속
