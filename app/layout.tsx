@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <nav aria-label="주 메뉴" style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
           <Link href="/">처음</Link>
           <Link href="/projects">내 프로젝트</Link>
+          <Link href="/alerts">알림</Link>
           <Link href="/login">로그인</Link>
           <Link href="/admin/flow">흐름(관리자)</Link>
         </nav>

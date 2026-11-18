@@ -30,7 +30,7 @@ export function countPending(alerts: AlertRow[]): number {
   return alerts.filter((alert) => alert.status === "pending").length;
 }
 
-export function filterAlerts(alerts: AlertRow[], filter: AlertFilter): AlertRow[] {
+export function filterAlerts<T extends AlertRow>(alerts: T[], filter: AlertFilter): T[] {
   return alerts.filter(
     (alert) =>
       (filter.kind === undefined || alert.kind === filter.kind) &&
