@@ -11,7 +11,7 @@ type Responder = (call: Call) => Reply | undefined;
 function fakeDb(respond: Responder = () => undefined) {
   const calls: Call[] = [];
   const log: string[] = [];
-  const defaults: Record<string, unknown> = { "runs:insert": { id: "run-1" }, "sources:upsert": { id: "src-1" }, "technologies:insert": { id: "tech-1" }, "observations:insert": { id: "obs-1" } };
+  const defaults: Record<string, unknown> = { "runs:insert": { id: "run-1" }, "sources:upsert": { id: "src-1" }, "technologies:upsert": [{ id: "tech-1" }], "observations:insert": { id: "obs-1" } };
   const db = {
     from(table: string) {
       const call: Call = { table, op: "select", filters: [], single: false };
@@ -66,7 +66,7 @@ test("runSimulator: 정해진 순서로 쓰고, 단계 이름은 흐름 상자 i
   const { deps, calls, log } = fakeDeps();
   const result = await runSimulator(deps, { adminId: "admin-1" });
   const order = log.filter((l) => !l.startsWith("run_steps"));
-  assert.deepEqual(order, ["runs:insert", "sources:upsert", "technologies:select", "technologies:insert", "observations:insert", "saveChange", "createAlerts", "runs:update"]);
+  assert.deepEqual(order, ["runs:insert", "sources:upsert", "technologies:select", "technologies:upsert", "observations:insert", "saveChange", "createAlerts", "runs:update"]);
   assert.deepEqual(stepNames(calls), ["normalize:succeeded", "compare:succeeded", "grade:succeeded", "is_event:succeeded", "save_change:succeeded", "human_judgment:awaiting_judgment"]);
   assert.equal(calls[0].row?.trigger, "simulator");
   assert.equal(calls[0].row?.started_by, "admin-1");
@@ -78,17 +78,33 @@ test("runSimulator: 정해진 순서로 쓰고, 단계 이름은 흐름 상자 i
 test("runSimulator: 가짜 표시와 G1 값이 붙는다", async () => {
   const { deps, calls, saved, alertInputs } = fakeDeps();
   await runSimulator(deps, { adminId: "a" });
-  assert.equal(calls.find((c) => c.table === "technologies" && c.op === "insert")?.row?.is_simulated, true);
+  const tech = calls.find((c) => c.table === "technologies" && c.op === "upsert")?.row;
+  assert.equal(tech?.is_simulated, true);
+  // 새 기술 줄은 진짜 사용자 등록에도 쓰일 수 있어 등급 칸을 채우지 않는다
+  assert.equal(Object.keys(tech ?? {}).some((k) => k.startsWith("grade")), false);
   assert.equal(calls.find((c) => c.table === "observations")?.row?.is_simulated, true);
   assert.equal(calls.find((c) => c.table === "sources")?.row?.enabled, false);
   assert.equal(saved[0].isSimulated, true);
   assert.equal(saved[0].kind, "grade_to_danger");
-  assert.equal(saved[0].causeId, "GHSA-6xpm-ggf7-wc3p");
+  // 진짜 첫 등록 읽기의 중복 막기 키와 겹치지 않게 sim: 접두어
+  assert.equal(saved[0].causeId, "sim:GHSA-6xpm-ggf7-wc3p");
   assert.deepEqual(saved[0].tech, { key: "npm:mcp-remote", version: "0.1.15" });
   assert.equal(alertInputs[0].runId, "run-1");
   assert.equal(alertInputs[0].changeId, "chg-1");
   const isEvent = calls.find((c) => c.table === "run_steps" && c.row?.step_name === "is_event");
-  assert.deepEqual(isEvent?.row?.branch_counts, { 사건: 1, "변화 없음": 0, "수집 오류": 0 });
+  assert.deepEqual(isEvent?.row?.branch_counts, { event: 1, no_change: 0, collect_error: 0 });
+});
+
+test("runSimulator: 기술이 동시에 만들어져 upsert가 빈 줄을 돌려주면 다시 읽어 그 id를 쓴다", async () => {
+  let selects = 0;
+  const respond: Responder = (c) => {
+    if (c.table === "technologies" && c.op === "upsert") return { data: [] };
+    if (c.table === "technologies" && c.op === "select") return { data: selects++ === 0 ? null : { id: "tech-race" } };
+    return undefined;
+  };
+  const { deps, saved } = fakeDeps({ respond });
+  await runSimulator(deps, { adminId: "a" });
+  assert.equal(saved[0].techId, "tech-race");
 });
 
 test("runSimulator: 기술이 이미 있으면 새로 만들지 않고 건드리지 않는다", async () => {
@@ -99,8 +115,10 @@ test("runSimulator: 기술이 이미 있으면 새로 만들지 않고 건드리
   assert.equal(saved[0].techId, "tech-old");
 });
 
+const simulatedChange: Responder = (c) => (c.table === "changes" && c.op === "select" ? { data: { is_simulated: true } } : undefined);
+
 test("runSimulator: 같은 변경을 또 만들면 '이미 있음'으로 남고, 알림 0건이면 이유를 돌려준다", async () => {
-  const { deps, calls } = fakeDeps({ created: false, alerts: 0 });
+  const { deps, calls } = fakeDeps({ created: false, alerts: 0, respond: simulatedChange });
   const result = await runSimulator(deps, { adminId: "a" });
   assert.equal(result.changeCreated, false);
   assert.equal(result.alertsCreated, 0);
@@ -109,6 +127,26 @@ test("runSimulator: 같은 변경을 또 만들면 '이미 있음'으로 남고,
   const save = calls.find((c) => c.table === "run_steps" && c.row?.step_name === "save_change");
   assert.match(String(save?.row?.output_summary), /이미 있는 변경/);
   assert.equal(stepNames(calls).some((s) => s.startsWith("human_judgment")), false);
+});
+
+test("runSimulator: saveChange가 진짜 변경을 돌려주면 알림을 만들지 않고 save_change를 failed로 남긴 뒤 멈춘다", async () => {
+  const realChange: Responder = (c) => (c.table === "changes" && c.op === "select" ? { data: { is_simulated: false } } : undefined);
+  const { deps, calls, alertInputs } = fakeDeps({ created: false, respond: realChange });
+  await assert.rejects(() => runSimulator(deps, { adminId: "a" }), /진짜 변경/);
+  assert.equal(alertInputs.length, 0);
+  assert.equal(stepNames(calls).at(-1), "save_change:failed");
+  const check = calls.find((c) => c.table === "changes" && c.op === "select");
+  assert.deepEqual(check?.filters, [["id", "eq", "chg-1"]]);
+  assert.equal(calls.at(-1)?.table, "runs");
+  assert.equal(calls.at(-1)?.row?.status, "failed");
+});
+
+test("runSimulator: 판단 대기 기록이 실패하면 human_judgment 단계가 failed로 남는다", async () => {
+  let n = 0;
+  const respond: Responder = (c) => (c.table === "run_steps" && c.row?.step_name === "human_judgment" && n++ === 0 ? { error: { message: "기록 거부" } } : undefined);
+  const { deps, calls } = fakeDeps({ respond });
+  await assert.rejects(() => runSimulator(deps, { adminId: "a" }));
+  assert.equal(stepNames(calls).at(-1), "human_judgment:failed");
 });
 
 test("runSimulator: 중간에 실패하면 그 단계를 failed로 남기고 실행도 failed로 닫은 뒤 원래 오류를 던진다", async () => {
@@ -139,7 +177,7 @@ function clearResponder(extra: Responder = () => undefined): Responder {
   return (c) => {
     const given = extra(c);
     if (given) return given;
-    if (c.table === "changes" && c.op === "select") return { data: [{ id: "chg-1" }] };
+    if (c.table === "changes" && c.op === "select" && c.filters.some(([col]) => col === "is_simulated")) return { data: [{ id: "chg-1" }] };
     if (c.table === "alerts" && c.op === "select") return { data: [{ id: "al-1" }, { id: "al-2" }] };
     if (c.op === "delete") return { data: [{ id: "x" }] };
     if (c.table === "technologies" && c.op === "select") return { data: [{ id: "t-1" }, { id: "t-2" }] };
@@ -196,9 +234,38 @@ test("clearSimulated: 지울 것이 없으면 빈 목록으로 DB를 부르지 �
   assert.match(String(calls.at(-1)?.row?.reason), /변경 0/);
 });
 
-test("clearSimulated: 중간에 실패하면 던지고 바꾼 기록은 남기지 않는다", async () => {
-  const { db, calls } = fakeDb(clearResponder((c) => (c.table === "alerts" && c.op === "delete" ? { error: { message: "외래키 위반" } } : undefined)));
+test("clearSimulated: 다른 표가 가리키는 가짜 기술은 지우지 않는다", async () => {
+  const refs: Record<string, string> = { observations: "t-1", tech_relations: "t-1", grade_views: "t-1", changes: "t-1" };
+  for (const [table, id] of Object.entries(refs)) {
+    const extra: Responder = (c) => (c.table === table && c.op === "select" && !c.filters.some(([col]) => col === "is_simulated") ? { data: [{ tech_id: id, tech_a: id }] } : undefined);
+    const { db, calls } = fakeDb(clearResponder(extra));
+    const result = await clearSimulated({ db }, { adminId: "a" });
+    assert.equal(calls.some((c) => c.table === "technologies" && c.op === "delete"), false, `${table}가 가리키는데 지움`);
+    assert.equal(result.keptTechnologies, 2);
+  }
+  // 참조 확인은 다섯 표(관계 표는 두 칸) 모두 본다
+  const { db, calls } = fakeDb(clearResponder());
+  await clearSimulated({ db }, { adminId: "a" });
+  const checked = calls.filter((c) => c.op === "select" && c.filters.some(([, op, v]) => op === "in" && Array.isArray(v) && v.includes("t-1"))).map((c) => `${c.table}.${c.filters[0][0]}`);
+  assert.deepEqual(checked, ["my_technologies.tech_id", "observations.tech_id", "changes.tech_id", "tech_relations.tech_a", "tech_relations.tech_b", "grade_views.tech_id"]);
+});
+
+test("clearSimulated: 중간에 실패해도 지운 수와 가린 오류를 바꾼 기록 1줄로 남기고 원래 오류를 던진다", async () => {
+  const secret = "DEMO_TOKEN=not-a-real-value-123"; // 가림 규칙(이름 끝 TOKEN)에 걸리는 가짜 값
+  const { db, calls } = fakeDb(clearResponder((c) => (c.table === "alerts" && c.op === "delete" ? { error: { message: `외래키 위반 ${secret}` } } : undefined)));
   await assert.rejects(() => clearSimulated({ db }, { adminId: "a" }), /외래키 위반/);
-  assert.equal(calls.some((c) => c.table === "audit_logs"), false);
+  const audits = calls.filter((c) => c.table === "audit_logs");
+  assert.equal(audits.length, 1);
+  const reason = String(audits[0].row?.reason);
+  assert.match(reason, /중간 실패/);
+  assert.match(reason, /시나리오 1/);
+  assert.match(reason, /판단 1/);
+  assert.match(reason, /외래키 위반/);
+  assert.equal(reason.includes(secret), false);
   assert.equal(calls.some((c) => c.table === "changes" && c.op === "delete"), false);
+});
+
+test("clearSimulated: 바꾼 기록 저장이 실패하면 성공으로 돌려주지 않는다", async () => {
+  const { db } = fakeDb(clearResponder((c) => (c.table === "audit_logs" ? { error: { message: "기록 거부" } } : undefined)));
+  await assert.rejects(() => clearSimulated({ db }, { adminId: "a" }), /바꾼 기록을 남기지 못함/);
 });

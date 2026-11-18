@@ -1,6 +1,7 @@
 // 시뮬레이터(P-5): 버튼 한 번에 가짜 변경 1건(정답 사례 G1)을 만들고, 실행 기록을 단계마다 남긴다. 주인: 차세일(C).
 // 저장·알림 함수는 주입받는다(changes.ts가 "@/" 별칭을 써서 node --test에서 못 불러오므로). 서비스 키 클라이언트로 부른다.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { maskSecrets } from "../domain/redact.ts";
 import { npmKey, type TechRef } from "../domain/tech-key.ts";
 import type { CreateAlertsInput } from "./alerts.ts";
 import type { NewChange } from "./changes.ts";
@@ -16,6 +17,8 @@ export type SimulatorResult = { runId: string; changeId: string; changeCreated: 
 
 // G1(docs/spec.md 10절): npm mcp-remote 0.1.16 미만은 위험. 고친 버전은 0.1.16.
 const G1 = { name: "mcp-remote", version: "0.1.15", causeId: "GHSA-6xpm-ggf7-wc3p", cve: "CVE-2025-6514", fixedVersion: "0.1.16" };
+// 변경 저장용 원인 id. 진짜 첫 등록 읽기(first-read.ts)가 만드는 중복 막기 키와 겹치지 않게 접두어를 붙인다(SPEC-3.5).
+const SIM_CAUSE_ID = `sim:${G1.causeId}`;
 const SOURCE_NAME = "시뮬레이터(가짜 출처)";
 const METRIC = "osv_advisory";
 
@@ -28,22 +31,23 @@ async function upsertSource(db: SupabaseClient): Promise<string> {
   return data.id as string;
 }
 
-/** 기술이 이미 있으면 건드리지 않고, 없을 때만 가짜 표시로 만든다. */
+/**
+ * 기술이 이미 있으면 건드리지 않고, 없을 때만 가짜 표시로 만든다.
+ * 등급 칸은 채우지 않는다: 이 줄은 진짜 사용자 등록에도 쓰일 수 있어 가짜 등급이 보이면 안 된다.
+ * 두 번 동시에 눌러도 깨지지 않게 upsert(겹치면 무시) 뒤 다시 읽는다.
+ */
 async function ensureTechnology(db: SupabaseClient, techKey: string): Promise<string> {
   const found = await db.from("technologies").select("id").eq("tech_key", techKey).maybeSingle();
   if (found.error) throw fail("기술을 찾지 못함", found.error.message);
   if (found.data) return found.data.id as string;
-  const row = {
-    tech_key: techKey,
-    display_name: G1.name,
-    type: "mcp",
-    grade: "danger",
-    grade_reason: `${G1.causeId}(${G1.cve}) — 시뮬레이터 가짜 자료`,
-    is_simulated: true,
-  };
-  const created = await db.from("technologies").insert(row).select("id").single();
-  if (created.error || !created.data) throw fail("가짜 기술을 만들지 못함", created.error?.message);
-  return created.data.id as string;
+  const row = { tech_key: techKey, display_name: G1.name, type: "mcp", is_simulated: true };
+  const created = await db.from("technologies").upsert(row, { onConflict: "tech_key", ignoreDuplicates: true }).select("id");
+  if (created.error) throw fail("가짜 기술을 만들지 못함", created.error.message);
+  const rows = (created.data ?? []) as { id: string }[];
+  if (rows.length > 0) return rows[0].id;
+  const again = await db.from("technologies").select("id").eq("tech_key", techKey).single(); // 동시에 누른 쪽이 먼저 만듦
+  if (again.error || !again.data) throw fail("기술을 다시 찾지 못함", again.error?.message);
+  return again.data.id as string;
 }
 
 async function insertObservation(db: SupabaseClient, ids: { sourceId: string; techId: string; runId: string }): Promise<string> {
@@ -84,7 +88,7 @@ async function collectSteps(deps: SimulatorDeps, flow: Flow, tech: TechRef): Pro
   await done(deps, flow, { stepName: "grade", countIn: 1, countOut: 1, outputSummary: `위험: ${G1.causeId}, 고친 버전 ${G1.fixedVersion}` });
 
   flow.current = "is_event";
-  await done(deps, flow, { stepName: "is_event", countIn: 1, countOut: 1, branchCounts: { 사건: 1, "변화 없음": 0, "수집 오류": 0 } });
+  await done(deps, flow, { stepName: "is_event", countIn: 1, countOut: 1, branchCounts: { event: 1, no_change: 0, collect_error: 0 } }); // first-read.ts와 같은 영문 키(팀 표준)
   return { techId, observationId };
 }
 
@@ -96,19 +100,32 @@ async function saveAndNotify(deps: SimulatorDeps, flow: Flow, tech: TechRef, ids
     kind: "grade_to_danger",
     techId: ids.techId,
     tech,
-    causeId: G1.causeId,
+    causeId: SIM_CAUSE_ID,
     prevValue: { grade: "pass" },
     currValue: { grade: "danger", fixedVersion: G1.fixedVersion },
     observationId: ids.observationId,
     isSimulated: true,
   });
+  if (!change.created) await assertSimulatedChange(db, change.id);
   await done(deps, flow, { stepName: "save_change", countIn: 1, countOut: 1, outputSummary: change.created ? "새 변경 1건 저장" : "이미 있는 변경(새로 만들지 않음)" });
 
   flow.current = "notify"; // 이 단계는 createAlertsForChange가 직접 기록한다(실패도)
   const alertsCreated = await deps.createAlertsForChange(db, { changeId: change.id, techId: ids.techId, kind: "security", runId: flow.runId });
-  if (alertsCreated > 0) await recordStep(db, flow.runId, { stepName: "human_judgment", status: "awaiting_judgment", countIn: alertsCreated, outputSummary: `시연 계정 ${alertsCreated}명이 판단 대기` });
+  if (alertsCreated > 0) {
+    flow.current = "human_judgment"; // 이 기록이 실패해도 실패 단계가 남게 먼저 바꾼다
+    await recordStep(db, flow.runId, { stepName: "human_judgment", status: "awaiting_judgment", countIn: alertsCreated, outputSummary: `시연 계정 ${alertsCreated}명이 판단 대기` });
+  }
   await finishRun(db, flow.runId, { status: "succeeded", itemCount: 1 });
   return { runId: flow.runId, changeId: change.id, changeCreated: change.created, alertsCreated, note: describe(change.created, alertsCreated) };
+}
+
+/** 이미 있던 변경이 진짜 변경이면 알림을 붙이지 않고 멈춘다(진짜 사용자에게 가짜 알림이 가는 일을 막는다). */
+async function assertSimulatedChange(db: SupabaseClient, changeId: string): Promise<void> {
+  const { data, error } = await db.from("changes").select("is_simulated").eq("id", changeId).single();
+  if (error) throw fail("이미 있는 변경을 다시 확인하지 못함", error.message);
+  if ((data as { is_simulated?: boolean } | null)?.is_simulated !== true) {
+    throw new Error(`중복 막기 키가 진짜 변경(${changeId})과 겹침: 알림을 만들지 않고 멈춤`);
+  }
 }
 
 function describe(changeCreated: boolean, alertsCreated: number): string {
@@ -155,35 +172,75 @@ async function removeByIds(db: SupabaseClient, table: string, column: string, id
   return removeRows(db.from(table).delete().in(column, ids).select("id"), what);
 }
 
-/** 가짜 기술 중 내 기술이 쓰고 있지 않은 것만 지운다. */
+// 기술 줄을 가리키는 표와 칸. 하나라도 가리키면 그 가짜 기술은 지우지 않는다(진짜 자료가 붙어 있을 수 있다).
+const TECH_REFS: [table: string, column: string][] = [
+  ["my_technologies", "tech_id"],
+  ["observations", "tech_id"],
+  ["changes", "tech_id"],
+  ["tech_relations", "tech_a"],
+  ["tech_relations", "tech_b"],
+  ["grade_views", "tech_id"],
+];
+
+async function referencedTechIds(db: SupabaseClient, ids: string[]): Promise<Set<string>> {
+  const used = new Set<string>();
+  for (const [table, column] of TECH_REFS) {
+    const { data, error } = await db.from(table).select(column).in(column, ids);
+    if (error) throw fail(`${table}의 기술 참조를 읽지 못함`, error.message);
+    for (const row of (data ?? []) as unknown as Record<string, string>[]) used.add(row[column]);
+  }
+  return used;
+}
+
+/** 가짜 기술 중 어떤 표도 가리키지 않는 것만 지운다. */
 async function removeUnusedTechnologies(db: SupabaseClient): Promise<{ removed: number; kept: number }> {
   const fake = await readIds(db.from("technologies").select("id").eq("is_simulated", true), "가짜 기술");
   if (fake.length === 0) return { removed: 0, kept: 0 };
-  const used = await db.from("my_technologies").select("tech_id").in("tech_id", fake);
-  if (used.error) throw fail("내 기술을 읽지 못함", used.error.message);
-  const usedIds = new Set(((used.data ?? []) as { tech_id: string }[]).map((r) => r.tech_id));
-  const free = fake.filter((id) => !usedIds.has(id));
+  const used = await referencedTechIds(db, fake);
+  const free = fake.filter((id) => !used.has(id));
   const removed = free.length === 0 ? 0 : await removeRows(db.from("technologies").delete().in("id", free).eq("is_simulated", true).select("id"), "가짜 기술");
   return { removed, kept: fake.length - free.length };
 }
 
+const emptyClear = (): ClearResult => ({ scenarios: 0, judgments: 0, alerts: 0, changes: 0, observations: 0, technologies: 0, keptTechnologies: 0 });
+
+function clearReason(r: ClearResult, errorMessage: string | null): string {
+  const counts = `변경 ${r.changes}, 알림 ${r.alerts}, 판단 ${r.judgments}, 시나리오 ${r.scenarios}, 수집 자료 ${r.observations}, 기술 ${r.technologies}(남김 ${r.keptTechnologies})`;
+  return errorMessage === null ? `시뮬레이터 지우기: ${counts}` : `시뮬레이터 지우기 중간 실패: 지운 것 ${counts}. 오류: ${maskSecrets(errorMessage)}`;
+}
+
+/** 지우는 순서(외래키 순서): 시나리오 → 판단 → 알림 → 변경 → 수집 자료 → 기술. 지운 수는 r에 바로 쌓는다. */
+async function removeAll(db: SupabaseClient, r: ClearResult): Promise<void> {
+  const changeIds = await readIds(db.from("changes").select("id").eq("is_simulated", true), "가짜 변경");
+  const alertIds = changeIds.length === 0 ? [] : await readIds(db.from("alerts").select("id").in("change_id", changeIds), "가짜 변경의 알림");
+  r.scenarios = await removeByIds(db, "scenarios", "alert_id", alertIds, "시나리오");
+  r.judgments = await removeByIds(db, "judgments", "alert_id", alertIds, "판단");
+  r.alerts = await removeByIds(db, "alerts", "id", alertIds, "알림");
+  r.changes = await removeRows(db.from("changes").delete().eq("is_simulated", true).select("id"), "가짜 변경");
+  r.observations = await removeRows(db.from("observations").delete().eq("is_simulated", true).select("id"), "가짜 수집 자료");
+  const techs = await removeUnusedTechnologies(db);
+  r.technologies = techs.removed;
+  r.keptTechnologies = techs.kept;
+}
+
 /**
- * 가짜 표시(is_simulated)가 붙은 줄만 지운다(SPEC-3.5). 외래키 순서: 시나리오 → 판단 → 알림 → 변경 → 수집 자료 → 기술.
- * runs·run_steps는 증거라 남긴다. 끝에 바꾼 기록(audit_logs) 한 줄. 판단 삭제는 DB 트리거가 가짜 변경의 것만 허용한다.
+ * 가짜 표시(is_simulated)가 붙은 줄만 지운다(SPEC-3.5). runs·run_steps는 증거라 남긴다.
+ * 성공이든 중간 실패든 바꾼 기록(audit_logs) 한 줄을 남긴다(실패면 지운 수와 가린 오류). 판단 삭제는 DB 트리거가 가짜 변경의 것만 허용한다.
  */
 export async function clearSimulated(deps: { db: SupabaseClient }, input: { adminId: string }): Promise<ClearResult> {
   const { db } = deps;
-  const changeIds = await readIds(db.from("changes").select("id").eq("is_simulated", true), "가짜 변경");
-  const alertIds = changeIds.length === 0 ? [] : await readIds(db.from("alerts").select("id").in("change_id", changeIds), "가짜 변경의 알림");
-  const scenarios = await removeByIds(db, "scenarios", "alert_id", alertIds, "시나리오");
-  const judgments = await removeByIds(db, "judgments", "alert_id", alertIds, "판단");
-  const alerts = await removeByIds(db, "alerts", "id", alertIds, "알림");
-  const changes = await removeRows(db.from("changes").delete().eq("is_simulated", true).select("id"), "가짜 변경");
-  const observations = await removeRows(db.from("observations").delete().eq("is_simulated", true).select("id"), "가짜 수집 자료");
-  const techs = await removeUnusedTechnologies(db);
-  const result = { scenarios, judgments, alerts, changes, observations, technologies: techs.removed, keptTechnologies: techs.kept };
-  const reason = `시뮬레이터 지우기: 변경 ${changes}, 알림 ${alerts}, 판단 ${judgments}, 시나리오 ${scenarios}, 수집 자료 ${observations}, 기술 ${techs.removed}(남김 ${techs.kept})`;
-  const audit = await db.from("audit_logs").insert({ actor_id: input.adminId, actor_role: "admin", action: "simulator_clear", target_table: "changes", target_id: "is_simulated", reason });
-  if (audit.error) throw fail("바꾼 기록을 남기지 못함", audit.error.message);
+  const result = emptyClear();
+  let errorMessage: string | null = null;
+  let auditError: string | null = null;
+  try {
+    await removeAll(db, result);
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : String(error);
+    throw error;
+  } finally {
+    const audit = await db.from("audit_logs").insert({ actor_id: input.adminId, actor_role: "admin", action: "simulator_clear", target_table: "changes", target_id: "is_simulated", reason: clearReason(result, errorMessage) });
+    if (audit.error) auditError = audit.error.message; // finally 안에서 던지면 원래 오류를 덮으므로 여기서는 적어만 둔다
+  }
+  if (auditError) throw fail("바꾼 기록을 남기지 못함", auditError);
   return result;
 }
