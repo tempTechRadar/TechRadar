@@ -296,6 +296,7 @@ UK: (kind, ecosystem, value).
 | decision | text | ✔ | | `candidate`(적용 후보) / `hold`(보류) |
 | reason | text | | | 보류면 5자 이상(check) |
 | action | text | ✔ | | 한 조치: `candidate_recorded` / `hold_reason_recorded` (ADR 0010) |
+| fixed_version | text | | | 보안 경고에서 적용 후보일 때 올릴 고친 버전(ADR 0012). 그 밖에는 비움 |
 | action_result | text | | | 결과(예: 설치 프롬프트 기본 목록에 들어감) |
 | judged_by | uuid | ✔ | FK→profiles | 알림 주인과 같아야 함(RLS) |
 | judged_at | timestamptz | ✔ | | |
@@ -410,13 +411,18 @@ UK: (kind, ecosystem, value).
 
 ## 7. 실제 DB와 대조한 결과
 
-**대조 전.** 뼈대 단계에서 새 팀 Supabase 프로젝트를 승인 받고 만든 뒤(E5), 마이그레이션을 적용하고 아래 표를 채운다. 결과는 `docs/qa.md`에도 한 줄 남긴다.
+**1차 대조: 2026-11-18, Claude**(Supabase 커넥터 `list_tables`, 프로젝트 `techradar`). P-2 마이그레이션(`supabase/migrations/202611181400_P-2_m0_tables.sql`, `202611181415_P-2_lock_functions.sql`)을 적용한 뒤. **팀 확인 대기**(안내서: 대조는 팀이 한다). 결과는 `docs/qa.md`에도 남겼다.
 
 | 테이블 | erd에 있음 | 실제 DB에 있음 | 칸·키·RLS 같음 | 다르면 고친 쪽과 이유 |
 |---|---|---|---|---|
-| (대조 때 채움) | | | | |
+| profiles · projects · my_technologies · technologies · sources · runs · run_steps · observations · changes · alerts · audit_logs | ✔ | ✔ (RLS 켜짐) | ✔ | — |
+| categories | ✔ (2.3) | ✔ | ✔ | P-30 대신 P-2에서 만듦: `technologies.category_id`가 가리켜서 |
+| judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표의 `fixed_version` 줄은 PR #28(ADR 0012)에 있음. 둘이 합쳐지면 같아짐 |
+| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs | ✔ | 아직 없음 | — | P-30(M1 마이그레이션)에서 만든다 |
+| 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
 
 ## 바뀐 기록
 
 - 2026-11-18 안내서 흐름 그림과 대조: `run_steps`에 `count_in`·`count_out`·`branch_counts`(화살표·갈래별 건수), `observations`에 `change_size`(바뀐 정도)
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
+- 2026-11-18 개발 전 점검 반영(I-028): `judgments.fixed_version` 추가(보안 경고의 적용 후보 = 고친 버전으로 올리기, ADR 0012). P-2 마이그레이션에 넣는다
