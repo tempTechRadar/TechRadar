@@ -18,6 +18,8 @@
 
 **결과(중간):** 뽑기·등급 규칙(`lib/domain/manifest.ts`·`grade.ts`)과 시험 7개(G1 mcp-remote 0.1.15 = 위험, 실제 OSV 응답 샘플 `lib/domain/fixtures/`), 서버 흐름 `lib/server/first-read.ts`, 등록 화면 `/projects`. 테스트 14/14, 타입검사·빌드 성공. 로그인 전 `/projects` → `/login` 이동 확인. **끝까지 실제 DB로는 못 돌림**: `startRun`·`recordStep`(P-4)·`createAlertsForChange`(P-7)가 아직 자리만이라 던진다. 코드 검토 9건 중 1건 고침(같은 기술이 두 파일에 있으면 저장 실패). 등급이 버전마다 다른데 `technologies`(버전 없는 키) 한 줄에 저장되던 문제 → 사용자 결정 "칸 추가": `my_technologies`에 내 버전 등급 칸(erd 2.2, 마이그레이션 `202611181600_P-3_my_tech_grade.sql`, 시험 `supabase/tests/my_tech_grade_p3.sql`). 사용자가 고칠 수 있는 칸은 숨김·이름·버전만. 사용자 승인("적용하고 시험") 뒤 `techradar`에 적용, 시험 4개 모두 기대값, 남은 줄 0, 보안 점검 새 경고 없음
 
+**결과(실제 DB, main 합친 뒤):** `finishRun` 붙임(성공·일부·실패로 닫음), 변경 저장 단계를 알림 전에 기록. 실제 DB 끝까지 시험: 등록 → 읽기 → OSV → 등급 → 변경 1건, 다시 읽어도 1건, 실제 GitHub 읽기 성공, 시험 뒤 0건(`docs/qa.md`). 알림 만들기(P-7 `createAlertsForChange`)는 main에서도 아직 자리만이라 실행은 `failed`로 닫힘. `.env.local` 주소 형식 오류를 찾아 고침(`docs/debug-note.md`)
+
 ---
 
 ## I-031 · 2026-11-18 · P-6 흐름 화면 최소판 (영역 C, 차세일)
