@@ -88,7 +88,7 @@
 
 ---
 
-## I-040 · 2026-11-18 · P-20b 채점(eval) — 정답 파일과 채점 함수 (영역 C, 차세일)
+## I-P-20b-eval · 2026-11-18 · P-20b 채점(eval) — 정답 파일과 채점 함수 (영역 C, 차세일)
 - 브랜치: `feat/P-20b-eval` (worktree, origin/main 위). 번호 I-039는 P-20 흐름 화면(PR #46)이 씀
 - 출처: `docs/plan.md` P-20, PRD-F30, SPEC-10(G1–G9), `docs/flow.md`(start_scoring → score → score_save), P-10(PR #41) 등급 함수 재사용
 
