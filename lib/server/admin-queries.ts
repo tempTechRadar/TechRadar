@@ -91,7 +91,8 @@ export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow
         .order("created_at", { ascending: false }).limit(LIMIT),
       "같은 역할 후보",
     ),
-    rows<Row>(db.from("technologies").select("id, display_name, type, tech_key").is("category_id", null).order("display_name").limit(LIMIT), "갈래가 없는 기술"),
+    // 얇은 줄(공식 MCP 레지스트리가 넣은 수천 개)은 쓰는 사람이 생겨 두꺼워지면 보인다: 안 거르면 목록 500칸을 다 차지한다
+    rows<Row>(db.from("technologies").select("id, display_name, type, tech_key").is("category_id", null).eq("depth", "thick").order("display_name").limit(LIMIT), "갈래가 없는 기술"),
     rows<Row>(db.from("my_technologies").select("manual_name, created_at").not("manual_name", "is", null).order("created_at", { ascending: false }).limit(LIMIT), "직접 추가한 이름"),
   ]);
   return {
