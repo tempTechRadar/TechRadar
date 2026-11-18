@@ -4,7 +4,8 @@ import type { Flow, FlowEdge, FlowNode } from "./types.ts";
 export const BOX = { w: 172, h: 64, gapX: 52, gapY: 30, pad: 20 };
 
 export type PlacedNode = FlowNode & { x: number; y: number; col: number };
-export type PlacedEdge = FlowEdge & { d: string };
+/** mx·my: 곡선의 가운데(화살표 위 건수를 쓰는 자리) */
+export type PlacedEdge = FlowEdge & { d: string; mx: number; my: number };
 export type Layout = { nodes: PlacedNode[]; edges: PlacedEdge[]; width: number; height: number };
 
 /** 상자마다 "시작에서 가장 먼 길의 길이"를 단계(열)로 쓴다. */
@@ -65,7 +66,9 @@ export function layoutFlow(flow: Flow): Layout {
     const b = at.get(e.to)!;
     const sx = a.x + BOX.w, sy = a.y + BOX.h / 2, tx = b.x, ty = b.y + BOX.h / 2;
     const dx = Math.max(24, (tx - sx) / 2);
-    return { ...e, d: `M${sx} ${sy} C${sx + dx} ${sy} ${tx - dx} ${ty} ${tx} ${ty}` };
+    // 3차 베지어의 t=0.5 지점: (P0 + 3P1 + 3P2 + P3) / 8
+    const mx = (sx + 3 * (sx + dx) + 3 * (tx - dx) + tx) / 8, my = (sy + 3 * sy + 3 * ty + ty) / 8;
+    return { ...e, d: `M${sx} ${sy} C${sx + dx} ${sy} ${tx - dx} ${ty} ${tx} ${ty}`, mx, my };
   });
   return {
     nodes,
