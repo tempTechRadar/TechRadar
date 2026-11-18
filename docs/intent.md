@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-11-direct-add-grade · 2026-11-18 · P-11 남은 일 "직접 추가한 기술의 등급" 정정 (영역 A, 김영식)
+- 브랜치: `docs/P-11-direct-add-grade` (최신 main `1b1395f`, worktree `.claude/worktrees/p11-records`)
+- 출처: 사용자 "진행"(남은 작업 목록의 2번). 근거: `plan.md` P-11 행 "남음", `I-P-9d-osv-daily`, `docs/spec.md` 등급 표("찾지 못함")
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `plan.md` P-11 "남음"에 "직접 추가한 기술의 등급(P-9 뒤)"가 P-9(다운로드·정기 OSV)가 main에 들어온 뒤에도 그대로여서, 무엇이 남았는지 알 수 없다. 코드를 읽어 보니 정기 OSV 재확인(P-9d)이 이미 일부를 맡는다 |
+| 기대 결과 | plan의 남은 일이 실제로 남은 틈만 말한다. 직접 추가 직후의 등급을 어떻게 할지가 열린 질문으로 보인다 |
+| 영향 범위 | `docs/plan.md` P-11 행의 한 구절, `docs/intent.md`, `docs/worklog.md`. 코드·DB·시험 없음 |
+| 제약 | **코드 읽기로만 확인**: `osv-store.ts`의 SELECT·필터(숨김 아님·`depth = thick`·시연용 아님·보관 안 된 프로젝트, 출처 `origin`은 거르지 않음), `osv-daily.ts` `osvName`(`npm:`·`pypi:` 키만), `first-read.ts`(저장소에서 읽은 기술은 `thick`으로 넣음). 실제 DB에는 기술·내 기술 줄이 0개라 실행으로는 확인하지 못했다 |
+| 열린 질문 | ① 직접 추가한 직후 한 번 바로 OSV로 매길지(추가 응답이 느려지고 실패 처리가 필요), 아니면 다음 정기 실행까지 "찾지 못함"으로 둘지 ② 카탈로그에서 고른 `thin`(얇은) 기술은 정기 OSV 대상이 아니라 계속 "찾지 못함"이다. 사용자가 직접 넣었다는 이유로 `thick`으로 올릴지(`docs/데이터설계.md` 8절 세 물음과 부딪힐 수 있음) ③ npm·PyPI가 아닌 기술(스킬·플러그인 등)은 OSV가 없어 등급을 못 매기는 것이 맞는지(`docs/spec.md` 등급 표의 "패키지가 없는 스킬"과 같은 취급) |
+| 결과 | plan P-11 행의 구절을 실제 남은 틈으로 바꿨다. 코드·DB는 그대로다 |
+
+---
+
 ## I-record-status-at-merge · 2026-11-18 · 합친 뒤 기록 고치기 반복을 끊는 규칙 제안 (CLAUDE.md 9절 한 항목, 김영식)
 - 브랜치: `docs/record-status-at-merge` (최신 main `955e6a9`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "1"(후보 중 규칙 제안 선택). 근거: `I-P-11-merged-record`·`I-P-16-merged-record`·`I-P-9-merged-record`·`I-P-11-insert-columns-merged-record`의 열린 질문, `CLAUDE.md` 9절
