@@ -56,7 +56,7 @@
 
 ---
 
-## I-044 · 2026-11-18 · P-19b 설치 프롬프트 화면·내 컴퓨터 목록 가져오기 저장 (영역 C, 차세일)
+## I-P-19b-install-screen · 2026-11-18 · P-19b 설치 프롬프트 화면·내 컴퓨터 목록 가져오기 저장 (영역 C, 차세일)
 - 브랜치: `feat/P-19b-install-screen` (worktree, origin/main 위). 순수 함수(lib/install)는 PR #42로 main에 있음
 - 출처: `docs/plan.md` P-19, PRD-F25·F33, SPEC-4.3·6, ADR 0009·0012, IA-22·IA-3, 불변 4·5. main 확인: P-8 판단 저장(PR #43, judgments.fixed_version)·P-30 exports 표 합쳐짐
 
