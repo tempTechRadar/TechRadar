@@ -6,6 +6,19 @@
 
 ---
 
+## I-vercel-skip-docs-build · 2026-11-18 · 문서만 바뀐 main 병합은 Vercel 빌드를 건너뛰기
+- 브랜치: `chore/vercel-skip-docs-build` (최신 main f24ca61, 새 worktree `.claude/worktrees/vercel-skip-docs`)
+- 출처: 사용자 "지금 vercel이 제한상태라" → "지금 다른 작업에 영향 없는지 확인하고 진행". 앞선 작업 `I-vercel-deploy-limit`(PR #68, ADR 0018)의 후속
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 미리보기를 끈 뒤에도 main 병합 배포가 "Deployment rate limited"로 실패한다(#69·#70·#71·#73 실패, #72·#74 성공). 16시 이후 배포 4개가 모두 main 병합이고 문서만 바꾼 #74도 한 칸을 썼다 |
+| 기대 결과 | 문서만 바뀐 병합은 빌드를 건너뛰어 한도를 아낀다. 코드나 서버가 읽는 파일이 바뀐 병합은 그대로 배포된다 |
+| 영향 범위 | `vercel.json`(`ignoreCommand` 한 줄), ADR 0018 개정, `CLAUDE.md` 10절, 기록. 코드·DB·GitHub 설정은 손대지 않음 |
+| 제약 | 서버가 런타임에 읽는 파일은 건너뛰기에서 빼야 한다: `sim/skills/*/SKILL.md`·`eval/gold.json`(채점 버튼), `wiki/`(P-26 챗봇, PRD-F31). 다른 브랜치가 `vercel.json`을 건드리면 안 된다(확인함, 없음). 열린 PR #75(문서 4개 파일)는 영향 없음 |
+| 열린 질문 | 건너뛴 배포가 Vercel 하루 한도에서 빠지는지. 건너뛴 병합이 GitHub 커밋 상태에 어떻게 보이는지. P-26이 `docs/`·`interviews/`도 서버에서 읽게 되는지 |
+
+**결과:** 영향 확인: 런타임에 읽는 폴더(`sim/skills`·`eval`)와 P-26이 읽을 `wiki/`는 제외하지 않았고, 다른 브랜치가 `vercel.json`을 바꾸는 일은 없으며, 열린 PR #75는 영향이 없다. 처음 제안한 `*.md` 통째 제외는 시험용 `SKILL.md`를 건너뛰게 만들어서 루트 `*.md`만 제외하도록 좁혔다. 실제 문자열로 병합 4개(#74만 건너뜀)와 가상 커밋 6개를 시험해 기대대로 나왔다. 한도에서 빠지는지는 적용해 봐야 안다(못함).
 ## I-B-record-2-1118 · 2026-11-18 · 영역 B 2차 기록 — 판단 조치 연결(P-8)·적용 기회 화면(P-14)·대응안 초안(P-13) (소급 기록)
 - 작업 ID: 브랜치 이름에서 만듦(ADR 0017, 순번을 매기지 않음). 소급 기록이라 한 항목에 모음
 - 브랜치: `feat/P-8-save-attempted`·`feat/P-8-action-record-wiring`·`feat/P-14b-opportunity-detail`·`feat/P-13-draft`(모두 합침). 이 기록은 `docs/B-record-2-1118`(문서만)
