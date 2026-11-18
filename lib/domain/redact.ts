@@ -22,9 +22,13 @@ export function maskSecrets(text: string): string {
   return out;
 }
 
-/** 저장용: 비어 있으면 null, 가린 뒤 너무 길면 자른다. */
+/**
+ * 저장용: 비어 있으면 null, 가린 뒤 너무 길면 자른다.
+ * 가리기(NAMED)는 긴 대문자 덩어리에서 글자 수의 제곱으로 느려지고 글은 믿을 수 없는 저장소에서 온다(.mcp.json 별명·requirements.txt 경로).
+ * 그래서 가리기 전에 먼저 한 번 자른다. 가려서 줄어들 여유로 저장 길이의 2배를 남긴다.
+ */
 export function cleanForLog(text: string | undefined): string | null {
   if (text === undefined) return null;
-  const masked = maskSecrets(text);
-  return masked.length > MAX_LEN ? `${masked.slice(0, MAX_LEN)}…` : masked;
+  const masked = maskSecrets(text.slice(0, MAX_LEN * 2));
+  return masked.length > MAX_LEN || text.length > MAX_LEN * 2 ? `${masked.slice(0, MAX_LEN)}…` : masked;
 }
