@@ -44,7 +44,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
 }
 
 const tech = (id: string, key: string, overrides: Row = {}): Row => ({
-  id, tech_key: key, created_at: "2026-11-01T00:00:00Z", grade: "pass", grade_reason: "알려진 문제가 없어요", grade_evidence: null,
+  id, tech_key: key, display_name: `${key} 이름`, created_at: "2026-11-01T00:00:00Z", grade: "pass", grade_reason: "알려진 문제가 없어요", grade_evidence: null,
   one_liner: `${key} 설명`, one_liner_source: `https://registry.example/${key}`, last_activity_at: "2026-11-10T00:00:00Z",
   last_activity_kind: "release", repo_url: `https://github.com/o/${key}`, license: "MIT", signals: null, ...overrides,
 });
@@ -74,7 +74,7 @@ test("확정된 같은 역할의 기술을 쓰는 사람마다 적용 기회 알
   assert.equal(created, 2);
   assert.equal(writes.length, 1);
   assert.deepEqual(writes[0].options, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
-  const [first] = writes[0].rows as { comparison: { item: string }[] }[];
+  const [first] = writes[0].rows as { comparison: { myTechName: string; newTechName: string; confirmedAt: string; rows: { item: string }[] } }[];
   assert.deepEqual(
     writes[0].rows.map(({ comparison: _comparison, ...rest }) => rest),
     [
@@ -82,7 +82,11 @@ test("확정된 같은 역할의 기술을 쓰는 사람마다 적용 기회 알
       { user_id: "user-b", change_id: "change-1", my_technology_id: "mt-b", kind: "opportunity", dedupe_key: "user-b|mcp-mine|mcp-new" },
     ],
   );
-  assert.deepEqual(first.comparison.map((r) => r.item), ["하는 일", "보안 등급과 이유", "최근 업데이트", "사용량", "라이선스"]);
+  // 알림 상세가 "나오게 된 이유"와 표 머리를 그릴 값(내 기술·새 기술 이름, 같은 역할로 확정한 시각)도 같이 저장한다
+  assert.equal(first.comparison.myTechName, "mcp-mine 이름");
+  assert.equal(first.comparison.newTechName, "mcp-new 이름");
+  assert.equal(first.comparison.confirmedAt, "2026-11-18T01:00:00Z");
+  assert.deepEqual(first.comparison.rows.map((r) => r.item), ["하는 일", "보안 등급과 이유", "최근 업데이트", "사용량", "라이선스"]);
 });
 
 test("같은 변경으로 다시 불러도 0건이고 쓰기 요청을 보내지 않는다", async () => {

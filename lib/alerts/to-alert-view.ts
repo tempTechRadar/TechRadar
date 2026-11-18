@@ -1,6 +1,10 @@
 // 알림 한 건(DB 줄)을 화면에 그대로 찍을 값으로 바꾼다(IA-6·7, SPEC-5.1·5.2). DB·화면을 모르는 순수 함수.
 import { buildAlertMessage } from "./build-alert-message.ts";
+import type { ComparisonRow } from "./build-comparison.ts";
 import type { AlertKind, AlertStatus } from "./filter-alerts.ts";
+
+/** 적용 기회 알림을 만들 때 저장해 둔 비교표(alerts.comparison). 만든 때의 값이다 */
+export type AlertComparison = { myTechName: string; newTechName: string; confirmedAt: string | null; rows: ComparisonRow[] };
 
 export type AlertRecord = {
   id: string;
@@ -11,6 +15,8 @@ export type AlertRecord = {
   projectName: string | null;
   sourceFile: string | null;
   judgment: { decision: "candidate" | "hold"; reason: string | null; fixedVersion: string | null; judgedAt: string } | null;
+  /** 적용 기회 알림의 비교표. 없거나 모양이 맞지 않으면 null */
+  comparison: AlertComparison | null;
   change: {
     kind: string;
     techName: string;
@@ -36,7 +42,16 @@ export type AlertView = {
   judgedAtLabel: string | null;
   /** 보안 경고인데 고친 버전이 아직 없으면 false: 적용 후보로 저장할 수 없다(ADR 0012) */
   canCandidate: boolean;
+  /** 적용 기회 상세의 "나오게 된 이유" 한 줄. 다른 알림이거나 비교표를 모르면 null */
+  reasonLine: string | null;
+  comparison: ComparisonView | null;
 };
+
+/** 출처는 http(s) 주소만 링크로 쓴다(그 밖의 글·javascript: 같은 주소는 글자로만) */
+export type CellView = { value: string; source: string | null; sourceIsLink: boolean };
+export type ComparisonView = { headers: { mine: string; theirs: string }; rows: { item: string; mine: CellView; theirs: CellView }[] };
+
+type BaseView = Omit<AlertView, "title" | "lines" | "reasonLine" | "comparison">;
 
 type Evidence = { id?: string; severity?: string; url?: string };
 type Value = { grade?: string; reason?: string; fixed_version?: string | null; evidence?: Evidence[] };
@@ -70,8 +85,9 @@ export function toAlertView(record: AlertRecord): AlertView {
     judgedAtLabel: record.judgment ? listTime.format(new Date(record.judgment.judgedAt)) : null,
     canCandidate: record.kind !== "security" || Boolean(curr.fixed_version),
   };
-  // 보안 경고만 문구를 만든다. 적용 기회·모델 종료의 상세는 P-14에서 채운다.
-  if (record.kind !== "security") return { ...base, title: `[${kind.label}] ${change.techName}`, lines: [] };
+  if (record.kind === "opportunity" && record.comparison) return opportunityView(base, record.comparison);
+  // 모델 종료의 상세는 3순위. 비교표를 모르는 적용 기회도 이름만 보인다.
+  if (record.kind !== "security") return { ...base, title: `[${kind.label}] ${change.techName}`, lines: [], reasonLine: null, comparison: null };
   const cause = curr.evidence?.[0];
   const prevGrade = asValue(change.prevValue).grade;
   const message = buildAlertMessage({
@@ -86,7 +102,31 @@ export function toAlertView(record: AlertRecord): AlertView {
     sourceFile: record.sourceFile,
     fixedVersion: curr.fixed_version ?? null,
   });
-  return { ...base, title: message.title, lines: message.lines };
+  return { ...base, title: message.title, lines: message.lines, reasonLine: null, comparison: null };
+}
+
+const confirmedDay = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
+
+const cellOf = ({ value, source }: { value: string; source: string | null }): CellView => ({
+  value,
+  source,
+  sourceIsLink: source !== null && /^https?:\/\//i.test(source),
+});
+
+// 제목은 조사를 붙이지 않는다: 영어 이름 뒤의 과/와·이/가를 정할 수 없어서(SPEC-5.3 문구를 조사 없이 바꿈)
+function opportunityView(base: BaseView, comparison: NonNullable<AlertRecord["comparison"]>): AlertView {
+  const { myTechName, newTechName, confirmedAt, rows } = comparison;
+  const day = confirmedAt ? confirmedDay.format(new Date(confirmedAt)) : NOT_FOUND;
+  return {
+    ...base,
+    title: `[적용 기회] 같은 역할의 새 기술 ${newTechName} (내 기술: ${myTechName})`,
+    lines: [],
+    reasonLine: `내 기술(${myTechName})과 같은 역할로 확정됐어요. 확정한 날: ${day}.`,
+    comparison: {
+      headers: { mine: `내 기술 ${myTechName}`, theirs: `새 기술 ${newTechName}` },
+      rows: rows.map((row) => ({ item: row.item, mine: cellOf(row.mine), theirs: cellOf(row.theirs) })),
+    },
+  };
 }
 
 function subtitleOf(record: AlertRecord): string {

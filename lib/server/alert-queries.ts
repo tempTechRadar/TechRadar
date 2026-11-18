@@ -6,7 +6,7 @@ import { maskSecrets } from "../domain/redact.ts";
 
 // 다대일 조인(changes, technologies, my_technologies, projects)은 실제 응답에서 한 줄 객체다(DB 타입 생성 전이라 느슨하게 둔다).
 const COLUMNS =
-  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, technologies(display_name)), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at)";
+  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, technologies(display_name)), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at), comparison";
 
 type Row = Record<string, any>;
 
@@ -14,6 +14,16 @@ type Row = Record<string, any>;
 function toJudgment(raw: Row | Row[] | null | undefined): AlertRecord["judgment"] {
   const row = Array.isArray(raw) ? raw[0] : raw;
   return row ? { decision: row.decision, reason: row.reason, fixedVersion: row.fixed_version, judgedAt: row.judged_at } : null;
+}
+
+// 예전 모양(표 5줄만 배열로 저장)이나 깨진 값은 null: 화면이 비교표 없이 보여 준다.
+function toComparison(raw: unknown): AlertRecord["comparison"] {
+  const value = raw as Row | null;
+  const valid =
+    value !== null && typeof value === "object" && !Array.isArray(value) &&
+    typeof value.myTechName === "string" && typeof value.newTechName === "string" &&
+    (value.confirmedAt === null || typeof value.confirmedAt === "string") && Array.isArray(value.rows);
+  return valid ? { myTechName: value!.myTechName, newTechName: value!.newTechName, confirmedAt: value!.confirmedAt, rows: value!.rows } : null;
 }
 
 function toRecord(row: Row): AlertRecord {
@@ -26,6 +36,7 @@ function toRecord(row: Row): AlertRecord {
     projectName: row.my_technologies?.projects?.name ?? null,
     sourceFile: row.my_technologies?.source_file ?? null,
     judgment: toJudgment(row.judgments),
+    comparison: toComparison(row.comparison),
     change: {
       kind: row.changes.kind,
       techName: row.changes.technologies.display_name,
