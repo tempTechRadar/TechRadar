@@ -25,3 +25,19 @@ test("서비스 키 클라이언트를 쓰는 파일은 판단 저장(save_judgm
 
   assert.deepEqual(offenders.map((s) => s.path), []);
 });
+
+test("판단 서버 동작은 saveJudgment에 사용자 클라이언트만 넘기고, 서비스 클라이언트는 조치 기록(recordActionOutcome)에만 쓴다", () => {
+  const action = sources.find(({ path }) => path.replaceAll("\\", "/").endsWith("app/alerts/[id]/actions.ts"));
+
+  assert.ok(action, "app/alerts/[id]/actions.ts를 찾지 못함");
+  assert.match(action.text, /saveJudgment\(\s*picked\.db\s*,/, "saveJudgment의 첫 인자는 사용자 클라이언트(picked.db)여야 한다");
+  const serviceVars: string[] = [...action.text.matchAll(/const\s+(\w+)\s*=\s*getServiceSupabase\(\)/g)].map((m) => m[1]);
+  assert.ok(serviceVars.length > 0, "조치 기록용 서비스 클라이언트가 있어야 한다");
+  for (const name of serviceVars) {
+    const stray: string[] = action.text
+      .split("\n")
+      .filter((line) => line.includes(name))
+      .filter((line) => !line.includes("getServiceSupabase()") && !line.includes(`recordActionOutcome(${name},`));
+    assert.deepEqual(stray, [], `${name}는 선언과 recordActionOutcome의 인자로만 쓰여야 한다`);
+  }
+});
