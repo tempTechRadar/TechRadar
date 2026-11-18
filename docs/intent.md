@@ -19,6 +19,18 @@
 | 열린 질문 | GitHub 화면의 충돌 파일 목록이 재현과 같은지, 설정 없는 브랜치의 첫 병합이 git 버전에 따라 다른지. 충돌이 계속되면 작업마다 기록 파일 쪼개기를 할지(코드 동결 11-20 21:00 전에 판단) |
 
 **결과:** 열린 PR 4개를 내 컴퓨터에서 main과 합치면 모두 충돌이 없고, 기록 문서를 `merge=text`로 덮은 복사본에서는 #60·#59가 `worklog.md`, #53·#52가 `intent.md`·`worklog.md`에서 충돌해 GitHub 표시와 같은 파일이 됐다. 원인은 GitHub PR 화면이 `merge=union`을 따르지 않는 것으로 보고 ADR 0017 개정·debug-note에 적었다. PR 4개와 설정은 고치지 않았다.
+## I-P-20c-demo-test-save-attempted · 2026-11-18 · 시연 시험을 P-8 saveAttempted 추가에 맞춤 (영역 C)
+- 브랜치: `fix/P-20c-demo-test-save-attempted` (최신 main)
+- 출처: PR #54(P-20c 실패 시연, 합쳐짐)·PR #61(P-8 saveAttempted, 합쳐짐), `lib/demo/judgment-hooks.test.ts`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | #54와 #61이 각각은 통과했지만 둘 다 합쳐진 main에서 시연 시험 1개가 실패한다(판단 저장 결과에 saveAttempted가 새로 생김) |
+| 기대 결과 | 시험 기대값에 saveAttempted: true를 넣어 main 시험 실패 0 |
+| 영향 범위 | `lib/demo/judgment-hooks.test.ts` 한 줄(시험만, 동작 코드 변경 없음) |
+| 제약 | 남의 파일(judgments.ts) 수정 없음 |
+| 열린 질문 | 없음 |
+| 결과 | 2026-11-18: 기대값 한 줄 수정, 전체 시험 실패 0 |
 
 ---
 
@@ -85,6 +97,21 @@
 
 ---
 
+## I-P-19b-install-screen · 2026-11-18 · P-19b 설치 프롬프트 화면·내 컴퓨터 목록 가져오기 저장 (영역 C, 차세일)
+- 브랜치: `feat/P-19b-install-screen` (worktree, origin/main 위). 순수 함수(lib/install)는 PR #42로 main에 있음
+- 출처: `docs/plan.md` P-19, PRD-F25·F33, SPEC-4.3·6, ADR 0009·0012, IA-22·IA-3, 불변 4·5. main 확인: P-8 판단 저장(PR #43, judgments.fixed_version)·P-30 exports 표 합쳐짐
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 설치 프롬프트·가져오기 규칙(순수 함수)은 있지만 사용자가 쓸 화면과 저장이 없다(알파 D2) |
+| 기대 결과 | `/projects/install`: 내 기술 고르기 → 미리보기 → 복사(위험은 기본 제외, 직접 넣으면 "위험: ID", 적용 후보는 고친 버전으로 고정). 가져오기 글 복사 → 붙여 넣기 → 미리보기(받을 것·뺀 것·비밀값처럼 보여서 뺀 것) → "프로젝트 밖"(projects.kind=local)에 저장. 복사·가져오기는 exports에 기록 |
+| 영향 범위 | `lib/install/from-my-tech.ts`·`import-prompt.ts`(새), `lib/server/local-import.ts`(새), `app/projects/install/`(새), `app/dev/install-sample`(새, 개발 전용), 시험 2개 |
+| 제약 | 사용자 본인 로그인만(서비스 키 없음, RLS). 순수 함수는 고치지 않고 재사용. 저장은 insert 한 번이라 실패하면 아무것도 바뀌지 않음(불변 4), 붙여 넣은 글은 화면에 그대로. 서버가 붙여 넣은 글을 다시 읽음(화면 미리보기를 믿지 않음) |
+| 열린 질문 | 가져오기 글에 "npm:·pypi: 접두어" 줄을 더함 → `docs/spec.md` 6.2 반영 필요(팀 확인). 내 프로젝트(IA-3) 화면에 이 화면 링크(A 영역 파일). 스킬 경로는 기술 키(owner/repo/name)에서 `.claude/skills/` 아래로 짐작함 |
+| 결과 | 2026-11-18: 시험 237개 중 236 통과·실패 0(할 일 1은 기존), 타입 검사 통과. 샘플 화면을 ego 브라우저로 캡처(위험 기본 제외·직접 넣기·고친 버전 고정·가져오기 미리보기 확인). 못 한 것: 로그인한 실제 계정으로 저장 확인 |
+
+---
+
 ## I-P-20c-fail-demo · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
 - 번호: I-040(P-20b, PR #47)·I-042(P-18, PR #52)가 열려 있고 main은 I-043까지라 **I-044**
 - 브랜치: `feat/P-20c-fail-demo` (worktree `C:\bootcamp\TechRadar-DEMO`, origin/main 13fd4c0 위)
@@ -132,6 +159,20 @@
 
 ---
 
+## I-P-18-admin · 2026-11-18 · P-18 관리자 화면 — 읽기 화면 다섯 개와 순수 함수 (영역 C, 차세일)
+- 브랜치: `feat/P-18-admin` (worktree `C:\bootcamp\TechRadar-P18`, origin/main 위). 번호는 I-039(PR #46)·I-040(PR #47)·I-041(P-17) 다음
+- 출처: `docs/plan.md` P-18, PRD-F3·F24·F27, IA-12–15·17, ADR 0015·0016, 불변 1·5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 관리자가 회원별 등록, 수집 자료, 모든 알림의 처리 현황, 수집 실행과 오류, 분류 확인을 한곳에서 볼 화면이 없다(흐름 화면·시뮬레이터만 있음) |
+| 기대 결과 | `/admin` 첫 화면과 탭 다섯 개(회원별 등록·수집 자료·알림과 처리 현황·수집 실행과 오류·분류 확인). 회원·출처·상태·종류·기간으로 거르기. 일반 계정은 화면에서 막히고 DB는 RLS가 0줄로 막는다. 알림 화면에 판단 버튼이 없다 |
+| 영향 범위 | `lib/admin/`(새: admin-filter, admin-summaries, admin-access와 시험 3개), `lib/server/admin-queries.ts`·`admin-gate.ts`(새), `app/admin/`(새: page, admin-shell, admin.css, members, observations, alerts, runs, classify), `app/layout.tsx`(메뉴 링크 한 줄) |
+| 제약 | 로그인한 관리자 권한의 클라이언트로만 읽음(서비스 키 안 씀). 이번엔 읽기만: 규칙 고치기·같은 역할 확정·갈래 확정은 담당자·시각·사유(audit_logs)를 함께 남겨야 해서 자리만(버튼 꺼 둠). "지금 한 번 실행"은 P-17이 연결(자리만) |
+| 열린 질문 | 관리자 쓰기(규칙 고치기·확정)를 서버 동작 하나로 묶어 audit_logs와 같은 트랜잭션에 넣을지(DB 함수 필요하면 마이그레이션 리뷰). 일반 계정으로 관리자 주소를 실제로 열어 보는 확인은 로그인 계정이 있는 사람과 함께 |
+| 결과 | 2026-11-18: 순수 함수 시험 12개 + 관문 시험 5개(관리자만, 판단 쓰기 없음, 쓰기·서버 동작 없음, 서비스 키 없음). 전체 시험 189 통과·실패 0(할 일 1개는 기존), 타입 검사 통과. 못 한 것: `next build`(worktree의 node_modules 연결을 Turbopack이 못 찾음), 실제 DB로 화면 열기, 화면 캡처 |
+
+---
 ## I-P-20b-eval · 2026-11-18 · P-20b 채점(eval) — 정답 파일과 채점 함수 (영역 C, 차세일)
 - 브랜치: `feat/P-20b-eval` (worktree, origin/main 위). 번호 I-039는 P-20 흐름 화면(PR #46)이 씀
 - 출처: `docs/plan.md` P-20, PRD-F30, SPEC-10(G1–G9), `docs/flow.md`(start_scoring → score → score_save), P-10(PR #41) 등급 함수 재사용
