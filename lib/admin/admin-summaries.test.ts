@@ -77,7 +77,7 @@ test("errorKindCounts: 오류 종류별 건수(종류 없는 줄은 뺌)", () =>
 test("groupRules: 종류 순서 고정, 켜짐·꺼짐 수, 값 순", () => {
   const r = (kind: string, value: string, enabled = true) => ({ id: value, kind, ecosystem: null, value, pattern_id: null, pattern_grade: null, enabled });
   const g = groupRules([r("risk_pattern", "z"), r("allow_package", "b"), r("allow_package", "a", false)]);
-  assert.deepEqual(g.map((x) => x.kind), ["allow_package", "github_topic", "hn_keyword", "risk_pattern"]);
+  assert.deepEqual(g.map((x) => x.kind), ["allow_package", "github_topic", "hn_keyword", "risk_pattern", "official_org"]);
   assert.deepEqual(g[0].rows.map((x) => x.value), ["a", "b"]);
   assert.equal(g[0].on, 1);
   assert.equal(g[0].off, 1);
