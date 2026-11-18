@@ -5,7 +5,7 @@ import type { CurrentUser } from "./current-user.ts";
 import { getServiceSupabase } from "./service-supabase.ts";
 import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
 import { saveChange } from "./changes.ts";
-import { createAlertsForChange } from "./alerts.ts";
+import { notifyOwner } from "./notify-owner.ts";
 import { assertRepoPublic, CollectError, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
@@ -82,8 +82,7 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
     saved.push({ id: change.id, techId: g.techId });
   }
   await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: events.length, countOut: changesCreated });
-  // notify 단계 기록은 알림 주인(P-7)의 함수가 남긴다
-  for (const c of saved) await createAlertsForChange(db, { changeId: c.id, techId: c.techId, kind: "security" });
+  await notifyOwner(db, ctx, saved);
 
   const errors = fileErrors.length + osvErrors;
   return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors) };

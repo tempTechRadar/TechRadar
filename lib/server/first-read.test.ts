@@ -1,6 +1,7 @@
 // 불변 2(수집 실패는 "수집 오류", "없음"·"성공"으로 보이지 않음)를 첫 읽기 흐름 전체로 시험한다. 실제 DB·GitHub·OSV는 부르지 않는다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUser } from "./current-user.ts";
 import { RepoNotPublicError } from "./collect-fetch.ts";
@@ -21,7 +22,18 @@ const updates = (calls: Call[]) => ops(calls, "my_technologies", "update").map(a
 /** 실제 DB 대신 "무엇을 읽고 쓰려 했는지"를 모으는 가짜 클라이언트. 물음 한 줄(from…끝)이 Call 하나. */
 function fakeDb(existingProject = false) {
   const calls: Call[] = [];
-  const respond = (c: Call): { data?: unknown } => {
+  let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
+  const respond = (c: Call): { data?: unknown; count?: number } => {
+    const has = (m: string) => c.chain.some((x) => x.m === m);
+    // 위험 경로(알림 만들기)에서만 쓰는 응답. `in`으로 읽는 것은 알림 만들기가 사람들을 모으는 조회다.
+    if (c.table === "my_technologies" && first(c) === "select" && has("in")) {
+      return { data: [{ id: "mt1", owner_id: "u1", tech_id: "t-npm:mcp-remote", project_id: "p1", hidden_at: null, created_at: "2026-11-18T00:00:00Z" }] };
+    }
+    if (c.table === "projects" && first(c) === "select" && has("in")) return { data: [{ id: "p1", archived_at: null }] };
+    if (c.table === "alerts" && first(c) === "select") {
+      const countQuery = (c.chain[0].args[1] as { head?: boolean } | undefined)?.head;
+      return countQuery ? { count: alertsWritten ? 1 : 0 } : { data: [] };
+    }
     switch (`${c.table}.${first(c)}`) {
       case "projects.select": return { data: existingProject ? { id: "p1" } : null };
       case "projects.insert": return { data: { id: "p1" } };
@@ -32,6 +44,10 @@ function fakeDb(existingProject = false) {
       }
       case "sources.select": return { data: { id: "s1" } };
       case "my_technologies.select": return { data: { grade: "unknown", grade_evidence: null } };
+      case "changes.upsert": return { data: [{ id: "c1" }] };
+      case "changes.select": return { data: { kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
+      case "profiles.select": return { data: [{ id: "u1", is_demo: false }] };
+      case "alerts.upsert": return (alertsWritten = true), { data: [{ id: "a1" }] };
       default: return {};
     }
   };
@@ -180,4 +196,25 @@ test("파일 하나만 없는 건 오류가 아니다: 저장소 확인도 부�
   const r = await registerAndRead(USER, REPO, { db });
   assert.deepEqual([r.status, r.errors], ["succeeded", 0]);
   assert.ok(!urls.includes("https://api.github.com/repos/o/r"));
+});
+
+const G1_OSV = readFileSync(new URL("../domain/fixtures/osv-mcp-remote-0.1.15.json", import.meta.url), "utf8");
+
+test("위험이면 notify를 이 실행에 '내 건수'로 남긴다: 내 알림만 세고, 알림 만들기에는 runId를 넘기지 않는다(불변 5·6)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, osv: () => ok(G1_OSV) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.danger, r.changesCreated], [1, 1]);
+  const notify = steps(calls).filter((s) => s.step_name === "notify");
+  // 알림 만들기가 runId를 받으면 자기 notify 줄(그 기술을 쓰는 모든 사람 기준)을 또 남긴다 → 정확히 1줄이어야 한다
+  assert.equal(notify.length, 1);
+  assert.deepEqual([notify[0].status, notify[0].count_in, notify[0].count_out, notify[0].output_summary], ["succeeded", 1, 1, "내 알림 1건 만듦"]);
+  // 건수는 실행을 시작한 사람의 알림만, 이 실행의 변경만 센다
+  const counts = calls.filter((c) => c.table === "alerts" && first(c) === "select" && (c.chain[0].args[1] as { head?: boolean } | undefined)?.head);
+  assert.equal(counts.length, 2, "알림 만들기 전과 후에 한 번씩");
+  for (const c of counts) {
+    assert.ok(c.chain.some((x) => x.m === "eq" && x.args[0] === "user_id" && x.args[1] === USER.id), "user_id로 거른다");
+    assert.ok(c.chain.some((x) => x.m === "in" && x.args[0] === "change_id" && JSON.stringify(x.args[1]) === '["c1"]'), "이 실행의 변경으로 거른다");
+  }
 });
