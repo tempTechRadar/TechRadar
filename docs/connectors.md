@@ -11,3 +11,4 @@
 | 2026-11-18 | Vercel (MCP 커넥터) | 개발 전 점검: 배포 상태 확인 | 점검 도우미가 `list_projects`·`get_project`·`list_deployments`로 조회만(운영 배포 READY, 미리보기는 SSO 보호). 연결·배포 자체는 사람이 함. 아무것도 바꾸지 않음 | https://techradar-theta.vercel.app | 예(배포) |
 | 2026-11-18 | Supabase (MCP 커넥터) | P-2: M0 테이블·RLS를 실제 DB에 적용하고 시험 | 사용자 승인("적용해") 뒤 `apply_migration` 2번(테이블·RLS, 함수 권한), `get_advisors`(보안 점검), `list_tables`(대조), `execute_sql`로 RLS 시험(시험 계정을 만들고 끝에서 모두 되돌림, 남은 줄 0 확인) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
 | 2026-11-18 | Supabase (MCP 커넥터) | P-3: `my_technologies`에 내 버전 등급 칸 적용과 시험 | 사용자 승인("적용하고 시험") 뒤 `apply_migration` 1번(`p3_my_tech_grade`), `execute_sql`로 시험(만들고 끝에서 되돌림)·남은 줄 0과 칸·권한 확인, `get_advisors`(새 경고 없음, 기존 의도한 2건만) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
+| 2026-11-18 | Supabase (MCP 커넥터) + 앱 서버 코드(서비스 키) | P-3 실제 DB 끝까지 시험 뒤 정리 확인 | 사용자 승인("이대로 진행") 뒤 스크래치패드 스크립트가 서비스 키로 시험 계정 1개·줄을 만들고 끝에서 지움. `execute_sql`(SELECT만)로 계정·테이블 10개 모두 0건 확인 | `docs/qa.md` | 예(앱 DB) |
