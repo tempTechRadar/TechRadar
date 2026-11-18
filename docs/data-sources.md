@@ -45,7 +45,7 @@
 ## 4. 보안 점검
 | 출처 | 읽는 방법 | 키 | 주의 | 확인 |
 |---|---|---|---|---|
-| OSV | `POST api.osv.dev/v1/query` | 불필요 | 한도 확인 못 함 | 예 |
+| OSV | `POST api.osv.dev/v1/query` | 불필요 | 요청 횟수 제한 없음, 응답 크기 HTTP/1.1에서 32MiB(FAQ 2026-11-18 확인, https://google.github.io/osv.dev/faq/) | 예 |
 | OpenSSF Scorecard | `api.securityscorecards.dev/projects/github.com/<owner>/<repo>` | 불필요 | 정기 검사 목록에 없으면 404(흔함) | 예 |
 | deps.dev | `api.deps.dev/v3/systems/npm/packages/<pkg>` | 불필요 | 한도 확인 못 함 | 예 |
 | GitHub Advisories | `api.github.com/advisories` | 선택 | REST 한도와 같음 | 예 |
