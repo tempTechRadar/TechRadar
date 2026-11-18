@@ -9,7 +9,11 @@ import { createAlertsForChange } from "./alerts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "@/lib/domain/manifest";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult, type OsvVuln } from "@/lib/domain/grade";
 
-type ErrorKind = NonNullable<StepRecord["errorKind"]>;
+// shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
+const MAX_TEXT = 500_000; // 파일·OSV 응답 한도(글자)
+const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
+
+type ErrorKind =NonNullable<StepRecord["errorKind"]>;
 class CollectError extends Error {
   constructor(readonly kind: ErrorKind, message: string, readonly httpStatus?: number) {
     super(message);
@@ -28,7 +32,9 @@ async function fetchText(url: string, init?: RequestInit): Promise<string | null
   if (res.status === 404) return null;
   if (res.status === 429) throw new CollectError("rate_limited", `${url}: 429`, 429);
   if (!res.ok) throw new CollectError("http_status", `${url}: ${res.status}`, res.status);
-  return res.text();
+  const text = await res.text();
+  if (text.length > MAX_TEXT) throw new CollectError("parse", `${url}: 응답이 너무 큼(${text.length}자)`);
+  return text;
 }
 
 const errorKindOf = (e: unknown): ErrorKind => (e instanceof CollectError ? e.kind : "parse");
@@ -136,7 +142,9 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
   // 같은 기술이 두 파일에 있으면 한 줄만(package.json 먼저). my_technologies (project_id, tech_id) UK와 맞춘다.
   const seen = new Set<string>();
   const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
-  return { found: unique, fileErrors };
+  // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
+  if (unique.length > MAX_TECHS) fileErrors.push({ path: "(all)", kind: "parse", message: `AI 도구가 ${unique.length}개라 앞의 ${MAX_TECHS}개만 읽음` });
+  return { found: unique.slice(0, MAX_TECHS), fileErrors };
 }
 
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
@@ -238,11 +246,14 @@ async function applyGrade(db: SupabaseClient, runId: string, t: Target, r: Grade
     if (obs.error) throw new Error(`수집 자료를 저장하지 못함: ${obs.error.message}`);
   }
   const now = new Date().toISOString();
+  // 같은 버전의 남의 줄에는 등급만 나눈다. 수집 오류·확인 시각은 그 줄을 읽은 실행이 정한다(불변 2: 남의 오류를 지우지 않음)
   const up = await sameVersion(db, t, {
-    grade: r.grade, grade_reason: r.reason, grade_evidence: r.evidence, grade_rule_version: GRADE_RULE_VERSION,
-    graded_at: now, last_checked_ok_at: now, collect_error_kind: null,
+    grade: r.grade, grade_reason: r.reason, grade_evidence: r.evidence, grade_rule_version: GRADE_RULE_VERSION, graded_at: now,
   });
   if (up.error) throw new Error(`등급을 저장하지 못함: ${up.error.message}`);
+  const mine = await db.from("my_technologies").update({ last_checked_ok_at: now, collect_error_kind: null })
+    .eq("project_id", t.projectId).eq("tech_id", t.techId);
+  if (mine.error) throw new Error(`확인 시각을 저장하지 못함: ${mine.error.message}`);
 }
 
 /** 수집 오류: 등급은 그대로 두고 오류 종류만(불변 2, SPEC-1). 마지막 확인 성공 시각도 그대로. 이번에 읽은 프로젝트만. */
