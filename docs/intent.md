@@ -6,6 +6,22 @@
 
 ---
 
+## I-admin-judge-own · 2026-11-19 · 관리자도 본인 알림은 판단할 수 있게: ADR 0016 이행 (영역 B, 황재웅)
+- 브랜치: `fix/admin-judge-own` (origin/main d77cadd 위, worktree `.claude/worktrees/night-admin-judge`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0016(관리자도 본인 알림은 판단할 수 있고 남의 알림은 못 한다), 불변 점검의 N2, `docs/flow.md`의 `admin_can_judge_own`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | ADR 0016과 DB(`save_judgment`)는 관리자의 본인 알림 판단을 허용하는데, 서버(`lib/server/judgments.ts`)와 알림 상세 화면이 관리자를 통째로 거절한다. 그래서 관리자가 위험 저장소를 등록하면 본인 알림이 영영 판단 대기로 남는다. |
+| 기대 결과 | 관리자도 본인 알림에는 판단 폼이 보이고 저장된다(다른 사용자와 같은 규칙). 남의 알림은 알림 조회가 본인 것만 읽어 "알림을 찾지 못했어요"로 거절되고, DB도 막는다(불변 1·5). |
+| 영향 범위 | `lib/server/judgments.ts`(관리자 거절 한 줄)·`app/alerts/[id]/page.tsx`(관리자 안내 분기)와 `lib/server/judgments.test.ts`(관리자 시험 1개를 3개로). DB·마이그레이션 없음. |
+| 제약 | 알림 조회(`getMyAlert`)는 `user_id = 본인`으로만 읽으므로 이 변경으로 관리자가 남의 알림을 열거나 판단할 길은 생기지 않는다(코드 읽기로 확인). 관리자 화면(`/admin/alerts`)의 판단 버튼 없음은 그대로다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | `lib/server/action-record.test.ts`의 거절 문구 목록에 옛 문구가 남아 있다(죽은 코드 `actionOutcomeOf`의 시험이라 그대로 둠). 관리자 본인 알림 판단이 되는 SQL 시험은 쓰지 않았다(DB 실행 필요). |
+
+**결과:** 전체 551개 중 550 통과·실패 0·todo 1(관리자 시험 1개가 3개로), `tsc` 통과. 관리자 거절을 일부러 되살려 새 시험 2개가 실패하는 것을 확인했다.
+
+---
+
 ## I-record-status-at-merge · 2026-11-18 · 합친 뒤 기록 고치기 반복을 끊는 규칙 제안 (CLAUDE.md 9절 한 항목, 김영식)
 - 브랜치: `docs/record-status-at-merge` (최신 main `955e6a9`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "1"(후보 중 규칙 제안 선택). 근거: `I-P-11-merged-record`·`I-P-16-merged-record`·`I-P-9-merged-record`·`I-P-11-insert-columns-merged-record`의 열린 질문, `CLAUDE.md` 9절
