@@ -92,3 +92,14 @@ test("형식 맞는 줄이 없거나 비밀값 줄뿐이면 DB를 부르지 않�
   assert.deepEqual(r.secretLines, [1]);
   assert.equal(ops.length, 0);
 });
+
+test("가져오기 기록(exports) 저장이 실패해도 목록 저장 결과는 그대로이고, 실패는 로그로 남긴다(삼키지 않음)", async (t) => {
+  const logged: unknown[][] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => void logged.push(args));
+  const { db } = fakeDb({ technologies: [{ id: "t1", tech_key: "npm:mcp-remote" }] }, "exports");
+  const r = await saveLocalImport(db, "u1", TEXT);
+  assert.equal(r.ok, true, "목록은 저장됐으니 성공");
+  assert.equal(logged.length, 1);
+  assert.equal(logged[0][0], "가져오기 기록(exports)을 남기지 못함");
+});
+
