@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-16-tech-card-link · 2026-11-18 · 대시보드 "내 기술" 카드가 프로젝트로 거른 목록으로 가게 (P-16 한계 해소, 영역 A가 B 파일을 한 줄 고침)
+- 브랜치: `fix/P-16-tech-card-link` (최신 main d1929fd, worktree `.claude/worktrees/p11-records`)
+- 출처: `plan.md` P-16 행의 한계 문구, `I-P-11-merged-record` 열린 질문(황재웅 확인 요청), PRD-F22(숫자를 누르면 같은 조건의 목록), IA-3·IA-5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 대시보드를 프로젝트로 거르면 "내 기술" 카드는 그 프로젝트의 기술 수를 세는데(`summarize-dashboard.ts` 43줄), 누르면 가는 곳은 늘 거르기 없는 `/projects`(49줄)였다. 숫자와 목록이 같지 않았다. 앞서는 `/projects`에 프로젝트 거르기가 없어서 어쩔 수 없었으나, P-11(PR #77)이 `/projects?project=<id>`를 만들었다 |
+| 기대 결과 | 프로젝트로 거르면 카드가 `/projects?project=<id>`로 가고, 그 목록의 기술 수가 카드 숫자와 같다. 거르기가 없으면 지금처럼 `/projects` |
+| 영향 범위 | `lib/alerts/summarize-dashboard.ts`(연결 주소 한 줄), `summarize-dashboard.test.ts`(시험 1개). 호출자는 `app/dashboard/page.tsx`뿐(`links.techs`를 카드 링크로만 씀). `/projects` 쪽은 안 바꿈. DB·마이그레이션 없음. 영역 B(황재웅) 파일이라 PR 리뷰어로 지정 |
+| 제약 | 숫자 세는 방식(`hidden_at is null`)은 그대로: `/projects` 기본 목록도 숨긴 기술을 빼서 같다. 변경·판단 카드의 연결(알림 목록)은 그대로 |
+| 열린 질문 | 대시보드 숫자는 **보관된 프로젝트의 기술도 센다**(`dashboard-queries.ts`는 `archived_at`을 안 봄)지만 `/projects`는 보관된 프로젝트를 빼서 보관 기능이 생기면 숫자와 목록이 어긋난다. 보관 기능은 아직 없어(P-11 열린 질문 ⑧) 지금은 영향 없음 — 보관 기능을 만들 때 같이 처리(황재웅·김영식). ② 지워졌거나 남의 프로젝트 번호로 `/dashboard?project=…`를 직접 열면 카드 숫자는 0이고 연결도 그 번호로 걸려 `/projects`가 아무것도 안 보여 준다(예전엔 전체 목록). 대시보드의 프로젝트 고르기는 본인 프로젝트만 담아서 보통 길로는 안 생기고 옛 즐겨찾기 주소에서만 난다 — `/projects`에 "그런 프로젝트가 없어요 · 거르기 풀기"를 넣을지는 팀 확인. ③ 유효한 프로젝트 값의 규칙이 세 곳이다: `keepView`(UUID만), `parseAlertFilter`(빈 값 아니면 아무 글자), `/projects`의 거르기(아무 글자). 번호가 UUID가 아니면 `/projects`의 숨기기·검색 같은 동작이 거르기를 떨어뜨린다. 실제 프로젝트 번호는 UUID라 지금은 영향 없고, 규칙을 한 곳으로 모으는 일은 별도 조각 |
+
+**결과:** `lib/alerts/summarize-dashboard.ts` 한 줄: 프로젝트로 거르면 카드가 `/projects?project=<id>`로 가고(다른 거르기는 싣지 않고, 값은 `URLSearchParams`로 인코딩), 아니면 `/projects`. 시험 2개를 `summarize-dashboard.test.ts`에 더했다. 고치기 전에는 `proj-a`에서 카드 2·목록 4로 실패했고, 코드를 일부러 틀려 3곳(`/projects`로 되돌리기·다른 거르기까지 싣기·글자 인코딩 빼기) 모두 시험이 실패로 잡았다. `npm test` 462개 중 461 통과·todo 1·실패 0. 코드 검토(서브에이전트) 7건, 모두 낮음: 시험 보강(위 두 번째 시험)·문장 스타일 맞춤·낡은 QA 문구(`qa.md` 25·49행)는 반영했고, 보관된 프로젝트(①)·없는 프로젝트 번호(②)·규칙 세 곳(③)은 열린 질문으로 남겼다. 검토가 지적한 "기록이 안 고쳐졌다"는 검토가 도는 동안 기록을 쓰고 있던 시차였고, QA 행과 시험 수는 실제로 낡아 있어 고쳤다. **확인하지 못한 것:** 실제 대시보드·`/projects` 화면에서 카드를 눌러 보기(로그인 필요, 사람 QA), 타입검사·`next build`(작업 폴더에 `node_modules`가 없음, Vercel 빌드가 최종).
+
 ## I-P-11-merged-record · 2026-11-18 · P-11이 main에 합쳐진 것을 기록에 맞추기 (영역 A, 김영식)
 - 브랜치: `docs/P-11-merged-record` (최신 main 8bce525, 새 worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "지금까지 진행 점검" 뒤 "빼먹은거 자잘한거나 하나씩 해보자". 근거: `plan.md` P-11 행, `I-P-11-my-tech`, CLAUDE.md 9절(끝낼 때 결과 칸)
