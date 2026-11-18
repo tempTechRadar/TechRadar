@@ -1,0 +1,87 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { toAlertView, type AlertRecord } from "./to-alert-view.ts";
+
+const securityRecord: AlertRecord = {
+  id: "alert-1",
+  kind: "security",
+  status: "pending",
+  createdAt: "2026-11-18T01:30:00Z",
+  projectName: "TechRadar",
+  sourceFile: "package.json",
+  change: {
+    kind: "grade_to_danger",
+    techName: "mcp-remote",
+    detectedAt: "2026-11-18T01:30:00Z",
+    prevValue: { grade: "caution" },
+    currValue: {
+      grade: "danger",
+      reason: "외부에서 내 컴퓨터 명령을 실행시킬 수 있어요",
+      fixed_version: "0.1.16",
+      evidence: [{ id: "CVE-2025-6514", severity: "HIGH", fixed: "0.1.16", url: "https://osv.dev/CVE-2025-6514" }],
+    },
+  },
+};
+
+test("보안 경고 알림을 목록 줄과 상세 문구로 바꾼다(등급은 한글로, 원인·출처는 증거에서)", () => {
+  const view = toAlertView(securityRecord);
+
+  assert.equal(view.kindLabel, "보안 경고");
+  assert.equal(view.kindTone, "danger");
+  assert.equal(view.statusLabel, "판단 대기");
+  assert.equal(view.statusTone, "warning");
+  assert.equal(view.title, "[보안 경고] mcp-remote — 주의 → 위험");
+  assert.equal(view.subtitle, "내 프로젝트: TechRadar");
+  assert.deepEqual(view.lines, [
+    "무엇이 바뀌었나: CVE-2025-6514 (심각도 HIGH) (https://osv.dev/CVE-2025-6514, 2026-11-18 10:30)",
+    "쉬운 이유: 외부에서 내 컴퓨터 명령을 실행시킬 수 있어요",
+    "내 프로젝트: TechRadar · package.json",
+  ]);
+});
+
+test("첫 점검 알림은 SPEC-5.2 문구, 부제에 '첫 점검'과 프로젝트 밖 표시", () => {
+  const view = toAlertView({
+    ...securityRecord,
+    projectName: null,
+    sourceFile: null,
+    change: { ...securityRecord.change, kind: "first_seen_danger", prevValue: null },
+  });
+
+  assert.equal(view.title, "[첫 점검] mcp-remote은 지금 위험이에요");
+  assert.equal(view.subtitle, "첫 점검 · 프로젝트 밖(내 컴퓨터)");
+  assert.equal(view.lines[1], "고친 버전: 0.1.16");
+});
+
+test("판단을 마친 알림은 '완료'(성공 색)로 보인다", () => {
+  const view = toAlertView({ ...securityRecord, status: "done" });
+
+  assert.equal(view.statusLabel, "완료");
+  assert.equal(view.statusTone, "success");
+});
+
+test("적용 기회 알림은 '적용 기회'(중립 색)와 기술 이름만 보이고, 상세 문구는 P-14에서 채운다", () => {
+  const view = toAlertView({
+    ...securityRecord,
+    kind: "opportunity",
+    change: { ...securityRecord.change, kind: "same_role_new", techName: "sample-mcp-d" },
+  });
+
+  assert.equal(view.kindLabel, "적용 기회");
+  assert.equal(view.kindTone, "neutral");
+  assert.equal(view.title, "[적용 기회] sample-mcp-d");
+  assert.deepEqual(view.lines, []);
+});
+
+test("변경 값이 비었거나 깨져 있어도 죽지 않고 '찾지 못함'으로 채운다", () => {
+  const view = toAlertView({ ...securityRecord, change: { ...securityRecord.change, prevValue: null, currValue: "깨진 값" } });
+
+  assert.equal(view.title, "[보안 경고] mcp-remote — 찾지 못함 → 위험");
+  assert.match(view.lines[0], /무엇이 바뀌었나: 찾지 못함/);
+  assert.equal(view.lines[1], "쉬운 이유: 찾지 못함");
+});
+
+test("목록의 시각은 한국 시간 '11월 18일 10:30' 형식이다", () => {
+  const view = toAlertView(securityRecord);
+
+  assert.equal(view.createdAtLabel, "11월 18일 10:30");
+});

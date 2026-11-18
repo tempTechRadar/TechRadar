@@ -1,0 +1,108 @@
+{
+ "vulns": [
+  {
+   "id": "GHSA-hc55-p739-j48w",
+   "summary": "@modelcontextprotocol/server-filesystem vulnerability allows for path validation bypass via colliding path prefix",
+   "aliases": [
+    "CVE-2025-53110"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "@modelcontextprotocol/server-filesystem",
+      "ecosystem": "npm",
+      "purl": "pkg:npm/%40modelcontextprotocol/server-filesystem"
+     },
+     "ranges": [
+      {
+       "type": "SEMVER",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "last_affected": "0.6.2"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "package": {
+      "name": "@modelcontextprotocol/server-filesystem",
+      "ecosystem": "npm",
+      "purl": "pkg:npm/%40modelcontextprotocol/server-filesystem"
+     },
+     "ranges": [
+      {
+       "type": "SEMVER",
+       "events": [
+        {
+         "introduced": "2025.1.14"
+        },
+        {
+         "fixed": "2025.7.1"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-q66q-fx2p-7w4m",
+   "summary": "@modelcontextprotocol/server-filesystem allows for path validation bypass via prefix matching and symlink handling",
+   "aliases": [
+    "CVE-2025-53109"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "@modelcontextprotocol/server-filesystem",
+      "ecosystem": "npm",
+      "purl": "pkg:npm/%40modelcontextprotocol/server-filesystem"
+     },
+     "ranges": [
+      {
+       "type": "SEMVER",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "last_affected": "0.6.2"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "package": {
+      "name": "@modelcontextprotocol/server-filesystem",
+      "ecosystem": "npm",
+      "purl": "pkg:npm/%40modelcontextprotocol/server-filesystem"
+     },
+     "ranges": [
+      {
+       "type": "SEMVER",
+       "events": [
+        {
+         "introduced": "2025.1.14"
+        },
+        {
+         "fixed": "2025.7.1"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
