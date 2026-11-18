@@ -37,7 +37,7 @@
     { "id": "save_change", "type": "db", "name": "변경 저장 (중복 막기)", "priority": 1, "config": { "table": "changes", "unique": "dedupe_key" } },
     { "id": "summarize", "type": "api", "name": "대응안 초안", "badge": "Claude", "priority": 1, "config": { "once_per": "change", "limit": "SPEC-9" } },
     { "id": "notify", "type": "db", "name": "알림 만들기 (앱 안)", "priority": 1, "config": { "table": "alerts", "unique": "user_id + dedupe_key", "channel": "in_app" } },
-    { "id": "human_judgment", "type": "human", "name": "사람 판단", "priority": 1, "config": { "choices": ["candidate", "hold"], "admin_can_judge": false } },
+    { "id": "human_judgment", "type": "human", "name": "사람 판단", "priority": 1, "config": { "choices": ["candidate", "hold"], "admin_can_judge_own": true, "admin_can_judge_others": false } },
     { "id": "action_record", "type": "db", "name": "조치와 기록", "priority": 1, "config": { "table": "judgments", "action": ["candidate_recorded", "hold_reason_recorded"] } },
 
     { "id": "scenario", "type": "api", "name": "적용 시나리오 (요청할 때, 참고 자료)", "badge": "Claude", "priority": 1, "config": { "trigger": "사용자 요청", "limit": "사용자당 하루 5번", "not_an_action": true } },

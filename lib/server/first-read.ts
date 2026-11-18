@@ -7,7 +7,7 @@ import { startRun, recordStep, finishRun, type RunTrigger, type StepRecord } fro
 import { saveChange } from "./changes";
 import { createAlertsForChange } from "./alerts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "@/lib/domain/manifest";
-import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult, type OsvVuln } from "@/lib/domain/grade";
+import { GRADE_RULE_VERSION, forPackage, gradeFromOsv, type GradeResult, type OsvVuln } from "@/lib/domain/grade";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TEXT = 500_000; // 파일·OSV 응답 한도(글자)
@@ -44,7 +44,7 @@ async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string
   const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}) });
   const text = await fetchText("https://api.osv.dev/v1/query", { method: "POST", body, headers: { "content-type": "application/json" } });
   try {
-    return (JSON.parse(text ?? "{}") as { vulns?: OsvVuln[] }).vulns ?? [];
+    return forPackage((JSON.parse(text ?? "{}") as { vulns?: OsvVuln[] }).vulns ?? [], name);
   } catch {
     throw new CollectError("parse", "OSV 응답을 해석하지 못함");
   }

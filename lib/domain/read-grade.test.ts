@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { exactVersion, parseGithubRepo, readMcpJson, readPackageJson } from "./manifest.ts";
-import { gradeFromOsv, type OsvVuln } from "./grade.ts";
+import { cmpVersion, forPackage, gradeFromOsv, type OsvVuln } from "./grade.ts";
 
 const osvMcpRemote = JSON.parse(readFileSync(new URL("./fixtures/osv-mcp-remote-0.1.15.json", import.meta.url), "utf8")) as { vulns: OsvVuln[] };
 
@@ -48,6 +48,42 @@ test("G1: mcp-remote 0.1.15는 위험, 원인 GHSA-6xpm-ggf7-wc3p, 0.1.16에서 
   assert.equal(r.causeId, "GHSA-6xpm-ggf7-wc3p");
   assert.equal(r.fixedVersion, "0.1.16");
   assert.match(r.reason, /CVE-2025-6514/);
+});
+
+test("고친 버전은 위험한 문제를 모두 고치는 가장 낮은 버전: 백포트 줄은 내 줄에서, 안 고친 게 있으면 null", () => {
+  const high = (id: string, ...fixed: string[]): OsvVuln => ({
+    id, database_specific: { severity: "HIGH" },
+    affected: [{ ranges: [{ events: [{ introduced: "0" }, ...fixed.map((f) => ({ fixed: f }))] }] }],
+  });
+  assert.equal(gradeFromOsv("1.9.3", [high("A", "1.9.4"), high("B", "2.2.0", "1.30.0")]).fixedVersion, "1.30.0");
+  assert.equal(gradeFromOsv("2.0.0", [high("B", "2.2.0", "1.30.0")]).fixedVersion, "2.2.0");
+  assert.equal(gradeFromOsv("1.0.0", [high("A", "1.9.4"), high("C")]).fixedVersion, null);
+  assert.equal(gradeFromOsv("1.9.10", [high("A", "1.10.0"), high("D", "1.9.12")]).fixedVersion, "1.10.0");
+});
+
+test("버전 비교: 사전 배포 < 정식 < post, 빌드(+…)는 무시, 숫자는 숫자로", () => {
+  const order = ["1.0.0-alpha", "1.0.0-alpha.2", "1.0.0-beta.1", "1.0.0-rc.1", "1.0.0", "1.0.0.post1", "1.0.1", "1.9.9", "1.9.10", "2.0.0-beta.1", "2.0.0"];
+  for (let i = 1; i < order.length; i++) assert.ok(cmpVersion(order[i - 1], order[i]) < 0, `${order[i - 1]} < ${order[i]}`);
+  assert.equal(cmpVersion("1.0.0+build5", "1.0.0"), 0);
+  assert.ok(cmpVersion("1.0rc1", "1.0") < 0);
+  // 내 버전이 사전 배포여도 정식으로 고쳐졌다면 올릴 곳이 있다
+  const high: OsvVuln = { id: "A", database_specific: { severity: "HIGH" }, affected: [{ ranges: [{ events: [{ introduced: "0" }, { fixed: "2.0.0" }] }] }] };
+  assert.equal(gradeFromOsv("2.0.0-beta.1", [high]).fixedVersion, "2.0.0");
+});
+
+test("고친 버전은 조회한 패키지의 것만, GIT 범위의 커밋 해시는 버전이 아니다", () => {
+  const sibling: OsvVuln = {
+    id: "GHSA-sib", database_specific: { severity: "HIGH" },
+    affected: [
+      { package: { name: "langchain" }, ranges: [{ type: "ECOSYSTEM", events: [{ introduced: "0" }, { fixed: "0.3.37" }] }] },
+      { package: { name: "@langchain/core" }, ranges: [{ type: "ECOSYSTEM", events: [{ introduced: "0" }, { fixed: "0.3.30" }] }] },
+      { package: { name: "langchain" }, ranges: [{ type: "GIT", events: [{ introduced: "0" }, { fixed: "5f3c9e0000000000000000000000000000000000" }] }] },
+    ],
+  };
+  assert.equal(gradeFromOsv("0.3.0", forPackage([sibling], "langchain")).fixedVersion, "0.3.37");
+  assert.equal(gradeFromOsv("0.3.0", forPackage([sibling], "@langchain/core")).fixedVersion, "0.3.30");
+  const pypi: OsvVuln = { id: "PY", affected: [{ package: { name: "typing_extensions" } }, { package: { name: "Other.Pkg" } }] };
+  assert.deepEqual(forPackage([pypi], "typing-extensions")[0].affected, [{ package: { name: "typing_extensions" } }]);
 });
 
 test("버전을 모르면: 안 고친 HIGH는 위험, 고친 것뿐이면 주의", () => {
