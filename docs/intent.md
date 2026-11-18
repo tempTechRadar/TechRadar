@@ -4,6 +4,23 @@
 
 ---
 
+## I-044 · 2026-11-18 · 알림·판단·적용 기회·비슷한 판단·대시보드 (P-7·P-8·P-14·P-15·P-16, 영역 B, 황재웅) (소급 기록)
+- 번호: I-040은 P-20b(PR #47), I-041은 P-17, I-042는 P-18(PR #52), I-043은 P-3 보강이 먼저 써서 **I-044**
+- 브랜치: `feat/P-7-alerts`·`feat/P-7-alerts-screens`·`feat/P-8-judgment`·`feat/P-16-dashboard`·`feat/P-15-scenario-history`·`feat/P-14-opportunity`(모두 합침). 이 기록은 `docs/B-qa-plan-1118`(문서만). **작업을 끝낸 뒤 한꺼번에 적은 소급 기록이다.**
+- 출처: `docs/plan.md` P-7·P-8·P-14·P-15·P-16, PRD-F12–F22, SPEC-3·4·5, ADR 0010·0012·0014·0015, IA-5–9
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 위험이 생겨도 사용자에게 알려 주는 곳도, 보고 판단해 남기는 곳도 없었다. 시뮬레이터(P-5)와 첫 읽기(P-3)가 부르는 `createAlertsForChange`는 빈 자리였다 |
+| 기대 결과 | 변경 1건 → 그 기술을 쓰는 사람마다 알림 1건(다시 돌려도 0건, 나중에 등록한 사람은 1건, 시뮬레이터는 시연 계정만). 알림 목록·상세, 적용 후보·보류 저장(한 거래, 관리자 차단), 비슷한 지난 판단, 대시보드·기록 찾기, 적용 기회 알림(세 조건·비교표) |
+| 영향 범위 | `lib/alerts/`(순수 함수), `lib/server/alerts.ts`·`alert-db.ts`·`opportunity-alerts.ts`·`alert-queries.ts`·`judgments.ts`·`dashboard-queries.ts`·`similar-judgments.ts`, `app/alerts/`·`app/dashboard/`·`app/history/`, `app/layout.tsx`(메뉴 3줄), `docs/design.md`·`docs/wireframes/`. `CreateAlertsInput`에 선택 항목 `runId?`를 더함(P-29 자리 모양을 넓힘, 기존 호출은 그대로) |
+| 제약 | 서비스 키가 없어 실제 DB로는 못 돌림(가짜 DB 시험). `judgments`에는 서비스 키로 쓰지 않음(spec 10-1). 숨김·보관 기술은 알림에서 뺌(팀 결정 대기 가정). 알림 키는 `사용자\|변경 키`(보안), `사용자\|내 기술 키\|새 기술 키`(적용 기회) |
+| 열린 질문 | ① 흐름 화면 `action_record` 기록: 알림 → 변경 → 실행 연결이 없다(`changes.observation_id`가 늘 비고, 첫 읽기가 `runId`를 안 넘김). `alerts.run_id` 칸 추가가 필요(김영식 리뷰) ② 적용 기회 알림을 부르는 곳(P-9 새 기술 유입, P-18 확정)과 시뮬레이터 확장(차세일) ③ 처음 짝 20쌍 시드와 시드의 확정자·시각 칸(ADR 0015) ④ 적용 시나리오·대응안 초안은 Claude API 키와 `ai_calls` 한도(P-13) 뒤 ⑤ 사용량 칸은 `signals.weekly_downloads`만 읽음(키 이름은 P-9 뒤 맞춤) ⑥ "내 기술" 카드와 `/projects` 프로젝트별 거르기(P-11) ⑦ 숨김·보관 알림, 알림 키 형식, "N은/는" 조사 |
+
+**결과:** 알림 만들기(보안·적용 기회)와 `notify` 기록, 알림 목록·상세, 판단 저장과 카드, 비슷한 지난 판단 카드, 대시보드·기록 찾기를 합쳤다(PR #31·#37·#38·#43·#45·#48·#49). 테스트는 main 18 → 204(다른 팀원 몫 포함), 실패 0. **확인하지 못한 것:** 실제 DB 조회·RLS, 알림이 보이는 실제 화면과 390px 폭, UJ-9 재현, `action_record` 단계. 사람 QA 4건은 No Run(`docs/qa.md`).
+
+---
+
 ## I-043 · 2026-11-18 · P-3 보강 — 저장소 404를 "없음"으로 보지 않기(D-7)·불변 2 시험(D-8)·`used` 값(Y-3) (영역 A, 김영식)
 - 번호: I-040은 P-20b(PR #47), I-041은 P-17, I-042는 P-18(PR #52)이 먼저 써서 **I-043**
 - 브랜치: `fix/P-3-collect-errors` (처음 main 23fb81a에서 시작, 작업 중 앞서간 main(7732e08)을 따라감. 새 worktree `.claude/worktrees/p3-followup`)
