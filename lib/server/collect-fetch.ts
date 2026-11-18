@@ -4,6 +4,7 @@ import { forPackage, type OsvVuln } from "../domain/grade.ts";
 import type { StepRecord } from "./run-log.ts";
 
 const MAX_TEXT = 500_000; // 파일·응답 한도(글자)
+export const OSV_QUERY_URL = "https://api.osv.dev/v1/query";
 
 export type ErrorKind = NonNullable<StepRecord["errorKind"]>;
 
@@ -24,14 +25,17 @@ export class RepoNotPublicError extends CollectError {
   }
 }
 
+// 연결을 못 하거나 본문을 읽다 끊긴 것: 시간 초과면 timeout, 그 밖에는 network
+const connectionFailure = (url: string, e: unknown) =>
+  new CollectError(e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network", `${url}: ${e instanceof Error ? e.message : String(e)}`);
+
 /** 바깥 호출 하나. 404는 null(없음). 그 밖의 실패는 CollectError로 던진다. */
 export async function fetchText(url: string, init?: RequestInit): Promise<string | null> {
   let res: Response;
   try {
     res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000), cache: "no-store" });
   } catch (e) {
-    const kind = e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network";
-    throw new CollectError(kind, `${url}: ${e instanceof Error ? e.message : String(e)}`);
+    throw connectionFailure(url, e);
   }
   if (res.status === 404) return null;
   // GitHub의 한도 초과는 429뿐 아니라 403 + x-ratelimit-remaining: 0으로도 온다
@@ -39,7 +43,12 @@ export async function fetchText(url: string, init?: RequestInit): Promise<string
     throw new CollectError("rate_limited", `${url}: ${res.status}`, res.status);
   }
   if (!res.ok) throw new CollectError("http_status", `${url}: ${res.status}`, res.status);
-  const text = await res.text();
+  let text: string;
+  try {
+    text = await res.text(); // 본문을 읽다 시간 초과·끊김이 나도 그 호출만 수집 오류(불변 2)
+  } catch (e) {
+    throw connectionFailure(url, e);
+  }
   if (text.length > MAX_TEXT) throw new CollectError("parse", `${url}: 응답이 너무 큼(${text.length}자)`);
   return text;
 }
@@ -48,12 +57,19 @@ export const errorKindOf = (e: unknown): ErrorKind => (e instanceof CollectError
 
 export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string | null): Promise<OsvVuln[]> {
   const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}) });
-  const text = await fetchText("https://api.osv.dev/v1/query", { method: "POST", body, headers: { "content-type": "application/json" } });
+  const text = await fetchText(OSV_QUERY_URL, { method: "POST", body, headers: { "content-type": "application/json" } });
+  // OSV는 취약점이 없어도 200({})으로 답한다. 404(null)는 주소·서버 문제라 "없음"이 아니라 수집 오류(불변 2).
+  if (text === null) throw new CollectError("http_status", `${OSV_QUERY_URL}: 404`, 404);
+  let parsed: unknown;
   try {
-    return forPackage((JSON.parse(text ?? "{}") as { vulns?: OsvVuln[] }).vulns ?? [], name);
+    parsed = JSON.parse(text);
   } catch {
     throw new CollectError("parse", "OSV 응답을 해석하지 못함");
   }
+  // 객체이고 vulns가 있으면 배열일 때만 "없음"({})·목록으로 읽는다. 그 밖의 모양(`[]`, 숫자, null)을 조용히 "없음"으로 읽지 않는다.
+  const vulns = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as { vulns?: unknown }).vulns : null;
+  if (vulns === null || (vulns !== undefined && !Array.isArray(vulns))) throw new CollectError("parse", "OSV 응답의 모양이 달라 해석하지 못함");
+  return forPackage((vulns ?? []) as OsvVuln[], name);
 }
 
 /**
