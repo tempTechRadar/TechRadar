@@ -61,7 +61,7 @@ test("관리자는 판단을 저장할 수 없다: DB를 부르기 전에 거절
 
   const result = await saveJudgment(db, { id: "user-a", role: "admin" }, { alertId: "alert-1", decision: "candidate", reason: "" });
 
-  assert.deepEqual(result, { ok: false, message: "관리자는 판단을 저장할 수 없어요." });
+  assert.deepEqual(result, { ok: false, message: "관리자는 판단을 저장할 수 없어요.", saveAttempted: false });
   assert.equal(calls(), 0);
 });
 
@@ -70,7 +70,7 @@ test("남의 알림이나 없는 알림은 저장하지 않는다", async () => 
 
   const result = await saveJudgment(db, user, { alertId: "alert-1", decision: "candidate", reason: "" });
 
-  assert.deepEqual(result, { ok: false, message: "알림을 찾지 못했어요." });
+  assert.deepEqual(result, { ok: false, message: "알림을 찾지 못했어요.", saveAttempted: false });
   assert.equal(rpcCalls.length, 0);
 });
 
@@ -79,7 +79,7 @@ test("이미 판단을 마친 알림은 다시 저장하지 않는다(v1은 판�
 
   const result = await saveJudgment(db, user, { alertId: "alert-1", decision: "hold", reason: "지금은 바꿀 시간이 없어요" });
 
-  assert.deepEqual(result, { ok: false, message: "이미 판단한 알림이에요." });
+  assert.deepEqual(result, { ok: false, message: "이미 판단한 알림이에요.", saveAttempted: false });
   assert.equal(rpcCalls.length, 0);
 });
 
@@ -92,6 +92,7 @@ test("입력이 규칙에 어긋나면 DB를 부르지 않는다: 고친 버전�
 
   assert.equal(a.ok, false);
   assert.equal(b.ok, false);
+  assert.deepEqual([a.ok === false && a.saveAttempted, b.ok === false && b.saveAttempted], [false, false]);
   assert.equal(noFix.rpcCalls.length + shortReason.rpcCalls.length, 0);
 });
 
@@ -100,7 +101,7 @@ test("DB 저장이 실패하면 '아직 판단 대기'라고 알리고 DB 오류
 
   const result = await saveJudgment(db, user, { alertId: "alert-1", decision: "candidate", reason: "" });
 
-  assert.deepEqual(result, { ok: false, message: SAVE_FAILED });
+  assert.deepEqual(result, { ok: false, message: SAVE_FAILED, saveAttempted: true });
 });
 
 test("판단할 알림을 읽지 못해도 저장 실패로 알리고 DB 저장은 부르지 않는다", async () => {
@@ -108,6 +109,6 @@ test("판단할 알림을 읽지 못해도 저장 실패로 알리고 DB 저장�
 
   const result = await saveJudgment(db, user, { alertId: "alert-1", decision: "candidate", reason: "" });
 
-  assert.deepEqual(result, { ok: false, message: SAVE_FAILED });
+  assert.deepEqual(result, { ok: false, message: SAVE_FAILED, saveAttempted: false });
   assert.equal(rpcCalls.length, 0);
 });

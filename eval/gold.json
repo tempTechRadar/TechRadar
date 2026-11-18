@@ -1,0 +1,213 @@
+{
+  "about": "등급 정답 사례 G1–G9(docs/spec.md SPEC-10). 실수집은 2026-11-18 OSV 조회 응답(lib/domain/fixtures), 가상은 sim/skills의 시험용 스킬. 사건 = 위험이 됨(SPEC-3).",
+  "cases": [
+    {
+      "id": "G1",
+      "target": "npm mcp-remote",
+      "version": "0.1.15",
+      "origin": "실수집",
+      "input": {
+        "type": "osv",
+        "fixture": "lib/domain/fixtures/osv-mcp-remote-0.1.15.json",
+        "package": "mcp-remote"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true,
+        "causeId": "GHSA-6xpm-ggf7-wc3p"
+      }
+    },
+    {
+      "id": "G2",
+      "target": "npm @modelcontextprotocol/inspector",
+      "version": "0.14.0",
+      "origin": "실수집",
+      "input": {
+        "type": "osv",
+        "fixture": "lib/domain/fixtures/osv-g2-inspector-0.14.0.json",
+        "package": "@modelcontextprotocol/inspector"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true,
+        "causeId": "GHSA-7f8r-222p-6f5g"
+      }
+    },
+    {
+      "id": "G3",
+      "target": "npm @modelcontextprotocol/server-filesystem",
+      "version": "2025.3.28",
+      "origin": "실수집",
+      "input": {
+        "type": "osv",
+        "fixture": "lib/domain/fixtures/osv-g3-server-filesystem-2025.3.28.json",
+        "package": "@modelcontextprotocol/server-filesystem"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true,
+        "causeId": "GHSA-hc55-p739-j48w"
+      }
+    },
+    {
+      "id": "G4",
+      "target": "PyPI mcp",
+      "version": "1.9.3",
+      "origin": "실수집",
+      "input": {
+        "type": "osv",
+        "fixture": "lib/domain/fixtures/osv-g4-mcp-1.9.3.json",
+        "package": "mcp"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true,
+        "causeId": "GHSA-3qhf-m339-9g5v"
+      }
+    },
+    {
+      "id": "G5a",
+      "target": "@modelcontextprotocol/inspector 최신",
+      "version": "2.15.0",
+      "origin": "실수집",
+      "input": {
+        "type": "osv-batch",
+        "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "package": "@modelcontextprotocol/inspector"
+      },
+      "expected": {
+        "grades": [
+          "pass",
+          "caution"
+        ],
+        "event": false
+      }
+    },
+    {
+      "id": "G5b",
+      "target": "@modelcontextprotocol/server-filesystem 최신",
+      "version": "2.3.0",
+      "origin": "실수집",
+      "input": {
+        "type": "osv-batch",
+        "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "package": "@modelcontextprotocol/server-filesystem"
+      },
+      "expected": {
+        "grades": [
+          "pass",
+          "caution"
+        ],
+        "event": false
+      }
+    },
+    {
+      "id": "G5c",
+      "target": "mcp-remote 최신",
+      "version": "0.16.6",
+      "origin": "실수집",
+      "input": {
+        "type": "osv-batch",
+        "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "package": "mcp-remote"
+      },
+      "expected": {
+        "grades": [
+          "pass",
+          "caution"
+        ],
+        "event": false
+      }
+    },
+    {
+      "id": "G5d",
+      "target": "mcp 최신",
+      "version": "2.3.0",
+      "origin": "실수집",
+      "input": {
+        "type": "osv-batch",
+        "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "package": "mcp"
+      },
+      "expected": {
+        "grades": [
+          "pass",
+          "caution"
+        ],
+        "event": false
+      }
+    },
+    {
+      "id": "G6",
+      "target": "시험용 스킬 skill-a-remote-exec",
+      "version": null,
+      "origin": "가상",
+      "input": {
+        "type": "skill",
+        "dir": "sim/skills/skill-a-remote-exec"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true
+      }
+    },
+    {
+      "id": "G7",
+      "target": "시험용 스킬 skill-b-secret-leak",
+      "version": null,
+      "origin": "가상",
+      "input": {
+        "type": "skill",
+        "dir": "sim/skills/skill-b-secret-leak"
+      },
+      "expected": {
+        "grades": [
+          "danger"
+        ],
+        "event": true
+      }
+    },
+    {
+      "id": "G8",
+      "target": "시험용 스킬 skill-c-wide-permission",
+      "version": null,
+      "origin": "가상",
+      "input": {
+        "type": "skill",
+        "dir": "sim/skills/skill-c-wide-permission"
+      },
+      "expected": {
+        "grades": [
+          "caution"
+        ],
+        "event": false
+      }
+    },
+    {
+      "id": "G9",
+      "target": "시험용 스킬 skill-d-clean",
+      "version": null,
+      "origin": "가상",
+      "input": {
+        "type": "skill",
+        "dir": "sim/skills/skill-d-clean"
+      },
+      "expected": {
+        "grades": [
+          "pass"
+        ],
+        "event": false
+      }
+    }
+  ]
+}

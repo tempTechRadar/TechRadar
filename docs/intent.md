@@ -68,9 +68,37 @@
 | 열린 질문 | ① 흐름 화면 `action_record` 기록: 알림 → 변경 → 실행 연결이 없다(`changes.observation_id`가 늘 비고, 첫 읽기가 `runId`를 안 넘김). `alerts.run_id` 칸 추가가 필요(김영식 리뷰) ② 적용 기회 알림을 부르는 곳(P-9 새 기술 유입, P-18 확정)과 시뮬레이터 확장(차세일) ③ 처음 짝 20쌍 시드와 시드의 확정자·시각 칸(ADR 0015) ④ 적용 시나리오·대응안 초안은 Claude API 키와 `ai_calls` 한도(P-13) 뒤 ⑤ 사용량 칸은 `signals.weekly_downloads`만 읽음(키 이름은 P-9 뒤 맞춤) ⑥ "내 기술" 카드와 `/projects` 프로젝트별 거르기(P-11) ⑦ 숨김·보관 알림, 알림 키 형식, "N은/는" 조사 |
 
 **결과:** 알림 만들기(보안·적용 기회)와 `notify` 기록, 알림 목록·상세, 판단 저장과 카드, 비슷한 지난 판단 카드, 대시보드·기록 찾기를 합쳤다(PR #31·#37·#38·#43·#45·#48·#49). 테스트는 main 18 → 204(다른 팀원 몫 포함), 실패 0. **확인하지 못한 것:** 실제 DB 조회·RLS, 알림이 보이는 실제 화면과 390px 폭, UJ-9 재현, `action_record` 단계. 사람 QA 4건은 No Run(`docs/qa.md`).
+## I-P-3-notify-step · 2026-11-18 · P-3 실제 DB 끝까지 시험 다시 + `notify` 단계를 사용자 기준으로 기록 (영역 A, 김영식)
+- 브랜치: `fix/P-3-notify-step` (최신 main, PR #37 알림 만들기·#41 P-10 합친 뒤에 시작)
+- 출처: I-032 열린 질문(알림 만들기가 채워지면 P-3 끝까지 다시), `docs/plan.md` P-3 끝 기준, `docs/flow.md` `save_change → notify`, 불변 5·6. 사용자 "이대로 시작해"(가짜 저장소 파일·끝에서 전부 지움), "추천대로 진행"(호출부에서 사용자 기준으로 기록)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | P-7이 합쳐져 P-3을 실제 DB로 끝까지 다시 돌릴 수 있게 됐다. 돌려 보니 `notify` 단계가 `run_steps`에 없다: `first-read.ts`가 알림 만들기를 `runId` 없이 불러서 흐름 화면(P-6)의 `notify` 상자가 실제 실행으로는 칠해지지 않는다(불변 6). 그런데 `runId`를 그냥 넘기면 알림 만들기가 그 기술을 쓰는 **모든 사람 수와 남에게 만든 알림 수**를 `notify`에 적고, 실행을 시작한 사용자가 RLS(`run_steps_select`)로 자기 실행의 단계를 읽을 수 있어(내 실행 기록 탭) 남의 사용 규모가 샌다(불변 5, 코드 검토가 지적해 `pg_policies`로 확인) |
+| 기대 결과 | 실제 DB로 끝까지: 실행 `succeeded`, 단계에 `notify` 포함, `notify`의 건수는 **내 것만**(변경 N건 → 내 새 알림 M건), 두 번째 사용자도 자기 알림을 받고, 다시 읽어도 변경 1건·알림 1건, 일반 사용자가 API로 직접 읽어도 남의 실행·단계·알림이 안 보임, 시험 뒤 줄 수가 시작 전과 같음 |
+| 영향 범위 | `lib/server/notify-owner.ts`(새, `notifyOwner`)·`notify-owner.test.ts`(새), `lib/server/first-read.ts`(호출 한 줄)·`first-read.test.ts`(위험 경로 시험 1개), `docs/flow.md`·`plan.md`(notify 건수 기준)·`qa.md`·`debug-note.md`·`connectors.md`·`agents.md`·`worklog.md` |
+| 제약 | DB는 운영과 같은 곳이라 시험 데이터는 끝에서 모두 지운다. 알림 만들기(`alerts.ts`)는 황재웅의 파일이라 고치지 않고, 그 함수에는 `runId`를 일부러 넘기지 않는다. 사용자가 읽는 `error_message`에는 고정 문구만 쓰고 자세한 오류는 서버 기록(`console.error`)에만 남긴다. 새 라이브러리 없음 |
+| 열린 질문 | ① 위험이 없는 읽기는 변경이 없어 `notify`가 남지 않는다(상자가 안 켜짐). flow.md에 이 경우의 규칙이 없어 의도한 동작으로 보지만 팀 확인 필요(`flow.md`·`plan.md`에는 `notify` 건수 기준을 이번에 적음). ② **황재웅에게 전달(알림 만들기):** 사용자 버전을 안 봐서 다른 버전을 쓰는 사람도 위험 알림을 받음(SPEC-3.1은 알림 키에 버전), `.in()` 목록이 길면 실패·1000줄에서 잘림, `runId`가 선택 인자라 빠뜨려도 조용히 넘어감(필수로 바꾸고 `userId`를 받아 한 번만 기록하면 `notifyOwner`의 두 번 세기가 사라짐), `notify` 기록 실패가 알림 만들기를 중단시킴, 변경마다 `notify` 한 줄, `notify` 건수의 뜻이 둘(시뮬레이터=모든 사람, 읽기=내 것). ③ 두 번째 사용자의 `save_change`가 `1→0`으로 보여 "같은 버전·원인을 다른 사람이 먼저 읽었다"는 사실이 드러난다(P-3부터 있던 것, 존재 여부만). 사용자 기준으로 `변경 N건`을 세게 바꿀지 팀 결정. ④ (P-3 기존) OSV 응답이 404여도 `collect-fetch.ts`의 `fetchText`가 null을 돌려줘 `queryOsv`가 "알려진 취약점 없음"으로 읽고 수집 오류로 안 남는다(불변 2). #50(I-043)은 GitHub 저장소 404만 고쳤고 이 줄은 그대로다. 별도 조각으로 고침 |
+
+**결과:** 실제 DB로 돌림(가짜 저장소 파일, OSV와 DB는 진짜). **1차(사용자 1명, 고치기 전):** 실행 `succeeded`, 변경 1·알림 1, 그러나 `notify` 단계 없음. **`runId` 한 줄 안:** `notify`는 남지만 모든 사람 수·남의 알림 수가 적혀 사용자가 읽을 수 있어 폐기. **2차(사용자 2명, `notifyOwner`):** B가 먼저 등록(`notify 1→1`), A가 두 번째 사용자로 읽으면 변경은 새로 안 만들고(`save_change 1→0`) A의 알림만 1건(`notify 1→1`, "내 알림 1건"), 알림은 A·B 각 1건 총 2건, 다시 읽기 `notify 1→0`, 변경 1건(고친 버전 0.1.16). **일반 사용자로 로그인해 API로 직접 읽어 확인:** A는 자기 실행 2개·단계 14개·알림 1개만 보이고 남의 실행·단계·알림은 0건, B도 같음. 시험 뒤 모든 표가 시작 전과 같고 계정 0(Supabase에서 따로 조회해 확인). 시험 스크립트 버그로 처음에 지우기가 일부 실패해 남은 줄은 id를 지정해 지움(`docs/debug-note.md`). **시험 9개 추가**(`notify-owner.test.ts` 8개: `runId`를 넘기지 않음·내 건수만(호출 전후 차이)·거름 조건이 `user_id`·`change_id`·음수는 0·건수를 못 읽거나 비어 와도 성공·실패 글은 고정 문구·성공 기록만 실패해도 '실패' 줄을 또 안 남김·변경이 없으면 기록 안 함. `first-read.test.ts` 1개: 위험 경로를 `registerAndRead`로 끝까지 태워 `notify`가 한 줄·내 건수로 남고 내 알림만 세는지). `runId` 다시 넘기기·거름 조건 빼기·`notifyOwner` 호출 빼기·`after`를 먼저 읽기·null 건수를 0으로 적기를 일부러 틀리면 시험이 실패하는 것을 확인. `npm test` 279개 중 278 통과·todo 1·실패 0(main `88a8df1` 기준, 이 PR 없이는 270개), 타입검사·빌드 성공. 기록 문서 검사(`lib/records`) 통과. 코드 검토 네 번(`docs/agents.md`)
 
 ---
 
+## I-P-20c-fail-demo · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
+- 번호: I-040(P-20b, PR #47)·I-042(P-18, PR #52)가 열려 있고 main은 I-043까지라 **I-044**
+- 브랜치: `feat/P-20c-fail-demo` (worktree `C:\bootcamp\TechRadar-DEMO`, origin/main 13fd4c0 위)
+- 출처: `docs/plan.md` P-20 끝 기준(실패 시연 5가지), `docs/flow.md` 4절, PRD-F28·F29·F30, 불변 1·2·4·6, SPEC-8(요청 간격)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 발표에서 일부러 실패를 보여 줄 버튼이 없다. 정기 수집기(P-9)가 아직 없어 지금 실행으로는 실행 기록이 생기지 않고, 판단 뒤 조치 상자(action_record)를 칠하는 기록도 없다 |
+| 기대 결과 | `/admin/demo`에서 ①수집 오류 ②사건 아님 ③중복 ④판단 대기 ⑤저장 실패를 버튼으로 재현. 모두 실제 경로(지금 실행 묶음·시뮬레이터·판단 저장의 실패 처리)를 타고, 흐름 화면은 그 기록대로만 칠해진다 |
+| 영향 범위 | `lib/demo/`(새: demo-switch, judgment-hooks, demo-collectors와 시험 4개), `lib/server/action-record.ts`(새, 시험), `lib/server/simulator.ts`(upsertSource·ensureTechnology export만), `app/admin/demo/`(새: page, actions), `app/admin/flow/page.tsx`(링크 한 줄) |
+| 제약 | 시연 스위치는 `ENABLE_FAIL_DEMO=true`이고 운영(VERCEL_ENV=production)이 아닐 때만(테스트 로그인과 같은 방식). 남의 파일(lib/env.ts 김영식, app/alerts/[id]/actions.ts 황재웅)은 고치지 않음(V13). 가짜 표시 줄만 만들고 진짜 사용자 알림·판단은 건드리지 않음. OSV 요청 간격 1초 이상 |
+| 열린 질문 | ⑤와 조치 상자는 판단 서버 동작(황재웅 님 파일)에서 `maybeFailForDemo`·`recordActionOutcome`(+`actionOutcomeOf`)를 부르는 몇 줄이 있어야 켜진다(PR 본문에 그대로 적고 황재웅 님 확인 후 연결). 채점 버튼은 PR #47 합친 뒤 |
+| 결과 | 2026-11-18: 시험 새 22개(스위치 5, 저장 실패 주입 3, 수집기 5, 조치 기록 5, 경계 4), main 합친 뒤 전체 284 통과·실패 0(할 일 1은 기존), 타입 검사 통과. 실제 OSV로 틀린 주소 404→상태 코드, 고친 버전 0건→등급 unknown 확인. 못 한 것: 실제 DB·화면에서 버튼 누르기(서비스 키·시연 계정 필요), `next build`(worktree node_modules 연결 문제) |
+
+---
 ## I-043 · 2026-11-18 · P-3 보강 — 저장소 404를 "없음"으로 보지 않기(D-7)·불변 2 시험(D-8)·`used` 값(Y-3) (영역 A, 김영식)
 - 번호: I-040은 P-20b(PR #47), I-041은 P-17, I-042는 P-18(PR #52)이 먼저 써서 **I-043**
 - 브랜치: `fix/P-3-collect-errors` (처음 main 23fb81a에서 시작, 작업 중 앞서간 main(7732e08)을 따라감. 새 worktree `.claude/worktrees/p3-followup`)
@@ -103,6 +131,18 @@
 
 ---
 
+## I-P-20b-eval · 2026-11-18 · P-20b 채점(eval) — 정답 파일과 채점 함수 (영역 C, 차세일)
+- 브랜치: `feat/P-20b-eval` (worktree, origin/main 위). 번호 I-039는 P-20 흐름 화면(PR #46)이 씀
+- 출처: `docs/plan.md` P-20, PRD-F30, SPEC-10(G1–G9), `docs/flow.md`(start_scoring → score → score_save), P-10(PR #41) 등급 함수 재사용
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 안내서 필수 6(채점 파일)이 비어 있다. 정답 사례 G1–G9가 시험에만 있고, 맞음·놓침·잘못 울림 수를 내는 파일·실행 기록이 없다 |
+| 기대 결과 | `eval/gold.json`(기대 등급·기대 사건·실수집/가상)과 `npm run eval` → `eval/result.json`·`result.md`. 채점은 순수 함수, 실행 기록(scoring)은 DB 주입 |
+| 영향 범위 | `eval/`(gold.json, run.ts, result.*), `lib/eval/`(score·actual·record와 시험 3개), `package.json` 스크립트 한 줄 |
+| 제약 | 네트워크·DB 없이 저장된 OSV 응답(lib/domain/fixtures)과 sim/skills만. 등급 규칙·남의 파일은 고치지 않고 부르기만. 실행 기록은 서비스 키가 필요해 스크립트에서 부르지 않음 |
+| 열린 질문 | G5 기대 등급(통과 또는 주의)은 저장소 정보(P-9) 전이라 지금 "찾지 못함" → 등급만 다름. 시뮬레이터 결과 채점은 다음 조각. 채점 결과를 화면(흐름 화면 채점 시작)에서 돌리는 버튼은 다음 |
+| 결과 | 2026-11-18: 사례 12(G5를 4개로 나눔) · 놓침 0 · 잘못 울림 0 · 등급 맞음 8/12(G5 4개만 다름). 시험 187개 중 186 통과·실패 0(할 일 1은 기존 G5 todo), 타입 검사 통과 |
 ## I-039 · 2026-11-18 · P-20 흐름 화면 완성 — 화살표 건수, 상자 상세, 실행 목록, 내 실행 기록 (영역 C, 차세일)
 - 브랜치: `feat/P-20-flow-complete` (worktree, origin/main 위). 채점(eval/)·실패 시연 5가지 실제 실행은 다음
 - 출처: `docs/plan.md` P-20, `docs/flow.md` 3·4절, PRD-F26·F28, IA-16·IA-11, 불변 5·6
