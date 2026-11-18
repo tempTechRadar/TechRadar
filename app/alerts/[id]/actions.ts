@@ -1,12 +1,28 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { DEMO_FAIL_SAVE_COOKIE } from "@/lib/demo/demo-switch";
+import { maybeFailForDemo } from "@/lib/demo/judgment-hooks";
+import { recordActionOutcome } from "@/lib/server/action-record";
 import { getCurrentUser } from "@/lib/server/current-user";
-import { saveJudgment } from "@/lib/server/judgments";
+import { saveJudgment, type JudgmentResult } from "@/lib/server/judgments";
+import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export type JudgeState = { message: string | null };
+
+/**
+ * 판단 뒤 흐름 화면의 "조치와 기록"(action_record) 단계를 남긴다(P-8·P-20c). 저장했으면 성공, 저장을 시도했다가 실패했으면 실패.
+ * 입력 검사·권한·읽기 실패처럼 저장까지 가지 못한 경우는 조치를 시도한 게 아니라서 남기지 않는다.
+ * 서비스 키는 이 기록에만 쓴다. 판단 저장은 위에서 사용자 클라이언트로 끝났고, 기록이 실패해도 판단 결과는 바뀌지 않는다.
+ */
+async function recordAction(alertId: string, result: JudgmentResult): Promise<void> {
+  const outcome = result.ok ? { ok: true as const } : result.saveAttempted ? { ok: false as const, message: result.message } : null;
+  const serviceDb = getServiceSupabase();
+  if (outcome && serviceDb) await recordActionOutcome(serviceDb, alertId, outcome);
+}
 
 /** 적용 후보·보류 저장(IA-7, PRD-F17·F19). 실패하면 알림은 그대로 판단 대기고 메시지만 돌려준다. */
 export async function judge(_previous: JudgeState, formData: FormData): Promise<JudgeState> {
@@ -14,11 +30,16 @@ export async function judge(_previous: JudgeState, formData: FormData): Promise<
   if (!user) redirect("/login");
   const alertId = String(formData.get("alertId") ?? "");
   const supabase = (await getServerSupabase())!;
-  const result = await saveJudgment(supabase, { id: user.id, role: user.role }, {
+  // 저장 실패 시연(P-20c): 스위치·시연 계정·1회용 쿠키가 모두 맞을 때만 저장이 일부러 실패한다. 평소에는 supabase 그대로.
+  const jar = await cookies();
+  const picked = maybeFailForDemo({ db: supabase, env: process.env, isDemo: user.isDemo, cookie: jar.get(DEMO_FAIL_SAVE_COOKIE)?.value });
+  if (picked.consumed) jar.delete(DEMO_FAIL_SAVE_COOKIE);
+  const result = await saveJudgment(picked.db, { id: user.id, role: user.role }, {
     alertId,
     decision: String(formData.get("decision") ?? ""),
     reason: String(formData.get("reason") ?? ""),
   });
+  await recordAction(alertId, result);
   if (!result.ok) return { message: result.message };
   revalidatePath("/alerts");
   redirect(`/alerts/${alertId}`);
