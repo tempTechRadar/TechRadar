@@ -13,9 +13,12 @@
 | 등급 정답 사례 G1–G9 (P-10, SPEC-2·10) | `lib/domain/gold-cases.test.ts`: G1–G4는 2026-11-18에 실제로 조회한 OSV 응답(`lib/domain/fixtures/`)을 `gradeFromOsv`에, G6–G9는 `sim/skills/`의 가상 스킬 4개를 `scanRiskPatterns`+`gradeFromFindings`에 넣음 | G1–G4 위험(원인 id·고친 버전 일치), G5 최신 버전 OSV 0건, G6·G7 위험(P1·P2만), G8 주의(P3만), G9 통과(발견 0) | 시험 9개 모두 기대값 + `todo` 1개. G2 고친 버전 0.16.6, G4 1.28.1(처음 취약점의 고친 버전으로는 위험이 남아 규칙을 고침, SPEC-1). G5는 OSV 0건까지만 확인(2026-11-18 조회 기록), 기대 등급 "통과"는 저장소 정보(P-9) 뒤라 `todo` | Pass(G5 등급은 No Run, P-9 뒤) | Claude, 2026-11-18 | PR(P-10) |
 | 위험 패턴 검사 단위 (P-10, SPEC-2) | `lib/domain/risk-patterns.test.ts` | P1·P2·P3 찾는 줄과 아닌 줄(코드 검토가 재현한 놓침·잘못 울림 포함), 이어 쓴 명령, CRLF 줄 번호, 입력 순서·파일 이름 대소문자 무관, 긴 줄은 '통과' 아님, 발견 50개 상한에서 위험 유지, 소문자 머리글 비밀값 가림 | 15개 모두 기대값. **알려진 한계:** P2는 SPEC 그대로 "같은 파일"이라 정상 API 호출도 걸림(I-035 열린 질문 ①), GET 주소·문장 지시문·`allowed-tools` 여러 줄 목록은 못 찾음(③) | Pass |
 | 고친 버전·버전 비교·패키지 걸러내기 (P-10 보강, SPEC-1) | `lib/domain/read-grade.test.ts` 새 시험 3개 | 백포트 줄은 내 줄에서, 안 고친 게 있으면 null, 사전 배포 < 정식 < post, 다른 패키지의 고친 버전·GIT 해시는 제외 | 3개 모두 기대값(백포트 시험은 고치기 전에 실패하는 것을 먼저 확인했고, 버전 비교·패키지 걸러내기 2개는 고친 뒤에 썼다. G2·G4의 고친 버전도 고치기 전 실패 확인) | Pass | Claude, 2026-11-18 | PR(P-10) | Claude, 2026-11-18 | PR(P-10) |
+| 불변 2 수집 실패 흐름 (P-3 보강, 점검 D-7·D-8·Y-3) | `lib/server/first-read.test.ts` 10개: 가짜 DB·가짜 GitHub·OSV로 `registerAndRead`를 끝까지 | OSV 실패 → 그 기술만 수집 오류·등급 칸 안 건드림·변경 0·실행 partial·`fetch_osv` 단계 failed와 오류 종류. 새 등록은 GitHub가 저장소를 열 수 없다고 하면 막힘(프로젝트·실행 없음), 확인이 안 되면(한도) 막지 않고 읽음. 다시 읽기는 파일이 하나도 안 열리고 저장소도 안 열리면 전에 읽은 기술을 수집 오류로 두고 실행 failed. 파일 일부 404는 오류 아님. 카탈로그 `thick_reasons`는 `used` | 10개 모두 기대값. 고친 곳을 일부러 되돌리면(변이 8가지) 시험이 실패함을 확인하고 복원 | Pass | Claude, 2026-11-18 | `lib/server/first-read.test.ts`, 변이 시험(스크래치패드) |
+| GitHub 저장소 확인·오류 종류 (P-3 보강, 점검 D-7, SPEC-8) | `lib/server/collect-fetch.test.ts` 7개: `fetch`를 가짜로 바꿔 `assertRepoPublic`·`fetchText` | 404·private는 "열 수 없음", 429·403(+`x-ratelimit-remaining: 0`)은 rate_limited, 연결 실패 network, 500 http_status, 깨진 응답 parse. 어느 것도 "저장소 없음"으로 보이지 않음 | 7개 모두 기대값 | Pass | Claude, 2026-11-18 | `lib/server/collect-fetch.test.ts` |
 
 ## 사람 QA
 | 검사 항목 | 방법 | 정상이면 보이는 것 | 주의점 | 상태 | 수행자, 날짜 | 증거 |
 |---|---|---|---|---|---|---|
+| 없는·비공개 저장소 등록 화면 (P-3 보강, PRD-F4) | 로그인 뒤 `/projects`에 없는 주소(`https://github.com/없는사람/없는저장소`)와 실제 비공개 저장소 주소를 넣고 "등록하고 읽기" | "이 저장소를 열 수 없어요…" 문구가 뜨고 목록에 프로젝트가 생기지 않음 | 실제 GitHub·로그인이 필요해 Claude가 대신하지 않음. GitHub 확인이 한도(인증 없이 시간당 60회)로 안 될 때는 막지 않고 읽음 | No Run | — | — |
 
 ## 남은 오류
