@@ -61,5 +61,7 @@ export function readMcpJson(text: string): FoundTech[] {
 export function parseGithubRepo(url: string): { owner: string; repo: string; url: string } | null {
   const m = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?(?:[/?#].*)?$/i.exec(url.trim());
   if (!m) return null;
+  // `.`·`..` 조각은 주소를 같은 호스트의 다른 경로로 접는다(api.github.com/repos/../rate_limit → /rate_limit). 입력 경계에서 막는다
+  if ([m[1], m[2]].some((s) => s === "." || s === "..")) return null;
   return { owner: m[1], repo: m[2], url: `https://github.com/${m[1]}/${m[2]}`.toLowerCase() };
 }

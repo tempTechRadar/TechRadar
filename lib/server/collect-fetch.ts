@@ -38,8 +38,8 @@ export async function fetchText(url: string, init?: RequestInit): Promise<string
     throw connectionFailure(url, e);
   }
   if (res.status === 404) return null;
-  // GitHub의 한도 초과는 429뿐 아니라 403 + x-ratelimit-remaining: 0으로도 온다
-  if (res.status === 429 || (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0")) {
+  // GitHub의 한도 초과는 429뿐 아니라 403 + x-ratelimit-remaining: 0, 그리고 2차 한도(남은 횟수는 있는데 403 + retry-after)로도 온다
+  if (res.status === 429 || (res.status === 403 && (res.headers.get("x-ratelimit-remaining") === "0" || res.headers.has("retry-after")))) {
     throw new CollectError("rate_limited", `${url}: ${res.status}`, res.status);
   }
   if (!res.ok) throw new CollectError("http_status", `${url}: ${res.status}`, res.status);
