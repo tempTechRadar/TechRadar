@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Ecosystem, PackageRef } from "../domain/downloads.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
 import { CollectError, type ErrorKind } from "./collect-fetch.ts";
+import { countKinds } from "./collect-util.ts";
 import { fetchWeeklyDownloads } from "./downloads-fetch.ts";
 import { markFailed, readSourceIds, readTargets, saveReading, SOURCE_NAME, type Target } from "./downloads-store.ts";
 import { recordStep } from "./run-log.ts";
@@ -84,11 +85,6 @@ async function recordFailure(run: Run, t: Target, kind: ErrorKind, message: stri
 }
 
 const readTotal = (t: Tally) => t.readBy.npm + t.readBy.pypi;
-
-const countKinds = (failed: Failure[]) =>
-  Object.entries(failed.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.kind]: (acc[f.kind] ?? 0) + 1 }), {}))
-    .map(([kind, n]) => `${kind} ${n}`)
-    .join(", ");
 
 function deadSource(dead: Ecosystem[], failed: Failure[]): CollectError {
   const mine = failed.filter((f) => dead.includes(f.ecosystem));

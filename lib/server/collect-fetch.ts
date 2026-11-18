@@ -1,5 +1,6 @@
 // 바깥 호출 어댑터(GitHub·OSV). 실패는 오류 종류(SPEC-8)로 나눠 던진다. 주인: 김영식 A.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
+import { repoApiUrl } from "../domain/github-repo.ts";
 import { forPackage, type OsvVuln } from "../domain/grade.ts";
 import type { StepRecord } from "./run-log.ts";
 
@@ -84,7 +85,7 @@ export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version:
 export async function assertRepoPublic(repo: { owner: string; repo: string }): Promise<void> {
   const path = `${repo.owner}/${repo.repo}`;
   // shortcut: 인증 없이 부름(시간당 60회). 서버 토큰(ADR 0008 4번)은 P-9에서 붙이면서 함께
-  const url = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`;
+  const url = repoApiUrl(repo); // `.`·`..` 이름을 막는 주소 만들기를 한 곳에 둔다
   const text = await fetchText(url, { headers: { accept: "application/vnd.github+json" } });
   if (text === null) throw new RepoNotPublicError(path);
   let info: { private?: boolean };
