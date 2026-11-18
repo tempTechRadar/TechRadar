@@ -1,68 +1,37 @@
 // 등록 → 저장소 읽기 → OSV → 등급 → 변경 (P-3, 주인: 김영식 A). flow 상자: fetch_repo → extract_my_tech → fetch_osv → grade → is_event → save_change → notify
 // 쓰기는 서비스 키(erd "쓰기는 서버"). 누구의 것인지는 화면이 아니라 여기서 getCurrentUser로 받은 사람으로 정한다(불변 5).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CurrentUser } from "./current-user";
-import { getServiceSupabase } from "./service-supabase";
-import { startRun, recordStep, finishRun, type RunTrigger, type StepRecord } from "./run-log";
-import { saveChange } from "./changes";
-import { createAlertsForChange } from "./alerts";
-import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "@/lib/domain/manifest";
-import { GRADE_RULE_VERSION, forPackage, gradeFromOsv, type GradeResult, type OsvVuln } from "@/lib/domain/grade";
+import type { CurrentUser } from "./current-user.ts";
+import { getServiceSupabase } from "./service-supabase.ts";
+import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
+import { saveChange } from "./changes.ts";
+import { createAlertsForChange } from "./alerts.ts";
+import { assertRepoPublic, CollectError, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
+import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
+import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
-const MAX_TEXT = 500_000; // 파일·OSV 응답 한도(글자)
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
-
-type ErrorKind =NonNullable<StepRecord["errorKind"]>;
-class CollectError extends Error {
-  constructor(readonly kind: ErrorKind, message: string, readonly httpStatus?: number) {
-    super(message);
-  }
-}
-
-/** 바깥 호출 하나. 실패는 오류 종류(SPEC-8)로 나눠 던진다. 404는 null(파일 없음은 오류가 아님). */
-async function fetchText(url: string, init?: RequestInit): Promise<string | null> {
-  let res: Response;
-  try {
-    res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000), cache: "no-store" });
-  } catch (e) {
-    const kind = e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network";
-    throw new CollectError(kind, `${url}: ${e instanceof Error ? e.message : String(e)}`);
-  }
-  if (res.status === 404) return null;
-  if (res.status === 429) throw new CollectError("rate_limited", `${url}: 429`, 429);
-  if (!res.ok) throw new CollectError("http_status", `${url}: ${res.status}`, res.status);
-  const text = await res.text();
-  if (text.length > MAX_TEXT) throw new CollectError("parse", `${url}: 응답이 너무 큼(${text.length}자)`);
-  return text;
-}
-
-const errorKindOf = (e: unknown): ErrorKind => (e instanceof CollectError ? e.kind : "parse");
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string | null): Promise<OsvVuln[]> {
-  const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}) });
-  const text = await fetchText("https://api.osv.dev/v1/query", { method: "POST", body, headers: { "content-type": "application/json" } });
-  try {
-    return forPackage((JSON.parse(text ?? "{}") as { vulns?: OsvVuln[] }).vulns ?? [], name);
-  } catch {
-    throw new CollectError("parse", "OSV 응답을 해석하지 못함");
-  }
-}
+type RepoRef = { owner: string; repo: string; url: string };
+export type ReadResult = { projectId: string; runId: string; found: number; danger: number; changesCreated: number; errors: number; status: RunResult };
 
-export type ReadResult = { projectId: string; runId: string; found: number; danger: number; changesCreated: number; errors: number };
-
-/** 공개 GitHub 저장소를 등록(이미 있으면 다시 읽기)하고 끝까지 읽는다. */
-export async function registerAndRead(user: CurrentUser, repo: { owner: string; repo: string; url: string }): Promise<ReadResult> {
-  const db = getServiceSupabase();
+/** 공개 GitHub 저장소를 등록(이미 있으면 다시 읽기)하고 끝까지 읽는다. 새 등록은 저장소가 안 열리면 막는다(RepoNotPublicError). */
+export async function registerAndRead(user: CurrentUser, repo: RepoRef, deps: { db?: SupabaseClient } = {}): Promise<ReadResult> {
+  const db = deps.db ?? getServiceSupabase();
   if (!db) throw new Error("서버에 Supabase 서비스 키가 없다(.env.local)");
 
-  const { projectId, isNew } = await upsertProject(db, user.id, repo);
-  const trigger: RunTrigger = isNew ? "first_read" : "user_reread";
+  const existingId = await findProject(db, user.id, repo.url);
+  // 새 등록만 막는다(PRD-F4): GitHub가 "열 수 없다"고 답한 저장소는 프로젝트·실행을 만들지 않는다. 다시 읽기는 readRepo가 확인한다.
+  // shortcut: 확인 자체가 안 되면(한도·연결) 막지 않는다 — 파일도 못 열면 readRepo가 수집 오류로 남긴다. 서버 토큰(P-9)이 붙으면 막는 쪽으로
+  if (!existingId) await assertRepoPublic(repo).catch((e) => { if (e instanceof RepoNotPublicError) throw e; });
+  const projectId = existingId ?? (await insertProject(db, user.id, repo));
+  const trigger: RunTrigger = existingId ? "user_reread" : "first_read";
   const runId = await startRun(db, { trigger, startedBy: user.id, projectId });
   try {
     const result = await readAndGrade(db, { runId, projectId, ownerId: user.id }, repo);
-    await finishRun(db, runId, { status: result.errors ? "partial" : "succeeded", itemCount: result.found });
+    await finishRun(db, runId, { status: result.status, itemCount: result.found });
     return result;
   } catch (e) {
     // 원래 오류를 던지는 게 우선이라, 실행 닫기 실패는 원래 오류를 가리지 않게 덧붙이기만 한다
@@ -71,7 +40,7 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
   }
 }
 
-async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId: string; ownerId: string }, repo: { owner: string; repo: string; url: string }): Promise<ReadResult> {
+async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId: string; ownerId: string }, repo: RepoRef): Promise<ReadResult> {
   const { runId, projectId } = ctx;
   const { found, dropped, fileErrors } = await readRepo(db, runId, repo);
   const readAt = new Date().toISOString();
@@ -116,13 +85,31 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   // notify 단계 기록은 알림 주인(P-7)의 함수가 남긴다
   for (const c of saved) await createAlertsForChange(db, { changeId: c.id, techId: c.techId, kind: "security" });
 
-  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors: fileErrors.length + osvErrors };
+  const errors = fileErrors.length + osvErrors;
+  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors) };
+}
+
+/** 파일을 하나도 못 읽고 오류뿐이면 실패(저장소가 안 열린 것을 성공·일부 성공처럼 보이지 않게, 불변 2). 일부만 오류면 일부 성공. */
+function runStatus(fileErrors: FileError[], osvErrors: number): RunResult {
+  if (fileErrors.length + osvErrors === 0) return "succeeded";
+  return new Set(fileErrors.map((f) => f.path)).size >= REPO_FILES.length ? "failed" : "partial";
 }
 
 type FileError = { path: string; kind: ErrorKind; message: string };
 
+/** 연 파일이 하나도 없는데 일부는 404일 때: "파일 없음"인지 저장소가 안 열린 것인지 저장소부터 확인한다(404는 비공개·없는 저장소도 같다, 불변 2). */
+async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<FileError[]> {
+  try {
+    await assertRepoPublic(repo);
+    return [];
+  } catch (e) {
+    const message = String(e instanceof Error ? e.message : e);
+    return REPO_FILES.filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
+  }
+}
+
 /** fetch_repo → extract_my_tech. 파일마다 따로: 없는 파일은 건너뛰고, 못 읽거나 깨진 파일은 그 파일만 오류. */
-async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string; repo: string; url: string }) {
+async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const files: { path: string; text: string }[] = [];
   const fileErrors: FileError[] = [];
   for (const path of REPO_FILES) {
@@ -133,6 +120,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
       fileErrors.push({ path, kind: errorKindOf(e), message: String(e instanceof Error ? e.message : e) });
     }
   }
+  if (files.length === 0 && fileErrors.length < REPO_FILES.length) fileErrors.push(...(await closedRepoErrors(repo, fileErrors)));
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
@@ -141,7 +129,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
     countIn: REPO_FILES.length,
     countOut: files.length,
     errorKind: fileErrors[0]?.kind,
-    errorMessage: fileErrors.map((f) => f.message).join("; ") || undefined,
+    errorMessage: [...new Set(fileErrors.map((f) => f.message))].join("; ") || undefined,
   });
 
   // extract_my_tech: 깨진 파일은 해석 실패로 남기고 나머지는 계속.
@@ -171,7 +159,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
 async function gradeAll(db: SupabaseClient, runId: string, projectId: string, found: FoundTech[], techIds: Map<string, string>) {
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
-  let osvErrors = 0;
+  const osvFailures: { kind: ErrorKind; message: string }[] = [];
   const osvTargets = found.filter((f) => f.tech?.key.startsWith("npm:") || f.tech?.key.startsWith("pypi:"));
   for (const [i, f] of osvTargets.entries()) {
     if (i > 0) await sleep(1000); // SPEC-8 요청 사이 1초
@@ -184,30 +172,35 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
       graded.push({ f, techId, result });
     } catch (e) {
       if (!(e instanceof CollectError)) throw e; // DB 오류 등은 삼키지 않는다
-      osvErrors++;
+      osvFailures.push({ kind: e.kind, message: `${f.tech!.key}: ${e.message}` });
       await markCollectError(db, target, e.kind);
     }
   }
   await recordStep(db, runId, {
     stepName: "fetch_osv",
-    status: osvErrors ? "failed" : "succeeded",
+    status: osvFailures.length ? "failed" : "succeeded",
     countIn: osvTargets.length,
     countOut: graded.length,
-    branchCounts: { ok: graded.length, collect_error: osvErrors },
+    branchCounts: { ok: graded.length, collect_error: osvFailures.length },
     apiUrl: "https://api.osv.dev/v1/query",
+    errorKind: osvFailures[0]?.kind,
+    errorMessage: osvFailures.map((f) => f.message).join("; ") || undefined,
   });
   const byGrade = graded.reduce<Record<string, number>>((m, g) => ({ ...m, [g.result.grade]: (m[g.result.grade] ?? 0) + 1 }), {});
   await recordStep(db, runId, { stepName: "grade", status: "succeeded", countIn: graded.length, countOut: graded.length, branchCounts: byGrade });
-  return { graded, osvErrors, osvTargets: osvTargets.length };
+  return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length };
 }
 
-async function upsertProject(db: SupabaseClient, ownerId: string, repo: { repo: string; url: string }) {
-  const existing = await db.from("projects").select("id").eq("owner_id", ownerId).eq("repo_url", repo.url).maybeSingle();
+async function findProject(db: SupabaseClient, ownerId: string, repoUrl: string): Promise<string | null> {
+  const existing = await db.from("projects").select("id").eq("owner_id", ownerId).eq("repo_url", repoUrl).maybeSingle();
   if (existing.error) throw new Error(`프로젝트를 찾지 못함: ${existing.error.message}`);
-  if (existing.data) return { projectId: existing.data.id as string, isNew: false };
+  return (existing.data?.id as string | undefined) ?? null;
+}
+
+async function insertProject(db: SupabaseClient, ownerId: string, repo: { repo: string; url: string }): Promise<string> {
   const inserted = await db.from("projects").insert({ owner_id: ownerId, kind: "repo", name: repo.repo, repo_url: repo.url }).select("id").single();
   if (inserted.error) throw new Error(`프로젝트를 저장하지 못함: ${inserted.error.message}`);
-  return { projectId: inserted.data.id as string, isNew: true };
+  return inserted.data.id as string;
 }
 
 /** 카탈로그에 기술을 잇고(없으면 만들고) 내 기술 줄을 남긴다. 기술 키 → technologies.id */
@@ -216,7 +209,7 @@ async function saveMyTechnologies(db: SupabaseClient, at: { ownerId: string; pro
   const keyed = found.filter((f) => f.tech);
   const ids = new Map<string, string>();
   if (keyed.length) {
-    const rows = keyed.map((f) => ({ tech_key: f.tech!.key, display_name: f.name, type: f.type, depth: "thick", thick_reasons: ["user_registered"] }));
+    const rows = keyed.map((f) => ({ tech_key: f.tech!.key, display_name: f.name, type: f.type, depth: "thick", thick_reasons: ["used"] }));
     const up = await db.from("technologies").upsert(rows, { onConflict: "tech_key", ignoreDuplicates: true });
     if (up.error) throw new Error(`기술 카탈로그에 저장하지 못함: ${up.error.message}`);
     const sel = await db.from("technologies").select("id, tech_key").in("tech_key", keyed.map((f) => f.tech!.key));
