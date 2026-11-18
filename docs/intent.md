@@ -6,6 +6,22 @@
 
 ---
 
+## I-connectors-worklog-1118 · 2026-11-18 · 이번 세션 기록 보강: 커넥터 사용 줄과 11-18 날짜 항목 채우기 (소급)
+- 브랜치: `docs/connectors-worklog-1118` (최신 main d7988de, 새 worktree `.claude/worktrees/connectors-worklog`)
+- 출처: 사용자 "지금까지 pr에서 리뷰어가 알면 좋은 것 종합하고 처리할거 리스팅" → "진행". `CLAUDE.md` 6절(커넥터를 쓰면 `docs/connectors.md`에 한 줄), 9절(끝낼 때 날짜 항목 채우기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 이번 세션(PR #64·#68·#71)에서 Vercel 커넥터로 배포를 조회하고 abbsbook으로 기록했는데 `connectors.md`에 줄을 남기지 않았다. `worklog.md` 11-18 항목의 정한 일·막힌 일·아직 안 된 것도 표 행만 있고 비어 있었다 |
+| 기대 결과 | 두 기록이 채워지고, 병합된 worktree·브랜치가 정리된다. 팀이 "PR에 Vercel 검사가 안 보이는 것이 정상"인 이유와 `precheck` 순서를 날짜 항목에서 바로 찾는다 |
+| 영향 범위 | `docs/connectors.md`, `docs/worklog.md`, 기록. 코드·설정·ADR은 손대지 않음. 로컬 worktree 3개와 병합된 원격 브랜치 3개 정리 |
+| 제약 | 남의 작업(메인 폴더의 미커밋 변경, 다른 worktree)은 건드리지 않는다. 기록 문서는 덧붙이기만 한다(ADR 0017) |
+| 열린 질문 | 없음 |
+
+**결과:** `connectors.md`에 2줄(Vercel 조회, abbsbook)을 더하고 `worklog.md` 11-18 항목의 정한 일 3개·막힌 일 3개·아직 안 된 것 5개를 채웠다. 병합된 worktree 3개와 로컬·원격 브랜치 3개(`docs/record-github-union`, `chore/vercel-deploy-limit`, `chore/precheck-merge`)를 지웠다. 지우기 전에 모두 미커밋 변경이 없음을 확인했고, 메인 폴더의 남의 미커밋 변경과 다른 worktree는 건드리지 않았다.
+
+---
+
 ## I-precheck-merge · 2026-11-18 · PR 올리기 전에 GitHub이 볼 충돌을 미리 보는 `npm run precheck`
 - 브랜치: `chore/precheck-merge` (최신 main 7c1ff95, 새 worktree `.claude/worktrees/precheck-merge`)
 - 출처: 사용자 "pr 올리기전에 충돌을 미리 예지해서 충돌 없도록 하는 방법은 없어?" → "precheck 추가해서 pr". 앞선 작업 `I-record-github-union`(PR #64)·`I-vercel-deploy-limit`(PR #68)의 후속
