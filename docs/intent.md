@@ -6,6 +6,19 @@
 
 ---
 
+## I-P-5-fixed-version-key · 2026-11-18 · 시뮬레이터 알림의 고친 버전 키를 `fixed_version`으로
+- 브랜치: `fix/P-5-fixed-version-key` (최신 main 541c2e1)
+- 출처: PR #79 M0 한 바퀴 점검의 Fail 행("시뮬레이터 알림의 적용 후보 저장"), `docs/debug-note.md`. 근거: SPEC-3.5, ADR 0012, PRD-F17·F29
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 시뮬레이터가 고친 버전을 변경·수집 자료 값에 `fixedVersion`(카멜)으로 저장하는데, 판단(`judgments.ts`)·알림 화면(`to-alert-view.ts`)은 진짜 첫 읽기(`first-read.ts`)와 같은 `fixed_version`(스네이크)을 읽는다. 그래서 시뮬레이터 알림은 [적용 후보]가 안 나오고 저장도 "고친 버전이 아직 없어서"로 거부된다. 시험이 이 키를 보지 않아 못 잡았다 |
+| 기대 결과 | 시뮬레이터 알림에서 [적용 후보]를 고를 수 있고 고친 버전 0.1.16이 함께 저장된다. 키 이름을 고정하는 시험이 생긴다 |
+| 영향 범위 | `lib/server/simulator.ts`(59·105줄 키 이름만), `lib/server/simulator.test.ts`(시험 1개). impact-map: 영향 9개·최대 2홉, 시험 3개(`simulator`·`simulator-opportunity`·`demo-collectors`). DB 구조·다른 사람 파일은 그대로 |
+| 제약 | 진짜 첫 읽기·판단·화면 쪽 키(`fixed_version`)를 정본으로 두고 시뮬레이터만 맞춘다. 이미 실제 DB에 있는 가짜 변경 줄의 값은 고치지 않는다(시뮬레이터 지우기 뒤 다시 만들면 새 키) |
+| 열린 질문 | 없음 |
+
+**결과:** 새 시험이 먼저 실패하는 것을 확인한 뒤(`fixedVersion`이 저장됨) 두 줄을 고쳐 통과. 시험은 시뮬레이터가 저장한 값을 `toAlertView`에 넣어 `canCandidate`가 true인지까지 본다. 실제 DB에 이미 있는 가짜 변경은 [시뮬레이터 지우기] 뒤 다시 만들어야 새 키가 들어간다. 사람 QA("M0 한 바퀴 화면")에서 적용 후보로 확인한다.
 ## I-plan-status-m0-qa-1118 · 2026-11-18 · M0 한 바퀴 점검(Claude QA)과 plan 상태·사람마다 센 것 갱신
 - 브랜치: `docs/plan-status-m0-qa-1118` (최신 main 541c2e1, 새 worktree `.claude/worktrees/m0-qa`)
 - 출처: 사용자 "그 외 작업?" → "둘다진행"(M0 점검, `plan.md` 갱신). 근거: `plan.md` 3절 M0 끝 기준, `rules/qa.md`
