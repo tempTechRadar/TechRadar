@@ -13,6 +13,9 @@ const duplicates = (items: string[]) => [...new Set(items.filter((x, i) => items
 /** `## I-…` 제목의 작업 ID 목록 */
 const intentIds = (text: string) => [...text.matchAll(/^## (I-\S+)/gm)].map((m) => m[1]);
 
+/** docs/adr 파일 이름 앞의 번호(0001…) */
+const adrNumbers = () => readdirSync("docs/adr").map((f) => f.slice(0, 4)).filter((n) => /^\d{4}$/.test(n));
+
 /** 표마다 줄 목록(머리·구분선 포함). 표는 `|`로 시작하는 연속된 줄. */
 function tables(text: string): string[][] {
   const out: string[][] = [];
@@ -49,6 +52,10 @@ test("docs 문서에 충돌 표시(<<<<<<<·>>>>>>>)가 남아 있지 않다", (
 
 test("intent.md의 작업 ID(## I-…)가 겹치지 않는다(합치다가 같은 번호가 두 번 생기면 여기서 걸린다)", () => {
   assert.deepEqual(duplicates(intentIds(read("docs/intent.md"))), []);
+});
+
+test("ADR 번호가 겹치지 않는다(두 PR이 같은 번호로 파일을 만들면 이름이 달라 git은 충돌로 보지 않으므로 여기서 잡는다)", () => {
+  assert.deepEqual(duplicates(adrNumbers()), []);
 });
 
 test("worklog.md 표마다 첫 칸(번호·작업 ID)이 겹치지 않는다", () => {
