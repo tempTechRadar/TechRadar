@@ -61,13 +61,14 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
   const trigger: RunTrigger = isNew ? "first_read" : "user_reread";
   const runId = await startRun(db, { trigger, startedBy: user.id, projectId });
 
-  const { found, fileErrors } = await readRepo(db, runId, repo);
+  const { found, dropped, fileErrors } = await readRepo(db, runId, repo);
   const techIds = await saveMyTechnologies(db, user.id, projectId, found);
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음)
   for (const f of fileErrors) {
     const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
+  await markDropped(db, projectId, dropped);
 
   const { graded, osvErrors, osvTargets } = await gradeAll(db, runId, projectId, found, techIds);
   const events = graded.filter((g) => g.result.grade === "danger");
@@ -143,8 +144,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
   const seen = new Set<string>();
   const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
-  if (unique.length > MAX_TECHS) fileErrors.push({ path: "(all)", kind: "parse", message: `AI 도구가 ${unique.length}개라 앞의 ${MAX_TECHS}개만 읽음` });
-  return { found: unique.slice(0, MAX_TECHS), fileErrors };
+  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors };
 }
 
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
@@ -260,4 +260,18 @@ async function applyGrade(db: SupabaseClient, runId: string, t: Target, r: Grade
 async function markCollectError(db: SupabaseClient, t: Target, kind: ErrorKind) {
   const m = await db.from("my_technologies").update({ collect_error_kind: kind }).eq("project_id", t.projectId).eq("tech_id", t.techId);
   if (m.error) throw new Error(`수집 오류를 저장하지 못함: ${m.error.message}`);
+}
+
+/** 한도(MAX_TECHS)로 이번에 못 읽은 기술: 전에 저장된 줄이 있으면 수집 오류로 표시한다(불변 2). 새 줄은 만들지 않는다. */
+async function markDropped(db: SupabaseClient, projectId: string, dropped: FoundTech[]) {
+  if (!dropped.length) return;
+  const keys = dropped.flatMap((f) => (f.tech ? [f.tech.key] : []));
+  const names = dropped.flatMap((f) => (f.tech ? [] : [f.name]));
+  const ids = keys.length ? await db.from("technologies").select("id").in("tech_key", keys) : { data: [], error: null };
+  if (ids.error) throw new Error(`기술 카탈로그를 읽지 못함: ${ids.error.message}`);
+  const mark = { collect_error_kind: "parse" };
+  const byTech = ids.data.length ? await db.from("my_technologies").update(mark).eq("project_id", projectId).in("tech_id", ids.data.map((t) => t.id)) : { error: null };
+  const byName = names.length ? await db.from("my_technologies").update(mark).eq("project_id", projectId).in("manual_name", names) : { error: null };
+  const err = byTech.error ?? byName.error;
+  if (err) throw new Error(`수집 오류를 저장하지 못함: ${err.message}`);
 }
