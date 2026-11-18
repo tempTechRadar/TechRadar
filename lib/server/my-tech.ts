@@ -55,8 +55,10 @@ export function checkNewTech(input: NewTech): { ok: true; name: string | null; v
 }
 
 /**
- * 직접 추가(PRD-F7). 이름만 쓴 기술은 등급 "찾지 못함"으로 남는다. 이 함수는 등급 칸을 보내지 않지만,
- * insert에는 아직 열 제한이 없어 API로 직접 넣으면 막지 못한다(intent I-P-11-my-tech 열린 질문 ③).
+ * 직접 추가(PRD-F7). 이름만 쓴 기술은 등급 "찾지 못함"으로 남는다. 이 함수는 등급 칸을 보내지 않고,
+ * `202611181900_P-11_my_tech_insert_columns.sql`을 DB에 적용하면 API로 직접 넣어도 insert 열이 7칸·origin이 manual·import로 막힌다.
+ * 적용한 뒤 여기서 보내는 칸이 늘면 DB가 저장을 거절하므로 `my-tech-insert-columns.test.ts`가 먼저 실패한다.
+ * 이름·버전의 길이·모양·비밀값 검사는 아직 이 함수(checkNewTech)에만 있고 DB에는 없다(intent 열린 질문).
  * 남의 프로젝트에는 넣을 수 없다: 사용자 본인 연결이라 `my_tech_insert` 정책의 with check가 프로젝트 주인을 확인한다.
  */
 export async function addTech(ctx: Ctx, input: NewTech): Promise<AddResult> {
