@@ -6,6 +6,19 @@
 
 ---
 
+## I-install-no-danger · 2026-11-19 · 설치 프롬프트에서 "위험이어도 넣기" 없애기: ADR 0012 이행 (영역 C, 차세일)
+- 브랜치: `fix/install-no-danger` (origin/main d77cadd 위, worktree `.claude/worktrees/night-install-danger`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0012(위험한 버전은 어떤 경우에도 설치 프롬프트에 넣지 않는다), SPEC-4.3, 불변 점검의 N1, 점검 D-1(문서는 이미 고침)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 문서는 "위험한 버전은 어떤 경우에도 넣지 않는다"인데 코드는 위험 기술을 고르고 "위험이어도 넣기"를 체크하면 "위험: 이유"를 붙여 프롬프트에 넣는다(`install-screen.tsx`·`from-my-tech.ts`·`build-install-prompt.ts`의 `userIncluded` 경로). 시험도 옛 동작을 고정하고 있었다. |
+| 기대 결과 | 위험 기술은 고른 상태여도 프롬프트에 들어가지 않고 "넣지 않은 것(위험)"에 이유와 고친 버전이 남는다. 화면은 체크박스 대신 "위험이라 프롬프트에 넣지 않아요"를 보인다. 보안 경고에서 고친 버전으로 올리기(`pinTo`)를 고른 것은 그대로 들어간다. |
+| 영향 범위 | `lib/install/types.ts`(`userIncluded` 삭제)·`from-my-tech.ts`(`includeDanger` 인자 삭제)·`build-install-prompt.ts`·`app/projects/install/install-screen.tsx`와 시험 2파일. DB 없음. |
+| 제약 | 시험 두 곳은 "사용자가 고르면 들어간다"에서 "어떤 경우에도 안 들어간다"로 뒤집었다(옛 `userIncluded` 값이 끼어들어도 무시되는 시험 포함). 화면은 직접 열어 보지 못했다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 복사 기록의 `excludedDanger` 숫자 뜻은 그대로(고른 위험 기술 중 고친 버전으로 고정하지 않은 것). 화면 문구를 팀 취향에 맞게 다듬을지. |
+
+**결과:** 전체 549개 중 548 통과·실패 0·todo 1(시험 수는 그대로, 두 시험을 새 규칙으로 바꿈), `tsc` 통과, 남은 `userIncluded`는 "옛 값을 무시한다"는 시험 한 곳뿐이다.
 ## I-admin-judge-own · 2026-11-19 · 관리자도 본인 알림은 판단할 수 있게: ADR 0016 이행 (영역 B, 황재웅)
 - 브랜치: `fix/admin-judge-own` (origin/main d77cadd 위, worktree `.claude/worktrees/night-admin-judge`)
 - 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0016(관리자도 본인 알림은 판단할 수 있고 남의 알림은 못 한다), 불변 점검의 N2, `docs/flow.md`의 `admin_can_judge_own`
