@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUser } from "./current-user";
 import { getServiceSupabase } from "./service-supabase";
-import { startRun, recordStep, type RunTrigger, type StepRecord } from "./run-log";
+import { startRun, recordStep, finishRun, type RunTrigger, type StepRecord } from "./run-log";
 import { saveChange } from "./changes";
 import { createAlertsForChange } from "./alerts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "@/lib/domain/manifest";
@@ -60,10 +60,22 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
   const { projectId, isNew } = await upsertProject(db, user.id, repo);
   const trigger: RunTrigger = isNew ? "first_read" : "user_reread";
   const runId = await startRun(db, { trigger, startedBy: user.id, projectId });
+  try {
+    const result = await readAndGrade(db, { runId, projectId, ownerId: user.id }, repo);
+    await finishRun(db, runId, { status: result.errors ? "partial" : "succeeded", itemCount: result.found });
+    return result;
+  } catch (e) {
+    // 원래 오류를 던지는 게 우선이라, 실행 닫기 실패는 원래 오류를 가리지 않게 덧붙이기만 한다
+    await finishRun(db, runId, { status: "failed" }).catch((closeErr) => console.error("실행을 닫지 못함", closeErr));
+    throw e;
+  }
+}
 
+async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId: string; ownerId: string }, repo: { owner: string; repo: string; url: string }): Promise<ReadResult> {
+  const { runId, projectId } = ctx;
   const { found, dropped, fileErrors } = await readRepo(db, runId, repo);
   const readAt = new Date().toISOString();
-  const techIds = await saveMyTechnologies(db, { ownerId: user.id, projectId, readAt }, found);
+  const techIds = await saveMyTechnologies(db, { ownerId: ctx.ownerId, projectId, readAt }, found);
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음)
   for (const f of fileErrors) {
     const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
@@ -87,8 +99,9 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
 
   // 위험이면 변경 저장은 늘 부른다: 같은 키면 이미 있는 변경이 돌아온다(불변 3). 두 번째 사용자는 그 변경에 알림만 새로 생긴다(SPEC-3.1).
   let changesCreated = 0;
+  const saved: { id: string; techId: string }[] = [];
   for (const g of events) {
-    const saved = await saveChange(db, {
+    const change = await saveChange(db, {
       kind: "first_seen_danger", // 사용자가 읽을 때 이미 위험 = 처음 확인한 위험. 정기 수집(P-17)은 grade_to_danger
       techId: g.techId,
       tech: g.f.tech!,
@@ -96,10 +109,12 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
       // shortcut: 위험 회차는 늘 1. 위험 → 고쳐짐 → 다시 위험(SPEC-3.1 회차)은 정기 수집(P-17)에서 이전 변경을 보고 올린다
       currValue: { grade: "danger", reason: g.result.reason, fixed_version: g.result.fixedVersion, evidence: g.result.evidence },
     });
-    if (saved.created) changesCreated++;
-    await createAlertsForChange(db, { changeId: saved.id, techId: g.techId, kind: "security" });
+    if (change.created) changesCreated++;
+    saved.push({ id: change.id, techId: g.techId });
   }
   await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: events.length, countOut: changesCreated });
+  // notify 단계 기록은 알림 주인(P-7)의 함수가 남긴다
+  for (const c of saved) await createAlertsForChange(db, { changeId: c.id, techId: c.techId, kind: "security" });
 
   return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors: fileErrors.length + osvErrors };
 }
@@ -138,17 +153,17 @@ async function readRepo(db: SupabaseClient, runId: string, repo: { owner: string
       fileErrors.push({ path: f.path, kind: "parse", message: `${f.path}: ${e instanceof Error ? e.message : e}` });
     }
   }
+  // 같은 기술이 두 파일에 있으면 한 줄만(package.json 먼저). my_technologies (project_id, tech_id) UK와 맞춘다.
+  const seen = new Set<string>();
+  const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
     countIn: files.length,
-    countOut: found.length,
-    outputSummary: found.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
+    countOut: unique.length,
+    outputSummary: unique.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
     errorKind: fileErrors.find((f) => f.kind === "parse") && "parse",
   });
-  // 같은 기술이 두 파일에 있으면 한 줄만(package.json 먼저). my_technologies (project_id, tech_id) UK와 맞춘다.
-  const seen = new Set<string>();
-  const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
   return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors };
 }
