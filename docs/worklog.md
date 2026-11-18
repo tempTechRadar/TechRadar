@@ -250,6 +250,7 @@
 | I-connectors-worklog-1118 | 이번 세션 기록 보강(소급): 커넥터 사용 2줄(Vercel 조회, abbsbook)을 `connectors.md`에 추가하고, 11-18 날짜 항목의 정한 일·막힌 일·아직 안 된 것을 채움. 병합된 worktree 3개·브랜치 정리 | 나(요청) · Claude(작성) | `docs/connectors-worklog-1118`, `docs/connectors.md`, `docs/worklog.md` |
 | I-vercel-skip-docs-build | 문서만 바뀐 main 병합은 Vercel 빌드를 건너뛰게 `ignoreCommand` 추가. 영향 확인: 런타임에 읽는 `sim/skills`·`eval`과 P-26이 읽을 `wiki/`는 제외하지 않음, 다른 브랜치가 `vercel.json`을 건드리지 않음, 열린 PR #75 영향 없음. 처음 안(`*.md` 전부 제외)은 시험용 `SKILL.md`가 빠져 루트 `*.md`만으로 좁힘. 실제 병합 4개·가상 커밋 6개로 시험, ADR 0018 개정 | 나(요청) · Claude(확인·시험·작성) | `chore/vercel-skip-docs-build`, `vercel.json`, ADR 0018 |
 | I-B-record-2-1118 | 영역 B 2차 기록(소급, 문서만): P-8 판단 저장 결과 `saveAttempted`(#61)와 판단 뒤 조치 기록·저장 실패 시연 연결(#62), P-14 알림 상세의 적용 기회 화면(와이어프레임 먼저 확인 → 이유·비교표, #69), P-13 대응안 초안(한도 판단·프롬프트·답 검사·`generateDraft`·카드, #72, Claude 실제 연결은 키 뒤)을 `plan` 결과 칸·`qa`(Claude QA 3행, 사람 QA 3행은 전부 No Run)·`intent`에 채움. 서버 함수는 코드를 일부러 망가뜨려 시험이 잡는지 확인, 실제 DB·화면·Claude 응답은 못 확인함 | 나(요청) · Claude(작성·시험·검토 도우미) | `docs/B-record-2-1118`, I-B-record-2-1118 |
+| I-plan-status-m0-qa-1118 | M0 한 바퀴 점검(Claude QA): 정적 검사(시험 414개 중 413 통과), 배포 주소를 로그인 없이 점검, 임시 계정 3개로 실제 DB 끝까지 21개 중 20 Pass·1 Fail(시뮬레이터 알림의 적용 후보 저장 불가: `fixedVersion`↔`fixed_version`), 시험 뒤 DB 원상 확인. `plan.md` 상태 칸·5절(만든 PR 김영식 44·황재웅 13·차세일 18, 리뷰 23·24·8)·6절 갱신. 코드는 안 고침 | 나(요청) · Claude(점검·작성) | `docs/plan-status-m0-qa-1118`, `docs/qa.md`, `docs/plan.md` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)
