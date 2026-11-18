@@ -20,6 +20,7 @@
 | I-P-11-my-tech-insert-columns | P-11 열린 질문 ③ 해소: 실제 DB를 읽기 전용으로 조회해 `my_technologies` INSERT가 20개 열 전부 열려 있음을 확인(UPDATE는 3개 열). 사용자가 `grade`·`read_at` 같은 서버 칸을 채워 본인 줄을 만들 수 있어, 쓰는 7칸만 여는 새 마이그레이션(`202611181900_P-11_my_tech_insert_columns.sql`)과 DB 시험·코드 시험 3개를 만듦. 사용자 연결 insert는 `addTech`·`saveLocalImport` 둘뿐이고 같은 7칸만 보냄을 코드 검색으로 확인. 일부러 깨뜨린 6곳을 시험이 모두 잡음. 코드 검토 8건 중 6건 반영(`origin='repo'` 구멍을 정책 한 조건으로 막음 포함). 사용자 승인 뒤 DB에 적용(INSERT 20열 → 7열)하고 시험 SQL 기대값 7개 통과·흔적 0줄 확인. PR #88로 합침(11-18 21:37 황재웅 승인·합침). 같은 세션에서 DB에 빠져 있던 P-8(`alerts.run_id`)도 적용해 `debug-note.md`에 적음 | 나(요청 "다음작업") · Claude(조사·작성) | `supabase/migrations/202611181900_P-11_my_tech_insert_columns.sql`, `supabase/tests/my_tech_insert_columns_p11.sql`, `lib/server/my-tech-insert-columns.test.ts`, `lib/server/my-tech.ts`, `docs/intent.md` |
 | I-P-16-tech-card-link | P-16 한계 해소: 대시보드 "내 기술" 카드가 프로젝트로 거르면 `/projects?project=<id>`로 가게 연결 한 줄을 고침(숫자는 그 프로젝트 기술 수인데 연결이 거르기 없는 `/projects`여서 목록과 달랐음). 시험 2개(고치기 전 카드 2·목록 4로 실패, 일부러 틀린 3곳 모두 실패로 잡음). 코드 검토(서브에이전트) 7건(모두 낮음): 시험 보강·스타일·낡은 QA 문구는 반영, 나머지는 열린 질문. 영역 B 파일이라 황재웅을 리뷰어로 지정, PR #85로 합침(승인 차세일). `npm test` 462개 중 461 통과·todo 1·실패 0 | 나(요청 "다음 작업") · Claude(원인 확인·시험·수정) | `lib/alerts/summarize-dashboard.ts`, `docs/intent.md` I-P-16-tech-card-link, `docs/qa.md` |
 | I-P-16-merged-record | P-16 합침 기록 맞추기: PR #85가 19:51 main에 합쳐진 것(승인 차세일, 지정한 리뷰어 황재웅 승인 기록은 없음, 배포 success)을 `plan.md` 상태 칸·`intent.md` 결과 칸·이 로그에 반영하고, 황재웅 확인이 남은 열린 질문 ②·③과 사람 QA를 "아직 안 된 것"에 올림 | 나(요청 "다음작업") · Claude(확인·수정) | `docs/plan.md`, `docs/intent.md`, `docs/worklog.md` |
+| I-security-headers | 운영 응답 보안 헤더: 운영 사이트를 로그인 없이 점검하다 `X-Frame-Options`·`X-Content-Type-Options`·`Referrer-Policy`·CSP가 없는 것을 찾음(HSTS만 있음). `next.config.ts`에 운영 모드에서만 다섯 헤더(CSP는 `frame-ancestors 'none'`만)를 붙이고 시험 2개와 요구 `PRD-NF8`을 더함. 헤더 설정을 일부러 깨뜨린 5곳을 시험이 모두 잡고, 운영 모드 서버에서 200·307·401·404 응답 모두에 붙는 것을 확인. 코드 검토 9건 중 8건 반영. 같은 점검에서 `/dev/*` 404, `/api/cron/daily` 비밀 없음·틀림 401, 보호된 화면 7개 307→`/login`도 확인 | 나(요청 "지금 할 수 있는것 진행") · Claude(점검·수정) | `next.config.ts`, `lib/security-headers.test.ts`, `docs/intent.md` |
 
 ### 정한 일과 이유
 - **M0은 로컬에서 끝까지, 배포 주소 로그인은 M1:** 운영에서는 테스트 로그인을 일부러 끄고 구글 로그인은 사람이 콘솔에서 만들어야 해서, 얇은 한 줄이 그 일에 묶이지 않게. (ADR 0012)
@@ -39,6 +40,7 @@
 - **PR 브랜치(feat·fix·docs·chore)는 배포를 끄고 main에 합칠 때만 배포, 푸시는 모아서 한 번 (ADR 0018):** 무료 한도에 걸려서. "막판에 몰아서 배포"는 배포 주소에서만 나는 문제를 마감 직전에 만나서 고르지 않았다.
 - **PR 올리기 전에 `npm run precheck`로 GitHub이 볼 충돌을 미리 본다 (ADR 0017 개정):** GitHub이 `merge=union`을 따르지 않아서. 기록을 작업마다 파일 하나로 쪼개는 근본 해결은 코드 동결(11-20 21:00) 뒤에 다시 본다.
 - **판단을 고칠 수 없다(v1)를 열린 질문에서 닫음(spec SQ1·데이터설계 DQ1):** DB가 이미 판단 고치기·지우기를 트리거로 막고 있어서 질문만 열려 있었다. 반대가 있으면 PR 리뷰에서 되돌린다(`I-doc-fixes-2`). `flow.json`의 처음 읽기 화살표(점검 Y-4 ①)는 상자 배치에 영향을 줄 수 있어 이번 문서 PR에서 빼고 차세일과 정하기로 함
+- **운영 보안 헤더는 최소 세트만, 스크립트 CSP는 미룸(I-security-headers):** `X-Frame-Options`·`X-Content-Type-Options`·`Referrer-Policy`·`Permissions-Policy`와 CSP `frame-ancestors 'none'`만 운영 모드에서 붙인다. `script-src`는 Next의 인라인 스크립트와 부딪혀 nonce 설정이 필요해서 필요해질 때 따로 정한다. 새 요구라 `PRD-NF8`로 올렸다 — 김영식(Claude 초안)
 
 ### 막힌 일과 푼 방법
 - 안내서 요건 ❌ GitHub 협업: PR #26·#27이 리뷰 없이 합쳐졌고 main 보호가 꺼져 있었다 → main 보호 켜기와 사후 리뷰를 사람 할 일로 올림(plan 6절).
@@ -78,6 +80,7 @@
 - [ ] 정기 OSV: 이미 위험인 버전에 별칭 없는 새 취약점이 생기면 모두에게 새 알림이 가는 것이 의도인지, OSV 묶음 조회(SPEC-8)를 할지, 파일 오류와 OSV 오류 표시 칸을 나눌지(마이그레이션) 팀 결정(`docs/intent.md` I-P-9d-osv-daily 열린 질문)
 - [ ] 정기 OSV·다운로드가 합쳐진 뒤 `docs/qa-c.md` H7 행과 `lib/demo/demo-collectors.ts` 머리 주석을 차세일이 고치기("수집기가 없어서 비어 있다")
 - [ ] 첫 예약 실행(11-19 06:00 한국 시간) 결과를 `/admin/flow`에서 확인하고, Vercel 대시보드에서 `CRON_SECRET` 환경변수가 있는지 확인(사람) — 없으면 예약 실행이 401로 막혀 기록이 안 쌓인다
+- [ ] 운영 보안 헤더(I-security-headers): 배포된 주소의 응답 헤더 확인(`qa.md` No Run 행, 특히 프리렌더 캐시로 나가는 `/`·`/login`), 이 사이트를 iframe에 넣을 곳이 있는지, 스크립트 CSP를 둘지 — 김영식
 
 ## 2026-11-17 (화) — 단계 점검 스킬 만들기
 
