@@ -221,6 +221,7 @@
 | 18 | AI 인터뷰에서 나온 가설 확인용 질문 16–19 추가 | Claude | `interviews/질문지.md` |
 | 19 | 근거 표를 공개 근거·AI 가설로 나눠 다시 씀 | Claude | `docs/문제정의.md` |
 | I-P-20c-demo-test-save-attempted | main 시험 실패 1건 수정: #54 시연 시험 기대값을 #61의 saveAttempted 추가에 맞춤(시험만, 전체 실패 0) | 나(요청) · Claude(작성·시험) | `fix/P-20c-demo-test-save-attempted` |
+| I-P-20-eval-button | `/admin/demo` 채점 칸 연결: "채점 실행" → `runScoring`(lib/eval 재사용, 저장된 자료만) → 결과 표 + 실행 기록(scoring → score → score_save, 흐름 화면에 칠해짐). 관리자만, 시연 스위치와 무관. 시험 통과·타입 검사 통과. **못 한 것:** 화면에서 눌러 보기, 배포에 정답·자료 파일이 실리는지 확인 | 나(요청) · Claude(작성·시험) | `fix/P-20-eval-button` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)
