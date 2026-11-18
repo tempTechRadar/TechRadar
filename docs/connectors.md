@@ -25,3 +25,5 @@
 | 2026-11-18 | abbsbook (MCP, 로컬 설치) | P-10 P2 가까운 줄 PR 기록 | `save_session`으로 PR #78 기록 1건을 만듦(요약 카드 이미지 첨부, 첨부 실패 0건, "내 판단" 칸은 비움) | [스케치북](https://abigbigsketchbook.com/s/74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e) | 아니오(과정 기록) |
 | 2026-11-18 | abbsbook (MCP, 로컬 설치) | P-9 첫 조각(다운로드 수집기) PR 기록 | `save_session`으로 PR #84 기록 1건을 만듦(요약 카드 이미지 첨부, 첨부 실패 0건, "내 판단" 칸은 비움) | [스케치북](https://abigbigsketchbook.com/s/74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e) | 아니오(과정 기록) |
 | 2026-11-18 | abbsbook (MCP, 로컬 설치) | P-9d 정기 OSV 재확인 PR 기록 | `save_session`으로 P-9d PR 기록 1건을 만듦(요약 카드 이미지 첨부, "내 판단" 칸은 비움) | [스케치북](https://abigbigsketchbook.com/s/74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e) | 아니오(과정 기록) |
+| 2026-11-19 | Supabase (MCP) | 첫 정기 실행 확인 | `execute_sql`(읽기 전용)로 `runs` 최근 10줄과 단계 수 조회 → 0줄 | `docs/debug-note.md` 2026-11-19 | 아니오(앱은 자체 키로 접속) |
+| 2026-11-19 | Vercel (MCP) | 정기 실행이 안 돈 원인 찾기 | 실행 로그 조회(보관 1시간이 지나 실패), 운영 배포 목록, 환경변수 **이름만** 조회(`decrypt` 끔, 값은 열지 않음) → `CRON_SECRET` 없음 | `docs/intent.md` I-cron-secret-missing | 아니오 |

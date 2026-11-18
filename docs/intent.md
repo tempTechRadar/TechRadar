@@ -6,6 +6,21 @@
 
 ---
 
+## I-cron-secret-missing · 2026-11-19 · 첫 정기 실행이 안 돈 원인 기록과 사람이 미리 할 설정 목록 (PRD-F8, P-17, 김영식)
+- 브랜치: `docs/cron-secret-missing` (최신 main `939922c`)
+- 출처: 사용자 "조회해봐"(06시 첫 정기 실행 확인), "미리 설정할거 한꺼번에 알려줘", "지금할수있는것 진행". 요구: PRD-F8(매일 예약 실행), SPEC-8(예약 주소 보호), 불변 6(흐름은 실제 실행 기록)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 11-19 06:00(KST) 첫 정기 실행 뒤 `runs`가 0줄이다. 운영 Vercel 환경변수에 `CRON_SECRET`이 없어 `/api/cron/daily`가 누구에게나 401을 돌려준다(`lib/schedule/cron-auth.ts`, 의도된 동작). 11-18 기록에 "CRON_SECRET 있는지 확인 못 함"으로만 남기고 확인하지 않았다 |
+| 기대 결과 | 원인·확인 방법을 `debug-note.md`에, 조회를 `connectors.md`에 남긴다. 사람이 미리 할 설정(아래)을 한 곳에 모은다. 사람이 `CRON_SECRET`을 넣고 배포가 한 번 된 뒤 다음 06시 실행이 `runs`에 `schedule`로 남는다 |
+| 영향 범위 | 기록 문서만(`intent`·`worklog`·`debug-note`·`connectors`). 코드·DB 변경 없음. `.env.example`의 `CRON_SECRET` 이름은 열린 #102가, `GITHUB_TOKEN`은 그 값을 처음 읽는 #103(P-9b)이 맡는다(같은 줄을 고치면 충돌) |
+| 제약 | 비밀값은 사람이 Vercel·Supabase 화면에 직접 넣는다. Claude는 환경변수 이름만 보고 값은 열지 않았다. 무료 Vercel은 실행 로그를 1시간만 남겨, 크론이 실제로 불려 401을 받았는지는 확인할 수 없었다 |
+| 열린 질문 | ① 황재웅·차세일을 Vercel 팀에 초대할지(아니면 Vercel 설정은 김영식 몫) ② Supabase 유출 비밀번호 차단이 무료 등급에서 켜지는지 |
+| 결과 | 조회: `runs` 0줄, 운영 환경변수 5개(`GITHUB_TOKEN`·`NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`·`SUPABASE_SERVICE_ROLE_KEY`·`NEXT_PUBLIC_ENABLE_TEST_LOGIN`)에 `CRON_SECRET` 없음, 등록 수집기 2개(그래서 인증만 통과하면 기술이 0개여도 `runs`에 한 줄이 생긴다). `GITHUB_TOKEN`은 마지막 운영 배포(#91)보다 나중에 넣어 아직 적용 전. `NEXT_PUBLIC_ENABLE_TEST_LOGIN`은 코드가 운영에서 무시한다(`lib/env.ts`). **사람이 할 설정:** 지금 — Vercel `CRON_SECRET`(Production) 추가 후 운영 배포 한 번. 곧 — 구글 OAuth 클라이언트(리디렉션 URI는 Supabase 콜백), 그 ID·비밀값을 Supabase Google 공급자에, Supabase Site URL·Redirect URLs, 발표 전 OAuth 운영 모드. 나중 — Claude API 키(코드가 아직 안 읽음), skills.sh 약관(P-21 전). 권장 — Supabase 유출 비밀번호 차단 |
+
+---
+
 ## I-P-11-direct-add-grade · 2026-11-18 · P-11 남은 일 "직접 추가한 기술의 등급" 정정 (영역 A, 김영식)
 - 브랜치: `docs/P-11-direct-add-grade` (최신 main `1b1395f`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "진행"(남은 작업 목록의 2번). 근거: `plan.md` P-11 행 "남음", `I-P-9d-osv-daily`, `docs/spec.md` 등급 표("찾지 못함")
