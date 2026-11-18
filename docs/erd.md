@@ -296,6 +296,7 @@ UK: (kind, ecosystem, value).
 | decision | text | ✔ | | `candidate`(적용 후보) / `hold`(보류) |
 | reason | text | | | 보류면 5자 이상(check) |
 | action | text | ✔ | | 한 조치: `candidate_recorded` / `hold_reason_recorded` (ADR 0010) |
+| fixed_version | text | | | 보안 경고에서 적용 후보일 때 올릴 고친 버전(ADR 0012). 그 밖에는 비움 |
 | action_result | text | | | 결과(예: 설치 프롬프트 기본 목록에 들어감) |
 | judged_by | uuid | ✔ | FK→profiles | 알림 주인과 같아야 함(RLS) |
 | judged_at | timestamptz | ✔ | | |
@@ -424,3 +425,4 @@ UK: (kind, ecosystem, value).
 
 - 2026-11-18 안내서 흐름 그림과 대조: `run_steps`에 `count_in`·`count_out`·`branch_counts`(화살표·갈래별 건수), `observations`에 `change_size`(바뀐 정도)
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
+- 2026-11-18 개발 전 점검 반영(I-028): `judgments.fixed_version` 추가(보안 경고의 적용 후보 = 고친 버전으로 올리기, ADR 0012). P-2 마이그레이션에 넣는다
