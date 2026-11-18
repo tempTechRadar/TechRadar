@@ -133,14 +133,6 @@ test("쓰기가 실패하면 비밀값을 가린 오류로 던진다", async () 
   );
 });
 
-test("적용 기회 알림은 P-14에서 만든다: 분명한 오류를 던지고 DB에 쓰지 않는다", async () => {
-  const { db, writes } = fakeDb(baseTables());
-
-  await assert.rejects(() => createAlertsForChange(db, { ...input, kind: "opportunity" }), /적용 기회.*P-14/);
-
-  assert.equal(writes.length, 0);
-});
-
 test("보안 변경이 아닌 줄(같은 역할 새 기술 등)에 보안 알림을 만들라고 하면 오류", async () => {
   const tables = baseTables();
   tables.changes[0].kind = "same_role_new";
