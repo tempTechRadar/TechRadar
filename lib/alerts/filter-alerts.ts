@@ -9,11 +9,14 @@ export type AlertRow = {
   kind: AlertKind;
   status: AlertStatus;
   createdAt: string;
+  /** 프로젝트 밖(내 컴퓨터)에 직접 넣은 기술이면 null. 값이 없는 줄은 프로젝트를 모르는 것으로 본다 */
+  projectId?: string | null;
 };
 
 export type AlertFilter = {
   kind?: AlertKind;
   status?: AlertStatus;
+  projectId?: string;
   from?: string; // 이 시각 이상
   to?: string; // 이 시각 미만
 };
@@ -35,6 +38,7 @@ export function filterAlerts<T extends AlertRow>(alerts: T[], filter: AlertFilte
     (alert) =>
       (filter.kind === undefined || alert.kind === filter.kind) &&
       (filter.status === undefined || alert.status === filter.status) &&
+      (filter.projectId === undefined || alert.projectId === filter.projectId) &&
       isInPeriod(alert.createdAt, filter.from, filter.to),
   );
 }

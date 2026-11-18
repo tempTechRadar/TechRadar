@@ -42,7 +42,7 @@ const alertRow = (id: string, userId: string, createdAt: string): Row => ({
     curr_value: { grade: "danger" },
     technologies: { display_name: "mcp-remote" },
   },
-  my_technologies: { source_file: "package.json", projects: { name: "TechRadar" } },
+  my_technologies: { source_file: "package.json", project_id: "proj-1", projects: { name: "TechRadar" } },
 });
 
 test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼다", async () => {
@@ -59,6 +59,7 @@ test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼�
       kind: "security",
       status: "pending",
       createdAt: "2026-11-18T01:30:00Z",
+      projectId: "proj-1",
       projectName: "TechRadar",
       sourceFile: "package.json",
       change: {
@@ -84,6 +85,7 @@ test("프로젝트 밖 기술(내 기술 줄이 없음)이어도 읽는다", asy
 
   const [alert] = await listMyAlerts(fakeDb([row]).db, "user-a");
 
+  assert.equal(alert.projectId, null);
   assert.equal(alert.projectName, null);
   assert.equal(alert.sourceFile, null);
 });
@@ -102,14 +104,14 @@ test("알림 한 건은 내 것일 때만 읽고, 남의 알림 id나 없는 id�
 });
 
 test("판단한 알림은 판단 결과(적용 후보·보류, 이유, 고친 버전)도 함께 읽는다. 한 줄 객체든 한 줄짜리 배열이든 같다", async () => {
-  const judgment = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixed_version: null };
+  const judgment = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixed_version: null, judged_at: "2026-11-18T05:00:00Z" };
   const asObject = { ...alertRow("a1", "user-a", "2026-11-18T01:30:00Z"), status: "done", judgments: judgment };
   const asArray = { ...asObject, judgments: [judgment] };
 
   const [fromObject] = await listMyAlerts(fakeDb([asObject]).db, "user-a");
   const [fromArray] = await listMyAlerts(fakeDb([asArray]).db, "user-a");
 
-  const expected = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null };
+  const expected = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null, judgedAt: "2026-11-18T05:00:00Z" };
   assert.deepEqual(fromObject.judgment, expected);
   assert.deepEqual(fromArray.judgment, expected);
 });
