@@ -7,3 +7,6 @@ docs/worklog.md merge=union
 docs/agents.md merge=union
 docs/connectors.md merge=union
 docs/debug-note.md merge=union
+
+# 쉘 스크립트는 윈도우에서도 LF로 받는다(CRLF면 bash가 깨진다).
+.github/scripts/*.sh text eol=lf

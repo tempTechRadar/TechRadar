@@ -6,6 +6,19 @@
 
 ---
 
+## I-auto-sync-main · 2026-11-19 · 열린 PR 브랜치에 main을 자동으로 합치는 GitHub Action: ADR 0017 개정 (공용)
+- 브랜치: `chore/auto-sync-main` (origin/main f237c2b 위, worktree `.claude/worktrees/auto-sync-main`)
+- 출처: 사용자 "git merge origin/main과 npm run precheck 이걸 알아서 되도록 설정할 순 없어? 자꾸 같은 파일이 충돌나" → 방법 A(명령)·B(GitHub Action)·C(기록 쪼개기) 비교 뒤 "B 만들어". 근거: ADR 0017(GitHub 화면은 `merge=union`을 무시), `CLAUDE.md` 10절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | GitHub 화면은 `merge=union`을 무시해서 기록 문서가 충돌로 보인다. 11-19 아침 열린 PR 5개를 읽기로 합쳐 보니 GitHub 화면 충돌은 #103(`agents`·`intent`·`qa`)·#104(`intent`)·#105(`intent`·`worklog`)인데, 내 컴퓨터에서 합치면 #103의 `qa.md` 하나만 충돌이었다. 그래서 PR마다 사람이 `git merge origin/main`을 하고 푸시해야 했다. |
+| 기대 결과 | main이 바뀔 때마다 열린 PR(같은 저장소, `feat/`·`fix/`·`docs/`·`chore/` 브랜치)에 Action이 진짜 git으로 main을 합쳐 푸시한다(union 적용). 진짜 충돌은 푸시하지 않고 실행 요약에 파일 이름만 적는다. 강제 푸시는 하지 않는다. |
+| 영향 범위 | `.github/workflows/sync-pr-branches.yml`(새)·`.github/scripts/sync-pr-branches.sh`(새)·`lib/records/sync-pr-branches.test.ts`(새, 시험 3)·`.gitattributes`(쉘 줄바꿈 한 줄)·`CLAUDE.md` 10절 한 줄·ADR 0017 개정 |
+| 제약 | 커밋·푸시·PR은 사용자 확인 뒤. 모든 사람의 PR 브랜치에 자동으로 푸시하는 설정이라 팀 규칙이므로 두 팀원의 확인이 필요하다. 새 라이브러리 없음(Action 하나, `actions/checkout` v7.0.1을 커밋 SHA로 고정). 삭제 없음. 승인은 유지된다(ruleset의 "푸시하면 승인 취소"가 꺼져 있음, 11-19 확인). 배포 한도 때문에 미리보기 배포가 꺼진 이름만 건드린다(ADR 0018, `vercel.json`). |
+| 열린 질문 | ① `GITHUB_TOKEN`이 워크플로 파일이 바뀌는 병합을 푸시할 수 있는지는 합친 뒤에야 확인된다(합쳐진 직후 브랜치에 워크플로 파일이 처음 들어가는 병합이 거절될 수 있음 → 그 PR만 작성자가 한 번 `git merge origin/main`). 합친 뒤 `workflow_dispatch`(dry_run)로 먼저 돌려 본다. ② 푸시가 거절되면 `git pull --no-rebase`가 필요한 불편을 팀이 받아들이는지. ③ 진짜 충돌 PR에 댓글을 달지(지금은 실행 요약만). ④ `test/` 같은 이름 밖 브랜치는 건드리지 않는데, 이름을 맞출지 `vercel.json`을 넓힐지. |
+
+**결과:** 새 시험 3개(`lib/records/sync-pr-branches.test.ts`: `.gitattributes`가 없는 옛 브랜치에 union이 걸려 합쳐 푸시함·진짜 충돌과 이미 최신과 이름 밖 브랜치는 건드리지 않음·시험 실행은 푸시하지 않음·푸시 직전에 작성자가 올린 커밋은 덮어쓰지 않고 거절됨)를 더했고, 전체 640개 중 639 통과·실패 0·todo 1(원래 있던 것), `tsc` 통과. 핵심 줄(main의 `.gitattributes`를 러너 설정으로 복사)을 일부러 빼면 새 시험 3개가 모두 실패하는 것을 확인. 실제 저장소의 합쳐진 PR 브랜치 6개로 시험 실행(푸시 없음)해 모두 충돌 없이 합쳐지고, 없는 브랜치는 "받지 못함"으로 보고하는 것을 확인. 확인하지 못한 것: Action 자체(합쳐진 뒤 `workflow_dispatch`로), `GITHUB_TOKEN`의 워크플로 파일 푸시 권한, 워크플로 YAML 문법 검사(이 PC에 검사 도구가 없음), 열린 PR이 없어서(시험 시각에 0개) 실제 열린 PR 입력은 못 돌려 봄.
 ## I-P-12-google-login · 2026-11-19 · P-12 구글 로그인 코드: 구글로 계속하기 버튼과 돌아오는 주소 (영역 A, 김영식)
 - 브랜치: `feat/P-12-google-login` (origin/main d77cadd 위, worktree `.claude/worktrees/night-google-login`)
 - 출처: 사용자 "진행"(밤샘 보고의 추천: 로그인 코드 준비). 근거: PRD-F1, plan P-12, M1 끝 기준(배포 주소에서 구글 로그인으로 얇은 한 줄), 11-19 제출 전 단계 점검 1순위, prd O7(기본 범위는 테스트 사용자 목록 예외)
