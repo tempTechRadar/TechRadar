@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { finishRun, recordStep, startRun, type RunResult, type StepRecord } from "../server/run-log.ts";
 import { nextRetry, type RetryPlan } from "./retry.ts";
+import { logFailure } from "../server/log-failure.ts";
 
 export type CollectorContext = { db: SupabaseClient; runId: string; deadlineMs: number };
 /**
@@ -79,7 +80,7 @@ export async function runBatch(deps: BatchDeps, input: BatchInput): Promise<Batc
     await finishRun(deps.db, runId, { status, itemCount: tally.items });
     return { started: true, runId, status, ...tally, retry };
   } catch (error) {
-    await finishRun(deps.db, runId, { status: "failed", itemCount: tally.items }).catch(() => {});
+    await finishRun(deps.db, runId, { status: "failed", itemCount: tally.items }).catch(logFailure("실행을 실패로 닫지 못함"));
     throw error;
   }
 }

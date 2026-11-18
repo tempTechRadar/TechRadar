@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { finishRun, recordStep, startRun } from "./run-log.ts";
 import { assertSimulatedChange, done, fail, upsertSource, type Flow, type SimulatorDeps } from "./simulator.ts";
+import { logFailure } from "./log-failure.ts";
 
 export type OpportunityResult =
   | { started: false; reason: string }
@@ -111,8 +112,8 @@ export async function runOpportunitySimulator(deps: SimulatorDeps, input: { admi
     return await saveAndNotify(ctx, await collect(ctx));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (ctx.flow.current !== "notify") await recordStep(deps.db, runId, { stepName: ctx.flow.current, status: "failed", errorMessage: message }).catch(() => {});
-    await finishRun(deps.db, runId, { status: "failed" }).catch(() => {});
+    if (ctx.flow.current !== "notify") await recordStep(deps.db, runId, { stepName: ctx.flow.current, status: "failed", errorMessage: message }).catch(logFailure("실패한 단계를 기록하지 못함"));
+    await finishRun(deps.db, runId, { status: "failed" }).catch(logFailure("실행을 실패로 닫지 못함"));
     throw error;
   }
 }

@@ -2,6 +2,7 @@
 // 설치 프롬프트·가져오기 서버 동작(IA-22). 사용자 본인 로그인으로만(서비스 키 없음, RLS).
 import { maskSecrets } from "@/lib/domain/redact";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { logIfError } from "@/lib/server/log-failure";
 import { saveLocalImport, type ImportOutcome } from "@/lib/server/local-import";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -25,5 +26,5 @@ export async function recordPromptCopy(count: { tech: number; excludedDanger: nu
   if (!user || !db) return;
   const tech = Math.max(0, Math.min(1000, Math.floor(Number(count.tech) || 0)));
   const excluded = Math.max(0, Math.min(1000, Math.floor(Number(count.excludedDanger) || 0)));
-  await db.from("exports").insert({ user_id: user.id, kind: "install_prompt", tech_count: tech, excluded_danger_count: excluded });
+  logIfError("설치 프롬프트 복사 기록을 남기지 못함", await db.from("exports").insert({ user_id: user.id, kind: "install_prompt", tech_count: tech, excluded_danger_count: excluded }));
 }

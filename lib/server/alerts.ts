@@ -5,6 +5,7 @@ import { decideAlerts, type NewAlert } from "../alerts/decide-alerts.ts";
 import { readChange, readExistingAlertKeys, readUsages, writeAlerts, type Row } from "./alert-db.ts";
 import { createOpportunityAlerts } from "./opportunity-alerts.ts";
 import { recordStep } from "./run-log.ts";
+import { logFailure } from "./log-failure.ts";
 
 export type CreateAlertsInput = {
   changeId: string;
@@ -61,7 +62,7 @@ export async function createAlertsForChange(db: SupabaseClient, input: CreateAle
 async function recordFailure(db: SupabaseClient, runId: string, error: unknown, startedAt: number): Promise<void> {
   const message = error instanceof Error ? error.message : String(error);
   // 기록이 또 실패해도 원래 오류가 더 중요하다: 호출한 쪽에는 원래 오류를 그대로 던진다.
-  await recordStep(db, runId, { stepName: "notify", status: "failed", errorMessage: message, durationMs: Date.now() - startedAt }).catch(() => {});
+  await recordStep(db, runId, { stepName: "notify", status: "failed", errorMessage: message, durationMs: Date.now() - startedAt }).catch(logFailure("알림 단계 실패를 기록하지 못함"));
 }
 
 async function createAlerts(db: SupabaseClient, input: CreateAlertsInput): Promise<{ created: number; people: number }> {
