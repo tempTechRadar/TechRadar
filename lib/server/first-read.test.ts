@@ -20,7 +20,7 @@ const steps = (calls: Call[]) => ops(calls, "run_steps", "insert").map(arg0);
 const updates = (calls: Call[]) => ops(calls, "my_technologies", "update").map(arg0);
 
 /** 실제 DB 대신 "무엇을 읽고 쓰려 했는지"를 모으는 가짜 클라이언트. 물음 한 줄(from…끝)이 Call 하나. */
-function fakeDb(existingProject = false) {
+function fakeDb(existingProject = false, opts: { changeExists?: boolean } = {}) {
   const calls: Call[] = [];
   let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
   const respond = (c: Call): { data?: unknown; count?: number } => {
@@ -44,8 +44,8 @@ function fakeDb(existingProject = false) {
       }
       case "sources.select": return { data: { id: "s1" } };
       case "my_technologies.select": return { data: { grade: "unknown", grade_evidence: null } };
-      case "changes.upsert": return { data: [{ id: "c1" }] };
-      case "changes.select": return { data: { kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
+      case "changes.upsert": return { data: opts.changeExists ? [] : [{ id: "c1" }] }; // 이미 있는 변경이면 새 줄이 안 생긴다(중복 막기 키)
+      case "changes.select": return { data: { id: "c1", kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
       case "profiles.select": return { data: [{ id: "u1", is_demo: false }] };
       case "alerts.upsert": return (alertsWritten = true), { data: [{ id: "a1" }] };
       default: return {};
@@ -238,4 +238,34 @@ test("위험이면 notify를 이 실행에 '내 건수'로 남긴다: 내 알림
     assert.ok(c.chain.some((x) => x.m === "eq" && x.args[0] === "user_id" && x.args[1] === USER.id), "user_id로 거른다");
     assert.ok(c.chain.some((x) => x.m === "in" && x.args[0] === "change_id" && JSON.stringify(x.args[1]) === '["c1"]'), "이 실행의 변경으로 거른다");
   }
+});
+
+test("두 번째 사용자(같은 변경이 이미 있음)도 save_change가 '내가 만난 변경 수'로 남는다: 다른 사람이 먼저 읽었다는 사실이 기록에 안 드러난다(불변 5)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, osv: () => ok(G1_OSV) });
+  const firstUser = fakeDb();
+  const secondUser = fakeDb(false, { changeExists: true });
+  const r1 = await registerAndRead(USER, REPO, { db: firstUser.db });
+  const r2 = await registerAndRead(USER, REPO, { db: secondUser.db });
+
+  // 호출한 쪽에 돌려주는 값은 그대로: 새로 만든 변경은 첫 사용자만
+  assert.deepEqual([r1.changesCreated, r2.changesCreated], [1, 0]);
+  // 사용자가 읽는 단계 기록은 둘 다 같다: 1→1이고, 새로 만들었는지 요약에도 적지 않는다
+  for (const { calls } of [firstUser, secondUser]) {
+    const save = steps(calls).find((s) => s.step_name === "save_change");
+    assert.deepEqual([save?.status, save?.count_in, save?.count_out, save?.output_summary], ["succeeded", 1, 1, null]);
+    // notify도 내 건수라 두 사람이 같다(둘째 사용자도 자기 알림을 새로 받는다)
+    const notify = steps(calls).filter((s) => s.step_name === "notify");
+    assert.deepEqual(notify.map((s) => [s.status, s.count_in, s.count_out]), [["succeeded", 1, 1]]);
+  }
+});
+
+test("위험이 없는 읽기는 변경이 없다: save_change는 0→0으로 남고 notify는 부르지 않는다(상자가 안 켜지는 것은 의도한 동작)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG } }); // OSV 기본 응답: 알려진 취약점 없음
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.status, r.danger, r.changesCreated], ["succeeded", 0, 0]);
+  const save = steps(calls).find((s) => s.step_name === "save_change");
+  assert.deepEqual([save?.count_in, save?.count_out], [0, 0]);
+  assert.equal(steps(calls).filter((s) => s.step_name === "notify").length, 0);
 });

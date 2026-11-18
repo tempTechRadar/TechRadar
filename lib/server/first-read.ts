@@ -15,6 +15,7 @@ const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type RepoRef = { owner: string; repo: string; url: string };
+// 서버 안에서만 쓴다. changesCreated를 화면·응답으로 내보내면 "다른 사람이 먼저 읽었다"는 사실이 드러난다(불변 5).
 export type ReadResult = { projectId: string; runId: string; found: number; danger: number; changesCreated: number; errors: number; status: RunResult };
 
 /** 공개 GitHub 저장소를 등록(이미 있으면 다시 읽기)하고 끝까지 읽는다. 새 등록은 저장소가 안 열리면 막는다(RepoNotPublicError). */
@@ -81,7 +82,9 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
     if (change.created) changesCreated++;
     saved.push({ id: change.id, techId: g.techId });
   }
-  await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: events.length, countOut: changesCreated });
+  // 나간 건수 = 들어온 건수: 위험 변경마다 새로 만들었든 이미 있든 이 읽기에서 내가 만난 것으로 센다. 새로 만든 수(changesCreated)를 적으면
+  // 다른 사람이 먼저 읽었다는 사실이 내 실행 기록(RLS로 내가 읽음)에 드러난다(불변 5). 새로 만든 수는 돌려주는 값에만 둔다.
+  await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: events.length, countOut: events.length });
   await notifyOwner(db, ctx, saved);
 
   const errors = fileErrors.length + osvErrors;
