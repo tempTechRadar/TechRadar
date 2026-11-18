@@ -273,6 +273,7 @@
 | I-P-5-fixed-version-key | P-5 시뮬레이터 알림의 고친 버전 키를 `fixed_version`으로(PR #79 M0 점검 Fail): `simulator.ts` 59·105줄 키 이름만 바꾸고, 저장한 값을 알림 화면 함수에 넣어 적용 후보가 켜지는지 보는 시험 1개(먼저 실패 확인). impact-map 영향 시험 3개 통과 | Claude(자비스), 차세일 확인 | `lib/server/simulator.ts`, `lib/server/simulator.test.ts` |
 | I-plan-status-m0-qa-1118 | M0 한 바퀴 점검(Claude QA): 정적 검사(시험 414개 중 413 통과), 배포 주소를 로그인 없이 점검, 임시 계정 3개로 실제 DB 끝까지 21개 중 20 Pass·1 Fail(시뮬레이터 알림의 적용 후보 저장 불가: `fixedVersion`↔`fixed_version`), 시험 뒤 DB 원상 확인. `plan.md` 상태 칸·5절(만든 PR 김영식 44·황재웅 13·차세일 18, 리뷰 23·24·8)·6절 갱신. 코드는 안 고침 | 나(요청) · Claude(점검·작성) | `docs/plan-status-m0-qa-1118`, `docs/qa.md`, `docs/plan.md` |
 | I-P-11-insert-columns-merged-record | 내 기술 insert 열 제한 합침 기록 맞추기: PR #88이 21:37 main에 합쳐진 것(병합 커밋 `a159902`, 지정 리뷰어 황재웅이 승인·합침, 배포 success)을 `plan.md` P-11 행·`intent.md` 결과 칸·이 로그·`debug-note.md` 관련 PR 칸에 반영. 코드·DB는 그대로 | 나(요청 "진행") · Claude(확인·수정) | `docs/plan.md`, `docs/intent.md`, `docs/worklog.md`, `docs/debug-note.md` |
+| I-P-11-direct-add-grade | P-11 남은 일 정정: `plan.md`의 "직접 추가한 기술의 등급(P-9 뒤)"를 코드 읽기로 확인한 실제 틈으로 바꿈(정기 OSV는 카탈로그에서 고른 npm·PyPI의 두꺼운 기술만 매김, 이름만 쓴 기술·npm·PyPI가 아닌 기술·얇은 기술은 "찾지 못함", 추가 직후는 다음 정기 실행까지). 추가 직후 바로 매길지 등은 열린 질문. 코드·DB는 그대로 | 나(요청 "진행") · Claude(코드 확인·수정) | `docs/plan.md`, `docs/intent.md`, `docs/worklog.md` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)
