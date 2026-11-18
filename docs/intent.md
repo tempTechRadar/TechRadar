@@ -4,6 +4,21 @@
 
 ---
 
+## I-040 · 2026-11-18 · P-20b 채점(eval) — 정답 파일과 채점 함수 (영역 C, 차세일)
+- 브랜치: `feat/P-20b-eval` (worktree, origin/main 위). 번호 I-039는 P-20 흐름 화면(PR #46)이 씀
+- 출처: `docs/plan.md` P-20, PRD-F30, SPEC-10(G1–G9), `docs/flow.md`(start_scoring → score → score_save), P-10(PR #41) 등급 함수 재사용
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 안내서 필수 6(채점 파일)이 비어 있다. 정답 사례 G1–G9가 시험에만 있고, 맞음·놓침·잘못 울림 수를 내는 파일·실행 기록이 없다 |
+| 기대 결과 | `eval/gold.json`(기대 등급·기대 사건·실수집/가상)과 `npm run eval` → `eval/result.json`·`result.md`. 채점은 순수 함수, 실행 기록(scoring)은 DB 주입 |
+| 영향 범위 | `eval/`(gold.json, run.ts, result.*), `lib/eval/`(score·actual·record와 시험 3개), `package.json` 스크립트 한 줄 |
+| 제약 | 네트워크·DB 없이 저장된 OSV 응답(lib/domain/fixtures)과 sim/skills만. 등급 규칙·남의 파일은 고치지 않고 부르기만. 실행 기록은 서비스 키가 필요해 스크립트에서 부르지 않음 |
+| 열린 질문 | G5 기대 등급(통과 또는 주의)은 저장소 정보(P-9) 전이라 지금 "찾지 못함" → 등급만 다름. 시뮬레이터 결과 채점은 다음 조각. 채점 결과를 화면(흐름 화면 채점 시작)에서 돌리는 버튼은 다음 |
+| 결과 | 2026-11-18: 사례 12(G5를 4개로 나눔) · 놓침 0 · 잘못 울림 0 · 등급 맞음 8/12(G5 4개만 다름). 시험 187개 중 186 통과·실패 0(할 일 1은 기존 G5 todo), 타입 검사 통과 |
+
+---
+
 ## I-038 · 2026-11-18 · P-19 설치 프롬프트·가져오기 — 순수 함수 (영역 C, 차세일)
 - 브랜치: `feat/P-19-install-prompt` (worktree `C:\bootcamp\TechRadar-P19`, origin/main 위). 번호 I-034는 P-5(PR #40)가 씀
 - 출처: `docs/plan.md` P-19, SPEC-4.3·6.1·6.2·6.3, PRD-F25·F33, ADR 0009·0012, IA-22
