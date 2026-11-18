@@ -21,4 +21,14 @@ AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가
 - 비밀값은 `.env`에만 둡니다. 저장소·문서·채팅에 쓰지 않습니다.
 
 ## 실행 방법
-아직 없습니다(뼈대 단계에서 추가).
+Node 20.9 이상(팀은 24)이 필요합니다.
+
+```bash
+npm install
+cp .env.example .env.local   # 값은 각자 직접 넣는다(채팅·문서에 쓰지 않음)
+npm run dev                  # http://localhost:3000
+npm test                     # 단위 테스트
+npm run typecheck && npm run build
+```
+
+키를 넣기 전에는 첫 화면에 "Supabase 연결 전"이 보이는 것이 정상입니다.
