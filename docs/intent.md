@@ -33,6 +33,21 @@
 
 ---
 
+## I-P-20-flow-polish · 2026-11-18 · 흐름 화면 다듬기 — 건수 꼬리표 겹침, 샘플 ③ 중복 장면 (영역 C, 차세일)
+- 브랜치: `fix/P-20-flow-polish` (worktree `C:\bootcamp\TechRadar-FLOWFIX`, main 4ba47f1)
+- 출처: `docs/qa-c.md` C6(Fail), PR #46에 남은 "화살표 숫자가 상자 가장자리와 겹침", `docs/flow.md` 3·4절, 불변 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 화살표 위 건수 꼬리표를 곡선 가운데에 놓는데, 꼬리표 폭(약 85px)이 상자 사이 간격(52px)보다 넓어 화살표 37개 중 20개에서 상자와 겹쳤다. 개발용 샘플 ③ 중복 장면이 정정된 flow.md 4절과 달랐다(변경 저장에서 멈춤) |
+| 기대 결과 | 어떤 화살표에 가장 긴 꼬리표가 붙어도 상자와 겹치지 않는다. 샘플 ③은 변경 저장 "이미 있는 변경", 알림 단계 성공·새 알림 0건(알림 상자 초록) |
+| 영향 범위 | `lib/flow/layout.ts`(간격 100, 곡선 점 `curve`), `lib/flow/edge-label.ts`(새: 꼬리표 자리), `lib/flow/edge-label.test.ts`(새), `app/admin/flow/flow-diagram.tsx`(자리 함수 사용), `app/dev/flow-sample/page.tsx`(③), `docs/flow.md`(바뀐 기록 한 줄) |
+| 제약 | 칠하는 규칙·숫자 규칙(불변 6, counts)은 바꾸지 않는다. 자리만 정한다 |
+| 열린 질문 | 간격이 넓어져 그림이 가로로 길어짐(가로 스크롤은 그대로). 꼬리표끼리 겹치는 경우는 이번 범위 밖 |
+| 결과 | 2026-11-18: 새 시험 6개(가장 긴 꼬리표 6가지 × 화살표 37개 겹침 0, 간격이 꼬리표를 담음, 비어 있으면 곡선 가운데, 꼬리표는 자기 곡선 위, 샘플 건수, 샘플 ③). 간격을 52로 되돌리면 3개가 실패하는 것을 확인 뒤 복원. 개발 서버 화면에서 실제 좌표로 겹침 0(③ 꼬리표 1, ⑥ 12) |
+
+---
+
 ## I-record-merge-first-sync · 2026-11-18 · 기록 문서 충돌 막기의 빈틈: 설정이 없는 옛 브랜치의 첫 병합
 - 브랜치: `chore/record-merge-first-sync` (최신 main 45d6e99, 새 worktree `.claude/worktrees/record-sync`)
 - 출처: 사용자 "근데 worklog.md는 계속 오류 나". 앞선 작업 `I-record-merge-rules`(PR #55, ADR 0017)의 후속
