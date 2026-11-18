@@ -18,6 +18,21 @@
 | 결과 | 2026-11-18: 순수 함수 시험 12개 + 관문 시험 5개(관리자만, 판단 쓰기 없음, 쓰기·서버 동작 없음, 서비스 키 없음). 전체 시험 189 통과·실패 0(할 일 1개는 기존), 타입 검사 통과. 못 한 것: `next build`(worktree의 node_modules 연결을 Turbopack이 못 찾음), 실제 DB로 화면 열기, 화면 캡처 |
 
 ---
+## I-039 · 2026-11-18 · P-20 흐름 화면 완성 — 화살표 건수, 상자 상세, 실행 목록, 내 실행 기록 (영역 C, 차세일)
+- 브랜치: `feat/P-20-flow-complete` (worktree, origin/main 위). 채점(eval/)·실패 시연 5가지 실제 실행은 다음
+- 출처: `docs/plan.md` P-20, `docs/flow.md` 3·4절, PRD-F26·F28, IA-16·IA-11, 불변 5·6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 흐름 화면이 색만 칠하고 화살표 건수·상자 상세·실행 목록 칸(걸린 시간)·사용자 "내 실행 기록"이 없다(안내서 흐름 화면 요건) |
+| 기대 결과 | 화살표 위 넘어간 건수(분기는 갈래별, 키는 event·no_change·collect_error·ok), 상자 누르면 설정·들어온 것·나간 것·호출·오류(가린 값만), 실행 목록 표, 일반 사용자는 본인 first_read·user_reread만 |
+| 영향 범위 | `lib/flow/`(counts·detail·run-list·columns 새, types·layout 칸 추가), `app/admin/flow/`(run-view 새, flow-diagram·page 고침), `app/projects/runs/`(새), `app/dev/flow-sample`(장면 ⑥) |
+| 제약 | 칠하는 규칙(불변 6)은 그대로. 기록이 없으면 숫자를 쓰지 않음. PR #40의 시뮬레이터 링크 줄과 충돌하지 않게 page.tsx 위쪽과 Link import는 남김 |
+| 열린 질문 | 내 프로젝트(IA-3) 화면에 "내 실행 기록" 링크 넣기(그 파일은 A 영역). P-5 시뮬레이터가 branch_counts를 한글 키로 남김 → 팀 표준 영문 키로 바꿔야 함 |
+| 결과 | 2026-11-18: 순수 함수 3개 + 시험 20개, 전체 97/97, 타입 검사 통과. 샘플 장면 ⑥을 ego 브라우저로 캡처해 건수 12개·상세 패널 확인. 못 한 것: 실제 DB 기록으로 확인, 채점, 실패 시연 실제 실행, 화살표 숫자가 상자와 겹치는 곳 다듬기 |
+
+---
+
 ## I-038 · 2026-11-18 · P-19 설치 프롬프트·가져오기 — 순수 함수 (영역 C, 차세일)
 - 브랜치: `feat/P-19-install-prompt` (worktree `C:\bootcamp\TechRadar-P19`, origin/main 위). 번호 I-034는 P-5(PR #40)가 씀
 - 출처: `docs/plan.md` P-19, SPEC-4.3·6.1·6.2·6.3, PRD-F25·F33, ADR 0009·0012, IA-22

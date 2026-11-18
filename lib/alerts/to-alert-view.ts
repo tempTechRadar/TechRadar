@@ -7,9 +7,10 @@ export type AlertRecord = {
   kind: AlertKind;
   status: AlertStatus;
   createdAt: string;
+  projectId: string | null;
   projectName: string | null;
   sourceFile: string | null;
-  judgment: { decision: "candidate" | "hold"; reason: string | null; fixedVersion: string | null } | null;
+  judgment: { decision: "candidate" | "hold"; reason: string | null; fixedVersion: string | null; judgedAt: string } | null;
   change: {
     kind: string;
     techName: string;
@@ -32,6 +33,7 @@ export type AlertView = {
   lines: string[];
   /** 판단을 마친 알림의 "내 판단" 한 줄. 아직이면 null */
   judgmentLine: string | null;
+  judgedAtLabel: string | null;
   /** 보안 경고인데 고친 버전이 아직 없으면 false: 적용 후보로 저장할 수 없다(ADR 0012) */
   canCandidate: boolean;
 };
@@ -65,6 +67,7 @@ export function toAlertView(record: AlertRecord): AlertView {
     createdAtLabel: listTime.format(new Date(record.createdAt)),
     subtitle: subtitleOf(record),
     judgmentLine: judgmentLineOf(record.judgment),
+    judgedAtLabel: record.judgment ? listTime.format(new Date(record.judgment.judgedAt)) : null,
     canCandidate: record.kind !== "security" || Boolean(curr.fixed_version),
   };
   // 보안 경고만 문구를 만든다. 적용 기회·모델 종료의 상세는 P-14에서 채운다.
