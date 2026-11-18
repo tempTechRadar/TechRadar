@@ -4,6 +4,22 @@
 
 ---
 
+## I-030 · 2026-11-18 · P-3 등록 → 저장소 읽기 → OSV → 등급 → 변경
+- 브랜치: `feat/P-3-osv-grade` (최신 main, P-2 합친 뒤)
+- 출처: `docs/plan.md` P-3, PRD-F4·F6·F10·F11, SPEC-1·3.1·3.4·7·8, `docs/flow.md` 2절(`fetch_repo`·`extract_my_tech`·`fetch_osv`·`grade`·`save_change`), 불변 2·3. 사용자 "지금까지 작업 양상 파악해서 다음 작업 진행해줘"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 프로젝트를 등록해도 내 기술을 읽거나 위험을 판단하는 코드가 없어 얇은 한 줄의 "보안 경고" 앞부분이 비어 있다 |
+| 기대 결과 | 공개 저장소 주소를 등록하면 `package.json`·`.mcp.json`에서 허용 목록의 AI 도구만 뽑고, OSV로 등급(SPEC-1)을 매기고, 위험이면 변경 1건. 다시 읽어도 1건. OSV 실패는 수집 오류(등급은 그대로) |
+| 영향 범위 | `lib/domain/`(뽑기·등급 규칙과 시험), `lib/server/first-read.ts`(새로), 등록 화면 `app/projects/` |
+| 제약 | 실행 기록(P-4, 차세일)·알림 만들기(P-7, 황재웅)는 남의 파일이라 부르기만 한다. 둘이 합쳐지기 전에는 끝까지 실제 DB로 돌려 볼 수 없다. 새 라이브러리 없음 |
+| 열린 질문 | 저장소 정보(GitHub) 확인 전에는 SPEC-1의 "통과"를 줄 수 없음 → 알려진 문제가 없어도 P-9 전까지 "찾지 못함"으로 둘지. `requirements.txt`·스킬 읽기는 P-9·P-11로 미룸 |
+
+**결과(중간):** 뽑기·등급 규칙(`lib/domain/manifest.ts`·`grade.ts`)과 시험 7개(G1 mcp-remote 0.1.15 = 위험, 실제 OSV 응답 샘플 `lib/domain/fixtures/`), 서버 흐름 `lib/server/first-read.ts`, 등록 화면 `/projects`. 테스트 14/14, 타입검사·빌드 성공. 로그인 전 `/projects` → `/login` 이동 확인. **끝까지 실제 DB로는 못 돌림**: `startRun`·`recordStep`(P-4)·`createAlertsForChange`(P-7)가 아직 자리만이라 던진다. 코드 검토 9건 중 1건 고침(같은 기술이 두 파일에 있으면 저장 실패). 등급이 버전마다 다른데 `technologies`(버전 없는 키) 한 줄에 저장되던 문제 → 사용자 결정 "칸 추가": `my_technologies`에 내 버전 등급 칸(erd 2.2, 마이그레이션 `202611181600_P-3_my_tech_grade.sql`, 시험 `supabase/tests/my_tech_grade_p3.sql`). 사용자가 고칠 수 있는 칸은 숨김·이름·버전만. 사용자 승인("적용하고 시험") 뒤 `techradar`에 적용, 시험 4개 모두 기대값, 남은 줄 0, 보안 점검 새 경고 없음
+
+---
+
 ## I-029 · 2026-11-18 · P-2 M0 테이블 마이그레이션 + 공용 서버 함수 자리(P-29)
 - 브랜치: `feat/P-2-migration-m0` (최신 main, P-1 합친 뒤)
 - 출처: `docs/plan.md` P-2·P-29, erd 0·2·4절, spec 3.1·7.3·10-1, ADR 0010·0012, 불변 1·3·4·5. 사용자 "진행해줘"(다른 세션에서 전달), DB 적용은 "적용해"
