@@ -4,6 +4,22 @@
 
 ---
 
+## I-027 · 2026-11-18 · P-1 뼈대 앱과 배포 (영역 A, 김영식)
+- 브랜치: `feat/P-1-skeleton` (PR #26 위, PR base는 main. #26이 먼저 합쳐져야 함)
+- 출처: `docs/plan.md` P-1, PRD-F1·NF2·NF7, prd 4절(Next.js + Vercel, TypeScript 한 언어), ADR 0007 개정(구글 로그인, 이메일 테스트 계정은 개발·QA만)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 앱 코드가 0줄이라 B·C가 붙일 곳이 없다 |
+| 기대 결과 | 고정 버전 Next.js 앱, Supabase 연결 자리, 개발용 이메일 테스트 로그인(운영에서 꺼짐 + 시험), README 실행 방법, Vercel 배포 주소 |
+| 영향 범위 | 저장소 뿌리(`package.json`, `app/`, `lib/`, 설정 파일), `README.md`, `.gitignore`, `.env.example` |
+| 제약 | 승인된 버전만(`next@16.4.4`, `react@19.3.1`, `@supabase/supabase-js@2.119.0`, `@supabase/ssr@0.12.7`, `typescript@5.9.3`, 타입 패키지). 비밀값은 `.env.local`에 사람이 직접. Supabase 프로젝트 만들기는 자동 권한 검사에서 막혀 사람이 하거나 허용 필요 |
+| 열린 질문 | Supabase 프로젝트·Vercel 연결(사람), Next 16의 세션 갱신 방식(middleware/proxy)은 로그인 붙일 때 확인 |
+
+**결과:** 뼈대 앱(`/` 상태 화면, `/login` 개발용 테스트 로그인 자리) 완성. 단위 테스트 3/3 통과, 타입검사·빌드 성공, 로컬 화면 확인, 코드 검토 지적 0건. README 실행 방법 추가. 남은 것: Supabase 프로젝트·키(사람), Vercel 연결·배포 주소(사람), `next@16.4.6` 보안 패치(중간 등급 2건, 캐시 기능 관련) 여부
+
+---
+
 ## I-026 · 2026-11-18 · plan 인터뷰와 회의 결정 반영
 - 브랜치: `docs/plan-1118` (최신 main, PR #25 합친 뒤)
 - 출처: plan 인터뷰 Q1–Q11·R1–R9·T1–T3(회의 중 팀원 김영식 답), 안내서 7장(조각 표), `docs/prd.md` 만드는 순서
