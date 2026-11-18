@@ -25,8 +25,8 @@ function tables(text: string): string[][] {
   return out;
 }
 
-// 코드(`…`) 안의 | 는 칸을 가르지 않는다
-const columns = (line: string) => line.replace(/`[^`]*`/g, "").split("|").length - 2;
+// GitHub 표(GFM) 규칙: 칸은 이스케이프(\|) 안 한 |로 갈린다(코드 안의 |도). 줄 앞뒤의 | 는 있어도 없어도 된다(칸 수 계산만 그렇다. 표를 찾는 tables는 줄이 | 로 시작하고 구분선 끝에 | 가 있다고 본다)
+const columns = (line: string) => line.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).length;
 const firstCell = (line: string) => line.split("|")[1].trim();
 
 /** 머리가 "시간 순"인 표에서 첫 칸(번호·작업 ID)이 겹치는 것 */
@@ -74,5 +74,7 @@ test("검사 함수가 실제로 겹침·깨진 표를 잡는다", () => {
   const worklog = "| 시간 순 | 한 일 |\n|---|---|\n| 83 | x |\n| 83 | y |\n| I-new | z |\n\n| 다른 표 | 값 |\n|---|---|\n| 1 | a |\n| 1 | b |";
   assert.deepEqual(worklogDuplicates(worklog), ["83"], "머리가 시간 순인 표만 본다");
   assert.deepEqual(strayRows("| a | b |\n|---|---|\n| 1 | 2 |\n\n설명 문단\n\n| 3 | 4 |"), ["| 3 | 4 |"], "문단 밑에 떨어진 행");
-  assert.deepEqual(wrongColumns("| a | b |\n|---|---|\n| 1 | 2 | 3 |\n| `x|y` | 2 |"), ["| 1 | 2 | 3 |"], "코드 안 |는 세지 않는다");
+  assert.deepEqual(wrongColumns("| a | b |\n|---|---|\n| 1 | 2 | 3 |"), ["| 1 | 2 | 3 |"], "칸이 넘치면 잡는다");
+  assert.deepEqual(wrongColumns("| a | b |\n|---|---|\n| `x|y` | 2 |"), ["| `x|y` | 2 |"], "코드 안의 |도 칸을 가른다(쓰려면 \\|)");
+  assert.deepEqual(wrongColumns("| a | b |\n|---|---|\n| `x\\|y` | 2 |\n| 1 | 2"), [], "이스케이프한 \\|와 맨 끝 |가 없는 행은 정상");
 });
