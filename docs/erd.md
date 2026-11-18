@@ -2,7 +2,7 @@
 
 > **승인: 2026-11-18 회의**(김영식·차세일·황재웅, 바뀐 것 없음 — 회의 중 팀원이 전달). 이후 바뀌면 "바뀐 기록"에 이유를 적는다.
 
-> 상태: **설계 초안, 실제 DB와 대조 전.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용한 뒤 7절에서 대조한다(E5).
+> 상태: **승인된 설계(11-18 회의). 실제 DB와 1차 대조 완료(7절, P-2·P-3·P-30 마이그레이션까지), 팀 확인 대기.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용할 때마다 7절에서 대조한다(E5). P-8의 `alerts.run_id` 칸은 erd에 칸만 더했고 실제 DB와는 아직 대조하지 않았다.
 > 범위: **1·2순위 테이블은 완전하게, 3순위 테이블은 "3순위"로 표시**(나중 마이그레이션), 노션 테이블은 다음 버전이라 넣지 않는다(E4).
 
 ## 0. 공통 규칙
@@ -260,9 +260,9 @@ UK: (kind, ecosystem, value).
 |---|---|---|---|---|
 | source_id | uuid | ✔ | FK→sources | |
 | tech_id | uuid | ✔ | FK→technologies | |
-| metric | text | ✔ | | `grade`, `version`, `activity`, `downloads`, `status` … |
+| metric | text | ✔ | | `grade`, `version`, `activity`, `downloads`, `status`, `osv_vulns`(처음 읽기가 남기는 OSV 등급·취약점 목록), `osv_advisory`(시뮬레이터 보안 경고), `same_role`(같은 역할 새 기술, 시뮬레이터) … |
 | prev_value · curr_value | jsonb | | | 이전 값 → 현재 값 |
-| change_size | text | | | **바뀐 정도**(예: "등급 통과 → 위험(2단계)", "주간 다운로드 +12%", "새 버전 1.4.1 → 1.4.2"). 안내서의 같은 모양 칸 |
+| change_size | text | | | **바뀐 정도**(예: "등급 통과 → 위험(2단계)", "주간 다운로드 +12%", "새 버전 1.4.1 → 1.4.2"). 안내서의 같은 모양 칸. **지금 구현은 두 모양이 섞여 있다:** 처음 읽기는 `small`(등급 그대로)·`large`(등급이 바뀜), 시뮬레이터는 `large`, 다운로드 수집기(P-9)는 위와 같은 문장("주간 다운로드 +12%", "처음 읽음: 주간 N회")을 저장한다. 관리자 수집 자료 화면은 `large`·`small`·`none`을 큼·작음·없음으로 바꾸고 문장은 그대로 보여 준다. 한 가지로 통일할지는 정하지 않았다 |
 | run_id | uuid | ✔ | FK→runs | |
 | observed_at | timestamptz | ✔ | | |
 | is_simulated | bool | ✔ | | |
@@ -294,6 +294,7 @@ UK: (kind, ecosystem, value).
 | status | text | ✔ | | `pending`(판단 대기) / `done`(완료). 판단 저장으로만 바뀜 |
 | comparison | jsonb | | | 적용 기회 비교표(항목마다 출처) |
 | dedupe_key | text | ✔ | UK(user_id와 함께) | 사람 + 변경, 첫 점검은 사람 + 기술 + 버전 + 원인 |
+| run_id | uuid | | FK→runs | 이 알림이 생긴 읽기 실행(P-8). 읽기를 실행한 본인의 알림에만 채우고 남의 알림은 비움(null = 연결된 실행 없음). 쓰기는 서버만 |
 
 **judgments** — 판단(알림당 하나)
 | 칸 | 종류 | 필수 | 키 | 설명 |
@@ -423,7 +424,7 @@ UK: (kind, ecosystem, value).
 |---|---|---|---|---|
 | profiles · projects · my_technologies · technologies · sources · runs · run_steps · observations · changes · alerts · audit_logs | ✔ | ✔ (RLS 켜짐) | ✔ | — |
 | categories | ✔ (2.3) | ✔ | ✔ | P-30 대신 P-2에서 만듦: `technologies.category_id`가 가리켜서 |
-| judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표의 `fixed_version` 줄은 PR #28(ADR 0012)에 있음. 둘이 합쳐지면 같아짐 |
+| judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표에도 `fixed_version` 줄이 있다(ADR 0012, PR #28 합침). 둘이 같다 |
 | my_technologies 내 버전 등급 칸 (2026-11-18, P-3) | ✔ (2.2) | ✔ 6칸, 사용자 고치기 권한은 `hidden_at`·`manual_name`·`version`만 | ✔ | 마이그레이션 `202611181600_P-3_my_tech_grade.sql`(DB 이름 `p3_my_tech_grade`). 시험 4개 기대값 |
 | rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs (2026-11-18, P-30) | ✔ | ✔ (RLS 켜짐, 공개 테이블 20개 모두 켜짐) | ✔ | 마이그레이션 `202611181700_P-30_m1_tables.sql`(DB 이름 `p30_m1_tables`). erd에 없던 것을 더함: `rule_lists` 종류별 칸 check, `tech_relations` 확정 ⇔ 확정 시각 check, 7개 모두 지우기 금지, 관리자는 관계의 확정 칸 3개만 고침, 사용자는 시나리오의 요청 칸 2개만 넣음(보안 검토 뒤 `202611181730_P-30_scenarios_insert_columns.sql`). 허용 목록 처음 값 28줄. 시험 `rls_m1.sql` 24개 기대값 |
 | 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
@@ -435,3 +436,4 @@ UK: (kind, ecosystem, value).
 - 2026-11-18 안내서 흐름 그림과 대조: `run_steps`에 `count_in`·`count_out`·`branch_counts`(화살표·갈래별 건수), `observations`에 `change_size`(바뀐 정도)
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
 - 2026-11-18 개발 전 점검 반영(I-028): `judgments.fixed_version` 추가(보안 경고의 적용 후보 = 고친 버전으로 올리기, ADR 0012). P-2 마이그레이션에 넣는다
+- 2026-11-18 문서 점검 2차(작업 `I-doc-fixes-2`): 머리 상태를 "대조 전"에서 "1차 대조 완료, 팀 확인 대기"로, 7절 `judgments` 메모의 PR #28을 합친 것으로 고침(⚪). `observations.metric` 예시에 코드가 쓰는 `osv_vulns`·`osv_advisory`·`same_role`을 더하고, `change_size`에 지금 구현(`small`·`large`와 다운로드 수집기의 문장이 섞여 있음)을 적음(점검 Y-16). `alerts`에 P-8 마이그레이션(`202611181800_P-8_alert_run_id.sql`)의 `run_id` 칸을 더함. 이유: erd가 코드·마이그레이션보다 옛 내용이었다. `change_size`를 한 가지로 통일할지는 정하지 않았다(열린 질문)
