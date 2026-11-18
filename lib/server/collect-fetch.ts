@@ -69,7 +69,12 @@ export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version:
   // 객체이고 vulns가 있으면 배열일 때만 "없음"({})·목록으로 읽는다. 그 밖의 모양(`[]`, 숫자, null)을 조용히 "없음"으로 읽지 않는다.
   const vulns = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as { vulns?: unknown }).vulns : null;
   if (vulns === null || (vulns !== undefined && !Array.isArray(vulns))) throw new CollectError("parse", "OSV 응답의 모양이 달라 해석하지 못함");
-  return forPackage((vulns ?? []) as OsvVuln[], name);
+  try {
+    return forPackage((vulns ?? []) as OsvVuln[], name);
+  } catch {
+    // null 항목 같은 이상한 응답이 코드 오류로 터져 그날의 모든 확인을 멈추지 않게: 그 호출만 해석 실패
+    throw new CollectError("parse", "OSV 응답의 취약점 항목 모양이 달라 해석하지 못함");
+  }
 }
 
 /**

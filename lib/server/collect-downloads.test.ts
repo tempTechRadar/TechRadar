@@ -101,7 +101,8 @@ test("처음 읽음: 주간 다운로드를 signals에 넣고, 수집 자료를 
       ["s-pypi", "t2", "downloads", null, { weekly_downloads: 50 }, "처음 읽음: 주간 50회", "run-1", NOW_ISO, false],
     ],
   );
-  assert.deepEqual(steps(t), ["normalize:2>2", "compare:2>2"]);
+  assert.deepEqual(steps(t), ["normalize:2>2", "compare:2>0"]); // 나가는 건수 0: 등급 계산으로 넘어가지 않아 compare→grade 화살표에 안 섞인다
+  assert.match(String(t.run_steps.find((s) => s.step_name === "compare")!.output_summary), /바뀐 값 2개/); // 바뀐 개수는 요약에
 });
 
 test("같은 값을 다시 읽으면 수집 자료가 늘지 않는다(불변 3). 확인 시각만 새로 적고 지난 오류 흔적은 지운다", async () => {
@@ -182,7 +183,7 @@ test("일부 실패: 그 기술의 이전 값·확인 시각은 그대로(불변
   const err = t.run_steps.find((s) => s.step_name === "collect_error")!;
   assert.deepEqual([err.count_in, err.error_kind], [1, "rate_limited"]);
   assert.match(String(err.output_summary), /npm:gone/);
-  assert.deepEqual(steps(t).filter((s) => !s.startsWith("collect_error")), ["normalize:1>1", "compare:1>1"]);
+  assert.deepEqual(steps(t).filter((s) => !s.startsWith("collect_error")), ["normalize:1>1", "compare:1>0"]);
 });
 
 test("전부 실패하면 수집 오류로 던지고(0으로 읽지 않음) 수집 자료·단계 줄은 남기지 않는다. 신호에는 시도 흔적만", async () => {
@@ -201,7 +202,7 @@ test("한쪽 출처가 통째로 실패하면 던진다(3번 연속 강조·재�
   await assert.rejects(() => run(t, f), (e) => e instanceof CollectError && e.kind === "rate_limited" && /pypi_downloads/.test(e.message));
   assert.deepEqual(f.asked, ["npm:ok", "pypi:a"]); // pypi:b는 요청하지 않음
   assert.deepEqual(t.observations.map((o) => o.tech_id), ["t1"]);
-  assert.deepEqual(steps(t), ["normalize:1>1", "compare:1>1"]); // collect_error는 runBatch가 남긴다
+  assert.deepEqual(steps(t), ["normalize:1>1", "compare:1>0"]); // collect_error는 runBatch가 남긴다
   assert.equal((signalsOf(t)[2] as Row | null), null); // 건너뛴 기술은 건드리지 않음
 });
 
@@ -258,7 +259,7 @@ test("저장 실패로 멈춰도 거기까지 저장한 것은 normalize·compar
   const t = world([tech("t1", "npm:a"), tech("t2", "npm:b")]);
   await assert.rejects(() => run(t, fakes({ "npm:a": 1, "npm:b": 2 }), undefined, { observationAt: 2 }), /수집 자료를 저장하지 못함/);
   assert.deepEqual(t.observations.map((o) => o.tech_id), ["t1"]);
-  assert.deepEqual(steps(t), ["normalize:1>1", "compare:1>1"]);
+  assert.deepEqual(steps(t), ["normalize:1>1", "compare:1>0"]);
 });
 
 test("수집 오류가 아닌 오류(코드 버그)는 parse로 바꿔 삼키지 않고 그대로 던진다", async () => {
