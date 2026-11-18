@@ -2,6 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { finishRun, recordStep, startRun } from "../server/run-log.ts";
 import type { Score } from "./score.ts";
+import { logFailure } from "../server/log-failure.ts";
 
 /** 채점 결과를 실행 기록으로 남긴다. 중간에 실패하면 그 단계를 failed로, 실행도 failed로 닫고 원래 오류를 던진다. */
 export async function recordScoring(db: SupabaseClient, score: Score, saved: { path: string; startedBy?: string }): Promise<string> {
@@ -23,8 +24,8 @@ export async function recordScoring(db: SupabaseClient, score: Score, saved: { p
     return runId;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await recordStep(db, runId, { stepName: current, status: "failed", errorMessage: message }).catch(() => {});
-    await finishRun(db, runId, { status: "failed" }).catch(() => {});
+    await recordStep(db, runId, { stepName: current, status: "failed", errorMessage: message }).catch(logFailure("실패한 단계를 기록하지 못함"));
+    await finishRun(db, runId, { status: "failed" }).catch(logFailure("실행을 실패로 닫지 못함"));
     throw error;
   }
 }

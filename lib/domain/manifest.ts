@@ -60,6 +60,6 @@ export function readMcpJson(text: string): FoundTech[] {
 /** `https://github.com/owner/repo(.git)(/...)` → owner/repo. 다른 모양이면 null(입력 경계에서 거른다). */
 export function parseGithubRepo(url: string): { owner: string; repo: string; url: string } | null {
   const m = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?(?:[/?#].*)?$/i.exec(url.trim());
-  if (!m) return null;
+  if (!m || /^\.+$/.test(m[1]) || /^\.+$/.test(m[2])) return null; // `..`·`.`만인 이름은 주소 경로를 바꿔 버린다(raw 주소를 이어 붙이는 곳이 있음)
   return { owner: m[1], repo: m[2], url: `https://github.com/${m[1]}/${m[2]}`.toLowerCase() };
 }
