@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isDemoSwitchEnabled } from "@/lib/demo/demo-switch";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { runSimulatorAction } from "../simulator/actions";
+import { EvalPanel } from "./eval-panel";
 import { armSaveFailureAction, demoCollectErrorAction, demoNoChangeAction, disarmSaveFailureAction } from "./actions";
 
 const btn = { minHeight: 44, padding: "0 16px" } as const;
@@ -58,11 +59,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
         </div>
       </section>
 
-      <section style={{ ...card, borderStyle: "dashed", color: "#4b5563" }}>
-        <h2 style={{ fontSize: 20, margin: "0 0 4px" }}>채점</h2>
-        <p style={{ margin: 0 }}>채점(정답 사례 G1–G9, PR #47)이 합쳐지면 여기에 "채점 실행" 버튼이 붙어요.</p>
-        <button type="button" style={btn} disabled>채점 실행</button>
-      </section>
+      <EvalPanel style={card} />
     </main>
   );
 }

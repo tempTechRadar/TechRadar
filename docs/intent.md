@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-20-eval-button · 2026-11-18 · 실패 시연 화면의 채점 칸 연결 (영역 C, 차세일)
+- 브랜치: `fix/P-20-eval-button` (worktree, origin/main 위)
+- 출처: PRD-F30, SPEC-10, `docs/flow.md`(start_scoring → score → score_save), 불변 5·6. 채점 함수(PR #47)가 합쳐졌는데 `/admin/demo` 채점 칸은 자리만 남아 있었음(시연 대본 작성 중 발견)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 발표에서 채점 결과를 화면으로 보여 줄 수 없다(버튼이 눌리지 않는 자리만 있음) |
+| 기대 결과 | 관리자가 "채점 실행"을 누르면 G1–G9를 앱 규칙으로 채점해 사례 수·놓침·잘못 울림·등급 맞음과 사례별 표를 보여 주고, 실행 기록이 trigger scoring으로 남아 흐름 화면에 칠해진다 |
+| 영향 범위 | `lib/server/eval-run.ts`(새)와 시험, `app/admin/demo/eval-actions.ts`·`eval-panel.tsx`(새), `app/admin/demo/page.tsx`(자리 → 패널). lib/eval은 고치지 않고 부르기만 |
+| 제약 | 관리자만, 서비스 키는 서버에서만, 시연 스위치와 무관. 바깥 호출 없음(저장된 OSV 응답·시험용 스킬만 읽음). 결과 파일은 화면에서 저장하지 않음(`npm run eval`이 파일 담당) |
+| 열린 질문 | 배포(Vercel) 함수에 `eval/`·`lib/domain/fixtures`·`sim/skills` 파일이 함께 실리는지 확인 못 함. 안 실리면 버튼이 "파일 없음" 오류를 보여 줌 → `next.config.ts`(A 영역)의 outputFileTracingIncludes가 필요할 수 있음 |
+| 결과 | 2026-11-18: 새 시험 4개, 전체 시험 통과·타입 검사 통과. 못 한 것: 화면에서 실제로 눌러 확인(로그인·서비스 키 필요), 배포 확인 |
+
+---
+
 ## I-P-5b-sim-opportunity · 2026-11-18 · P-5b 시뮬레이터 두 번째 시나리오: 적용 기회 (영역 C, 차세일)
 - 브랜치: `feat/P-5b-sim-opportunity` (worktree, origin/main 위)
 - 출처: SPEC-3.5(셋째 줄: 확정된 같은 역할 관계도 가짜 표시로 넣는다)·SPEC-3.2(조건 셋, ADR 0014), PRD-F29·F12, ADR 0015(같은 역할은 관리자 확인으로 확정), P-14 적용 기회 알림(PR #49)
