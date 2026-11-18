@@ -82,7 +82,7 @@ export function errorKindCounts(steps: readonly StepErrorRow[]): Record<string, 
 
 /* ---------- 분류 확인의 규칙 목록(IA-17) ---------- */
 export type RuleRow = { id: string; kind: string; ecosystem: string | null; value: string; pattern_id: string | null; pattern_grade: string | null; enabled: boolean };
-export const RULE_KINDS = ["allow_package", "github_topic", "hn_keyword", "risk_pattern"] as const;
+export const RULE_KINDS = ["allow_package", "github_topic", "hn_keyword", "risk_pattern", "official_org"] as const;
 
 /** 규칙 종류마다 켜진 것·꺼진 것 수와 줄(값 순). 종류 순서는 고정. */
 export function groupRules(rows: readonly RuleRow[]): { kind: string; on: number; off: number; rows: RuleRow[] }[] {

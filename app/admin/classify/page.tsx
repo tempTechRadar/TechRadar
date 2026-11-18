@@ -7,7 +7,7 @@ import { AdminShell, when } from "../admin-shell";
 
 const TITLE = "분류 확인";
 const LEAD = "지도 분류가 비어 있거나 사람이 확인해야 하는 것들이에요. 지금은 보기만 할 수 있어요.";
-const RULE_KO: Record<string, string> = { allow_package: "허용 목록(패키지)", github_topic: "GitHub 태그", hn_keyword: "Hacker News 낱말", risk_pattern: "위험 패턴" };
+const RULE_KO: Record<string, string> = { allow_package: "허용 목록(패키지)", github_topic: "GitHub 태그", hn_keyword: "Hacker News 낱말", risk_pattern: "위험 패턴", official_org: "공식 조직(이름공간)" };
 const MADE_BY_KO: Record<string, string> = { seed: "처음 자료", rule: "규칙", ai: "Claude 제안", admin: "관리자" };
 
 type Data = Awaited<ReturnType<typeof readClassify>>;
