@@ -4,6 +4,21 @@
 
 ---
 
+## I-041 · 2026-11-18 · P-17 정기 실행·지금 실행 — 실행 묶음, 재시도, 예약 (영역 C, 차세일)
+- 브랜치: `feat/P-17-schedule` (worktree, origin/main 위). 번호 I-040은 P-20b 채점(PR #47)이 씀
+- 출처: `docs/plan.md` P-17, PRD-F8·NF7, SPEC-8, `flow/flow.json`(start_schedule·start_manual), 불변 2·5·6. Vercel 공식 문서(2026-11 확인): Hobby 예약은 하루 한 번·그 시간 안 아무 때나, 함수 최대 300초, CRON_SECRET은 `Authorization: Bearer`로 옴, 실패해도 Vercel이 다시 부르지 않음
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 배포 앱에서 매일 수집이 돌지 않고, 관리자가 지금 한 번 돌릴 방법도 없다(M1 1순위) |
+| 기대 결과 | 실행 묶음(`runBatch`): 출처 하나가 실패해도 계속, 실패는 수집 오류(변화 없음으로 안 씀), 시간 한도(240초) 넘으면 남은 출처는 시작하지 않음. 재시도 2·4·8분 최대 3번(`runs.attempt`·`next_retry_at`), 3번 연속 수집 오류 출처 강조. `/admin/run-now`(관리자만), `/api/cron/daily`(CRON_SECRET), `vercel.json` 매일 UTC 21:00 |
+| 영향 범위 | `lib/schedule/`(retry·run-batch·cron-auth·history·collectors와 시험 4개), `app/api/cron/daily/route.ts`, `app/admin/run-now/`, `vercel.json`(새), `app/admin/flow/page.tsx` 링크 한 줄 |
+| 제약 | main에 따로 부를 수 있는 수집기가 없다(P-3 OSV는 사용자 저장소 읽기 안에만, P-9 미합침) → 수집기 목록은 비어 있고, 비어 있으면 실행 기록을 만들지 않는다(불변 6). 새 라이브러리·마이그레이션 없음. 비밀값은 환경변수 이름만 |
+| 열린 질문 | 재시도를 실제로 다시 돌리는 주체: Hobby 예약은 하루 한 번이라 2·4·8분 뒤 자동 재실행은 못 함 → 지금은 시각만 적고 관리자가 버튼으로. Pro로 올리거나 다른 방법은 팀 결정. `.env.example`에 CRON_SECRET 이름 추가(A 영역 파일, 읽기 권한 없어 확인 못 함). P-9 수집기를 `collectors.ts`에 올리는 일 |
+| 결과 | 2026-11-18: 시험 223개 중 222 통과·실패 0(할 일 1은 기존), 타입 검사 통과. 못 한 것: 배포에서 예약 실행 확인, 실제 DB로 지금 실행 확인, 실제 수집기 연결 |
+
+---
+
 ## I-039 · 2026-11-18 · P-20 흐름 화면 완성 — 화살표 건수, 상자 상세, 실행 목록, 내 실행 기록 (영역 C, 차세일)
 - 브랜치: `feat/P-20-flow-complete` (worktree, origin/main 위). 채점(eval/)·실패 시연 5가지 실제 실행은 다음
 - 출처: `docs/plan.md` P-20, `docs/flow.md` 3·4절, PRD-F26·F28, IA-16·IA-11, 불변 5·6
