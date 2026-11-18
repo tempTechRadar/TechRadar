@@ -6,6 +6,18 @@
 
 ---
 
+## I-security-headers · 2026-11-18 · 운영 응답에 보안 헤더 다섯 개 붙이기 (P-1 뼈대 보강, 영역 A 공용, 김영식)
+- 브랜치: `fix/security-headers` (최신 main `d77cadd`, worktree `.claude/worktrees/p11-records`)
+- 출처: 사용자 "지금 할 수 있는것 진행". 요구: **`PRD-NF8`(이 작업이 `prd.md`에 새로 올림)**, 제품 불변 1·5. 근거: 운영 사이트를 로그인 없이 읽기 요청으로 점검한 결과
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `next.config.ts`가 비어 있어, 운영 `/login` 응답에서 확인한 보안 관련 헤더 중 HSTS(Vercel이 붙임)만 있고 `X-Frame-Options`·`X-Content-Type-Options`·`Referrer-Policy`·CSP가 없다. 같은 응답에는 `Access-Control-Allow-Origin: *`(정적 프리렌더 화면의 Vercel 기본)도 있다. 이 서비스는 로그인한 사용자가 판단·승인 버튼을 누르므로, 화면이 남의 사이트 iframe 안에 끼워지면(클릭재킹) 사용자가 모르고 버튼을 누를 수 있다. 요구 문서에는 보안 헤더가 없었다(`prd`·`spec`·`adr`) |
+| 기대 결과 | 운영 모드 서버의 모든 응답(200·307·401·404 포함)에 다섯 헤더가 붙고, 개발 서버·시험에는 붙지 않는다. 배포된 주소의 응답(특히 프리렌더 캐시로 나가는 `/`·`/login`)에도 붙는지는 `qa.md`의 확인 행으로 본다 |
+| 영향 범위 | `next.config.ts`(`headers` 한 함수), `lib/security-headers.test.ts`(2), `docs/prd.md`(`PRD-NF8`과 바뀐 기록 한 줄). 화면·DB·권한 변경 없음 |
+| 제약 | CSP는 `frame-ancestors 'none'`만 둔다. 스크립트를 막는 규칙(`script-src`)은 Next의 인라인 스크립트와 부딪혀 nonce 설정이 필요해서 이번에는 하지 않는다. `X-Frame-Options`와 `frame-ancestors`는 같은 뜻이다(앞의 것은 CSP를 모르는 옛 브라우저용). `Permissions-Policy`는 이 앱이 카메라·마이크·위치를 쓰지 않아 끄는 기본값이다(쓰는 기능이 생기면 그 항목만 푼다). 운영 모드에서만 붙인다(개발 서버의 내장 미리보기가 iframe으로 열 수 있어서). 이 사이트를 iframe으로 쓰는 곳은 코드·문서에서 찾지 못했다 |
+| 열린 질문 | ① 스크립트를 막는 CSP(`script-src` + nonce)를 둘지 ② 이 사이트를 iframe에 넣어 보여 줘야 하는 곳(발표 자료 등)이 있는지: 있으면 `X-Frame-Options`를 빼고 `frame-ancestors`를 그 주소로 바꿔야 한다(둘 다 고쳐야 함) ③ 정적 프리렌더 화면의 `Access-Control-Allow-Origin: *`는 Vercel 기본이다. 로그인·첫 화면 HTML뿐이라 비밀은 없지만 제한할지는 팀 확인 ④ Vercel 문서는 설정 헤더가 정적 파일·함수에 적용된다고 예시하지만 프리렌더 페이지에 대한 명시 문장은 찾지 못했다. 그래서 배포 주소 확인을 `qa.md`의 별도 행으로 둔다(안 붙으면 `vercel.json`의 `headers`로 옮긴다) |
+| 결과 | 시험 2개 통과(값을 베끼지 않고 불변식만 확인), 헤더 설정을 일부러 깨뜨린 5곳(`nosniff` 삭제·`DENY`→`SAMEORIGIN`·개발에서도 붙임·CSP 완화·`Permissions-Policy` 삭제)을 모두 잡음. `tsc` 오류 0. 운영 모드(`next build --webpack` 뒤 `next start`)에서 `/login`·`/`(200)·`/dashboard`(307)·`/api/cron/daily`(401)·`/dev/my-tech-sample`(404) 응답에 다섯 헤더가 모두 붙는 것을 확인. 전체 `npm test` 551개 중 550 통과·실패 0·todo 1. 코드 검토(서브에이전트) 9건 중 8건 반영(요구 출처 `PRD-NF8`, `Permissions-Policy` 이유, `X-Frame-Options`와 CSP의 관계, 시험을 불변식으로, 운영 모드 표현, 배포 주소 확인을 별도 행으로, 현재 운영 응답 표현 바로잡기, 상태 말 빼기)과 worklog 위치 바로잡기. **못 한 것:** 배포된 주소의 헤더는 `qa.md` 확인 행에 두었고, iframe 사용처가 없다는 증명은 코드·문서 검색까지다 |
 ## I-P-9c-registry · 2026-11-18 · 공식 MCP 레지스트리 수집기 — 최신 버전 서버를 얇은 기술로 저장하고 쓰거나 공식 조직이면 두껍게 (영역 A, 김영식)
 - 브랜치: `feat/P-9c-registry` (main `1b1395f`). plan P-9의 셋째 조각(다운로드 PR #84·정기 OSV PR #87은 합쳐짐)
 - 출처: `docs/plan.md` P-9, PRD-F8·F9, SPEC-8, `docs/데이터설계.md` 7·8절, `docs/flow.md` `fetch_registry`, 불변 2·3·4, ADR 0019(이 작업이 만듦). 사용자 "진행"(기록 PR 뒤 문서 모순을 물어서 해결)
