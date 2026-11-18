@@ -62,6 +62,13 @@ function fakeCreate(state: State) {
 const saved = [{ id: "c1", techId: "t1" }, { id: "c2", techId: "t2" }];
 const ctx = { runId: "r1", ownerId: "u1" };
 
+test("알림 만들기에는 실행한 사람과 이 실행을 originRun으로 넘긴다(그 사람의 알림 줄에 run_id를 적게)", async () => {
+  const { db, state } = fakeDb({ before: 0, after: 1 });
+  const { createAlerts, seen } = fakeCreate(state);
+  await makeNotifyOwner(createAlerts)(db, ctx, saved);
+  assert.deepEqual(seen.map((s) => s.originRun), [{ ownerId: "u1", runId: "r1" }, { ownerId: "u1", runId: "r1" }]);
+});
+
 test("notify는 내 건수만 기록하고(변경 수 → 내 새 알림 수, 호출 전후 차이), 알림 만들기에는 runId를 넘기지 않는다", async () => {
   const { db, steps, state } = fakeDb({ before: 0, after: 1 });
   const { createAlerts, seen } = fakeCreate(state);

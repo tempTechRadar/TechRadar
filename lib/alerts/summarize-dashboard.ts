@@ -46,7 +46,7 @@ export function summarizeDashboard<A extends AlertRow>(input: {
     doneCount: count("done"),
     recent: [...shown].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, RECENT_LIMIT),
     links: {
-      techs: "/projects",
+      techs: filter.projectId === undefined ? "/projects" : `/projects?${new URLSearchParams({ project: filter.projectId }).toString()}`, // 숫자와 같은 프로젝트로 거른 내 기술 목록(PRD-F22, P-11)
       changes: alertsLink(filter, input.params.period),
       pending: alertsLink(filter, input.params.period, "pending"),
       done: alertsLink(filter, input.params.period, "done"),

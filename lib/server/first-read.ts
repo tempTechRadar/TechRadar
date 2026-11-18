@@ -4,11 +4,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUser } from "./current-user.ts";
 import { getServiceSupabase } from "./service-supabase.ts";
 import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
-import { saveChange } from "./changes.ts";
+import { readLatestChange, saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
 import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
+import { causeIdsOf } from "../domain/osv-daily.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
@@ -71,14 +72,19 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   let changesCreated = 0;
   const saved: { id: string; techId: string }[] = [];
   for (const g of events) {
-    const change = await saveChange(db, {
-      kind: "first_seen_danger", // 사용자가 읽을 때 이미 위험 = 처음 확인한 위험. 정기 수집(P-17)은 grade_to_danger
-      techId: g.techId,
-      tech: g.f.tech!,
-      causeId: g.result.causeId!,
-      // shortcut: 위험 회차는 늘 1. 위험 → 고쳐짐 → 다시 위험(SPEC-3.1 회차)은 정기 수집(P-17)에서 이전 변경을 보고 올린다
-      currValue: { grade: "danger", reason: g.result.reason, fixed_version: g.result.fixedVersion, evidence: g.result.evidence },
-    });
+    // 위험이 이미 이어지는 중이면(정기 OSV 확인이 회차를 올렸을 수 있다) 가장 최근 변경에 알림을 잇는다. 회차를 늘 1로 두면 오래된 변경에 붙고,
+    // 다음 정기 확인이 최근 변경에 같은 사람의 알림을 하나 더 만든다.
+    // shortcut: 고쳐졌다 다시 위험해진 것을 첫 읽기가 먼저 만나면 새 회차를 못 만든다(위 등급 저장이 먼저 위험으로 바꿔 정기 확인이 "다시 위험"을 못 알아봄). 드문 경우
+    const latest = await readLatestChange(db, { techId: g.techId, version: g.f.tech!.version }, causeIdsOf(g.result));
+    const change = latest
+      ? { id: latest.id, created: false }
+      : await saveChange(db, {
+          kind: "first_seen_danger", // 사용자가 읽을 때 이미 위험 = 처음 확인한 위험. 정기 확인(P-9d)은 grade_to_danger
+          techId: g.techId,
+          tech: g.f.tech!,
+          causeId: g.result.causeId!,
+          currValue: { grade: "danger", reason: g.result.reason, fixed_version: g.result.fixedVersion, evidence: g.result.evidence },
+        });
     if (change.created) changesCreated++;
     saved.push({ id: change.id, techId: g.techId });
   }

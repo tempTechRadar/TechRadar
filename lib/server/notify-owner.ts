@@ -27,7 +27,7 @@ export const makeNotifyOwner =
     let created: number | null;
     try {
       const before = await mineCount();
-      for (const c of saved) await createAlerts(db, { changeId: c.id, techId: c.techId, kind: "security" });
+      for (const c of saved) await createAlerts(db, { changeId: c.id, techId: c.techId, kind: "security", originRun: { ownerId: ctx.ownerId, runId: ctx.runId } });
       const after = await mineCount();
       created = before === null || after === null ? null : Math.max(0, after - before);
     } catch (e) {
