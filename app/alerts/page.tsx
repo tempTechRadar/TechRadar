@@ -6,10 +6,11 @@ import { toAlertView } from "@/lib/alerts/to-alert-view";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
 import "./alerts.css";
 
 // 알림 목록(IA-6, PRD-F14). 판단 버튼은 P-8, 대응안 초안은 P-13에서 상세에 붙인다.
-type Params = { kind?: string; status?: string; period?: string };
+type Params = { kind?: string; status?: string; period?: string; project?: string };
 
 export default async function AlertsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
@@ -35,9 +36,10 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
         {pending > 0 ? <><strong>{pending}건</strong> 판단 대기 중이에요.</> : <>판단 기다리는 알림이 없어요.</>}
       </p>
       <form className="filters" aria-label="알림 거르기">
-        <Select label="종류" name="kind" value={params.kind} options={[["", "전체"], ["security", "보안 경고"], ["opportunity", "적용 기회"]]} />
-        <Select label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
-        <Select label="기간" name="period" value={params.period} options={[["", "전체"], ["7d", "최근 7일"], ["30d", "최근 30일"]]} />
+        <FilterSelect label="종류" name="kind" value={params.kind} options={KIND_OPTIONS} />
+        <FilterSelect label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
+        <FilterSelect label="프로젝트" name="project" value={params.project} options={projectOptions(records)} />
+        <FilterSelect label="기간" name="period" value={params.period} options={PERIOD_OPTIONS} />
         <button type="submit" className="btn">거르기</button>
       </form>
       {shown.length === 0 ? (
@@ -60,15 +62,11 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
   );
 }
 
-function Select({ label, name, value, options }: { label: string; name: string; value?: string; options: [string, string][] }) {
-  return (
-    <label>
-      {label}
-      <select name={name} defaultValue={value ?? ""}>
-        {options.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
-      </select>
-    </label>
-  );
+// 알림이 하나라도 있는 프로젝트만 고를 수 있게 한다(없는 프로젝트를 고르면 늘 빈 목록).
+function projectOptions(records: Awaited<ReturnType<typeof listMyAlerts>>): [string, string][] {
+  const named = new Map<string, string>();
+  for (const r of records) if (r.projectId && r.projectName) named.set(r.projectId, r.projectName);
+  return [["", "전체"], ...named.entries()];
 }
 
 function Empty() {

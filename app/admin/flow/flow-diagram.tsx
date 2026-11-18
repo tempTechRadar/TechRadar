@@ -42,7 +42,27 @@ export function Legend() {
   );
 }
 
-export function FlowDiagram({ flow, colored }: { flow: Flow; colored: Colored }) {
+type DiagramProps = {
+  flow: Flow;
+  colored: Colored;
+  /** 화살표("from>to") 위에 쓸 건수(lib/flow/counts). 없으면 숫자를 쓰지 않는다 */
+  edgeLabels?: Map<string, string>;
+  /** 상자를 누르면 갈 주소(상세 보기). 없으면 누를 수 없다 */
+  nodeHref?: (id: string) => string;
+  selected?: string;
+};
+
+function EdgeLabel({ x, y, text }: { x: number; y: number; text: string }) {
+  const w = tagWidth(text);
+  return (
+    <g transform={`translate(${x - w / 2} ${y - 9})`} aria-hidden="true">
+      <rect width={w} height={18} rx={9} fill="#fff" stroke="#8a857a" />
+      <text x={w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={600} fill="#2c2a26">{text}</text>
+    </g>
+  );
+}
+
+export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: DiagramProps) {
   const { nodes, edges, width, height } = layoutFlow(flow);
   return (
     <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: "#fbfaf7" }}>
@@ -56,11 +76,13 @@ export function FlowDiagram({ flow, colored }: { flow: Flow; colored: Colored })
           </marker>
         </defs>
         {edges.map((e) => {
-          const bold = colored.boldEdges.has(`${e.from}>${e.to}`);
+          const key = `${e.from}>${e.to}`;
+          const bold = colored.boldEdges.has(key);
+          const count = edgeLabels?.get(key);
           return (
-            <path key={`${e.from}>${e.to}`} d={e.d} fill="none" stroke={bold ? "#2c2a26" : "#c9c4b8"} strokeWidth={bold ? 2.6 : 1.2}
+            <path key={key} d={e.d} fill="none" stroke={bold ? "#2c2a26" : "#c9c4b8"} strokeWidth={bold ? 2.6 : 1.2}
               markerEnd={`url(#${bold ? "arrow-bold" : "arrow"})`}>
-              <title>{`${e.from} → ${e.to}: ${e.when}`}</title>
+              <title>{`${e.from} → ${e.to}: ${e.when}${count ? ` · ${count}` : ""}`}</title>
             </path>
           );
         })}
@@ -68,11 +90,11 @@ export function FlowDiagram({ flow, colored }: { flow: Flow; colored: Colored })
           const look = LOOK[colored.states[n.id]];
           const lines = wrap(n.name);
           const isStart = n.id === colored.activeStart;
-          return (
+          const box = (
             <g key={n.id} transform={`translate(${n.x} ${n.y})`}>
               <title>{`${n.name} (${n.id}) · ${look.label}`}</title>
-              <rect width={BOX.w} height={BOX.h} rx={n.type === "branch" ? 28 : 10} fill={look.fill} stroke={look.stroke}
-                strokeWidth={isStart ? 4 : 2} strokeDasharray={look.dash} />
+              <rect width={BOX.w} height={BOX.h} rx={n.type === "branch" ? 28 : 10} fill={look.fill} stroke={n.id === selected ? "#1f4fbf" : look.stroke}
+                strokeWidth={isStart || n.id === selected ? 4 : 2} strokeDasharray={n.id === selected ? undefined : look.dash} />
               {lines.map((t, i) => (
                 <text key={i} x={BOX.w / 2} y={22 + i * 16} textAnchor="middle" fontSize={13} fontWeight={600} fill="#2c2a26">{t}</text>
               ))}
@@ -85,7 +107,11 @@ export function FlowDiagram({ flow, colored }: { flow: Flow; colored: Colored })
               )}
             </g>
           );
+          return nodeHref ? <a key={n.id} href={nodeHref(n.id)} aria-label={`${n.name} 상세 보기`}>{box}</a> : box;
         })}
+        {edgeLabels && edges.filter((e) => edgeLabels.has(`${e.from}>${e.to}`)).map((e) => (
+          <EdgeLabel key={`label:${e.from}>${e.to}`} x={e.mx} y={e.my} text={edgeLabels.get(`${e.from}>${e.to}`)!} />
+        ))}
       </svg>
     </div>
   );

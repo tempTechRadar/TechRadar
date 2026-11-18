@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import flowJson from "@/flow/flow.json";
+import { edgeLabels } from "@/lib/flow/counts";
+import { nodeDetail } from "@/lib/flow/detail";
 import { colorize } from "@/lib/flow/status";
-import type { Flow, RunRow, StepRow } from "@/lib/flow/types";
+import type { Flow, RunRow, StepDetail, StepRow } from "@/lib/flow/types";
 import { FlowDiagram, Legend } from "../../admin/flow/flow-diagram";
+import { DetailPanel } from "../../admin/flow/run-view";
 
 const flow = flowJson as unknown as Flow;
 const ok = (...names: string[]): StepRow[] => names.map((step_name) => ({ step_name, status: "succeeded" }));
@@ -13,7 +16,23 @@ const FETCH = ["fetch_osv", "fetch_registry", "fetch_github", "fetch_downloads"]
 const TAIL = ["normalize", "compare", "grade", "is_event"];
 const TO_NOTIFY = [...TAIL, "save_change", "summarize", "notify"];
 
-const SCENES: { title: string; run: RunRow; steps: StepRow[] }[] = [
+// ⑥ 건수·상세: 화살표 위 숫자와 상자 누르기 상세가 보이는 장면(가짜 값, 비밀값 없음)
+const COUNTED: StepDetail[] = [
+  { step_name: "fetch_osv", status: "failed", count_in: 12, count_out: 11, branch_counts: { ok: 11, collect_error: 1 }, api_url: "https://api.osv.dev/v1/querybatch", http_status: 503, duration_ms: 2400, error_kind: "http_status", error_message: "OSV가 잠시 응답하지 않음(503)" },
+  { step_name: "fetch_registry", status: "succeeded", count_in: 1, count_out: 40, api_url: "https://registry.modelcontextprotocol.io/v0/servers", http_status: 200, duration_ms: 900 },
+  { step_name: "collect_error", status: "succeeded", count_in: 1, count_out: 1 },
+  { step_name: "normalize", status: "succeeded", count_in: 51, count_out: 51 },
+  { step_name: "compare", status: "succeeded", count_in: 51, count_out: 12 },
+  { step_name: "grade", status: "succeeded", count_in: 12, count_out: 12, branch_counts: { pass: 8, caution: 1, danger: 3 } },
+  { step_name: "is_event", status: "succeeded", count_in: 12, branch_counts: { event: 3, no_change: 9, collect_error: 0 } },
+  { step_name: "no_change", status: "succeeded", count_in: 9 },
+  { step_name: "save_change", status: "succeeded", count_in: 3, count_out: 3, output_summary: "새 변경 3건" },
+  { step_name: "summarize", status: "succeeded", count_in: 3, count_out: 3 },
+  { step_name: "notify", status: "succeeded", count_in: 3, count_out: 4, output_summary: "알림 4건 만듦" },
+  { step_name: "human_judgment", status: "awaiting_judgment", count_in: 4 },
+];
+
+const SCENES: { title: string; run: RunRow; steps: StepRow[]; node?: string }[] = [
   { title: "① 수집 오류", run: { id: "s1", trigger: "manual", status: "partial" },
     steps: [{ step_name: "fetch_osv", status: "failed" }, ...ok("fetch_registry", "fetch_github", "fetch_downloads", ...TAIL, "no_change", "collect_error")] },
   { title: "② 사건 아님", run: { id: "s2", trigger: "manual", status: "succeeded" }, steps: ok(...FETCH, ...TAIL, "no_change") },
@@ -22,13 +41,15 @@ const SCENES: { title: string; run: RunRow; steps: StepRow[] }[] = [
     steps: [...ok(...TO_NOTIFY), { step_name: "human_judgment", status: "awaiting_judgment" }] },
   { title: "⑤ 저장 실패", run: { id: "s5", trigger: "simulator", status: "failed" },
     steps: [...ok(...TO_NOTIFY), { step_name: "human_judgment", status: "awaiting_judgment" }, { step_name: "action_record", status: "failed" }] },
+  { title: "⑥ 건수·상세", run: { id: "s6", trigger: "manual", status: "partial" }, steps: COUNTED, node: "fetch_osv" },
 ];
 
-export default async function FlowSamplePage({ searchParams }: { searchParams: Promise<{ scene?: string }> }) {
+export default async function FlowSamplePage({ searchParams }: { searchParams: Promise<{ scene?: string; node?: string }> }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { scene } = await searchParams;
+  const { scene, node } = await searchParams;
   const i = Math.min(Math.max(Number(scene ?? 1) || 1, 1), SCENES.length) - 1;
   const s = SCENES[i];
+  const picked = flow.nodes.find((n) => n.id === (node ?? s.node));
   return (
     <main>
       <h1>흐름 그림 샘플 (실제 기록 아님)</h1>
@@ -41,7 +62,9 @@ export default async function FlowSamplePage({ searchParams }: { searchParams: P
         ))}
       </nav>
       <Legend />
-      <FlowDiagram flow={flow} colored={colorize(flow, s.run, s.steps)} />
+      <FlowDiagram flow={flow} colored={colorize(flow, s.run, s.steps)} edgeLabels={edgeLabels(flow, s.steps)}
+        nodeHref={(id) => `/dev/flow-sample?scene=${i + 1}&node=${id}`} selected={picked?.id} />
+      {picked ? <DetailPanel detail={nodeDetail(picked, s.steps)} /> : null}
     </main>
   );
 }
