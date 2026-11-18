@@ -6,6 +6,22 @@
 
 ---
 
+## I-vercel-deploy-limit · 2026-11-18 · 무료 Vercel 배포 횟수 제한에 맞춰 배포를 아끼는 작업 방식 정하기
+- 브랜치: `chore/vercel-deploy-limit` (최신 main d744bcc, 새 worktree `.claude/worktrees/vercel-limit`)
+- 출처: 사용자 "무료에서 진행하되 배포 횟수를 최대한 아끼는 방향으로 스타일을 정해서 다른 팀들도 공유하게 하자". 계기: PR #64의 Vercel 검사 "Deployment rate limited — retry in 24 hours"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 최근 24시간에 배포가 100개 이상 생겼다(목록이 100개에서 잘림, 약 5시간에 100개: production 31·preview 69). 무료(Hobby)는 하루 100번 안팎이라 제한에 걸렸고, 새 PR의 Vercel 검사가 모두 실패한다 |
+| 기대 결과 | PR 브랜치는 배포를 만들지 않고 main에 합칠 때만 배포한다. 푸시를 모아서 해 횟수를 줄이는 규칙이 `CLAUDE.md` 10절·ADR 0018에 적혀 팀 모두가 따른다 |
+| 영향 범위 | `vercel.json`(`git.deploymentEnabled`), `CLAUDE.md` 10절, ADR 0018, debug-note, 기록. 코드·DB·GitHub ruleset은 손대지 않음 |
+| 제약 | 무료 요금제 유지(비용 결정은 팀). main 배포는 계속한다(배포 주소에서만 나는 문제를 일찍 보려고). 기록 문서는 합쳐도 충돌하지 않게 덧붙이기만 한다(ADR 0017) |
+| 열린 질문 | 브랜치가 이 설정을 받으려면 main을 합쳐야 하는지(옛 브랜치는 그동안 미리보기가 계속 생길 수 있음). 건너뛴 배포가 하루 한도에서 빠지는지. 한도가 언제부터 다시 열리는지 |
+
+**결과:** 병합은 Vercel 검사가 아니라 승인 1개만 막는다는 것을 확인해(ruleset에 필수 검사 없음, 승인된 #59는 `UNSTABLE`로 병합 가능) 규칙은 바꾸지 않았다. `vercel.json`에 PR 브랜치 4종 배포 끄기를 넣고 푸시 모으기 규칙을 `CLAUDE.md` 10절·ADR 0018에 적었다. 설정이 든 브랜치(#68)는 푸시 3번에도 Vercel 검사가 생기지 않았고(`no checks reported`), 설정이 없는 #64는 한도 실패 검사가 떠서 설정이 먹는 것을 확인했다.
+
+---
+
 ## I-P-28-qa-c · 2026-11-18 · P-28 QA 시트 영역 C 행 (영역 C, 차세일)
 - 브랜치: `docs/P-28-qa-c` (worktree `C:\bootcamp\TechRadar-QA`, main 515bc3e)
 - 출처: `docs/plan.md` P-28, `rules/qa.md`, `docs/qa.md`, 안내서 12장, C 영역 조각의 끝 기준(P-4·5·6·17·18·19·20)
