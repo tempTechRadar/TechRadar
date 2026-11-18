@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-12-google-login · 2026-11-19 · P-12 구글 로그인 코드: 구글로 계속하기 버튼과 돌아오는 주소 (영역 A, 김영식)
+- 브랜치: `feat/P-12-google-login` (origin/main d77cadd 위, worktree `.claude/worktrees/night-google-login`)
+- 출처: 사용자 "진행"(밤샘 보고의 추천: 로그인 코드 준비). 근거: PRD-F1, plan P-12, M1 끝 기준(배포 주소에서 구글 로그인으로 얇은 한 줄), 11-19 제출 전 단계 점검 1순위, prd O7(기본 범위는 테스트 사용자 목록 예외)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 로그인 화면이 "구글로 계속하기는 P-12에서 붙입니다"라고만 하고, 운영에서는 테스트 로그인이 꺼져서 배포 주소에서 아무도 로그인할 수 없다. 그래서 시연·사람 QA·M1이 모두 막혀 있다. |
+| 기대 결과 | 로그인 화면에 "구글로 계속하기"가 있고, 구글을 거쳐 `/auth/callback`에서 세션(쿠키)이 만들어진 뒤 원래 가려던 경로로 돌아온다. 실패하면 로그인 화면에 이유가 보인다. 돌아갈 경로는 이 사이트 안의 경로만 받는다(열린 리디렉션 막기). |
+| 영향 범위 | `app/login/page.tsx`·`app/login/google-login-button.tsx`(새)·`app/auth/callback/route.ts`(새)·`lib/auth/safe-next.ts`(새)와 시험. 새 라이브러리 없음(`@supabase/ssr` 0.12.7 그대로), 비밀값 없음. |
+| 제약 | 실제 구글 로그인은 사람이 설정해야 돈다: 구글 클라우드 OAuth 클라이언트, Supabase Auth의 Google 켜기, 리디렉션 주소 등록. 설정 전에는 버튼을 누르면 Supabase가 오류를 돌려주고 화면에 보인다. 로그아웃은 이번 범위가 아니다(PRD-F1에는 있음). 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 로그아웃 버튼을 어디에 둘지. 가입 직후 별명(가입 트리거가 구글 이름을 쓰는지) 확인. 시연·관리자 계정을 구글 계정으로 할지. |
+
+**결과:** `safeNext` 시험 2개(바깥 주소·`//`·`/\`·제어 문자 거르기), `//` 검사를 일부러 빼면 실패하는 것을 확인. 전체 551개 중 550 통과·실패 0·todo 1, `tsc` 통과, `next build --webpack` 성공(`/auth/callback`·`/login` 경로 확인). 실제 구글 로그인은 설정 전이라 해 보지 못했다.
+
+---
+
 ## I-record-status-at-merge · 2026-11-18 · 합친 뒤 기록 고치기 반복을 끊는 규칙 제안 (CLAUDE.md 9절 한 항목, 김영식)
 - 브랜치: `docs/record-status-at-merge` (최신 main `955e6a9`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "1"(후보 중 규칙 제안 선택). 근거: `I-P-11-merged-record`·`I-P-16-merged-record`·`I-P-9-merged-record`·`I-P-11-insert-columns-merged-record`의 열린 질문, `CLAUDE.md` 9절
