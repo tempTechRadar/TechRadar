@@ -16,6 +16,7 @@
 | 71 | 개발 전 전체 점검: 안내서 요건(✅22 🟡12 ❌1), 문서 정합성(28건), 배분 준비(21건)를 따로 띄운 검토 도우미 3개가 읽기만 해서 보고 → 근거를 직접 열어 확인 → 추천대로 반영: ADR 0012(M0 확인 범위, 보안 경고의 적용 후보 = 고친 버전으로 올리기), ADR 0013(문제정의 승인 D1), plan "먼저 필요한 것"·P-29·P-30·끝 기준 보강·마이그레이션 규칙, flow 두 번째 사용자 알림 길, 문서 옛 결정 정리, README 배포 주소, 체크리스트, `next@16.4.6` | 나(요청·결정) · Claude(점검 지휘·확인·작성) | `docs/plan.md`, ADR 0012·0013, I-028 |
 | I-P-11-my-tech | P-11 내 기술 목록 완성·기술 상세(영역 A, PR #77로 합침): `/projects`에 출처·직접 숨김 표시·수집 오류와 마지막 확인·등급/프로젝트 거르기·프로젝트별 다시 읽기, 숨기기·되돌리기(바꾼 기록 `audit_logs`, 다시 읽어도 되살아나지 않음을 시험으로 고정), 직접 추가(검색해 고르기·이름만), 기술 상세 `/projects/tech/[id]`(등급·이유·OSV 근거 링크·읽기 상태·기술 정보, 수집 오류 중 오래된 등급 안내, `grade_views`는 처음 열 때만). 순수 함수 `lib/domain/my-tech-view`·서버 `lib/server/my-tech`, 개발용 샘플 `/dev/my-tech-sample`. 새 시험 22개, `npm test` 434개 중 433 통과·todo 1·실패 0, 타입 검사·`next build --webpack` 통과. 샘플 화면을 브라우저로 데스크톱·390px에서 보고 버튼 줄바꿈·빈 라벨을 고침. 코드 검토(서브에이전트) 10건 중 5건 반영 | 나(요청 "진행") · Claude(설계·구현·시험·화면 확인, 검토 도우미는 읽기만) | `docs/intent.md` I-P-11-my-tech, `app/projects/`, `lib/server/my-tech.ts`, `docs/qa.md` |
 | I-P-11-merged-record | P-11 합침 기록 맞추기: PR #77이 19:14 main에 합쳐진 것(병합 커밋 `ced73ad`, 승인 차세일, 배포 success)을 `plan.md` 상태 칸·`intent.md` 결과 칸·이 로그의 "PR 올림(리뷰 대기)"에 반영. 남은 일(팀 확인·마이그레이션 제안·사람 QA)은 그대로 | 나(요청 "자잘한 것 하나씩") · Claude(확인·수정) | `docs/plan.md`, `docs/intent.md`, `docs/worklog.md` |
+| I-doc-fixes-2 | 문서 점검 2차(문서와 검사 한 줄): 최신 main(d1929fd)을 읽기 전용으로 다시 점검해 🔴 8개가 모두 고쳐진 것을 확인하고, 남은 🟡·⚪ 중 문서만으로 닫히는 것을 고침 — Y-4 ⑥·Y-11 ①·Y-14·Y-15·Y-16·⚪ 5개, intent `I-037` 결과 칸. 기록 검사의 열 수 계산을 GitHub 표 규칙에 맞춤(`records.test.ts`). 읽기 전용 검토 도우미 1개가 따로 대조 | 나(요청·진행 승인) · Claude(점검·수정·시험) | `docs/doc-fixes-2` 브랜치, ADR 0017 개정 |
 | I-P-11-my-tech-insert-columns | P-11 열린 질문 ③ 해소: 실제 DB를 읽기 전용으로 조회해 `my_technologies` INSERT가 20개 열 전부 열려 있음을 확인(UPDATE는 3개 열). 사용자가 `grade`·`read_at` 같은 서버 칸을 채워 본인 줄을 만들 수 있어, 쓰는 7칸만 여는 새 마이그레이션(`202611181900_P-11_my_tech_insert_columns.sql`)과 DB 시험·코드 시험 3개를 만듦. 사용자 연결 insert는 `addTech`·`saveLocalImport` 둘뿐이고 같은 7칸만 보냄을 코드 검색으로 확인. 일부러 깨뜨린 6곳을 시험이 모두 잡음. 코드 검토 8건 중 6건 반영(`origin='repo'` 구멍을 정책 한 조건으로 막음 포함). 사용자 승인 뒤 DB에 적용(INSERT 20열 → 7열)하고 시험 SQL 기대값 7개 통과·흔적 0줄 확인. PR #88로 합침(11-18 21:37 황재웅 승인·합침). 같은 세션에서 DB에 빠져 있던 P-8(`alerts.run_id`)도 적용해 `debug-note.md`에 적음 | 나(요청 "다음작업") · Claude(조사·작성) | `supabase/migrations/202611181900_P-11_my_tech_insert_columns.sql`, `supabase/tests/my_tech_insert_columns_p11.sql`, `lib/server/my-tech-insert-columns.test.ts`, `lib/server/my-tech.ts`, `docs/intent.md` |
 | I-P-16-tech-card-link | P-16 한계 해소: 대시보드 "내 기술" 카드가 프로젝트로 거르면 `/projects?project=<id>`로 가게 연결 한 줄을 고침(숫자는 그 프로젝트 기술 수인데 연결이 거르기 없는 `/projects`여서 목록과 달랐음). 시험 2개(고치기 전 카드 2·목록 4로 실패, 일부러 틀린 3곳 모두 실패로 잡음). 코드 검토(서브에이전트) 7건(모두 낮음): 시험 보강·스타일·낡은 QA 문구는 반영, 나머지는 열린 질문. 영역 B 파일이라 황재웅을 리뷰어로 지정, PR #85로 합침(승인 차세일). `npm test` 462개 중 461 통과·todo 1·실패 0 | 나(요청 "다음 작업") · Claude(원인 확인·시험·수정) | `lib/alerts/summarize-dashboard.ts`, `docs/intent.md` I-P-16-tech-card-link, `docs/qa.md` |
 | I-P-16-merged-record | P-16 합침 기록 맞추기: PR #85가 19:51 main에 합쳐진 것(승인 차세일, 지정한 리뷰어 황재웅 승인 기록은 없음, 배포 success)을 `plan.md` 상태 칸·`intent.md` 결과 칸·이 로그에 반영하고, 황재웅 확인이 남은 열린 질문 ②·③과 사람 QA를 "아직 안 된 것"에 올림 | 나(요청 "다음작업") · Claude(확인·수정) | `docs/plan.md`, `docs/intent.md`, `docs/worklog.md` |
@@ -37,6 +38,7 @@
 - **병합은 Vercel 검사가 아니라 승인 1개만 막는다, GitHub 규칙은 안 바꿨다 (ADR 0018):** ruleset에 필수 검사가 없고(옛 보호 설정도 없음), 승인된 #59는 검사가 실패인데도 병합 가능(`UNSTABLE`)이었다. 막힌 것처럼 보인 PR은 승인 대기였다.
 - **PR 브랜치(feat·fix·docs·chore)는 배포를 끄고 main에 합칠 때만 배포, 푸시는 모아서 한 번 (ADR 0018):** 무료 한도에 걸려서. "막판에 몰아서 배포"는 배포 주소에서만 나는 문제를 마감 직전에 만나서 고르지 않았다.
 - **PR 올리기 전에 `npm run precheck`로 GitHub이 볼 충돌을 미리 본다 (ADR 0017 개정):** GitHub이 `merge=union`을 따르지 않아서. 기록을 작업마다 파일 하나로 쪼개는 근본 해결은 코드 동결(11-20 21:00) 뒤에 다시 본다.
+- **판단을 고칠 수 없다(v1)를 열린 질문에서 닫음(spec SQ1·데이터설계 DQ1):** DB가 이미 판단 고치기·지우기를 트리거로 막고 있어서 질문만 열려 있었다. 반대가 있으면 PR 리뷰에서 되돌린다(`I-doc-fixes-2`). `flow.json`의 처음 읽기 화살표(점검 Y-4 ①)는 상자 배치에 영향을 줄 수 있어 이번 문서 PR에서 빼고 차세일과 정하기로 함
 
 ### 막힌 일과 푼 방법
 - 안내서 요건 ❌ GitHub 협업: PR #26·#27이 리뷰 없이 합쳐졌고 main 보호가 꺼져 있었다 → main 보호 켜기와 사후 리뷰를 사람 할 일로 올림(plan 6절).
@@ -70,6 +72,9 @@
 - [ ] P-9b GitHub 저장소 정보 수집기(`fetch_github`): 서버 토큰은 사람이 `.env`에 넣어야 한다(변수 이름을 정해 알릴 것)
 - [ ] P-9c 공식 MCP 레지스트리 수집기(`fetch_registry`): 샘플은 `watch/samples/`에 있음
 - [ ] `runBatch`가 겹친 실행(cron + 지금 한 번 실행)을 막을지 차세일과 정하기, `docs/qa-c.md` H7 행과 `lib/demo/demo-collectors.ts` 머리 주석("수집기가 없어서 비어 있다")을 이 조각이 합쳐진 뒤 고치기
+- [ ] 점검에서 남은 🟡: Y-1(안 쓰는 키 함수 정리), Y-4 ①(처음 읽기 길의 `fetch_osv` 화살표, 차세일)·②~⑤, Y-9의 P-2 끝 기준, Y-10(마이그레이션 번호 안내), Y-11 ②~⑥, ⚪ 중 다시 안 본 9개 — 팀·김영식·차세일
+- [ ] `requirements.txt`·`.claude/skills/` 읽기(PRD-F6 1순위)를 맡은 조각이 plan에 없다 — 팀(Y-8과 함께)
+- [ ] 흐름 화면(`/admin/flow`) 캡처를 `docs/flow.md` 6절에 붙이고, erd 7절 "팀 확인"을 표시하기 — 사람
 - [ ] 정기 OSV: 이미 위험인 버전에 별칭 없는 새 취약점이 생기면 모두에게 새 알림이 가는 것이 의도인지, OSV 묶음 조회(SPEC-8)를 할지, 파일 오류와 OSV 오류 표시 칸을 나눌지(마이그레이션) 팀 결정(`docs/intent.md` I-P-9d-osv-daily 열린 질문)
 - [ ] 정기 OSV·다운로드가 합쳐진 뒤 `docs/qa-c.md` H7 행과 `lib/demo/demo-collectors.ts` 머리 주석을 차세일이 고치기("수집기가 없어서 비어 있다")
 - [ ] 첫 예약 실행(11-19 06:00 한국 시간) 결과를 `/admin/flow`에서 확인하고, Vercel 대시보드에서 `CRON_SECRET` 환경변수가 있는지 확인(사람) — 없으면 예약 실행이 401로 막혀 기록이 안 쌓인다
