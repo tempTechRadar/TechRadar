@@ -13,3 +13,4 @@
 | 2026-11-18 | Supabase (MCP 커넥터) | P-3: `my_technologies`에 내 버전 등급 칸 적용과 시험 | 사용자 승인("적용하고 시험") 뒤 `apply_migration` 1번(`p3_my_tech_grade`), `execute_sql`로 시험(만들고 끝에서 되돌림)·남은 줄 0과 칸·권한 확인, `get_advisors`(새 경고 없음, 기존 의도한 2건만) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
 | 2026-11-18 | Supabase (MCP 커넥터) + 앱 서버 코드(서비스 키) | P-3 실제 DB 끝까지 시험 뒤 정리 확인 | 사용자 승인("이대로 진행") 뒤 스크래치패드 스크립트가 서비스 키로 시험 계정 1개·줄을 만들고 끝에서 지움. `execute_sql`(SELECT만)로 계정·테이블 10개 모두 0건 확인 | `docs/qa.md` | 예(앱 DB) |
 | 2026-11-18 | Supabase (MCP 커넥터) | P-30: M1 테이블 7개 적용과 RLS 시험 | 사용자 승인("적용하고 시험") 뒤 `apply_migration` 1번(`p30_m1_tables`), `execute_sql`로 RLS 시험(만들고 끝에서 되돌림)·남은 줄과 RLS 켜짐 확인, `get_advisors`(새 경고 없음) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
+| 2026-11-18 | Supabase (MCP 커넥터) | P-30 보안 검토 반영 | 사용자 승인("적용·시험·푸시") 뒤 `apply_migration`(`p30_scenarios_insert_columns`), `execute_sql`로 RLS 시험 24개(되돌림)·남은 줄과 칸 권한 확인 | `docs/qa.md` | 예(앱 DB) |

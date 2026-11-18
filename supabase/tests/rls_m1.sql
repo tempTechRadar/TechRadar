@@ -67,6 +67,11 @@ begin
   execute 'set local role authenticated';
   insert into public.scenarios (alert_id, requested_by) values (a1, u1);
   get diagnostics n = row_count; msg := msg || 'u1_scenario_own_alert=' || n || '(1);';
+  begin  -- 요청만 하고 본문은 서버가 쓴다(202611181730 마이그레이션)
+    insert into public.scenarios (alert_id, requested_by, body) values (a1, u1, '{"fake": true}');
+    msg := msg || 'u1_scenario_with_body_blocked=NO;';
+  exception when others then msg := msg || 'u1_scenario_with_body_blocked=YES;';
+  end;
   begin
     update public.scenarios set status = 'done' where alert_id = a1;
     get diagnostics n = row_count; msg := msg || 'u1_scenario_status_rows=' || n || '(blocked);';
