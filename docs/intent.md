@@ -20,6 +20,19 @@
 | 결과 | 2026-11-18: 1차 15행(Pass 13·Fail 1·No Run 1), 2차 12행(모두 No Run, 사람 몫). main 시험 269 통과·실패 0, 기록 검사 7 통과, 타입 오류 0. PR 브랜치 4개(#52·#53·#47·#54) 모두 시험 실패 0·타입 오류 0. 로그인 전 관리자 주소 5개 → /login, 예약 API 비밀값 없으면 401. Fail 1: 흐름 샘플 ③ 장면이 정정된 flow.md 4절과 다름 |
 
 ---
+## I-record-github-union · 2026-11-18 · PR 화면에서 worklog·intent 충돌이 계속 나는 원인 확인
+- 브랜치: `docs/record-github-union` (최신 main feba290, 새 worktree `.claude/worktrees/record-github-union`)
+- 출처: 사용자 "worklog랑 intent pr에서 자꾸 충돌나는 원인" → "진행". 앞선 작업 `I-record-merge-first-sync`(PR #57, ADR 0017)의 후속
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기록 문서 충돌을 `merge=union`으로 막았는데 열린 PR 4개(#52·#53·#59·#60)가 GitHub에서 여전히 `CONFLICTING`이다 |
+| 기대 결과 | 원인을 재현으로 확인해 ADR 0017·debug-note에 남기고, 팀이 "PR 화면 충돌 = 내 컴퓨터에서 main 합치고 푸시"로 바로 풀 수 있다 |
+| 영향 범위 | ADR 0017 개정, debug-note, 기록. 코드·DB·`.gitattributes`·`CLAUDE.md`는 손대지 않음 |
+| 제약 | 열린 PR 브랜치는 직접 고치지 않는다(남의 브랜치). 커밋·푸시·PR은 사용자 승인 후. 복사본 시험은 스크래치 폴더에서만 한다 |
+| 열린 질문 | GitHub 화면의 충돌 파일 목록이 재현과 같은지, 설정 없는 브랜치의 첫 병합이 git 버전에 따라 다른지. 충돌이 계속되면 작업마다 기록 파일 쪼개기를 할지(코드 동결 11-20 21:00 전에 판단) |
+
+**결과:** 열린 PR 4개를 내 컴퓨터에서 main과 합치면 모두 충돌이 없고, 기록 문서를 `merge=text`로 덮은 복사본에서는 #60·#59가 `worklog.md`, #53·#52가 `intent.md`·`worklog.md`에서 충돌해 GitHub 표시와 같은 파일이 됐다. 원인은 GitHub PR 화면이 `merge=union`을 따르지 않는 것으로 보고 ADR 0017 개정·debug-note에 적었다. PR 4개와 설정은 고치지 않았다.
 ## I-P-27-views · 2026-11-18 · P-27 갤러리·내 레이더·소식판·쓰고 있어요 (영역 C, 차세일, 3순위)
 - 브랜치: `feat/P-27-views` (worktree, origin/main 위). 시간 상자: 순수 함수 + 화면 자리까지
 - 출처: `docs/plan.md` P-27, PRD-F34·F36·F37, IA-4·IA-19·IA-21, ADR 0009, 회의 D11, 불변 2·5(개정 문구: 본인이 공개한 것 말고는 본인 데이터만)
