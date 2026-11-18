@@ -62,13 +62,19 @@ export async function registerAndRead(user: CurrentUser, repo: { owner: string; 
   const runId = await startRun(db, { trigger, startedBy: user.id, projectId });
 
   const { found, dropped, fileErrors } = await readRepo(db, runId, repo);
-  const techIds = await saveMyTechnologies(db, user.id, projectId, found);
+  const readAt = new Date().toISOString();
+  const techIds = await saveMyTechnologies(db, { ownerId: user.id, projectId, readAt }, found);
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음)
   for (const f of fileErrors) {
     const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
-  await markDropped(db, projectId, dropped);
+  if (dropped.length) {
+    // 한도로 못 읽은 기술: 이번 읽기에서 갱신되지 않은 이 프로젝트의 저장소 줄을 수집 오류로(목록 없이 한 번, 불변 2)
+    const r = await db.from("my_technologies").update({ collect_error_kind: "parse" })
+      .eq("project_id", projectId).eq("origin", "repo").or(`read_at.is.null,read_at.lt."${readAt}"`);
+    if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
+  }
 
   const { graded, osvErrors, osvTargets } = await gradeAll(db, runId, projectId, found, techIds);
   const events = graded.filter((g) => g.result.grade === "danger");
@@ -190,7 +196,8 @@ async function upsertProject(db: SupabaseClient, ownerId: string, repo: { repo: 
 }
 
 /** 카탈로그에 기술을 잇고(없으면 만들고) 내 기술 줄을 남긴다. 기술 키 → technologies.id */
-async function saveMyTechnologies(db: SupabaseClient, ownerId: string, projectId: string, found: FoundTech[]) {
+async function saveMyTechnologies(db: SupabaseClient, at: { ownerId: string; projectId: string; readAt: string }, found: FoundTech[]) {
+  const { ownerId, projectId, readAt } = at;
   const keyed = found.filter((f) => f.tech);
   const ids = new Map<string, string>();
   if (keyed.length) {
@@ -201,14 +208,13 @@ async function saveMyTechnologies(db: SupabaseClient, ownerId: string, projectId
     if (sel.error) throw new Error(`기술 카탈로그를 읽지 못함: ${sel.error.message}`);
     sel.data.forEach((t) => ids.set(t.tech_key, t.id));
   }
-  const now = new Date().toISOString();
   const mine = found.map((f) => ({
     owner_id: ownerId,
     added_by: ownerId,
     project_id: projectId,
     origin: "repo",
     source_file: f.sourceFile,
-    read_at: now,
+    read_at: readAt,
     collect_error_kind: null,
     ...(f.tech ? { tech_id: ids.get(f.tech.key), version: f.tech.version } : { manual_name: f.name }),
   }));
@@ -262,16 +268,3 @@ async function markCollectError(db: SupabaseClient, t: Target, kind: ErrorKind) 
   if (m.error) throw new Error(`수집 오류를 저장하지 못함: ${m.error.message}`);
 }
 
-/** 한도(MAX_TECHS)로 이번에 못 읽은 기술: 전에 저장된 줄이 있으면 수집 오류로 표시한다(불변 2). 새 줄은 만들지 않는다. */
-async function markDropped(db: SupabaseClient, projectId: string, dropped: FoundTech[]) {
-  if (!dropped.length) return;
-  const keys = dropped.flatMap((f) => (f.tech ? [f.tech.key] : []));
-  const names = dropped.flatMap((f) => (f.tech ? [] : [f.name]));
-  const ids = keys.length ? await db.from("technologies").select("id").in("tech_key", keys) : { data: [], error: null };
-  if (ids.error) throw new Error(`기술 카탈로그를 읽지 못함: ${ids.error.message}`);
-  const mark = { collect_error_kind: "parse" };
-  const byTech = ids.data.length ? await db.from("my_technologies").update(mark).eq("project_id", projectId).in("tech_id", ids.data.map((t) => t.id)) : { error: null };
-  const byName = names.length ? await db.from("my_technologies").update(mark).eq("project_id", projectId).in("manual_name", names) : { error: null };
-  const err = byTech.error ?? byName.error;
-  if (err) throw new Error(`수집 오류를 저장하지 못함: ${err.message}`);
-}
