@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evidenceLinks, filterTechs, isUuid, keepView, searchTerm } from "./my-tech-view.ts";
+import { evidenceLinks, filterTechs, isUuid, keepView, readStatusNotice, searchTerm } from "./my-tech-view.ts";
 
 const T = (id: string, grade: string, hidden_at: string | null = null) => ({ id, grade, hidden_at });
 
@@ -54,4 +54,48 @@ test("uuid 모양 검사", () => {
   assert.equal(isUuid("74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e"), true);
   assert.equal(isUuid("local"), false);
   assert.equal(isUuid(""), false);
+});
+
+// 프로젝트 머리 안내(불변 2: 읽기가 끝까지 되지 않았으면 목록이 전부라고, 비어 있으면 "없음"이라고 하지 않는다)
+const NOW = new Date("2026-11-18T12:00:00Z");
+const run = (status: string, created_at = "2026-11-18T11:59:00Z") => ({ status, created_at });
+
+test("읽기 안내: 잘 읽은 저장소와 저장소가 없는 칸은 안내가 없다", () => {
+  assert.equal(readStatusNotice("repo", [run("succeeded")], NOW), null);
+  for (const runs of [undefined, [], [run("failed")]]) assert.equal(readStatusNotice("local", runs, NOW), null);
+});
+
+test("읽기 안내: 실패·일부 실패·읽은 기록 없음·모르는 상태는 모두 '다시 읽기'를 권하고, 없다고 하지 않는다", () => {
+  for (const runs of [[run("failed")], [run("partial")], [run("running")], [run("queued")], [], undefined, [run("모르는 값")], [run("")]]) {
+    const text = readStatusNotice("repo", runs, NOW);
+    assert.ok(text, `안내가 있어야 한다: ${JSON.stringify(runs)}`);
+    assert.match(text, /다시 읽기/);
+    assert.doesNotMatch(text, /AI 코딩 도구가 없어요/);
+  }
+  assert.match(readStatusNotice("repo", [run("failed")], NOW)!, /없다는 뜻이 아니에요/);
+  assert.match(readStatusNotice("repo", [run("partial")], NOW)!, /전부가 아닐 수/);
+  assert.match(readStatusNotice("repo", [], NOW)!, /읽은 기록이 없어요/);
+  assert.match(readStatusNotice("repo", [run("모르는 값")], NOW)!, /알 수 없어요/);
+});
+
+test("읽기 안내: 실패 원인은 단정하지 않는다(저장소가 안 열린 것 말고 DB 저장 실패로도 failed가 된다)", () => {
+  assert.doesNotMatch(readStatusNotice("repo", [run("failed")], NOW)!, /열지 못|저장소를 못/);
+});
+
+test("읽기 안내: 진행 중은 기다리라고 하고, 10분 넘게 끝나지 않으면 멈춘 것으로 본다", () => {
+  assert.match(readStatusNotice("repo", [run("running", "2026-11-18T11:55:00Z")], NOW)!, /아직 끝나지 않았어요/);
+  assert.match(readStatusNotice("repo", [run("running", "2026-11-18T11:50:00Z")], NOW)!, /아직 끝나지 않았어요/);
+  assert.match(readStatusNotice("repo", [run("running", "2026-11-18T11:49:00Z")], NOW)!, /멈춘 것/);
+  assert.match(readStatusNotice("repo", [run("queued", "2026-11-17T00:00:00Z")], NOW)!, /멈춘 것/);
+  assert.match(readStatusNotice("repo", [run("running", "날짜 아님")], NOW)!, /멈춘 것/);
+});
+
+test("읽기 안내: 마지막 읽기는 서버가 정렬해 주는 순서가 아니라 created_at으로 고른다", () => {
+  const oldFail = run("failed", "2026-11-18T10:00:00Z");
+  const newOk = run("succeeded", "2026-11-18T11:00:00Z");
+  assert.equal(readStatusNotice("repo", [oldFail, newOk], NOW), null);
+  assert.equal(readStatusNotice("repo", [newOk, oldFail], NOW), null);
+  const newFail = run("failed", "2026-11-18T11:30:00Z");
+  assert.match(readStatusNotice("repo", [newFail, newOk], NOW)!, /실패/);
+  assert.match(readStatusNotice("repo", [newOk, newFail], NOW)!, /실패/);
 });
