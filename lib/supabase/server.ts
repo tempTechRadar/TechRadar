@@ -17,7 +17,7 @@ export async function getServerSupabase() {
         try {
           toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // 서버 컴포넌트에서는 쿠키를 쓸 수 없다. 세션 갱신은 로그인을 붙일 때(P-12) 따로 처리한다.
+          // 서버 컴포넌트에서는 쿠키를 쓸 수 없다. 세션 갱신은 proxy.ts(lib/supabase/proxy.ts)가 한다.
         }
       },
     },

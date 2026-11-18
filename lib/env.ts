@@ -12,6 +12,11 @@ export function readSupabasePublicConfig(env: Env): SupabasePublicConfig | null 
   return { url, anonKey };
 }
 
+/** 서버 전용 서비스 키. RLS를 건너뛰므로 브라우저 코드·판단 저장에는 쓰지 않는다. */
+export function readServiceRoleKey(env: Env): string | null {
+  return env.SUPABASE_SERVICE_ROLE_KEY || null;
+}
+
 /**
  * 개발용 이메일 테스트 로그인을 켤지. 운영 배포에서는 플래그가 켜져 있어도 끈다(ADR 0007 개정).
  * Vercel은 운영 배포에 VERCEL_ENV=production을 넣는다.
