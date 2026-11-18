@@ -1,8 +1,8 @@
 // 내 컴퓨터 목록 가져오기(SPEC-6.2): "종류|이름|패키지 또는 경로|버전" 한 줄에 하나만 받는다.
 // 키·토큰처럼 보이는 줄은 저장하지 않고 줄 번호만 돌려준다(값은 어디에도 다시 쓰지 않는다).
-import { maskSecrets } from "../domain/redact.ts";
+// 생태계는 짐작하지 않는다: MCP·플러그인·SDK는 `npm:` 또는 `pypi:` 접두어가 있어야 한다(PR #42 검토 반영).
 import type { Ecosystem, InstallItem, ItemKind } from "./types.ts";
-import { validateItem } from "./validate-item.ts";
+import { looksSecret, validateItem } from "./validate-item.ts";
 
 export type ParseResult = {
   items: InstallItem[];
@@ -14,17 +14,7 @@ export type ParseResult = {
 
 const KINDS: Record<string, ItemKind> = { mcp: "mcp", skill: "skill", "스킬": "skill", plugin: "plugin", "플러그인": "plugin", sdk: "sdk" };
 const HEADER = "종류|이름|패키지 또는 경로|버전";
-const LONG_RANDOM = /(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{32,}/;
-const NPM_NAME = /^(@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
-
-const looksSecret = (line: string) => maskSecrets(line) !== line || LONG_RANDOM.test(line);
-
-/** `npm:이름` · `pypi:이름` 접두어가 있으면 따르고, 없으면 npm 규칙에 맞을 때 npm, 아니면 PyPI로 본다. */
-function splitEcosystem(raw: string): { ecosystem: Ecosystem; pkg: string } {
-  const m = /^(npm|pypi):(.+)$/.exec(raw);
-  if (m) return { ecosystem: m[1] as Ecosystem, pkg: m[2] };
-  return { ecosystem: NPM_NAME.test(raw) ? "npm" : "pypi", pkg: raw };
-}
+const PREFIX = /^(npm|pypi):(.+)$/;
 
 function toItem(fields: string[]): InstallItem | string {
   const [kindRaw, name, target, versionRaw] = fields.map((f) => f.trim());
@@ -33,7 +23,9 @@ function toItem(fields: string[]): InstallItem | string {
   if (!name || !target) return "이름과 패키지 또는 경로가 비어 있어요";
   const version = versionRaw === "" || versionRaw === "-" ? null : versionRaw;
   if (kind === "skill") return { kind, name, source: "import", pkg: target, version };
-  return { kind, name, source: "import", version, ...splitEcosystem(target) };
+  const m = PREFIX.exec(target);
+  if (!m) return "생태계 미확인: 패키지 앞에 npm: 또는 pypi:를 붙여 주세요";
+  return { kind, name, source: "import", version, ecosystem: m[1] as Ecosystem, pkg: m[2] };
 }
 
 export function parseImportLines(text: string): ParseResult {
@@ -50,7 +42,7 @@ export function parseImportLines(text: string): ParseResult {
     if (typeof item === "string") return void result.skipped.push({ line, reason: item });
     const verdict = validateItem(item);
     if (!verdict.ok) return void result.skipped.push({ line, reason: verdict.reason });
-    const key = `${item.kind}|${item.name}|${item.pkg}|${item.version ?? ""}`;
+    const key = `${item.kind}|${item.name}|${item.ecosystem ?? ""}|${item.pkg}|${item.version ?? ""}`;
     if (!seen.has(key)) result.items.push(item);
     seen.add(key);
   });
