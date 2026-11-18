@@ -36,6 +36,7 @@ export async function createAlertsForChange(db: SupabaseClient, input: CreateAle
     throw error;
   }
   const { created, people } = result;
+  // 알림은 이미 만들어졌다: 기록이 실패해도 알림 만들기를 실패로 만들지 않는다(여러 변경을 도는 호출자가 중간에 멈추지 않게). 흐름 화면의 칸만 비게 된다.
   if (input.runId) {
     await recordStep(db, input.runId, {
       stepName: "notify",
@@ -44,7 +45,7 @@ export async function createAlertsForChange(db: SupabaseClient, input: CreateAle
       countOut: created,
       outputSummary: `알림 ${created}건 만듦`,
       durationMs: Date.now() - startedAt,
-    });
+    }).catch((error) => console.error("notify 성공 기록 실패", error));
   }
   return created;
 }
@@ -64,9 +65,11 @@ async function createSecurityAlerts(db: SupabaseClient, input: CreateAlertsInput
   if (!SECURITY_CHANGE_KINDS.includes(change.kind)) {
     throw new Error(`보안 알림은 ${SECURITY_CHANGE_KINDS.join("·")} 변경에만 만든다 (받은 변경 종류: ${change.kind})`);
   }
-  const usages = await readUsages(db, [input.techId]);
+  const isSimulated = change.is_simulated || input.onlyDemo === true;
+  // 알림 키에 버전이 들어간다(SPEC-3.1): 다른 버전을 쓰는 사람은 이 위험의 대상이 아니다. 시연 변경은 시연 계정의 버전이 무엇이든 보여 줘야 해서 보지 않는다.
+  const usages = (await readUsages(db, [input.techId])).filter((usage) => isSimulated || usage.version === (change.version ?? null));
   const alerts = decideAlerts({
-    change: { id: input.changeId, kind: change.kind, techId: input.techId, dedupeKey: change.dedupe_key, isSimulated: change.is_simulated || input.onlyDemo === true },
+    change: { id: input.changeId, kind: change.kind, techId: input.techId, dedupeKey: change.dedupe_key, isSimulated },
     usages,
     existingAlertKeys: await readExistingAlertKeys(db, input.changeId),
   });

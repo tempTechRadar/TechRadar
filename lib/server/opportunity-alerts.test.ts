@@ -22,6 +22,8 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
         select() {
           let result = tables[table] ?? [];
           const q = {
+            order() { return q; },
+            range(from: number, to: number) { result = result.slice(from, to + 1); return q; },
             eq(col: string, val: unknown) { result = result.filter((r) => r[col] === val); return q; },
             in(col: string, vals: unknown[]) { result = result.filter((r) => vals.includes(r[col])); return q; },
             single: () => Promise.resolve(!readError && result.length === 1 ? { data: result[0], error: null } : { data: null, error: { message: readError ?? "한 줄이 아님" } }),
