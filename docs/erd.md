@@ -425,7 +425,7 @@ UK: (kind, ecosystem, value).
 | categories | ✔ (2.3) | ✔ | ✔ | P-30 대신 P-2에서 만듦: `technologies.category_id`가 가리켜서 |
 | judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표의 `fixed_version` 줄은 PR #28(ADR 0012)에 있음. 둘이 합쳐지면 같아짐 |
 | my_technologies 내 버전 등급 칸 (2026-11-18, P-3) | ✔ (2.2) | ✔ 6칸, 사용자 고치기 권한은 `hidden_at`·`manual_name`·`version`만 | ✔ | 마이그레이션 `202611181600_P-3_my_tech_grade.sql`(DB 이름 `p3_my_tech_grade`). 시험 4개 기대값 |
-| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs (2026-11-18, P-30) | ✔ | ✔ (RLS 켜짐, 공개 테이블 20개 모두 켜짐) | ✔ | 마이그레이션 `202611181700_P-30_m1_tables.sql`(DB 이름 `p30_m1_tables`). erd에 없던 것을 더함: `rule_lists` 종류별 칸 check, `tech_relations` 확정 ⇔ 확정 시각 check, 7개 모두 지우기 금지, 관리자는 관계의 확정 칸 3개만 고침. 허용 목록 처음 값 28줄. 시험 `rls_m1.sql` 23개 기대값 |
+| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs (2026-11-18, P-30) | ✔ | ✔ (RLS 켜짐, 공개 테이블 20개 모두 켜짐) | ✔ | 마이그레이션 `202611181700_P-30_m1_tables.sql`(DB 이름 `p30_m1_tables`). erd에 없던 것을 더함: `rule_lists` 종류별 칸 check, `tech_relations` 확정 ⇔ 확정 시각 check, 7개 모두 지우기 금지, 관리자는 관계의 확정 칸 3개만 고침, 사용자는 시나리오의 요청 칸 2개만 넣음(보안 검토 뒤 `202611181730_P-30_scenarios_insert_columns.sql`). 허용 목록 처음 값 28줄. 시험 `rls_m1.sql` 24개 기대값 |
 | 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
 
 ## 바뀐 기록
