@@ -15,4 +15,4 @@
 | 2026-11-18 | Supabase (MCP 커넥터) | P-30: M1 테이블 7개 적용과 RLS 시험 | 사용자 승인("적용하고 시험") 뒤 `apply_migration` 1번(`p30_m1_tables`), `execute_sql`로 RLS 시험(만들고 끝에서 되돌림)·남은 줄과 RLS 켜짐 확인, `get_advisors`(새 경고 없음) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
 | 2026-11-18 | Supabase (MCP 커넥터) | P-30 보안 검토 반영 | 사용자 승인("적용·시험·푸시") 뒤 `apply_migration`(`p30_scenarios_insert_columns`), `execute_sql`로 RLS 시험 24개(되돌림)·남은 줄과 칸 권한 확인 | `docs/qa.md` | 예(앱 DB) |
 | 2026-11-18 | Supabase (MCP 커넥터) | 기본 문서 점검: erd와 실제 DB 대조 | 읽기 전용 도우미가 `list_tables`(public)·`list_migrations`만 호출. 쓰기·`execute_sql` 없음 | `docs/문서점검-20261118.md` Y-10(마이그레이션 번호 차이) | 아니오 |
-| 2026-11-18 | Supabase (MCP 커넥터) | P-3 보강: 옛 값 `user_registered`가 실제 DB에 남았는지 확인 | 읽기 전용 `execute_sql` 1번(`technologies` 줄 수와 값별 개수 세기). 쓰기 없음 | `technologies` 0줄이라 고칠 데이터 없음(`docs/intent.md` I-040) | 아니오 |
+| 2026-11-18 | Supabase (MCP 커넥터) | P-3 보강: 옛 값 `user_registered`가 실제 DB에 남았는지 확인 | 읽기 전용 `execute_sql` 1번(`technologies` 줄 수와 값별 개수 세기). 쓰기 없음 | `technologies` 0줄이라 고칠 데이터 없음(`docs/intent.md` I-043) | 아니오 |
