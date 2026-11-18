@@ -3,11 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { readSimilarJudgments } from "@/lib/server/similar-judgments";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { JudgmentForm } from "./judgment-form";
+import { SimilarCard } from "./similar-card";
 import "../alerts.css";
 
-// 알림 상세(IA-7, PRD-F15). 대응안 초안·비슷한 지난 판단·적용 시나리오는 P-13·P-15에서 붙인다.
+// 알림 상세(IA-7, PRD-F15). 대응안 초안은 P-13, 적용 시나리오는 P-13 인프라(Claude 한도) 뒤에 붙인다.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +23,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
   if (loaded === null) return <LoadError id={id} />;
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
+  const similar = await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
   return (
     <main className="alerts">
       <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
@@ -40,6 +43,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           </dl>
         </article>
       )}
+      <SimilarCard similar={similar} />
       {view.judgmentLine ? (
         <article className="card" aria-labelledby="judged-title">
           <h2 id="judged-title">내 판단</h2>

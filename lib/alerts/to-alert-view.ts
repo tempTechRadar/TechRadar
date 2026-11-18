@@ -40,7 +40,7 @@ type Evidence = { id?: string; severity?: string; url?: string };
 type Value = { grade?: string; reason?: string; fixed_version?: string | null; evidence?: Evidence[] };
 
 const NOT_FOUND = "찾지 못함";
-const GRADE_LABEL: Record<string, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
+export const GRADE_LABEL: Record<string, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
 
 const listTime = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
