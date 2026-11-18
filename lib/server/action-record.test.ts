@@ -36,6 +36,12 @@ test("판단 저장 성공이면 그 알림이 생긴 실행에 action_record �
   assert.equal(inserts[0].row.status, "succeeded");
 });
 
+test("알림 줄에 run_id가 있으면 그 실행에 적는다(변경 → 수집 자료 경로가 다른 실행을 가리켜도: 공유 변경에서 남의 실행에 쓰지 않음)", async () => {
+  const { db, inserts } = fakeDb({ id: "al-1", run_id: "run-mine", changes: { observation_id: "obs-1", observations: { run_id: "run-someone-else" } } });
+  assert.deepEqual(await recordActionOutcome(db, "al-1", { ok: true }), { recorded: true, runId: "run-mine" });
+  assert.equal(inserts[0].row.run_id, "run-mine");
+});
+
 test("판단 저장 실패면 action_record 실패(빨강) 한 줄과 가린 오류", async () => {
   const { db, inserts } = fakeDb(alertWithRun);
   await recordActionOutcome(db, "al-1", { ok: false, message: "저장 실패 API_TOKEN=abc12345" });

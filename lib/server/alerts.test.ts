@@ -280,3 +280,21 @@ test("notify 기록을 못 남겨도 이미 만든 알림은 그대로고 만든
   }
   assert.equal(tables.alerts.length, 2);
 });
+
+test("originRun이 있으면 그 사람의 알림 줄에만 run_id를 적고 남의 줄은 비운다(남의 실행에 연결하지 않음)", async () => {
+  const { db, tables } = fakeDb(baseTables());
+
+  await createAlertsForChange(db, { ...input, originRun: { ownerId: "user-a", runId: "run-a" } });
+
+  const runIdOf = (userId: string) => tables.alerts.find((a) => a.user_id === userId)?.run_id;
+  assert.equal(runIdOf("user-a"), "run-a");
+  assert.equal(runIdOf("user-b"), undefined);
+});
+
+test("originRun이 없으면 알림 줄에 run_id 칸을 보내지 않는다(마이그레이션 전에도 다른 경로가 동작)", async () => {
+  const { db, tables } = fakeDb(baseTables());
+
+  await createAlertsForChange(db, input);
+
+  assert.deepEqual(tables.alerts.map((a) => "run_id" in a), [false, false]);
+});

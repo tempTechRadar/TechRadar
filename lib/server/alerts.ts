@@ -11,14 +11,22 @@ export type CreateAlertsInput = {
   techId: string;
   kind: "security" | "opportunity";
   onlyDemo?: boolean;
+  /**
+   * 이 알림 만들기를 부른 읽기 실행. 실행한 사람(ownerId)의 알림 줄에만 run_id로 적는다(남의 줄은 비움: 변경은 공유라 남의 실행에 연결하면 안 됨, 불변 5).
+   * 판단 뒤 "조치" 기록이 이 실행을 찾는 길이다(action-record.ts)
+   */
+  originRun?: { ownerId: string; runId: string };
   /** 있으면 흐름 화면용 `notify` 단계를 이 실행에 남긴다(P-4 recordStep, 불변 6) */
   runId?: string;
 };
 
 const SECURITY_CHANGE_KINDS = ["grade_to_danger", "first_seen_danger"];
 
-function toAlertRow(changeId: string, alert: NewAlert): Row {
-  return { user_id: alert.userId, change_id: changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey };
+function toAlertRow(changeId: string, alert: NewAlert, originRun: CreateAlertsInput["originRun"]): Row {
+  const row: Row = { user_id: alert.userId, change_id: changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey };
+  // 칸은 값이 있을 때만 보낸다: 마이그레이션이 DB에 들어가기 전에도 시뮬레이터·적용 기회 경로가 깨지지 않게
+  if (originRun && originRun.ownerId === alert.userId) row.run_id = originRun.runId;
+  return row;
 }
 
 /**
@@ -75,5 +83,5 @@ async function createSecurityAlerts(db: SupabaseClient, input: CreateAlertsInput
   });
   const people = new Set(usages.map((usage) => usage.userId)).size;
   if (alerts.length === 0) return { created: 0, people };
-  return { created: await writeAlerts(db, alerts.map((alert) => toAlertRow(input.changeId, alert))), people };
+  return { created: await writeAlerts(db, alerts.map((alert) => toAlertRow(input.changeId, alert, input.originRun))), people };
 }
