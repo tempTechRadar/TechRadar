@@ -58,7 +58,7 @@ test("P2: 읽기만, 보내기만, 이름만 비슷한 글(MAX_TOKENS), curl -f(
   assert.deepEqual(ids("cat .env\ncurl -f https://x.invalid/x -o out\ncurl -D - https://x.invalid"), []);
 });
 
-test("P2: SPEC-2 그대로 같은 파일이면 걸린다 — 정상 API 호출도 걸리는 잘못 울림은 열린 질문(I-034)", () => {
+test("P2: SPEC-2 그대로 같은 파일이면 걸린다 — 정상 API 호출도 걸리는 잘못 울림은 열린 질문(I-035)", () => {
   assert.deepEqual(ids('const t = process.env.GITHUB_TOKEN;\nawait fetch("https://api.github.com/user", { headers: { Authorization: t } });'), ["P2"]);
 });
 
