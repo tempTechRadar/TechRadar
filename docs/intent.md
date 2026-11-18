@@ -84,6 +84,21 @@
 
 ---
 
+## I-P-19b-install-screen · 2026-11-18 · P-19b 설치 프롬프트 화면·내 컴퓨터 목록 가져오기 저장 (영역 C, 차세일)
+- 브랜치: `feat/P-19b-install-screen` (worktree, origin/main 위). 순수 함수(lib/install)는 PR #42로 main에 있음
+- 출처: `docs/plan.md` P-19, PRD-F25·F33, SPEC-4.3·6, ADR 0009·0012, IA-22·IA-3, 불변 4·5. main 확인: P-8 판단 저장(PR #43, judgments.fixed_version)·P-30 exports 표 합쳐짐
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 설치 프롬프트·가져오기 규칙(순수 함수)은 있지만 사용자가 쓸 화면과 저장이 없다(알파 D2) |
+| 기대 결과 | `/projects/install`: 내 기술 고르기 → 미리보기 → 복사(위험은 기본 제외, 직접 넣으면 "위험: ID", 적용 후보는 고친 버전으로 고정). 가져오기 글 복사 → 붙여 넣기 → 미리보기(받을 것·뺀 것·비밀값처럼 보여서 뺀 것) → "프로젝트 밖"(projects.kind=local)에 저장. 복사·가져오기는 exports에 기록 |
+| 영향 범위 | `lib/install/from-my-tech.ts`·`import-prompt.ts`(새), `lib/server/local-import.ts`(새), `app/projects/install/`(새), `app/dev/install-sample`(새, 개발 전용), 시험 2개 |
+| 제약 | 사용자 본인 로그인만(서비스 키 없음, RLS). 순수 함수는 고치지 않고 재사용. 저장은 insert 한 번이라 실패하면 아무것도 바뀌지 않음(불변 4), 붙여 넣은 글은 화면에 그대로. 서버가 붙여 넣은 글을 다시 읽음(화면 미리보기를 믿지 않음) |
+| 열린 질문 | 가져오기 글에 "npm:·pypi: 접두어" 줄을 더함 → `docs/spec.md` 6.2 반영 필요(팀 확인). 내 프로젝트(IA-3) 화면에 이 화면 링크(A 영역 파일). 스킬 경로는 기술 키(owner/repo/name)에서 `.claude/skills/` 아래로 짐작함 |
+| 결과 | 2026-11-18: 시험 237개 중 236 통과·실패 0(할 일 1은 기존), 타입 검사 통과. 샘플 화면을 ego 브라우저로 캡처(위험 기본 제외·직접 넣기·고친 버전 고정·가져오기 미리보기 확인). 못 한 것: 로그인한 실제 계정으로 저장 확인 |
+
+---
+
 ## I-P-20c-fail-demo · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
 - 번호: I-040(P-20b, PR #47)·I-042(P-18, PR #52)가 열려 있고 main은 I-043까지라 **I-044**
 - 브랜치: `feat/P-20c-fail-demo` (worktree `C:\bootcamp\TechRadar-DEMO`, origin/main 13fd4c0 위)
