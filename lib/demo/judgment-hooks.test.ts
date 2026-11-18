@@ -42,7 +42,7 @@ test("시연 조건이 맞으면 판단 저장이 실제 실패 처리를 탄다
   const picked = maybeFailForDemo({ db, env: on, isDemo: true, cookie: "1" });
   assert.equal(picked.consumed, true);
   const result = await saveJudgment(picked.db, { id: "demo-a", role: "user" }, { alertId: "alert-1", decision: "candidate", reason: "" });
-  assert.deepEqual(result, { ok: false, message: "저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요." });
+  assert.deepEqual(result, { ok: false, message: "저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요.", saveAttempted: true });
   assert.deepEqual(rpcCalls, []); // 진짜 save_judgment는 부르지 않았다
 });
 
