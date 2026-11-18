@@ -1,6 +1,6 @@
 // 비슷한 과거 판단 찾기(SPEC-4.5, PRD-F21). 규칙으로 찾는다(검색·임베딩 아님): 같은 입력에 같은 결과.
 // DB·화면을 모른다. "내 판단만"은 읽는 쪽(user_id 조건과 RLS)이 맡는다.
-export type Decision = "candidate" | "hold";
+import type { Decision } from "./filter-history.ts";
 
 export type PastJudgment = {
   alertId: string;
