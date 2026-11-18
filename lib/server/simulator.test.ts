@@ -190,7 +190,7 @@ test("clearSimulated: 외래키 순서로 지우고 바꾼 기록을 남긴다",
   const { db, calls, log } = fakeDb(clearResponder());
   const result = await clearSimulated({ db }, { adminId: "admin-1" });
   const deletes = log.filter((l) => l.endsWith(":delete"));
-  assert.deepEqual(deletes, ["scenarios:delete", "judgments:delete", "alerts:delete", "changes:delete", "observations:delete", "technologies:delete"]);
+  assert.deepEqual(deletes, ["scenarios:delete", "judgments:delete", "alerts:delete", "changes:delete", "observations:delete", "tech_relations:delete", "technologies:delete"]);
   assert.equal(log.at(-1), "audit_logs:insert");
   const audit = calls.at(-1)?.row;
   assert.equal(audit?.actor_role, "admin");

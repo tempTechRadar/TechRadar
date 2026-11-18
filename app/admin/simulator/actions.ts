@@ -7,6 +7,7 @@ import { saveChange } from "@/lib/server/changes";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { clearSimulated, runSimulator } from "@/lib/server/simulator";
+import { runOpportunitySimulator } from "@/lib/server/simulator-opportunity";
 
 const PAGE = "/admin/simulator";
 const back = (key: "error" | "cleared", text: string) => redirect(`${PAGE}?${key}=${encodeURIComponent(maskSecrets(text))}`);
@@ -33,12 +34,26 @@ export async function runSimulatorAction(): Promise<void> {
   redirect(target);
 }
 
+/** 두 번째 시나리오: 적용 기회(SPEC-3.5 셋째 줄). 시연 계정에 기술이 없으면 실행 기록을 만들지 않고 이유만 알린다 */
+export async function runOpportunityAction(): Promise<void> {
+  const { user, db } = await adminAndDb();
+  let target: string;
+  try {
+    const r = await runOpportunitySimulator({ db, saveChange, createAlertsForChange }, { adminId: user.id });
+    if (!r.started) return back("error", r.reason);
+    target = r.alertsCreated > 0 ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.note))}&run=${r.runId}`;
+  } catch (error) {
+    return back("error", error instanceof Error ? error.message : String(error));
+  }
+  redirect(target);
+}
+
 export async function clearSimulatedAction(): Promise<void> {
   const { user, db } = await adminAndDb();
   let text: string;
   try {
     const r = await clearSimulated({ db }, { adminId: user.id });
-    text = `변경 ${r.changes}건, 알림 ${r.alerts}건, 판단 ${r.judgments}건, 시나리오 ${r.scenarios}건, 수집 자료 ${r.observations}건, 기술 ${r.technologies}건을 지웠어요(내 기술이 쓰는 가짜 기술 ${r.keptTechnologies}건은 남김).`;
+    text = `변경 ${r.changes}건, 알림 ${r.alerts}건, 판단 ${r.judgments}건, 시나리오 ${r.scenarios}건, 수집 자료 ${r.observations}건, 같은 역할 관계 ${r.relations}건, 기술 ${r.technologies}건을 지웠어요(내 기술이 쓰는 가짜 기술 ${r.keptTechnologies}건은 남김).`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }

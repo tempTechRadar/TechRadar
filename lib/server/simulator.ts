@@ -22,7 +22,7 @@ const SIM_CAUSE_ID = `sim:${G1.causeId}`;
 const SOURCE_NAME = "시뮬레이터(가짜 출처)";
 const METRIC = "osv_advisory";
 
-const fail = (what: string, message?: string) => new Error(`${what}: ${message ?? "빈 응답"}`);
+export const fail = (what: string, message?: string) => new Error(`${what}: ${message ?? "빈 응답"}`);
 
 export async function upsertSource(db: SupabaseClient): Promise<string> {
   const row = { name: SOURCE_NAME, method: "api", priority: 99, enabled: false }; // 꺼 둔 출처: 진짜 수집이 쓰지 않는다
@@ -67,9 +67,9 @@ async function insertObservation(db: SupabaseClient, ids: { sourceId: string; te
   return data.id as string;
 }
 
-type Flow = { runId: string; current: string };
+export type Flow = { runId: string; current: string };
 
-async function done(deps: SimulatorDeps, flow: Flow, step: Omit<StepRecord, "status">): Promise<void> {
+export async function done(deps: Pick<SimulatorDeps, "db">, flow: Flow, step: Omit<StepRecord, "status">): Promise<void> {
   await recordStep(deps.db, flow.runId, { ...step, status: "succeeded" });
 }
 
@@ -120,7 +120,7 @@ async function saveAndNotify(deps: SimulatorDeps, flow: Flow, tech: TechRef, ids
 }
 
 /** 이미 있던 변경이 진짜 변경이면 알림을 붙이지 않고 멈춘다(진짜 사용자에게 가짜 알림이 가는 일을 막는다). */
-async function assertSimulatedChange(db: SupabaseClient, changeId: string): Promise<void> {
+export async function assertSimulatedChange(db: SupabaseClient, changeId: string): Promise<void> {
   const { data, error } = await db.from("changes").select("is_simulated").eq("id", changeId).single();
   if (error) throw fail("이미 있는 변경을 다시 확인하지 못함", error.message);
   if ((data as { is_simulated?: boolean } | null)?.is_simulated !== true) {
@@ -149,7 +149,7 @@ export async function runSimulator(deps: SimulatorDeps, input: { adminId: string
   }
 }
 
-export type ClearResult = Record<"scenarios" | "judgments" | "alerts" | "changes" | "observations" | "technologies", number> & { keptTechnologies: number };
+export type ClearResult = Record<"scenarios" | "judgments" | "alerts" | "changes" | "observations" | "relations" | "technologies", number> & { keptTechnologies: number };
 
 type Answer = PromiseLike<{ data: unknown; error: { message: string } | null }>;
 const idsOf = (rows: unknown): string[] => ((rows ?? []) as { id: string }[]).map((r) => r.id);
@@ -202,14 +202,14 @@ async function removeUnusedTechnologies(db: SupabaseClient): Promise<{ removed: 
   return { removed, kept: fake.length - free.length };
 }
 
-const emptyClear = (): ClearResult => ({ scenarios: 0, judgments: 0, alerts: 0, changes: 0, observations: 0, technologies: 0, keptTechnologies: 0 });
+const emptyClear = (): ClearResult => ({ scenarios: 0, judgments: 0, alerts: 0, changes: 0, observations: 0, relations: 0, technologies: 0, keptTechnologies: 0 });
 
 function clearReason(r: ClearResult, errorMessage: string | null): string {
-  const counts = `변경 ${r.changes}, 알림 ${r.alerts}, 판단 ${r.judgments}, 시나리오 ${r.scenarios}, 수집 자료 ${r.observations}, 기술 ${r.technologies}(남김 ${r.keptTechnologies})`;
+  const counts = `변경 ${r.changes}, 알림 ${r.alerts}, 판단 ${r.judgments}, 시나리오 ${r.scenarios}, 수집 자료 ${r.observations}, 같은 역할 관계 ${r.relations}, 기술 ${r.technologies}(남김 ${r.keptTechnologies})`;
   return errorMessage === null ? `시뮬레이터 지우기: ${counts}` : `시뮬레이터 지우기 중간 실패: 지운 것 ${counts}. 오류: ${maskSecrets(errorMessage)}`;
 }
 
-/** 지우는 순서(외래키 순서): 시나리오 → 판단 → 알림 → 변경 → 수집 자료 → 기술. 지운 수는 r에 바로 쌓는다. */
+/** 지우는 순서(외래키 순서): 시나리오 → 판단 → 알림 → 변경 → 수집 자료 → 같은 역할 관계 → 기술. 지운 수는 r에 바로 쌓는다. */
 async function removeAll(db: SupabaseClient, r: ClearResult): Promise<void> {
   const changeIds = await readIds(db.from("changes").select("id").eq("is_simulated", true), "가짜 변경");
   const alertIds = changeIds.length === 0 ? [] : await readIds(db.from("alerts").select("id").in("change_id", changeIds), "가짜 변경의 알림");
@@ -218,6 +218,7 @@ async function removeAll(db: SupabaseClient, r: ClearResult): Promise<void> {
   r.alerts = await removeByIds(db, "alerts", "id", alertIds, "알림");
   r.changes = await removeRows(db.from("changes").delete().eq("is_simulated", true).select("id"), "가짜 변경");
   r.observations = await removeRows(db.from("observations").delete().eq("is_simulated", true).select("id"), "가짜 수집 자료");
+  r.relations = await removeRows(db.from("tech_relations").delete().eq("is_simulated", true).select("id"), "가짜 같은 역할 관계");
   const techs = await removeUnusedTechnologies(db);
   r.technologies = techs.removed;
   r.keptTechnologies = techs.kept;
