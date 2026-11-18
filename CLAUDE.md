@@ -68,7 +68,7 @@
 
 ## 9. 기록 루틴 (매 세션, 빠뜨리지 않는다)
 안내서는 과정 기록도 평가한다. 나중에 몰아서 쓸 수 없으니 일하면서 쌓는다.
-- **시작할 때:** `docs/intent.md` 맨 위에 `I-번호`로 작업 의도를 쓴다(5칸 + 브랜치 + 출처 문서).
+- **시작할 때:** `docs/intent.md` 맨 위에 작업 ID로 작업 의도를 쓴다(5칸 + 브랜치 + 출처 문서). **작업 ID = `I-` + 브랜치 이름에서 `feat/`·`fix/`·`docs/`·`chore/`를 뺀 것**(예: `fix/P-3-collect-errors` → `I-P-3-collect-errors`). 번호를 매기지 않는다: 동시에 만들면 같은 번호가 겹친다(ADR 0017). 옛 번호(I-001~I-043)는 그대로 둔다. `docs/worklog.md` 행의 첫 칸에도 같은 작업 ID를 쓴다.
 - **하는 동안:**
   - 되돌리기 어렵거나 안내서와 다르게 가는 결정 → `docs/adr/`
   - 새 용어나 용어 변경 → `docs/GLOSSARY.md`
@@ -80,6 +80,7 @@
 - 커밋·푸시는 요청할 때만. 성격별(feat/fix/test/docs/chore/perf)로 나눠 커밋한다.
 - 조각 하나 = 브랜치 하나. `main`에 직접 커밋하지 않는다. PR은 팀원 1명 이상 리뷰 후 합친다.
 - 충돌이 나면 혼자 지우지 말고 멈춰서 묻는다. 합친 뒤 생긴 오류는 `docs/debug-note.md`에 남긴다.
+- main은 **내 컴퓨터에서 `git merge origin/main`**으로 받는다. 기록 문서 5개(`intent`·`worklog`·`agents`·`connectors`·`debug-note`)는 `.gitattributes`가 양쪽 줄을 모두 남겨 충돌 표시가 안 난다(GitHub 웹의 'Resolve conflicts'·'Update branch'는 이 설정을 따르지 않으니 쓰지 않는다). 합친 뒤 `npm test`의 기록 검사(`lib/records`)가 통과하는지 본다(ADR 0017). **이 설정이 들어오기 전에 만든 브랜치는 처음 한 번만** 설정을 커밋으로 먼저 받는다: `git fetch origin && git checkout origin/main -- .gitattributes && git commit -m "chore: .gitattributes 받기" && git merge origin/main` (git은 합치는 쪽 브랜치에 있는 설정만 쓰므로 설정이 없는 브랜치의 첫 병합에는 적용되지 않는다. 커밋 안 한 변경이 있으면 먼저 커밋한다). `plan`·`spec` 같은 기획 문서의 "바뀐 기록" 끝이 겹치면 양쪽 줄을 모두 남긴다.
 - 올리지 않는다: `.env*`, `.claude/`(단 `.claude/agents/`와 `.claude/skills/`는 팀 공용이라 올린다).
 - 비밀 키·비밀번호를 채팅·문서·코드·커밋·발표 자료에 쓰지 않는다. 키는 서버 환경변수에만 둔다(사용자가 `.env`에 직접 넣는다).
 - 푸시로 자동 배포되면, 푸시 후 배포 상태와 실제 주소를 확인한다.
