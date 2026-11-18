@@ -244,6 +244,7 @@
 | I-precheck-merge | PR 올리기 전 충돌 미리 보기 `npm run precheck`: GitHub이 볼 일반 병합(`.gitattributes` 무시)을 `merge-tree`로 읽기만 계산. 열린 PR 4개와 GitHub 표시가 모두 일치, 충돌이면 종료 코드 1을 옛 main 시험 브랜치로 확인. `CLAUDE.md` 10절·ADR 0017 개정 | 나(요청) · Claude(시험·작성) | `chore/precheck-merge`, `package.json`, ADR 0017 |
 | I-connectors-worklog-1118 | 이번 세션 기록 보강(소급): 커넥터 사용 2줄(Vercel 조회, abbsbook)을 `connectors.md`에 추가하고, 11-18 날짜 항목의 정한 일·막힌 일·아직 안 된 것을 채움. 병합된 worktree 3개·브랜치 정리 | 나(요청) · Claude(작성) | `docs/connectors-worklog-1118`, `docs/connectors.md`, `docs/worklog.md` |
 | I-B-record-2-1118 | 영역 B 2차 기록(소급, 문서만): P-8 판단 저장 결과 `saveAttempted`(#61)와 판단 뒤 조치 기록·저장 실패 시연 연결(#62), P-14 알림 상세의 적용 기회 화면(와이어프레임 먼저 확인 → 이유·비교표, #69), P-13 대응안 초안(한도 판단·프롬프트·답 검사·`generateDraft`·카드, #72, Claude 실제 연결은 키 뒤)을 `plan` 결과 칸·`qa`(Claude QA 3행, 사람 QA 3행은 전부 No Run)·`intent`에 채움. 서버 함수는 코드를 일부러 망가뜨려 시험이 잡는지 확인, 실제 DB·화면·Claude 응답은 못 확인함 | 나(요청) · Claude(작성·시험·검토 도우미) | `docs/B-record-2-1118`, I-B-record-2-1118 |
+| I-P-5-fixed-version-key | P-5 시뮬레이터 알림의 고친 버전 키를 `fixed_version`으로(PR #79 M0 점검 Fail): `simulator.ts` 59·105줄 키 이름만 바꾸고, 저장한 값을 알림 화면 함수에 넣어 적용 후보가 켜지는지 보는 시험 1개(먼저 실패 확인). impact-map 영향 시험 3개 통과 | Claude(자비스), 차세일 확인 | `lib/server/simulator.ts`, `lib/server/simulator.test.ts` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)

@@ -56,7 +56,7 @@ async function insertObservation(db: SupabaseClient, ids: { sourceId: string; te
     tech_id: ids.techId,
     metric: METRIC,
     prev_value: { grade: "pass" },
-    curr_value: { grade: "danger", causeId: G1.causeId, fixedVersion: G1.fixedVersion },
+    curr_value: { grade: "danger", causeId: G1.causeId, fixed_version: G1.fixedVersion }, // 키 이름은 first-read.ts·판단·화면과 같게(fixed_version)
     change_size: "large",
     run_id: ids.runId,
     observed_at: new Date().toISOString(),
@@ -102,7 +102,7 @@ async function saveAndNotify(deps: SimulatorDeps, flow: Flow, tech: TechRef, ids
     tech,
     causeId: SIM_CAUSE_ID,
     prevValue: { grade: "pass" },
-    currValue: { grade: "danger", fixedVersion: G1.fixedVersion },
+    currValue: { grade: "danger", fixed_version: G1.fixedVersion }, // judgments.ts·to-alert-view.ts가 이 키로 읽는다
     observationId: ids.observationId,
     isSimulated: true,
   });

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clearSimulated, runSimulator, type SimulatorDeps } from "./simulator.ts";
+import { toAlertView } from "../alerts/to-alert-view.ts";
 
 type Call = { table: string; op: string; row?: Record<string, unknown>; filters: [string, string, unknown][]; single: boolean };
 type Reply = { data?: unknown; error?: { message: string } };
@@ -93,6 +94,22 @@ test("runSimulator: 가짜 표시와 G1 값이 붙는다", async () => {
   assert.equal(alertInputs[0].changeId, "chg-1");
   const isEvent = calls.find((c) => c.table === "run_steps" && c.row?.step_name === "is_event");
   assert.deepEqual(isEvent?.row?.branch_counts, { event: 1, no_change: 0, collect_error: 0 });
+});
+
+// PR #79 M0 점검에서 찾음: 고친 버전 키가 판단·화면이 읽는 이름(fixed_version, first-read.ts와 같음)과 달라 [적용 후보]가 안 됐다
+test("runSimulator: 고친 버전은 fixed_version 키로 저장해 알림 화면에서 적용 후보를 고를 수 있다", async () => {
+  const { deps, calls, saved } = fakeDeps();
+  await runSimulator(deps, { adminId: "a" });
+  assert.deepEqual(saved[0].currValue, { grade: "danger", fixed_version: "0.1.16" });
+  const observed = calls.find((c) => c.table === "observations")?.row?.curr_value as Record<string, unknown>;
+  assert.equal(observed.fixed_version, "0.1.16");
+  assert.equal("fixedVersion" in observed, false);
+  const view = toAlertView({
+    id: "alert-1", kind: "security", status: "pending", createdAt: "2026-11-18T01:30:00Z",
+    projectId: null, projectName: null, sourceFile: null, judgment: null, comparison: null,
+    change: { kind: "grade_to_danger", techName: "mcp-remote", detectedAt: null, prevValue: saved[0].prevValue, currValue: saved[0].currValue, draft: null },
+  });
+  assert.equal(view.canCandidate, true);
 });
 
 test("runSimulator: 기술이 동시에 만들어져 upsert가 빈 줄을 돌려주면 다시 읽어 그 id를 쓴다", async () => {
