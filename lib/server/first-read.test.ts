@@ -146,6 +146,15 @@ test("카탈로그에는 두꺼운 이유 'used'로 넣는다(erd 값)", async (
   assert.deepEqual(rows.map((r) => r.thick_reasons), [["used"]]);
 });
 
+test("다시 읽어도 직접 숨긴 기술은 되살아나지 않는다(PRD-F7): 내 기술 줄을 덮어쓰는 칸에 hidden_at이 없다", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG } });
+  const { db, calls } = fakeDb(true);
+  await registerAndRead(USER, REPO, { db });
+  const rows = arg0(ops(calls, "my_technologies", "upsert")[0]) as unknown as Row[];
+  assert.ok(rows.length > 0);
+  assert.ok(rows.every((r) => !("hidden_at" in r)));
+});
+
 test("새 등록: 저장소가 안 열리면(404·비공개) 막는다. 프로젝트도 실행도 만들지 않는다", async (t) => {
   stubWeb(t, { repo: status(404) });
   const { db, calls } = fakeDb();
