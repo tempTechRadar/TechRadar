@@ -29,6 +29,7 @@ export default async function AdminFlowPage({ searchParams }: { searchParams: Pr
 
   return (
     <main>
+      <p><Link href="/admin/simulator">시뮬레이터</Link></p>
       <h1>흐름 화면</h1>
       <p>앱이 실제로 돈 기록(`runs`·`run_steps`)대로 칠해집니다. 기록이 없는 상자는 회색으로 남습니다.</p>
       {readError ? (

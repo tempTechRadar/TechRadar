@@ -1,0 +1,10 @@
+{
+  "queriedAt": "2026-11-18",
+  "note": "G1–G4 패키지의 최신 버전을 OSV에 조회한 결과(SPEC-10 G5). 모두 알려진 취약점 0건.",
+  "results": [
+    { "ecosystem": "npm", "name": "@modelcontextprotocol/inspector", "version": "2.15.0", "vulns": [] },
+    { "ecosystem": "npm", "name": "@modelcontextprotocol/server-filesystem", "version": "2.3.0", "vulns": [] },
+    { "ecosystem": "npm", "name": "mcp-remote", "version": "0.16.6", "vulns": [] },
+    { "ecosystem": "PyPI", "name": "mcp", "version": "2.3.0", "vulns": [] }
+  ]
+}

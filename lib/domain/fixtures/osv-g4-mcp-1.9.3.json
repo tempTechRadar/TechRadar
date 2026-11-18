@@ -1,0 +1,423 @@
+{
+ "vulns": [
+  {
+   "id": "GHSA-3qhf-m339-9g5v",
+   "summary": "MCP Python SDK vulnerability in the FastMCP Server causes validation error, leading to DoS",
+   "aliases": [
+    "CVE-2025-53366",
+    "PYSEC-2026-1616"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.9.4"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-5h93-6whr-6q8j",
+   "summary": "Model Context Protocol Python SDK: HTTP client transports followed cross-origin redirects carrying custom headers and bodies",
+   "aliases": [
+    "CVE-2026-116685"
+   ],
+   "database_specific": {
+    "severity": "MODERATE"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "2.0.0"
+        },
+        {
+         "fixed": "2.2.0"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "1.8.0"
+        },
+        {
+         "fixed": "1.30.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-84m7-p3x7-pcfv",
+   "summary": "MCP Python SDK: Unbounded Session Accumulation in StreamableHTTP Transport Enables Resource Exhaustion",
+   "aliases": [
+    "CVE-2026-59951"
+   ],
+   "database_specific": {
+    "severity": "MODERATE"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "1.8.0"
+        },
+        {
+         "fixed": "1.30.0"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "2.0.0"
+        },
+        {
+         "fixed": "2.2.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-9h52-p55h-vw2f",
+   "summary": "Model Context Protocol (MCP) Python SDK does not enable DNS rebinding protection by default",
+   "aliases": [
+    "CVE-2025-66416",
+    "PYSEC-2026-1617"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.23.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-j975-95f5-7wqh",
+   "summary": "MCP Python SDK has Unhandled Exception in Streamable HTTP Transport, Leading to Denial of Service",
+   "aliases": [
+    "CVE-2025-53365",
+    "PYSEC-2026-1618"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.10.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-jpw9-pfvf-9f58",
+   "summary": "MCP Python SDK: HTTP transports serve session requests without verifying the authenticated principal",
+   "aliases": [
+    "CVE-2026-52869",
+    "PYSEC-2026-3482"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.27.2"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GHSA-vj7q-gjh5-988w",
+   "summary": "MCP Python SDK: WebSocket server transport does not support Host/Origin validation",
+   "aliases": [
+    "CVE-2026-59950",
+    "PYSEC-2026-3483"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.28.1"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-1616",
+   "summary": "MCP Python SDK vulnerability in the FastMCP Server causes validation error, leading to DoS",
+   "aliases": [
+    "CVE-2025-53366",
+    "GHSA-3qhf-m339-9g5v"
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.9.4"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-1617",
+   "summary": "Model Context Protocol (MCP) Python SDK does not enable DNS rebinding protection by default",
+   "aliases": [
+    "CVE-2025-66416",
+    "GHSA-9h52-p55h-vw2f"
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.23.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-1618",
+   "summary": "MCP Python SDK has Unhandled Exception in Streamable HTTP Transport, Leading to Denial of Service",
+   "aliases": [
+    "CVE-2025-53365",
+    "GHSA-j975-95f5-7wqh"
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.10.0"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-3482",
+   "summary": "MCP Python SDK: HTTP transports serve session requests without verifying the authenticated principal",
+   "aliases": [
+    "CVE-2026-52869",
+    "GHSA-jpw9-pfvf-9f58"
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.27.2"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "PYSEC-2026-3483",
+   "summary": "MCP Python SDK: WebSocket server transport does not support Host/Origin validation",
+   "aliases": [
+    "CVE-2026-59950",
+    "GHSA-vj7q-gjh5-988w"
+   ],
+   "affected": [
+    {
+     "package": {
+      "name": "mcp",
+      "ecosystem": "PyPI",
+      "purl": "pkg:pypi/mcp"
+     },
+     "ranges": [
+      {
+       "type": "ECOSYSTEM",
+       "events": [
+        {
+         "introduced": "0"
+        },
+        {
+         "fixed": "1.28.1"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
