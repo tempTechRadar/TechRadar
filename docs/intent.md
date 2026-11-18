@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-11-my-tech-insert-columns · 2026-11-18 · 내 기술 insert 열 제한 (P-11 열린 질문 ③ 해소, 영역 A)
+- 브랜치: `fix/P-11-my-tech-insert-columns` (최신 main 8c53ad2, worktree `.claude/worktrees/p11-records`)
+- 출처: `I-P-11-my-tech` 열린 질문 ③, erd "쓰기는 서버", 제품 불변 5, P-3(`my_technologies` update 열 제한)·P-30(`scenarios` insert 열 제한) 선례
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 실제 DB를 읽기 전용으로 조회하니(11-18) `authenticated`가 `my_technologies`에 INSERT를 **20개 열 전부**로 가졌다(UPDATE는 P-3에서 3개 열로 좁혀 둠). 로그인한 사용자가 API로 `grade`·`grade_evidence`·`read_at`·`source_file` 같은 서버 칸을 채운 채 본인 줄을 만들 수 있었다. 본인 줄뿐이라 남의 화면은 바뀌지 않지만 "위험"을 "통과"로 보이게 할 수 있어 erd "쓰기는 서버"와 어긋난다 |
+| 기대 결과 | 사용자 insert는 쓰는 7칸(`owner_id`·`added_by`·`project_id`·`tech_id`·`manual_name`·`origin`·`version`)만 열어 둔다. 서버(서비스 키 연결)는 그대로 모든 칸을 쓴다. 코드가 보내는 칸이 열 목록 밖으로 나가면 운영에서 저장이 깨지기 전에 시험이 먼저 실패한다 |
+| 영향 범위 | 새 마이그레이션 1개(`202611181900_P-11_my_tech_insert_columns.sql`: insert 열 revoke + grant 7칸, `my_tech_insert` 정책에 `origin in ('manual','import')` 한 조건 추가), DB 시험 `supabase/tests/my_tech_insert_columns_p11.sql`(서버 칸 13개·origin repo·남의 프로젝트 막힘, service_role은 통과), 코드 시험 `lib/server/my-tech-insert-columns.test.ts`(4), `my-tech.ts` 주석 한 곳. 사용자 연결로 이 표에 넣는 곳은 `addTech`(P-11)와 `saveLocalImport`(P-19) 둘뿐이고 둘 다 같은 7칸·manual/import만 보낸다(코드 검색). 저장소 읽기(`registerAndRead`)는 기본이 서비스 키 연결이라 영향 없음 |
+| 제약 | DB 적용은 사용자 승인 뒤에만. 앞 마이그레이션 파일은 고치지 않고 새 파일로 더한다(P-30 선례). 새 라이브러리·비밀값 없음. `saveLocalImport`는 차세일(C) 파일이라 고치지 않고 시험으로만 맞춘다 |
+| 열린 질문 | ① (해소) `origin`을 7칸에 남겨 두면 사용자가 `repo`로 적을 수 있는데, 코드 검토가 짚었듯 출처 표시만이 아니라 본인 설치 프롬프트의 출처·범위(`from-my-tech.ts`)와 다시 읽을 때 "읽지 못함" 표시(`first-read.ts` 57줄)에도 영향이 간다(본인 줄에만). 그래서 이 마이그레이션에 정책 조건 하나를 더했다. ② `manual_name`·`version`의 길이·모양·비밀값 검사는 `checkNewTech`에만 있고 DB에는 없다. API로 직접 넣으면 건너뛰고, 관리자 목록(`admin-queries.ts` 95줄)이 모든 사용자의 `manual_name`을 읽는다. DB 검사 제약을 더할지는 팀 확인 ③ 이 모양의 구멍(행 정책만 있고 열 제한이 없음)이 P-3 update, P-30 scenarios insert, 이번 P-11 insert로 세 번째다. 표를 만들 때 처음부터 열 grant로 하는 규칙이나, 모든 표의 insert·update 열 권한을 허용 목록과 대조하는 시험을 둘지 팀 확인 ④ DB 시험 SQL은 적용한 DB에서만 의미가 있다 |
+| 결과 | **DB 적용·시험 끝**(사용자 승인 "진행"·"네가 해" 뒤 `apply_migration` `p11_my_tech_insert_columns`; 앞서 `p8_alert_run_id`도 적용, `debug-note.md`). 적용 뒤 조회: `authenticated`의 INSERT 20열 → **7열**(UPDATE 3열 그대로), `my_tech_insert` 정책에 `origin = ANY(manual, import)` 들어감. 시험 SQL(`my_tech_insert_columns_p11.sql`) 기대값 7개 모두 같음: 본인 7칸 insert 1줄·import 1줄, 서버 칸 13개 모두 막힘, `origin='repo'` 막힘, 남의 프로젝트 막힘, 시험 줄 2개 유지, `service_role`은 모든 칸 insert 1줄. 시험 뒤 시험 계정·기술·프로젝트·내 기술 0줄. 보안 점검(`get_advisors`)에 `my_technologies` 관련 경고 없음(경고 3건은 이 변경과 무관). 코드 시험 4개 통과, 일부러 깨뜨린 6곳(마이그레이션에 `grade` 추가·revoke 삭제·정책에 `repo` 허용·직접 추가가 `grade`/`origin: repo` 전송·가져오기가 `read_at` 전송)을 모두 잡음. 전체 `npm test` 501개 중 500 통과·실패 0·todo 1. 코드 검토(서브에이전트) 8건: 6건 반영(revoke 순서 검사, origin 정책 추가, 낡은 주석, service_role 시험, 서버 칸 13개 시험, 중복 반복문 삭제), 나머지는 열린 질문으로(②③) 또는 그대로(가짜 연결이 하나 더 생긴 것은 5줄이라 합치지 않음). **못 한 것:** 로그인한 실제 계정으로 직접 추가·가져오기가 여전히 저장되는지 화면 시험은 하지 못함(사람 QA). 처음 두 번의 `apply_migration`은 권한 분류기가 거절했고 우회하지 않음 |
+
+---
 ## I-P-16-merged-record · 2026-11-18 · P-16 카드 연결(PR #85)이 합쳐진 것을 기록에 맞추기 (영역 A, 김영식)
 - 브랜치: `docs/P-16-merged-record` (최신 main 8c53ad2, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "다음작업". 근거: `plan.md` P-16 행, `I-P-16-tech-card-link`, CLAUDE.md 9절(끝낼 때 결과 칸), 앞선 같은 일 `I-P-11-merged-record`
