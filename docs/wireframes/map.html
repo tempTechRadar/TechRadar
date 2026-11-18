@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기술 레이더 끝없는 지도 시안 (샘플)</title>
+  <style>
+    /* 레이더의 느낌(고리, 도는 선, 선이 지나가면 밝아지는 점)은 그대로, 경계만 없앤다.
+       고리는 바깥으로 계속 이어지며 흐려지고, 끌어서 옮기고 휠로 확대하며, 점을 누르면 같은 역할의 기술이 한 단계씩 펼쳐진다. */
+    :root {
+      --bg: #0a0e14; --green: #2ed573; --green-dim: #1fa85a; --ink: #e6edf3; --muted: #8fa3b0; --grid: #14261f;
+      --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; } /* display를 정한 클래스(.tools, .chip)가 hidden을 덮지 않게 */
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .pad { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .sample { margin: 0; padding: 12px 0 8px; font: 12px/1.5 var(--mono); color: var(--muted); }
+
+    .stage { position: relative; height: calc(100vh - 130px); min-height: 520px; overflow: hidden; border-top: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+    canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    canvas.node { cursor: grab; } canvas.pointer { cursor: pointer; } canvas.grabbing { cursor: grabbing; }
+    canvas:focus-visible { outline: 2px solid var(--green); outline-offset: -4px; }
+
+    .title { position: absolute; left: 24px; top: 8px; max-width: calc(100% - 350px); pointer-events: none; } /* 오른쪽 정보 카드(290px) 자리를 비워, 좁은 창에서 단추 줄이 카드에 겹치지 않고 줄바꿈된다 */
+    .title h1 { margin: 0; font-size: clamp(40px, 5vw, 68px); font-weight: 800; letter-spacing: -.035em; line-height: 1; color: var(--green); }
+    .title p { margin: 8px 0 0; font: 13px/1.6 var(--mono); color: var(--green-dim); }
+    .tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 8px; pointer-events: auto; }
+    .tbtn { font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .7); border: 1px solid transparent; border-bottom-color: var(--green-dim); padding: 0 12px; min-height: 44px; cursor: pointer; }
+    .tbtn:hover, .tbtn[aria-pressed="true"] { border-color: var(--green); }
+    #folds { margin-top: 0; }
+    .search { position: relative; }
+    .search input { width: 200px; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--ink); background: rgba(10, 14, 20, .7); border: 1px solid transparent; border-bottom-color: var(--green-dim); }
+    .search input::placeholder { color: var(--muted); }
+    .hits { position: absolute; left: 0; top: 100%; z-index: 3; width: 280px; margin: 2px 0 0; padding: 0; list-style: none; background: rgba(10, 14, 20, .96); border: 1px solid var(--green-dim); }
+    .hits button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; }
+    .hits button:hover { background: rgba(46, 213, 115, .1); }
+    .hits .m { color: var(--muted); }
+    .hits .more, .hits .none { padding: 8px 12px; font: 12px/1.5 var(--mono); color: var(--muted); }
+
+    .info { position: absolute; right: 24px; top: 8px; width: 290px; border: 1px solid var(--green-dim); background: rgba(10, 14, 20, .92); padding: 12px 16px; font: 13px/1.7 var(--mono); }
+    .info h2 { margin: 0 0 6px; font: 700 15px var(--mono); color: var(--green); }
+    .info dl { margin: 0; display: grid; grid-template-columns: 84px 1fr; gap: 2px 10px; }
+    .info dt { color: var(--muted); } .info dd { margin: 0; }
+    .info .empty { margin: 0; color: var(--muted); }
+    .legend { position: absolute; left: 0; right: 0; bottom: 0; padding-top: 22px !important; padding-bottom: 6px !important; background: linear-gradient(rgba(10, 14, 20, 0), rgba(10, 14, 20, .9) 60%); display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 18px; list-style: none; margin: 0; padding: 0 24px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
+    .legend li { display: flex; align-items: center; gap: 6px; }
+    .legend { right: 210px; }
+    .chip { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; font: 12px var(--mono); color: var(--muted); background: none; border: 1px solid transparent; cursor: pointer; pointer-events: auto; }
+    .chip:hover { border-color: var(--green-dim); }
+    .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--green); background: rgba(46, 213, 115, .12); }
+    .chip b { font-weight: 400; color: var(--ink); }
+    .dock { position: absolute; right: 24px; bottom: 84px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .risk { display: flex; align-items: center; background: rgba(10, 14, 20, .85); border: 1px solid var(--green-dim); }
+    .risk .tbtn { min-width: 44px; padding: 0; }
+    #rinfo { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
+    .dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 2px; }
+    .dpad .tbtn { padding: 0; border-color: var(--green-dim); }
+    .acts { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .acts .lab { width: 44px; color: var(--muted); }
+    .acts .tbtn { min-width: 44px; border-color: var(--green-dim); }
+    .info { max-height: calc(100% - 300px); overflow: auto; }
+    .filter { position: relative; }
+    .filter summary { display: flex; align-items: center; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .7); border-bottom: 1px solid var(--green-dim); cursor: pointer; list-style: none; }
+    .filter summary::-webkit-details-marker { display: none; }
+    .filter[open] summary { border-color: var(--green); }
+    .filter .panel { position: absolute; left: 0; top: 100%; z-index: 3; min-width: 190px; padding: 4px 0; background: rgba(10, 14, 20, .96); border: 1px solid var(--green-dim); }
+    .filter label { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; font: 12px var(--mono); color: var(--ink); cursor: pointer; }
+    .filter input { width: 18px; height: 18px; accent-color: var(--green); }
+    .fname { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
+
+    .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 8px 0; }
+    .outline { font: 600 13px var(--mono); letter-spacing: .04em; color: var(--green); background: none; border: 1px solid var(--green-dim); padding: 0 20px; min-height: 44px; cursor: pointer; }
+    .outline:hover { background: rgba(46, 213, 115, .1); border-color: var(--green); }
+    .stat { text-align: right; font: 12px/1.6 var(--mono); color: var(--green-dim); }
+    details.table { border-top: 1px solid var(--grid); padding-bottom: 32px; }
+    details.table summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font: 13px var(--mono); color: var(--green); }
+    table { border-collapse: collapse; width: 100%; font: 13px var(--mono); }
+    th, td { text-align: left; padding: 4px 12px; border-bottom: 1px solid var(--grid); }
+    th { color: var(--muted); font-weight: 400; }
+    .tctl { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 4px 0 8px; }
+    .tctl label { display: flex; align-items: center; gap: 8px; font: 12px var(--mono); color: var(--muted); }
+    .tctl select, .tctl input { min-height: 44px; padding: 0 10px; font: 12px var(--mono); color: var(--ink); background: rgba(10, 14, 20, .7); border: 1px solid var(--green-dim); }
+    td .tbtn { min-height: 44px; padding: 0 8px; border-color: var(--green-dim); }
+    .note { font: 12px var(--mono); color: var(--muted); margin: 0 0 8px; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  </style>
+</head>
+<body>
+  <div class="pad"><p class="sample" role="note">시안입니다. 이름과 숫자는 모두 샘플이고 실제 데이터가 아닙니다. 펼쳐지는 기술도 예시예요.</p></div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" tabindex="0" role="application" aria-label="기술 레이더 지도. 끌어서 옮기고, 휠이나 더하기·빼기 키로 확대하고 줄여요. 방향키로 옮기고, 0 키로 전체를 봐요. 점을 고른 뒤 쉬프트와 방향키로 그 점을 옮겨요. 슬래시 키로 기술을 찾고, 갈래 버튼으로 갈래를 접어요. 대괄호 키로 이전·다음 위험을 찾고, J와 K 키로 다음·이전 점을, 쉼표와 마침표 키로 고른 점의 이웃을 오가요. 이스케이프 키로 선택을 풀어요. 점을 고른 뒤 엔터로 그 점 중심으로 봐요. 같은 내용을 표로도 볼 수 있어요."></canvas>
+    <header class="title">
+      <h1>techradar</h1>
+      <p>끝없이 이어지는 내 AI 도구의 지도예요.<br>빈 곳을 끌면 지도가, 점을 끌면 그 점이 움직여요. 점선 고리가 있는 점은 눌러 펼쳐요.</p>
+      <div class="tools" role="toolbar" aria-label="지도 보기">
+        <button type="button" class="tbtn" id="pause" aria-pressed="false" aria-keyshortcuts="Space"></button>
+        <button type="button" class="tbtn" id="fit" aria-keyshortcuts="0">전체 보기</button>
+        <button type="button" class="tbtn" id="zin" aria-label="확대" aria-keyshortcuts="+">확대 +</button>
+        <button type="button" class="tbtn" id="zout" aria-label="축소" aria-keyshortcuts="-">축소 −</button>
+        <button type="button" class="tbtn" id="home" disabled>원래 자리로</button>
+        <div class="search">
+          <label class="sr" for="q">기술 이름으로 찾기</label>
+          <input id="q" type="search" placeholder="기술 찾기 ( / )" autocomplete="off" aria-controls="hits" aria-keyshortcuts="/">
+          <ul class="hits" id="hits" hidden></ul>
+        </div>
+        <details class="filter" id="filterBox">
+          <summary id="fsum">거르기</summary>
+          <div class="panel">
+            <label><input type="checkbox" data-kind="skill"> 스킬</label>
+            <label><input type="checkbox" data-kind="mcp"> MCP</label>
+            <label><input type="checkbox" data-kind="pkg"> 패키지</label>
+            <label><input type="checkbox" data-scope="mine"> 내 기술만</label>
+          </div>
+        </details>
+      </div>
+      <div class="tools" id="folds" role="group" aria-label="갈래 접기와 펴기"></div>
+      <div class="tools" id="focusbar" role="group" aria-label="중심으로 보기" hidden>
+        <span class="fname" id="fname"></span>
+        <button type="button" class="tbtn" id="fdec" aria-keyshortcuts="1 2 3">단계 −</button>
+        <span class="fname" id="fdepth"></span>
+        <button type="button" class="tbtn" id="finc">단계 +</button>
+        <button type="button" class="tbtn" id="fexit" aria-keyshortcuts="Escape">전체 보기 (Esc)</button>
+      </div>
+      <p class="sr" id="qnote" role="status"></p>
+    </header>
+    <section class="info" aria-labelledby="infoTitle" aria-live="polite">
+      <h2 id="infoTitle">선택한 기술</h2>
+      <p class="empty" id="infoEmpty">점에 마우스를 올려 보세요.</p>
+      <div id="infoBody" hidden></div>
+    </section>
+    <ul class="legend" id="legend" aria-label="점 설명과 거르기. 상태를 누르면 그 상태의 점만 진하게 보여요"></ul>
+    <div class="dock" role="group" aria-label="지도 옮기기와 위험 찾기">
+      <div class="risk">
+        <button type="button" class="tbtn" id="rprev" aria-label="이전 위험·주의 점" aria-keyshortcuts="[">◀</button>
+        <span id="rinfo"></span>
+        <button type="button" class="tbtn" id="rnext" aria-label="다음 위험·주의 점" aria-keyshortcuts="]">▶</button>
+      </div>
+      <div class="dpad" id="dpad" role="group" aria-label="지도 옮기기">
+        <span></span><button type="button" class="tbtn" data-pan="0,-1" aria-label="지도를 위로 옮기기">↑</button><span></span>
+        <button type="button" class="tbtn" data-pan="-1,0" aria-label="지도를 왼쪽으로 옮기기">←</button>
+        <button type="button" class="tbtn" data-pan="0,0" aria-label="가운데(나)로 가기">●</button>
+        <button type="button" class="tbtn" data-pan="1,0" aria-label="지도를 오른쪽으로 옮기기">→</button>
+        <span></span><button type="button" class="tbtn" data-pan="0,1" aria-label="지도를 아래로 옮기기">↓</button><span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad">
+    <div class="bar">
+      <button type="button" class="outline" id="toTable">표로 보기 →</button>
+      <div class="stat" id="stat" role="status"></div>
+    </div>
+    <details class="table" id="tableBox">
+      <summary>표로 보기</summary>
+      <div class="tctl" role="group" aria-label="표 정렬과 거르기">
+        <label>정렬 <select id="tSort"><option value="risk">위험 먼저</option><option value="name">이름순</option><option value="old">마지막 확인이 오래된 순</option></select></label>
+        <label>거르기 <select id="tFilter"><option value="">전체</option></select></label>
+        <label>이름 <input id="tQ" type="search" placeholder="이름 일부" autocomplete="off"></label>
+      </div>
+      <p class="note" id="tableNote" role="status"></p>
+      <table>
+        <thead><tr><th scope="col">이름</th><th scope="col">종류</th><th scope="col">갈래</th><th scope="col">보안 등급</th><th scope="col">마지막 확인</th><th scope="col">최근 변경</th><th scope="col">펼치기</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </details>
+  </div>
+
+  <script src="map.js"></script>
+</body>
+</html>
