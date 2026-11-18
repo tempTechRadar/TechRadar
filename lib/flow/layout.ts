@@ -1,11 +1,14 @@
 // flow.json의 상자를 왼쪽→오른쪽 단계로 배치한다. 화살표는 항상 오른쪽으로 간다(순환이 있으면 오류).
 import type { Flow, FlowEdge, FlowNode } from "./types.ts";
 
-export const BOX = { w: 172, h: 64, gapX: 52, gapY: 30, pad: 20 };
+// gapX는 화살표 위 건수 꼬리표(최대 약 90px)가 상자 사이에 들어갈 만큼(lib/flow/edge-label). 52에서는 꼬리표가 상자와 겹쳤다.
+export const BOX = { w: 172, h: 64, gapX: 100, gapY: 30, pad: 20 };
 
 export type PlacedNode = FlowNode & { x: number; y: number; col: number };
-/** mx·my: 곡선의 가운데(화살표 위 건수를 쓰는 자리) */
-export type PlacedEdge = FlowEdge & { d: string; mx: number; my: number };
+/** 3차 베지어의 네 점(시작·조절점 둘·끝). 건수 꼬리표 자리를 곡선 위에서 찾을 때 쓴다 */
+export type Curve = { sx: number; sy: number; c1x: number; c1y: number; c2x: number; c2y: number; tx: number; ty: number };
+/** mx·my: 곡선의 가운데 */
+export type PlacedEdge = FlowEdge & { d: string; mx: number; my: number; curve: Curve };
 export type Layout = { nodes: PlacedNode[]; edges: PlacedEdge[]; width: number; height: number };
 
 /** 상자마다 "시작에서 가장 먼 길의 길이"를 단계(열)로 쓴다. */
@@ -68,7 +71,8 @@ export function layoutFlow(flow: Flow): Layout {
     const dx = Math.max(24, (tx - sx) / 2);
     // 3차 베지어의 t=0.5 지점: (P0 + 3P1 + 3P2 + P3) / 8
     const mx = (sx + 3 * (sx + dx) + 3 * (tx - dx) + tx) / 8, my = (sy + 3 * sy + 3 * ty + ty) / 8;
-    return { ...e, d: `M${sx} ${sy} C${sx + dx} ${sy} ${tx - dx} ${ty} ${tx} ${ty}`, mx, my };
+    const curve: Curve = { sx, sy, c1x: sx + dx, c1y: sy, c2x: tx - dx, c2y: ty, tx, ty };
+    return { ...e, d: `M${sx} ${sy} C${sx + dx} ${sy} ${tx - dx} ${ty} ${tx} ${ty}`, mx, my, curve };
   });
   return {
     nodes,
