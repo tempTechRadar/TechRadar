@@ -17,3 +17,9 @@ test("값이 없거나 모르는 값이면 그 조건은 걸지 않는다(전체
   assert.deepEqual(parseAlertFilter({}, now), {});
   assert.deepEqual(parseAlertFilter({ kind: "아무거나", status: ["pending"], period: "all" }, now), {});
 });
+
+test("프로젝트는 값이 있을 때만 건다", () => {
+  assert.deepEqual(parseAlertFilter({ project: "proj-a" }, now), { projectId: "proj-a" });
+  assert.deepEqual(parseAlertFilter({ project: "" }, now), {});
+  assert.deepEqual(parseAlertFilter({ project: ["a", "b"] }, now), {});
+});

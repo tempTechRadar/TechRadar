@@ -78,3 +78,14 @@
   .alerts .alert-time { text-align: left; }
   .alerts .kv { grid-template-columns: 1fr; }
 }
+
+/* 대시보드 숫자 카드와 기록 목록 */
+.alerts .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: var(--space-5); }
+.alerts .stat { display: grid; gap: var(--space-1); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; min-height: 44px; }
+.alerts .stat:hover { background: var(--color-surface-subtle); }
+.alerts .stat strong { font-size: var(--text-2xl); line-height: 1.2; }
+.alerts .search { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
+.alerts .search input { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+@media (max-width: 640px) {
+  .alerts .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}

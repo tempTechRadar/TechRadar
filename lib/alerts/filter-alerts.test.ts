@@ -51,3 +51,14 @@ test("판단 대기 수는 종류와 상관없이 판단 대기인 알림 수이
 test("종류와 상태를 함께 주면 둘 다 맞는 것만", () => {
   assert.deepEqual(ids(filterAlerts(alerts, { kind: "security", status: "pending" })), ["a1"]);
 });
+
+test("프로젝트로 거른다(프로젝트 밖 기술은 프로젝트를 고르면 빠진다)", () => {
+  const rows: AlertRow[] = [
+    alert("p1", { projectId: "proj-a" }),
+    alert("p2", { projectId: "proj-b" }),
+    alert("p3", { projectId: null }),
+  ];
+
+  assert.deepEqual(ids(filterAlerts(rows, { projectId: "proj-a" })), ["p1"]);
+  assert.deepEqual(ids(filterAlerts(rows, {})), ["p1", "p2", "p3"]);
+});
