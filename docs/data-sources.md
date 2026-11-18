@@ -1,4 +1,4 @@
-# 데이터 출처 (후보 조사 단계)
+# 데이터 출처 (v1 출처 정함, 2026-11-17)
 
 상태: **v1 출처를 골랐다(2026-11-17, ADR 0008):** 1순위 OSV, 공식 MCP 레지스트리, GitHub 저장소 정보(서버 토큰), npm·PyPI 다운로드 수(`api.npmjs.org/downloads/point/last-week/<패키지>`, `pypistats.org/api/packages/<패키지>/recent`, 2026-11-17 키 없이 호출 확인) / 3순위 Hugging Face Hub, Hacker News, Firecrawl로 skills.sh 인기 페이지 1곳(스킬 설치 수. robots.txt: 공개 페이지 허용, `/api/`·`/search`만 막음, 2026-11-17 확인. 이용약관은 확인 전). 간격·한도·실패 처리는 spec에서 출처마다 적는다. 아래는 조사한 후보 목록 전체다.
 
