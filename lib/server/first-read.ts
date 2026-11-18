@@ -6,7 +6,7 @@ import { getServiceSupabase } from "./service-supabase.ts";
 import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
 import { saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
-import { assertRepoPublic, CollectError, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
+import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 
@@ -158,7 +158,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
 async function gradeAll(db: SupabaseClient, runId: string, projectId: string, found: FoundTech[], techIds: Map<string, string>) {
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
-  const osvFailures: { kind: ErrorKind; message: string }[] = [];
+  const osvFailures: { kind: ErrorKind; message: string; httpStatus?: number }[] = [];
   const osvTargets = found.filter((f) => f.tech?.key.startsWith("npm:") || f.tech?.key.startsWith("pypi:"));
   for (const [i, f] of osvTargets.entries()) {
     if (i > 0) await sleep(1000); // SPEC-8 요청 사이 1초
@@ -171,7 +171,7 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
       graded.push({ f, techId, result });
     } catch (e) {
       if (!(e instanceof CollectError)) throw e; // DB 오류 등은 삼키지 않는다
-      osvFailures.push({ kind: e.kind, message: `${f.tech!.key}: ${e.message}` });
+      osvFailures.push({ kind: e.kind, message: `${f.tech!.key}: ${e.message}`, httpStatus: e.httpStatus });
       await markCollectError(db, target, e.kind);
     }
   }
@@ -181,7 +181,8 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
     countIn: osvTargets.length,
     countOut: graded.length,
     branchCounts: { ok: graded.length, collect_error: osvFailures.length },
-    apiUrl: "https://api.osv.dev/v1/query",
+    apiUrl: OSV_QUERY_URL,
+    httpStatus: osvFailures[0]?.httpStatus,
     errorKind: osvFailures[0]?.kind,
     errorMessage: osvFailures.map((f) => f.message).join("; ") || undefined,
   });

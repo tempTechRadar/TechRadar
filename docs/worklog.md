@@ -150,6 +150,7 @@
 | I-vercel-deploy-limit | 무료 Vercel 배포 한도(하루 100번 안팎)에 걸린 것 대응: 최근 24시간 배포를 세어(100개 이상, production 31·preview 69) 원인 확인, 병합은 안 막힘을 ruleset·#59로 확인(규칙은 안 바꿈), PR 브랜치 배포를 끄고 main만 배포하는 `vercel.json`·푸시 모으기 규칙(`CLAUDE.md` 10절)·ADR 0018·debug-note 기록 | 나(요청) · Claude(조사·작성) | `chore/vercel-deploy-limit`, ADR 0018, `vercel.json` |
 | I-record-github-union | 기록 문서 충돌이 PR 화면에서 계속 나는 원인 재현: 열린 PR 4개(#52·#53·#59·#60)를 내 컴퓨터(union 적용)와 일반 병합(`merge=text` 덮어쓰기)으로 각각 main과 합쳐 비교 → GitHub 화면은 union을 따르지 않는다고 봄(4개 모두 `CONFLICTING`). ADR 0017 개정·debug-note 기록. 파일과 PR 4개는 고치지 않음 | 나(요청) · Claude(재현·작성) | `docs/record-github-union`, ADR 0017 |
 | I-P-20-flow-polish | 흐름 화면 다듬기: 화살표 위 건수 꼬리표가 상자와 겹치던 것(37개 중 20개)을 상자 간격 52→100과 곡선 위 빈 자리 고르기(`lib/flow/edge-label`)로 해결, 개발용 샘플 ③ 중복 장면을 flow.md 4절대로(알림 단계 성공·새 알림 0건). 새 시험 6, 간격을 되돌리면 시험 3개 실패 확인. 개발 서버 화면에서 겹침 0 캡처. **못 한 것:** 실제 기록이 있는 `/admin/flow`(로그인·DB 필요), 꼬리표끼리 겹침 | 나(요청) · Claude(작성·시험) | `fix/P-20-flow-polish` |
+| I-P-3-osv-404 | OSV 404를 "취약점 없음"으로 읽던 것을 수집 오류로(불변 2): 앞선 P-3 코드 검토가 지적한 것을 별도 조각으로. `queryOsv`가 404를 `http_status`로 던지고, 같은 검토를 반영해 응답 본문을 읽다 끊겨도(`timeout`·`network`)·모양이 다른 200 응답도(`parse`) 그 기술만 수집 오류가 되게 하고, `fetch_osv` 단계에 응답 코드를 남기고 OSV 주소를 상수 하나로. 시험 7개 추가(고치기 전에 4개 실패 확인). `npm test` 369개 중 368 통과·todo 1(main `193a8f9` 기준, 이 PR 없이는 362), 타입검사·빌드 성공. 실제 DB·OSV 시험은 안 함. 기존 문제(전부 실패해도 `partial`, 쪽 넘김 무시 등)는 열린 질문으로 | 나(조각 선택·승인) · Claude(시험·수정·검토 반영) | `fix/P-3-osv-404`, `docs/debug-note.md` |
 
 ### 시험 실행에서 나온 것
 - 현재 단계: 2. 기획 문서. 요약 ✅5 🟡11 ❌8 ❔1, D-6.

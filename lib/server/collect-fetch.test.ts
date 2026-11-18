@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertRepoPublic, CollectError, RepoNotPublicError, fetchText } from "./collect-fetch.ts";
+import { assertRepoPublic, CollectError, RepoNotPublicError, fetchText, queryOsv } from "./collect-fetch.ts";
 
 const repo = { owner: "o", repo: "r" };
 const respond = (t: { mock: { method: (o: object, n: "fetch", f: unknown) => unknown } }, make: () => Response | Error) =>
@@ -51,4 +51,40 @@ test("fetchText: 404는 null(파일 없음), 정상은 본문", async (t) => {
   assert.equal(await fetchText("https://x.invalid/a"), null);
   fetchMock.mock.mockImplementation(async () => new Response("본문", { status: 200 }));
   assert.equal(await fetchText("https://x.invalid/a"), "본문");
+});
+
+test("queryOsv: 404는 '알려진 취약점 없음'이 아니라 수집 오류 http_status다(OSV는 문제가 없어도 200으로 답한다, 불변 2)", async (t) => {
+  respond(t, () => new Response("", { status: 404 }));
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15"), (e) => e instanceof CollectError && e.kind === "http_status" && e.httpStatus === 404);
+});
+
+test("queryOsv: 200 {}는 오류가 아니라 알려진 취약점 없음", async (t) => {
+  respond(t, () => new Response("{}", { status: 200 }));
+  assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), []);
+});
+
+test("queryOsv: 깨진 응답은 수집 오류 parse", async (t) => {
+  respond(t, () => new Response("<html>점검 중</html>", { status: 200 }));
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15"), (e) => e instanceof CollectError && e.kind === "parse");
+});
+
+test("본문을 읽다 시간 초과·끊김이 나도 그 호출만 수집 오류다(timeout·network): 원시 오류가 새어 읽기 전체를 멈추지 않는다(불변 2)", async (t) => {
+  const broken = (err: Error) => ({ status: 200, ok: true, headers: new Headers(), text: async () => { throw err; } });
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => broken(new DOMException("timed out", "TimeoutError"))) as { mock: { mockImplementation: (f: unknown) => void } };
+  await assert.rejects(() => fetchText("https://x.invalid/a"), (e) => e instanceof CollectError && e.kind === "timeout");
+  fetchMock.mock.mockImplementation(async () => broken(new TypeError("terminated")));
+  await assert.rejects(() => fetchText("https://x.invalid/a"), (e) => e instanceof CollectError && e.kind === "network");
+});
+
+test("queryOsv: 모양이 다른 200 응답([]·숫자·null·vulns가 배열이 아님)은 '없음'이 아니라 수집 오류 parse", async (t) => {
+  let body = "";
+  respond(t, () => new Response(body, { status: 200 }));
+  for (body of ["[]", "123", "null", '{"vulns":"x"}']) {
+    await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15"), (e) => e instanceof CollectError && e.kind === "parse", body);
+  }
+});
+
+test("queryOsv: {vulns: []}도 오류가 아니라 알려진 취약점 없음", async (t) => {
+  respond(t, () => new Response('{"vulns":[]}', { status: 200 }));
+  assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), []);
 });

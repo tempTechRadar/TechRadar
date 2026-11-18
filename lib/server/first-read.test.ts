@@ -111,6 +111,18 @@ test("OSV가 실패하면 그 기술만 수집 오류: 등급은 그대로, 변�
   assert.equal(ops(calls, "runs", "update").map(arg0).at(-1)?.status, "partial");
 });
 
+test("OSV가 404여도 '알려진 취약점 없음'이 아니라 수집 오류다: 등급은 그대로, 실행은 일부 성공(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, osv: () => status(404) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.status, r.errors, r.danger], ["partial", 1, 0]);
+  assert.equal(updates(calls).filter((p) => p.collect_error_kind === "http_status").length, 1, "그 기술 줄에 수집 오류 종류가 남는다");
+  assert.ok(updates(calls).every((p) => !("grade" in p)), "등급 칸은 건드리지 않는다");
+  const osvStep = steps(calls).find((s) => s.step_name === "fetch_osv");
+  assert.deepEqual([osvStep?.status, osvStep?.error_kind, osvStep?.http_status], ["failed", "http_status", 404], "응답 코드도 단계에 남는다");
+});
+
 test("한 기술의 OSV가 실패해도 다른 기술은 계속 등급을 매긴다", async (t) => {
   const two = JSON.stringify({ dependencies: { "mcp-remote": "0.1.15", openai: "4.0.0" } });
   stubWeb(t, { files: { "package.json": two }, osv: (name) => (name === "mcp-remote" ? status(500) : ok('{"vulns":[]}')) });
