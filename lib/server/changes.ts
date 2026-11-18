@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { TechRef } from "@/lib/domain/tech-key";
-import { changeKey } from "@/lib/domain/dedupe-key";
+import type { TechRef } from "../domain/tech-key.ts";
+import { changeKey } from "../domain/dedupe-key.ts";
 
 export type NewChange = {
   kind: "grade_to_danger" | "first_seen_danger" | "same_role_new";

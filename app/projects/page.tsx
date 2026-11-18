@@ -39,6 +39,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         <button type="submit">등록하고 읽기</button>
       </form>
       {error === "url" && <p role="alert">GitHub 저장소 주소(https://github.com/owner/repo)를 넣어 주세요.</p>}
+      {error === "repo" && <p role="alert">이 저장소를 열 수 없어요. 주소가 틀렸거나 비공개일 수 있어요. 공개 GitHub 저장소만 등록할 수 있어요.</p>}
       <p>package.json과 .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
 
       {loadError ? (
