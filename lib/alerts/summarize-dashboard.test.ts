@@ -50,6 +50,26 @@ test("숫자를 눌러 가는 목록의 건수와 숫자가 같다(PRD-F22 끝 �
   }
 });
 
+test("내 기술 카드는 프로젝트로 거르면 그 프로젝트만 거는 주소로 가고, 같은 규칙으로 센 목록 수가 숫자와 같다", () => {
+  for (const params of [{}, { project: "proj-a" }, { project: "proj-b" }, { project: "없는-프로젝트" }]) {
+    const summary = summarizeDashboard({ alerts, techs, params, now });
+    const shownProject = new URL(summary.links.techs, "http://x").searchParams.get("project");
+    const listed = techs.filter((tech) => shownProject === null || tech.projectId === shownProject).length; // /projects 화면의 프로젝트 거르기를 시험 안에서 흉내 낸 것
+
+    assert.equal(listed, summary.techCount, JSON.stringify(params));
+  }
+  assert.equal(summarizeDashboard({ alerts, techs, params: {}, now }).links.techs, "/projects");
+});
+
+test("내 기술 카드 주소에는 프로젝트만 싣고(기간·상태·종류는 안 싣고), 주소에 쓰는 글자가 섞여도 값이 그대로 간다", () => {
+  const manyFilters = summarizeDashboard({ alerts, techs, params: { project: "proj-a", period: "7d", kind: "security", status: "done" }, now });
+  const odd = "a&b#c d%e+f";
+  const oddProject = summarizeDashboard({ alerts, techs, params: { project: odd }, now });
+
+  assert.equal(manyFilters.links.techs, "/projects?project=proj-a");
+  assert.equal(new URL(oddProject.links.techs, "http://x").searchParams.get("project"), odd);
+});
+
 test("모르는 거르기 값은 링크에도 싣지 않고, 최근 변경은 최신순 5건까지", () => {
   const many = Array.from({ length: 7 }, (_, i) => alert(`m${i}`, `2026-11-1${i}T00:00:00Z`));
 
