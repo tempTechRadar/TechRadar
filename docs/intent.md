@@ -6,6 +6,19 @@
 
 ---
 
+## I-admin-judge-own · 2026-11-19 · 관리자도 본인 알림은 판단할 수 있게: ADR 0016 이행 (영역 B, 황재웅)
+- 브랜치: `fix/admin-judge-own` (origin/main d77cadd 위, worktree `.claude/worktrees/night-admin-judge`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0016(관리자도 본인 알림은 판단할 수 있고 남의 알림은 못 한다), 불변 점검의 N2, `docs/flow.md`의 `admin_can_judge_own`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | ADR 0016과 DB(`save_judgment`)는 관리자의 본인 알림 판단을 허용하는데, 서버(`lib/server/judgments.ts`)와 알림 상세 화면이 관리자를 통째로 거절한다. 그래서 관리자가 위험 저장소를 등록하면 본인 알림이 영영 판단 대기로 남는다. |
+| 기대 결과 | 관리자도 본인 알림에는 판단 폼이 보이고 저장된다(다른 사용자와 같은 규칙). 남의 알림은 알림 조회가 본인 것만 읽어 "알림을 찾지 못했어요"로 거절되고, DB도 막는다(불변 1·5). |
+| 영향 범위 | `lib/server/judgments.ts`(관리자 거절 한 줄)·`app/alerts/[id]/page.tsx`(관리자 안내 분기)와 `lib/server/judgments.test.ts`(관리자 시험 1개를 3개로). DB·마이그레이션 없음. |
+| 제약 | 알림 조회(`getMyAlert`)는 `user_id = 본인`으로만 읽으므로 이 변경으로 관리자가 남의 알림을 열거나 판단할 길은 생기지 않는다(코드 읽기로 확인). 관리자 화면(`/admin/alerts`)의 판단 버튼 없음은 그대로다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | `lib/server/action-record.test.ts`의 거절 문구 목록에 옛 문구가 남아 있다(죽은 코드 `actionOutcomeOf`의 시험이라 그대로 둠). 관리자 본인 알림 판단이 되는 SQL 시험은 쓰지 않았다(DB 실행 필요). |
+
+**결과:** 전체 551개 중 550 통과·실패 0·todo 1(관리자 시험 1개가 3개로), `tsc` 통과. 관리자 거절을 일부러 되살려 새 시험 2개가 실패하는 것을 확인했다.
 ## I-P-3-requirements-txt · 2026-11-18 · 저장소 읽기에 requirements.txt 더하기 (PRD-F6의 한 입력, P-3 SPEC-7 마무리, 영역 A, 김영식)
 - 브랜치: `feat/P-3-requirements-txt` (최신 main `d77cadd`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "그외작업". 요구: PRD-F6(읽는 입력 중 `requirements.txt`), SPEC-7.1·7.2·7.3·1. 이미 `flow.md` fetch_repo 행이 "나머지 2종(`requirements.txt`·`.claude/skills/`)을 맡은 조각이 plan에 아직 없다"고 적어 둔 알려진 틈이다. 관련 제안: ADR 0020(열린 PR #95)은 스킬 폴더 읽기를 새 조각 P-9e로, `requirements.txt`는 3순위로 정한다. 이 작업은 그 3순위 입력을 먼저 끝낸다
