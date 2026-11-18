@@ -21,6 +21,21 @@
 
 ---
 
+## I-P-5b-sim-opportunity · 2026-11-18 · P-5b 시뮬레이터 두 번째 시나리오: 적용 기회 (영역 C, 차세일)
+- 브랜치: `feat/P-5b-sim-opportunity` (worktree, origin/main 위)
+- 출처: SPEC-3.5(셋째 줄: 확정된 같은 역할 관계도 가짜 표시로 넣는다)·SPEC-3.2(조건 셋, ADR 0014), PRD-F29·F12, ADR 0015(같은 역할은 관리자 확인으로 확정), P-14 적용 기회 알림(PR #49)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 시뮬레이터는 보안 경고만 만들어, 적용 기회 알림이 처음부터 끝까지 도는 모습을 보여 줄 방법이 없다 |
+| 기대 결과 | 버튼 한 번에 가짜 새 기술 1개(키 `sim:` 접두어, 등급 통과) + 시연 계정 기술과의 확정된 같은 역할 관계(tech_relations, is_simulated, made_by seed, 누른 관리자가 확정) → same_role_new 변경(원인 `sim:same_role:…`) → createAlertsForChange(opportunity) → 실행 기록. 조건(확정·등록 이후·위험 아님)은 B의 규칙이 그대로 판정. 지우기는 가짜 관계도 지움(관계 → 기술 순) |
+| 영향 범위 | `lib/server/simulator-opportunity.ts`(새)와 시험, `lib/server/simulator.ts`(도우미 내보내기·관계 지우기), `app/admin/simulator/`(두 번째 버튼). 알림 규칙 파일(alerts.ts 등)은 부르기만 |
+| 제약 | 시연 계정에 진짜 내 기술이 없으면 실행 기록을 만들지 않고 이유만 알림. 이미 있던 변경이 진짜면 멈춤. 가짜 새 기술 키가 진짜와 겹치면 멈춤. 새 라이브러리·마이그레이션 없음 |
+| 열린 질문 | 배정 메시지는 조건 넷(갈래 상위 절반 포함)이라 했지만 spec 3.2·ADR 0014는 v1 조건 셋 → 셋으로 맞춤. 가짜 관계를 "누른 관리자가 확정"으로 남긴 것(ADR 0015 해석) 팀 확인 |
+| 결과 | 2026-11-18: 새 시험 10개, 전체 355개 중 354 통과·실패 0(할 일 1은 기존), 타입 검사 통과. main(d744bcc) 합침, main 쪽 알려진 실패는 PR #63 수정(f1f1ef3)을 커밋 없이 받아 넣음. 못 한 것: 실제 DB로 버튼 눌러 확인 |
+
+---
+
 ## I-vercel-deploy-limit · 2026-11-18 · 무료 Vercel 배포 횟수 제한에 맞춰 배포를 아끼는 작업 방식 정하기
 - 브랜치: `chore/vercel-deploy-limit` (최신 main d744bcc, 새 worktree `.claude/worktrees/vercel-limit`)
 - 출처: 사용자 "무료에서 진행하되 배포 횟수를 최대한 아끼는 방향으로 스타일을 정해서 다른 팀들도 공유하게 하자". 계기: PR #64의 Vercel 검사 "Deployment rate limited — retry in 24 hours"

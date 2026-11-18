@@ -227,6 +227,7 @@
 | 19 | 근거 표를 공개 근거·AI 가설로 나눠 다시 씀 | Claude | `docs/문제정의.md` |
 | I-P-20c-demo-test-save-attempted | main 시험 실패 1건 수정: #54 시연 시험 기대값을 #61의 saveAttempted 추가에 맞춤(시험만, 전체 실패 0) | 나(요청) · Claude(작성·시험) | `fix/P-20c-demo-test-save-attempted` |
 | I-P-20-eval-button | `/admin/demo` 채점 칸 연결: "채점 실행" → `runScoring`(lib/eval 재사용, 저장된 자료만) → 결과 표 + 실행 기록(scoring → score → score_save, 흐름 화면에 칠해짐). 관리자만, 시연 스위치와 무관. 시험 통과·타입 검사 통과. **못 한 것:** 화면에서 눌러 보기, 배포에 정답·자료 파일이 실리는지 확인 | 나(요청) · Claude(작성·시험) | `fix/P-20-eval-button` |
+| I-P-5b-sim-opportunity | P-5b 시뮬레이터 적용 기회: 가짜 새 기술(`sim:` 키, 통과) + 시연 계정 기술과 확정된 같은 역할 관계(가짜 표시) → same_role_new 변경 → 적용 기회 알림(B 규칙 그대로) → 실행 기록, `/admin/simulator` 두 번째 버튼, 지우기에 관계 추가. 시험 354 통과·실패 0, 타입 검사 통과. **못 한 것:** 실제 DB 확인. 조건은 spec대로 셋(배정 메시지의 넷과 다름) | 나(요청) · Claude(작성·시험) | `feat/P-5b-sim-opportunity` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)
