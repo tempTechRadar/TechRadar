@@ -6,6 +6,22 @@
 
 ---
 
+## I-record-merge-first-sync · 2026-11-18 · 기록 문서 충돌 막기의 빈틈: 설정이 없는 옛 브랜치의 첫 병합
+- 브랜치: `chore/record-merge-first-sync` (최신 main 45d6e99, 새 worktree `.claude/worktrees/record-sync`)
+- 출처: 사용자 "근데 worklog.md는 계속 오류 나". 앞선 작업 `I-record-merge-rules`(PR #55, ADR 0017)의 후속
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | PR #55로 기록 문서 충돌을 막았는데 `worklog.md`가 계속 충돌한다. 열린 PR 4개(#47·#52·#53·#54)와 작업 중이던 브랜치를 main과 합쳐 보니 **모두 첫 병합에서 `worklog.md`가 충돌**했다. `.gitattributes`는 합치는 쪽 브랜치에 있는 것만 적용되는데 옛 브랜치에는 그 파일이 없기 때문이다. PR #55에서 이 첫 병합을 시험하지 않았다 |
+| 기대 결과 | 옛 브랜치도 처음 한 번의 절차(설정을 커밋으로 먼저 받고 합치기)로 충돌 없이 main을 받는다. 절차가 `CLAUDE.md`에 적혀 팀원(과 Claude)이 알고 쓴다 |
+| 영향 범위 | `CLAUDE.md` 10절, `docs/plan.md` 2절 충돌 행, ADR 0017 개정, debug-note, 기록. **코드·DB는 손대지 않음** |
+| 제약 | 열린 PR 브랜치(차세일 등)는 직접 고치지 않는다(남의 브랜치). 사용자의 작업 폴더도 승인 없이 커밋·합치기를 하지 않는다. 기획 문서의 "바뀐 기록" 끝 충돌은 union에서 뺀 채 둔다 |
+| 열린 질문 | 열린 PR들이 이 절차를 실제로 쓰는지(각자 main을 받을 때). `plan.md`의 "바뀐 기록" 충돌이 자주 나면 그 문서만 따로 기록 파일로 뺄지 |
+
+**결과:** 열린 PR 4개를 임시 폴더에서 main과 합쳐 보니 그대로는 모두 `worklog.md` 충돌, 설정을 커밋으로 먼저 받고 합치면 모두 충돌 없이 병합됐다(파일만 그냥 놓으면 병합이 실패). 사용자 브랜치(커밋 안 한 변경 포함)를 같은 방식으로 복사해 시험하니 충돌이 4개 파일(agents·debug-note·plan·worklog)에서 `plan.md`의 "바뀐 기록" 끝 1곳으로 줄었다. 절차와 이유를 CLAUDE.md 10절·ADR 0017 개정·debug-note에 적었다.
+
+---
+
 ## I-record-merge-rules · 2026-11-18 · 기록 문서가 자꾸 충돌하는 것 막기 (전원 적용)
 - 브랜치: `chore/record-merge-rules` (최신 main 13fd4c0, 새 worktree `.claude/worktrees/record-rules`)
 - 출처: 사용자 "intent, worklog가 자꾸 충돌나는데 패턴 파악해서 재발 안 되도록 조치해 다른 팀원들에게도 적용되게". 규칙 문서 `CLAUDE.md` 9·10절, `docs/plan.md` 2절. 근거 자료: 병합 커밋 59개 재현

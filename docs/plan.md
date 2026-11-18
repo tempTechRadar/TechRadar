@@ -26,7 +26,7 @@
 | 리뷰 | **만든 사람이 아닌 팀원 1명의 승인**이 있어야 합친다. 리뷰어는 짝을 고정하지 않고 **각자 수시로** 요청한다. 한 사람에게 몰리지 않게 4절 표로 센다 |
 | main 보호 | PR로만 합치기, 승인 1개 필요, 강제 푸시 금지(저장소 관리자가 GitHub에서 켠다) |
 | 합치기 | 시간을 따로 두지 않고 수시로. 합친 사람이 팀 채널에 "합침: P-n"이라고 알리고, 나머지는 바로 최신 main을 받는다(내 컴퓨터에서 `git merge origin/main`. GitHub 웹의 충돌 해결·Update branch 버튼은 기록 문서 설정을 따르지 않음, ADR 0017). M0 이후에는 합칠 때마다 **시뮬레이터 한 번으로 얇은 한 줄이 아직 도는지** 확인한다(안내서 995줄) |
-| 충돌 | 혼자 지우지 않고 그 코드를 쓴 사람과 함께 푼다. 합친 뒤 생긴 오류는 `docs/debug-note.md`. 기록 문서 5개(`intent`·`worklog`·`agents`·`connectors`·`debug-note`)는 양쪽 줄이 자동으로 남고(`.gitattributes`), 합친 뒤 `npm test`의 기록 검사가 번호 겹침·깨진 표를 잡는다(ADR 0017) |
+| 충돌 | 혼자 지우지 않고 그 코드를 쓴 사람과 함께 푼다. 합친 뒤 생긴 오류는 `docs/debug-note.md`. 기록 문서 5개(`intent`·`worklog`·`agents`·`connectors`·`debug-note`)는 양쪽 줄이 자동으로 남고(`.gitattributes`), 합친 뒤 `npm test`의 기록 검사가 번호 겹침·깨진 표를 잡는다. 설정이 없는 옛 브랜치는 처음 한 번 설정을 먼저 받는다(CLAUDE.md 10절, ADR 0017) |
 | 기록 | 시작할 때 `docs/intent.md`(작업 ID는 `I-`+브랜치 이름, 번호 없음), 끝날 때 `docs/worklog.md`(행 첫 칸에 같은 작업 ID). 서브에이전트·커넥터를 쓰면 `agents.md`·`connectors.md`. 동작을 바꾸면 불변 규칙 테스트 |
 | 테스트 | PR 설명에 `npm test` 통과 수와 `npm run build` 결과를 적는다(PR 검사는 Vercel 빌드뿐이라 리뷰어가 볼 수 있게). 테스트 파일은 `*.test.ts`, 상대 경로로 import. 시험이 불러오는 `lib/` 파일도 `@/` 별칭 대신 상대 경로(`.ts`)로 import하고 파라미터 프로퍼티·`enum`을 쓰지 않는다(`node --test`가 읽지 못함) |
 | 비밀값 | 키는 각자 `.env`에 직접. 저장소·채팅·문서에 쓰지 않는다 |

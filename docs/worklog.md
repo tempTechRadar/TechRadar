@@ -139,6 +139,7 @@
 | 86 | P-3 보강(점검 D-7·D-8·Y-3): 바깥 호출을 `collect-fetch.ts`로 모으고, 새 등록은 GitHub가 저장소를 열 수 없다고 하면 막고(확인이 안 되면 막지 않음), 다시 읽기는 파일이 하나도 안 열리면 저장소부터 확인해 수집 오류·실행 failed로 남김. OSV 실패를 단계에 오류 종류와 함께 기록, `thick_reasons`는 `used`. 불변 2 시험 17개 더함(173 → 190, 실패 0), 고친 곳을 되돌리는 변이 시험 8가지 모두 실패 확인, 타입 검사·webpack 빌드 통과. 코드 검토 9건 중 3건 반영 | 나(요청) · Claude(작성·시험·검토 도우미) | `fix/P-3-collect-errors`, I-043 |
 | I-record-merge-rules | 기록 문서 충돌 막기: 병합 59개를 다시 합쳐 충돌 패턴을 확인(20곳 모두 같은 자리 덧붙임, intent 8번·worklog 8곳)하고, `.gitattributes`로 기록 문서 5개를 union 병합, 작업 번호를 `I-<브랜치 이름>`으로 바꿔 번호 겹침 없앰, `lib/records` 검사 시험 7개(변이 시험 모두 잡힘), 규칙을 `CLAUDE.md`·`plan.md`·ADR 0017에 적음. `agents.md` 표 밖 행 발견·수정 | 나(요청) · Claude(분석·시험·작성) | `chore/record-merge-rules`, ADR 0017 |
 | I-B-qa-plan-1118 | 영역 B 기록 채우기(소급, 문서만): P-7 알림 만들기·목록·상세(PR #31·#37·#38), P-8 판단 저장(#43, `action_record`는 알림 → 실행 연결이 없어 보류), P-16 대시보드·기록 찾기(#45), P-15 비슷한 지난 판단(#48), P-14 적용 기회 알림 만들기(#49)가 `plan`·`qa`·`intent`·`worklog`에 기록이 없어 채움. plan 결과 칸, Claude QA 5행, 사람 QA 4행(로그인·서비스 키가 없어 전부 No Run), intent. 시험은 모두 먼저 실패시킨 뒤 구현했고, 실제 DB·알림이 보이는 화면은 못 확인함 | 나(요청) · Claude(작성·시험·검토 도우미) | `docs/B-qa-plan-1118`, I-B-qa-plan-1118 |
+| I-record-merge-first-sync | 기록 문서 충돌 막기의 빈틈 수정: 열린 PR 4개와 사용자 브랜치를 임시 폴더에서 main과 합쳐 "설정이 없는 옛 브랜치의 첫 병합은 `worklog.md`가 그대로 충돌"을 재현, 설정을 커밋으로 먼저 받는 절차로 해결됨을 확인(파일만 놓으면 병합 실패). 절차를 CLAUDE.md 10절·ADR 0017 개정·debug-note에 적음 | 나(요청) · Claude(재현·시험·작성) | `chore/record-merge-first-sync`, ADR 0017 |
 
 ### 시험 실행에서 나온 것
 - 현재 단계: 2. 기획 문서. 요약 ✅5 🟡11 ❌8 ❔1, D-6.
