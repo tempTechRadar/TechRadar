@@ -33,6 +33,8 @@ test("한도 초과(429)는 '저장소 없음'이 아니다: 수집 오류 rate_
 test("GitHub 한도 초과는 403(+x-ratelimit-remaining: 0)로도 온다: rate_limited. 헤더 없는 403은 http_status", async (t) => {
   const fetchMock = respond(t, () => new Response("", { status: 403, headers: { "x-ratelimit-remaining": "0" } })) as { mock: { mockImplementation: (f: () => Promise<Response>) => void } };
   await assert.rejects(() => assertRepoPublic(repo), (e) => e instanceof CollectError && e.kind === "rate_limited" && e.httpStatus === 403);
+  fetchMock.mock.mockImplementation(async () => new Response("", { status: 403, headers: { "x-ratelimit-remaining": "57", "retry-after": "60" } }));
+  await assert.rejects(() => assertRepoPublic(repo), (e) => e instanceof CollectError && e.kind === "rate_limited"); // 2차 한도: 남은 횟수가 있어도 retry-after가 오면 한도 초과
   fetchMock.mock.mockImplementation(async () => new Response("", { status: 403 }));
   await assert.rejects(() => assertRepoPublic(repo), (e) => e instanceof CollectError && e.kind === "http_status");
 });
