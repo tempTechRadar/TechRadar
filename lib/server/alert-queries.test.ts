@@ -68,6 +68,7 @@ test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼�
         detectedAt: "2026-11-18T01:30:00Z",
         prevValue: { grade: "caution" },
         currValue: { grade: "danger" },
+        draft: null,
       },
       judgment: null,
       comparison: null,
@@ -135,4 +136,19 @@ test("적용 기회 알림은 저장해 둔 비교표(두 기술 이름·확정�
   assert.deepEqual(ok.comparison, stored);
   assert.equal(old.comparison, null);
   assert.equal(bad.comparison, null);
+});
+
+test("변경에 저장된 대응안 초안(글과 출처)도 읽는다. 비었거나 모양이 맞지 않으면 null이고, 출처가 깨졌으면 빈 목록", async () => {
+  const withDraft = alertRow("a1", "user-a", "2026-11-18T01:30:00Z");
+  Object.assign(withDraft.changes as object, { draft_response: "고친 버전으로 올리세요", draft_sources: ["https://osv.dev/CVE-1"] });
+  const emptyDraft = alertRow("a2", "user-a", "2026-11-18T01:31:00Z");
+  Object.assign(emptyDraft.changes as object, { draft_response: null, draft_sources: null });
+  const brokenSources = alertRow("a3", "user-a", "2026-11-18T01:32:00Z");
+  Object.assign(brokenSources.changes as object, { draft_response: "초안", draft_sources: "깨진 값" });
+
+  const [a, b, c] = await listMyAlerts(fakeDb([withDraft, emptyDraft, brokenSources]).db, "user-a");
+
+  assert.deepEqual(a.change.draft, { text: "고친 버전으로 올리세요", sources: ["https://osv.dev/CVE-1"] });
+  assert.equal(b.change.draft, null);
+  assert.deepEqual(c.change.draft, { text: "초안", sources: [] });
 });

@@ -23,6 +23,8 @@ export type AlertRecord = {
     detectedAt: string | null;
     prevValue: unknown;
     currValue: unknown;
+    /** 변경마다 1번 만든 대응안 초안(Claude). 아직 없거나 만들지 못했으면 null */
+    draft: { text: string; sources: string[] } | null;
   };
 };
 
@@ -45,6 +47,8 @@ export type AlertView = {
   /** 적용 기회 상세의 "나오게 된 이유" 한 줄. 다른 알림이거나 비교표를 모르면 null */
   reasonLine: string | null;
   comparison: ComparisonView | null;
+  /** 보안 경고 상세의 "대응안 초안" 카드. 보안 경고가 아니면 null, 초안이 없으면 "만들지 못함" 상태 */
+  draftCard: { state: "ready"; text: string; sources: string[] } | { state: "missing" } | null;
 };
 
 /** 출처는 http(s) 주소만 링크로 쓴다(그 밖의 글·javascript: 같은 주소는 글자로만) */
@@ -84,6 +88,7 @@ export function toAlertView(record: AlertRecord): AlertView {
     judgmentLine: judgmentLineOf(record.judgment),
     judgedAtLabel: record.judgment ? listTime.format(new Date(record.judgment.judgedAt)) : null,
     canCandidate: record.kind !== "security" || Boolean(curr.fixed_version),
+    draftCard: draftCardOf(record),
   };
   if (record.kind === "opportunity" && record.comparison) return opportunityView(base, record.comparison);
   // 모델 종료의 상세는 3순위. 비교표를 모르는 적용 기회도 이름만 보인다.
@@ -103,6 +108,14 @@ export function toAlertView(record: AlertRecord): AlertView {
     fixedVersion: curr.fixed_version ?? null,
   });
   return { ...base, title: message.title, lines: message.lines, reasonLine: null, comparison: null };
+}
+
+// 초안은 보안 경고에만 있다. 출처는 http(s) 주소만 남긴다(링크로 쓰므로).
+function draftCardOf(record: AlertRecord): AlertView["draftCard"] {
+  if (record.kind !== "security") return null;
+  const { draft } = record.change;
+  if (!draft) return { state: "missing" };
+  return { state: "ready", text: draft.text, sources: draft.sources.filter((source) => /^https?:\/\//i.test(source)) };
 }
 
 const confirmedDay = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });

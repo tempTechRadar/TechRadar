@@ -5,6 +5,7 @@ import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readSimilarJudgments } from "@/lib/server/similar-judgments";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { DraftCard } from "./draft-card";
 import { JudgmentForm } from "./judgment-form";
 import { ComparisonCard, ReasonCard } from "./opportunity-cards";
 import { SimilarCard } from "./similar-card";
@@ -44,6 +45,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           </dl>
         </article>
       )}
+      {view.draftCard && <DraftCard card={view.draftCard} />}
       {view.reasonLine && <ReasonCard line={view.reasonLine} />}
       {view.comparison && <ComparisonCard comparison={view.comparison} />}
       <SimilarCard similar={similar} />

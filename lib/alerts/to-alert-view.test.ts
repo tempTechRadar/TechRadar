@@ -16,6 +16,7 @@ const securityRecord: AlertRecord = {
     kind: "grade_to_danger",
     techName: "mcp-remote",
     detectedAt: "2026-11-18T01:30:00Z",
+    draft: null,
     prevValue: { grade: "caution" },
     currValue: {
       grade: "danger",
