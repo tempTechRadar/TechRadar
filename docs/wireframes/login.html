@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인 화면 시안 (샘플)</title>
+  <link rel="stylesheet" href="wireframe.css">
+  <link rel="stylesheet" href="theme-dark.css">
+  <style>
+    .app-nav ul { max-width: 1120px; }
+    .app-nav .spacer { margin-left: auto; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-6); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--space-6); align-items: center; min-height: 600px; }
+    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; min-height: 0; } }
+    h1.display { font-size: clamp(38px, 5vw, 64px); line-height: 1.2; letter-spacing: -.02em; font-weight: 800; margin: var(--space-4) 0 var(--space-4); }
+    .lead { font-size: 18px; line-height: 1.7; color: var(--ink-2); max-width: 32em; margin: 0 0 var(--space-5); }
+    .cta { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+    .note { color: var(--color-muted); font-size: var(--text-sm); margin: var(--space-3) 0 var(--space-5); }
+    .steps { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
+
+    /* 지도와 같은 레이더: 바깥으로 흐려지며 끝없이 이어지는 고리, 점끼리 이은 선, 도는 선. 점은 평소 어둡고 선이 지나가면 밝아진다. 장식이라 이름표는 없다. */
+    .viz { position: relative; width: 100%; max-width: 600px; justify-self: center; }
+    .viz #svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .ring { fill: none; stroke: #1e8f55; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .web { fill: none; stroke: #8fa3b0; stroke-opacity: .22; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .cross { stroke: #1e8f55; stroke-opacity: .22; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .sweep-line { stroke: #2ed573; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+    .sweep-glow { stroke: #2ed573; stroke-width: 5; opacity: .18; vector-effect: non-scaling-stroke; }
+    .halo { opacity: 0; }
+    .core { transform-box: fill-box; transform-origin: center; }
+    .tgt { fill: none; stroke-width: 1.2; opacity: .55; vector-effect: non-scaling-stroke; }
+    .viz-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
+    .btn-ghost { font: 500 13px var(--font-mono); min-height: 44px; padding: 0 var(--space-4); color: var(--brand); background: none; border: 1px solid var(--color-border-strong); border-radius: var(--radius); cursor: pointer; }
+    .btn-ghost:hover, .btn-ghost[aria-pressed="true"] { background: rgba(46, 213, 115, .1); border-color: var(--brand); }
+    .legend-line { display: flex; flex-wrap: wrap; gap: var(--space-3); font: 12px var(--font-mono); color: var(--color-muted); margin: 0; padding: 0; list-style: none; }
+    .legend-line li { display: flex; align-items: center; gap: var(--space-1); }
+  </style>
+</head>
+<body>
+  <nav class="app-nav" aria-label="주 메뉴">
+    <ul>
+      <li class="brand">techradar</li>
+      <li><a href="#">기능</a></li>
+      <li><a href="#">쓰는 방법</a></li>
+      <li class="spacer"><a class="btn btn-primary" href="#" style="min-height:44px;padding:0 var(--space-4)">구글로 계속하기</a></li>
+    </ul>
+  </nav>
+
+  <main class="wrap">
+    <p class="sample-banner" role="note">로그인 화면 시안입니다. 문구는 예시이고, 오른쪽 레이더는 장식용 샘플입니다. 실제 데이터와 통계는 넣지 않았어요.</p>
+
+    <section class="hero-grid" aria-labelledby="title">
+      <div>
+        <span class="eyebrow">AI 코딩 도구 보안 지도</span>
+        <h1 class="display" id="title">내가 깐 AI 도구,<br><span class="grad">안전한지 한눈에</span></h1>
+        <p class="lead">스킬, MCP, 패키지를 읽어 보안 등급을 매기고, 바뀌면 알려 드려요. 무엇을 할지는 언제나 사람이 정해요.</p>
+        <div class="cta">
+          <a class="btn btn-primary btn-lg" href="#">구글로 계속하기</a>
+        </div>
+        <p class="note">공개 GitHub 저장소 주소만 있으면 돼요. 비밀번호는 받지 않아요.</p>
+        <ol class="steps" aria-label="사용 순서">
+          <li class="chip"><b>1</b> 저장소 등록</li>
+          <li class="chip"><b>2</b> 보안 등급 확인</li>
+          <li class="chip"><b>3</b> 알림에서 판단</li>
+        </ol>
+      </div>
+
+      <div class="viz">
+        <svg id="svg" viewBox="-500 -500 1000 1000" aria-hidden="true" focusable="false"></svg>
+        <div class="viz-bar">
+          <ul class="legend-line" aria-label="점 설명(장식용 예시)">
+            <li>장식 예시</li>
+            <li><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><circle r="4.5" fill="#5ec8ff"/></svg>최근 확인</li>
+            <li><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><circle r="4.5" fill="#f87171"/></svg>위험</li>
+            <li><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><circle r="4.5" fill="#fbbf24"/></svg>주의</li>
+          </ul>
+          <button type="button" class="btn-ghost" id="pause" aria-pressed="false"></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const rand = ((s) => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296)(11);
+    const R = 520, TRAIL = 70, TAIL = 150, PERIOD = 18, RAD = Math.PI / 180;
+    // 점 44개: 최근 확인한 점(청록)은 선이 지나가면 밝아지고, 나머지는 어둡다. 위험과 주의는 드물게만, 잘 보이는 안쪽에 둔다. 바깥은 흐려져서 끝이 없어 보인다.
+    const blips = Array.from({ length: 44 }, (_, i) => {
+      const deg = rand() * 360, r = 110 + Math.sqrt(rand()) * (i < 5 ? 290 : 420), a = deg * RAD;
+      return { deg, x: r * Math.sin(a), y: -r * Math.cos(a), g: i < 3 ? 'd' : i < 5 ? 'w' : 'p', fresh: i < 5 || rand() < 0.45, r: i < 5 ? 8 : 3.2 + rand() * 3.5 };
+    });
+    // 가까운 점끼리 이어 그물로 보이게 한다(지도와 같은 느낌). 장식이라 뜻은 없다.
+    const links = new Set();
+    blips.forEach((b, i) => blips.map((o, j) => [j, Math.hypot(b.x - o.x, b.y - o.y)]).filter(([j]) => j !== i).sort((p, q) => p[1] - q[1]).slice(0, 2)
+      .forEach(([j]) => links.add(i < j ? `${i}-${j}` : `${j}-${i}`)));
+    const web = [...links].map((k) => { const [i, j] = k.split('-').map(Number); return `M${blips[i].x.toFixed(1)} ${blips[i].y.toFixed(1)}L${blips[j].x.toFixed(1)} ${blips[j].y.toFixed(1)}`; }).join('');
+    const ringsHtml = [110, 220, 330, 440, 550].map((r, i) => `<circle class="ring" r="${r}" style="stroke-opacity:${Math.max(0.05, 0.42 / Math.pow(i + 1, 0.7)).toFixed(3)}"/>`).join('');
+    const COLOR = { d: '#f87171', w: '#fbbf24' };
+    const grad = (id, c) => `<radialGradient id="${id}"><stop offset="0" stop-color="${c}" stop-opacity=".6"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`;
+    const lx = R * Math.sin(-TRAIL * RAD), ly = -R * Math.cos(-TRAIL * RAD);
+    const dotHtml = (b) => (b.g === 'p'
+      ? `<circle class="halo" r="${b.r * 4.5}" fill="${b.fresh ? 'url(#h-p)' : 'none'}"/><circle class="core" r="${b.r}" fill="${b.fresh ? '#5ec8ff' : '#5a7890'}" fill-opacity="${b.fresh ? 0.8 : 1}"/>`
+      : `<circle class="halo" r="${b.r * 4.5}" fill="url(#h-${b.g})"/><circle class="tgt" r="${b.r + 6}" stroke="${COLOR[b.g]}"/><circle class="core" r="${b.r}" fill="${COLOR[b.g]}"/>`);
+    $('svg').innerHTML = `<defs>${grad('h-p', '#5ec8ff')}${grad('h-d', '#f87171')}${grad('h-w', '#fbbf24')}
+      <linearGradient id="wg" gradientUnits="userSpaceOnUse" x1="${lx.toFixed(1)}" y1="${ly.toFixed(1)}" x2="0" y2="${-R}"><stop offset="0" stop-color="#2ed573" stop-opacity="0"/><stop offset="1" stop-color="#2ed573" stop-opacity=".15"/></linearGradient>
+      <radialGradient id="fadeG" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="540"><stop offset=".8" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+      <mask id="fade" maskUnits="userSpaceOnUse" x="-560" y="-560" width="1120" height="1120"><rect x="-560" y="-560" width="1120" height="1120" fill="url(#fadeG)"/></mask></defs>
+      <g mask="url(#fade)">
+      ${ringsHtml}
+      <line class="cross" x1="0" y1="${-R}" x2="0" y2="${R}"/><line class="cross" x1="${-R}" y1="0" x2="${R}" y2="0"/>
+      <circle r="3" fill="#2ed573"/>
+      <g id="sweepG" transform="rotate(0)"><path d="M0 0L${lx.toFixed(1)} ${ly.toFixed(1)}A${R} ${R} 0 0 1 0 ${-R}Z" fill="url(#wg)"/><line class="sweep-glow" x1="0" y1="0" x2="0" y2="${-R}"/><line class="sweep-line" x1="0" y1="0" x2="0" y2="${-R}"/></g>
+      <path class="web" d="${web}"/>
+      ${blips.map((b) => `<g transform="translate(${b.x.toFixed(1)} ${b.y.toFixed(1)})">${dotHtml(b)}</g>`).join('')}
+      </g>`;
+    const groups = [...$('svg').querySelectorAll('g[transform^="translate"]')];
+    blips.forEach((b, i) => { b.halo = groups[i].querySelector('.halo'); b.core = groups[i].querySelector('.core'); b.hv = ''; });
+
+    let paused = matchMedia('(prefers-reduced-motion: reduce)').matches, theta = 0, dirty = true;
+    const sweepG = $('sweepG'), pause = $('pause');
+    const glow = (behind) => (behind < TAIL ? Math.pow(1 - behind / TAIL, 1.6) : 0);
+    function render() {
+      sweepG.setAttribute('transform', `rotate(${theta.toFixed(2)})`);
+      sweepG.setAttribute('visibility', paused ? 'hidden' : 'visible');
+      blips.forEach((b) => {
+        const k = !paused && b.fresh ? glow((((theta - b.deg) % 360) + 360) % 360) : 0, v = k.toFixed(2);
+        if (b.hv === v) return;
+        b.hv = v; b.halo.style.opacity = (k * 0.7).toFixed(2); b.core.style.transform = `scale(${(1 + k * 0.45).toFixed(2)})`;
+        if (b.g === 'p' && b.fresh) b.core.setAttribute('fill-opacity', (paused ? 1 : 0.8 + k * 0.2).toFixed(2)); // 멈추면 1: 오래된 점과 확실히 구분
+      });
+    }
+    let last = performance.now();
+    (function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!paused) theta = (theta + (dt / PERIOD) * 360) % 360;
+      if (!paused || dirty) { render(); dirty = false; }
+      requestAnimationFrame(frame);
+    })(last);
+    const sync = () => { blips.forEach((b) => { b.hv = ''; }); pause.setAttribute('aria-pressed', String(paused)); pause.textContent = paused ? '움직임 켜기' : '움직임 멈추기'; dirty = true; };
+    pause.addEventListener('click', () => { paused = !paused; sync(); });
+    window.__login = { blips, get theta() { return theta; }, get paused() { return paused; }, TAIL };
+    sync();
+  })();
+  </script>
+</body>
+</html>
