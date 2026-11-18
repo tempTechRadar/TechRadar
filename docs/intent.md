@@ -6,6 +6,22 @@
 
 ---
 
+## I-precheck-merge · 2026-11-18 · PR 올리기 전에 GitHub이 볼 충돌을 미리 보는 `npm run precheck`
+- 브랜치: `chore/precheck-merge` (최신 main 7c1ff95, 새 worktree `.claude/worktrees/precheck-merge`)
+- 출처: 사용자 "pr 올리기전에 충돌을 미리 예지해서 충돌 없도록 하는 방법은 없어?" → "precheck 추가해서 pr". 앞선 작업 `I-record-github-union`(PR #64)·`I-vercel-deploy-limit`(PR #68)의 후속
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | GitHub PR 화면은 `merge=union`을 따르지 않아, 내 컴퓨터에서 충돌이 없어도 PR이 `CONFLICTING`으로 뜬다. 올리기 전에는 알 방법이 없었다 |
+| 기대 결과 | `npm run precheck` 한 줄로 GitHub이 볼 충돌을 읽기만으로 미리 보고, 충돌이면 실패(종료 코드 1)한다. 순서가 `CLAUDE.md` 10절에 적혀 팀 모두가 쓴다 |
+| 영향 범위 | `package.json`(scripts 한 줄), `CLAUDE.md` 10절, ADR 0017 개정, 기록. 코드·DB·`.gitattributes`·GitHub 설정은 손대지 않음 |
+| 제약 | 새 라이브러리 없이 git 명령만 쓴다. 작업 폴더·인덱스를 바꾸지 않는다(읽기만). Windows(cmd)에서도 돌아야 하므로 `$(…)` 같은 셸 문법을 쓰지 않고 빈 트리 해시를 그대로 적는다 |
+| 열린 질문 | 팀원의 git이 2.40 이상인지(`--attr-source`). 기획 문서(`plan`·`spec`)의 "바뀐 기록" 끝이 겹치는 경우도 같은 결과가 나오는지(시험하지 않음). 기록을 작업마다 파일 하나로 쪼갤지는 코드 동결 뒤 |
+
+**결과:** 열린 PR 4개와 GitHub 표시가 모두 일치했다(#70·#69 충돌 없음, #67·#66 `intent.md` 충돌). 옛 main에서 만든 시험 브랜치로 충돌 시 종료 코드 1과 `CONFLICT` 줄이 나오고, 같은 상황을 union이 켜진 일반 병합은 통과시킴을 확인했다. `npm run precheck`가 충돌 없는 상태에서 `precheck OK`를 낸다.
+
+---
+
 ## I-P-20-eval-button · 2026-11-18 · 실패 시연 화면의 채점 칸 연결 (영역 C, 차세일)
 - 브랜치: `fix/P-20-eval-button` (worktree, origin/main 위)
 - 출처: PRD-F30, SPEC-10, `docs/flow.md`(start_scoring → score → score_save), 불변 5·6. 채점 함수(PR #47)가 합쳐졌는데 `/admin/demo` 채점 칸은 자리만 남아 있었음(시연 대본 작성 중 발견)
