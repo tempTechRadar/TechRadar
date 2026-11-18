@@ -138,6 +138,7 @@
 | 84 | P-17 정기 실행·지금 실행: `runBatch`(schedule·manual, 출처 실패해도 계속·수집 오류로 기록, 240초 한도), 재시도 2·4·8분 최대 3번(`nextRetry`, runs.attempt·next_retry_at), 3번 연속 수집 오류 강조(`sourcesToHighlight`), `/admin/run-now`, `/api/cron/daily`(CRON_SECRET, 고정 시간 비교), `vercel.json` 매일 UTC 21:00. 수집기 목록은 비어 있음(합쳐진 수집기 없음 → 실행 기록 안 만듦). 시험 222 통과·실패 0, 타입 검사 통과. **못 한 것:** 배포 예약 확인, 실제 DB 확인, 자동 재실행(Hobby는 하루 한 번), 실제 수집기 연결. 83번은 P-20b(PR #47) | 나(요청) · Claude(작성·시험) | `feat/P-17-schedule`, I-041 |
 | 86 | P-3 보강(점검 D-7·D-8·Y-3): 바깥 호출을 `collect-fetch.ts`로 모으고, 새 등록은 GitHub가 저장소를 열 수 없다고 하면 막고(확인이 안 되면 막지 않음), 다시 읽기는 파일이 하나도 안 열리면 저장소부터 확인해 수집 오류·실행 failed로 남김. OSV 실패를 단계에 오류 종류와 함께 기록, `thick_reasons`는 `used`. 불변 2 시험 17개 더함(173 → 190, 실패 0), 고친 곳을 되돌리는 변이 시험 8가지 모두 실패 확인, 타입 검사·webpack 빌드 통과. 코드 검토 9건 중 3건 반영 | 나(요청) · Claude(작성·시험·검토 도우미) | `fix/P-3-collect-errors`, I-043 |
 | I-record-merge-rules | 기록 문서 충돌 막기: 병합 59개를 다시 합쳐 충돌 패턴을 확인(20곳 모두 같은 자리 덧붙임, intent 8번·worklog 8곳)하고, `.gitattributes`로 기록 문서 5개를 union 병합, 작업 번호를 `I-<브랜치 이름>`으로 바꿔 번호 겹침 없앰, `lib/records` 검사 시험 7개(변이 시험 모두 잡힘), 규칙을 `CLAUDE.md`·`plan.md`·ADR 0017에 적음. `agents.md` 표 밖 행 발견·수정 | 나(요청) · Claude(분석·시험·작성) | `chore/record-merge-rules`, ADR 0017 |
+| I-record-merge-first-sync | 기록 문서 충돌 막기의 빈틈 수정: 열린 PR 4개와 사용자 브랜치를 임시 폴더에서 main과 합쳐 "설정이 없는 옛 브랜치의 첫 병합은 `worklog.md`가 그대로 충돌"을 재현, 설정을 커밋으로 먼저 받는 절차로 해결됨을 확인(파일만 놓으면 병합 실패). 절차를 CLAUDE.md 10절·ADR 0017 개정·debug-note에 적음 | 나(요청) · Claude(재현·시험·작성) | `chore/record-merge-first-sync`, ADR 0017 |
 
 ### 시험 실행에서 나온 것
 - 현재 단계: 2. 기획 문서. 요약 ✅5 🟡11 ❌8 ❔1, D-6.
