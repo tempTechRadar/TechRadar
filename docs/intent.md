@@ -6,6 +6,23 @@
 
 ---
 
+## I-B-record-2-1118 · 2026-11-18 · 영역 B 2차 기록 — 판단 조치 연결(P-8)·적용 기회 화면(P-14)·대응안 초안(P-13) (소급 기록)
+- 작업 ID: 브랜치 이름에서 만듦(ADR 0017, 순번을 매기지 않음). 소급 기록이라 한 항목에 모음
+- 브랜치: `feat/P-8-save-attempted`·`feat/P-8-action-record-wiring`·`feat/P-14b-opportunity-detail`·`feat/P-13-draft`(모두 합침). 이 기록은 `docs/B-record-2-1118`(문서만)
+- 출처: `docs/plan.md` P-8·P-13·P-14, PRD-F15·F17·F19, SPEC-3.2·5.3·9, flow.md `summarize`·`action_record`, 이전 기록 `I-B-qa-plan-1118`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 앞 기록(`I-B-qa-plan-1118`) 뒤에 합친 일(#61·#62·#69·#72)이 `plan`·`qa`·`intent`·`worklog`에 없다. 판단 뒤 조치 상자가 안 켜지고, 적용 기회 알림은 만들기만 있고 화면이 없고, 대응안 초안은 한도·프롬프트·저장이 없었다 |
+| 기대 결과 | 판단 저장 결과에 `saveAttempted`를 더하고(#61) 판단 뒤 `action_record`와 저장 실패 시연을 `actions.ts`에 연결(#62). 적용 기회 알림 상세에 이유·비교표(#69). 대응안 초안의 한도 판단·프롬프트·답 검사·`generateDraft`·카드(#72, Claude 실제 연결은 키 뒤) |
+| 영향 범위 | `lib/server/judgments.ts`·`app/alerts/[id]/actions.ts`·`page.tsx`, `lib/alerts/to-alert-view.ts`·`alert-queries.ts`·`opportunity-alerts.ts`(비교표에 이름·확정한 시각 저장), 새 `lib/ai/`·`lib/server/draft.ts`·`app/alerts/[id]/opportunity-cards.tsx`·`draft-card.tsx`, `app/alerts/alerts.css`, `docs/wireframes/`(적용 기회 상세) |
+| 제약 | 서비스 키가 없어 실제 DB·알림이 보이는 화면은 못 봄(가짜 DB·샘플 렌더). 서비스 키는 `run_steps` 기록에만 쓰고 `judgments`에는 안 씀(소스 훑기 시험). Vercel 배포 횟수 제한으로 PR 검사가 빨갰고 로컬 시험으로 대신함 |
+| 열린 질문 | ① Claude API 키·모델과 `generateDraft`를 부를 자리(`first-read.ts`·시뮬레이터) ② 첫 읽기 알림의 조치 상자(`observationId`를 안 넘김) ③ 보안 등급 칸 색 배지(등급 값을 따로 저장해야 함)와 제목 문구(조사 없음)의 팀 확인 ④ 처음 짝 20쌍 시드, 알림을 부르는 자리(P-9·P-18), 사용량 `signals` 키 이름(P-9 뒤) ⑤ 적용 시나리오(P-15 (b)) |
+
+**결과:** #61·#62·#69·#72를 합쳤다. 테스트는 main 387 → 내 PR #72 합친 뒤 412(통과 411, todo 1), 실패 0. 서버 함수는 코드를 일부러 망가뜨려 시험이 잡는지 확인했다(초안 4가지, 판단 연결 2가지). **확인하지 못한 것:** 실제 DB·로그인 화면, 실제 Claude 응답, 조치 상자가 흐름 화면에서 켜지는 것. 사람 QA 3건은 No Run(`docs/qa.md`).
+
+---
+
 ## I-connectors-worklog-1118 · 2026-11-18 · 이번 세션 기록 보강: 커넥터 사용 줄과 11-18 날짜 항목 채우기 (소급)
 - 브랜치: `docs/connectors-worklog-1118` (최신 main d7988de, 새 worktree `.claude/worktrees/connectors-worklog`)
 - 출처: 사용자 "지금까지 pr에서 리뷰어가 알면 좋은 것 종합하고 처리할거 리스팅" → "진행". `CLAUDE.md` 6절(커넥터를 쓰면 `docs/connectors.md`에 한 줄), 9절(끝낼 때 날짜 항목 채우기)
