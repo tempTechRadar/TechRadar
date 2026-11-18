@@ -9,3 +9,4 @@
 | 2026-11-17 | Supabase (MCP 커넥터) | 데이터설계: 기존 "tech-radar-agent"에서 가져올 것 고르기 | `list_tables`(자세히)로 칸 구조, `execute_sql`로 SELECT만(기술 종류·관계 종류·설명 칸별 수, 기술 이름 목록). 아무것도 바꾸지 않음 | 채팅 보고, `docs/데이터설계.md`(작성 예정) | 아니오(이전 프로젝트 조사) |
 | 2026-11-18 | Supabase (MCP 커넥터) | P-1: 새 팀 프로젝트 만들기 시도, 개발 전 점검 | `create_project`는 자동 권한 검사에서 막혀 사람이 직접 만듦. 점검 도우미가 `list_projects`·`list_tables`·`list_migrations`로 조회만(테이블 0개, 마이그레이션 0개). 아무것도 바꾸지 않음 | 채팅 보고 | 예(앱 DB) |
 | 2026-11-18 | Vercel (MCP 커넥터) | 개발 전 점검: 배포 상태 확인 | 점검 도우미가 `list_projects`·`get_project`·`list_deployments`로 조회만(운영 배포 READY, 미리보기는 SSO 보호). 연결·배포 자체는 사람이 함. 아무것도 바꾸지 않음 | https://techradar-theta.vercel.app | 예(배포) |
+| 2026-11-18 | Supabase (MCP 커넥터) | P-2: M0 테이블·RLS를 실제 DB에 적용하고 시험 | 사용자 승인("적용해") 뒤 `apply_migration` 2번(테이블·RLS, 함수 권한), `get_advisors`(보안 점검), `list_tables`(대조), `execute_sql`로 RLS 시험(시험 계정을 만들고 끝에서 모두 되돌림, 남은 줄 0 확인) | `docs/erd.md` 7절, `docs/qa.md` | 예(앱 DB) |
