@@ -410,11 +410,15 @@ UK: (kind, ecosystem, value).
 
 ## 7. 실제 DB와 대조한 결과
 
-**대조 전.** 뼈대 단계에서 새 팀 Supabase 프로젝트를 승인 받고 만든 뒤(E5), 마이그레이션을 적용하고 아래 표를 채운다. 결과는 `docs/qa.md`에도 한 줄 남긴다.
+**1차 대조: 2026-11-18, Claude**(Supabase 커넥터 `list_tables`, 프로젝트 `techradar`). P-2 마이그레이션(`supabase/migrations/202611181400_P-2_m0_tables.sql`, `202611181415_P-2_lock_functions.sql`)을 적용한 뒤. **팀 확인 대기**(안내서: 대조는 팀이 한다). 결과는 `docs/qa.md`에도 남겼다.
 
 | 테이블 | erd에 있음 | 실제 DB에 있음 | 칸·키·RLS 같음 | 다르면 고친 쪽과 이유 |
 |---|---|---|---|---|
-| (대조 때 채움) | | | | |
+| profiles · projects · my_technologies · technologies · sources · runs · run_steps · observations · changes · alerts · audit_logs | ✔ | ✔ (RLS 켜짐) | ✔ | — |
+| categories | ✔ (2.3) | ✔ | ✔ | P-30 대신 P-2에서 만듦: `technologies.category_id`가 가리켜서 |
+| judgments | ✔ | ✔ | `fixed_version` 칸이 DB에 있음 | erd 표의 `fixed_version` 줄은 PR #28(ADR 0012)에 있음. 둘이 합쳐지면 같아짐 |
+| rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs | ✔ | 아직 없음 | — | P-30(M1 마이그레이션)에서 만든다 |
+| 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
 
 ## 바뀐 기록
 
