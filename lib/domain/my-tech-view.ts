@@ -37,6 +37,31 @@ export function filterTechs<T extends { grade: string; hidden_at: string | null 
   return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || t.grade === f.grade));
 }
 
+export type ReadRun = { status: string; created_at: string };
+// shortcut: 읽기 한 번은 서버 한도(maxDuration 300초) 안에 끝나므로 10분 넘게 running이면 멈춘 것으로 본다. 한도를 늘리면 같이 올린다
+const STALE_RUN_MINUTES = 10;
+const AGAIN = "'다시 읽기'를 눌러 보세요.";
+
+/**
+ * 저장소 프로젝트의 마지막 읽기(첫 읽기·다시 읽기) 상태 안내(불변 2: 수집 실패를 "없음"·"전부"로 단정하지 않는다).
+ * 잘 읽은 저장소(succeeded)와 저장소를 읽지 않는 칸(local)만 null. 읽은 기록이 없거나 모르는 상태도 "없음"이 아니라 열어 둔다.
+ * 실패 원인은 말하지 않는다: failed는 저장소가 안 열린 때만이 아니라 저장 실패 같은 내부 오류로도 남는다.
+ * 마지막 읽기는 서버가 정렬해 준 순서가 아니라 created_at으로 고른다.
+ */
+export function readStatusNotice(kind: "repo" | "local", runs: ReadRun[] | undefined, now: Date): string | null {
+  if (kind === "local") return null;
+  const last = [...(runs ?? [])].sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0))[0];
+  if (!last) return `이 저장소를 읽은 기록이 없어요. ${AGAIN}`;
+  if (last.status === "succeeded") return null;
+  if (last.status === "failed") return `마지막 읽기가 실패했어요. 목록이 비었거나 일부만 보일 수 있어요(없다는 뜻이 아니에요). ${AGAIN}`;
+  if (last.status === "partial") return `일부 파일을 읽지 못했어요. 아래 목록이 전부가 아닐 수 있어요. ${AGAIN}`;
+  if (last.status === "queued" || last.status === "running") {
+    const minutes = (now.getTime() - Date.parse(last.created_at)) / 60000;
+    return minutes <= STALE_RUN_MINUTES ? `읽기가 아직 끝나지 않았어요. 잠시 뒤 새로 고치거나 ${AGAIN}` : `읽기가 끝나지 않은 채 멈춘 것 같아요. ${AGAIN}`;
+  }
+  return `읽기 상태를 알 수 없어요. ${AGAIN}`;
+}
+
 /**
  * 카탈로그 검색어. 글자·숫자·공백과 `- _ . : @ /`만 남겨, 거르기 문법(`,` `(` `)` `%`)이 끼어들지 못하게 한다.
  * 두 글자 미만이면 검색하지 않는다(null).
