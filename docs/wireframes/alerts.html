@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>알림 화면 와이어프레임 (샘플)</title>
+  <link rel="stylesheet" href="wireframe.css">
+</head>
+<body>
+  <nav class="app-nav" aria-label="주 메뉴">
+    <ul>
+      <li class="brand">TechRadar</li>
+      <li><a href="#">기술 지도</a></li>
+      <li><a href="#">내 기술</a></li>
+      <li><a href="#list" aria-current="page">알림 <span class="badge badge-warning">판단 대기 3</span></a></li>
+      <li><a href="#">대시보드</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <p class="sample-banner" role="note">와이어프레임입니다. 이름과 숫자는 모두 샘플이고, 실제 데이터가 아닙니다.</p>
+
+    <section id="list" class="sheet" aria-labelledby="list-title">
+      <h1 id="list-title">알림</h1>
+      <p class="summary"><strong>3건</strong> 판단 대기 중이에요.</p>
+
+      <form class="filters" aria-label="알림 거르기">
+        <label>종류
+          <select><option>전체</option><option>보안 경고</option><option>적용 기회</option></select>
+        </label>
+        <label>상태
+          <select><option>전체</option><option>판단 대기</option><option>완료</option></select>
+        </label>
+        <label>기간
+          <select><option>최근 7일</option><option>최근 30일</option><option>전체</option></select>
+        </label>
+      </form>
+
+      <ul class="alert-list">
+        <li><a class="alert-row" href="#detail">
+          <span class="badge badge-danger">보안 경고</span>
+          <span class="alert-main"><strong>sample-mcp-a — 주의 → 위험</strong><span class="muted">내 프로젝트: TechRadar</span></span>
+          <span class="badge badge-warning">판단 대기</span>
+          <time class="alert-time" datetime="2026-11-18T01:30:00Z">11월 18일 10:30</time>
+        </a></li>
+        <li><a class="alert-row" href="#detail">
+          <span class="badge badge-danger">보안 경고</span>
+          <span class="alert-main"><strong>sample-skill-b은 지금 위험이에요</strong><span class="muted">첫 점검 · 프로젝트 밖(내 컴퓨터)</span></span>
+          <span class="badge badge-warning">판단 대기</span>
+          <time class="alert-time" datetime="2026-11-18T00:10:00Z">11월 18일 09:10</time>
+        </a></li>
+        <li><a class="alert-row" href="#detail">
+          <span class="badge badge-neutral">적용 기회</span>
+          <span class="alert-main"><strong>sample-mcp-d이 나왔어요</strong><span class="muted">내 기술 sample-mcp-a와 같은 역할</span></span>
+          <span class="badge badge-warning">판단 대기</span>
+          <time class="alert-time" datetime="2026-11-17T05:00:00Z">11월 17일 14:00</time>
+        </a></li>
+        <li><a class="alert-row" href="#detail">
+          <span class="badge badge-danger">보안 경고</span>
+          <span class="alert-main"><strong>sample-lib-c — 통과 → 위험</strong><span class="muted">내 프로젝트: TechRadar · 판단: 적용 후보</span></span>
+          <span class="badge badge-success">완료</span>
+          <time class="alert-time" datetime="2026-11-16T03:20:00Z">11월 16일 12:20</time>
+        </a></li>
+        <li><a class="alert-row" href="#detail">
+          <span class="badge badge-neutral">적용 기회</span>
+          <span class="alert-main"><strong>sample-lib-e가 나왔어요</strong><span class="muted">판단: 보류 · 이유: 지금은 바꿀 시간이 없어요</span></span>
+          <span class="badge badge-success">완료</span>
+          <time class="alert-time" datetime="2026-11-15T06:40:00Z">11월 15일 15:40</time>
+        </a></li>
+      </ul>
+    </section>
+
+    <section id="detail" class="sheet" aria-labelledby="detail-title">
+      <p class="muted"><a href="#list">← 알림 목록으로</a></p>
+      <h1 id="detail-title">[보안 경고] sample-mcp-a — 주의 → 위험</h1>
+      <p><span class="badge badge-danger">보안 경고</span> <span class="badge badge-warning">판단 대기</span></p>
+
+      <article class="card" aria-labelledby="changed-title">
+        <h2 id="changed-title">무엇이 바뀌었나</h2>
+        <dl class="kv">
+          <dt>보안 등급</dt><dd><span class="arrow-change">주의 → 위험</span></dd>
+          <dt>원인</dt><dd>원격 명령 실행 취약점 발견 (샘플)</dd>
+          <dt>출처</dt><dd><a href="#">OSV 샘플 링크</a> · 11월 18일 10:30</dd>
+          <dt>쉬운 이유</dt><dd>외부에서 내 컴퓨터 명령을 실행시킬 수 있어요</dd>
+          <dt>내 프로젝트</dt><dd>TechRadar · package.json</dd>
+          <dt>고친 버전</dt><dd>1.2.3 (샘플)</dd>
+        </dl>
+      </article>
+
+      <article class="card" aria-labelledby="draft-title">
+        <h2 id="draft-title">대응안 초안 <span class="badge badge-neutral">Claude가 만든 초안</span></h2>
+        <p>고친 버전으로 올리기를 권해요. 출처: <a href="#">공식 안내 샘플 링크</a></p>
+        <h3>비슷한 지난 판단</h3>
+        <p class="muted">찾지 못함</p>
+      </article>
+
+      <form class="card" aria-labelledby="judge-title">
+        <h2 id="judge-title">판단하기</h2>
+        <p class="muted">저장하기 전에는 아무것도 바뀌지 않아요.</p>
+        <label for="hold-reason">보류하는 이유 (보류할 때만, 5자 이상)</label>
+        <textarea id="hold-reason" aria-describedby="hold-help"></textarea>
+        <p id="hold-help" class="muted">이유가 5자 미만이면 보류 버튼이 눌리지 않아요.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary">적용 후보</button>
+          <button type="button" class="btn">보류</button>
+          <button type="button" class="btn">적용 시나리오 만들기</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="states" class="sheet" aria-labelledby="states-title">
+      <h2 id="states-title">비어 있을 때와 실패했을 때</h2>
+      <p class="muted">"없음"과 "불러오지 못함"은 다르게 보여 줘요(알림이 없다고 잘못 믿지 않도록).</p>
+      <div class="notice notice-empty"><strong>아직 알림이 없어요.</strong> 내 기술에 위험이 생기면 여기에서 알려 드려요.</div>
+      <div class="notice notice-error" role="alert"><strong>알림을 불러오지 못했어요.</strong> 알림이 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요. <button type="button" class="btn">다시 불러오기</button></div>
+      <div class="notice notice-error" role="alert"><strong>판단을 저장하지 못했어요.</strong> 알림은 아직 '판단 대기'예요. 다시 눌러 주세요.</div>
+    </section>
+  </main>
+</body>
+</html>
