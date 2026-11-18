@@ -1,0 +1,147 @@
+{
+  "when": "2026. 11. 18. 14시 24분 10초",
+  "ruleVersion": "v1",
+  "rows": [
+    {
+      "id": "G1",
+      "target": "npm mcp-remote",
+      "origin": "실수집",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": true,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G2",
+      "target": "npm @modelcontextprotocol/inspector",
+      "origin": "실수집",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": true,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G3",
+      "target": "npm @modelcontextprotocol/server-filesystem",
+      "origin": "실수집",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": true,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G4",
+      "target": "PyPI mcp",
+      "origin": "실수집",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": true,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G5a",
+      "target": "@modelcontextprotocol/inspector 최신",
+      "origin": "실수집",
+      "expectedGrade": "통과 또는 주의",
+      "actualGrade": "unknown",
+      "gradeOk": false,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G5b",
+      "target": "@modelcontextprotocol/server-filesystem 최신",
+      "origin": "실수집",
+      "expectedGrade": "통과 또는 주의",
+      "actualGrade": "unknown",
+      "gradeOk": false,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G5c",
+      "target": "mcp-remote 최신",
+      "origin": "실수집",
+      "expectedGrade": "통과 또는 주의",
+      "actualGrade": "unknown",
+      "gradeOk": false,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G5d",
+      "target": "mcp 최신",
+      "origin": "실수집",
+      "expectedGrade": "통과 또는 주의",
+      "actualGrade": "unknown",
+      "gradeOk": false,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G6",
+      "target": "시험용 스킬 skill-a-remote-exec",
+      "origin": "가상",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G7",
+      "target": "시험용 스킬 skill-b-secret-leak",
+      "origin": "가상",
+      "expectedGrade": "위험",
+      "actualGrade": "danger",
+      "gradeOk": true,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G8",
+      "target": "시험용 스킬 skill-c-wide-permission",
+      "origin": "가상",
+      "expectedGrade": "주의",
+      "actualGrade": "caution",
+      "gradeOk": true,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    },
+    {
+      "id": "G9",
+      "target": "시험용 스킬 skill-d-clean",
+      "origin": "가상",
+      "expectedGrade": "통과",
+      "actualGrade": "pass",
+      "gradeOk": true,
+      "causeOk": null,
+      "verdict": "맞음",
+      "note": ""
+    }
+  ],
+  "totals": {
+    "cases": 12,
+    "hit": 6,
+    "quietOk": 6,
+    "miss": 0,
+    "falseAlarm": 0,
+    "gradeOk": 8,
+    "failed": 0
+  }
+}
