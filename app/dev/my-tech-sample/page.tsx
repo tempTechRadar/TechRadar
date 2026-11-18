@@ -11,7 +11,7 @@ const NOW = "2026-11-18T05:00:00Z";
 const tech = (tech_key: string, display_name: string) => ({ tech_key, display_name });
 const PROJECTS: ProjectRow[] = [
   {
-    id: "p1", name: "demo-repo", kind: "repo", repo_url: "https://github.com/o/demo-repo",
+    id: "p1", name: "demo-repo", kind: "repo", repo_url: "https://github.com/o/demo-repo", runs: [{ status: "succeeded", created_at: NOW }],
     my_technologies: [
       { id: "a", origin: "repo", version: "0.1.15", source_file: "package.json", manual_name: null, hidden_at: null, read_at: NOW, collect_error_kind: null, grade: "danger", grade_reason: "이 버전(0.1.15)에 심각도 CRITICAL인 알려진 문제가 있어요(GHSA-6xpm-ggf7-wc3p). 0.1.16 이상으로 올리면 고쳐져요.", last_checked_ok_at: NOW, technologies: tech("npm:mcp-remote", "mcp-remote") },
       { id: "b", origin: "repo", version: "2.119.0", source_file: "package.json", manual_name: null, hidden_at: null, read_at: NOW, collect_error_kind: "rate_limited", grade: "unknown", grade_reason: null, last_checked_ok_at: null, technologies: tech("npm:@supabase/supabase-js", "@supabase/supabase-js") },
@@ -25,6 +25,13 @@ const PROJECTS: ProjectRow[] = [
       { id: "e", origin: "import", version: "1.0.0", source_file: null, manual_name: null, hidden_at: null, read_at: null, collect_error_kind: null, grade: "caution", grade_reason: "덜 심각한 알려진 문제가 1건 있어요(GHSA-aaaa).", last_checked_ok_at: NOW, technologies: tech("pypi:mcp-server-time", "mcp-server-time") },
     ],
   },
+  // 기술이 0개인 프로젝트: 마지막 읽기 상태에 따라 "없음"과 읽기 실패를 구분해 보여 준다(불변 2)
+  { id: "p3", name: "empty-ok", kind: "repo", repo_url: "https://github.com/o/empty-ok", my_technologies: [], runs: [{ status: "succeeded", created_at: NOW }] },
+  { id: "p4", name: "empty-failed", kind: "repo", repo_url: "https://github.com/o/empty-failed", my_technologies: [], runs: [{ status: "failed", created_at: NOW }] },
+  { id: "p5", name: "empty-partial", kind: "repo", repo_url: "https://github.com/o/empty-partial", my_technologies: [], runs: [{ status: "partial", created_at: NOW }] },
+  { id: "p6", name: "partial-with-tech", kind: "repo", repo_url: "https://github.com/o/partial-with-tech", runs: [{ status: "partial", created_at: NOW }], my_technologies: [{ id: "f", origin: "repo", version: "1.2.0", source_file: "package.json", manual_name: null, hidden_at: null, read_at: NOW, collect_error_kind: null, grade: "pass", grade_reason: "알려진 문제가 없어요", last_checked_ok_at: NOW, technologies: tech("npm:zod", "zod") }] },
+  { id: "p7", name: "stuck-running", kind: "repo", repo_url: "https://github.com/o/stuck-running", runs: [{ status: "running", created_at: "2026-11-01T00:00:00Z" }], my_technologies: [] },
+  { id: "p8", name: "never-read", kind: "repo", repo_url: "https://github.com/o/never-read", runs: [], my_technologies: [] },
 ];
 
 const DETAIL: MyTechDetail = {

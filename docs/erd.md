@@ -210,7 +210,7 @@ UK: (tech_a, tech_b, kind).
 **rule_lists** — 관리자가 고치는 목록(허용 패키지, GitHub 태그, HN 키워드, 위험 패턴)
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
-| kind | text | ✔ | | `allow_package` / `github_topic` / `hn_keyword` / `risk_pattern` |
+| kind | text | ✔ | | `allow_package` / `github_topic` / `hn_keyword` / `risk_pattern` / `official_org`(공식 조직: 값은 이름공간 전체 `io.github.<소유자>`·`<tld>.<조직>`. 서버 이름의 이름공간과 같으면 두껍게, ADR 0019) |
 | ecosystem | text | | | `npm` / `pypi` (패키지일 때) |
 | value | text | ✔ | | 패키지 이름·태그·낱말·패턴 |
 | pattern_id · pattern_grade | text | | | 위험 패턴이면 `P1`… / `danger`·`caution` |
@@ -228,6 +228,8 @@ UK: (kind, ecosystem, value).
 | method | text | ✔ | | `api` / `firecrawl` |
 | priority | int | ✔ | | 1 / 3 |
 | enabled | bool | ✔ | | 켜짐 |
+| last_synced_at | timestamptz | | | 바뀐 것만 읽는 기준: 지난번 **전체 읽기를 시작한** 시각(공식 MCP 레지스트리, P-9c). 끝까지 읽은 뒤에만 올린다 |
+| sync_started_at · sync_cursor | timestamptz · text | | | 한 실행에 다 못 읽었을 때 이어 가는 자리: 진행 중인 읽기의 시작 시각과 다음 쪽 커서(목록이 이름순이라 시각으로는 못 적는다). 끝나면 비운다 |
 
 **runs** — 실행 한 번
 | 칸 | 종류 | 필수 | 키 | 설명 |
@@ -437,3 +439,5 @@ UK: (kind, ecosystem, value).
 - 2026-11-18 초안: erd 인터뷰 E1–E6(팀원 1명, 전부 추천대로). 1·2순위 테이블 19개 칸 표, 3순위 6개 요약, 관계 그림, RLS 규칙, 고른 이유와 접은 방법, 데이터설계와 다른 곳 4개(`rule_lists`, `is_demo`, `missed_count`, 노션 제외). 실제 DB 대조 전
 - 2026-11-18 개발 전 점검 반영(I-028): `judgments.fixed_version` 추가(보안 경고의 적용 후보 = 고친 버전으로 올리기, ADR 0012). P-2 마이그레이션에 넣는다
 - 2026-11-18 문서 점검 2차(작업 `I-doc-fixes-2`): 머리 상태를 "대조 전"에서 "1차 대조 완료, 팀 확인 대기"로, 7절 `judgments` 메모의 PR #28을 합친 것으로 고침(⚪). `observations.metric` 예시에 코드가 쓰는 `osv_vulns`·`osv_advisory`·`same_role`을 더하고, `change_size`에 지금 구현(`small`·`large`와 다운로드 수집기의 문장이 섞여 있음)을 적음(점검 Y-16). `alerts`에 P-8 마이그레이션(`202611181800_P-8_alert_run_id.sql`)의 `run_id` 칸을 더함. 이유: erd가 코드·마이그레이션보다 옛 내용이었다. `change_size`를 한 가지로 통일할지는 정하지 않았다(열린 질문)
+- 2026-11-18 P-9c 마이그레이션(`202611190900_P-9c_registry_sync.sql`, 작업 `I-P-9c-registry`): `sources`에 `last_synced_at`·`sync_started_at`·`sync_cursor`, `rule_lists.kind`에 `official_org`와 처음 값 3개(modelcontextprotocol·anthropics·openai). 실제 DB에 적용했고(사용자 승인) 제약·칸·줄 수를 읽어 확인했다.
+- 2026-11-18 P-9c 코드 검토 반영 마이그레이션(`202611190901_P-9c_thicken_on_use.sql`, 작업 `I-P-9c-registry`): ① `my_technologies` insert 뒤 트리거(`thicken_used_tech`, security definer, 실행 권한은 닫음): 얇은 기술을 누군가 내 기술로 두면 `depth='thick'`, `thick_reasons`에 `used`를 더한다(첫 읽기·직접 추가·가져오기 모두, 사용자 연결은 `technologies`를 못 고치므로). ② `official_org` 값을 낱말(modelcontextprotocol·anthropics·openai)에서 이름공간 전체(`io.github.modelcontextprotocol`·`io.github.anthropics`·`io.github.openai`)로 바꿈. 실제 DB 적용은 사용자 승인 뒤.
