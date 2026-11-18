@@ -20,7 +20,7 @@ const steps = (calls: Call[]) => ops(calls, "run_steps", "insert").map(arg0);
 const updates = (calls: Call[]) => ops(calls, "my_technologies", "update").map(arg0);
 
 /** 실제 DB 대신 "무엇을 읽고 쓰려 했는지"를 모으는 가짜 클라이언트. 물음 한 줄(from…끝)이 Call 하나. */
-function fakeDb(existingProject = false, opts: { changeExists?: boolean } = {}) {
+function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?: Row } = {}) {
   const calls: Call[] = [];
   let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
   const respond = (c: Call): { data?: unknown; count?: number } => {
@@ -45,7 +45,8 @@ function fakeDb(existingProject = false, opts: { changeExists?: boolean } = {}) 
       case "sources.select": return { data: { id: "s1" } };
       case "my_technologies.select": return { data: { grade: "unknown", grade_evidence: null } };
       case "changes.upsert": return { data: opts.changeExists ? [] : [{ id: "c1" }] }; // 이미 있는 변경이면 새 줄이 안 생긴다(중복 막기 키)
-      case "changes.select": return { data: { id: "c1", kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
+      // 가장 최근 변경 조회(limit): 이어지는 위험이 있으면 그 줄, 없으면 비어 있음. 그 밖의 changes 읽기는 방금 만든·이미 있는 변경 한 줄
+      case "changes.select": return has("limit") ? { data: opts.latest ?? null } : { data: { id: "c1", kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
       case "profiles.select": return { data: [{ id: "u1", is_demo: false }] };
       case "alerts.upsert": return (alertsWritten = true), { data: [{ id: "a1" }] };
       default: return {};
@@ -257,6 +258,16 @@ test("두 번째 사용자(같은 변경이 이미 있음)도 save_change가 '�
     const notify = steps(calls).filter((s) => s.step_name === "notify");
     assert.deepEqual(notify.map((s) => [s.status, s.count_in, s.count_out]), [["succeeded", 1, 1]]);
   }
+});
+
+test("위험이 이미 이어지는 중이면(정기 확인이 만든 회차 2) 새 변경을 만들지 않고 그 변경에 이어 쓴다: 회차를 늘 1로 두어 오래된 변경에 붙이지 않는다", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, osv: () => ok(G1_OSV) });
+  const { db, calls } = fakeDb(false, { latest: { id: "c9", danger_round: 2, created_at: "2026-11-18T00:00:00Z" } });
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.danger, r.changesCreated], [1, 0]);
+  assert.equal(ops(calls, "changes", "upsert").length, 0, "새 변경(첫 읽기는 회차 1)을 또 만들지 않는다");
+  const save = steps(calls).find((s) => s.step_name === "save_change");
+  assert.deepEqual([save?.count_in, save?.count_out], [1, 1]);
 });
 
 test("위험이 없는 읽기는 변경이 없다: save_change는 0→0으로 남고 notify는 부르지 않는다(상자가 안 켜지는 것은 의도한 동작)", async (t) => {

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TechRef } from "../domain/tech-key.ts";
 import { changeKey } from "../domain/dedupe-key.ts";
+import type { LatestChange } from "../domain/osv-daily.ts";
 
 export type NewChange = {
   kind: "grade_to_danger" | "first_seen_danger" | "same_role_new";
@@ -38,4 +39,17 @@ export async function saveChange(db: SupabaseClient, c: NewChange): Promise<{ id
   const existing = await db.from("changes").select("id").eq("dedupe_key", dedupe_key).single();
   if (existing.error) throw new Error(`이미 있는 변경을 찾지 못함: ${existing.error.message}`);
   return { id: existing.data.id, created: false };
+}
+
+/**
+ * 같은 (기술, 버전)에서 이 원인들(취약점 id와 별칭) 중 하나로 만든 변경 중 가장 큰 회차. 없으면 null.
+ * 첫 읽기와 정기 OSV 재확인이 같이 쓴다: 위험이 이어지는 중이면 같은 변경에 알림을 잇는다(회차를 늘 1로 두지 않음).
+ */
+export async function readLatestChange(db: SupabaseClient, at: { techId: string; version: string | null }, causeIds: string[]): Promise<LatestChange | null> {
+  if (causeIds.length === 0) return null;
+  const base = db.from("changes").select("id, danger_round, created_at").eq("tech_id", at.techId).in("cause_id", causeIds);
+  const { data, error } = await (at.version === null ? base.is("version", null) : base.eq("version", at.version))
+    .order("danger_round", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(`이전 변경을 읽지 못함: ${error.message}`);
+  return data ? { id: data.id as string, round: data.danger_round as number, createdAt: data.created_at as string } : null;
 }

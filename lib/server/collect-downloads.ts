@@ -95,12 +95,16 @@ function deadSource(dead: Ecosystem[], failed: Failure[]): CollectError {
   return new CollectError(mine[0].kind, `${dead.map((e) => SOURCE_NAME[e]).join("·")}를 읽지 못했어요(${countKinds(mine)}). 첫 오류: ${mine[0].message}`);
 }
 
-/** 수집 상자 줄은 runBatch가 남긴다. 여기서는 그 뒤 단계(normalize·compare)와, 일부만 실패했을 때의 collect_error만 남긴다. */
+/**
+ * 수집 상자 줄은 runBatch가 남긴다. 여기서는 그 뒤 단계(normalize·compare)와, 일부만 실패했을 때의 collect_error만 남긴다.
+ * compare의 나가는 건수는 0이다: 흐름 화면의 compare→grade 화살표는 compare 줄들의 나가는 건수를 합하는데, 다운로드는 등급 계산으로 넘어가지 않아
+ * 다른 수집기(OSV)의 숫자에 섞이면 안 된다. 바뀐 개수는 수집 자료와 요약에 있다.
+ */
 async function recordSteps({ db, runId, tally: t }: Run, withDetail: boolean): Promise<void> {
   const read = readTotal(t);
   if (read > 0) {
     await recordStep(db, runId, { stepName: "normalize", status: "succeeded", countIn: read, countOut: read, outputSummary: "주간 다운로드를 (출처, 대상, 이전 값, 현재 값, 시각) 모양으로 맞춤" });
-    await recordStep(db, runId, { stepName: "compare", status: "succeeded", countIn: read, countOut: t.changed, outputSummary: `바뀐 값 ${t.changed}개, 그대로 ${read - t.changed}개` });
+    await recordStep(db, runId, { stepName: "compare", status: "succeeded", countIn: read, countOut: 0, outputSummary: `바뀐 값 ${t.changed}개(수집 자료로만 남김, 등급 계산으로 넘어가지 않음), 그대로 ${read - t.changed}개` });
   }
   if (!withDetail || t.failed.length === 0) return;
   const names = t.failed.slice(0, 5).map((f) => f.key).join(", ");
