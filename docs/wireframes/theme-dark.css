@@ -1,0 +1,63 @@
+/* 레이더 어두운 테마(docs/design.md 제안). wireframe.css 다음에 불러오면 토큰 값만 바뀌어 모든 화면이 어두워진다.
+   초록은 브랜드와 행동(주 버튼, 링크, 선), 청록은 "최근 확인·완료", 빨강·주황은 위험·주의만 맡는다. 값의 대비는 바탕 #0a0e14 기준으로 계산했다. */
+:root {
+  color-scheme: dark;
+  --color-text: #e6edf3;
+  --color-muted: #8fa3b0;
+  --color-surface: #0a0e14;
+  --color-surface-subtle: #0f151d;
+  --surface-2: #131b25;
+  --surface-3: #19222e;
+  --color-border: rgba(255, 255, 255, .09);
+  --color-border-strong: #5f7384;
+  --color-primary: #2ed573;
+  --color-on-primary: #0a0e14;
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(248, 113, 113, .12);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, .10);
+  --color-success: #5ec8ff;
+  --color-success-bg: rgba(94, 200, 255, .10);
+
+  --brand: #2ed573;
+  --brand-2: #2ed573;
+  --brand-3: #7ae9a6;
+  --accent: #5ec8ff;
+  --ink-2: #c9d6df;
+  --grad: linear-gradient(90deg, #2ed573, #5ec8ff);
+  --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --radius: 8px;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(900px 520px at 50% -12%, rgba(46, 213, 115, .05), transparent 60%), var(--color-surface);
+}
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+input[type="range"], input[type="checkbox"] { accent-color: var(--brand); }
+
+.app-nav { position: sticky; top: 0; z-index: 10; background: rgba(10, 14, 20, .86); backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
+.app-nav a { color: var(--color-muted); }
+.app-nav a:hover { color: var(--color-text); }
+.app-nav a[aria-current="page"] { color: var(--color-text); border-bottom-color: var(--brand); }
+.app-nav .brand { color: var(--brand); font-weight: 800; letter-spacing: -.02em; }
+.app-nav a.btn-primary, .app-nav a.btn-primary:hover { color: var(--color-on-primary); }
+.app-nav a { display: inline-flex; align-items: center; min-height: 44px; } /* 누르는 곳은 높이 44px 이상(design.md 8절) */
+
+.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; background: transparent; border-radius: var(--radius); }
+.btn:hover { background: rgba(255, 255, 255, .06); }
+.btn-primary { background: var(--brand); border-color: var(--brand); color: var(--color-on-primary); }
+.btn-primary:hover { background: var(--brand-3); border-color: var(--brand-3); }
+.btn-lg { min-height: 54px; padding: 0 var(--space-6); font-size: var(--text-md); }
+
+.card, .tile, .summary, .alert-list, .notice-empty {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border); border-radius: 12px;
+}
+.alert-row:hover { background: rgba(255, 255, 255, .04); }
+select, textarea { background: var(--surface-2); }
+
+.eyebrow { display: inline-flex; align-items: center; padding: 2px var(--space-3); border: 1px solid rgba(46, 213, 115, .35); color: var(--brand); font: 600 12px/1.6 var(--font-mono); }
+.grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.chip { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 36px; padding: 0 var(--space-4); border: 1px solid var(--color-border-strong); font: 13px var(--font-mono); }
+.chip b { color: var(--brand); }
