@@ -56,13 +56,32 @@ test("적용 후보는 그 알림의 변경에 있는 고친 버전과 함께 sa
   ]);
 });
 
-test("관리자는 판단을 저장할 수 없다: DB를 부르기 전에 거절한다(불변 1·5)", async () => {
-  const { db, calls } = fakeDb([alertRow()]);
+test("관리자도 자기 알림에는 판단을 저장한다: 다른 사용자와 같은 규칙으로 DB 함수까지 간다(ADR 0016)", async () => {
+  const { db, rpcCalls } = fakeDb([alertRow()]);
 
   const result = await saveJudgment(db, { id: "user-a", role: "admin" }, { alertId: "alert-1", decision: "candidate", reason: "" });
 
-  assert.deepEqual(result, { ok: false, message: "관리자는 판단을 저장할 수 없어요.", saveAttempted: false });
-  assert.equal(calls(), 0);
+  assert.deepEqual(result, { ok: true });
+  assert.equal(rpcCalls.length, 1);
+  assert.equal(rpcCalls[0].name, "save_judgment");
+});
+
+test("관리자도 남의 알림에는 판단을 저장하지 않는다: 본인 것만 읽으므로 DB를 부르기 전에 거절한다(불변 1·5)", async () => {
+  const { db, rpcCalls } = fakeDb([alertRow({ user_id: "user-b" })]);
+
+  const result = await saveJudgment(db, { id: "user-a", role: "admin" }, { alertId: "alert-1", decision: "candidate", reason: "" });
+
+  assert.deepEqual(result, { ok: false, message: "알림을 찾지 못했어요.", saveAttempted: false });
+  assert.equal(rpcCalls.length, 0);
+});
+
+test("관리자 계정이어도 보류 이유 5자 미만은 거절한다(같은 규칙)", async () => {
+  const { db, rpcCalls } = fakeDb([alertRow()]);
+
+  const result = await saveJudgment(db, { id: "user-a", role: "admin" }, { alertId: "alert-1", decision: "hold", reason: "짧음" });
+
+  assert.equal(result.ok, false);
+  assert.equal(rpcCalls.length, 0);
 });
 
 test("남의 알림이나 없는 알림은 저장하지 않는다", async () => {

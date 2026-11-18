@@ -38,3 +38,18 @@ test("cleanForLog: 없으면 null, 가린 뒤 너무 길면 2000자에서 자른
   assert.equal(long?.length, 2001);
   assert.ok(long?.endsWith("…"));
 });
+
+test("cleanForLog: 믿을 수 없는 긴 글(KEY가 이어진 대문자 덩어리)도 오래 걸리지 않는다 — 가리기 전에 자르므로 글자 수의 제곱으로 느려지지 않는다", () => {
+  const started = performance.now();
+  const out = cleanForLog(`다른 파일(${"KEY".repeat(40_000)})`);
+  assert.equal(out?.length, 2001); // 잘렸다는 표시(…)까지
+  assert.ok(out?.endsWith("…"));
+  // 옛 코드는 12만 자에서 수 초(제곱)였다. 넉넉히 잡는다
+  assert.ok(performance.now() - started < 2_000, `너무 오래 걸림: ${(performance.now() - started).toFixed(0)}ms`);
+});
+
+test("cleanForLog: 앞쪽 비밀값은 자르기 전에도 가려지고, 가려서 줄어든 글도 뒤가 잘렸다면 표시가 붙는다", () => {
+  assert.equal(cleanForLog(`TOKEN=${FAKE_SK} ${"x".repeat(5_000)}`), `TOKEN=*** ${"x".repeat(1_990)}…`);
+  // 미리 자른 4000자 안에서 가려져 2000자 아래로 줄어도, 원래 글이 더 길었다는 표시는 남는다
+  assert.equal(cleanForLog(`MY_TOKEN=${"a".repeat(3_000)} ${"y".repeat(5_000)}`), `MY_TOKEN=*** ${"y".repeat(990)}…`);
+});
