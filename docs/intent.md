@@ -56,7 +56,7 @@
 
 ---
 
-## I-045 · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
+## I-P-20c-fail-demo · 2026-11-18 · P-20c 실패 시연 5가지 — 시연 화면·시연 스위치·조치 기록 함수 (영역 C, 차세일)
 - 번호: I-040(P-20b, PR #47)·I-042(P-18, PR #52)가 열려 있고 main은 I-043까지라 **I-044**
 - 브랜치: `feat/P-20c-fail-demo` (worktree `C:\bootcamp\TechRadar-DEMO`, origin/main 13fd4c0 위)
 - 출처: `docs/plan.md` P-20 끝 기준(실패 시연 5가지), `docs/flow.md` 4절, PRD-F28·F29·F30, 불변 1·2·4·6, SPEC-8(요청 간격)
