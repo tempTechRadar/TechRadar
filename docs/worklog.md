@@ -243,6 +243,7 @@
 | I-P-5b-sim-opportunity | P-5b 시뮬레이터 적용 기회: 가짜 새 기술(`sim:` 키, 통과) + 시연 계정 기술과 확정된 같은 역할 관계(가짜 표시) → same_role_new 변경 → 적용 기회 알림(B 규칙 그대로) → 실행 기록, `/admin/simulator` 두 번째 버튼, 지우기에 관계 추가. 시험 354 통과·실패 0, 타입 검사 통과. **못 한 것:** 실제 DB 확인. 조건은 spec대로 셋(배정 메시지의 넷과 다름) | 나(요청) · Claude(작성·시험) | `feat/P-5b-sim-opportunity` |
 | I-precheck-merge | PR 올리기 전 충돌 미리 보기 `npm run precheck`: GitHub이 볼 일반 병합(`.gitattributes` 무시)을 `merge-tree`로 읽기만 계산. 열린 PR 4개와 GitHub 표시가 모두 일치, 충돌이면 종료 코드 1을 옛 main 시험 브랜치로 확인. `CLAUDE.md` 10절·ADR 0017 개정 | 나(요청) · Claude(시험·작성) | `chore/precheck-merge`, `package.json`, ADR 0017 |
 | I-connectors-worklog-1118 | 이번 세션 기록 보강(소급): 커넥터 사용 2줄(Vercel 조회, abbsbook)을 `connectors.md`에 추가하고, 11-18 날짜 항목의 정한 일·막힌 일·아직 안 된 것을 채움. 병합된 worktree 3개·브랜치 정리 | 나(요청) · Claude(작성) | `docs/connectors-worklog-1118`, `docs/connectors.md`, `docs/worklog.md` |
+| I-vercel-skip-docs-build | 문서만 바뀐 main 병합은 Vercel 빌드를 건너뛰게 `ignoreCommand` 추가. 영향 확인: 런타임에 읽는 `sim/skills`·`eval`과 P-26이 읽을 `wiki/`는 제외하지 않음, 다른 브랜치가 `vercel.json`을 건드리지 않음, 열린 PR #75 영향 없음. 처음 안(`*.md` 전부 제외)은 시험용 `SKILL.md`가 빠져 루트 `*.md`만으로 좁힘. 실제 병합 4개·가상 커밋 6개로 시험, ADR 0018 개정 | 나(요청) · Claude(확인·시험·작성) | `chore/vercel-skip-docs-build`, `vercel.json`, ADR 0018 |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)

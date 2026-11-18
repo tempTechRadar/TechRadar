@@ -85,5 +85,5 @@
 - 올리지 않는다: `.env*`, `.claude/`(단 `.claude/agents/`와 `.claude/skills/`는 팀 공용이라 올린다).
 - 비밀 키·비밀번호를 채팅·문서·코드·커밋·발표 자료에 쓰지 않는다. 키는 서버 환경변수에만 둔다(사용자가 `.env`에 직접 넣는다).
 - 푸시로 자동 배포되면, 푸시 후 배포 상태와 실제 주소를 확인한다.
-- **배포 횟수를 아낀다**(무료 Vercel은 하루 100번 안팎, ADR 0018). PR 브랜치(`feat/`·`fix/`·`docs/`·`chore/`)는 `vercel.json`으로 미리보기 배포를 끄고, main에 합쳐질 때만 배포한다. 브랜치는 로컬에서 `npm run build`·`npm test`를 통과한 뒤 PR을 올릴 때 **한 번만** 푸시하고, 리뷰 반영도 모아서 푸시한다. 화면은 로컬(`npm run dev`)이나 내장 브라우저로 본다. main에 합친 뒤에는 배포 상태와 주소를 확인한다. PR의 "Deployment rate limited" 표시는 병합을 막지 않는다(막는 것은 승인 1개뿐).
+- **배포 횟수를 아낀다**(무료 Vercel은 하루 100번 안팎, ADR 0018). PR 브랜치(`feat/`·`fix/`·`docs/`·`chore/`)는 `vercel.json`으로 미리보기 배포를 끄고, main에 합쳐질 때만 배포한다. 브랜치는 로컬에서 `npm run build`·`npm test`를 통과한 뒤 PR을 올릴 때 **한 번만** 푸시하고, 리뷰 반영도 모아서 푸시한다. 화면은 로컬(`npm run dev`)이나 내장 브라우저로 본다. main에 합친 뒤에는 배포 상태와 주소를 확인한다. PR의 "Deployment rate limited" 표시는 병합을 막지 않는다(막는 것은 승인 1개뿐). 문서만 바뀐 main 병합(`docs/`·`interviews/`·`rules/`·`.claude/`·루트 `*.md`)은 `vercel.json`의 `ignoreCommand`로 배포를 건너뛰니, 그 병합에 배포가 없는 것은 정상이다. 서버가 읽는 `wiki/`·`sim/`·`eval/`는 건너뛰지 않는다(ADR 0018 개정).
 - 확인하지 못한 것은 "확인하지 못했다"고 쓴다.
