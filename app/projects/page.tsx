@@ -1,97 +1,82 @@
 import { redirect } from "next/navigation";
+import { GRADE_OPTIONS, keepView, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { FilterSelect } from "../alerts/filter-select";
+import "../alerts/alerts.css";
 import { registerProject } from "./actions";
+import { AddTech } from "./add-tech";
+import { ProjectTechs, type ProjectRow } from "./tech-table";
 
-// 프로젝트 등록과 내 기술 목록 최소판(IA-2, P-3). 목록 화면 완성(숨김·직접 추가·상세)은 P-11.
-const GRADE_LABEL: Record<string, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
+// 프로젝트 등록과 내 기술 목록(IA-2·3, P-3·P-11). 기술을 누르면 기술 상세(IA-4). 내 실행 기록 탭은 ./runs, 설치 프롬프트는 ./install.
+type Query = { error?: string; notice?: string; audit?: string; grade?: string; project?: string; hidden?: string; q?: string };
 
-type Tech = { tech_key: string; display_name: string };
-// 등급은 내 버전 기준(my_technologies), 카탈로그(technologies) 등급이 아니다(erd 2.2)
-type MyTech = {
-  id: string; version: string | null; source_file: string | null; manual_name: string | null; collect_error_kind: string | null;
-  grade: string; grade_reason: string | null; last_checked_ok_at: string | null; technologies: Tech | null;
+const NOTICE_TEXT: Record<string, string> = { hidden: "숨겼어요. 다시 읽어도 되살아나지 않아요.", restored: "되돌렸어요.", added: "목록에 추가했어요." };
+const URL_ERROR_TEXT: Record<string, string> = {
+  url: "GitHub 저장소 주소(https://github.com/owner/repo)를 넣어 주세요.",
+  repo: "이 저장소를 열 수 없어요. 주소가 틀렸거나 비공개일 수 있어요. 공개 GitHub 저장소만 등록할 수 있어요.",
 };
-type Project = { id: string; name: string; repo_url: string | null; my_technologies: MyTech[] };
 
-export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function ProjectsPage({ searchParams }: { searchParams: Promise<Query> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const { error } = await searchParams;
+  const query = await searchParams;
   const supabase = (await getServerSupabase())!;
   const { data, error: loadError } = await supabase
     .from("projects")
-    .select("id, name, repo_url, my_technologies(id, version, source_file, manual_name, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name))")
+    .select("id, name, kind, repo_url, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name))")
     .eq("owner_id", user.id)
+    .is("archived_at", null)
     .order("created_at");
   // DB 타입을 생성하기 전이라 다대일(technologies)도 배열로 추론된다. 실제 응답은 한 줄 객체.
-  const projects = (data ?? []) as unknown as Project[];
+  const projects = (data ?? []) as unknown as ProjectRow[];
+  const term = searchTerm(query.q ?? "");
+  let hits: CatalogHit[] | null = null;
+  let searchFailed = false;
+  if (term) {
+    hits = await searchCatalog(supabase, query.q ?? "").catch((e) => { console.error("기술 검색 실패", e); searchFailed = true; return null; });
+  }
+  const filter = { grade: query.grade, showHidden: query.hidden === "1" };
+  const back = keepView(query); // 숨기기·추가 뒤에 같은 화면으로 돌아오게 폼에 싣는다
+  const carry = keepView({ grade: query.grade, project: query.project, hidden: query.hidden }); // 검색해도 거르기를 지우지 않게
+  const shown = projects.filter((p) => !query.project || p.id === query.project);
+  const errorText = query.error ? URL_ERROR_TEXT[query.error] ?? TECH_ERROR_TEXT[query.error] : undefined;
 
   return (
-    <main>
+    <main className="alerts">
       <h1>내 프로젝트</h1>
-      <form action={registerProject} style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "end" }}>
+      <form action={registerProject} className="filters" style={{ alignItems: "end" }}>
         <label>
           공개 GitHub 저장소 주소
-          <br />
           <input name="repoUrl" type="url" required placeholder="https://github.com/owner/repo" size={40} />
         </label>
-        <button type="submit">등록하고 읽기</button>
+        <button className="btn btn-primary" type="submit">등록하고 읽기</button>
       </form>
-      {error === "url" && <p role="alert">GitHub 저장소 주소(https://github.com/owner/repo)를 넣어 주세요.</p>}
-      {error === "repo" && <p role="alert">이 저장소를 열 수 없어요. 주소가 틀렸거나 비공개일 수 있어요. 공개 GitHub 저장소만 등록할 수 있어요.</p>}
-      <p>package.json과 .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
+      <p className="muted">package.json과 .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
+      {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
+      {query.notice && NOTICE_TEXT[query.notice] && <p className="notice notice-empty" role="status">{NOTICE_TEXT[query.notice]}</p>}
+      {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 "누가·언제 바꿨는지" 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
 
       {loadError ? (
-        <p role="alert">목록을 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
-      ) : projects.length ? (
-        projects.map((p) => <ProjectTechs key={p.id} project={p} />)
-      ) : (
+        <p className="notice notice-error" role="alert">목록을 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
+      ) : projects.length === 0 ? (
         <p>아직 등록한 프로젝트가 없어요.</p>
-      )}
-    </main>
-  );
-}
-
-function ProjectTechs({ project }: { project: Project }) {
-  return (
-    <section>
-      <h2>
-        {project.name} <small>{project.repo_url}</small>
-      </h2>
-      {project.my_technologies.length === 0 ? (
-        <p>읽은 AI 코딩 도구가 없어요.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">기술</th>
-              <th scope="col">버전</th>
-              <th scope="col">등급</th>
-              <th scope="col">이유</th>
-              <th scope="col">읽은 파일</th>
-            </tr>
-          </thead>
-          <tbody>
-            {project.my_technologies.map((m) => {
-              const t = m.technologies;
-              const checked = m.last_checked_ok_at ? new Date(m.last_checked_ok_at).toLocaleDateString("ko-KR") : "없음";
-              return (
-                <tr key={m.id}>
-                  <td>{t?.display_name ?? m.manual_name}</td>
-                  <td>{m.version ?? "모름"}</td>
-                  <td>
-                    {GRADE_LABEL[m.grade]}
-                    {m.collect_error_kind && ` · 수집 오류 (마지막 확인 ${checked})`}
-                  </td>
-                  <td>{m.grade_reason ?? "확인할 수 있는 자료를 찾지 못했어요"}</td>
-                  <td>{m.source_file}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <>
+          <form method="get" className="filters" aria-label="목록 거르기">
+            {term && <input type="hidden" name="q" value={term} />}
+            <FilterSelect label="등급" name="grade" value={query.grade} options={GRADE_OPTIONS} />
+            <FilterSelect label="프로젝트" name="project" value={query.project} options={[["", "전체"], ...projects.map((p): [string, string] => [p.id, p.name])]} />
+            <label style={{ alignSelf: "end" }}>
+              <input type="checkbox" name="hidden" value="1" defaultChecked={filter.showHidden} /> 숨긴 기술도 보기
+            </label>
+            <button className="btn" type="submit" style={{ alignSelf: "end" }}>거르기</button>
+          </form>
+          {shown.map((p) => <ProjectTechs key={p.id} project={p} filter={filter} back={back} />)}
+        </>
       )}
-    </section>
+      {!loadError && <AddTech projects={projects} q={query.q ?? ""} hits={hits} searchFailed={searchFailed} back={back} carry={carry} />}
+    </main>
   );
 }
