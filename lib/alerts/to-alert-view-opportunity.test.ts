@@ -22,7 +22,7 @@ const opportunityRecord: AlertRecord = {
       { item: "사용량", mine: { value: "주간 12,000회 다운로드", source: null }, theirs: { value: "찾지 못함", source: null } },
     ],
   },
-  change: { kind: "same_role_new", techName: "mcp-new", detectedAt: "2026-11-18T01:00:00Z", prevValue: null, currValue: null },
+  change: { kind: "same_role_new", techName: "mcp-new", detectedAt: "2026-11-18T01:00:00Z", prevValue: null, currValue: null, draft: null },
 };
 
 test("적용 기회 상세는 조사 없는 제목, 나오게 된 이유(확정한 날, 한국 시간), 비교표를 준다", () => {

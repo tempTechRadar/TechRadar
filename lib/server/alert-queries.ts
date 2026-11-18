@@ -6,7 +6,7 @@ import { maskSecrets } from "../domain/redact.ts";
 
 // 다대일 조인(changes, technologies, my_technologies, projects)은 실제 응답에서 한 줄 객체다(DB 타입 생성 전이라 느슨하게 둔다).
 const COLUMNS =
-  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, technologies(display_name)), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at), comparison";
+  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, draft_response, draft_sources, technologies(display_name)), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at), comparison";
 
 type Row = Record<string, any>;
 
@@ -26,6 +26,13 @@ function toComparison(raw: unknown): AlertRecord["comparison"] {
   return valid ? { myTechName: value!.myTechName, newTechName: value!.newTechName, confirmedAt: value!.confirmedAt, rows: value!.rows } : null;
 }
 
+// 초안 글이 없으면 null. 출처가 글자 목록이 아니면 빈 목록(화면은 "출처 찾지 못함").
+function toDraft(change: Row): AlertRecord["change"]["draft"] {
+  if (typeof change.draft_response !== "string" || change.draft_response.trim() === "") return null;
+  const sources = Array.isArray(change.draft_sources) ? change.draft_sources.filter((s: unknown): s is string => typeof s === "string") : [];
+  return { text: change.draft_response, sources };
+}
+
 function toRecord(row: Row): AlertRecord {
   return {
     id: row.id,
@@ -43,6 +50,7 @@ function toRecord(row: Row): AlertRecord {
       detectedAt: row.changes.detected_at,
       prevValue: row.changes.prev_value,
       currValue: row.changes.curr_value,
+      draft: toDraft(row.changes),
     },
   };
 }

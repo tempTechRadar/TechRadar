@@ -103,3 +103,5 @@
   .alerts .compare th, .alerts .compare td { border-top: 0; padding: var(--space-1) 0; }
   .alerts .compare td::before { content: attr(data-label) ": "; color: var(--color-muted); font-weight: 600; }
 }
+
+.alerts .draft-text { white-space: pre-wrap; margin: 0 0 var(--space-2); }
