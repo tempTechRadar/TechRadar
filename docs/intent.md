@@ -4,6 +4,22 @@
 
 ---
 
+## I-033 · 2026-11-18 · P-30 M1 테이블 마이그레이션
+- 브랜치: `feat/P-30-migration-m1` (최신 main, P-3 PR #33·#34 합친 뒤)
+- 출처: `docs/plan.md` P-30, erd 2.3·2.5·2.6·4절, SPEC-7.2(허용 목록 처음 값)·SPEC-9(AI 하루 한도), 불변 5. 사용자 "다음 작업 진행해줘"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | P-13·14·15·18·19·21·26이 쓸 테이블(`rule_lists`·`tech_relations`·`grade_views`·`scenarios`·`exports`·`ai_calls`·`chat_logs`)이 DB에 없다 |
+| 기대 결과 | 7개 테이블 + RLS(erd 4절 그대로), 사용자 2명·관리자 1명으로 남의 줄 0건·관리자 전용·로그인 안 한 사람 막힘 시험, 허용 목록 처음 값(SPEC-7.2) |
+| 영향 범위 | `supabase/migrations/`(새 파일), `supabase/tests/rls_m1.sql`(새), erd 7절, qa, 기록 |
+| 제약 | DB는 운영과 같은 곳이라 적용 전 사용자 승인. 시험 데이터는 남기지 않음. `categories`는 P-2에서 이미 만듦. 같은 역할 처음 짝 20쌍은 P-14(황재웅), 위험 패턴 값은 P-10에서 |
+| 열린 질문 | 허용 목록을 코드(`manifest.ts`)에서 DB(`rule_lists`)로 옮기는 건 관리자 화면(P-18)이 고치기 시작할 때 |
+
+**결과:** 사용자 승인 뒤 `techradar`에 적용. 테이블 7개 + RLS, 허용 목록 28줄. RLS 시험 23개 모두 기대값, 시험 뒤 남은 줄 0, 공개 테이블 20개 모두 RLS 켜짐, 보안 점검 새 경고 없음. erd 7절 대조·QA·커넥터 기록
+
+---
+
 ## I-032 · 2026-11-18 · P-3 등록 → 저장소 읽기 → OSV → 등급 → 변경
 - 브랜치: `feat/P-3-osv-grade` (최신 main, P-2 합친 뒤)
 - 출처: `docs/plan.md` P-3, PRD-F4·F6·F10·F11, SPEC-1·3.1·3.4·7·8, `docs/flow.md` 2절(`fetch_repo`·`extract_my_tech`·`fetch_osv`·`grade`·`save_change`), 불변 2·3. 사용자 "지금까지 작업 양상 파악해서 다음 작업 진행해줘"
