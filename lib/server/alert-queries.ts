@@ -6,9 +6,15 @@ import { maskSecrets } from "../domain/redact.ts";
 
 // 다대일 조인(changes, technologies, my_technologies, projects)은 실제 응답에서 한 줄 객체다(DB 타입 생성 전이라 느슨하게 둔다).
 const COLUMNS =
-  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, technologies(display_name)), my_technologies(source_file, projects(name))";
+  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, technologies(display_name)), my_technologies(source_file, projects(name)), judgments(decision, reason, fixed_version)";
 
 type Row = Record<string, any>;
+
+// alert_id가 unique라 한 줄 객체로 오지만, 배열로 와도 첫 줄을 쓴다.
+function toJudgment(raw: Row | Row[] | null | undefined): AlertRecord["judgment"] {
+  const row = Array.isArray(raw) ? raw[0] : raw;
+  return row ? { decision: row.decision, reason: row.reason, fixedVersion: row.fixed_version } : null;
+}
 
 function toRecord(row: Row): AlertRecord {
   return {
@@ -18,6 +24,7 @@ function toRecord(row: Row): AlertRecord {
     createdAt: row.created_at,
     projectName: row.my_technologies?.projects?.name ?? null,
     sourceFile: row.my_technologies?.source_file ?? null,
+    judgment: toJudgment(row.judgments),
     change: {
       kind: row.changes.kind,
       techName: row.changes.technologies.display_name,

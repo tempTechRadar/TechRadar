@@ -68,6 +68,7 @@ test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼�
         prevValue: { grade: "caution" },
         currValue: { grade: "danger" },
       },
+      judgment: null,
     },
   ]);
 });
@@ -98,4 +99,17 @@ test("알림 한 건은 내 것일 때만 읽고, 남의 알림 id나 없는 id�
   assert.equal(theirs, null);
   assert.equal(missing, null);
   await assert.rejects(() => getMyAlert(fakeDb(rows, "연결 실패").db, "user-a", "a1"), /알림을 읽지 못함.*연결 실패/);
+});
+
+test("판단한 알림은 판단 결과(적용 후보·보류, 이유, 고친 버전)도 함께 읽는다. 한 줄 객체든 한 줄짜리 배열이든 같다", async () => {
+  const judgment = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixed_version: null };
+  const asObject = { ...alertRow("a1", "user-a", "2026-11-18T01:30:00Z"), status: "done", judgments: judgment };
+  const asArray = { ...asObject, judgments: [judgment] };
+
+  const [fromObject] = await listMyAlerts(fakeDb([asObject]).db, "user-a");
+  const [fromArray] = await listMyAlerts(fakeDb([asArray]).db, "user-a");
+
+  const expected = { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null };
+  assert.deepEqual(fromObject.judgment, expected);
+  assert.deepEqual(fromArray.judgment, expected);
 });

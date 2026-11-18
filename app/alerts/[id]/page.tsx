@@ -4,9 +4,10 @@ import { toAlertView } from "@/lib/alerts/to-alert-view";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { JudgmentForm } from "./judgment-form";
 import "../alerts.css";
 
-// 알림 상세(IA-7, PRD-F15). 판단하기 카드는 P-8, 대응안 초안·비슷한 지난 판단은 P-13·P-15에서 붙인다.
+// 알림 상세(IA-7, PRD-F15). 대응안 초안·비슷한 지난 판단·적용 시나리오는 P-13·P-15에서 붙인다.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +39,16 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
             })}
           </dl>
         </article>
+      )}
+      {view.judgmentLine ? (
+        <article className="card" aria-labelledby="judged-title">
+          <h2 id="judged-title">내 판단</h2>
+          <p>{view.judgmentLine}</p>
+        </article>
+      ) : user.role === "admin" ? (
+        <p className="muted">관리자는 판단을 저장할 수 없어요.</p>
+      ) : (
+        <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} />
       )}
     </main>
   );
