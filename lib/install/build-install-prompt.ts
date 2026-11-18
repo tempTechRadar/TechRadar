@@ -51,12 +51,11 @@ function sourceProblem(item: InstallItem): string | null {
 
 function line(item: InstallItem): string {
   const link = `출처: ${item.link ?? "(링크 없음)"}`;
-  const danger = item.danger && item.userIncluded ? ` | 위험: ${safeReason(item.danger.reason)}` : "";
-  if (item.kind === "skill") return `- ${item.name} | 가져올 곳: ${item.pkg} | 넣을 곳: ${SKILL_PLACE[item.scope ?? "project"]}${danger}`;
+  if (item.kind === "skill") return `- ${item.name} | 가져올 곳: ${item.pkg} | 넣을 곳: ${SKILL_PLACE[item.scope ?? "project"]}`;
   const pkg = `${item.pkg}${ver(item.version)}`;
-  if (item.kind !== "mcp") return `- ${item.name} | ${item.ecosystem} ${pkg} | ${link}${danger}`;
+  if (item.kind !== "mcp") return `- ${item.name} | ${item.ecosystem} ${pkg} | ${link}`;
   const keys = [...(item.envKeys ?? [])].sort().map((k) => `\n  환경변수: ${k}=${BLANK}`).join("");
-  return `- ${item.name} | ${item.ecosystem} ${pkg} | 설정 위치: ${MCP_PLACE[item.scope ?? "project"]} | ${link}${danger}${keys}`;
+  return `- ${item.name} | ${item.ecosystem} ${pkg} | 설정 위치: ${MCP_PLACE[item.scope ?? "project"]} | ${link}${keys}`;
 }
 
 function dangerLine(item: InstallItem): string {
@@ -65,12 +64,12 @@ function dangerLine(item: InstallItem): string {
   return `- ${item.name}${ver(item.version)} — 위험: ${safeReason(item.danger?.reason ?? "")}. ${tail}`;
 }
 
-/** 같은 항목이 여러 번 오면 하나로. 하나라도 위험이면 위험으로 남기고, 사용자가 모두 직접 넣은 경우에만 넣는다. */
+/** 같은 항목이 여러 번 오면 하나로. 하나라도 위험이면 위험으로 남긴다(위험은 어떤 경우에도 넣지 않는다, ADR 0012). */
 function merge(group: InstallItem[]): InstallItem {
   const risky = group.filter((i) => i.danger);
   if (risky.length === 0) return group[0];
   const pick = [...risky].sort((a, b) => (JSON.stringify(a.danger) < JSON.stringify(b.danger) ? -1 : JSON.stringify(a.danger) > JSON.stringify(b.danger) ? 1 : 0))[0];
-  return { ...pick, userIncluded: risky.every((i) => i.userIncluded === true) };
+  return pick;
 }
 
 type Groups = { mcp: InstallItem[]; skill: InstallItem[]; other: InstallItem[]; danger: InstallItem[]; excluded: Excluded[] };
@@ -88,7 +87,7 @@ function sort(input: InstallItem[]): Groups {
   }
   for (const group of same.values()) {
     const item = merge(group);
-    if (item.danger && !item.userIncluded) g.danger.push(item);
+    if (item.danger) g.danger.push(item);
     else (item.kind === "mcp" ? g.mcp : item.kind === "skill" ? g.skill : g.other).push(item);
   }
   return g;

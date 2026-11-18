@@ -15,21 +15,20 @@ const flip = (set: Set<string>, id: string) => {
 };
 
 export function InstallScreen({ rows, pins }: { rows: MyTechRow[]; pins: [string, string][] }) {
-  // 기본: 모두 고름. 위험은 프롬프트에서 기본으로 빠지고, 사용자가 "위험이어도 넣기"를 고를 수 있다
+  // 기본: 모두 고름. 위험은 어떤 경우에도 프롬프트에 들어가지 않는다(ADR 0012)
   const [picked, setPicked] = useState(() => new Set(rows.map((r) => r.id)));
-  const [withDanger, setWithDanger] = useState(() => new Set<string>());
   const [copied, setCopied] = useState<string | null>(null);
   const pinned = useMemo(() => new Map(pins), [pins]);
   const result = useMemo(() => {
-    const { items, notIncluded } = toInstallItems(rows.filter((r) => picked.has(r.id)), pinned, withDanger);
+    const { items, notIncluded } = toInstallItems(rows.filter((r) => picked.has(r.id)), pinned);
     return { ...buildInstallPrompt(items), notIncluded };
-  }, [rows, picked, withDanger, pinned]);
+  }, [rows, picked, pinned]);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(result.text);
       setCopied("복사했어요. 다른 컴퓨터의 Claude Code에 붙여 넣으세요.");
-      const excludedDanger = rows.filter((r) => picked.has(r.id) && r.grade === "danger" && !withDanger.has(r.id) && !pinned.has(r.id)).length;
+      const excludedDanger = rows.filter((r) => picked.has(r.id) && r.grade === "danger" && !pinned.has(r.id)).length;
       void recordPromptCopy({ tech: result.includedCount, excludedDanger }).catch(() => {});
     } catch {
       setCopied("복사하지 못했어요. 아래 글을 직접 선택해 복사해 주세요.");
@@ -49,10 +48,7 @@ export function InstallScreen({ rows, pins }: { rows: MyTechRow[]; pins: [string
                 {label(r)}{r.version ? `@${r.version}` : ""} · {GRADE_KO[r.grade]}{pinned.has(r.id) ? ` → ${pinned.get(r.id)}로 고정` : ""}
               </label>
               {r.grade === "danger" && !pinned.has(r.id) && picked.has(r.id) ? (
-                <label style={{ display: "flex", gap: 6, alignItems: "center", color: "#b3261e" }}>
-                  <input type="checkbox" checked={withDanger.has(r.id)} onChange={() => setWithDanger(flip(withDanger, r.id))} style={{ width: 22, height: 22 }} />
-                  위험이어도 넣기(&quot;위험: 이유&quot;가 붙어요)
-                </label>
+                <span style={{ color: "#b3261e" }}>위험이라 프롬프트에 넣지 않아요</span>
               ) : null}
             </li>
           ))}
