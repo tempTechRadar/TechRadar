@@ -18,6 +18,18 @@
 | 제약 | CSP는 `frame-ancestors 'none'`만 둔다. 스크립트를 막는 규칙(`script-src`)은 Next의 인라인 스크립트와 부딪혀 nonce 설정이 필요해서 이번에는 하지 않는다. `X-Frame-Options`와 `frame-ancestors`는 같은 뜻이다(앞의 것은 CSP를 모르는 옛 브라우저용). `Permissions-Policy`는 이 앱이 카메라·마이크·위치를 쓰지 않아 끄는 기본값이다(쓰는 기능이 생기면 그 항목만 푼다). 운영 모드에서만 붙인다(개발 서버의 내장 미리보기가 iframe으로 열 수 있어서). 이 사이트를 iframe으로 쓰는 곳은 코드·문서에서 찾지 못했다 |
 | 열린 질문 | ① 스크립트를 막는 CSP(`script-src` + nonce)를 둘지 ② 이 사이트를 iframe에 넣어 보여 줘야 하는 곳(발표 자료 등)이 있는지: 있으면 `X-Frame-Options`를 빼고 `frame-ancestors`를 그 주소로 바꿔야 한다(둘 다 고쳐야 함) ③ 정적 프리렌더 화면의 `Access-Control-Allow-Origin: *`는 Vercel 기본이다. 로그인·첫 화면 HTML뿐이라 비밀은 없지만 제한할지는 팀 확인 ④ Vercel 문서는 설정 헤더가 정적 파일·함수에 적용된다고 예시하지만 프리렌더 페이지에 대한 명시 문장은 찾지 못했다. 그래서 배포 주소 확인을 `qa.md`의 별도 행으로 둔다(안 붙으면 `vercel.json`의 `headers`로 옮긴다) |
 | 결과 | 시험 2개 통과(값을 베끼지 않고 불변식만 확인), 헤더 설정을 일부러 깨뜨린 5곳(`nosniff` 삭제·`DENY`→`SAMEORIGIN`·개발에서도 붙임·CSP 완화·`Permissions-Policy` 삭제)을 모두 잡음. `tsc` 오류 0. 운영 모드(`next build --webpack` 뒤 `next start`)에서 `/login`·`/`(200)·`/dashboard`(307)·`/api/cron/daily`(401)·`/dev/my-tech-sample`(404) 응답에 다섯 헤더가 모두 붙는 것을 확인. 전체 `npm test` 551개 중 550 통과·실패 0·todo 1. 코드 검토(서브에이전트) 9건 중 8건 반영(요구 출처 `PRD-NF8`, `Permissions-Policy` 이유, `X-Frame-Options`와 CSP의 관계, 시험을 불변식으로, 운영 모드 표현, 배포 주소 확인을 별도 행으로, 현재 운영 응답 표현 바로잡기, 상태 말 빼기)과 worklog 위치 바로잡기. **못 한 것:** 배포된 주소의 헤더는 `qa.md` 확인 행에 두었고, iframe 사용처가 없다는 증명은 코드·문서 검색까지다 |
+## I-P-11-direct-add-grade · 2026-11-18 · P-11 남은 일 "직접 추가한 기술의 등급" 정정 (영역 A, 김영식)
+- 브랜치: `docs/P-11-direct-add-grade` (최신 main `1b1395f`, worktree `.claude/worktrees/p11-records`)
+- 출처: 사용자 "진행"(남은 작업 목록의 2번). 근거: `plan.md` P-11 행 "남음", `I-P-9d-osv-daily`, `docs/spec.md` 등급 표("찾지 못함")
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `plan.md` P-11 "남음"에 "직접 추가한 기술의 등급(P-9 뒤)"가 P-9(다운로드·정기 OSV)가 main에 들어온 뒤에도 그대로여서, 무엇이 남았는지 알 수 없다. 코드를 읽어 보니 정기 OSV 재확인(P-9d)이 이미 일부를 맡는다 |
+| 기대 결과 | plan의 남은 일이 실제로 남은 틈만 말한다. 직접 추가 직후의 등급을 어떻게 할지가 열린 질문으로 보인다 |
+| 영향 범위 | `docs/plan.md` P-11 행의 한 구절, `docs/intent.md`, `docs/worklog.md`. 코드·DB·시험 없음 |
+| 제약 | **코드 읽기로만 확인**: `osv-store.ts`의 SELECT·필터(숨김 아님·`depth = thick`·시연용 아님·보관 안 된 프로젝트, 출처 `origin`은 거르지 않음), `osv-daily.ts` `osvName`(`npm:`·`pypi:` 키만), `first-read.ts`(저장소에서 읽은 기술은 `thick`으로 넣음). 실제 DB에는 기술·내 기술 줄이 0개라 실행으로는 확인하지 못했다 |
+| 열린 질문 | ① 직접 추가한 직후 한 번 바로 OSV로 매길지(추가 응답이 느려지고 실패 처리가 필요), 아니면 다음 정기 실행까지 "찾지 못함"으로 둘지 ② 카탈로그에서 고른 `thin`(얇은) 기술은 정기 OSV 대상이 아니라 계속 "찾지 못함"이다. 사용자가 직접 넣었다는 이유로 `thick`으로 올릴지(`docs/데이터설계.md` 8절 세 물음과 부딪힐 수 있음) ③ npm·PyPI가 아닌 기술(스킬·플러그인 등)은 OSV가 없어 등급을 못 매기는 것이 맞는지(`docs/spec.md` 등급 표의 "패키지가 없는 스킬"과 같은 취급) |
+| 결과 | plan P-11 행의 구절을 실제 남은 틈으로 바꿨다. 코드·DB는 그대로다 |
 
 ---
 
