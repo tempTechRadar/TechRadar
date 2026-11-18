@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-20c-demo-test-save-attempted · 2026-11-18 · 시연 시험을 P-8 saveAttempted 추가에 맞춤 (영역 C)
+- 브랜치: `fix/P-20c-demo-test-save-attempted` (최신 main)
+- 출처: PR #54(P-20c 실패 시연, 합쳐짐)·PR #61(P-8 saveAttempted, 합쳐짐), `lib/demo/judgment-hooks.test.ts`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | #54와 #61이 각각은 통과했지만 둘 다 합쳐진 main에서 시연 시험 1개가 실패한다(판단 저장 결과에 saveAttempted가 새로 생김) |
+| 기대 결과 | 시험 기대값에 saveAttempted: true를 넣어 main 시험 실패 0 |
+| 영향 범위 | `lib/demo/judgment-hooks.test.ts` 한 줄(시험만, 동작 코드 변경 없음) |
+| 제약 | 남의 파일(judgments.ts) 수정 없음 |
+| 열린 질문 | 없음 |
+| 결과 | 2026-11-18: 기대값 한 줄 수정, 전체 시험 실패 0 |
+
+---
+
 ## I-record-merge-first-sync · 2026-11-18 · 기록 문서 충돌 막기의 빈틈: 설정이 없는 옛 브랜치의 첫 병합
 - 브랜치: `chore/record-merge-first-sync` (최신 main 45d6e99, 새 worktree `.claude/worktrees/record-sync`)
 - 출처: 사용자 "근데 worklog.md는 계속 오류 나". 앞선 작업 `I-record-merge-rules`(PR #55, ADR 0017)의 후속

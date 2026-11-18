@@ -218,6 +218,7 @@
 | 17 | AI 인터뷰 3명 (수강생A, 개발자B, 대표C) — 가설로 표시 | Claude 서브에이전트 ×3 | `interviews/*-AI.md` |
 | 18 | AI 인터뷰에서 나온 가설 확인용 질문 16–19 추가 | Claude | `interviews/질문지.md` |
 | 19 | 근거 표를 공개 근거·AI 가설로 나눠 다시 씀 | Claude | `docs/문제정의.md` |
+| I-P-20c-demo-test-save-attempted | main 시험 실패 1건 수정: #54 시연 시험 기대값을 #61의 saveAttempted 추가에 맞춤(시험만, 전체 실패 0) | 나(요청) · Claude(작성·시험) | `fix/P-20c-demo-test-save-attempted` |
 
 ### 정한 일과 이유
 - **v1 대상은 넓게, 대표 사용자는 수강생 한 명:** 대상이 넓으면 "관련 있음·안전함" 기준이 흐려진다. (ADR 0002)
