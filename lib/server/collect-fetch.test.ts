@@ -84,6 +84,14 @@ test("queryOsv: 모양이 다른 200 응답([]·숫자·null·vulns가 배열이
   }
 });
 
+test("queryOsv: 취약점 항목 모양이 이상해도(null 항목·affected 안의 null) 코드 오류로 터지지 않고 수집 오류 parse다", async (t) => {
+  let body = "";
+  respond(t, () => new Response(body, { status: 200 }));
+  for (body of ['{"vulns":[null]}', '{"vulns":[{"id":"x","affected":[null]}]}']) {
+    await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15"), (e) => e instanceof CollectError && e.kind === "parse", body);
+  }
+});
+
 test("queryOsv: {vulns: []}도 오류가 아니라 알려진 취약점 없음", async (t) => {
   respond(t, () => new Response('{"vulns":[]}', { status: 200 }));
   assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), []);
