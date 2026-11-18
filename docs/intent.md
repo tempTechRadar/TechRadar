@@ -20,6 +20,44 @@
 
 **결과:** 두꺼운 기술의 GitHub 저장소를 저장소마다 1번 읽어 라이선스·마지막 푸시·별을 저장하고 보관·12개월 무활동·404 두 번으로 상태를 정하는 수집기(`fetch_github`)를 만들어 `SCHEDULE_COLLECTORS`에 올렸다(`github-repo.ts`·`github-fetch.ts`·`github-store.ts`·`collect-github.ts`, 마이그레이션 `technologies.status_by` 1개, ADR 0021). 여러 수집기가 상태를 정해 서로 되돌리는 문제는 `status_by`에 `<출처>:<상태>`를 적고 정한 쪽만 되돌리게 풀었다(사용자가 추천안 3개 선택: 토큰 없으면 수집 오류·정한 수집기만 되돌림·기술당 1번). 읽기 전용 코드 검토를 두 번 받았다(`docs/agents.md`): 1차 15건 중 11건 반영·4건 기록, 2차 11건 중 8건 반영·3건 기록. 새 시험 60개가 모두 기대값이고 핵심 동작을 일부러 틀리게 고친 71곳을 시험이 모두 잡았으며, `npm test` 609개 중 608 통과·todo 1·실패 0(main `d77cadd` 단독 549개), 타입검사·웹팩 빌드 성공, 실제 DB(마이그레이션 1개 적용) 14/14 통과·시험 뒤 줄 수가 시작 전과 같았다. 실제 GitHub는 토큰 없이 몇 곳만 읽어 응답 모양과 처리를 확인했다(인증 호출은 사람이 토큰을 넣은 뒤). **아직 안 된 것:** `GITHUB_TOKEN`을 사람이 `.env`·Vercel에 넣기, P-9c(PR #96)가 `status_by`를 적게 고치기(합쳐진 뒤), 첫 정기 실행 확인(`/admin/flow`), 열린 질문 ④⑥~⑮. **의존:** ADR 0019는 PR #96에 있어 그것이 합쳐지기 전에는 이 기록의 ADR 0019 참조가 main에 없는 문서를 가리킨다.
 
+## I-install-no-danger · 2026-11-19 · 설치 프롬프트에서 "위험이어도 넣기" 없애기: ADR 0012 이행 (영역 C, 차세일)
+- 브랜치: `fix/install-no-danger` (origin/main d77cadd 위, worktree `.claude/worktrees/night-install-danger`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0012(위험한 버전은 어떤 경우에도 설치 프롬프트에 넣지 않는다), SPEC-4.3, 불변 점검의 N1, 점검 D-1(문서는 이미 고침)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 문서는 "위험한 버전은 어떤 경우에도 넣지 않는다"인데 코드는 위험 기술을 고르고 "위험이어도 넣기"를 체크하면 "위험: 이유"를 붙여 프롬프트에 넣는다(`install-screen.tsx`·`from-my-tech.ts`·`build-install-prompt.ts`의 `userIncluded` 경로). 시험도 옛 동작을 고정하고 있었다. |
+| 기대 결과 | 위험 기술은 고른 상태여도 프롬프트에 들어가지 않고 "넣지 않은 것(위험)"에 이유와 고친 버전이 남는다. 화면은 체크박스 대신 "위험이라 프롬프트에 넣지 않아요"를 보인다. 보안 경고에서 고친 버전으로 올리기(`pinTo`)를 고른 것은 그대로 들어간다. |
+| 영향 범위 | `lib/install/types.ts`(`userIncluded` 삭제)·`from-my-tech.ts`(`includeDanger` 인자 삭제)·`build-install-prompt.ts`·`app/projects/install/install-screen.tsx`와 시험 2파일. DB 없음. |
+| 제약 | 시험 두 곳은 "사용자가 고르면 들어간다"에서 "어떤 경우에도 안 들어간다"로 뒤집었다(옛 `userIncluded` 값이 끼어들어도 무시되는 시험 포함). 화면은 직접 열어 보지 못했다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 복사 기록의 `excludedDanger` 숫자 뜻은 그대로(고른 위험 기술 중 고친 버전으로 고정하지 않은 것). 화면 문구를 팀 취향에 맞게 다듬을지. |
+
+**결과:** 전체 549개 중 548 통과·실패 0·todo 1(시험 수는 그대로, 두 시험을 새 규칙으로 바꿈), `tsc` 통과, 남은 `userIncluded`는 "옛 값을 무시한다"는 시험 한 곳뿐이다.
+## I-admin-judge-own · 2026-11-19 · 관리자도 본인 알림은 판단할 수 있게: ADR 0016 이행 (영역 B, 황재웅)
+- 브랜치: `fix/admin-judge-own` (origin/main d77cadd 위, worktree `.claude/worktrees/night-admin-judge`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: ADR 0016(관리자도 본인 알림은 판단할 수 있고 남의 알림은 못 한다), 불변 점검의 N2, `docs/flow.md`의 `admin_can_judge_own`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | ADR 0016과 DB(`save_judgment`)는 관리자의 본인 알림 판단을 허용하는데, 서버(`lib/server/judgments.ts`)와 알림 상세 화면이 관리자를 통째로 거절한다. 그래서 관리자가 위험 저장소를 등록하면 본인 알림이 영영 판단 대기로 남는다. |
+| 기대 결과 | 관리자도 본인 알림에는 판단 폼이 보이고 저장된다(다른 사용자와 같은 규칙). 남의 알림은 알림 조회가 본인 것만 읽어 "알림을 찾지 못했어요"로 거절되고, DB도 막는다(불변 1·5). |
+| 영향 범위 | `lib/server/judgments.ts`(관리자 거절 한 줄)·`app/alerts/[id]/page.tsx`(관리자 안내 분기)와 `lib/server/judgments.test.ts`(관리자 시험 1개를 3개로). DB·마이그레이션 없음. |
+| 제약 | 알림 조회(`getMyAlert`)는 `user_id = 본인`으로만 읽으므로 이 변경으로 관리자가 남의 알림을 열거나 판단할 길은 생기지 않는다(코드 읽기로 확인). 관리자 화면(`/admin/alerts`)의 판단 버튼 없음은 그대로다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | `lib/server/action-record.test.ts`의 거절 문구 목록에 옛 문구가 남아 있다(죽은 코드 `actionOutcomeOf`의 시험이라 그대로 둠). 관리자 본인 알림 판단이 되는 SQL 시험은 쓰지 않았다(DB 실행 필요). |
+
+**결과:** 전체 551개 중 550 통과·실패 0·todo 1(관리자 시험 1개가 3개로), `tsc` 통과. 관리자 거절을 일부러 되살려 새 시험 2개가 실패하는 것을 확인했다.
+## I-P-3-requirements-txt · 2026-11-18 · 저장소 읽기에 requirements.txt 더하기 (PRD-F6의 한 입력, P-3 SPEC-7 마무리, 영역 A, 김영식)
+- 브랜치: `feat/P-3-requirements-txt` (최신 main `d77cadd`, worktree `.claude/worktrees/p11-records`)
+- 출처: 사용자 "그외작업". 요구: PRD-F6(읽는 입력 중 `requirements.txt`), SPEC-7.1·7.2·7.3·1. 이미 `flow.md` fetch_repo 행이 "나머지 2종(`requirements.txt`·`.claude/skills/`)을 맡은 조각이 plan에 아직 없다"고 적어 둔 알려진 틈이다. 관련 제안: ADR 0020(열린 PR #95)은 스킬 폴더 읽기를 새 조각 P-9e로, `requirements.txt`는 3순위로 정한다. 이 작업은 그 3순위 입력을 먼저 끝낸다
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | PRD-F6과 SPEC-7.1은 `package.json`·`requirements.txt`·`.mcp.json`·`.claude/skills/*/`를 읽으라고 하는데 코드는 `package.json`·`.mcp.json`만 읽었다. 파이썬 프로젝트의 AI 패키지(`anthropic`·`mcp`·`langchain-*` 등)가 내 기술 목록에 안 나왔다 |
+| 기대 결과 | `requirements.txt`의 허용 목록 PyPI 패키지(SPEC-7.2의 14개 이름과 `langchain-*`)가 `pypi:<이름>` 키로 목록에 오르고 OSV로 등급이 매겨진다. 버전은 `==`로 하나 고정했을 때만 알고 나머지는 모른다(SPEC-1 "버전을 모르면"). 주석·옵션·주소·경로 줄은 기술이 아니다. 못 읽는 파일은 "없음"이 아니라 오류로 남는다(불변 2) |
+| 영향 범위 | `lib/domain/manifest.ts`(`readRequirementsTxt`·`requirementIncludes`·`isAllowedPypi`, 읽는 파일과 해석기를 `READERS` 한 표로, 허용 목록 매처 공용), `lib/server/first-read.ts`(파일 병렬 읽기, `-r` 부분 오류, 같은 기술은 버전을 아는 쪽 우선, 실패 판정 기준 변경), `lib/domain/redact.ts`(`cleanForLog`가 비밀값을 가리기 전에 먼저 자름: 2차 검토), `app/projects/page.tsx`(안내 문구), 시험 `requirements-txt.test.ts`(11)·`first-read.test.ts`(낡은 기대값 3곳 고침·새 11)·`redact.test.ts`(새 2). DB·권한 변경 없음 |
+| 제약 | **`requirements.txt`는 사용자가 고른 공개 저장소의 것이라 믿을 수 없다.** 줄을 읽는 데 되돌아가는 정규식을 쓰지 않고 글자를 한 번씩만 훑는다(코드 검토가 재현: 처음 구현은 공백 20만 개 한 줄에 서버가 81초 멈췄다). 줄 단위로 읽어 한 줄이 이상해도 파일이 통째로 오류가 되지 않는다. 스킬 폴더는 이번에 읽지 않는다(P-9e). 파이썬 쪽은 모두 `sdk`(`mcp`·`fastmcp`도 라이브러리) |
+| 열린 질문 | ① `-r other.txt`(다른 파일 포함)는 따라가지 않고 "목록이 전부가 아닐 수 있다"는 부분 오류로 알린다. 따라갈지(추가 요청·한도)는 팀 확인 ② `langchain-*`는 PyPI에 실제로 있는지 확인하지 않는다(SPEC-7.2의 "레지스트리 조회로 확인"은 npm 쪽도 아직 미구현이다). 한 저장소는 50개로 잘리지만 공용 카탈로그에 아무 이름이나 들어갈 수 있다 ③ `pyproject.toml`·`Pipfile`은 SPEC에 없다 ④ `flow.md` fetch_repo 행은 #95가 같은 행을 고치므로 이 PR에서는 건드리지 않았다. 둘 다 합쳐지면 "지금 구현은 3종"으로 맞춰야 한다 |
+| 결과 | 시험 `requirements-txt.test.ts` 11개·`first-read.test.ts`(기존 16개 중 3곳의 기대값을 고치고 새 11개를 더해 27개)·`redact.test.ts`(새 2개로 7개) 모두 통과, 전체 `npm test` 573개 중 572 통과·실패 0·todo 1. **함수를 일부러 깨뜨린 15곳과 옛 정규식으로 되돌린 1곳**(폭주 시험이 81.7초를 재고 실패, 고친 코드는 파일 전체 0.33초)을 모두 잡음. `tsc` 오류 0. 코드 검토(서브에이전트) 2회. **1차 12건:** ReDoS·`mcp`/`fastmcp` 타입·못 읽는 파일이 성공으로 보임·실패 판정 기준·같은 줄 `--hash`·버전 우선 병합·병렬 읽기·허용 목록 중복·PEP 440 범위는 고쳤고, `langchain-*` 존재 확인은 열린 질문으로, 문서·추적 기록은 이 기록과 `qa.md`·`worklog.md`로. **2차 11건:** (a) 직접 재현: 오류 메시지에 실린 `-r` 경로가 `cleanForLog`의 비밀값 가리기(`NAMED`, 대문자 덩어리에서 글자 수의 제곱)를 거쳐 서버가 멈춤(3만 2천 자 0.47초·8천 자 0.03초, 50만 자면 약 2분; `.mcp.json` 별명 경로에도 같은 구멍) → 뿌리인 `cleanForLog`가 가리기 전에 먼저 자르게 고치고 포함 경로도 앞 3개·80자로 줄임 (b) 가져온 파일이 모두 해석에 실패하면 실패가 아니라 일부 성공 → 가져온 수가 아니라 해석한 수로 판정 (c) `이름 @ ./경로`·`이름/하위경로`·`langchain_`·긴 이름이 기술이 됨 → 이름은 100자까지·영숫자로 시작하고 끝남·뒤에 버전 범위만 (d) `1.0.0.`·`1..0` 같은 깨진 버전과 epoch(`1!2.0`)가 통과 → 구분 글자·끝 글자 검사, epoch는 `cmpVersion`이 비교하지 못하고 설치 안내 검사도 받지 않아 버전 모름으로 (e) `REPO_FILES`를 읽기 전용으로, `readRepo`를 50줄 아래(46줄)로 나눔, 시간 시험 기준을 넉넉히. 새 변이 11곳도 모두 잡음(처음 2곳이 안 잡혀 시험을 보강). **고치지 않은 것(열린 질문):** OSV 호출이 차례로 1초 간격이라 PyPI가 늘면 등록 요청이 길어짐(SPEC-8 일괄 조회가 뿌리), 같은 패키지가 환경 표식별로 다른 버전의 두 줄이면 앞 줄만 남음, `-r` 안내가 `parse` 종류의 부분 오류라 추출 단계가 failed로 보임(`-r` 따라가기와 함께 결정), 허용 목록 이름의 PEP 503 정규화가 여러 곳에 있음. **못 한 것:** 실제 GitHub 저장소의 `requirements.txt`로 한 번 읽어 보기(운영에 저장소가 아직 없어 가짜 응답 시험까지) |
 ## I-design-concept · 2026-11-18 · 디자인 컨셉(기술 레이더)과 지도·로그인 화면 시안
 - 브랜치: `docs/design-concept` (최신 main 8bce525, 새 worktree `.claude/worktrees/design-concept`)
 - 출처: 사용자 "전체적인디자인 컨셉 회의" → 레퍼런스(핀터레스트 5개, IVGraph 사이트·앱) → "플래시게임 같음" → "맨 처음 핀터레스트 레이더 느낌만" → "진행" → "레이더 범위가 있어서 옵시디언의 무한한 확장과 연결 느낌이 안 난다" → 끝없는 지도로 바꿔 채택("1") → "진행"(검색·갈래 접기를 넣고 로그인 레이더도 같은 느낌으로) → "점을 잡아서 이동시킬 수 있게, 옵시디언처럼" → "비슷한 서비스에서 차용할 점·개선 사항 모색"(`docs/design-research.md`) → "진행"(추천 순서 R2→R6→R1→R3→R4를 시안에 반영) → "나중 작업으로 기억해두고 일단 추천대로 진행"(획기적 후보는 보류하고 R7·R8을 반영). 근거: `docs/design.md`, IA-10, PRD-F23, 불변 2·6
