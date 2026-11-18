@@ -6,6 +6,22 @@
 
 ---
 
+## I-swallowed-errors-log · 2026-11-19 · 삼킨 오류에 로그 남기기와 작은 보강: 실행 닫기 4곳·exports 기록 2곳·.env.example·저장소 주소 검사
+- 브랜치: `fix/swallowed-errors-log` (origin/main d77cadd 위, worktree `.claude/worktrees/night-hardening`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: 저장소 건강검진(읽기 전용, 11-19)의 "삼킨 오류" 항목과 불변 점검의 N13, `rules/code.md`(오류는 삼키지 않는다)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `.catch(() => {})`로 실행 기록 쓰기 실패를 조용히 삼키는 곳 4개(`record.ts`·`run-batch.ts`·`alerts.ts`·`simulator-opportunity.ts`)와, `exports` 기록 insert가 돌려준 `{error}`를 버리는 곳 2개(`install/actions.ts`·`local-import.ts`)가 있다. `.env.example`에는 코드가 읽는 `CRON_SECRET`·`ENABLE_FAIL_DEMO`가 없다. `parseGithubRepo`는 `https://github.com/../x`처럼 점만 있는 이름을 통과시킨다. |
+| 기대 결과 | 뒷정리 실패는 원래 오류를 가리지 않고 로그로 남고(키·토큰은 가림), `exports` 기록 실패도 로그에 남는다(저장 결과는 그대로). 새 환경에서 두 환경변수 이름을 빠뜨리지 않는다. 점만 있는 저장소 이름은 걸러진다. |
+| 영향 범위 | `lib/server/log-failure.ts`(새)·`record.ts`·`run-batch.ts`·`alerts.ts`·`simulator-opportunity.ts`·`local-import.ts`·`app/projects/install/actions.ts`·`.env.example`·`lib/domain/manifest.ts`(저장소 주소 한 줄)와 시험 3파일. `docs/agents.md`에 이 밤의 서브에이전트 3건. |
+| 제약 | `install-screen.tsx`의 복사 기록 `.catch(() => {})`는 클라이언트라 조용히 실패해도 되는지 사람이 정할 일이라 두었다. 삭제는 하지 않았다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | `console.error`로 오류 객체를 마스킹 없이 찍는 곳 13개를 같은 방식으로 맞출지. `.env.example` 설명이 코드와 맞는지 한 번 더 봐 주기. |
+
+**결과:** 새 시험 8개(로그 도우미 3·exports 실패 1·저장소 주소 4)를 더했고 전체 557개 중 556 통과·실패 0·todo 1, `tsc` 통과. 로그를 다시 삼키기·점 이름 검사 되돌리기를 일부러 넣어 시험이 잡는 것을 확인했다.
+
+---
+
 ## I-record-status-at-merge · 2026-11-18 · 합친 뒤 기록 고치기 반복을 끊는 규칙 제안 (CLAUDE.md 9절 한 항목, 김영식)
 - 브랜치: `docs/record-status-at-merge` (최신 main `955e6a9`, worktree `.claude/worktrees/p11-records`)
 - 출처: 사용자 "1"(후보 중 규칙 제안 선택). 근거: `I-P-11-merged-record`·`I-P-16-merged-record`·`I-P-9-merged-record`·`I-P-11-insert-columns-merged-record`의 열린 질문, `CLAUDE.md` 9절
