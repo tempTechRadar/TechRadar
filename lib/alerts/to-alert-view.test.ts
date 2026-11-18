@@ -7,6 +7,7 @@ const securityRecord: AlertRecord = {
   kind: "security",
   status: "pending",
   createdAt: "2026-11-18T01:30:00Z",
+  projectId: "proj-1",
   projectName: "TechRadar",
   sourceFile: "package.json",
   judgment: null,
@@ -88,8 +89,8 @@ test("목록의 시각은 한국 시간 '11월 18일 10:30' 형식이다", () =>
 });
 
 test("판단한 알림은 부제에 판단이 붙고 상세에 '내 판단' 줄이 생긴다(보류는 이유, 적용 후보는 고친 버전)", () => {
-  const hold = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null } });
-  const candidate = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "candidate", reason: null, fixedVersion: "0.1.16" } });
+  const hold = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null, judgedAt: "2026-11-18T05:00:00Z" } });
+  const candidate = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "candidate", reason: null, fixedVersion: "0.1.16", judgedAt: "2026-11-18T05:00:00Z" } });
 
   assert.equal(hold.subtitle, "내 프로젝트: TechRadar · 판단: 보류");
   assert.equal(hold.judgmentLine, "보류 · 이유: 지금은 바꿀 시간이 없어요");
@@ -104,4 +105,11 @@ test("보안 경고에 고친 버전이 없으면 적용 후보를 고를 수 �
   assert.equal(toAlertView(securityRecord).canCandidate, true);
   assert.equal(toAlertView(noFix).canCandidate, false);
   assert.equal(toAlertView({ ...noFix, kind: "opportunity" }).canCandidate, true);
+});
+
+test("판단한 날은 한국 시간 '11월 18일 14:00', 판단 전에는 null", () => {
+  const done = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null, judgedAt: "2026-11-18T05:00:00Z" } });
+
+  assert.equal(done.judgedAtLabel, "11월 18일 14:00");
+  assert.equal(toAlertView(securityRecord).judgedAtLabel, null);
 });
