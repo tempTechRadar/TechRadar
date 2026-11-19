@@ -1,0 +1,5 @@
+/* 주 메뉴(모든 화면): 누르는 칸을 최소 44px로 둔다(WCAG 2.2 대상 크기, 터치). 링크 높이가 20px이던 것을 키웠다(I-a11y-tap-targets). */
+.site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-bottom: 16px; }
+.site-nav a, .site-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; font: inherit; }
+.site-nav button { cursor: pointer; }
+.site-nav form { display: flex; gap: 8px; align-items: center; margin: 0; }
