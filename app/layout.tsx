@@ -4,6 +4,7 @@ import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
+import "./site-nav.css";
 
 export const metadata: Metadata = {
   title: "TechRadar",
@@ -27,7 +28,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body style={{ fontFamily: "system-ui, sans-serif", margin: 0, padding: "24px", lineHeight: 1.6 }}>
         {/* 메뉴 자리: 조각마다 자기 화면 링크 한 줄을 여기에 더한다(등록 P-3, 알림 P-7, 관리자 P-6) */}
-        <nav aria-label="주 메뉴" style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+        <nav aria-label="주 메뉴" className="site-nav">
           <Link href="/">처음</Link>
           <Link href="/projects">내 프로젝트</Link>
           <Link href="/alerts">알림</Link>
@@ -36,7 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Link href="/compare">비교</Link>
           <Link href="/settings">설정</Link>
           {user ? (
-            <form action={signOut} style={{ display: "flex", gap: "8px", alignItems: "baseline", margin: 0 }}>
+            <form action={signOut}>
               <span>{user.nickname ? `${user.nickname}님` : "내 계정"}</span>
               <button type="submit">로그아웃</button>
             </form>

@@ -49,6 +49,11 @@
 .alerts .summary strong { font-size: var(--text-lg); }
 .alerts .filters { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-4); }
 .alerts .filters label { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
+/* 누르는 칸 최소 크기(WCAG 2.2): 거르기·등록 폼의 입력칸·체크박스·표 안 링크가 17~19px이던 것을 키운다(I-a11y-tap-targets) */
+.alerts .filters input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+.alerts .filters label:has(> input[type="checkbox"]) { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+.alerts .filters input[type="checkbox"] { width: 20px; height: 20px; }
+.alerts table a { display: inline-block; min-height: 24px; line-height: 24px; }
 .alerts select, .alerts textarea { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
 .alerts textarea { width: 100%; min-height: 88px; }
 .alerts .alert-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius); }
