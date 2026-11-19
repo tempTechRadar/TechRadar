@@ -296,6 +296,23 @@ test("originRun이 있으면 그 사람의 알림 줄에만 run_id를 적고 남
   assert.equal(runIdOf("user-b"), undefined);
 });
 
+test("시뮬레이터 변경의 알림은 그 실행(runId)에 잇는다: 다시 누른 실행의 판단이 처음 실행에 붙지 않게(QA 11-19)", async () => {
+  const tables = baseTables();
+  tables.changes[0].is_simulated = true;
+  tables.profiles[1].is_demo = true;
+  await createAlertsForChange(fakeDb(tables).db, { ...input, runId: "sim-run-2" });
+
+  assert.deepEqual(tables.alerts.map((a) => [a.user_id, a.run_id]), [["user-b", "sim-run-2"]]);
+});
+
+test("진짜 변경은 runId가 있어도 originRun 본인 줄 말고는 run_id를 비운다(불변 5)", async () => {
+  const { db, tables } = fakeDb(baseTables());
+
+  await createAlertsForChange(db, { ...input, runId: "osv-run" });
+
+  assert.deepEqual(tables.alerts.map((a) => "run_id" in a), [false, false]);
+});
+
 test("originRun이 없으면 알림 줄에 run_id 칸을 보내지 않는다(마이그레이션 전에도 다른 경로가 동작)", async () => {
   const { db, tables } = fakeDb(baseTables());
 

@@ -144,3 +144,16 @@ test("runId가 있으면 notify 단계를 기록한다(들어온 사람 수, 만
   assert.equal(inserts[0].row.count_in, 2);
   assert.equal(inserts[0].row.count_out, 2);
 });
+
+test("시뮬레이터 적용 기회 알림은 만든 실행(runId)에 잇고, 진짜 변경은 runId가 있어도 run_id를 보내지 않는다(QA 11-19, 불변 5)", async () => {
+  const simulated = baseTables();
+  simulated.changes[0].is_simulated = true;
+  simulated.profiles[1].is_demo = true;
+  const sim = fakeDb(simulated);
+  await createAlertsForChange(sim.db, { ...input, runId: "sim-run-2" });
+  assert.deepEqual(sim.writes[0].rows.map((r) => [r.user_id, r.run_id]), [["user-b", "sim-run-2"]]);
+
+  const real = fakeDb(baseTables());
+  await createAlertsForChange(real.db, { ...input, runId: "osv-run" });
+  assert.deepEqual(real.writes[0].rows.map((r) => "run_id" in r), [false, false]);
+});
