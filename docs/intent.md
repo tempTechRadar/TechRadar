@@ -6,6 +6,21 @@
 
 ---
 
+## I-plan-qa-c-sync-1119 · 2026-11-19 · plan·qa-c의 영역 C 낡은 기록 맞추기 (차세일)
+- 브랜치: `docs/plan-qa-c-sync-1119` (main `ac7f10f`). 문서만, 코드·DB 변경 없음
+- 출처: `gh pr view` #125·#126·#131·#133·#134·#135·#155·#164·#165·#166(읽기만), `gh pr list --state merged`(17시, 165개), `supabase/migrations/`, `docs/intent.md` I-P-18c-category, `docs/debug-note.md`(#133 장애), `docs/wiki-chat.md`, CLAUDE.md 9절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | plan P-18은 "남음: 갈래 확정", P-26은 "아직 PR 없음"이라고 적혀 있는데 둘 다 main에 합쳐졌다. "11-19 점검" 표 1번·8번, 5절 PR·리뷰 숫자(115개 기준), `qa-c.md` 조각 상태 표(11-18, "PR 열림")도 옛 상태다. `qa-c.md`는 위키 챗봇을 H13·H14로 섞어 부른다 |
+| 기대 결과 | P-18·P-26 상태 칸에 합친 PR과 한 일, 진짜 남은 것(갈래 목록 시드, 운영 Q5 재질문). 점검 표는 11시 사실을 두고 "11-19 저녁 갱신" 메모만 덧붙임. 5절 숫자를 다시 셈. qa-c 조각 상태 표를 main 기준으로, H13 = P-18b·H14 = 위키 챗봇으로 언급을 맞춤(행 번호는 그대로) |
+| 영향 범위 | `docs/plan.md`(4절 P-18·P-26·점검 표, 5절, 바뀐 기록), `docs/qa-c.md`, `docs/intent.md`, `docs/worklog.md` |
+| 제약 | 리뷰·승인 상태 말은 쓰지 않는다(CLAUDE.md 9절). 다른 문서가 "qa-c.md H14"로 위키 챗봇을 가리키므로 행 번호는 바꾸지 않는다. 운영 DB는 다시 보지 않았다(갈래 0줄은 I-P-18c-category 기록) |
+| 열린 질문 | 갈래 처음 목록(데이터설계 DQ2)을 누가 언제 정할지 |
+
+**결과:** 위 기대 결과대로 고쳤다. 5절: 합쳐진 PR 165개, 만든 수·리뷰한 수는 김영식 99·48, 황재웅 27·79, 차세일 39·22(다른 사람 리뷰 없이 합친 PR은 #1–#24 그대로 24개). `npm test` 975개 중 974 통과·실패 0·todo 1(기록 검사 포함). **확인하지 못한 것:** 운영 `categories` 지금 줄 수, 운영 Q5 Claude 답
+
+---
 ## I-P-14-seed-same-role · 2026-11-19 · 같은 역할 처음 짝 시드 14쌍 (P-14, 영역 B, 황재웅)
 - 브랜치: `feat/P-14-seed-same-role` (PR #162, 합침, 승인 차세일). 이 기록은 `docs/P-14-seed-record`(문서만)
 - 출처: `docs/spec.md` SPEC-4.4·SQ2, ADR 0015, 초안 `docs/seed-same-role-pairs.md`(브랜치 `docs/P-14-seed-pairs`)
