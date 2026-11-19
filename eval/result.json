@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 19. 17시 26분 21초",
+  "when": "2026. 11. 19. 17시 29분 9초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -389,6 +389,17 @@
         "note": ""
       },
       {
+        "id": "E-opp-deprecated",
+        "kind": "적용 기회",
+        "target": "새 기술이 지원 종료(deprecated)",
+        "source": "SPEC-3.2 · 추가 규칙 I-P-14-skip-deprecated-new-tech(spec에는 아직 없음)",
+        "expectedOutcome": "알림 0",
+        "expectedEvent": false,
+        "actualOutcome": "알림 0",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
         "id": "E-opp-unknown-grade",
         "kind": "적용 기회",
         "target": "새 기술이 찾지 못함(위험 아님)",
@@ -555,9 +566,9 @@
       }
     ],
     "totals": {
-      "cases": 37,
+      "cases": 38,
       "hit": 15,
-      "quietOk": 21,
+      "quietOk": 22,
       "miss": 0,
       "falseAlarm": 0,
       "outcomeWrong": 1,
@@ -572,8 +583,8 @@
         "outcomeWrong": 0
       },
       "적용 기회": {
-        "cases": 7,
-        "right": 7,
+        "cases": 8,
+        "right": 8,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
@@ -609,9 +620,9 @@
     }
   },
   "overall": {
-    "cases": 49,
+    "cases": 50,
     "hit": 21,
-    "quietOk": 27,
+    "quietOk": 28,
     "miss": 0,
     "falseAlarm": 0,
     "outcomeWrong": 1,

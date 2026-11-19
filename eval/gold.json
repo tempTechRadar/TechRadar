@@ -829,6 +829,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
@@ -872,6 +873,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
@@ -915,6 +917,51 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "danger",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-deprecated",
+      "kind": "적용 기회",
+      "target": "새 기술이 지원 종료(deprecated)",
+      "source": "SPEC-3.2 · 추가 규칙 I-P-14-skip-deprecated-new-tech(spec에는 아직 없음)",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "deprecated",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
@@ -958,6 +1005,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "unknown",
+          "status": "active",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
@@ -1001,6 +1049,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-05T00:00:00Z"
         },
         "relations": [
@@ -1044,6 +1093,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-05T00:00:00Z"
         },
         "relations": [
@@ -1087,6 +1137,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
@@ -1338,6 +1389,7 @@
           "id": "t-new",
           "techKey": "npm:new-remote-proxy",
           "grade": "pass",
+          "status": "active",
           "createdAt": "2026-11-19T00:00:00Z"
         },
         "relations": [
