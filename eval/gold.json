@@ -209,5 +209,1025 @@
         "event": false
       }
     }
+  ],
+  "aboutEdgeCases": "사건 종류·경계 사례(2026-11-19, I-eval-more-cases). 모두 가상 입력이고 OSV 응답은 저장된 파일(lib/domain/fixtures) 또는 사례에 적은 응답. source = 정답의 근거(SPEC id·G 사례·불변 번호). 채점: lib/eval/edge.ts·edge-score.ts",
+  "edgeCases": [
+    {
+      "id": "E-sec-new-danger",
+      "kind": "보안 경고",
+      "target": "mcp-remote 0.1.15: 통과였다가 OSV에 CRITICAL",
+      "source": "SPEC-3.1 보안 등급 바뀜 · G1",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-mcp-remote-0.1.15.json"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "새 변경 grade_to_danger r1 · change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p:r1",
+        "event": true
+      }
+    },
+    {
+      "id": "E-sec-first-seen",
+      "kind": "보안 경고",
+      "target": "PyPI mcp 1.9.3: 처음 등록부터 위험",
+      "source": "SPEC-3.1 처음 확인한 위험 · G4",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp",
+        "ecosystem": "PyPI",
+        "techKey": "pypi:mcp",
+        "version": "1.9.3",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-g4-mcp-1.9.3.json"
+        },
+        "prev": {
+          "grade": "unknown",
+          "evidenceIds": [],
+          "lastNonDangerAt": null,
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "새 변경 first_seen_danger r1 · change:pypi:mcp@1.9.3:GHSA-3qhf-m339-9g5v:r1",
+        "event": true
+      }
+    },
+    {
+      "id": "E-sec-danger-again",
+      "kind": "보안 경고",
+      "target": "inspector 0.14.0: 위험 → 고쳐짐 → 다시 위험",
+      "source": "SPEC-3.1 위험이 된 회차 · G2",
+      "input": {
+        "type": "osv-read",
+        "package": "@modelcontextprotocol/inspector",
+        "ecosystem": "npm",
+        "techKey": "npm:@modelcontextprotocol/inspector",
+        "version": "0.14.0",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-g2-inspector-0.14.0.json"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T12:00:00Z",
+          "latestChange": {
+            "id": "c-r1",
+            "round": 1,
+            "createdAt": "2026-11-17T00:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "새 변경 grade_to_danger r2 · change:npm:@modelcontextprotocol/inspector@0.14.0:GHSA-7f8r-222p-6f5g:r2",
+        "event": true
+      }
+    },
+    {
+      "id": "E-sec-fixed",
+      "kind": "보안 경고",
+      "target": "mcp-remote 0.1.15: 위험이었는데 OSV가 '없음'({})으로 답함(가상)",
+      "source": "SPEC-3.4 위험 → 위험 아님(고쳐짐)은 알림 없음",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 200,
+          "body": "{}"
+        },
+        "prev": {
+          "grade": "danger",
+          "evidenceIds": [
+            "GHSA-6xpm-ggf7-wc3p"
+          ],
+          "lastNonDangerAt": "2026-11-17T00:00:00Z",
+          "latestChange": {
+            "id": "c-r1",
+            "round": 1,
+            "createdAt": "2026-11-18T00:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "바뀜(사건 아님)",
+        "event": false
+      }
+    },
+    {
+      "id": "E-same-danger",
+      "kind": "변화 없음",
+      "target": "server-filesystem 2025.3.28: 어제와 같은 위험을 다시 읽음",
+      "source": "SPEC-3.4 같은 값을 다시 읽음 · SPEC-3.1 · G3 · 불변 3",
+      "input": {
+        "type": "osv-read",
+        "package": "@modelcontextprotocol/server-filesystem",
+        "ecosystem": "npm",
+        "techKey": "npm:@modelcontextprotocol/server-filesystem",
+        "version": "2025.3.28",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-g3-server-filesystem-2025.3.28.json"
+        },
+        "prev": {
+          "grade": "danger",
+          "evidenceIds": [
+            "GHSA-hc55-p739-j48w",
+            "GHSA-q66q-fx2p-7w4m"
+          ],
+          "lastNonDangerAt": "2026-11-17T00:00:00Z",
+          "latestChange": {
+            "id": "c-r1",
+            "round": 1,
+            "createdAt": "2026-11-18T06:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "위험 이어짐(새 변경 없음)",
+        "event": false
+      }
+    },
+    {
+      "id": "E-same-none",
+      "kind": "변화 없음",
+      "target": "mcp-remote 0.16.6(최신): 어제도 오늘도 취약점 0건",
+      "source": "SPEC-3.4 같은 값을 다시 읽음 · G5c",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.16.6",
+        "reply": {
+          "status": 200,
+          "body": "{}"
+        },
+        "prev": {
+          "grade": "unknown",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "변화 없음",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-404",
+      "kind": "수집 실패",
+      "target": "OSV가 404",
+      "source": "불변 2 · SPEC-3.4 수집 실패 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 404,
+          "body": ""
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-404-was-danger",
+      "kind": "수집 실패",
+      "target": "위험이던 기술을 다시 묻는데 OSV가 404",
+      "source": "불변 2(사라짐·고쳐짐으로 단정 안 함) · SPEC-1 수집 오류 · G1",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 404,
+          "body": ""
+        },
+        "prev": {
+          "grade": "danger",
+          "evidenceIds": [
+            "GHSA-6xpm-ggf7-wc3p"
+          ],
+          "lastNonDangerAt": null,
+          "latestChange": {
+            "id": "c-r1",
+            "round": 1,
+            "createdAt": "2026-11-18T00:00:00Z"
+          }
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-503",
+      "kind": "수집 실패",
+      "target": "OSV가 503",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 503,
+          "body": "Service Unavailable"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-429",
+      "kind": "수집 실패",
+      "target": "OSV 한도 초과 429",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 429,
+          "body": ""
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-network",
+      "kind": "수집 실패",
+      "target": "연결 실패",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "throws": "network"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-timeout",
+      "kind": "수집 실패",
+      "target": "시간 초과",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "throws": "timeout"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-shape",
+      "kind": "수집 실패",
+      "target": "200인데 모양이 다름([])",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 200,
+          "body": "[]"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-html",
+      "kind": "수집 실패",
+      "target": "200인데 HTML(점검 화면)",
+      "source": "불변 2 · SPEC-8",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 200,
+          "body": "<html>점검 중</html>"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-collect-next-page",
+      "kind": "수집 실패",
+      "target": "200인데 첫 쪽만 오고 다음 쪽 표시(next_page_token)가 붙음(가상)",
+      "source": "불변 2 · SPEC-3.4 수집 실패 · intent I-P-3-osv-404 열린 질문(next_page_token 무시)",
+      "input": {
+        "type": "osv-read",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 200,
+          "body": "{\"next_page_token\":\"page-2\"}"
+        },
+        "prev": {
+          "grade": "unknown",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        }
+      },
+      "expected": {
+        "outcome": "수집 오류",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-basic",
+      "kind": "적용 기회",
+      "target": "확정된 같은 역할 + 등록 뒤 들어온 새 기술 + 통과",
+      "source": "SPEC-3.2 조건 1·2·3",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-candidate-only",
+      "kind": "적용 기회",
+      "target": "같은 역할이 후보일 뿐(확정 아님)",
+      "source": "SPEC-3.2 조건 1 · SPEC-4.4 · ADR 0015",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "candidate",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-new-danger",
+      "kind": "적용 기회",
+      "target": "새 기술이 위험",
+      "source": "SPEC-3.2 조건 3",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "danger",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-unknown-grade",
+      "kind": "적용 기회",
+      "target": "새 기술이 찾지 못함(위험 아님)",
+      "source": "SPEC-3.2 조건 3(위험이 아님)",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "unknown",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-old-tech",
+      "kind": "적용 기회",
+      "target": "새 기술도 확정도 내가 등록하기 전",
+      "source": "SPEC-3.2 조건 2",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-05T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-confirmed-later",
+      "kind": "적용 기회",
+      "target": "새 기술은 전부터 있었지만 등록 뒤에 같은 역할로 확정",
+      "source": "SPEC-3.2 조건 2(괄호)",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-05T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-15T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-sim-demo-only",
+      "kind": "적용 기회",
+      "target": "시뮬레이터 가짜 변경: 시연 계정에만",
+      "source": "SPEC-3.5",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": true
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          },
+          {
+            "userId": "u-demo",
+            "myTechnologyId": "m-demo",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": true,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u-demo)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-twice-danger",
+      "kind": "두 번 입력",
+      "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",
+      "source": "불변 3 · SPEC-3.1 중복 막기 키 · G1",
+      "input": {
+        "type": "osv-read-twice",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-mcp-remote-0.1.15.json"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        },
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          },
+          {
+            "userId": "u2",
+            "myTechnologyId": "m2",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          }
+        ],
+        "changeSavedAt": "2026-11-19T06:00:00Z",
+        "gradeSaveFails": false
+      },
+      "expected": {
+        "outcome": "변경 1 · 알림 2",
+        "event": true
+      }
+    },
+    {
+      "id": "E-twice-danger-save-failed",
+      "kind": "두 번 입력",
+      "target": "첫 읽기 뒤 등급 저장이 실패한 채로 다시 읽음",
+      "source": "불변 3 · SPEC-3.1 정기 OSV 재확인 문단 · G1",
+      "input": {
+        "type": "osv-read-twice",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "fixture": "lib/domain/fixtures/osv-mcp-remote-0.1.15.json"
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        },
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          },
+          {
+            "userId": "u2",
+            "myTechnologyId": "m2",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          }
+        ],
+        "changeSavedAt": "2026-11-19T06:00:00Z",
+        "gradeSaveFails": true
+      },
+      "expected": {
+        "outcome": "변경 1 · 알림 2",
+        "event": true
+      }
+    },
+    {
+      "id": "E-twice-collect-error",
+      "kind": "두 번 입력",
+      "target": "두 번 다 404",
+      "source": "불변 2·3",
+      "input": {
+        "type": "osv-read-twice",
+        "package": "mcp-remote",
+        "ecosystem": "npm",
+        "techKey": "npm:mcp-remote",
+        "version": "0.1.15",
+        "reply": {
+          "status": 404,
+          "body": ""
+        },
+        "prev": {
+          "grade": "pass",
+          "evidenceIds": [],
+          "lastNonDangerAt": "2026-11-18T00:00:00Z",
+          "latestChange": null
+        },
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          },
+          {
+            "userId": "u2",
+            "myTechnologyId": "m2",
+            "techId": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false
+          }
+        ],
+        "changeSavedAt": "2026-11-19T06:00:00Z",
+        "gradeSaveFails": false
+      },
+      "expected": {
+        "outcome": "변경 0 · 알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-twice-opp",
+      "kind": "두 번 입력",
+      "target": "같은 적용 기회를 두 번 정함",
+      "source": "불변 3 · SPEC-3.2 중복 막기 키",
+      "input": {
+        "type": "opportunity",
+        "times": 2,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "createdAt": "2026-11-19T00:00:00Z"
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-judge-hold-short",
+      "kind": "거절·보류",
+      "target": "보류 이유 1자",
+      "source": "SPEC-4.1 보류 이유 5자 이상 · 불변 4",
+      "input": {
+        "type": "judgment",
+        "decision": "hold",
+        "reason": "음",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "거절 · 조치 기록 안 함",
+        "event": false
+      }
+    },
+    {
+      "id": "E-judge-hold-spaces",
+      "kind": "거절·보류",
+      "target": "보류 이유가 빈칸으로 5자를 채움",
+      "source": "SPEC-4.1 보류 이유 5자 이상 · 불변 4",
+      "input": {
+        "type": "judgment",
+        "decision": "hold",
+        "reason": "     가",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "거절 · 조치 기록 안 함",
+        "event": false
+      }
+    },
+    {
+      "id": "E-judge-hold-keeps-version",
+      "kind": "거절·보류",
+      "target": "보류(=거절): 고친 버전으로 바꾸지 않음",
+      "source": "SPEC-4.1 '보류해도 버전은 그대로' · 불변 4",
+      "input": {
+        "type": "judgment",
+        "decision": "hold",
+        "reason": "다음 배포 때 올림",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "저장으로 넘김 · hold · 고친 버전 없음",
+        "event": true
+      }
+    },
+    {
+      "id": "E-judge-candidate-no-fix",
+      "kind": "거절·보류",
+      "target": "고친 버전이 없는 보안 경고를 적용 후보로",
+      "source": "SPEC-5.2 · ADR 0012",
+      "input": {
+        "type": "judgment",
+        "decision": "candidate",
+        "reason": "",
+        "alertKind": "security",
+        "fixedVersion": null
+      },
+      "expected": {
+        "outcome": "거절 · 조치 기록 안 함",
+        "event": false
+      }
+    },
+    {
+      "id": "E-judge-candidate-fix",
+      "kind": "거절·보류",
+      "target": "보안 경고를 고친 버전으로 적용 후보",
+      "source": "SPEC-4.3 · ADR 0012 · G1",
+      "input": {
+        "type": "judgment",
+        "decision": "candidate",
+        "reason": "",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "저장으로 넘김 · candidate · 고친 버전 0.1.16",
+        "event": true
+      }
+    },
+    {
+      "id": "E-judge-unknown",
+      "kind": "거절·보류",
+      "target": "정해진 두 가지 밖의 판단(approve)",
+      "source": "SPEC-4.1 할 수 있는 일 · 불변 1",
+      "input": {
+        "type": "judgment",
+        "decision": "approve",
+        "reason": "",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "거절 · 조치 기록 안 함",
+        "event": false
+      }
+    }
   ]
 }
