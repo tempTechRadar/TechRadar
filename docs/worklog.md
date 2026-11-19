@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-eval-edge-stored | 관리자 채점 칸(`/admin/demo`)에 경계 사례 결과를 보이게 함: 화면에서 다시 돌리지 않고(경계 사례 채점은 `globalThis.fetch`를 바꿔 끼워 서버에서 돌리면 다른 요청이 가짜 응답을 받을 수 있음, 불변 2) `npm run eval`이 저장한 `eval/result.json`을 읽어 합계·종류별 표·맞음이 아닌 사례·전체(접힘)를 "저장된 결과"와 시각으로 보임. 결과가 없거나 정답 파일과 사례가 다르면 읽지 못한 이유를 보임. 하다가 찾은 것: 채점 칸이 읽는 정답·저장된 OSV 응답·시험용 스킬이 배포 묶음에 0개 → `next.config.ts`에 `/admin/demo` 묶음 한 줄(바꾼 뒤 eval 2·fixtures 5·sim 6). 시험 5개 먼저, `npm test` 1046 통과·실패 0, 타입·빌드 통과. 아직 안 된 것: 운영에서 버튼 눌러 보기(H9 화면 부분) | 차세일(Claude) | `feat/eval-edge-stored`, `lib/eval/stored-edges.ts`, `app/admin/demo/eval-panel.tsx`, `next.config.ts`, `docs/intent.md` I-eval-edge-stored |
 | I-run-batch-overlap | 정기 실행과 "지금 한 번 실행"이 겹쳐 돌지 않게: `runBatch`가 시작 전에 최근 6분 안에 시작해 아직 도는 정기·지금 실행이 있는지 한 번 조회하고, 있으면 실행 기록 없이 이유만 돌려줌(화면은 이미 이유를 보여 줌). 조회 실패면 막지 않고 실행(로그). 마이그레이션 없이 한 것이라 같은 순간의 동시 시작은 못 막음(shortcut 주석, 열린 질문). 시험 5개 먼저(3개 실패 확인), 코드 검토 2건 중 1건 반영(멈춘 실행 기준 10분 → 6분, 안내 문구 맞춤). `npm test` 1056 통과·실패 0, 타입·빌드 통과. 아직 안 된 것: 실제 DB에서 두 번 눌러 보기 | 차세일(Claude) | `fix/run-batch-overlap`, `lib/schedule/run-batch.ts`, `docs/intent.md` I-run-batch-overlap |
 | I-deploy-no-cancel | 배포 작업 실행 기록(`gh run list`)으로 11-19 16:44~17:35 KST 실행 12번이 모두 다음 병합에 취소된 것을 확인. 병합이 멈춘 뒤 17:55 실행이 Deploy Hook을 불러 운영이 `8c3bbe0`(#153·#154 포함)이 된 것도 `/api/version`으로 확인. `cancel-in-progress`를 `false`로 바꿔, 돌고 있는 실행은 끝까지 배포하고 그 사이 병합은 다음 실행 하나로 모이게 함. ADR 0023 바뀐 기록 | 나(요청 "2 진행") · Claude(확인·수정) | `chore/deploy-no-cancel`, ADR 0023 |
 

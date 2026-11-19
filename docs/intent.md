@@ -20,6 +20,19 @@
 
 ---
 
+## I-eval-edge-stored · 2026-11-20 · 관리자 채점 칸에 경계 사례 결과 보이기, 배포 묶음에 채점 자료 싣기 (P-20, 영역 C, 차세일)
+- 브랜치: `feat/eval-edge-stored` (origin/main `ff872e0`)
+- 출처: PRD-F30, `docs/qa-c.md` C19·H9("관리자 채점 버튼은 등급 사례만 보여 줌"), `docs/worklog.md` 11-19 I-eval-more-cases "아직 안 된 것", 불변 2
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | ① `/admin/demo` 채점 칸은 등급 사례 12개만 보여 주고 경계 사례 38개(결과 다름 1건 포함)는 `eval/result.md`를 열어야만 보인다. ② 채점 칸이 서버에서 읽는 `eval/gold.json`·저장된 OSV 응답·시험용 스킬이 배포 묶음(`page.js.nft.json`)에 한 개도 없다(로컬 빌드로 확인) — 운영에서 "채점 실행"이 파일을 못 찾을 수 있다 |
+| 기대 결과 | ① 채점 실행 뒤 표 아래에 경계 사례의 합계·종류별 표·맞음이 아닌 사례·전체 사례(접힘)가 "저장된 결과"와 저장 시각과 함께 보인다. 결과 파일이 없거나 정답 파일과 사례가 다르면(낡음) "없음"이 아니라 읽지 못한 이유를 보인다. ② 빌드 묶음에 `eval/*.json`·`lib/domain/fixtures`·`sim/skills`가 들어간다 |
+| 영향 범위 | 새 파일 `lib/eval/stored-edges.ts`(+시험 5개), `app/admin/demo/eval-actions.ts`·`eval-panel.tsx`, `next.config.ts`(`outputFileTracingIncludes`에 `/admin/demo` 한 줄, 공용 파일). 채점 규칙·정답·DB·실행 기록은 그대로 |
+| 제약 | 경계 사례 채점(`lib/eval/edge.ts`)은 `globalThis.fetch`를 잠깐 바꿔 끼운다. 서버에서 돌리면 같은 순간의 정기 수집·DB 호출이 가짜 응답을 받을 수 있어(불변 2) **화면에서는 다시 돌리지 않고** `npm run eval`이 저장한 결과만 읽는다. 방금 채점한 것처럼 보이지 않게 제목·시각으로 구분한다 |
+| 열린 질문 | ① 화면에서 경계 사례도 실제로 다시 채점하려면 `queryOsv`가 `fetch`를 인자로 받아야 한다(`lib/server/collect-fetch.ts`, 김영식 파일). ② 실행 기록(`score` 단계) 건수는 여전히 등급 사례 12개만 센다 |
+
+**결과:** 시험 5개를 먼저 쓰고 구현. `npm test` 1050개 중 1046 통과·실패 0·건너뜀 3·할 일 1, `tsc --noEmit` 오류 0, `npm run build` 통과. 빌드 묶음 대조: 바꾸기 전 `admin/demo/page.js.nft.json`에 eval 0·fixtures 0·sim 0 → 바꾼 뒤 eval 2·fixtures 5·sim 6. **확인하지 못한 것:** 운영에서 "채점 실행" 버튼이 지금 실제로 실패하는지(로그인 필요), 고친 뒤 운영 화면(사람 QA `docs/qa-c.md` H9의 화면 부분).
 ## I-run-batch-overlap · 2026-11-20 · 정기 실행과 "지금 한 번 실행"이 겹쳐 돌지 않게 (P-17, 영역 C, 차세일)
 - 브랜치: `fix/run-batch-overlap` (origin/main `95447ef`)
 - 출처: PRD-F8, SPEC-8, 불변 3. 코드 검토가 세 번 넘긴 열린 질문 "겹쳐 도는 실행을 `runBatch`가 막지 않음(차세일 파일)" — `docs/agents.md` 11-18 P-9 다운로드·P-9d OSV·P-9c 레지스트리 검토 행
