@@ -1,7 +1,7 @@
 // 적용 시나리오(PRD-F18, SPEC-4.2)를 부탁하는 글(프롬프트)을 만든다. DB·Claude를 모르는 순수 함수.
 // 비교표는 코드가 이미 채운 값을 그대로 보여 줄 뿐, Claude는 "적용 단계"와 "위험과 되돌리는 방법"만 쓴다(PRD-NF6).
 // 바깥 글은 자료로만 감싸고(대응안 초안과 같은 규칙), 설치·실행 명령은 쓰지 못하게 시킨다(SPEC-4.2, ADR 0009).
-import { wrapOutside } from "./build-draft-prompt.ts";
+import { cleanName, wrapAnalysis, wrapData, wrapEvidence, wrapOutside, wrapTechName } from "./build-draft-prompt.ts";
 
 type Cell = { value: string; source: string | null };
 
@@ -19,7 +19,6 @@ export type ScenarioInput = {
 
 export type ScenarioPrompt = { system: string; user: string; allowedSources: string[] };
 
-const NOT_FOUND = "찾지 못함";
 
 const SYSTEM = [
   "너는 사용자가 쓰는 AI 코딩 도구를 어떻게 적용할지, 참고용으로 쉬운 한국어 시나리오를 쓴다. 이 글은 참고 자료이고 실제 설치·적용은 사용자가 직접 한다.",
@@ -33,27 +32,32 @@ const SYSTEM = [
 const cellText = (cell: Cell) => `${cell.value}${cell.source ? ` (출처 ${cell.source})` : ""}`;
 const isLink = (source: string | null): source is string => source !== null && /^https?:\/\//i.test(source);
 
+// 비교표의 이름·값(레지스트리 설명·라이선스 등)은 바깥에서 온 글이라 자료 표시 안에만 넣는다. 행이 많아도 잘리지 않게 한도를 넉넉히 둔다.
+const MAX_COMPARISON_CHARS = 6000;
+
 function comparisonLines(alternative: ScenarioInput["alternative"], techName: string): string[] {
   if (!alternative) return ["대체할 수 있는 확정된 같은 역할 기술이 없어요."];
-  return [
-    `비교(내 기술 ${techName} ↔ 대체 ${alternative.name}):`,
+  const text = [
+    `비교(내 기술 ${cleanName(techName)} ↔ 대체 ${cleanName(alternative.name)}):`,
     ...alternative.rows.map((row) => `- ${row.item}: 내 기술 ${cellText(row.mine)} / 대체 ${cellText(row.theirs)}`),
-  ];
+  ].join("\n");
+  return [wrapData("비교표", text, MAX_COMPARISON_CHARS)];
 }
 
 export function buildScenarioPrompt(input: ScenarioInput): ScenarioPrompt {
-  const evidenceLines = input.evidence.map((e) => `- ${e.id} (심각도 ${e.severity}) ${e.url}`);
+  const { lines: evidenceLines, shown } = wrapEvidence(input.evidence);
   const user = [
     `알림 종류: ${input.alertKind === "security" ? "보안 경고" : "적용 기회"}`,
-    `기술: ${input.techName}`,
-    `쉬운 이유: ${input.reason ?? NOT_FOUND}`,
-    `고친 버전: ${input.fixedVersion ?? "아직 없음"}`,
+    "기술 이름:",
+    wrapTechName(input.techName),
+    wrapAnalysis(input.reason, input.fixedVersion),
     ...comparisonLines(input.alternative, input.techName),
     "근거:",
-    ...(evidenceLines.length ? evidenceLines : ["- 찾지 못함"]),
+    ...evidenceLines,
     ...input.outsideTexts.map(wrapOutside),
   ].join("\n");
-  const cellSources = (input.alternative?.rows ?? []).flatMap((row) => [row.mine.source, row.theirs.source]).filter(isLink);
-  const allowedSources = [...new Set([...input.evidence.map((e) => e.url), ...cellSources, ...input.outsideTexts.map((t) => t.source)])];
+  // 모델이 실제로 볼 수 있는 주소만 출처로 인정한다(비교표가 한도에서 잘려도 어긋나지 않게)
+  const cellSources = (input.alternative?.rows ?? []).flatMap((row) => [row.mine.source, row.theirs.source]).filter(isLink).filter((url) => user.includes(url));
+  const allowedSources = [...new Set([...shown.map((e) => e.url), ...cellSources, ...input.outsideTexts.map((t) => t.source)])];
   return { system: SYSTEM, user, allowedSources };
 }

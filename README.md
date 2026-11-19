@@ -5,6 +5,8 @@ AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가
 > 상태: 개발 단계(2026-11-18). 뼈대 앱이 배포되어 있고, 조각 P-2부터 세 사람이 나눠 만듭니다([plan](docs/plan.md)).
 >
 > **배포 주소:** https://techradar-theta.vercel.app
+>
+> **영역 C(2026-11-19):** 흐름 화면·시뮬레이터·실패 시연·정기 실행(수집기 4개)·설치 프롬프트(알파)·채점·관리자 화면(분류 확인 고치기 포함)·위키 18쪽과 위키 챗봇이 main에 있습니다. 관리자 쓰는 법은 [관리자 사용설명서](docs/관리자-사용설명서.md), 확인 결과는 [QA(영역 C)](docs/qa-c.md), 팀 문서 요약은 [위키 목차](wiki/index.md).
 
 ## 어디부터 읽나
 
@@ -18,6 +20,7 @@ AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가
 | 6 | [plan](docs/plan.md) | 누가 어느 조각을 언제, 먼저 필요한 것, 끝 기준 |
 | 7 | [결정 기록](docs/adr/) · [용어집](docs/GLOSSARY.md) | 왜 그렇게 정했나, 말의 뜻 |
 | — | [작업 의도](docs/intent.md) · [작업 로그](docs/worklog.md) · [체크리스트](docs/제출물-체크리스트.md) | 진행 기록 |
+| — | [관리자 사용설명서](docs/관리자-사용설명서.md) · [QA(영역 C)](docs/qa-c.md) · [위키](wiki/index.md) | 관리자 화면 쓰는 법(쉬운 말), 영역 C 확인 결과, 출처 달린 팀 문서 요약 |
 
 ## 팀 규칙
 - 팀 공용 규칙: [CLAUDE.md](CLAUDE.md), [rules/](rules/)

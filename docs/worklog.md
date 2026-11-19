@@ -11,6 +11,9 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-9c-prompt-wrap | AI 입력 감싸기: P-9c 검토 높음 2건이 이미 해결된 것을 현재 main과 대조해 확인하고(트리거·활동 중 우선), 남은 구멍인 대응안·시나리오 프롬프트의 기술 이름·근거·비교표를 `<자료>` 안에만 넣게 고침. DB 변경 없음 | 나(요청 "다음 작업") · Claude(대조·작성·시험) | `fix/P-9c-prompt-wrap`, `docs/intent.md` I-P-9c-prompt-wrap |
+| I-admin-manual | 관리자 사용설명서(쉬운 말, 탭 8개·지금 실행·실패 시연, 화면 문구 그대로, 막혔을 때 표)와 README 영역 C 상태 줄·링크. 화면 문구가 코드와 어긋난 2곳(runs의 꺼진 지금 실행 자리, demo의 "관리자는 판단할 수 없으니")은 고치지 않고 열린 질문으로 | 차세일(Claude) | `docs/관리자-사용설명서.md`, `README.md` |
+| I-P-12-menu-logout | 메뉴에 로그인 상태(별명님)·[로그아웃] 서버 동작, 로그인 전이면 "로그인" 링크. 첫 화면의 "상태: 뼈대(P-1)" 문구를 지우고 주요 화면 링크로. 배포 QA Fail(작음) 고침 | 나(요청 "진행") · Claude(작성·검토) | `feat/P-12-menu-logout`, `docs/intent.md` I-P-12-menu-logout |
 | I-migration-before-merge | #133 운영 장애(코드 먼저 배포 → 새 칸 없음 → 분류 탭 깨짐, 약 18분)를 debug-note에 기록하고, CLAUDE.md 10절에 "마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게(#135 방식), 대시보드 적용 시 기록 행도" 규칙 추가(영식 님 제안) | 차세일(Claude) | `CLAUDE.md`, `docs/debug-note.md` |
 | I-qa-after-129 | #127·#129 합친 뒤 운영 확인: 시뮬레이터 지우기 → 다시 만들기 → 알림 상세에 근거·쉬운 이유 보임, 보류 뒤 조치 기록이 알림을 만든 실행에 붙음(Pass). PR #117이 마지막 푸시 전에 합쳐져 빠진 알림 흐름 QA 기록을 되살림 | 나(요청 "합친 뒤 할 일 진행") · Claude(ego 브라우저 확인·DB 조회·기록) | `docs/qa-after-129`, `docs/intent.md` I-qa-after-129 |
 | I-P-26-wiki-chat-facts | 위키 낡은 사실 보정: 챗봇 코드(#125) 전에 쓴 "코드에서 chat_logs·chatbot을 찾지 못함"을 코드 사실(20개 = chat_logs, 200번 = ai_calls)로 바꿈. 데이터설계 ↔ erd 충돌 기록은 그대로 | 차세일(Claude) | `wiki/` 3쪽, `wiki/log.md` |
