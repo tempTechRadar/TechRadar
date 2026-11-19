@@ -2,7 +2,7 @@
 
 > **승인: 2026-11-18 회의**(김영식·차세일·황재웅, 바뀐 것 없음 — 회의 중 팀원이 전달). 이후 바뀌면 "바뀐 기록"에 이유를 적는다.
 
-> 상태: **승인된 설계(11-18 회의). 실제 DB와 1차 대조 완료(7절, P-2·P-3·P-30 마이그레이션까지), 팀 확인 대기.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용할 때마다 7절에서 대조한다(E5). P-8의 `alerts.run_id` 칸은 erd에 칸만 더했고 실제 DB와는 아직 대조하지 않았다.
+> 상태: **승인된 설계(11-18 회의). 실제 DB와 1차(11-18, P-30까지)·2차(11-19, P-18c까지) 대조 완료(7절, 표·칸 이름만), 팀 확인 대기.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용할 때마다 7절에서 대조한다(E5). P-8의 `alerts.run_id` 칸은 erd에 칸만 더했고 실제 DB와는 아직 대조하지 않았다.
 > 범위: **1·2순위 테이블은 완전하게, 3순위 테이블은 "3순위"로 표시**(나중 마이그레이션), 노션 테이블은 다음 버전이라 넣지 않는다(E4).
 
 ## 0. 공통 규칙
@@ -433,8 +433,38 @@ UK: (kind, ecosystem, value).
 | my_technologies 내 버전 등급 칸 (2026-11-18, P-3) | ✔ (2.2) | ✔ 6칸, 사용자 고치기 권한은 `hidden_at`·`manual_name`·`version`만 | ✔ | 마이그레이션 `202611181600_P-3_my_tech_grade.sql`(DB 이름 `p3_my_tech_grade`). 시험 4개 기대값 |
 | rule_lists · tech_relations · grade_views · scenarios · exports · ai_calls · chat_logs (2026-11-18, P-30) | ✔ | ✔ (RLS 켜짐, 공개 테이블 20개 모두 켜짐) | ✔ | 마이그레이션 `202611181700_P-30_m1_tables.sql`(DB 이름 `p30_m1_tables`). erd에 없던 것을 더함: `rule_lists` 종류별 칸 check, `tech_relations` 확정 ⇔ 확정 시각 check, 7개 모두 지우기 금지, 관리자는 관계의 확정 칸 3개만 고침, 사용자는 시나리오의 요청 칸 2개만 넣음(보안 검토 뒤 `202611181730_P-30_scenarios_insert_columns.sql`). 허용 목록 처음 값 28줄. 시험 `rls_m1.sql` 24개 기대값 |
 | 함수 | 4절 "판단 저장 함수 하나" | `save_judgment`, `is_admin`, 가입 트리거 `handle_new_user`, 판단·바꾼 기록 보존 트리거 | — | 보안 점검(advisors)의 경고로 `handle_new_user`·`is_admin` 실행 권한을 좁힘. 남은 경고 2건(`is_admin`·`save_judgment`를 로그인 사용자가 부를 수 있음)은 의도한 것 |
+**2차 대조: 2026-11-19, Claude**(Supabase 커넥터 `execute_sql`로 `information_schema.columns`·`pg_policies`·`pg_class.relrowsecurity`를 읽고, 이 문서 2절의 표 이름·칸 이름과 스크립트로 비교. 프로젝트 `techradar`). 마이그레이션 P-8·P-11·P-9c·P-9b·P-18c까지 반영된 뒤. **팀 확인 대기**(안내서: 대조는 팀이 한다).
+
+- 결과: 공개 표 **20개가 erd 2절의 20개와 같고**(DB에만 있는 표 0, erd에만 있는 표 0), 표마다 칸 이름이 **모두 일치**한다(`id`·`created_at`은 0절 공통 규칙이라 뺌). RLS는 20개 모두 켜져 있다.
+- **비교한 것은 표 이름과 칸 이름뿐이다.** 칸 종류·필수·키·정책의 내용(누가 읽고 고치는지)은 이번에 한 줄씩 맞춰 보지 않았다. 팀이 DB 화면과 4절 규칙을 맞춰 볼 때 그 부분을 확인한다.
+- P-18c 마이그레이션 `202611191500_P-18c_category_admin`은 칸(`technologies.category_set_by`·`category_set_at`)·제약·정책·권한이 운영에 모두 있지만 마이그레이션 기록 표(`supabase_migrations`)에는 없다(기록 표 밖에서 적용됨). `docs/intent.md` I-qa-db-rollback 열린 질문 ①.
+- **대조한 사람(팀)·날짜:** (비어 있음 — 아래 표를 DB 화면과 한 줄씩 맞춘 뒤 이름과 날짜를 적는다)
+
+| 표 | 실제 DB 칸 수(id·created_at 포함) | 정책 수 | RLS | 이름·칸 일치 |
+|---|---|---|---|---|
+| ai_calls | 9 | 1 | 켜짐 | ✔ |
+| alerts | 10 | 1 | 켜짐 | ✔ |
+| audit_logs | 8 | 1 | 켜짐 | ✔ |
+| categories | 5 | 1 | 켜짐 | ✔ |
+| changes | 15 | 1 | 켜짐 | ✔ |
+| chat_logs | 6 | 2 | 켜짐 | ✔ |
+| exports | 8 | 2 | 켜짐 | ✔ |
+| grade_views | 5 | 2 | 켜짐 | ✔ |
+| judgments | 10 | 1 | 켜짐 | ✔ |
+| my_technologies | 20 | 3 | 켜짐 | ✔ |
+| observations | 11 | 1 | 켜짐 | ✔ |
+| profiles | 7 | 2 | 켜짐 | ✔ |
+| projects | 8 | 3 | 켜짐 | ✔ |
+| rule_lists | 9 | 3 | 켜짐 | ✔ |
+| run_steps | 17 | 1 | 켜짐 | ✔ |
+| runs | 11 | 1 | 켜짐 | ✔ |
+| scenarios | 8 | 2 | 켜짐 | ✔ |
+| sources | 9 | 1 | 켜짐 | ✔ |
+| tech_relations | 11 | 2 | 켜짐 | ✔ |
+| technologies | 34 | 2 | 켜짐 | ✔ |
 
 ## 바뀐 기록
+- 2026-11-19 2차 대조(코드·마이그레이션 변경 없음, 작업 `I-records-sync-1119`): 표 20개·칸 이름이 실제 DB와 모두 일치(7절). 팀 확인 대기
 - 2026-11-18 P-30: M1 테이블 7개를 실제 DB에 만듦(7절). 칸은 2절 그대로, 지우기 금지와 확정 칸만 고치기를 더함
 - 2026-11-18 P-3 코드 검토: `my_technologies`에 내 버전 등급 칸(`grade`·`grade_reason`·`grade_evidence`·`grade_rule_version`·`graded_at`·`last_checked_ok_at`). `technologies.grade` 한 칸이면 다른 버전을 쓰는 사람끼리 등급을 덮어써서(사용자 결정 "칸 추가"). 사용자가 고칠 수 있는 칸을 `hidden_at`·`manual_name`·`version`으로 좁힘. 마이그레이션 `202611181600_P-3_my_tech_grade.sql`
 

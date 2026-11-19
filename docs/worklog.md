@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-records-sync-1119 | 낡은 문서 정리·erd 2차 대조: qa.md 남은 오류 두 줄(이미 해결)에 근거와 줄 긋기, README 상태 문구·QA 링크 갱신, erd 7절에 운영 DB와의 2차 대조(표 20개·칸 이름 일치, RLS 20개)와 팀 대조 빈칸. 읽기만, 코드·DB 변경 없음 | 나(요청 "승인") · Claude(대조·정리) | `docs/records-sync-1119`, `docs/intent.md` I-records-sync-1119, `docs/erd.md` 7절 |
 | I-deploy-via-actions | 배포 한도 대응: #150~#152 배포가 하루 한도로 실패해 운영이 #143에 멈춘 것을 Vercel 기록으로 확인(24시간 77개, 그중 문서만 바뀌어 건너뛴 30개). main 자동 배포를 끄고 GitHub Actions가 "20분 잠잠 + 운영 커밋 뒤로 앱 파일이 바뀐 경우"에만 Deploy Hook을 부르게 바꿈, 하루 한 번 따라잡기, 운영 커밋을 알려 주는 `/api/version`. 판정 스크립트 14가지 시험 통과. ADR 0023 | 나(요청·방식 선택·Deploy Hook과 Secret 만들기) · Claude(조사·작성·시험) | `chore/deploy-via-actions`, ADR 0023, `docs/intent.md` I-deploy-via-actions |
 | I-qa-db-rollback | QA 운영 DB 되돌림 시험: P-18c 갈래 확정 RLS 12개를 운영에서 처음 돌리고(모두 기대값), P-2·P-30 RLS(26+24개)를 마이그레이션이 늘어난 뒤 다시 돌려 회귀 확인. 전부 되돌렸고 흔적 0·줄 수 같음을 확인. 마이그레이션 기록 표에 P-18c가 없는 것을 열린 질문으로 | 나(요청 "다하자 진행") · Claude(시험 실행·기록) | `docs/qa-db-rollback`, `docs/intent.md` I-qa-db-rollback, `docs/qa.md` |
 | I-P-15-scenario-insert-columns | 운영 QA에서 적용 시나리오가 늘 실패하는 것을 찾음(로그: permission denied for table scenarios). 사용자 insert가 열 grant 밖의 `status`를 보내던 것을 빼고, 마이그레이션 grant와 코드가 보내는 칸을 맞대는 시험 추가 | 나(요청 "진행") · Claude(운영 QA·원인·고침) | `fix/P-15-scenario-insert-columns`, `docs/intent.md` I-P-15-scenario-insert-columns |
