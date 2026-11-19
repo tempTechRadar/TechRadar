@@ -129,7 +129,7 @@
     // 이 점 중심으로 보기: 고른 점과 N단계 이웃만 남긴다(나머지는 감춘다). 접힌 갈래와 같은 "감춤"이라 shown 하나로 처리한다.
     let focusSet = null, focusId = -1, focusDepth = 1, focusPrev = null, cardNode = null, riskTxt = '';
     // 보기(mode): cat 지도·갈래별, host 지도·쓰는 곳별, tree 나무·쓰는 곳별. arr는 지도의 지금 배치(나무로 갔다 와도 그대로).
-    let mode = 'cat', arr = 'cat', hubs = [], shared = [], foldKeep = null;
+    let mode = 'cat', arr = 'cat', segs = [], foldKeep = null;
     const shown = (n) => !n.cut && !folded[n.q] && (!focusSet || focusSet.has(n.i));
     // 접기: 펼쳐 나온 점은 지우지 않고 감춘다(n.cut). 부모가 접혔거나 감춰졌으면 감춘다. 자식은 늘 부모보다 뒤에 만들어지므로 한 번 훑으면 된다.
     const recut = () => nodes.forEach((n) => { n.cut = n.tier >= 2 && (!nodes[n.parent].expanded || nodes[n.parent].cut); });
@@ -184,7 +184,7 @@
       (pool.length ? pool : nodes.filter(shown)).forEach((n) => { x0 = Math.min(x0, n.tx); x1 = Math.max(x1, n.tx); y0 = Math.min(y0, n.ty); y1 = Math.max(y1, n.ty); });
       if (withOrigin === true || x0 > x1) { x0 = Math.min(x0, 0); x1 = Math.max(x1, 0); y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
       const s = Math.min(W / (x1 - x0 + 220), H / (y1 - y0 + 260));
-      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp((s / base()) * (arr === 'host' ? 0.88 : 1), 0.2, maxK)); // 쓰는 곳별은 묶음 이름이 점 위에 붙어 맨 위 묶음이 단추 줄에 가리지 않게 조금 더 물러난다
+      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp(s / base(), 0.2, maxK));
     }
     const loading = () => intro?.phase === 'load'; // 데이터가 오기 전에는 개수도 보이지 않는다(불변 6)
     function startReveal() { intro.phase = 'reveal'; intro.sweep0 = theta; $('loading').hidden = true; fit(); if (fly) fly.d = 1.8; refresh(); }
@@ -228,7 +228,13 @@
         const g = ease(clamp((age - Math.min(k, 12) * 0.06) / 0.6, 0, 1)); if (!g) continue;
         ctx.strokeStyle = `rgba(30,143,85,${(g * Math.max(0.05, 0.42 / Math.pow(k, 0.7))).toFixed(3)})`; ctx.beginPath(); ctx.arc(cx, cy, r0 * g, 0, 6.2832); ctx.stroke(); lastRings++;
       }
-      ctx.strokeStyle = 'rgba(30,143,85,.22)'; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+      ctx.strokeStyle = 'rgba(30,143,85,.22)'; ctx.beginPath();
+      if (arr === 'host') segs.forEach((g, i) => { // 쓰는 곳 지도: 십자선 대신 조각 경계(쓰는 곳이 바뀌는 곳은 진하게, 종류만 바뀌는 곳은 옅게)
+        if (i && segs[i - 1].host === g.host) return; const u = polar(g.a0, 1); ctx.moveTo(cx, cy); ctx.lineTo(cx + u.x * far, cy + u.y * far);
+      });
+      else { ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); }
+      ctx.stroke();
+      if (arr === 'host') { ctx.strokeStyle = 'rgba(30,143,85,.1)'; ctx.beginPath(); segs.forEach((g, i) => { if (!i || segs[i - 1].host !== g.host) return; const u = polar(g.a0, 1); ctx.moveTo(cx, cy); ctx.lineTo(cx + u.x * far, cy + u.y * far); }); ctx.stroke(); }
       if (!intro && arr === 'cat' && s > 0.45 && s < 3) { // 갈래 이름은 가까이 볼 때만(쓰는 곳별 배치에서는 각도가 갈래가 아니라 빼다)
         ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = '#1fa85a'; ctx.textAlign = 'center';
         QUAD.forEach((t, q) => { if (folded[q]) return; const p = polar(q * 90 + 45, 395), [x, y] = toScreen(p.x, p.y); ctx.fillText(t, x, y); });
@@ -274,21 +280,11 @@
 
       const focus = hoverId >= 0 ? hoverId : selId, fam = focus >= 0 ? nodes[focus] : null;
       const P = nodes.map((n) => { const [x, y] = posOf(n, now); const [sx, sy] = toScreen(x, y); n.sx = sx; n.sy = sy; n.app = appear(n, now); n.hdl = null; return n; });
-      if (arr === 'host') { // 쓰는 곳 → 종류 → 점을 잇는 옅은 선. 두 곳에서 쓰는 점은 두 묶음 모두에 닿는다
-        ctx.strokeStyle = 'rgba(46,213,115,.13)'; ctx.lineWidth = 1; ctx.beginPath();
-        hubs.forEach((hb) => hb.kids.forEach((sb) => {
-          const [bx, by] = toScreen(sb.x, sb.y);
-          sb.members.forEach((n) => { if (shown(n) && n.app) { ctx.moveTo(bx, by); ctx.lineTo(n.sx, n.sy); } });
-        }));
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(46,213,115,.5)'; // 선이 모이는 묶음 중심(모두 다른 곳과 함께 쓰는 묶음은 점 없이 중심만 남는다)
-        hubs.forEach((hb) => hb.kids.forEach((b) => { const [x, y] = toScreen(b.x, b.y); ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 6.2832); ctx.fill(); }));
-      }
-      // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다. 쓰는 곳별 배치에서는 묶음 선과 섞이지 않게 올린 점의 선만 그린다.
+      // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다. 쓰는 곳 지도에서는 같은 역할이 여러 조각에 흩어져 선이 얽히므로 아주 옅게 둔다.
       const inFam = (e) => fam && (e.a === focus || e.b === focus), faint = [];
-      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${C.edge},${fam ? 0.07 : 0.24})`; ctx.beginPath();
+      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${C.edge},${fam ? 0.07 : arr === 'host' ? 0.07 : 0.24})`; ctx.beginPath();
       edges.forEach((e) => {
-        if (inFam(e) || arr === 'host') return; const a = P[e.a], b = P[e.b]; if (!shown(a) || !shown(b)) return;
+        if (inFam(e)) return; const a = P[e.a], b = P[e.b]; if (!shown(a) || !shown(b)) return;
         if ((a.sx < -50 && b.sx < -50) || (a.sx > W + 50 && b.sx > W + 50) || (a.sy < -50 && b.sy < -50) || (a.sy > H + 50 && b.sy > H + 50)) return;
         if (fActive && !(isOn(a) && isOn(b))) { faint.push(e); return; }
         const ap = Math.min(a.app, b.app); if (ap <= 0) return; // 처음 열 때 선은 두 점이 나타난 뒤 한쪽에서 뻗어 나간다
@@ -352,14 +348,13 @@
         ctx.globalAlpha = (fam && n !== fam && !fam.nb.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
       });
       ctx.globalAlpha = 1;
-      if (arr === 'host' && !intro) { // 묶음 위에 "쓰는 곳 종류 n"(n = 그곳에서 쓰는, 지금 보이는 점 수. 함께 쓰는 묶음의 점도 센다). 따로 띄운 이름은 다른 묶음과 겹쳐서 두지 않는다
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg;
-        ctx.font = '700 12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green;
-        hubs.forEach((hb) => hb.kids.forEach((sb) => {
-          const c = sb.members.filter(shown).length; if (!c) return;
-          const [x, y] = toScreen(sb.x, sb.y - sb.r), u = `${hb.label} ${sb.label} ${c}`; ctx.strokeText(u, x, y - 10); ctx.fillText(u, x, y - 10);
-        }));
-        shared.forEach((sh) => { const c = sh.members.filter(shown).length; if (!c) return; const [x, y] = toScreen(sh.x, sh.y - sh.r), u = `${sh.label} ${c}`; ctx.strokeText(u, x, y - 10); ctx.fillText(u, x, y - 10); });
+      if (arr === 'host' && !intro) { // 조각 이름 "쓰는 곳 종류 n"(n = 지금 보이는 점 수)을 조각 가운데 각도에. 갈래 요약(A)과 같은 거리(확대에 따라 화면 안쪽에 머문다)
+        const R = clamp(395 * s, 130, 0.36 * Math.min(W, H));
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg; ctx.font = '700 12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green;
+        segs.forEach((g) => {
+          const c = g.members.filter(shown).length; if (!c) return;
+          const u = polar((g.a0 + g.a1) / 2, R), t = `${g.label} ${c}`; ctx.strokeText(t, cx + u.x, cy + u.y); ctx.fillText(t, cx + u.x, cy + u.y);
+        });
         ctx.textAlign = 'left';
       }
       if (intro) riskRects.length = 0; else drawRisk(P);
@@ -779,36 +774,37 @@
       const left = $('rows').querySelectorAll('[data-expand]'); (left[at] ?? left[left.length - 1] ?? $('tableBox').querySelector('summary')).focus(); // 누른 단추는 사라지므로 포커스를 다음 단추로
     });
 
-    // ---- 쓰는 곳별 지도: 같은 점을 쓰는 곳(큰 묶음) 둘레에 종류(작은 묶음)로 모은다. 여러 곳에서 쓰는 점은 그 묶음들 사이에 놓이고 선이 모두에 닿는다.
-    // 갈래별 자리(n.cat)는 기억해 두었다가 돌아갈 때 되살린다. 등급·밝기·갈래(q)는 자리가 아니라 데이터라 그대로다. 갈래 접기는 갈래별에서만 쓴다.
-    // 같은 쓰는 곳 묶음(예: Claude Code+Codex)·같은 종류인 점끼리 해바라기 모양으로 모은다(반지름이 √점 수에 비례, 이웃 점 사이 약 30).
-    // 묶음은 처음엔 가운데 가까이(쓰는 곳 방향, 종류마다 조금씩 비껴) 두고 겹치는 것만 서로 밀어낸다. 그래서 점이 적으면 촘촘하고, 많아지면 필요한 만큼만 벌어진다.
-    // 두 곳 묶음은 두 종류 묶음의 가운데에서 시작한다. 같은 데이터면 같은 자리다(난수 없음).
-    const spot = (c) => 17 * Math.sqrt(c) + 14; // 점 c개 해바라기의 반지름(세계 좌표)
+    // ---- 쓰는 곳 지도: 갈래 지도와 같은 레이더 모양이다. 각도를 갈래 대신 "쓰는 곳 + 종류" 조각으로 나누고(조각 폭은 점 수에 비례),
+    // 가운데에서의 거리는 갈래 지도의 거리(가까울수록 내 기술, 펼친 점은 바깥)를 그대로 쓴다. 두 곳 이상에서 쓰는 점은 두 쓰는 곳 조각 사이에 따로 조각을 둔다.
+    // 조각 안에서는 가까운 점부터, 갈래 안에서의 각도와 비슷한 자리를 먼저 보고, 원래 거리 이상에서 겹치지 않는 첫 자리에 놓는다(난수 없음: 같은 데이터면 같은 자리).
+    // 갈래 지도의 자리(n.cat)는 기억해 두었다가 돌아갈 때 되살린다. 등급·밝기·갈래(q)는 자리가 아니라 데이터라 그대로다. 갈래 접기는 갈래 지도에서만 쓴다.
     function hostLayout() {
-      const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`, circ = [], fill = [];
+      const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`, grid = new Map(), cell = (x, y) => Math.floor(x / 40) * 100003 + Math.floor(y / 40);
       nodes.forEach((n) => (sets.get(key(n)) ?? sets.set(key(n), []).get(key(n))).push(n));
-      hubs = HOSTS.map((label, h) => ({ a: 45 + h * 90, label, kids: [] })); shared = [];
-      const subOf = (h, k) => {
-        const hb = hubs[h]; let sb = hb.kids.find((b) => b.kind === k);
-        if (!sb) { sb = { ...polar(hb.a + (KINDS.indexOf(k) - 1) * 25, 200), kind: k, label: KIND[k], r: 14, members: [] }; hb.kids.push(sb); circ.push(sb); }
-        return sb;
-      };
-      sets.forEach((l) => {
-        const subs = l[0].hosts.map((h) => subOf(h, l[0].kind));
-        subs.forEach((b) => b.members.push(...l));
-        if (subs.length === 1) { subs[0].r = spot(l.length); fill.push([subs[0], l]); return; }
-        const sh = { x: subs.reduce((s, b) => s + b.x, 0) / subs.length, y: subs.reduce((s, b) => s + b.y, 0) / subs.length, r: spot(l.length), label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l };
-        shared.push(sh); circ.push(sh); fill.push([sh, l]);
+      // shortcut: 둘레 순서를 쓰는 곳 번호의 평균으로 정해서, 처음과 끝(Claude Code와 따로 쓰는 도구)을 함께 쓰는 묶음이 생기면 가운데로 간다. 그런 묶음이 생기면 둘레를 이어서 센다.
+      const mid = (l) => l[0].hosts.reduce((s, h) => s + h, 0) / l[0].hosts.length;
+      const list = [...sets.values()].sort((a, b) => (mid(a) - mid(b)) || (KINDS.indexOf(a[0].kind) - KINDS.indexOf(b[0].kind)));
+      const wt = (l) => Math.max(4, l.length), total = list.reduce((s, l) => s + wt(l), 0);
+      const free = (x, y, r) => { for (let i = -40; i <= 40; i += 40) for (let j = -40; j <= 40; j += 40) for (const o of grid.get(cell(x + i, y + j)) ?? []) if (Math.hypot(x - o.tx, y - o.ty) < r + o.r + 12) return false; return true; };
+      let a = 0;
+      segs = list.map((l) => {
+        const a0 = a, a1 = a + (360 * wt(l)) / total, pad = Math.min(3, (a1 - a0) * 0.12); a = a1;
+        const lo = a0 + pad, w = a1 - pad - lo, rOf = (n) => Math.hypot(n.cat[0], n.cat[1]);
+        [...l].sort((p, q) => (rOf(p) - rOf(q)) || (p.i - q.i)).forEach((n) => {
+          const t0 = clamp(((((Math.atan2(n.cat[0], -n.cat[1]) / RAD) + 360) % 90) - 6) / 78, 0, 1); // 갈래 안에서의 각도 비율
+          for (let r = Math.max(90, rOf(n)); r < 6000; r += 8) {
+            const steps = Math.max(1, Math.floor((w * RAD * r) / (2 * n.r + 12))), s0 = Math.round(t0 * steps);
+            for (let d = 0; d <= steps; d++) for (const s of d ? [s0 + d, s0 - d] : [s0]) {
+              if (s < 0 || s > steps) continue;
+              const p = polar(lo + (w * s) / steps, r);
+              if (!free(p.x, p.y, n.r)) continue;
+              n.tx = n.hx = p.x; n.ty = n.hy = p.y; const k = cell(p.x, p.y); (grid.get(k) ?? grid.set(k, []).get(k)).push(n);
+              return;
+            }
+          }
+        });
+        return { a0, a1, label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l, host: l[0].hosts.join('+') };
       });
-      for (let it = 0; it < 150; it++) circ.forEach((a, i) => { // 묶음끼리 36(위에 붙는 이름 자리), 가운데(나)와는 70 띄운다
-        const d0 = Math.hypot(a.x, a.y) || 1, m0 = a.r + 70; if (d0 < m0) { a.x *= m0 / d0; a.y *= m0 / d0; }
-        for (let j = i + 1; j < circ.length; j++) {
-          const b = circ[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01, m = a.r + b.r + 36;
-          if (d < m) { const f = (m - d) / d / 2; a.x -= dx * f; a.y -= dy * f; b.x += dx * f; b.y += dy * f; }
-        }
-      });
-      fill.forEach(([c, l]) => l.forEach((n, j) => { const p = polar(j * 137.508, 17 * Math.sqrt(j + 0.5)); n.tx = n.hx = c.x + p.x; n.ty = n.hy = c.y + p.y; }));
       syncPolar(); dirty = labelsDirty = true;
     }
     function arrange(a) {
@@ -822,7 +818,7 @@
       mode = v; if (v !== 'tree' && v !== arr) arrange(v);
       $('stage').dataset.mode = v === 'tree' ? 'tree' : 'map'; $('treeView').hidden = v !== 'tree';
       document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
-      $('stat').dataset.msg = { cat: '갈래별 지도로 봐요', host: '쓰는 곳별 지도로 봐요. 묶음 이름은 "쓰는 곳 · 종류 · 점 수"예요', tree: '쓰는 곳별 나무로 봐요' }[v];
+      $('stat').dataset.msg = { cat: '갈래별 지도로 봐요', host: '쓰는 곳 지도로 봐요. 갈래 대신 "쓰는 곳 + 종류"로 각도를 나눴어요', tree: '쓰는 곳별 나무로 봐요' }[v];
       syncTip(); refresh(); dirty = labelsDirty = true;
     }
     $('views').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
@@ -931,7 +927,7 @@
       + '<li><button type="button" class="chip" id="fclear" hidden>거르기 풀기</button></li>'
       + `<li>${svg(`<circle r="5.5" fill="${C.bg}" stroke="#2ed573" stroke-width="1.2"/><path d="M-3 0H3M0-3V3" stroke="#2ed573" stroke-width="1.2"/>`)}+ 손잡이: 같은 역할 기술 펼치기(−는 접기)</li>`
       + `<li>${svg(`<path d="M0-4.5L4.5 3.5H-4.5Z" fill="${C.ink}"/>`)}등급이 나빠짐 ${svg(`<path d="M0 4.5L4.5-3.5H-4.5Z" fill="${C.ink}"/>`)}나아짐</li>`
-      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>쓰는 곳 지도: 묶음 이름은 "쓰는 곳 · 종류 · 점 수"예요. 두 곳 이상에서 쓰는 점은 따로 묶여 그 사이에 놓이고 선이 양쪽에 닿아요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
+      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>쓰는 곳 지도: 갈래 대신 "쓰는 곳 + 종류"로 각도를 나눠요(가운데에서의 거리는 갈래 지도와 같아요). 두 곳 이상에서 쓰는 점은 두 쓰는 곳 사이 조각에 있어요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
     function syncLegend() {
       const vis = nodes.filter(shown);
       legend.querySelectorAll('[data-f]').forEach((b) => { b.setAttribute('aria-pressed', String(fstate.has(b.dataset.f))); b.querySelector('b').textContent = loading() ? '…' : vis.filter(STATE[b.dataset.f]).length; });
@@ -1057,7 +1053,7 @@
 
     window.__g = { nodes, edges, view, expand: expandNode, fit, zoomAt, sc, toScreen, get theta() { return theta; }, get paused() { return paused; }, get rings() { return lastRings; }, TAIL, size: () => ({ W, H }), hit, folded, fold: setFold, find, goTo, badgeRect, move: moveNode, ropes: captureRopes, home: goHome, isMoved,
       isOn, fstate, fkind, afterFilter, clearFilters, riskList, jumpRisk, riskRects, focus: enterFocus, depth: setDepth, exitFocus, get focusSet() { return focusSet; }, nudge, shown, navList, stepNode, stepNeighbor, renderTable,
-      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; }, setView, get mode() { return mode; }, get arr() { return arr; }, get hubs() { return hubs; }, HOSTS };
+      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; }, setView, get mode() { return mode; }, get arr() { return arr; }, get segs() { return segs; }, HOSTS };
     // 상세에서 뒤로 왔으면(#v=…) 처음 열기 없이 보던 자리와 펼친 모습을 되살린다. 같은 순서로 다시 펼치면 같은 점이 같은 자리에 생긴다.
     const saved = new URLSearchParams(location.hash.slice(1)), sv = saved.get('v')?.split(',').map(Number), restored = sv?.length === 3 && sv.every(Number.isFinite);
     if (restored) {
