@@ -119,7 +119,8 @@ async function createScenario(deps: Deps, input: Input, now: Date): Promise<Scen
     return { status: "refused", reason: "not_configured" };
   }
 
-  const inserted = await deps.userDb.from("scenarios").insert({ alert_id: input.alertId, requested_by: input.userId, status: "generating" }).select("id").single();
+  // 사용자는 alert_id·requested_by 두 칸만 쓸 수 있다(P-30 열 grant). 상태는 DB 기본값 'generating'
+  const inserted = await deps.userDb.from("scenarios").insert({ alert_id: input.alertId, requested_by: input.userId }).select("id").single();
   if (inserted.error || !inserted.data) throw failure("시나리오 요청을 저장하지 못함", inserted.error?.message);
   const scenarioId = (inserted.data as Row).id as string;
   try {
