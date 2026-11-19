@@ -1,0 +1,58 @@
+# production 배포를 Vercel의 Git 자동 배포 대신 여기서 부른다(ADR 0023, ADR 0018 개정).
+# - main에 합쳐지면 20분 기다린다. 그 사이 또 합쳐지면 앞 실행은 취소돼서, 몰린 병합은 마지막 하나만 배포를 부른다.
+# - 운영에 올라간 커밋(/api/version) 뒤로 앱에 영향을 주는 파일이 바뀌었을 때만 Deploy Hook을 부른다.
+#   문서만 바뀌면 배포 기록 자체를 만들지 않는다(건너뛴 배포도 하루 한도에 드는 것으로 보여서).
+# - 하루 한 번 운영이 main보다 뒤처졌는지 보고 따라잡는다(한도에 걸려 실패한 배포를 다시 부르는 몫).
+name: production 배포
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "40 7 * * *" # 16:40 KST
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "true면 기다리지 않고, 앱 코드가 안 바뀌었어도 바로 배포한다"
+        type: boolean
+        default: false
+
+# 새 실행이 오면 기다리던 앞 실행을 취소한다(마지막 실행 하나만 배포를 부른다).
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SITE: https://techradar-theta.vercel.app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: 병합이 잠잠해질 때까지 20분 기다리기
+        if: github.event_name == 'push'
+        run: sleep 1200
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: 운영 뒤로 앱 코드가 바뀌었는지
+        id: decide
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+        run: |
+          LIVE_SHA=$(curl -fsS --max-time 20 "$SITE/api/version" | jq -r '.sha // empty' || true)
+          export LIVE_SHA
+          bash .github/scripts/deploy-decision.sh >> "$GITHUB_OUTPUT"
+      - name: Vercel Deploy Hook 부르기
+        if: steps.decide.outputs.deploy == 'true'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "::error::저장소 Secret VERCEL_DEPLOY_HOOK_URL이 없어요(ADR 0023)"; exit 1; fi
+          curl -fsS -X POST --max-time 30 "$HOOK" > /dev/null
+          echo "배포를 불렀어요: main $(git rev-parse --short HEAD). 결과는 Vercel에서 확인해요"
