@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>분류 시안</title>
+  <style>
+    /* 분류 세 겹 시안(무채색, 팀 확인 전): 기본 분류(규칙·관리자, 모두에게) · 나만의 분류(나에게만) · AI 제안(누를 때만, 확인해야 저장). 이름·제안은 모두 샘플 */
+    :root { --ink: #1a1a1a; --ink2: #444; --muted: #666; --faint: #b3b3b3; --line: #d4d4d4; --bg: #fff; --sub: #f3f3f3;
+      --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--sub); color: var(--ink); font: 15px/1.6 var(--sans); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    header.page { padding: 16px; background: var(--ink); color: #fff; }
+    header.page h1 { margin: 0 0 4px; font-size: 20px; }
+    header.page p { margin: 0; max-width: 90ch; color: #ddd; font-size: 14px; }
+    main { max-width: 1240px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+    .layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+    .layer { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .layer b { display: block; }
+    .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    section.box { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    h2 { font-size: 17px; margin: 0 0 4px; }
+    h3 { font-size: 14px; margin: 14px 0 6px; color: var(--muted); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .btn:disabled { color: var(--faint); border-color: var(--line); cursor: not-allowed; }
+    .chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 4px 0 10px; border: 1px solid var(--ink2); border-radius: 999px; font-size: 13px; }
+    .chip button { width: 26px; height: 26px; border: 0; background: none; cursor: pointer; font: inherit; }
+    .tag { display: inline-block; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink2); }
+    .tag.src { border-style: dashed; }
+    input[type=text], select { font: inherit; min-height: 40px; padding: 0 10px; border: 1px solid var(--ink2); border-radius: 8px; background: var(--bg); }
+    .side { border: 1px solid var(--ink2); border-radius: 10px; padding: 14px; max-width: 400px; }
+    .path { font-weight: 700; }
+    ul.sug { list-style: none; margin: 0; padding: 0; }
+    ul.sug li { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+    ul.sug li.done { color: var(--muted); }
+    .conf { font-size: 12px; padding: 0 6px; border: 1px solid var(--ink2); border-radius: 4px; }
+    .conf.low { border-style: dashed; }
+    .note { border-left: 4px solid var(--ink); background: var(--sub); padding: 8px 12px; font-size: 13px; }
+    .hud { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; border: 1px dashed var(--ink2); border-radius: 10px; }
+    #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); padding: 10px 16px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 14px; }
+    #toast:empty { display: none; }
+    @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <h1>분류 시안 · 기본 · 나만의 분류 · AI 제안</h1>
+    <p>무채색, 팀 확인 전. 이름과 AI 제안은 샘플이에요. AI 분류는 호출 비용이 들어 승인된 뒤에 켜져요.</p>
+  </header>
+  <main>
+    <div class="layers" aria-label="분류 세 겹">
+      <div class="layer"><b>① 기본 분류</b><span class="muted">모두에게 같게 보임. 낱말 규칙이 먼저 붙이고(운영 약 53%), 관리자가 분류 확인(IA-17)에서 고침.</span></div>
+      <div class="layer"><b>② 나만의 분류</b><span class="muted">내가 만든 이름표를 내 지도에서만 붙임. 기본 분류는 그대로. 묶기 기준에 "내 분류"로 고를 수 있음.</span></div>
+      <div class="layer"><b>③ AI 제안</b><span class="muted">누를 때만. AI는 갈래와 이유를 제안만 하고, 사람이 받기·고치기·버리기로 확인해야 저장. 일반 사용자는 내 분류로, 관리자는 기본 분류로.</span></div>
+    </div>
+
+    <div class="grid2">
+      <section class="box" aria-labelledby="s1">
+        <h2 id="s1">기술 사이드바의 분류 칸</h2>
+        <p class="muted">지도에서 점을 누르면 열리는 사이드바의 한 칸. 기본 분류가 어디서 왔는지(규칙·관리자) 작게 보이고, 그 아래에 내 분류.</p>
+        <div class="side" id="side"></div>
+      </section>
+
+      <section class="box" aria-labelledby="s2">
+        <h2 id="s2">"분류 전" → AI에게 제안받기</h2>
+        <p class="muted">지도 위 칩 "분류 전 n"을 누르면 열리는 칸. 일반 사용자는 받은 결과가 내 분류로만 저장돼요.</p>
+        <div class="hud" aria-label="지도 위 도구 줄(일부)">
+          <span class="tag">보기: 하는 일 › 종류</span>
+          <button class="btn" data-act="openAi" aria-expanded="false">분류 전 <b id="unsortedN"></b></button>
+          <label class="muted"><input type="checkbox" id="aiOn" checked> AI 켜짐(시안 전환)</label>
+          <span class="muted" id="quota"></span>
+        </div>
+        <div id="aiPanel" hidden></div>
+      </section>
+    </div>
+
+    <div class="grid2">
+      <section class="box" aria-labelledby="s3">
+        <h2 id="s3">묶기 기준에 "내 분류"</h2>
+        <p class="muted">보기 설정의 묶기·색 기준에 "내 분류"가 생겨요. 이름표가 없는 기술은 "내 분류 없음"으로 모여요. 한 기술에 이름표가 여럿이면 첫 이름표 자리에 놓고 나머지는 사이드바에 보여요.</p>
+        <div class="row"><label>1차 <select><option>하는 일</option><option selected>내 분류</option><option>종류</option><option>쓰는 곳</option></select></label>
+          <label>색 <select><option selected>내 분류</option><option>하는 일</option><option>보안 등급</option></select></label></div>
+        <h3>지금 내 분류</h3>
+        <div class="row" id="myLabels"></div>
+      </section>
+
+      <section class="box" aria-labelledby="s4">
+        <h2 id="s4">관리자 분류 확인(IA-17)에서의 AI 제안</h2>
+        <p class="muted">관리자는 같은 제안 칸에서 받으면 <b>기본 분류</b>로 저장돼요(담당자·시각·사유가 남음, P-18c 규칙). 관리자가 정한 갈래는 규칙이 다시 덮지 않아요.</p>
+        <div class="note">"갈래 없는 기술 2,625개 중 50개 AI 제안받기" → 제안 목록(위와 같은 모양) → 받기 · 고치기 · 버리기 → 사유 한 줄(여러 개면 한 번에)</div>
+      </section>
+    </div>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      // 샘플: 기본 분류(출처 규칙/관리자/없음), 내 분류, AI 제안(확신 높음/낮음)
+      const BIG = { 리서치: ["웹 검색·수집", "논문·지식"], "백엔드·데이터": ["데이터베이스", "API·웹훅"], "배포·운영": ["배포·클라우드", "모니터링·로그"], "생활·정보": ["여행·장소", "건강·운동"] };
+      const tech = { name: "firecrawl-mcp", base: ["리서치", "웹 검색·수집"], src: "규칙", mine: ["시연용", "교체 예정"] };
+      const myLabels = ["시연용", "교체 예정", "써 볼 것", "회사 프로젝트"];
+      const sugs = [
+        { name: "odd-scraper", big: "리서치", small: "웹 검색·수집", why: "설명에 \"crawl\", \"scrape\"", conf: "high" },
+        { name: "pg-insights", big: "백엔드·데이터", small: "데이터베이스", why: "이름에 \"pg\", 설명에 \"query\"", conf: "high" },
+        { name: "hike-buddy", big: "생활·정보", small: "여행·장소", why: "설명에 \"trails\", \"weather\"", conf: "high" },
+        { name: "ops-thing", big: "배포·운영", small: "모니터링·로그", why: "설명이 짧아 확신이 낮아요", conf: "low" },
+      ];
+      // 정한 값(11-20 추천대로): 사용자 AI 제안은 하루 20개, 관리자는 한 번에 50개. AI를 켜기 전에는 단추를 흐리게 + 이유
+      const DAILY = 20;
+      let used = 2;
+      const aiOn = () => document.getElementById("aiOn").checked;
+      function quota() {
+        document.getElementById("quota").textContent = aiOn() ? `오늘 남은 AI 제안 ${DAILY - used}/${DAILY}` : "AI 분류는 관리자가 켜면 쓸 수 있어요";
+        document.querySelectorAll('[data-act="aiOne"], [data-act="openAi"]').forEach((b) => { b.disabled = !aiOn() || used >= DAILY; b.title = aiOn() ? "" : "관리자가 켜면 쓸 수 있어요(호출 비용 승인 뒤)"; });
+      }
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      let toastT;
+      const say = (m) => { const t = document.getElementById("toast"); t.textContent = m; clearTimeout(toastT); toastT = setTimeout(() => (t.textContent = ""), 3500); };
+
+      function side() {
+        document.getElementById("side").innerHTML = `
+          <b>${tech.name}</b>
+          <h3>기본 분류</h3>
+          <div class="row"><span class="path">${tech.base.join(" › ")}</span><span class="tag src" title="이 분류를 누가 정했나">${tech.src}가 정함</span></div>
+          <h3>내 분류 <span class="muted">(나에게만 보여요)</span></h3>
+          <div class="row" id="mine">${tech.mine.map((m) => `<span class="chip">${esc(m)}<button aria-label="${esc(m)} 빼기" data-act="rm" data-val="${esc(m)}">✕</button></span>`).join("") || '<span class="muted">아직 없어요</span>'}</div>
+          <form class="row" data-act="add" style="margin-top:8px"><label class="muted" for="lab">이름표</label><input type="text" id="lab" list="labs" maxlength="30" placeholder="예: 써 볼 것"><datalist id="labs">${myLabels.map((l) => `<option value="${esc(l)}">`).join("")}</datalist><button class="btn">붙이기</button></form>
+          <h3>AI 제안</h3>
+          <div class="row"><button class="btn" data-act="aiOne">AI에게 분류 맡기기</button><span class="muted">이 기술만 제안받아 내 분류로 저장(확인 뒤)</span></div>`;
+        document.getElementById("myLabels").innerHTML = myLabels.map((l) => `<span class="tag">${esc(l)}</span>`).join(" ") + ' <span class="tag">내 분류 없음</span>';
+      }
+
+      function aiPanel() {
+        const open = sugs.filter((s) => !s.state || s.state === "fix").length; // 고치는 중도 아직 확인 전
+        document.getElementById("unsortedN").textContent = open;
+        document.getElementById("aiPanel").innerHTML = `
+          <h3>AI 제안 (확인 전 ${open}개)</h3>
+          <ul class="sug">${sugs.map((s, i) => `<li class="${s.state ? "done" : ""}"><div><b>${s.name}</b> → ${s.state === "fix" ? `<select data-fix="${i}">${Object.entries(BIG).map(([b, l]) => l.map((x) => `<option ${b === s.big && x === s.small ? "selected" : ""}>${b} › ${x}</option>`).join("")).join("")}</select>` : `<span class="path">${s.big} › ${s.small}</span>`}
+            <span class="conf ${s.conf}">${s.conf === "high" ? "확신 높음" : "확신 낮음"}</span><div class="muted">이유: ${s.why}</div></div>
+            <div class="row">${s.state === "ok" ? "받음" : s.state === "drop" ? "버림" : s.state === "fix" ? `<button class="btn primary" data-act="fixOk" data-i="${i}">이걸로 받기</button>` : `<button class="btn primary" data-act="ok" data-i="${i}">받기</button><button class="btn" data-act="fix" data-i="${i}">고치기</button><button class="btn" data-act="drop" data-i="${i}">버리기</button>`}</div></li>`).join("")}</ul>
+          <div class="row" style="margin-top:10px"><button class="btn" data-act="okHigh" ${sugs.some((s) => !s.state && s.conf === "high") ? "" : "disabled"}>확신 높은 것만 모두 받기</button><button class="btn" data-act="closeAi">닫기</button></div>
+          <p class="muted">받은 결과는 <b>내 분류</b>로만 저장돼요(기본 분류는 관리자만). 확신이 낮은 것은 "모두 받기"에 들지 않아요. 시안의 제안은 예시이고 AI를 부르지 않아요.</p>`;
+      }
+
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-act]");
+        if (!b || b.tagName === "FORM") return;
+        const a = b.dataset.act, i = Number(b.dataset.i);
+        if (a === "rm") { tech.mine = tech.mine.filter((m) => m !== b.dataset.val); side(); quota(); say(`내 분류에서 "${b.dataset.val}"을 뺐어요.`); }
+        if (a === "aiOne") used += 1, quota(), say("AI 제안: 리서치 › 웹 검색·수집(이유: 설명에 \"crawl\"). 받기를 누르면 내 분류로 저장돼요(시안은 예시).");
+        if (a === "openAi") { const p = document.getElementById("aiPanel"); p.hidden = !p.hidden; b.setAttribute("aria-expanded", !p.hidden); }
+        if (a === "closeAi") { document.getElementById("aiPanel").hidden = true; document.querySelector('[data-act="openAi"]').setAttribute("aria-expanded", "false"); }
+        if (a === "ok") { sugs[i].state = "ok"; aiPanel(); say(`${sugs[i].name}: 내 분류로 저장했어요.`); }
+        if (a === "drop") { sugs[i].state = "drop"; aiPanel(); say(`${sugs[i].name}: 제안을 버렸어요. 분류 전으로 남아요.`); }
+        if (a === "fix") { sugs[i].state = "fix"; aiPanel(); document.querySelector(`[data-fix="${i}"]`)?.focus(); }
+        if (a === "fixOk") { const v = document.querySelector(`[data-fix="${i}"]`).value.split(" › "); Object.assign(sugs[i], { big: v[0], small: v[1], state: "ok" }); aiPanel(); say(`${sugs[i].name}: 고친 분류로 저장했어요.`); }
+        if (a === "okHigh") { const n = sugs.filter((s) => !s.state && s.conf === "high").map((s) => (s.state = "ok")).length; aiPanel(); say(`확신 높은 ${n}개를 받았어요. 확신 낮은 것은 하나씩 확인해요.`); }
+      });
+      document.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = document.getElementById("lab").value.trim().slice(0, 30);
+        if (!v) return say("이름표를 써 주세요.");
+        if (!tech.mine.includes(v)) tech.mine.push(v);
+        if (!myLabels.includes(v)) myLabels.push(v);
+        side(); quota(); say(`내 분류 "${v}"를 붙였어요. 나에게만 보여요.`);
+      });
+      document.getElementById("aiOn").addEventListener("change", () => { quota(); if (!aiOn()) document.getElementById("aiPanel").hidden = true; });
+      side(); aiPanel(); quota();
+    })();
+  </script>
+</body>
+</html>
