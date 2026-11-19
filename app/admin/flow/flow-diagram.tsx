@@ -1,17 +1,14 @@
 // 흐름 그림(SVG). 색은 colorize()가 실제 기록에서 정한 값만 쓴다(불변 6). 색만으로 구분하지 않게 글자로도 적는다.
+// 접근성(PRD-NF5): 상자 링크는 이름과 상태를 읽어 주고, 키보드 초점이 보이며, 그림 아래 "그림을 글로 보기"로 상태·화살표 건수를 글로 준다.
 import { LABEL_H, labelWidth, placeLabel, type Rect } from "@/lib/flow/edge-label";
 import { BOX, layoutFlow } from "@/lib/flow/layout";
+import { FLOW_INK, LOOK } from "@/lib/flow/look";
 import type { Colored, NodeState } from "@/lib/flow/status";
+import { flowTextAlt } from "@/lib/flow/text-alt";
 import type { Flow } from "@/lib/flow/types";
 
-const LOOK: Record<NodeState, { fill: string; stroke: string; label: string; dash?: string }> = {
-  off: { fill: "#eceae4", stroke: "#b9b4a8", label: "안 켜짐" },
-  running: { fill: "#bddcf7", stroke: "#2f7fc4", label: "실행 중" },
-  ok: { fill: "#bfe8cf", stroke: "#2e9a5f", label: "성공" },
-  bad: { fill: "#f7c6c1", stroke: "#d6453b", label: "실패" },
-  wait: { fill: "#fff1d6", stroke: "#e08a00", label: "판단 대기", dash: "6 4" },
-  disabled: { fill: "#f6f5f1", stroke: "#cfcabe", label: "꺼 둠(3순위)", dash: "3 4" },
-};
+// SVG 안의 링크는 브라우저 기본 초점 테두리가 잘 안 보여서 상자 테두리를 굵고 파랗게 바꾼다
+const FOCUS_CSS = `a.flow-node:focus { outline: none; } a.flow-node:focus-visible > g > rect:first-of-type { stroke: ${FLOW_INK.focus}; stroke-width: 5; stroke-dasharray: none; }`;
 
 
 /** 이름을 한 줄 11자 안팎, 최대 두 줄로 나눈다. */
@@ -33,7 +30,7 @@ export function Legend() {
     <ul style={{ display: "flex", flexWrap: "wrap", gap: 12, listStyle: "none", padding: 0, margin: "8px 0", fontSize: 14 }}>
       {(Object.keys(LOOK) as NodeState[]).map((s) => (
         <li key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 16, height: 16, borderRadius: 4, background: LOOK[s].fill, border: `2px ${LOOK[s].dash ? "dashed" : "solid"} ${LOOK[s].stroke}` }} />
+          <span aria-hidden="true" style={{ width: 16, height: 16, borderRadius: 4, background: LOOK[s].fill, border: `2px ${LOOK[s].dash ? "dashed" : "solid"} ${LOOK[s].stroke}` }} />
           {LOOK[s].label}
         </li>
       ))}
@@ -56,17 +53,39 @@ function EdgeLabel({ r, text }: { r: Rect; text: string }) {
   return (
     <g transform={`translate(${r.x} ${r.y})`} aria-hidden="true">
       <rect width={r.w} height={LABEL_H} rx={LABEL_H / 2} fill="#fff" stroke="#8a857a" />
-      <text x={r.w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={600} fill="#2c2a26">{text}</text>
+      <text x={r.w / 2} y={13} textAnchor="middle" fontSize={11} fontWeight={600} fill={FLOW_INK.name}>{text}</text>
     </g>
+  );
+}
+
+/** 그림을 못 보는 사람용: 켜진 상자의 상태와 지나간·건수 있는 화살표(lib/flow/text-alt) */
+function FlowText({ flow, colored, edgeLabels }: { flow: Flow; colored: Colored; edgeLabels?: Map<string, string> }) {
+  const alt = flowTextAlt(flow, colored, edgeLabels ?? new Map());
+  return (
+    <details style={{ margin: "8px 0" }}>
+      <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>그림을 글로 보기</summary>
+      {alt.boxes.length === 0 ? <p>이번 실행에서 켜진 상자가 없어요(상자 {alt.offCount}개 모두 안 켜짐).</p> : (
+        <>
+          <h3 style={{ fontSize: 16 }}>켜진 상자 {alt.boxes.length}개 <span style={{ fontWeight: 400 }}>(안 켜진 상자 {alt.offCount}개)</span></h3>
+          <ul>{alt.boxes.map((b) => <li key={b}>{b}</li>)}</ul>
+          <h3 style={{ fontSize: 16 }}>지나간 화살표와 건수</h3>
+          {alt.arrows.length === 0 ? <p>없어요.</p> : <ul>{alt.arrows.map((a) => <li key={a}>{a}</li>)}</ul>}
+        </>
+      )}
+    </details>
   );
 }
 
 export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: DiagramProps) {
   const layout = layoutFlow(flow);
   const { nodes, edges, width, height } = layout;
+  // 링크를 품으면 role="img"로 두면 안 된다(안의 링크가 읽히지 않음). 누를 수 있으면 묶음(group)으로 둔다.
+  const svgRole = nodeHref ? { role: "group", "aria-label": "흐름 그림: 상자를 누르면 상세가 열려요" } : { role: "img", "aria-label": "흐름 그림(아래 '그림을 글로 보기'에 같은 내용)" };
   return (
-    <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: "#fbfaf7" }}>
-      <svg role="img" aria-label="흐름 그림" width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+    <>
+    <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: FLOW_INK.canvas }}>
+      <svg {...svgRole} width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+        <style>{FOCUS_CSS}</style>
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="#8a857a" />
@@ -96,23 +115,27 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
               <rect width={BOX.w} height={BOX.h} rx={n.type === "branch" ? 28 : 10} fill={look.fill} stroke={n.id === selected ? "#1f4fbf" : look.stroke}
                 strokeWidth={isStart || n.id === selected ? 4 : 2} strokeDasharray={n.id === selected ? undefined : look.dash} />
               {lines.map((t, i) => (
-                <text key={i} x={BOX.w / 2} y={22 + i * 16} textAnchor="middle" fontSize={13} fontWeight={600} fill="#2c2a26">{t}</text>
+                <text key={i} x={BOX.w / 2} y={22 + i * 16} textAnchor="middle" fontSize={13} fontWeight={600} fill={FLOW_INK.name}>{t}</text>
               ))}
-              <text x={BOX.w / 2} y={BOX.h - 8} textAnchor="middle" fontSize={11} fill="#5b564c">{look.label}</text>
+              <text x={BOX.w / 2} y={BOX.h - 8} textAnchor="middle" fontSize={11} fill={FLOW_INK.state}>{look.label}</text>
               {n.badge && (
                 <g transform={`translate(8 -10)`}>
-                  <rect width={labelWidth(n.badge)} height={18} rx={9} fill="#2c2a26" />
+                  <rect width={labelWidth(n.badge)} height={18} rx={9} fill={FLOW_INK.badgeBg} />
                   <text x={7} y={13} fontSize={10.5} fill="#fff">{n.badge}</text>
                 </g>
               )}
             </g>
           );
-          return nodeHref ? <a key={n.id} href={nodeHref(n.id)} aria-label={`${n.name} 상세 보기`}>{box}</a> : box;
+          return nodeHref ? (
+            <a key={n.id} className="flow-node" href={nodeHref(n.id)} aria-label={`${n.name}: ${look.label}${n.id === selected ? " (보는 중)" : ""}. 상세 보기`} aria-current={n.id === selected ? "true" : undefined}>{box}</a>
+          ) : box;
         })}
         {edgeLabels && edges.filter((e) => edgeLabels.has(`${e.from}>${e.to}`)).map((e) => (
           <EdgeLabel key={`label:${e.from}>${e.to}`} r={placeLabel(e, edgeLabels.get(`${e.from}>${e.to}`)!, layout)} text={edgeLabels.get(`${e.from}>${e.to}`)!} />
         ))}
       </svg>
     </div>
+    <FlowText flow={flow} colored={colored} edgeLabels={edgeLabels} />
+    </>
   );
 }
