@@ -1,13 +1,16 @@
 // 위험 패턴 검사(SPEC-2 v1). 파일 글에서 문구로 찾는다. 같은 입력에는 늘 같은 결과(ADR 0003).
 // 한계(화면에도 적는다): 찾지 못했다고 안전하다는 뜻은 아니다. 돌려 쓴 코드는 놓친다. 비밀값을 GET 주소에 붙여 보내는 코드,
 // `session.post` 같은 다른 이름의 요청 객체, 문장으로 쓴 "키를 (주소)로 보내라"(SPEC-2 P2 둘째 줄)는 아직 못 찾는다.
+// 또 비밀값을 읽는 줄과 보내는 줄이 15줄(P2_WINDOW)보다 멀면 같은 P2라도 '위험'이 아니라 '주의'로 남긴다: 다른 함수에 나눠 쓴 유출 코드나
+// 공백·주석으로 거리를 벌린 코드는 '주의'로 낮아질 뿐 '통과'가 되지는 않는다(SPEC-3.1 보안 알림은 '위험'일 때만 난다).
 // 바깥 저장소의 글은 읽기만 하고 실행하지 않는다.
 import type { Grade } from "./grade.ts";
 import { maskSecrets } from "./redact.ts";
 
 export type PatternId = "P1" | "P2" | "P3";
 export type SourceFile = { path: string; text: string };
-export type RiskFinding = { pattern: PatternId; file: string; line: number; excerpt: string; detail: string | null };
+/** grade: 이 발견 하나의 등급. P2는 읽는 곳과 가까우면 위험·같은 파일에서 멀면 주의라 패턴이 아니라 발견마다 정한다. */
+export type RiskFinding = { pattern: PatternId; grade: "danger" | "caution"; file: string; line: number; excerpt: string; detail: string | null };
 /** skippedLines: 너무 길어 검사하지 못한 줄 수. 0이 아니면 '찾지 못했다'를 '통과'로 읽으면 안 된다. */
 export type ScanResult = { findings: RiskFinding[]; skippedLines: number };
 export type RiskGrade = { grade: Grade; reason: string; findings: RiskFinding[] };
@@ -27,7 +30,11 @@ const P1: RegExp[] = [
   /(?<![\w.])(?:eval|exec)\s*\([^;\n]*?\b(?:fetch|requests\.get|urlopen|axios|http\.get)\b/i,
 ];
 
-// P2: 같은 파일에 '비밀값을 읽는 곳'과 '바깥으로 보내는 곳'이 함께 있음(SPEC-2 그대로)
+// P2: '비밀값을 읽는 곳'과 '바깥으로 보내는 곳'이 가까이(P2_WINDOW줄 안) 있음. 같은 파일이라는 이유만으로는 '위험'으로 걸지 않는다(멀면 '주의'):
+// 키를 읽어 정상 API를 부르는 보통 서버가 멀리 떨어진 줄에서 부르는 경우가 흔하다(사용자 결정 2026-11-18, SPEC-2).
+// shortcut: 15는 제안값이다. 대가 둘: ① 멀리 떨어진 읽기·보내기(정상 API 호출이든 다른 함수에 나눠 쓴 유출 코드든)는 '위험'이 못 되고 '주의'가 되며
+// ② 가까운 정상 API 호출은 여전히 '위험'으로 걸린다. 둘 다 키가 요청 본문·다른 주소로 가는지를 문장 단위로 보면 줄어든다(I-P-10-p2-nearby-lines 열린 질문)
+const P2_WINDOW = 15;
 // 이름만 있는 MAX_TOKENS·CSRF_TOKEN 같은 글자는 읽는 곳이 아니다 → 환경변수를 읽는 모양일 때만 이름을 본다.
 const SECRET_READ: RegExp[] = [
   /(?<!\w)\.env\b|~\/\.ssh|\.ssh\/|\bid_rsa\b/,
@@ -58,50 +65,81 @@ const hit = (res: RegExp[], line: string) => res.some((re) => re.test(line));
 const LOWER_SECRET = /((?:x-api-key|api[-_]?key|authorization|token|secret|password)\b["']?\s*[:=\s]\s*(?:(?:Basic|Bearer)\s+)?)["']?[^\s"',;&]+/gi;
 const maskLine = (s: string) => maskSecrets(s).replace(LOWER_SECRET, "$1***");
 
-type Logical = { line: string; at: number };
+type Span = { at: number; end: number }; // 이어 쓴 명령이면 여러 줄(at = 첫 줄, end = 끝 줄)
+type Logical = Span & { line: string };
 
-/** 줄 끝 `\`로 이어 쓴 명령은 한 줄로 합친다(줄 번호는 첫 줄). */
+/** 줄 끝 `\`로 이어 쓴 명령은 한 줄로 합친다(줄 번호는 첫 줄, end는 끝 줄). */
 function logicalLines(text: string): Logical[] {
+  const rows = text.split(/\r?\n/);
   const out: Logical[] = [];
   let buf = "";
   let at = 0;
-  text.split(/\r?\n/).forEach((raw, i) => {
+  rows.forEach((raw, i) => {
     if (buf === "") at = i + 1;
     if (/\\\s*$/.test(raw)) {
       buf += `${raw.replace(/\\\s*$/, "")} `;
       return;
     }
-    out.push({ line: buf + raw, at });
+    out.push({ line: buf + raw, at, end: i + 1 });
     buf = "";
   });
-  if (buf) out.push({ line: buf, at });
+  if (buf) out.push({ line: buf, at, end: rows.length });
   return out;
 }
 
 function scanFile({ path, text }: SourceFile): { findings: RiskFinding[]; skipped: number } {
   const findings: RiskFinding[] = [];
-  const add = (pattern: PatternId, l: Logical, detail: string | null = null) =>
-    findings.push({ pattern, file: path, line: l.at, excerpt: maskLine(l.line.trim()).slice(0, 160), detail });
-  let read: Logical | undefined;
-  let send: Logical | undefined;
+  const add = (l: Logical, f: { pattern: PatternId; grade: RiskFinding["grade"]; detail?: string }) =>
+    findings.push({ ...f, detail: f.detail ?? null, file: path, line: l.at, excerpt: maskLine(l.line.trim()).slice(0, 160) });
+  const reads: Span[] = []; // 비밀값을 읽는 곳(줄 번호 순)
+  const sends: Logical[] = [];
   let skipped = 0;
   for (const l of logicalLines(text)) {
     if (l.line.length > MAX_LINE) {
       skipped++;
       continue;
     }
-    if (hit(P1, l.line)) add("P1", l);
-    if (hit(P3, l.line)) add("P3", l);
-    if (!read && hit(SECRET_READ, l.line)) read = l;
-    if (!send && hit(SEND, l.line)) send = l;
+    if (hit(P1, l.line)) add(l, { pattern: "P1", grade: "danger" });
+    if (hit(P3, l.line)) add(l, { pattern: "P3", grade: "caution" });
+    if (hit(SECRET_READ, l.line)) reads.push({ at: l.at, end: l.end });
+    if (hit(SEND, l.line)) sends.push(l);
   }
-  if (read && send) add("P2", send, `비밀값을 읽는 곳: ${read.at}째 줄`);
+  // 가장 가까운 짝이 15줄 안이면 위험, 멀어도 같은 파일에 둘 다 있으면 '통과'로 두지 않고 주의
+  const pair = closestPair(reads, sends);
+  if (pair) {
+    const near = pair.dist <= P2_WINDOW;
+    add(pair.send, { pattern: "P2", grade: near ? "danger" : "caution", detail: `비밀값을 읽는 곳: ${pair.readAt}째 줄${near ? "" : `(${pair.dist}줄 떨어짐)`}` });
+  }
   return { findings, skipped };
+}
+
+type Pair = { send: Logical; readAt: number; dist: number };
+
+/**
+ * 읽는 줄과 보내는 줄의 짝 중 거리가 가장 짧은 것(같으면 먼저 나온 보내는 줄).
+ * 두 목록이 줄 번호 순이라 포인터 하나로 훑어 줄 수에 비례한다: 바깥 저장소가 만든 큰 파일에서 오래 걸리지 않게(MAX_LINE과 같은 이유).
+ */
+function closestPair(reads: Span[], sends: Logical[]): Pair | undefined {
+  let best: Pair | undefined;
+  let i = 0;
+  for (const send of sends) {
+    while (i < reads.length && reads[i].at < send.at) i++;
+    const read = nearestRead(reads, i, send);
+    if (read && (!best || read.dist < best.dist)) best = { send, ...read };
+  }
+  return best;
+}
+
+/** reads[i - 1]은 보내는 줄 앞, reads[i]는 같은 줄이거나 뒤: 더 가까운 쪽(같으면 앞쪽)의 줄 번호와 거리. 이어 쓴 명령은 가까운 끝에서 잰다. */
+function nearestRead(reads: Span[], i: number, send: Logical): { readAt: number; dist: number } | undefined {
+  const before = i > 0 ? { readAt: reads[i - 1].at, dist: Math.max(0, send.at - reads[i - 1].end) } : undefined;
+  const after = i < reads.length ? { readAt: reads[i].at, dist: Math.max(0, reads[i].at - send.end) } : undefined;
+  return before && after ? (after.dist < before.dist ? after : before) : (before ?? after);
 }
 
 // 로케일에 따라 순서가 달라지지 않게 글자 코드 순으로 비교한다.
 const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-const severity = (f: RiskFinding) => (f.pattern === "P3" ? 1 : 0);
+const severity = (f: RiskFinding) => (f.grade === "caution" ? 1 : 0);
 
 /**
  * 파일마다 줄 단위로 찾는다. 위험(P1·P2)을 먼저, 그다음 (파일, 줄, 패턴) 순으로 정렬해
@@ -117,14 +155,17 @@ export function scanRiskPatterns(files: SourceFile[]): ScanResult {
 }
 
 /**
- * SPEC-1 위험 ②(P1·P2) · 주의 ⑤(P3). 읽은 파일이 없거나 검사하지 못한 줄이 있으면
+ * SPEC-1 위험 ②(P1·P2의 가까운 짝) · 주의 ⑤(P3·P2의 먼 짝). 읽은 파일이 없거나 검사하지 못한 줄이 있으면
  * 못 찾은 것을 '통과'로 내보내지 않고 '찾지 못함'으로 둔다.
  */
 export function gradeFromScan({ findings, skippedLines }: ScanResult, scannedFiles: number): RiskGrade {
-  const first = findings[0];
+  // 목록 순서를 믿지 않는다: 합치거나 걸러 만든 목록에서도 위험이 하나라도 있으면 위험이다
+  const first = findings.find((x) => x.grade === "danger") ?? findings[0];
   if (first) {
-    const grade: Grade = first.pattern === "P3" ? "caution" : "danger";
-    return { grade, reason: `${first.file} ${first.line}째 줄에서 '${PATTERN_NAME[first.pattern]}'(${first.pattern})로 보이는 글을 찾았어요.`, findings };
+    const apart = first.pattern === "P2" && first.grade === "caution" ? " 비밀값을 읽는 곳과 떨어져 있어 '주의'로 봤어요." : "";
+    // 주의로 끝날 때도 검사하지 못한 줄은 가리지 않는다(그 줄에 위험한 글이 있을 수 있다)
+    const unchecked = first.grade === "caution" && skippedLines > 0 ? ` 너무 긴 줄 ${skippedLines}개는 검사하지 못했어요(그 줄에 위험한 글이 있을 수 있어요).` : "";
+    return { grade: first.grade, reason: `${first.file} ${first.line}째 줄에서 '${PATTERN_NAME[first.pattern]}'(${first.pattern})로 보이는 글을 찾았어요.${apart}${unchecked}`, findings };
   }
   if (scannedFiles === 0) return { grade: "unknown", reason: "확인할 파일을 읽지 못했어요.", findings };
   if (skippedLines > 0) return { grade: "unknown", reason: `너무 긴 줄 ${skippedLines}개는 검사하지 못했어요. 찾지 못했다고 안전하다는 뜻은 아니에요.`, findings };

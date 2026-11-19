@@ -4,11 +4,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUser } from "./current-user.ts";
 import { getServiceSupabase } from "./service-supabase.ts";
 import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
-import { saveChange } from "./changes.ts";
+import { readLatestChange, saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
 import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
-import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
+import { REPO_FILES, readRepoFile, requirementIncludes, type FoundTech } from "../domain/manifest.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
+import { causeIdsOf } from "../domain/osv-daily.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
@@ -43,11 +44,12 @@ export async function registerAndRead(user: CurrentUser, repo: RepoRef, deps: { 
 
 async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId: string; ownerId: string }, repo: RepoRef): Promise<ReadResult> {
   const { runId, projectId } = ctx;
-  const { found, dropped, fileErrors } = await readRepo(db, runId, repo);
+  const { found, dropped, fileErrors, filesParsed } = await readRepo(db, runId, repo);
   const readAt = new Date().toISOString();
   const techIds = await saveMyTechnologies(db, { ownerId: ctx.ownerId, projectId, readAt }, found);
-  // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음)
-  for (const f of fileErrors) {
+  // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음).
+  // 목록이 전부가 아닐 수 있다는 안내(soft, requirements.txt의 -r)는 읽은 기술 줄의 잘못이 아니라서 줄에 딱지를 붙이지 않는다.
+  for (const f of fileErrors.filter((e) => !e.soft)) {
     const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
@@ -71,14 +73,19 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   let changesCreated = 0;
   const saved: { id: string; techId: string }[] = [];
   for (const g of events) {
-    const change = await saveChange(db, {
-      kind: "first_seen_danger", // 사용자가 읽을 때 이미 위험 = 처음 확인한 위험. 정기 수집(P-17)은 grade_to_danger
-      techId: g.techId,
-      tech: g.f.tech!,
-      causeId: g.result.causeId!,
-      // shortcut: 위험 회차는 늘 1. 위험 → 고쳐짐 → 다시 위험(SPEC-3.1 회차)은 정기 수집(P-17)에서 이전 변경을 보고 올린다
-      currValue: { grade: "danger", reason: g.result.reason, fixed_version: g.result.fixedVersion, evidence: g.result.evidence },
-    });
+    // 위험이 이미 이어지는 중이면(정기 OSV 확인이 회차를 올렸을 수 있다) 가장 최근 변경에 알림을 잇는다. 회차를 늘 1로 두면 오래된 변경에 붙고,
+    // 다음 정기 확인이 최근 변경에 같은 사람의 알림을 하나 더 만든다.
+    // shortcut: 고쳐졌다 다시 위험해진 것을 첫 읽기가 먼저 만나면 새 회차를 못 만든다(위 등급 저장이 먼저 위험으로 바꿔 정기 확인이 "다시 위험"을 못 알아봄). 드문 경우
+    const latest = await readLatestChange(db, { techId: g.techId, version: g.f.tech!.version }, causeIdsOf(g.result));
+    const change = latest
+      ? { id: latest.id, created: false }
+      : await saveChange(db, {
+          kind: "first_seen_danger", // 사용자가 읽을 때 이미 위험 = 처음 확인한 위험. 정기 확인(P-9d)은 grade_to_danger
+          techId: g.techId,
+          tech: g.f.tech!,
+          causeId: g.result.causeId!,
+          currValue: { grade: "danger", reason: g.result.reason, fixed_version: g.result.fixedVersion, evidence: g.result.evidence },
+        });
     if (change.created) changesCreated++;
     saved.push({ id: change.id, techId: g.techId });
   }
@@ -88,16 +95,20 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   await notifyOwner(db, ctx, saved);
 
   const errors = fileErrors.length + osvErrors;
-  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors) };
+  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors, filesParsed) };
 }
 
-/** 파일을 하나도 못 읽고 오류뿐이면 실패(저장소가 안 열린 것을 성공·일부 성공처럼 보이지 않게, 불변 2). 일부만 오류면 일부 성공. */
-function runStatus(fileErrors: FileError[], osvErrors: number): RunResult {
+/**
+ * 가져와 해석까지 끝낸 파일이 하나도 없는데 오류가 있으면 실패(저장소가 안 열린 것·모든 파일이 깨진 것을 일부 성공처럼 보이지 않게, 불변 2).
+ * 해석한 파일이 있으면 일부 오류는 일부 성공. 읽는 파일이 늘어도 기준이 바뀌지 않는다: 원래 없는 파일(404)은 오류가 아니라서 "모든 파일이 오류"로는 판단할 수 없다.
+ */
+function runStatus(fileErrors: FileError[], osvErrors: number, filesParsed: number): RunResult {
   if (fileErrors.length + osvErrors === 0) return "succeeded";
-  return new Set(fileErrors.map((f) => f.path)).size >= REPO_FILES.length ? "failed" : "partial";
+  return filesParsed === 0 && fileErrors.length > 0 ? "failed" : "partial";
 }
 
-type FileError = { path: string; kind: ErrorKind; message: string };
+/** soft = 파일은 읽었지만 일부를 못 읽었다는 안내(그 파일에서 읽은 기술 줄에는 오류 딱지를 붙이지 않는다) */
+type FileError = { path: string; kind: ErrorKind; message: string; soft?: boolean };
 
 /** 연 파일이 하나도 없는데 일부는 404일 때: "파일 없음"인지 저장소가 안 열린 것인지 저장소부터 확인한다(404는 비공개·없는 저장소도 같다, 불변 2). */
 async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<FileError[]> {
@@ -110,19 +121,28 @@ async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<Fi
   }
 }
 
-/** fetch_repo → extract_my_tech. 파일마다 따로: 없는 파일은 건너뛰고, 못 읽거나 깨진 파일은 그 파일만 오류. */
-async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
+/** 읽는 파일을 한꺼번에 가져온다(서로 모르는 사이라, 차례로 하면 느린 응답의 시간 제한이 겹쳐 쌓인다). 결과는 REPO_FILES 순서. 없는 파일(404)은 건너뛴다. */
+async function fetchRepoFiles(repo: RepoRef) {
   const files: { path: string; text: string }[] = [];
   const fileErrors: FileError[] = [];
-  for (const path of REPO_FILES) {
+  const fetched = await Promise.all(REPO_FILES.map(async (path) => {
     try {
-      const text = await fetchText(`https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/HEAD/${path}`);
-      if (text !== null) files.push({ path, text });
+      return { path, text: await fetchText(`https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/HEAD/${path}`) } as const;
     } catch (e) {
-      fileErrors.push({ path, kind: errorKindOf(e), message: String(e instanceof Error ? e.message : e) });
+      return { path, failure: e } as const;
     }
+  }));
+  for (const f of fetched) {
+    if ("failure" in f) fileErrors.push({ path: f.path, kind: errorKindOf(f.failure), message: String(f.failure instanceof Error ? f.failure.message : f.failure) });
+    else if (f.text !== null) files.push({ path: f.path, text: f.text });
   }
   if (files.length === 0 && fileErrors.length < REPO_FILES.length) fileErrors.push(...(await closedRepoErrors(repo, fileErrors)));
+  return { files, fileErrors };
+}
+
+/** fetch_repo → extract_my_tech. 파일마다 따로: 없는 파일은 건너뛰고, 못 읽거나 깨진 파일은 그 파일만 오류. */
+async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
+  const { files, fileErrors } = await fetchRepoFiles(repo);
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
@@ -136,16 +156,25 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
 
   // extract_my_tech: 깨진 파일은 해석 실패로 남기고 나머지는 계속.
   const found: FoundTech[] = [];
+  let filesParsed = 0;
   for (const f of files) {
     try {
-      found.push(...(f.path === "package.json" ? readPackageJson(f.text) : readMcpJson(f.text)));
+      found.push(...readRepoFile(f.path, f.text));
+      filesParsed++;
+      // requirements.txt가 다른 파일(-r)을 포함하면 그 파일은 읽지 않으니 전부 읽은 것처럼 보이지 않게 부분 오류로 남긴다(불변 2)
+      const included = f.path === "requirements.txt" ? requirementIncludes(f.text) : [];
+      if (included.length) fileErrors.push({ path: f.path, kind: "parse", soft: true, message: `${f.path}: 다른 파일(${includedPaths(included)})을 포함해요. 그 파일은 읽지 않아 목록이 전부가 아닐 수 있어요` });
     } catch (e) {
       fileErrors.push({ path: f.path, kind: "parse", message: `${f.path}: ${e instanceof Error ? e.message : e}` });
     }
   }
-  // 같은 기술이 두 파일에 있으면 한 줄만(package.json 먼저). my_technologies (project_id, tech_id) UK와 맞춘다.
-  const seen = new Set<string>();
-  const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
+  // 같은 기술이 두 파일에 있으면 한 줄만: 버전을 아는 쪽을 남기고, 같으면 앞 파일(REPO_FILES 순서)을 남긴다. my_technologies (project_id, tech_id) UK와 맞춘다.
+  const best = new Map<string, FoundTech>();
+  for (const f of found) {
+    const prev = f.tech && best.get(f.tech.key);
+    if (f.tech && (!prev || (prev.tech?.version == null && f.tech.version !== null))) best.set(f.tech.key, f);
+  }
+  const unique = found.filter((f) => !f.tech || best.get(f.tech.key) === f);
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
@@ -153,9 +182,16 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
     countOut: unique.length,
     outputSummary: unique.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
     errorKind: fileErrors.find((f) => f.kind === "parse") && "parse",
+    errorMessage: fileErrors.filter((f) => f.kind === "parse").map((f) => f.message).join("; ") || undefined,
   });
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
-  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors };
+  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed };
+}
+
+/** 포함 경로는 믿을 수 없는 글이라 오류 메시지에 길게 싣지 않는다: 앞 3개, 하나당 80자까지 */
+function includedPaths(paths: string[]): string {
+  const shown = paths.slice(0, 3).map((p) => (p.length > 80 ? `${p.slice(0, 80)}…` : p)).join(", ");
+  return paths.length > 3 ? `${shown} 외 ${paths.length - 3}개` : shown;
 }
 
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */

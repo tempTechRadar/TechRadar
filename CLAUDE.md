@@ -75,15 +75,17 @@
   - 서브에이전트 사용 → `docs/agents.md` · 커넥터 사용 → `docs/connectors.md` · 오류와 해결 → `docs/debug-note.md`
   - 한 단계가 끝나면(PR, 문서 승인, 조각 완료, QA, 오류 해결, 인터뷰 정리) → `abbs-log` 스킬로 각자의 abbsbook에 화면 이미지와 함께 기록. 개인 설정(`.claude/CLAUDE.md`)에 스케치북이 있는 사람만. 세팅 방법은 스킬 0절
 - **끝낼 때:** `docs/intent.md`의 결과 칸, `docs/worklog.md`의 오늘 날짜 항목(한 일과 누가 했는지, 정한 일과 이유, 막힌 일, 아직 안 된 것)을 채운다. 사람만 할 수 있는 기록(vibelog, 인터뷰)은 마지막 답변에서 상기시킨다.
+- **리뷰·합침 상태는 기록에 옮겨 적지 않는다.** "리뷰 대기"·"승인 대기"·"○○이 리뷰"처럼 PR이 합쳐지면 틀려지는 말은 `intent.md`·`worklog.md`·`plan.md`에 쓰지 않는다(원본은 GitHub의 PR). "PR #번호"와 한 일만 적는다. `plan.md` 상태 칸을 "합침"으로 바꾸는 일은 그 조각의 다음 PR에서 함께 하고, 합침만 고치는 PR은 따로 만들지 않는다(2026-11-18 하루에 정리 PR #82·#86·#89·#90이 네 번 반복됨).
 
 ## 10. Git·배포·보안
 - 커밋·푸시는 요청할 때만. 성격별(feat/fix/test/docs/chore/perf)로 나눠 커밋한다.
 - 조각 하나 = 브랜치 하나. `main`에 직접 커밋하지 않는다. PR은 팀원 1명 이상 리뷰 후 합친다.
 - 충돌이 나면 혼자 지우지 말고 멈춰서 묻는다. 합친 뒤 생긴 오류는 `docs/debug-note.md`에 남긴다.
 - main은 **내 컴퓨터에서 `git merge origin/main`**으로 받는다. 기록 문서 5개(`intent`·`worklog`·`agents`·`connectors`·`debug-note`)는 `.gitattributes`가 양쪽 줄을 모두 남겨 충돌 표시가 안 난다(GitHub 웹의 'Resolve conflicts'·'Update branch'는 이 설정을 따르지 않으니 쓰지 않는다). 합친 뒤 `npm test`의 기록 검사(`lib/records`)가 통과하는지 본다(ADR 0017). **이 설정이 들어오기 전에 만든 브랜치는 처음 한 번만** 설정을 커밋으로 먼저 받는다: `git fetch origin && git checkout origin/main -- .gitattributes && git commit -m "chore: .gitattributes 받기" && git merge origin/main` (git은 합치는 쪽 브랜치에 있는 설정만 쓰므로 설정이 없는 브랜치의 첫 병합에는 적용되지 않는다. 커밋 안 한 변경이 있으면 먼저 커밋한다). `plan`·`spec` 같은 기획 문서의 "바뀐 기록" 끝이 겹치면 양쪽 줄을 모두 남긴다.
+- **열린 PR 브랜치에는 main이 자동으로 합쳐진다**(`.github/workflows/sync-pr-branches.yml`, `feat/`·`fix/`·`docs/`·`chore/` 브랜치만, ADR 0017 개정). 자동 합치기로 원격 브랜치에 새 커밋이 생겨 내 푸시가 거절되면 `git pull --no-rebase`로 받은 뒤 다시 푸시한다. 기록 문서 5개 밖의 진짜 충돌은 자동으로 풀지 않으니 위 방법대로 내 컴퓨터에서 푼다.
 - **PR 올리기 직전 충돌 미리 보기:** `git merge origin/main` → `npm test` → 푸시 → `npm run precheck` → PR. `precheck`는 GitHub이 볼 충돌만 읽기로 계산한다(아무것도 바꾸지 않음). `CONFLICT` 줄과 함께 실패하면 그 파일을 먼저 합친다. 승인을 기다리는 사이 main이 움직이면 병합 직전에 한 번 더 돌린다. git 2.40 이상이 필요하다(ADR 0017).
 - 올리지 않는다: `.env*`, `.claude/`(단 `.claude/agents/`와 `.claude/skills/`는 팀 공용이라 올린다).
 - 비밀 키·비밀번호를 채팅·문서·코드·커밋·발표 자료에 쓰지 않는다. 키는 서버 환경변수에만 둔다(사용자가 `.env`에 직접 넣는다).
 - 푸시로 자동 배포되면, 푸시 후 배포 상태와 실제 주소를 확인한다.
-- **배포 횟수를 아낀다**(무료 Vercel은 하루 100번 안팎, ADR 0018). PR 브랜치(`feat/`·`fix/`·`docs/`·`chore/`)는 `vercel.json`으로 미리보기 배포를 끄고, main에 합쳐질 때만 배포한다. 브랜치는 로컬에서 `npm run build`·`npm test`를 통과한 뒤 PR을 올릴 때 **한 번만** 푸시하고, 리뷰 반영도 모아서 푸시한다. 화면은 로컬(`npm run dev`)이나 내장 브라우저로 본다. main에 합친 뒤에는 배포 상태와 주소를 확인한다. PR의 "Deployment rate limited" 표시는 병합을 막지 않는다(막는 것은 승인 1개뿐).
+- **배포 횟수를 아낀다**(무료 Vercel은 하루 100번 안팎, ADR 0018). PR 브랜치(`feat/`·`fix/`·`docs/`·`chore/`)는 `vercel.json`으로 미리보기 배포를 끄고, main에 합쳐질 때만 배포한다. 브랜치는 로컬에서 `npm run build`·`npm test`를 통과한 뒤 PR을 올릴 때 **한 번만** 푸시하고, 리뷰 반영도 모아서 푸시한다. 화면은 로컬(`npm run dev`)이나 내장 브라우저로 본다. main에 합친 뒤에는 배포 상태와 주소를 확인한다. PR의 "Deployment rate limited" 표시는 병합을 막지 않는다(막는 것은 승인 1개뿐). 문서만 바뀐 main 병합(`docs/`·`interviews/`·`rules/`·`.claude/`·루트 `*.md`)은 `vercel.json`의 `ignoreCommand`로 배포를 건너뛰니, 그 병합에 배포가 없는 것은 정상이다. 서버가 읽는 `wiki/`·`sim/`·`eval/`는 건너뛰지 않는다(ADR 0018 개정).
 - 확인하지 못한 것은 "확인하지 못했다"고 쓴다.

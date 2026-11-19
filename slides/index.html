@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TechRadar 발표 (초안)</title>
+<!-- 발표 자료 초안(2026-11-19). 한 파일, 바깥 주소 없음(인터넷이 끊겨도 열린다). 키는 ← → Space PageUp PageDown Home End.
+     숫자와 문장은 저장소 문서·DB에서 가져온 것이고 출처를 각 슬라이드 아래에 적었다. "▢ 채울 것"은 아직 사실이 없는 자리다(지어 쓰지 않는다). -->
+<style>
+  /* 색은 docs/design.md 5절(레이더 어두운 테마)의 토큰. 글자 대비는 같은 절의 값을 따른다 */
+  :root {
+    --surface: #0a0e14; --subtle: #0f151d; --surface-2: #131b25;
+    --text: #e6edf3; --muted: #8fa3b0; --brand: #2ed573; --success: #5ec8ff;
+    --danger: #f87171; --warning: #fbbf24; --dim: #5a7890; --border: #5f7384;
+    --font: "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; background: var(--surface); color: var(--text); font-family: var(--font); }
+  body { margin: 0; font-size: 20px; line-height: 1.55; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .sweep { animation: none !important; } }
+  .slide { min-height: 100vh; scroll-snap-align: start; padding: 56px max(24px, 7vw) 72px; display: flex; flex-direction: column; justify-content: center; position: relative; border-bottom: 1px solid #1c2733; }
+  .slide > * { max-width: 1100px; }
+  .kicker { font-family: var(--mono); font-size: 14px; letter-spacing: .08em; color: var(--brand); text-transform: uppercase; margin: 0 0 12px; }
+  h1 { font-size: clamp(48px, 9vw, 112px); line-height: 1.02; margin: 0 0 20px; letter-spacing: -.02em; }
+  h1 span { background: linear-gradient(90deg, var(--brand), var(--success)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2 { font-size: clamp(28px, 4.2vw, 48px); line-height: 1.15; margin: 0 0 22px; letter-spacing: -.01em; }
+  h3 { font-size: 16px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+  p, li { margin: 0 0 10px; }
+  ul { margin: 0; padding-left: 1.2em; }
+  .lead { font-size: clamp(20px, 2.4vw, 28px); color: var(--text); max-width: 900px; }
+  .muted { color: var(--muted); }
+  .src { position: absolute; left: max(24px, 7vw); right: max(24px, 7vw); bottom: 20px; font-size: 13px; color: var(--muted); max-width: none; }
+  .src b { font-weight: 600; color: var(--text); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 8px; }
+  .card { background: var(--surface-2); border: 1px solid #22303e; border-radius: 12px; padding: 18px 20px; }
+  .card p, .card li { font-size: 17px; }
+  .num { font-family: var(--mono); font-size: clamp(34px, 5vw, 56px); line-height: 1; margin: 0 0 6px; }
+  .ok { color: var(--success); } .bad { color: var(--danger); } .warn { color: var(--warning); } .green { color: var(--brand); }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); margin-right: 6px; color: var(--muted); }
+  .todo { border: 1.5px dashed var(--warning); color: var(--warning); border-radius: 10px; padding: 10px 14px; font-size: 16px; margin-top: 12px; }
+  .todo::before { content: "▢ 채울 것 — "; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; font-size: 17px; margin-top: 8px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #22303e; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 14px; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li { counter-increment: s; padding-left: 44px; position: relative; margin-bottom: 12px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--brand); color: var(--brand); display: grid; place-items: center; font-family: var(--mono); font-size: 15px; }
+  /* 표지의 도는 선: 장식일 뿐이다(점·밝기에 뜻이 없다) */
+  .sweep { position: absolute; right: -8vw; top: 50%; width: min(60vw, 720px); aspect-ratio: 1; transform: translateY(-50%); border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0 56px, rgba(46,213,115,.18) 57px 58px), conic-gradient(from 0deg, rgba(46,213,115,.28), transparent 25%);
+    animation: spin 9s linear infinite; pointer-events: none; opacity: .8; }
+  @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+  #counter { position: fixed; right: 18px; bottom: 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 6px; z-index: 5; }
+  .draft { position: fixed; left: 18px; top: 12px; font-family: var(--mono); font-size: 12px; color: var(--warning); border: 1px solid var(--warning); padding: 2px 8px; border-radius: 6px; z-index: 5; background: var(--surface); }
+  a { color: var(--success); }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  @media (max-width: 640px) { body { font-size: 17px; } .slide { padding: 48px 20px 64px; } }
+  @media print { html { scroll-snap-type: none; } .slide { min-height: 0; height: 100vh; page-break-after: always; } #counter, .draft { display: none; } }
+</style>
+</head>
+<body>
+<span class="draft">초안 · 2026-11-19 기준</span>
+<span id="counter" aria-hidden="true">1 / 15</span>
+
+<main id="deck">
+
+<section class="slide" id="s1" aria-labelledby="t1">
+  <div class="sweep" aria-hidden="true"></div>
+  <p class="kicker">프로젝트 3 · 최종 발표 2026-11-23</p>
+  <h1 id="t1"><span>TechRadar</span></h1>
+  <p class="lead">내가 깐 AI 도구가 안전한지, 더 나은 것이 나왔는지 한눈에.</p>
+  <p class="muted">김영식 · 차세일 · 황재웅</p>
+  <p class="src"><b>발표 순서:</b> 문제 → 지켜본 곳 → 입력·운영 화면 → 사건과 대응 → 시연 → 확인 → 커넥터 → 위키·챗봇 → 서브에이전트 → 하네스 → 기여 → 다음</p>
+</section>
+
+<section class="slide" id="s2" aria-labelledby="t2">
+  <p class="kicker">문제 1/3 · 누가, 무엇을 놓쳐, 무엇을 잃나</p>
+  <h2 id="t2">깔기는 쉬운데, 내가 뭘 깔았는지 한눈에 못 본다</h2>
+  <p class="lead"><b>AI 코딩 도구</b>(Claude Code·Cursor·Codex 등)로 직접 만드는 사람은 스킬·MCP·플러그인을 소식(쇼츠·유튜브)이나 그때그때의 필요로 하나씩 깐다.</p>
+  <div class="grid">
+    <div class="card"><h3>놓치는 것</h3><p>내가 무엇을 깔았는지 · 그게 안전한지 · 더 나은 것이 나왔는지</p></div>
+    <div class="card"><h3>그래서 잃는 것</h3><p>유명세만 보고 검증 안 된 도구를 쓴다. 컴퓨터를 바꾸면 쌓은 세팅을 못 옮기고 처음부터 다시 쌓는다.</p></div>
+    <div class="card"><h3>지금 쓰는 방법 <span class="tag">사람 인터뷰 1명의 말</span></h3><p>소식·사례로 확인하고, 저장은 휴대폰 캡처, 다시 볼 때는 "생각나면".</p></div>
+  </div>
+  <p class="src"><b>출처:</b> docs/문제정의.md 1절(문제 한 문장) · interviews/2026-11-17-대표1-사람.md 2절(요약, 익명)</p>
+</section>
+
+<section class="slide" id="s3" aria-labelledby="t3">
+  <p class="kicker">문제 2/3 · 어떻게 골랐고, 무엇을 접었고, 근거의 한계</p>
+  <h2 id="t3">가설을 나란히 두고 인터뷰로 좁혔다</h2>
+  <div class="grid">
+    <div class="card"><h3>근거</h3>
+      <ul><li><b>사람 인터뷰 2건</b>(5명, 팀 밖, 동의 문구 읽음, 익명)</li><li><b>AI 인터뷰 3건</b>은 가설용 — 실제 조사가 아니다</li></ul></div>
+    <div class="card"><h3>들은 말 <span class="tag">사람 인터뷰, 요약</span></h3>
+      <ul><li>"있는 줄 몰라서 포기"는 거의 없다 (목적을 정하고 먼저 검색)</li><li>보안 확인 = 유명세·사례 확인. 실제 점검(권한·코드·출처)은 안 한다</li><li>새 기준: 무료로 쓸 수 있는가</li></ul></div>
+    <div class="card"><h3>접거나 바꾼 것</h3>
+      <ul><li>기술 지도: 근거가 가장 약해 "대신 작게"</li><li>빈도·손해 수치화: 하지 않음 (ADR 0011)</li><li>가설들 → 통합안 승인 (ADR 0005·0013)</li></ul></div>
+    <div class="card"><h3>한계</h3>
+      <ul><li>표본이 작다</li><li>한 응답자는 인터뷰 전에 주제를 알고 있었고 "일부러 삐딱하게 답변"한다고 말했다</li><li>AI 인터뷰는 근거로 세지 않는다</li></ul></div>
+  </div>
+  <p class="src"><b>출처:</b> docs/문제정의.md · docs/adr/0005·0011·0013 · docs/design.md 10절 · interviews/ (이름·연락처 없음)</p>
+</section>
+
+<section class="slide" id="s4" aria-labelledby="t4">
+  <p class="kicker">문제 3/3 · 좋아졌는지 잴 숫자 하나</p>
+  <h2 id="t4">같은 저장소를 손으로 vs 앱으로, 걸린 시간</h2>
+  <p class="lead">빈도·손해는 수치로 딸 수 없다고 판단해 <b>당사자 말</b>로 대신한다. 발표의 숫자 하나는 실제로 재는 <b>비교 작업</b>이다.</p>
+  <table>
+    <tr><th>방법</th><th>하는 일</th><th>걸린 시간</th></tr>
+    <tr><td>① 손으로</td><td>파일을 열어 깐 것을 적고, 기술마다 취약점·최근 업데이트를 검색</td><td class="warn">▢ 재서 채울 것</td></tr>
+    <tr><td>② 앱으로</td><td>저장소 등록 → 내 기술 목록 → 등급과 이유 확인</td><td class="warn">▢ 재서 채울 것</td></tr>
+  </table>
+  <div class="todo">아직 재지 않았다. 사람이 한 번 재고 여기에 쓴다. 사용자가 없어 앱 안의 숫자는 시연 계정 값뿐이라는 한계도 함께 말한다.</div>
+  <p class="src"><b>출처:</b> docs/adr/0011</p>
+</section>
+
+<section class="slide" id="s5" aria-labelledby="t5">
+  <p class="kicker">지켜본 곳과 데이터</p>
+  <h2 id="t5">서로 다른 출처 4곳을 매일 저절로 읽는다</h2>
+  <div class="grid">
+    <div class="card"><h3>공식 MCP 레지스트리</h3><p>서버 66,788개 중 하루 60초 몫으로 이어 읽는다. 첫 실행: 3,200개 → 전체 약 21번.</p></div>
+    <div class="card"><h3>GitHub 저장소 정보</h3><p>마지막 푸시·라이선스·별·보관·사라짐. 저장소마다 1번.</p></div>
+    <div class="card"><h3>OSV 취약점</h3><p>등록한 (기술, 버전)을 매일 다시 묻고 새로 위험해지면 알림.</p></div>
+    <div class="card"><h3>npm·PyPI 다운로드</h3><p>주간 다운로드 수.</p></div>
+  </div>
+  <ul style="margin-top:18px">
+    <li><b>간격:</b> 매일 06:00(한국 시간) + 관리자 "지금 한 번 실행". 읽기 실패는 "변화 없음"이 아니라 <b>수집 오류</b>.</li>
+    <li><b>같은 모양:</b> 수집 자료 한 줄 = 시각 · 대상 · 지표 · 이전 값 → 현재 값 · 바뀐 정도 · 출처.</li>
+    <li><b>막혔을 때:</b> ① 수집기들이 같은 상태 칸을 서로 되돌림 → "누가 정했는지" 표시(ADR 0021) ② 정기 실행 첫날 안 돎(<code>CRON_SECRET</code> 없음) → "운영 설정부터 확인" ③ 레지스트리가 너무 커서 → 얇게 시작·이어 읽기.</li>
+    <li><b>실수집:</b> 11-19 운영 DB 첫 실행 64초, 실제 기술 3,166개가 쌓임.</li>
+  </ul>
+  <p class="src"><b>출처:</b> docs/spec.md SPEC-8 · docs/qa.md 11-19 행 · docs/adr/0019·0021 · docs/worklog.md 11-19 · watch/samples/</p>
+</section>
+
+<section class="slide" id="s6" aria-labelledby="t6">
+  <p class="kicker">직접 입력과 운영 화면</p>
+  <h2 id="t6">등록하면 내 목록에, 수집한 것과 이어진다</h2>
+  <div class="grid">
+    <div class="card"><h3>직접 입력</h3><p>저장소 주소나 설치 목록을 붙여 넣어 쓰는 기술을 등록한다. 저장되고 새로고침해도 남는다.</p></div>
+    <div class="card"><h3>외부 자료와 연결</h3><p>등록한 기술과 수집한 기술이 같은 키로 이어져, 변경이 내 목록·알림에 나타난다.</p></div>
+    <div class="card"><h3>대시보드·관리자</h3><p>내 기술 수 · 변경 수 · 판단 대기·완료 · 최근 변경. 관리자: 회원별 등록, 수집 자료, 알림 처리, 수집 오류.</p></div>
+    <div class="card"><h3>권한</h3><p>내 데이터는 나만. 화면뿐 아니라 서버와 DB(RLS)에서도 막는다.</p></div>
+  </div>
+  <div class="todo">화면 캡처 4장(등록, 내 기술 목록, 대시보드, 관리자). 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
+  <p class="src"><b>출처:</b> docs/prd.md · docs/ia.md · supabase/tests/rls_m0·m1.sql</p>
+</section>
+
+<section class="slide" id="s7" aria-labelledby="t7">
+  <p class="kicker">사건과 대응</p>
+  <h2 id="t7">알림은 두 종류, 조치는 사람이 판단한 뒤에만</h2>
+  <div class="grid">
+    <div class="card"><h3 class="bad">보안 경고</h3><p>쓰는 기술의 등급이 <b>위험</b>이 되면 알림. 이전 값 → 현재 값, 쉬운 이유, 근거 링크.</p></div>
+    <div class="card"><h3 class="green">적용 기회</h3><p>같은 역할의 새 기술이 나왔고 조건을 모두 만족할 때만(확정된 같은 역할·등록 이후·위험 아님).</p></div>
+    <div class="card"><h3>판단 → 기록</h3><p><b>적용 후보</b>(설치 프롬프트에 기본 포함) 또는 <b>보류</b>(사유 기록). 판단 전에는 아무것도 바뀌지 않고, 관리자도 건너뛸 수 없다.</p></div>
+  </div>
+  <ul style="margin-top:18px">
+    <li>같은 변경을 다시 읽어도 알림은 두 번 생기지 않는다. 저장이 실패하면 "처리 완료"로 보이지 않는다.</li>
+    <li>대응안 초안은 Claude가 쓰고 <b>참고한 출처를 함께</b> 보여 준다. 출처가 없으면 "찾지 못함".</li>
+  </ul>
+  <div class="todo">Claude 연결(키)이 켜진 뒤 실제 초안 화면을 찍어 넣는다. 지금은 연결 코드가 리뷰 중이고 키는 사람이 넣어야 한다.</div>
+  <p class="src"><b>출처:</b> docs/spec.md SPEC-1·3·4·5 · docs/prd.md PRD-F15 · CLAUDE.md 3절 불변 규칙 1·3·4</p>
+</section>
+
+<section class="slide" id="s8" aria-labelledby="t8">
+  <p class="kicker">시연 (시뮬레이터로)</p>
+  <h2 id="t8">상자가 차례로 켜지는 걸 보여 준다</h2>
+  <ol class="steps">
+    <li>시뮬레이터 버튼으로 가짜 위험 변경 1건을 만든다.</li>
+    <li><b>흐름 화면</b>에서 상자가 차례로 켜진다 — 미리 그린 그림이 아니라 실제 실행 기록(<code>runs</code>·<code>run_steps</code>)에서 그린다.</li>
+    <li>알림 상세: 이전 → 현재 값, 출처, 대응안 초안.</li>
+    <li>판단(적용 후보 / 보류)을 저장하면 "조치와 기록" 상자가 켜진다.</li>
+    <li><b>일부러 실패</b>시킨다(실패 시연 5가지 중 하나): 빨간 상자와 오류 기록.</li>
+    <li>비슷한 지난 판단을 찾아 보여 준다.</li>
+  </ol>
+  <div class="todo">리허설로 순서와 시간을 재고, 발표 전에 시뮬레이터 줄을 지운다(가짜 줄만 지우기). 인터넷이 끊길 때를 대비해 시연 화면 녹화도 챙긴다.</div>
+  <p class="src"><b>출처:</b> docs/flow.md · app/admin/simulator · app/admin/demo</p>
+</section>
+
+<section class="slide" id="s9" aria-labelledby="t9">
+  <p class="kicker">확인</p>
+  <h2 id="t9">정답 사례로 채점하고, 합친 뒤 오류를 잡는다</h2>
+  <div class="grid">
+    <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> (11-18 채점). 등급은 8/12가 맞았고, 다른 4건은 최신 버전 사례로 실제 등급이 "찾지 못함"이었으며 사건 판정은 맞았다.</p></div>
+    <div class="card"><p class="num green">701<span class="muted" style="font-size:.5em"> / 702</span></p><h3>자동 시험 통과 (11-19, todo 1)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
+    <div class="card"><h3>QA 표 (11-19 점검)</h3><p>Claude QA: Pass 26 · Fail 0 · No Run 18<br>화면 QA: Pass 13 · Fail 1 · No Run 13</p><p class="muted">No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
+  </div>
+  <ul style="margin-top:18px">
+    <li><b>합친 뒤 잡은 오류</b> (docs/debug-note.md): 정기 실행 첫날이 안 돈 것(<code>CRON_SECRET</code>), OSV 404를 "취약점 없음"으로 읽던 것(→ 수집 오류).</li>
+  </ul>
+  <p class="src"><b>출처:</b> eval/result.md · docs/qa.md · docs/qa-c.md · docs/debug-note.md · npm test (main)</p>
+</section>
+
+<section class="slide" id="s10" aria-labelledby="t10">
+  <p class="kicker">커넥터</p>
+  <h2 id="t10">실제 일에 쓴 서비스 4개</h2>
+  <table>
+    <tr><th>서비스</th><th>실제로 한 일</th><th>앱 실행에도?</th></tr>
+    <tr><td>Supabase</td><td>DB 구조·줄 수 조회, 마이그레이션 적용, 실제 DB 시험의 전후 확인</td><td>예(서버 키 코드)</td></tr>
+    <tr><td>Vercel</td><td>배포 상태, 환경변수 <b>이름</b> 확인(값은 안 읽음)</td><td>예(배포)</td></tr>
+    <tr><td>abbsbook</td><td>단계마다 진행 기록(화면 + 메모)</td><td>아니오</td></tr>
+    <tr><td>Slack</td><td>담당 팀원에게 발견한 문제 5건 전달(사용자 지시·초안 확인 뒤)</td><td>아니오</td></tr>
+  </table>
+  <p class="muted" style="margin-top:14px">외부를 바꾸는 일(알림 보내기·일정 만들기)은 대상과 내용을 확인한 뒤에만, 토큰은 기록에 적지 않는다.</p>
+  <p class="src"><b>출처:</b> docs/connectors.md</p>
+</section>
+
+<section class="slide" id="s11" aria-labelledby="t11">
+  <p class="kicker">위키·챗봇</p>
+  <h2 id="t11">쪽마다 출처가 달린 위키와, 그 위에서 답하는 챗봇</h2>
+  <p class="lead">관리자·팀원 전용. 서버가 위키에서 관련 쪽을 찾아 그 쪽만 Claude에 주고, 없으면 "위키에 없습니다". 위키 글이 지시처럼 보여도 따르지 않는다.</p>
+  <div class="todo">아직 만들지 않았다(조각 P-26, 차세일, 11-20). 만든 뒤 채울 것: 연결 지도(요구·문서·PR이 이어진 표) · 출처와 함께 답하는 화면 · <b>틀린 답 하나와 고친 방법</b> · 질문 5개 정답표 결과.</div>
+  <p class="src"><b>출처:</b> docs/plan.md P-26 · CLAUDE.md 4절</p>
+</section>
+
+<section class="slide" id="s12" aria-labelledby="t12">
+  <p class="kicker">서브에이전트</p>
+  <h2 id="t12">검토는 만든 쪽과 나눠서, 결과는 코드로 확인한 뒤에만 반영</h2>
+  <div class="grid">
+    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 43건 기록(11-19 점검 기준, docs/agents.md).</p></div>
+    <div class="card"><h3 class="warn">잘 안 된 점 하나</h3><p>검토가 "비슷한 도우미 복사가 세 번째"라고 했는데 코드로 보니 <b>두 번째</b>였다. 그대로 믿고 합쳤으면 쓸데없는 변경이 됐다. → 검토 결과도 확인 뒤 반영.</p></div>
+  </div>
+  <p class="src"><b>출처:</b> docs/agents.md (2026-11-19 P-9b 2차 검토 행)</p>
+</section>
+
+<section class="slide" id="s13" aria-labelledby="t13">
+  <p class="kicker">하네스</p>
+  <h2 id="t13">같은 규칙과 스킬로 셋이 일한다</h2>
+  <div class="grid">
+    <div class="card"><h3>팀 규칙 (CLAUDE.md)</h3><p>제품 불변 규칙 6개를 코드 변경마다 시험으로 확인, 기록 루틴(intent·worklog·ADR), 커밋·푸시·배포는 묻고 한다.</p></div>
+    <div class="card"><h3>스킬</h3><p><b>stage-check</b>: 안내서 요건 대비 산출물을 표로 점검(고치지 않음). <b>abbs-log</b>: 단계마다 화면과 함께 기록.</p></div>
+    <div class="card"><h3>개선 사례</h3><p>기록 문서가 매번 충돌 → 합치는 규칙(ADR 0017)을 거쳐 <b>자동으로 main을 합치는 Action</b>(#106)으로 고침.</p></div>
+  </div>
+  <div class="todo">"QA 실패 → 규칙·스킬 반영 → 다음 변경에서 재검사" 한 사례를 실제 실행 결과와 함께 고른다(지금 qa.md에는 이 연결이 적혀 있지 않다).</div>
+  <p class="src"><b>출처:</b> CLAUDE.md · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main</p>
+</section>
+
+<section class="slide" id="s14" aria-labelledby="t14">
+  <p class="kicker">팀원별 기여</p>
+  <h2 id="t14">PR 106개, 세 사람 모두 PR과 리뷰</h2>
+  <table>
+    <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>한 리뷰</th><th>GitHub에 안 남는 일</th></tr>
+    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">72</td><td class="num" style="font-size:28px">26</td><td class="warn">▢</td></tr>
+    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">19</td><td class="num" style="font-size:28px">20</td><td class="warn">▢</td></tr>
+    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">15</td><td class="num" style="font-size:28px">47</td><td class="warn">▢</td></tr>
+  </table>
+  <div class="todo">대표 PR·리뷰 번호와, 인터뷰·시나리오·도운 일처럼 GitHub에 안 남는 일을 각자 쓴다. 이름과 아이디가 맞는지도 확인한다.</div>
+  <p class="src"><b>출처:</b> gh pr list (11-19 집계, 작성자·리뷰어 아이디 기준) · docs/plan.md 영역 표</p>
+</section>
+
+<section class="slide" id="s15" aria-labelledby="t15">
+  <p class="kicker">다음에 해 볼 것</p>
+  <h2 id="t15">지금은 읽기만. 다음은 더 믿을 근거와 더 쉬운 판단</h2>
+  <ul class="lead">
+    <li>마지막 활동을 푸시 말고 <b>릴리스</b>로(봇이 푸시하는 죽은 저장소를 걸러냄)</li>
+    <li>상태를 정한 출처별로 따로 저장해 계산(지금은 한 칸이라 둘이 같은 판단을 해도 구분 못 함)</li>
+    <li>적용 시나리오(사용자당 하루 5번)와 위키 챗봇</li>
+    <li>기술 지도: 근거가 약해 작게 시작했고, 사용자가 생기면 다시 본다</li>
+    <li>사용기·"도움이 됐어요"·추천(코드로, Claude 없이)</li>
+  </ul>
+  <p class="src"><b>출처:</b> docs/intent.md 열린 질문 · docs/adr/0021 알려진 한계 · docs/plan.md</p>
+</section>
+
+</main>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var counter = document.getElementById("counter");
+  var cur = 0;
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function show(i) { counter.textContent = (i + 1) + " / " + slides.length; }
+  function go(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides[cur].scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    show(cur);
+    try { history.replaceState(null, "", "#" + (cur + 1)); } catch (e) { /* 파일로 열면 막힐 수 있다 */ }
+  }
+  if ("IntersectionObserver" in window) {
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { cur = slides.indexOf(e.target); show(cur); } });
+    }, { threshold: 0.6 });
+    slides.forEach(function (s) { seen.observe(s); });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var key = e.key;
+    if (key === "ArrowRight" || key === "ArrowDown" || key === "PageDown" || key === " ") { e.preventDefault(); go(cur + 1); }
+    else if (key === "ArrowLeft" || key === "ArrowUp" || key === "PageUp") { e.preventDefault(); go(cur - 1); }
+    else if (key === "Home") { e.preventDefault(); go(0); }
+    else if (key === "End") { e.preventDefault(); go(slides.length - 1); }
+  });
+  var n = parseInt((location.hash || "").slice(1), 10);
+  if (n >= 1 && n <= slides.length) go(n - 1); else show(0);
+})();
+</script>
+</body>
+</html>

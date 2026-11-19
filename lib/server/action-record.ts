@@ -12,11 +12,15 @@ export type ActionRecordResult = { recorded: true; runId: string } | { recorded:
 type Row = Record<string, any>;
 const one = (raw: Row | Row[] | null | undefined): Row | null => (Array.isArray(raw) ? raw[0] ?? null : raw ?? null);
 
-/** 알림이 생긴 실행 id. 수집 자료가 없는 변경(예: 처음 읽기 일부)이면 null. */
+/**
+ * 알림이 생긴 실행 id. 알림 줄의 run_id(읽은 본인의 실행)를 먼저 본다. 없으면(옛 알림·시뮬레이터) 변경 → 수집 자료 경로로, 그것도 없으면 null.
+ * 변경 경로는 공유 변경이면 다른 사람의 실행을 가리킬 수 있어서 run_id가 우선이다(불변 5).
+ */
 async function runOfAlert(db: SupabaseClient, alertId: string): Promise<string | null> {
-  const { data, error } = await db.from("alerts").select("id, changes(observation_id, observations(run_id))").eq("id", alertId).maybeSingle();
+  const { data, error } = await db.from("alerts").select("id, run_id, changes(observation_id, observations(run_id))").eq("id", alertId).maybeSingle();
   if (error) throw new Error(`알림의 실행을 찾지 못함: ${error.message}`);
-  const runId = one(one(one(data)?.changes)?.observations)?.run_id;
+  const alert = one(data);
+  const runId = alert?.run_id ?? one(one(alert?.changes)?.observations)?.run_id;
   return typeof runId === "string" ? runId : null;
 }
 

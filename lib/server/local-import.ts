@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { npmKey, pypiKey } from "../domain/tech-key.ts";
 import { parseImportLines, type ParseResult } from "../install/parse-import-lines.ts";
 import type { InstallItem } from "../install/types.ts";
+import { logIfError } from "./log-failure.ts";
 
 export const LOCAL_PROJECT_NAME = "내 컴퓨터(프로젝트 밖)";
 
@@ -40,7 +41,7 @@ export function planRows(items: InstallItem[], techIds: Map<string, string>, exi
   return { rows, alreadyThere };
 }
 
-async function localProjectId(db: SupabaseClient, userId: string): Promise<string> {
+export async function localProjectId(db: SupabaseClient, userId: string): Promise<string> {
   const found = await db.from("projects").select("id").eq("owner_id", userId).eq("kind", "local").maybeSingle();
   if (found.error) throw new Error(`프로젝트 밖 칸을 읽지 못했어요: ${found.error.message}`);
   if (found.data) return found.data.id as string;
@@ -73,7 +74,7 @@ export async function saveLocalImport(db: SupabaseClient, userId: string, text: 
       if (error) throw new Error(`저장하지 못했어요(아무것도 바뀌지 않음): ${error.message}`);
     }
     // 누가·언제 넣었는지 남긴다(PRD-F33). 이 기록이 실패해도 저장한 목록은 그대로다
-    await db.from("exports").insert({ user_id: userId, kind: "local_import", tech_count: rows.length, imported_lines: parsed.items.length, rejected_lines: parsed.skipped.length + parsed.secretLines.length });
+    logIfError("가져오기 기록(exports)을 남기지 못함", await db.from("exports").insert({ user_id: userId, kind: "local_import", tech_count: rows.length, imported_lines: parsed.items.length, rejected_lines: parsed.skipped.length + parsed.secretLines.length }));
     return { ok: true, saved: rows.length, alreadyThere, ...base };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e), ...base };

@@ -9,7 +9,15 @@ export function readSupabasePublicConfig(env: Env): SupabasePublicConfig | null 
   const url = env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return null;
-  return { url, anonKey };
+  // 주소는 프로젝트 주소(origin)만 쓴다. `…supabase.co/rest/v1`처럼 경로를 붙여 넣으면 클라이언트가 /rest/v1·/auth/v1을 또 붙여
+  // 로그인(/rest/v1/auth/v1/authorize → 401)과 조회가 깨진다(debug-note 11-18·11-19, 두 번 일어남). 주소가 아니면 연결 전으로 본다.
+  let origin: string;
+  try {
+    origin = new URL(url.trim()).origin;
+  } catch {
+    return null;
+  }
+  return { url: origin, anonKey };
 }
 
 /** 서버 전용 서비스 키. RLS를 건너뛰므로 브라우저 코드·판단 저장에는 쓰지 않는다. */
