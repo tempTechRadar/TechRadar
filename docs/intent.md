@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-18c-classify-missing-column · 2026-11-19 · 마이그레이션 전 DB에서 분류 확인이 깨지지 않게 (대비책, 영역 C, 차세일)
+- 브랜치: `fix/P-18c-classify-missing-column` (main `dc01bbc`). **김영식 님이 운영에 P-18c 마이그레이션을 적용하면 버린다**
+- 출처: 운영 `/admin/classify` 오류 "column technologies.category_set_by does not exist"(11-19, #133 합친 뒤 마이그레이션 적용 전), 제품 불변 2
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | #133의 `readClassify`가 새 칸(`category_set_by`·`category_set_at`)을 읽는데 운영 DB에 마이그레이션이 아직 없어 분류 확인 탭 전체가 "불러오지 못했어요"가 됐다 |
+| 기대 결과 | "관리자가 정한 갈래" 조회만 칼럼 없음(42703 또는 "column … does not exist")이면 null로 두고, 화면은 갈래 정하기만 "DB 준비 중(마이그레이션 적용 대기)" 꺼진 자리로. 갈래 없는 기술·같은 역할·규칙·바꾼 기록은 그대로. 다른 오류는 지금처럼 던진다(불변 2) |
+| 영향 범위 | `lib/server/admin-queries.ts`(`isMissingColumn`, `readCategorized`), 새 `lib/server/admin-queries.test.ts`, `app/admin/classify/page.tsx`. DB 변경 없음 |
+| 제약 | 표가 없는 오류(42P01)·권한 오류는 대비책 대상이 아니다(숨기지 않음) |
+| 열린 질문 | 영식 님 적용이 먼저 끝나면 이 PR은 올리지 않는다 |
+
+**결과:** 시험 5개를 먼저 써서 실패를 확인한 뒤 고쳤다(칼럼 없음 코드·메시지, 다른 오류는 던짐, 정상 목록, 판별 함수).
+
+---
+
 ## I-P-26-wiki-chat-facts · 2026-11-19 · 위키의 낡은 챗봇 코드 사실 보정 (영역 C, 차세일)
 - 브랜치: `docs/P-26-wiki-chat-facts` (main `da4fdb0`)
 - 출처: 운영 챗봇 Q5 답(11-19 14:39, 정답표 5/5 재확인), PR #125·#131, CLAUDE.md 4절, `lib/server/chat.ts`, `lib/ai/decide-ai-call.ts`
