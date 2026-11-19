@@ -60,7 +60,7 @@
 </style>
 </head>
 <body>
-<span class="draft">초안 · 2026-11-19 기준</span>
+<span class="draft">초안 · 2026-11-19 저녁 기준</span>
 <span id="counter" aria-hidden="true">1 / 15</span>
 
 <main id="deck">
@@ -158,8 +158,9 @@
     <li>같은 변경을 다시 읽어도 알림은 두 번 생기지 않는다. 저장이 실패하면 "처리 완료"로 보이지 않는다.</li>
     <li>대응안 초안은 Claude가 쓰고 <b>참고한 출처를 함께</b> 보여 준다. 출처가 없으면 "찾지 못함".</li>
   </ul>
-  <div class="todo">Claude 연결(키)이 켜진 뒤 실제 초안 화면을 찍어 넣는다. 지금은 연결 코드가 리뷰 중이고 키는 사람이 넣어야 한다.</div>
-  <p class="src"><b>출처:</b> docs/spec.md SPEC-1·3·4·5 · docs/prd.md PRD-F15 · CLAUDE.md 3절 불변 규칙 1·3·4</p>
+  <p class="muted" style="margin-top:14px">Claude 연결은 켜졌다: 키는 운영(Production)에만 있고, 운영 시뮬레이터로 실제 호출 1번이 성공했다(초안 584자, <code>ai_calls</code> succeeded, 11-19).</p>
+  <div class="todo">실제 초안 화면 캡처 1장(알림 상세의 대응안 초안과 참고한 출처). 사람이 운영에서 찍는다.</div>
+  <p class="src"><b>출처:</b> docs/spec.md SPEC-1·3·4·5 · docs/prd.md PRD-F15 · CLAUDE.md 3절 불변 규칙 1·3·4 · docs/connectors.md 11-19 Vercel·Anthropic API·Supabase 행 · docs/qa.md P-13 행</p>
 </section>
 
 <section class="slide" id="s8" aria-labelledby="t8">
@@ -182,13 +183,18 @@
   <h2 id="t9">정답 사례로 채점하고, 합친 뒤 오류를 잡는다</h2>
   <div class="grid">
     <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> (11-18 채점). 등급은 8/12가 맞았고, 다른 4건은 최신 버전 사례로 실제 등급이 "찾지 못함"이었으며 사건 판정은 맞았다.</p></div>
-    <div class="card"><p class="num green">701<span class="muted" style="font-size:.5em"> / 702</span></p><h3>자동 시험 통과 (11-19, todo 1)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
+    <div class="card"><p class="num green">970<span class="muted" style="font-size:.5em"> / 971</span></p><h3>자동 시험 통과 (11-19 저녁 main 4308b58, todo 1)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
     <div class="card"><h3>QA 표 (11-19 점검)</h3><p>Claude QA: Pass 26 · Fail 0 · No Run 18<br>화면 QA: Pass 13 · Fail 1 · No Run 13</p><p class="muted">No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
   </div>
   <ul style="margin-top:18px">
-    <li><b>합친 뒤 잡은 오류</b> (docs/debug-note.md): 정기 실행 첫날이 안 돈 것(<code>CRON_SECRET</code>), OSV 404를 "취약점 없음"으로 읽던 것(→ 수집 오류).</li>
+    <li><b>합친 뒤 잡은 오류</b> (docs/debug-note.md에서 3건):
+      <ul>
+        <li><b>#133 → #135:</b> 새 칸을 만드는 마이그레이션보다 코드가 먼저 운영에 올라가 관리자 분류 탭 전체가 조회 실패. 칸이 없을 때만 그 부분을 끄게 고치고 마이그레이션을 적용. 장애 약 18분(14:43 → 15:01).</li>
+        <li><b>#153:</b> 운영에서 "적용 시나리오 만들기"가 늘 실패(<code>permission denied for table scenarios</code>). 코드가 DB가 열어 주지 않은 칸까지 보냄. 가짜 DB 시험은 칸 권한을 몰라 통과했다 → 권한과 보내는 칸을 맞대는 시험 추가.</li>
+        <li><b>설정:</b> 정기 실행 첫날 안 돎(<code>CRON_SECRET</code> 없음) → 사람이 넣고 다시 배포.</li>
+      </ul></li>
   </ul>
-  <p class="src"><b>출처:</b> eval/result.md · docs/qa.md · docs/qa-c.md · docs/debug-note.md · npm test (main)</p>
+  <p class="src"><b>출처:</b> eval/result.md · docs/qa.md · docs/qa-c.md · docs/debug-note.md 11-19 행(#133·#135, #153, CRON_SECRET) · npm test (main)</p>
 </section>
 
 <section class="slide" id="s10" aria-labelledby="t10">
@@ -209,15 +215,21 @@
   <p class="kicker">위키·챗봇</p>
   <h2 id="t11">쪽마다 출처가 달린 위키와, 그 위에서 답하는 챗봇</h2>
   <p class="lead">관리자·팀원 전용. 서버가 위키에서 관련 쪽을 찾아 그 쪽만 Claude에 주고, 없으면 "위키에 없습니다". 위키 글이 지시처럼 보여도 따르지 않는다.</p>
-  <div class="todo">아직 만들지 않았다(조각 P-26, 차세일, 11-20). 만든 뒤 채울 것: 연결 지도(요구·문서·PR이 이어진 표) · 출처와 함께 답하는 화면 · <b>틀린 답 하나와 고친 방법</b> · 질문 5개 정답표 결과.</div>
-  <p class="src"><b>출처:</b> docs/plan.md P-26 · CLAUDE.md 4절</p>
+  <div class="grid">
+    <div class="card"><h3>위키 18쪽 (#126)</h3><p>주제 15쪽 + <code>index</code>·<code>log</code>·<code>연결지도</code>. 사실마다 출처, 문서끼리 다른 곳은 한쪽으로 정리하지 않고 양쪽을 적음.</p></div>
+    <div class="card"><h3>챗봇 (#125)</h3><p>관리자 탭 <code>/admin/chat</code>. 위키 쪽만 근거로 답하고 출처 쪽을 붙인다.</p></div>
+    <div class="card"><p class="num ok">4 / 5</p><h3>질문 5개 정답표 (운영, 11-19)</h3><p>답 있음 3 · 없음 1 · 문서끼리 어긋남 1. Q1–Q4 맞음(없는 질문엔 "위키에 없습니다", 지어내지 않음).</p></div>
+    <div class="card"><h3 class="warn">틀린 답 하나와 고친 방법</h3><p><b>Q5</b>(한도를 어느 표로 세나, 문서끼리 다름)에 "위키에 없습니다". 맞는 쪽은 찾았는데 쪽마다 <b>앞 2000자만</b> 넘겨 충돌 문단이 잘렸다. → 질문 낱말이 든 줄을 골라 넘기게 고침(#131, 넘기는 양은 그대로). 실제 위키로 Q1–Q5를 확인하는 시험 6개, 고치기 전 Q4·Q5 실패 확인.</p></div>
+  </div>
+  <div class="todo">화면 캡처 2장(연결 지도, 출처와 함께 답하는 화면). 그리고 #131 뒤 운영에서 Q5를 다시 물은 결과(아직 확인하지 못함).</div>
+  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 · docs/qa-c.md H14 · wiki/ · PR #125·#126·#131 설명 · CLAUDE.md 4절</p>
 </section>
 
 <section class="slide" id="s12" aria-labelledby="t12">
   <p class="kicker">서브에이전트</p>
   <h2 id="t12">검토는 만든 쪽과 나눠서, 결과는 코드로 확인한 뒤에만 반영</h2>
   <div class="grid">
-    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 43건 기록(11-19 점검 기준, docs/agents.md).</p></div>
+    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 55건 기록(11-19 main 기준, docs/agents.md 표의 행 수).</p></div>
     <div class="card"><h3 class="warn">잘 안 된 점 하나</h3><p>검토가 "비슷한 도우미 복사가 세 번째"라고 했는데 코드로 보니 <b>두 번째</b>였다. 그대로 믿고 합쳤으면 쓸데없는 변경이 됐다. → 검토 결과도 확인 뒤 반영.</p></div>
   </div>
   <p class="src"><b>출처:</b> docs/agents.md (2026-11-19 P-9b 2차 검토 행)</p>
@@ -231,21 +243,32 @@
     <div class="card"><h3>스킬</h3><p><b>stage-check</b>: 안내서 요건 대비 산출물을 표로 점검(고치지 않음). <b>abbs-log</b>: 단계마다 화면과 함께 기록.</p></div>
     <div class="card"><h3>개선 사례</h3><p>기록 문서가 매번 충돌 → 합치는 규칙(ADR 0017)을 거쳐 <b>자동으로 main을 합치는 Action</b>(#106)으로 고침.</p></div>
   </div>
-  <div class="todo">"QA 실패 → 규칙·스킬 반영 → 다음 변경에서 재검사" 한 사례를 실제 실행 결과와 함께 고른다(지금 qa.md에는 이 연결이 적혀 있지 않다).</div>
-  <p class="src"><b>출처:</b> CLAUDE.md · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main</p>
+  <h3 style="margin-top:20px">운영 장애 → 규칙 → 도구 (11-19 하루)</h3>
+  <ol class="steps">
+    <li><b>장애 (#133):</b> 마이그레이션보다 코드가 먼저 운영에 올라가 관리자 분류 탭이 조회 실패, 약 18분.</li>
+    <li><b>고침 (#135):</b> 새 칸이 없을 때만 그 부분을 끄고 안내, 다른 오류는 그대로 조회 실패(불변 2).</li>
+    <li><b>규칙 (#138):</b> CLAUDE.md 10절에 "새 칸·표 마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게".</li>
+    <li><b>도구 (#156):</b> <code>npm run precheck</code>가 브랜치의 마이그레이션 파일을 찾아 이 규칙을 알리고, 합친 뒤 도는 <code>docs/운영-점검표.md</code>에 이 장애를 점검 줄(S2)로.</li>
+  </ol>
+  <div class="todo">"다음 변경에서 재검사" 결과: 규칙이 생긴 뒤 마이그레이션이 든 PR이 아직 없어(11-19 main 기준) precheck가 실제로 알린 기록이 없다. 다음 마이그레이션 PR에서 확인해 채운다.</div>
+  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · git log supabase/migrations</p>
 </section>
 
 <section class="slide" id="s14" aria-labelledby="t14">
   <p class="kicker">팀원별 기여</p>
-  <h2 id="t14">PR 106개, 세 사람 모두 PR과 리뷰</h2>
+  <h2 id="t14">합친 PR 159개, 세 사람 모두 PR과 리뷰</h2>
+  <!-- 집계 규칙(2026-11-19, #161까지): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 300 --json number,author,reviews`.
+       합친 PR = 작성자 아이디별 개수. 리뷰한 PR = 남의 PR에 리뷰를 1번 이상 남긴 PR 수(한 PR에 여러 번 남겨도 1, 본인 PR에 남긴 것은 뺌).
+       리뷰 기록 147번 중 146번이 승인, 1번이 의견(차세일). 초기 #1–#24는 남의 리뷰 기록이 없다. -->
   <table>
-    <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>한 리뷰</th><th>GitHub에 안 남는 일</th></tr>
-    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">72</td><td class="num" style="font-size:28px">26</td><td class="warn">▢</td></tr>
-    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">19</td><td class="num" style="font-size:28px">20</td><td class="warn">▢</td></tr>
-    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">15</td><td class="num" style="font-size:28px">47</td><td class="warn">▢</td></tr>
+    <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>리뷰한 PR</th><th>GitHub에 안 남는 일</th></tr>
+    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">99</td><td class="num" style="font-size:28px">43</td><td class="warn">▢</td></tr>
+    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">35</td><td class="num" style="font-size:28px">21</td><td class="warn">▢</td></tr>
+    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">25</td><td class="num" style="font-size:28px">79</td><td class="warn">▢</td></tr>
   </table>
+  <p class="muted" style="margin-top:10px">리뷰한 PR = 남의 PR에 리뷰를 남긴 PR 수(본인 PR 제외, 한 PR은 1번). 처음 #1–#24는 남의 리뷰 없이 합쳐졌다.</p>
   <div class="todo">대표 PR·리뷰 번호와, 인터뷰·시나리오·도운 일처럼 GitHub에 안 남는 일을 각자 쓴다. 이름과 아이디가 맞는지도 확인한다.</div>
-  <p class="src"><b>출처:</b> gh pr list (11-19 집계, 작성자·리뷰어 아이디 기준) · docs/plan.md 영역 표</p>
+  <p class="src"><b>출처:</b> gh pr list --state merged (11-19 #161까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
 </section>
 
 <section class="slide" id="s15" aria-labelledby="t15">
