@@ -13,13 +13,19 @@
 |---|---|---|---|
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
 | I-supabase-url-origin | 구글 로그인 401 원인(운영 Supabase 주소에 /rest/v1이 붙음)을 기록으로 찾고, `readSupabasePublicConfig`가 주소를 origin으로 정리하게 고침. 시험 2개 | 나(오류 보고) · Claude(기록 조회·원인·수정·시험) | `fix/supabase-url-origin` 브랜치(미커밋) |
+| I-first-real-run | 운영 DB 첫 실제 수집: 점검에서 "운영 DB가 비어 있음"이 나와, 관리자 "지금 한 번 실행"과 같은 `runBatch`·수집기 4개를 스크립트로 한 번 실행(사용자 "우선순위 작업 추천대로 진행"). 64초에 성공, 레지스트리 3,200개를 읽어 얇은 기술 3,166개 저장. 나머지 수집기는 읽을 두꺼운 기술이 없어 0개로 성공. 결과는 `docs/qa.md` 행으로 기록 | 나(요청·승인) · Claude(실행·확인·기록) | `runs.id` `070c6274-…`, `docs/qa.md`, `docs/intent.md` I-first-real-run |
 | I-checklist-sync | 제출물 체크리스트를 실제 숫자로 맞춤: ADR·서브에이전트·오류·QA·PR·intent·커넥터·폴더·정기 실행·DB 칸(main 6754f77에서 다시 셈), 안 된 것은 그대로 둠 | 나(요청) · Claude(숫자 다시 세기·수정) | `docs/checklist-sync` 브랜치(미커밋) |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
+- **레지스트리 전체 한 바퀴는 약 21번이다(I-first-real-run):** 첫 실행이 60초에 32쪽(3,200개)을 읽었다. 전체 66,788개를 이 속도로 나누면 21번 안팎이라 ADR 0019의 ≈33일 추정보다 짧다(실측은 한 번뿐이라 정기 실행에서 다시 본다) — Claude(사용자 승인 뒤 실행)
+- **GitHub·OSV·다운로드 줄이 0개인 것은 오류가 아니다(I-first-real-run):** 두꺼운 기술이 있어야 읽는데 아직 쓰는 사람이 없다. 시연하려면 프로젝트를 등록해야 한다 — 김영식
 
 ### 아직 안 된 것
-- [ ] Vercel `CRON_SECRET`(Production) 넣고 운영 배포 한 번, 다음 06시 뒤 `runs`에 `schedule` 실행 확인 — 김영식(넣기)·Claude(확인)
+- [x] Vercel `CRON_SECRET`(Production) 넣기 — 11-19 환경변수 이름 조회로 확인(`GITHUB_TOKEN`도 Production에 있음), 그 뒤 운영 배포 READY(#106)
+- [ ] 다음 06:00(KST) 뒤 `runs`에 `schedule` 실행 1줄이 생기는지 확인(운영에는 수동 1줄만 있음) — Claude
+- [ ] 시연에서 GitHub·OSV·다운로드 줄이 켜지도록 로그인해 프로젝트 하나 등록(두꺼운 기술이 생겨야 읽음, I-first-real-run 열린 질문 ①) — 김영식
+- [ ] `/admin/flow`에서 첫 실행(`070c6274`)이 칠해지는지 관리자 로그인으로 확인 — 김영식
 - [ ] 구글 OAuth 클라이언트와 Supabase 공급자·Site URL·Redirect URLs(P-12 전) — 김영식
 
 ## 2026-11-18 (수) — 회의 결정, plan, 뼈대, 개발 전 점검
@@ -100,7 +106,7 @@
 - [ ] `plan`·`spec`의 "바뀐 기록" 끝이 겹치는 경우를 `precheck`로는 시험하지 않음 — 팀
 - [ ] 기록을 작업마다 파일 하나로 쪼개기(ADR 0017 "고르지 않은 것" 첫째)는 코드 동결(11-20 21:00) 뒤에 다시 판단 — 팀
 - [ ] 푸시 모으기·`precheck` 규칙을 팀에 공유(PR #68·#71 링크) — 사용자
-- [ ] P-9b GitHub 수집기: 서버 토큰을 사람이 `.env`와 Vercel 환경변수에 `GITHUB_TOKEN`으로 넣는다(값은 채팅·문서에 쓰지 말 것). 안 넣고 합치면 매일 `fetch_github`가 수집 오류로 보이고 3번 이어지면 관리자 강조가 켜진다 — 사람
+- [x] (11-19 확인: `.env.local`·Vercel Production 둘 다 넣음, 인증 호출 통과) P-9b GitHub 수집기: 서버 토큰을 사람이 `.env`와 Vercel 환경변수에 `GITHUB_TOKEN`으로 넣는다(값은 채팅·문서에 쓰지 말 것). 안 넣고 합치면 매일 `fetch_github`가 수집 오류로 보이고 3번 이어지면 관리자 강조가 켜진다 — 사람
 - [ ] P-9c(PR #96) 레지스트리 수집기가 합쳐지면 `status_by`를 `mcp_registry:<상태>`로 적고 그 표시가 맞을 때만 되돌리게 고친다(ADR 0021, 지금은 레지스트리가 GitHub가 정한 상태를 되돌릴 수 있음) — 김영식
 - [ ] 라이선스 칸의 `none`·`other`를 기술 정보 카드(`tech-detail.tsx`)와 비교 표(`build-comparison.ts`)가 "라이선스 없음"·"알 수 없는 라이선스"로 읽게 고치기 — 황재웅(P-9b 검토에서 나옴)
 - [ ] 레지스트리가 쓴 `repo_url`이 검증 안 된 주소라 다른 저장소의 별·라이선스가 붙을 수 있다: 이름공간과 저장소 소유를 맞춰 볼지 팀이 정하기(`docs/intent.md` I-P-9b-github 열린 질문 ④)
