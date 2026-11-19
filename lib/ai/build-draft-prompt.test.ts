@@ -139,3 +139,10 @@ test("근거가 많아도 보여 주는 만큼의 주소는 모두 프롬프트�
   assert.equal(allowedSources.length, 20); // 모델이 볼 수 있는 주소만 출처로 인정한다
   assert.ok(allowedSources.every((url) => user.includes(url)));
 });
+
+test("시스템 지시는 넘긴 자료에 없는 사실을 쓰지 말라고 하고, 자료 속 지시문은 따르기만 안 하는 게 아니라 글에 언급도 하지 말라고 한다(I-P-13 열린 질문 ⑩)", () => {
+  const { system } = buildDraftPrompt(input);
+
+  assert.match(system, /없는 사실.*쓰지 않/);
+  assert.match(system, /지시.*언급하지/);
+});
