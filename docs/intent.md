@@ -6,6 +6,20 @@
 
 ---
 
+## I-flow-sample-dup-scene · 2026-11-19 · 흐름 샘플 ③ 중복 장면을 flow.md 4절·실제 알림 기록과 맞추기, QA C6 (영역 C, 차세일)
+- 브랜치: `fix/flow-sample-dup-scene` (main `3461b20`)
+- 출처: `docs/qa-c.md` C6(Fail, 낮음), `docs/flow.md` 4절 "중복" 줄과 2절 `save_change`, 알림 단계를 실제로 남기는 곳 `lib/server/alerts.ts`(`recordStep`의 `notify`), 불변 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | QA C6이 Fail로 남아 있다: 11-18 확인 때 샘플 ③은 제목 "③ 중복(변경 저장에서 멈춤)", 단계가 `save_change`에서 끝나 알림 상자가 안 켜졌다. 지금 main을 보니 제목과 `notify` 성공 단계는 `I-P-20-flow-polish`(커밋 `bb0209c`)에서 이미 고쳐졌는데 C6 행만 그대로였다. 다만 샘플의 알림 요약 글("새 알림 0건(이 변경의 알림이 이미 있음)")은 실제 알림 함수가 남기는 글("알림 N건 만듦")과 다르다 |
+| 기대 결과 | 샘플 ③의 `notify` 단계가 실제 기록과 같은 모양(성공, 들어온 수 = 쓰는 사람 수, 나간 수 = 새 알림 0, 요약 "알림 0건 만듦")이고, 다시 어긋나면 시험이 잡는다. C6을 근거와 함께 Pass로 |
+| 영향 범위 | `app/dev/flow-sample/page.tsx`(③ 장면 요약 글과 주석), 새 `lib/flow/flow-sample.test.ts`, `docs/qa-c.md` C6 행·남은 오류, `docs/worklog.md` |
+| 제약 | 개발용 샘플만 고친다. 실제 서버 코드(`lib/server/alerts.ts` 등)는 바꾸지 않는다. 샘플은 개발 서버에서만 열리고 배포에서는 404 |
+| 열린 질문 | 없음 |
+
+**결과:** 샘플 ③의 알림 요약 글을 실제 기록 모양 "알림 0건 만듦"으로 바꾸고, 주석에 실제 기록의 칸 뜻을 적었다. 새 시험 3개(`lib/flow/flow-sample.test.ts`: 제목, `save_change` 뒤 `notify` 성공·새 알림 0건·사람 판단 없음, 요약 글이 `alerts.ts`의 모양과 같음)는 고치기 전 요약 글 시험 1개 실패, 11-18의 옛 샘플(`0ce150c`)에 대 보면 3개 모두 실패, 고친 뒤 3개 통과. `npm test` 968개 중 967 통과·실패 0·할 일 1, `npx tsc --noEmit` 오류 0, `npm run build` 통과(환경변수 없이). QA C6 Pass. **확인하지 못한 것:** 개발 서버를 띄워 화면에서 알림 상자가 초록인지 눈으로 보지는 않았다(칠하는 규칙 `colorize`는 기존 시험이 지킴).
+
 ## I-records-sync-1119 · 2026-11-19 · 낡은 문서 정리와 erd 2차 대조 기록 (김영식)
 - 브랜치: `docs/records-sync-1119` (main `039d90a` 이후). 문서만, 코드·DB 변경 없음
 - 출처: 사용자 "승인"(11-19 점검 뒤 "지금 할 수 있는 건?"의 1·2번), 11-19 `stage-check` 전체 점검(체크리스트와 실제가 다른 곳, erd 팀 대조 ❌, README 🟡), 안내서 3장·8장(erd 실제 DB 대조는 팀이), `docs/qa.md`

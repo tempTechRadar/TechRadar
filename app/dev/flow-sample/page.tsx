@@ -33,11 +33,11 @@ const COUNTED: StepDetail[] = [
 ];
 
 // ③ 중복(docs/flow.md 4절): 시뮬레이터를 같은 시나리오로 두 번째 누른 실행. 변경 저장은 "이미 있는 변경", 알림 함수는 새 알림 0건으로
-// 알림 단계를 성공으로 남긴다(lib/server/alerts.ts). 그래서 알림 상자는 초록, 사람 판단은 켜지지 않는다.
+// 알림 단계를 성공으로 남긴다(lib/server/alerts.ts의 recordStep: 들어온 수=쓰는 사람 수, 나간 수=새 알림 수, 요약 "알림 N건 만듦"). 그래서 알림 상자는 초록, 사람 판단은 켜지지 않는다.
 const DUPLICATE: StepDetail[] = [
   ...ok(...TAIL),
   { step_name: "save_change", status: "succeeded", count_in: 1, count_out: 1, output_summary: "이미 있는 변경(새로 만들지 않음)" },
-  { step_name: "notify", status: "succeeded", count_in: 1, count_out: 0, output_summary: "새 알림 0건(이 변경의 알림이 이미 있음)" },
+  { step_name: "notify", status: "succeeded", count_in: 1, count_out: 0, output_summary: "알림 0건 만듦" },
 ];
 
 const SCENES: { title: string; run: RunRow; steps: StepDetail[]; node?: string }[] = [
