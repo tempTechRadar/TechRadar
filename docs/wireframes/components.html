@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>컴포넌트 견본판</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* 공용 컴포넌트 견본판(무채색, 팀 확인 전). 모든 값은 tokens.css의 토큰만 쓴다. 구현 세션은 이 모양·이름을 그대로 옮긴다 */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--sunken); color: var(--ink); font: var(--fs-body)/var(--lh) var(--font); }
+    :focus-visible { outline: var(--focus); outline-offset: 2px; }
+    header.page { padding: var(--sp-4); background: var(--ink); color: var(--on-ink); }
+    header.page h1 { margin: 0 0 var(--sp-1); font-size: var(--fs-h1); }
+    header.page p { margin: 0; color: #ddd; font-size: var(--fs-sm); max-width: 100ch; }
+    main { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); display: grid; gap: var(--sp-4); }
+    section.spec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-4); display: grid; gap: var(--sp-3); }
+    section.spec > h2 { margin: 0; font-size: var(--fs-h2); }
+    .use { font-size: var(--fs-sm); color: var(--muted); margin: 0; }
+    .demo { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: var(--sp-3); border: 1px dashed var(--line); border-radius: var(--r-md); }
+    .note { font-size: var(--fs-cap); color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
+    th, td { text-align: left; padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    code { font-size: var(--fs-cap); }
+
+    /* ---- 컴포넌트(이 이름 그대로) */
+    .c-btn { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--hit); padding: 0 var(--sp-4); border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .c-btn--primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+    .c-btn--quiet { border-color: transparent; background: transparent; text-decoration: underline; padding: 0 var(--sp-2); }
+    .c-btn--sm { min-height: var(--hit-sm); padding: 0 var(--sp-2); font-size: var(--fs-cap); }
+    .c-btn--icon { width: var(--hit); padding: 0; justify-content: center; }
+    .c-btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+    .c-btn:disabled { color: var(--faint); border-color: var(--line); cursor: not-allowed; }
+    .c-chip { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 30px; padding: 0 var(--sp-3); border: 1px solid var(--ink-2); border-radius: var(--r-pill); background: var(--surface); font-size: var(--fs-sm); }
+    .c-chip button { width: 26px; height: 26px; border: 0; background: none; cursor: pointer; font: inherit; margin-right: -6px; }
+    .c-chip[aria-pressed] { cursor: pointer; font: inherit; font-size: var(--fs-sm); }
+    .c-chip[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+    .c-tag { display: inline-block; padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); color: var(--ink-2); }
+    .c-tag--strong { border-color: var(--ink); color: var(--ink); font-weight: 700; }
+    .c-tag--new { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 800; letter-spacing: .04em; }
+    .c-sec { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-sm); font-weight: 700; }
+    .c-sec i { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #fff; font-style: normal; font-size: 11px; }
+    .c-sec--danger i { background: var(--danger); } .c-sec--caution i { background: var(--caution); }
+    .c-sec--error i { background: var(--surface); color: var(--ink-2); border: 1.5px dashed var(--ink-2); }
+    .c-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); display: grid; gap: var(--sp-1); width: 300px; }
+    .c-pop { box-shadow: var(--shadow-pop); border-color: var(--ink-2); }
+    .c-notice { display: grid; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--ink-2); width: 300px; }
+    .c-notice--empty { border-style: dashed; } .c-notice--fail { border-width: 2px; } .c-notice--partial { border-left: 6px solid var(--ink); }
+    .c-notice strong { font-size: var(--fs-body); } .c-notice span { font-size: var(--fs-sm); color: var(--ink-2); }
+    .c-field { display: grid; gap: var(--sp-1); font-size: var(--fs-sm); }
+    .c-field input, .c-field select, .c-field textarea { min-height: var(--hit); padding: 0 var(--sp-3); border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; background: var(--surface); }
+    .c-tabs { display: flex; gap: var(--sp-1); border-bottom: 1px solid var(--line); }
+    .c-tabs a { padding: var(--sp-2) var(--sp-3); color: var(--muted); text-decoration: none; }
+    .c-tabs a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -3px var(--ink); }
+    .c-toast { padding: var(--sp-2) var(--sp-4); border-radius: var(--r-lg); background: var(--ink); color: var(--on-ink); font-size: var(--fs-sm); }
+    .c-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+    .sw { display: grid; gap: 2px; font-size: var(--fs-cap); width: 92px; }
+    .sw b { height: 36px; border-radius: var(--r-sm); border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <h1>컴포넌트 견본판</h1>
+    <p>무채색, 팀 확인 전. 모든 값은 <code>tokens.css</code>의 토큰이에요. 테마는 토큰 값만 바꿔 입혀요. 구현 세션은 이 이름(<code>c-btn</code>, <code>c-chip</code> …)과 모양을 그대로 옮겨요.</p>
+  </header>
+  <main>
+    <section class="spec"><h2>색 역할 · 상태 · 범주</h2>
+      <p class="use">글자는 늘 먹색 계열. 상태 · 범주 색은 점 · 띠 · 아이콘에만 쓰고, 기호나 글자와 함께 써요(색만으로 뜻을 전하지 않음).</p>
+      <div class="demo" id="swatches"></div>
+    </section>
+
+    <section class="spec"><h2>단추 <code>c-btn</code></h2>
+      <p class="use">높이 44px. 화면마다 진한 단추(주요 동작)는 하나. 작은 단추(32px)는 같은 줄에 큰 대안이 있을 때만. 이름은 실제로 하는 일.</p>
+      <div class="demo"><button class="c-btn c-btn--primary">전체 상세 보기</button><button class="c-btn">지도에서 보기</button><button class="c-btn" aria-pressed="true">관심</button><button class="c-btn" disabled>적용 후보</button><button class="c-btn c-btn--sm">넣기</button><button class="c-btn c-btn--icon" aria-label="닫기">✕</button><button class="c-btn c-btn--quiet">거르기 풀기</button></div>
+      <table><tr><th>모양</th><th>쓰는 곳</th></tr><tr><td>primary</td><td>화면의 주요 동작 하나(판단 저장, 상세 보기, 확정)</td></tr><tr><td>기본</td><td>나머지 동작</td></tr><tr><td>눌린 상태 aria-pressed</td><td>판단 단추·거르기·탭처럼 켜고 끄는 것</td></tr><tr><td>disabled</td><td>못 쓰는 이유를 옆이나 title에 늘 함께(예: 위험한 버전은 적용 후보 불가)</td></tr><tr><td>quiet</td><td>안내 상자 안의 보조 동작</td></tr></table>
+    </section>
+
+    <section class="spec"><h2>칩 · 태그 <code>c-chip</code> <code>c-tag</code></h2>
+      <p class="use">칩 = 누르거나 뺄 수 있는 것(내 분류 이름표, 묶음 값 고르기). 태그 = 읽기만(분야 · 종류 · #하는 일 · 판단 상태). NEW는 진한 태그 하나로만.</p>
+      <div class="demo"><span class="c-chip">시연용<button aria-label="시연용 빼기">✕</button></span><button class="c-chip" aria-pressed="true">#데이터베이스 3</button><button class="c-chip" aria-pressed="false">#프론트엔드 3</button>
+        <span class="c-tag">MCP</span><span class="c-tag">코드 작성</span><span class="c-tag">#git</span><span class="c-tag c-tag--strong">관심</span><span class="c-tag c-tag--new">NEW</span></div>
+    </section>
+
+    <section class="spec"><h2>보안 표시 <code>c-sec</code></h2>
+      <p class="use">위험 · 주의는 원 안의 기호 + 글자. 수집 오류는 점선(색이 아니라 모양). 지도의 점에서는 같은 기호를 점 옆 작은 표로, 위험은 깜박이는 고리(움직임 줄이기면 멈춤).</p>
+      <div class="demo"><span class="c-sec c-sec--danger"><i>✕</i>위험</span><span class="c-sec c-sec--caution"><i>!</i>주의</span><span class="c-sec c-sec--error"><i>?</i>수집 오류</span><span class="c-tag c-tag--new">NEW</span></div>
+    </section>
+
+    <section class="spec"><h2>카드 · 떠 있는 카드 <code>c-card</code></h2>
+      <p class="use">카드 = 목록의 한 항목. 떠 있는 카드(<code>c-pop</code>) = 올렸을 때 속성 카드·팝업, 그림자는 떠 있는 것에만.</p>
+      <div class="demo"><div class="c-card"><b>sample-mcp-3</b><span class="note">백엔드·데이터 › API › MCP</span><span>원격 MCP 서버를 프록시로 이어 줘요.</span><div><span class="c-tag">#백엔드</span> <span class="c-tag c-tag--new">NEW</span></div></div>
+        <div class="c-card c-pop"><b>mcp-remote</b><span class="c-sec c-sec--danger"><i>✕</i>위험 · GHSA-6xpm… 0.1.16에서 고침</span><span class="note">업데이트 5일 전(릴리스) · 우리가 마지막으로 확인: 11월 19일</span></div></div>
+    </section>
+
+    <section class="spec"><h2>안내 상자 <code>c-notice</code></h2>
+      <p class="use">15절 상태 규칙의 모양. 빈 상태 = 점선, 읽지 못함 · 저장 실패 = 굵은 테두리(role="alert"), 일부만 읽음 = 왼쪽 굵은 띠.</p>
+      <div class="demo"><div class="c-notice c-notice--empty"><strong>아직 판단한 기술이 없어요</strong><span>지도에서 관심을 남기면 여기에 모여요.</span><div><button class="c-btn c-btn--primary">지도로 가기</button></div></div>
+        <div class="c-notice c-notice--fail" role="alert"><strong>지도를 읽지 못했어요</strong><span>기술이 없다는 뜻이 아니에요.</span><div><button class="c-btn c-btn--primary">다시 읽기</button></div></div>
+        <div class="c-notice c-notice--partial"><strong>기술 3개는 확인에 실패했어요</strong><span>점선 고리로 표시했어요.</span></div></div>
+    </section>
+
+    <section class="spec"><h2>입력 · 탭 · 알림 줄 <code>c-field</code> <code>c-tabs</code> <code>c-toast</code></h2>
+      <p class="use">입력은 이름표를 늘 위에(자리 표시 글로 대신하지 않음). 탭은 아래 굵은 줄. 알림 줄은 저장 결과를 한 줄로, 3.5초 뒤 사라지고 화면 읽기 프로그램에 읽힘(role="status").</p>
+      <div class="demo"><label class="c-field">보류 이유(5자 이상)<input value="다음 달에 다시 보기"></label><label class="c-field">묶기 1차<select><option>하는 일</option></select></label>
+        <nav class="c-tabs" aria-label="보기"><a href="#" aria-current="page">칸반</a><a href="#">목록</a></nav>
+        <div class="c-toast" role="status">판단을 저장했어요: 관심. 설치하거나 바꾼 것은 없어요.</div></div>
+    </section>
+
+    <section class="spec"><h2>지금 앱과 다른 곳 (구현 세션이 맞출 것)</h2>
+      <table><tr><th>지금</th><th>맞출 모양</th></tr>
+        <tr><td>알림·대시보드는 <code>.alerts .btn</code>(검정 주요 단추), 지도는 따로, 보기 화면은 인라인 스타일 단추</td><td><code>c-btn</code> 하나로</td></tr>
+        <tr><td>지도 등급 색이 알림 화면 색(<code>--color-danger #b91c1c</code>)과 다름</td><td><code>--danger #C0262D</code> 하나로(색약 검사한 값)</td></tr>
+        <tr><td>NEW·판단 상태·종류가 화면마다 다른 꼴</td><td>읽기만 = <code>c-tag</code>, 누르는 것 = <code>c-chip</code></td></tr>
+        <tr><td>빈 상태·실패 문구가 화면마다 다름</td><td><code>c-notice</code> 세 모양 + 15절 문구 규칙</td></tr></table>
+    </section>
+  </main>
+  <script>
+    // 견본 색: tokens.css의 값을 그대로 읽어 보여 준다(값을 두 곳에 적지 않게)
+    const roles = [["--ink", "먹(글자)"], ["--ink-2", "보조"], ["--muted", "설명"], ["--line", "선"], ["--sunken", "바탕"], ["--danger", "위험"], ["--caution", "주의"], ["--pass", "통과"], ["--unknown", "모름·분류 전"],
+      ...Array.from({ length: 8 }, (_, i) => [`--cat-${i + 1}`, `범주 ${i + 1}`])];
+    const css = getComputedStyle(document.documentElement);
+    document.getElementById("swatches").innerHTML = roles.map(([v, n]) => `<div class="sw"><b style="background:var(${v})"></b>${n}<code>${v} ${css.getPropertyValue(v).trim()}</code></div>`).join("");
+  </script>
+</body>
+</html>
