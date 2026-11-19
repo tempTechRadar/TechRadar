@@ -19,6 +19,23 @@
 | 열린 질문 | 금요일 저녁 집계 때 다시 센다. 14장 ▢(GitHub에 안 남는 일)는 각자 채운다 |
 
 **결과:** 2026-11-19 17:29에 `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`로 센 합친 PR 169개(#171까지, 닫힌 #116·#160 제외). 김영식 99·52, 황재웅 28·79, 차세일 42·22. 남의 PR에 남은 리뷰 기록 157번 중 156번이 승인, 1번이 의견(차세일, #77). 남의 리뷰 없이 합쳐진 PR은 그대로 #1–#24. 세 사람 밖의 작성자 아이디는 없음. 14장 제목(159개→169개)·표·주석·출처와 plan 5절을 같은 숫자로 맞춤.
+## I-eval-more-cases · 2026-11-19 · 채점에 사건 종류·경계 사례 더하기 (P-20, 영역 C, 차세일)
+- 브랜치: `feat/eval-more-cases` (origin/main `ac7f10f` 위)
+- 출처: `docs/plan.md` P-20(PRD-F30), `docs/spec.md` SPEC-3.1·3.2·3.4·3.5·4.1·SPEC-10, CLAUDE.md 3절 불변 2·3·4, ADR 0012·0014·0015, `.claude/skills/stage-check/references/requirements.md` 채점 줄(변화 없음·수집 실패·승인 거절·같은 입력 두 번)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `eval/`에는 등급 정답 사례 12개(G1–G9)뿐이다. 안내서의 채점은 사건 종류(적용 기회 포함)와 경계 사례(변화 없음, 수집 실패, 거절·보류, 같은 입력 두 번)의 맞음·놓침·잘못 울림을 함께 세기를 바란다 |
+| 기대 결과 | `eval/gold.json`에 경계 사례(`edgeCases`)를 더하고, 사례마다 출처(SPEC id·G 사례·불변 번호)를 단다. `npm run eval`이 앱의 진짜 순수 함수(`queryOsv`·`gradeFromOsv`·`isChanged`·`planDanger`·`changeKey`·`decideAlerts`·`decideOpportunityAlerts`·`validateJudgment`·`causeIdsOf`)로 실제 결과를 내고 `result.md`·`result.json`에 종류별 수와 전체 수를 쓴다. 기존 12개 사례와 그 결과는 그대로 |
+| 영향 범위 | `lib/eval/edge.ts`·`edge-score.ts`(새 파일)와 시험, `eval/gold.json`·`run.ts`·`result.*`, 기록 문서. 앱 코드(수집기·판단 저장)는 고치지 않는다 |
+| 제약 | 네트워크·DB 없음. OSV 응답은 저장된 파일이나 사례에 적은 응답을 `fetch` 자리에 돌려 넣어(되돌려 놓음) 진짜 `queryOsv`가 읽게 한다. DB가 있어야만 보이는 것(`save_judgment` 한 거래의 되돌림, `changes.dedupe_key` 유일 제약, 수집기 전체 흐름)은 흉내 내지 않고 "채점 밖"으로 적는다. 관리자 채점 버튼(`lib/server/eval-run.ts`)은 등급 사례만 그대로 둔다(서버에서 전역 `fetch`를 바꾸면 다른 요청과 섞여 위험) |
+| 열린 질문 | ① 수집기의 분기는 DB에 묶여 내보내지 않아 `lib/eval/edge.ts`에 손으로 따라 썼다: `collect-osv.ts` checkOne(오류 → 수집 오류)·gradeOf(등급 읽기 실패 → parse)·applyResult(위험 아니면 비교)·ensureDanger와 `changes.ts` readLatestChange(원인·별칭이 같은 변경의 가장 큰 회차)·`osv-store.ts` saveGrade(위험 아님 시각)·`alerts.ts` createSecurityAlerts(변경 종류·dedupe_key, 이미 있는 알림 키). 둘이 어긋나면 채점이 못 잡는다 ② 화면 채점 칸에도 경계 사례를 보일지(서버에서 `fetch`를 안 바꾸는 방법이 먼저) ③ `E-collect-next-page`를 고칠 방법(다음 쪽 이어 읽기 / 토큰이 있으면 수집 오류)은 `collect-fetch.ts` 주인 김영식(A)이 정함 |
+
+**결과:** 경계 사례 32개를 `eval/gold.json` `edgeCases`에 더하고 `npm run eval`로 `result.md`·`result.json`을 다시 만들었다. 등급 사례 12개의 줄과 수는 그대로(놓침 0·잘못 울림 0·등급 맞음 8/12, 바뀐 것은 시각뿐). 경계 사례: 맞게 울림 12·맞게 조용함 19·놓침 0·잘못 울림 0·**결과 다름 1**·실행 실패 0. 전체 44: 놓침 0·잘못 울림 0·결과 다름 1. 다른 1건(`E-collect-next-page`)은 정답을 바꾸지 않고 Fail로 두고 `docs/debug-note.md`에 적음(주인 김영식 A). 시험 14개를 먼저 써서 모듈이 없을 때 실패를 확인했고, 만드는 중에 응답 파일 읽기 오류가 "수집 오류"로 가려지는 내 실수를 시험이 잡아 고침(debug-note). 일부러 망가뜨린 1곳(이어지는 위험의 이전 변경을 무시)을 시험 3개가 잡음. `npm test` 989개 중 985 통과·실패 0·건너뜀 3·할 일 1, `tsc --noEmit` 0, `npm run build` 통과. **채점 밖(DB가 있어야 함, 흉내 내지 않음):** `save_judgment` 저장 실패 때 알림·값 되돌림(불변 4의 저장 실패 쪽), `changes.dedupe_key`·`alerts(user_id, dedupe_key)` 유일 제약, 수집기 전체 흐름(`collect-osv.ts` checkOne은 같은 순서로 따라 씀).
+
+**리뷰 반영(같은 날, 코드 리뷰 10건):** 손으로 따라 쓴 분기가 수집기와 달랐던 5곳을 맞춤 — 등급 읽기 실패를 parse 수집 오류로(gradeOf), 이전 변경은 원인·별칭이 같은 것만(readLatestChange), 이미 알림을 받은 사람의 키를 미리 넣음, 알림 키를 앱과 같은 `change:…:r1` 모양과 진짜 변경 종류로, 첫 읽기 뒤 "위험 아님" 시각 저장(saveGrade). 정답 형식 검사(모르는 종류·빠진 칸은 실행 실패 줄로, 멈추지 않음), id가 겹치면 이유를 말하며 멈춤, 표 칸의 `|`·줄바꿈 바꿈, 줄에 기대 사건을 둠. 판단 사례는 `actionOutcomeOf`를 빼고 결과 이름을 "입력 검사 거절(저장 안 함)"으로 바꿈: 검사하는 것은 입력 검사뿐이고 불변 4의 저장 실패 쪽은 다루지 못한다(앞 결과의 "조치 기록 안 함"은 늘 참이라 지나친 주장이었다). 새 사례 5개(`E-sec-other-cause`·`E-sec-fixed-then-danger`·`E-same-danger-alias`·`E-collect-grade-parse`·`E-twice-second-user`). 새 시험 9개를 먼저 써서 12개 실패를 확인했고, 고친 다섯 곳을 하나씩 되돌리면 매번 시험 2개가 실패함. 결과: 경계 사례 32 → 37, 맞음 31 → 36, 결과 다름 1 → 1(같은 `E-collect-next-page`), 전체 44 → 49(놓침 0·잘못 울림 0·결과 다름 1). `npm test` 998개 중 994 통과·실패 0·건너뜀 3·할 일 1, `tsc --noEmit` 0, `npm run build` 통과. **main 병합 뒤:** main이 적용 기회 새 기술에 `status`를 더해(지원 종료·사라진 기술 제외, I-P-14-skip-deprecated-new-tech) 입력에 `status: active`를 넣고 사례 `E-opp-deprecated`를 더함 → 경계 사례 38(맞음 37·결과 다름 1), 전체 50. 병합 뒤 `npm test` 1012개 중 1008 통과·실패 0·건너뜀 3·할 일 1, 타입 오류 0, 빌드 통과. 병합 충돌은 `docs/qa-c.md` 한 곳(C18·C19 행, 끝 기준 표)으로 양쪽 줄을 모두 남김.
+
+---
 
 ## I-redact-lowercase-flags · 2026-11-19 · 비밀값 가리기가 소문자 머리글·`--token` 옵션 값을 놓치는 것 고치기 (영역 C QA, 차세일)
 - 브랜치: `fix/redact-lowercase-flags` (main `ac7f10f`)
