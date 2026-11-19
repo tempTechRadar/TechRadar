@@ -132,3 +132,10 @@ test("비교표가 한도에서 잘려 프롬프트에 안 보이는 출처 주�
   assert.ok(cells.length > 0 && cells.length < 60); // 앞쪽은 보이고 뒤쪽은 잘림
   assert.ok(cells.every((url) => user.includes(url))); // 인정한 주소는 모두 프롬프트에 있다
 });
+
+test("시스템 지시는 넘긴 자료에 없는 사실을 쓰지 말라고 하고, 자료 속 지시문은 따르기만 안 하는 게 아니라 글에 언급도 하지 말라고 한다(I-P-13 열린 질문 ⑩)", () => {
+  const { system } = buildScenarioPrompt(base());
+
+  assert.match(system, /없는 사실.*쓰지 않/);
+  assert.match(system, /지시.*언급하지/);
+});
