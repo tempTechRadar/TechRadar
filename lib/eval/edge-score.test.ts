@@ -32,6 +32,35 @@ test("전체 수 = 등급 사례 + 경계 사례(등급 사례의 수는 바꾸�
   assert.deepEqual(overallTotals(grade, edge), { cases: 13, hit: 6, quietOk: 6, miss: 0, falseAlarm: 0, outcomeWrong: 1, failed: 0 });
 });
 
+test("줄마다 기대 사건을 함께 둔다", () => {
+  const s = scoreEdges([ec("A", "적용 기회", "알림 1", true)], [ea("A", "알림 1", true)]);
+  assert.equal(s.rows[0].expectedEvent, true);
+});
+
+test("정답 형식이 틀린 사례(모르는 종류·빠진 칸)는 멈추지 않고 실행 실패 줄로 남긴다", () => {
+  const badKind = { ...ec("B", "수집 실패", "수집 오류", false), kind: "엉뚱함" } as unknown as EdgeCase;
+  const noEvent = { ...ec("C", "수집 실패", "수집 오류", false), expected: { outcome: "수집 오류" } } as unknown as EdgeCase;
+  const noSource = { ...ec("D", "수집 실패", "수집 오류", false), source: "" };
+  const s = scoreEdges([badKind, noEvent, noSource, ec("A", "수집 실패", "수집 오류", false)], ["A", "B", "C", "D"].map((id) => ea(id, "수집 오류", false)));
+  assert.match(s.rows[0].note, /정답 형식 오류: 종류/);
+  assert.match(s.rows[1].note, /정답 형식 오류: expected\.event/);
+  assert.match(s.rows[2].note, /정답 형식 오류: 출처/);
+  assert.deepEqual(s.rows.map((r) => r.verdict), ["결과 다름", "결과 다름", "결과 다름", "맞음"]);
+  assert.equal(s.totals.failed, 3);
+  assert.equal(s.byKind["수집 실패"].cases, 3, "모르는 종류(B)는 종류별 표에 넣지 않는다");
+});
+
+test("id가 겹치면 조용히 합치지 않고 어느 id인지 말하며 멈춘다", () => {
+  assert.throws(() => scoreEdges([ec("A", "변화 없음", "x", false), ec("A", "변화 없음", "y", false)], []), /경계 사례 id가 겹침: A/);
+});
+
+test("표 칸 안의 | 와 줄바꿈은 표를 깨지 않게 바꾼다", () => {
+  const s = scoreEdges([{ ...ec("P", "수집 실패", "a|b", false), target: "줄\n바꿈" }], [ea("P", "a|b", false)]);
+  const line = edgeMarkdown(s).split("\n").find((l) => l.startsWith("| P |"))!;
+  assert.match(line, /\| 줄 바꿈 \|/);
+  assert.match(line, /a\\\|b/);
+});
+
 test("결과 표: 같은 점수면 같은 글, 종류별 줄과 사례 줄(출처 포함)이 있다", () => {
   const s = scoreEdges([ec("E1", "거절·보류", "거절 · 조치 기록 안 함", false)], [ea("E1", "거절 · 조치 기록 안 함", false)]);
   const md = edgeMarkdown(s);

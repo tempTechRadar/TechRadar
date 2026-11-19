@@ -12,7 +12,7 @@ const G1_KEY = "change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p";
 
 const osv = (reply: Extract<EdgeInput, { type: "osv-read" }>["reply"], prev: Partial<Extract<EdgeInput, { type: "osv-read" }>["prev"]> = {}): EdgeInput => ({
   type: "osv-read", package: "mcp-remote", ecosystem: "npm", techKey: "npm:mcp-remote", version: "0.1.15", reply,
-  prev: { grade: "pass", evidenceIds: [], lastNonDangerAt: "2026-11-18T00:00:00Z", latestChange: null, ...prev },
+  prev: { grade: "pass", evidenceIds: [], lastNonDangerAt: "2026-11-18T00:00:00Z", changes: [], ...prev },
 });
 const run = (input: EdgeInput) => computeEdgeActual({ id: "t", input }, reader);
 
@@ -39,7 +39,7 @@ test("OSV가 '취약점 없음'({})이라 답하고 전과 같으면 변화 없�
 test("위험이 아니던 것이 위험이 되면 새 변경 1개(회차 1, 중복 막기 키), 이어지는 위험이면 새 변경 없음(SPEC-3.1)", async () => {
   const fresh = await run(osv({ fixture: G1 }));
   assert.deepEqual([fresh.outcome, fresh.event], [`새 변경 grade_to_danger r1 · ${G1_KEY}:r1`, true]);
-  const again = await run(osv({ fixture: G1 }, { grade: "danger", evidenceIds: ["GHSA-6xpm-ggf7-wc3p"], latestChange: { id: "c1", round: 1, createdAt: "2026-11-18T01:00:00Z" } }));
+  const again = await run(osv({ fixture: G1 }, { grade: "danger", evidenceIds: ["GHSA-6xpm-ggf7-wc3p"], changes: [{ id: "c1", kind: "grade_to_danger", causeId: "GHSA-6xpm-ggf7-wc3p", round: 1, createdAt: "2026-11-18T01:00:00Z" }] }));
   assert.deepEqual([again.outcome, again.event], ["위험 이어짐(새 변경 없음)", false]);
 });
 
@@ -50,7 +50,7 @@ test("같은 위험을 두 번 읽어도 변경 1개·알림은 사람마다 1�
   ];
   const base = osv({ fixture: G1 }) as Extract<EdgeInput, { type: "osv-read" }>;
   for (const gradeSaveFails of [false, true]) {
-    const a = await run({ ...base, type: "osv-read-twice", usages, changeSavedAt: "2026-11-19T06:00:00Z", gradeSaveFails });
+    const a = await run({ ...base, type: "osv-read-twice", usages, firstReadAt: "2026-11-19T06:00:00Z", gradeSaveFails });
     assert.deepEqual([a.outcome, a.event], ["변경 1 · 알림 2", true], String(gradeSaveFails));
   }
 });
@@ -66,11 +66,49 @@ test("적용 기회: 두 번 정하면 두 번째는 이미 있는 키라 새 �
   assert.deepEqual([(await run(input)).outcome, (await run(input)).event], ["알림 1(u1)", true]);
 });
 
-test("판단: 이유가 짧은 보류는 거절되고 조치 기록도 안 함(불변 4), 보류는 고친 버전을 저장하지 않음(SPEC-4.1)", async () => {
+test("판단: 이유가 짧은 보류는 입력 검사에서 거절(저장까지 안 감), 보류는 고친 버전을 저장하지 않음(SPEC-4.1). 저장 실패 쪽은 채점 밖", async () => {
   const refused = await run({ type: "judgment", decision: "hold", reason: "음", alertKind: "security", fixedVersion: "0.1.16" });
-  assert.deepEqual([refused.outcome, refused.event], ["거절 · 조치 기록 안 함", false]);
+  assert.deepEqual([refused.outcome, refused.event], ["입력 검사 거절(저장 안 함)", false]);
   const held = await run({ type: "judgment", decision: "hold", reason: "다음 배포 때 올림", alertKind: "security", fixedVersion: "0.1.16" });
   assert.deepEqual([held.outcome, held.event], ["저장으로 넘김 · hold · 고친 버전 없음", true]);
+});
+
+test("응답 모양은 맞는데 등급으로 읽다 터지면 수집기(gradeOf)처럼 해석 실패 = 수집 오류", async () => {
+  const a = await run(osv({ status: 200, body: JSON.stringify({ vulns: [{ id: "GHSA-x", database_specific: { severity: 5 } }] }) }));
+  assert.deepEqual([a.outcome, a.event, a.note, a.error], ["수집 오류", false, "parse", undefined]);
+});
+
+test("이전 변경은 원인(별칭 포함)이 같을 때만 잇는다: 다른 원인이면 새 변경 r1, 별칭(CVE)으로 저장된 같은 원인이면 이어짐", async () => {
+  const at = { grade: "danger" as const, evidenceIds: ["GHSA-6xpm-ggf7-wc3p"], lastNonDangerAt: "2026-11-17T00:00:00Z" };
+  const other = await run(osv({ fixture: G1 }, { ...at, changes: [{ id: "c-b", kind: "grade_to_danger", causeId: "GHSA-bbbb-bbbb-bbbb", round: 1, createdAt: "2026-11-18T00:00:00Z" }] }));
+  assert.deepEqual([other.outcome, other.event], [`새 변경 grade_to_danger r1 · ${G1_KEY}:r1`, true]);
+  const alias = await run(osv({ fixture: G1 }, { ...at, changes: [{ id: "c-a", kind: "grade_to_danger", causeId: "CVE-2025-6514", round: 1, createdAt: "2026-11-18T00:00:00Z" }] }));
+  assert.deepEqual([alias.outcome, alias.event], ["위험 이어짐(새 변경 없음)", false]);
+});
+
+const twoUsers = ["u1", "u2"].map((u) => ({ userId: u, myTechnologyId: `m-${u}`, techId: "npm:mcp-remote", isDemo: false, hidden: false, archived: false }));
+
+test("이어지는 위험: 이미 알림을 받은 사람은 키(change:…:r1)로 걸러지고, 아직 못 받은 사람만 새 알림", async () => {
+  const base = osv({ fixture: G1 }, {
+    grade: "danger", evidenceIds: ["GHSA-6xpm-ggf7-wc3p"], lastNonDangerAt: "2026-11-17T00:00:00Z",
+    changes: [{ id: "uuid-1", kind: "first_seen_danger", causeId: "GHSA-6xpm-ggf7-wc3p", round: 1, createdAt: "2026-11-18T00:00:00Z", alertedUsers: ["u1"] }],
+  }) as Extract<EdgeInput, { type: "osv-read" }>;
+  const a = await run({ ...base, type: "osv-read-twice", usages: twoUsers, firstReadAt: "2026-11-19T06:00:00Z", gradeSaveFails: false });
+  assert.deepEqual([a.outcome, a.event], ["변경 0 · 알림 1", true]);
+});
+
+test("두 번 읽기 사이에 고쳐졌다 다시 위험: 첫 읽기의 '위험 아님' 등급 시각을 저장해 두 번째에 새 회차(r2)를 만든다", async () => {
+  const base = osv({ status: 200, body: "{}" }, {
+    grade: "danger", evidenceIds: ["GHSA-6xpm-ggf7-wc3p"], lastNonDangerAt: "2026-11-17T00:00:00Z",
+    changes: [{ id: "uuid-1", kind: "grade_to_danger", causeId: "GHSA-6xpm-ggf7-wc3p", round: 1, createdAt: "2026-11-18T00:00:00Z", alertedUsers: ["u1", "u2"] }],
+  }) as Extract<EdgeInput, { type: "osv-read" }>;
+  const a = await run({ ...base, type: "osv-read-twice", secondReply: { fixture: G1 }, usages: twoUsers, firstReadAt: "2026-11-19T06:00:00Z", gradeSaveFails: false });
+  assert.deepEqual([a.outcome, a.event], ["변경 1 · 알림 2", true]);
+});
+
+test("모르는 입력 종류는 짐작하지 않고 실패로 남긴다", async () => {
+  const a = await computeEdgeActual({ id: "x", input: { type: "모름" } as unknown as EdgeInput }, reader);
+  assert.match(a.error ?? "", /모르는 입력 종류: 모름/);
 });
 
 test("사례 하나가 터져도 멈추지 않고 실패로 남긴다", async () => {
