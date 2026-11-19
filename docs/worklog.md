@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-23-recommend | P-23 취향 질문·추천: 시험 지점 3곳 확인 뒤 시험부터(S1 8·S2 6·S3 3), 망가뜨려 보기 9곳, 마이그레이션·SQL 시험 작성, 화면 `/taste`·`/recommend` | 황재웅 / Claude | `lib/domain/recommend.ts`·`taste.ts`, `lib/server/taste-store.ts`·`recommend-queries.ts`, `app/taste/`·`app/recommend/`, `202611200900_P-23_user_tastes.sql` |
 | I-deploy-no-cancel | 배포 작업 실행 기록(`gh run list`)으로 11-19 16:44~17:35 KST 실행 12번이 모두 다음 병합에 취소된 것을 확인. 병합이 멈춘 뒤 17:55 실행이 Deploy Hook을 불러 운영이 `8c3bbe0`(#153·#154 포함)이 된 것도 `/api/version`으로 확인. `cancel-in-progress`를 `false`로 바꿔, 돌고 있는 실행은 끝까지 배포하고 그 사이 병합은 다음 실행 하나로 모이게 함. ADR 0023 바뀐 기록 | 나(요청 "2 진행") · Claude(확인·수정) | `chore/deploy-no-cancel`, ADR 0023 |
 
 ## 2026-11-19 (목) — 첫 정기 실행 확인
