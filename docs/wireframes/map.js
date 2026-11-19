@@ -276,13 +276,13 @@
       const P = nodes.map((n) => { const [x, y] = posOf(n, now); const [sx, sy] = toScreen(x, y); n.sx = sx; n.sy = sy; n.app = appear(n, now); n.hdl = null; return n; });
       if (arr === 'host') { // 쓰는 곳 → 종류 → 점을 잇는 옅은 선. 두 곳에서 쓰는 점은 두 묶음 모두에 닿는다
         ctx.strokeStyle = 'rgba(46,213,115,.13)'; ctx.lineWidth = 1; ctx.beginPath();
-        hubs.forEach((hb) => { const [hx, hy] = toScreen(hb.x, hb.y); hb.kids.forEach((sb) => {
-          const [bx, by] = toScreen(sb.x, sb.y); ctx.moveTo(hx, hy); ctx.lineTo(bx, by);
+        hubs.forEach((hb) => hb.kids.forEach((sb) => {
+          const [bx, by] = toScreen(sb.x, sb.y);
           sb.members.forEach((n) => { if (shown(n) && n.app) { ctx.moveTo(bx, by); ctx.lineTo(n.sx, n.sy); } });
-        }); });
+        }));
         ctx.stroke();
         ctx.fillStyle = 'rgba(46,213,115,.5)'; // 선이 모이는 묶음 중심(모두 다른 곳과 함께 쓰는 묶음은 점 없이 중심만 남는다)
-        hubs.forEach((hb) => [hb, ...hb.kids].forEach((b) => { const [x, y] = toScreen(b.x, b.y); ctx.beginPath(); ctx.arc(x, y, b === hb ? 4 : 2.5, 0, 6.2832); ctx.fill(); }));
+        hubs.forEach((hb) => hb.kids.forEach((b) => { const [x, y] = toScreen(b.x, b.y); ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 6.2832); ctx.fill(); }));
       }
       // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다. 쓰는 곳별 배치에서는 묶음 선과 섞이지 않게 올린 점의 선만 그린다.
       const inFam = (e) => fam && (e.a === focus || e.b === focus), faint = [];
@@ -352,16 +352,13 @@
         ctx.globalAlpha = (fam && n !== fam && !fam.nb.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
       });
       ctx.globalAlpha = 1;
-      if (arr === 'host' && !intro) { // 묶음 이름과 지금 보이는 점 수(쓰는 곳은 크게, 종류는 작게)
+      if (arr === 'host' && !intro) { // 묶음 위에 "쓰는 곳 종류 n"(n = 그곳에서 쓰는, 지금 보이는 점 수. 함께 쓰는 묶음의 점도 센다). 따로 띄운 이름은 다른 묶음과 겹쳐서 두지 않는다
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg;
-        hubs.forEach((hb) => {
-          const cnt = hb.kids.map((sb) => sb.members.filter(shown).length), tot = cnt.reduce((a, b) => a + b, 0); if (!tot) return;
-          const [x, y] = toScreen(hb.x, hb.y), t = `${hb.label} ${tot}`;
-          ctx.font = '700 14px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green; ctx.strokeText(t, x, y); ctx.fillText(t, x, y);
-          ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.muted;
-          hb.kids.forEach((sb, k) => { if (!cnt[k]) return; const [bx, by] = toScreen(sb.x, sb.y - sb.r), u = `${sb.label} ${cnt[k]}`; ctx.strokeText(u, bx, by - 10); ctx.fillText(u, bx, by - 10); }); // 묶음 위에(점 이름과 겹치지 않게)
-        });
-        ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.muted;
+        ctx.font = '700 12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green;
+        hubs.forEach((hb) => hb.kids.forEach((sb) => {
+          const c = sb.members.filter(shown).length; if (!c) return;
+          const [x, y] = toScreen(sb.x, sb.y - sb.r), u = `${hb.label} ${sb.label} ${c}`; ctx.strokeText(u, x, y - 10); ctx.fillText(u, x, y - 10);
+        }));
         shared.forEach((sh) => { const c = sh.members.filter(shown).length; if (!c) return; const [x, y] = toScreen(sh.x, sh.y - sh.r), u = `${sh.label} ${c}`; ctx.strokeText(u, x, y - 10); ctx.fillText(u, x, y - 10); });
         ctx.textAlign = 'left';
       }
@@ -784,25 +781,34 @@
 
     // ---- 쓰는 곳별 지도: 같은 점을 쓰는 곳(큰 묶음) 둘레에 종류(작은 묶음)로 모은다. 여러 곳에서 쓰는 점은 그 묶음들 사이에 놓이고 선이 모두에 닿는다.
     // 갈래별 자리(n.cat)는 기억해 두었다가 돌아갈 때 되살린다. 등급·밝기·갈래(q)는 자리가 아니라 데이터라 그대로다. 갈래 접기는 갈래별에서만 쓴다.
-    // 같은 쓰는 곳 묶음(예: Claude Code+Codex)·같은 종류인 점끼리 해바라기 모양으로 모은다(반지름이 √점 수에 비례). 두 곳 묶음은 두 종류 묶음의 가운데에 놓는다.
-    // 점 순서(i)대로 놓아서 펼쳐도 있던 점은 거의 그대로다(묶음이 커지면 간격만 넓어진다).
-    const spot = (c) => 24 * Math.sqrt(c) + 18; // 점 c개 해바라기의 반지름(세계 좌표)
+    // 같은 쓰는 곳 묶음(예: Claude Code+Codex)·같은 종류인 점끼리 해바라기 모양으로 모은다(반지름이 √점 수에 비례, 이웃 점 사이 약 30).
+    // 묶음은 처음엔 가운데 가까이(쓰는 곳 방향, 종류마다 조금씩 비껴) 두고 겹치는 것만 서로 밀어낸다. 그래서 점이 적으면 촘촘하고, 많아지면 필요한 만큼만 벌어진다.
+    // 두 곳 묶음은 두 종류 묶음의 가운데에서 시작한다. 같은 데이터면 같은 자리다(난수 없음).
+    const spot = (c) => 17 * Math.sqrt(c) + 14; // 점 c개 해바라기의 반지름(세계 좌표)
     function hostLayout() {
-      const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`;
+      const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`, circ = [], fill = [];
       nodes.forEach((n) => (sets.get(key(n)) ?? sets.set(key(n), []).get(key(n))).push(n));
-      const S = Math.max(...[...sets.values()].map((l) => spot(l.length))), R = 4.2 * S + 140, D = 1.8 * S + 40;
-      hubs = HOSTS.map((label, h) => { const a = 45 + h * 90; return { ...polar(a, R), a, label, kids: [] }; }); shared = [];
+      hubs = HOSTS.map((label, h) => ({ a: 45 + h * 90, label, kids: [] })); shared = [];
       const subOf = (h, k) => {
         const hb = hubs[h]; let sb = hb.kids.find((b) => b.kind === k);
-        if (!sb) { const o = polar(hb.a + (KINDS.indexOf(k) - 1) * 70, D); sb = { x: hb.x + o.x, y: hb.y + o.y, kind: k, label: KIND[k], r: 18, members: [] }; hb.kids.push(sb); }
+        if (!sb) { sb = { ...polar(hb.a + (KINDS.indexOf(k) - 1) * 25, 200), kind: k, label: KIND[k], r: 14, members: [] }; hb.kids.push(sb); circ.push(sb); }
         return sb;
       };
       sets.forEach((l) => {
-        const subs = l[0].hosts.map((h) => subOf(h, l[0].kind)), cx = subs.reduce((s, b) => s + b.x, 0) / subs.length, cy = subs.reduce((s, b) => s + b.y, 0) / subs.length;
-        subs.forEach((b) => { b.members.push(...l); if (subs.length === 1) b.r = spot(l.length); });
-        if (subs.length > 1) shared.push({ x: cx, y: cy, r: spot(l.length), label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l });
-        l.forEach((n, j) => { const p = polar(j * 137.508, (subs.length > 1 ? 0 : 30) + 24 * Math.sqrt(j)); n.tx = n.hx = cx + p.x; n.ty = n.hy = cy + p.y; });
+        const subs = l[0].hosts.map((h) => subOf(h, l[0].kind));
+        subs.forEach((b) => b.members.push(...l));
+        if (subs.length === 1) { subs[0].r = spot(l.length); fill.push([subs[0], l]); return; }
+        const sh = { x: subs.reduce((s, b) => s + b.x, 0) / subs.length, y: subs.reduce((s, b) => s + b.y, 0) / subs.length, r: spot(l.length), label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l };
+        shared.push(sh); circ.push(sh); fill.push([sh, l]);
       });
+      for (let it = 0; it < 150; it++) circ.forEach((a, i) => { // 묶음끼리 36(위에 붙는 이름 자리), 가운데(나)와는 70 띄운다
+        const d0 = Math.hypot(a.x, a.y) || 1, m0 = a.r + 70; if (d0 < m0) { a.x *= m0 / d0; a.y *= m0 / d0; }
+        for (let j = i + 1; j < circ.length; j++) {
+          const b = circ[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01, m = a.r + b.r + 36;
+          if (d < m) { const f = (m - d) / d / 2; a.x -= dx * f; a.y -= dy * f; b.x += dx * f; b.y += dy * f; }
+        }
+      });
+      fill.forEach(([c, l]) => l.forEach((n, j) => { const p = polar(j * 137.508, 17 * Math.sqrt(j + 0.5)); n.tx = n.hx = c.x + p.x; n.ty = n.hy = c.y + p.y; }));
       syncPolar(); dirty = labelsDirty = true;
     }
     function arrange(a) {
@@ -816,7 +822,7 @@
       mode = v; if (v !== 'tree' && v !== arr) arrange(v);
       $('stage').dataset.mode = v === 'tree' ? 'tree' : 'map'; $('treeView').hidden = v !== 'tree';
       document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
-      $('stat').dataset.msg = { cat: '갈래별 지도로 봐요', host: '쓰는 곳별 지도로 봐요. 큰 글자는 쓰는 곳, 작은 글자는 종류예요', tree: '쓰는 곳별 나무로 봐요' }[v];
+      $('stat').dataset.msg = { cat: '갈래별 지도로 봐요', host: '쓰는 곳별 지도로 봐요. 묶음 이름은 "쓰는 곳 · 종류 · 점 수"예요', tree: '쓰는 곳별 나무로 봐요' }[v];
       syncTip(); refresh(); dirty = labelsDirty = true;
     }
     $('views').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
@@ -925,7 +931,7 @@
       + '<li><button type="button" class="chip" id="fclear" hidden>거르기 풀기</button></li>'
       + `<li>${svg(`<circle r="5.5" fill="${C.bg}" stroke="#2ed573" stroke-width="1.2"/><path d="M-3 0H3M0-3V3" stroke="#2ed573" stroke-width="1.2"/>`)}+ 손잡이: 같은 역할 기술 펼치기(−는 접기)</li>`
       + `<li>${svg(`<path d="M0-4.5L4.5 3.5H-4.5Z" fill="${C.ink}"/>`)}등급이 나빠짐 ${svg(`<path d="M0 4.5L4.5-3.5H-4.5Z" fill="${C.ink}"/>`)}나아짐</li>`
-      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>쓰는 곳별 지도: 큰 글자는 쓰는 곳, 작은 글자는 종류예요. 두 곳 이상에서 쓰는 점은 그 사이에 놓여요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
+      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>쓰는 곳 지도: 묶음 이름은 "쓰는 곳 · 종류 · 점 수"예요. 두 곳 이상에서 쓰는 점은 따로 묶여 그 사이에 놓이고 선이 양쪽에 닿아요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
     function syncLegend() {
       const vis = nodes.filter(shown);
       legend.querySelectorAll('[data-f]').forEach((b) => { b.setAttribute('aria-pressed', String(fstate.has(b.dataset.f))); b.querySelector('b').textContent = loading() ? '…' : vis.filter(STATE[b.dataset.f]).length; });
