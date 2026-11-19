@@ -21,7 +21,7 @@ async function readCurrent(db: SupabaseClient, userId: string, alertId: string):
 }
 
 // 확정된 같은 역할만. 짝은 작은 id가 a라서 어느 쪽에 있어도 상대편을 가져온다.
-async function readSameRoleTechIds(db: SupabaseClient, techId: string): Promise<string[]> {
+export async function readSameRoleTechIds(db: SupabaseClient, techId: string): Promise<string[]> {
   const [asA, asB] = await Promise.all(
     (["tech_a", "tech_b"] as const).map((column) => db.from("tech_relations").select("tech_a, tech_b").eq("status", "confirmed").eq(column, techId)),
   );
