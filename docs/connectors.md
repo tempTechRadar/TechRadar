@@ -4,6 +4,7 @@
 
 | 날짜 | 서비스 | 목적 | 실제로 한 일 | 결과 링크·캡처 | 앱 실행에도 쓰나 |
 |---|---|---|---|---|---|
+| 2026-11-20 | Supabase (MCP 커넥터) | P-12a2 마이그레이션을 합치기 전에 운영에 적용(`I-migration-before-merge`)하고 확인 | `list_migrations`·읽기 전용 `execute_sql`로 적용 전 기준값(프로필 4·기술 7,848·내 기술 5·프로젝트 4·계정 4, 대소문자 중복 0, 새 함수·트리거 없음)을 읽고, **`apply_migration`(`p12a2_nickname_using_now`)으로 운영 DB에 적용**(사용자 "진행"). 적용 뒤 인덱스 1·함수 5·트리거 1 확인, 줄 수 같음, 비로그인 `using_now` 실행 권한 없음, 정규식 escape가 글자 그대로 저장됨. 이어서 되돌림 시험(`supabase/tests/nickname_using_p12a2.sql`)을 운영에서 돌려 31개가 모두 기대값, 끝난 뒤 시험 흔적 0 | `docs/intent.md` I-P-12a2-nickname-db, `docs/qa.md` P-12a2 행 | 아니오(작업 확인용) |
 | 2026-11-19 | Vercel (CLI, 차세일 개인 계정) | 발표 슬라이드를 서비스와 별개 주소로(안내서 11장 "Vercel 주소(서비스 주소와 별개)") | `slides/index.html` 한 파일만 담은 폴더를 `vercel deploy --prod`로 새 프로젝트 `techradar-slides`에 올림. 올리기 전 비밀값·연락처·인터뷰 대상 신원 검색 0건. 팀 운영 프로젝트·배포 횟수와 무관 | https://techradar-slides.vercel.app (HTTP 200, 제목 확인) | 아니오(발표용) |
 | 2026-11-19 | Supabase (MCP 커넥터) | 운영 시뮬레이터 실행 기록 확인(읽기만) | 읽기 전용 `execute_sql`: 시작 전 줄 수와, 관리자 계정으로 돈 운영 시뮬레이터 실행의 `ai_calls`(succeeded, 393/1036)·변경 초안 길이(584자)·`run_steps`(`summarize` succeeded)를 조회. 아무것도 바꾸지 않음 | `docs/qa.md` P-13 행 | 예(앱 DB) |
 | 2026-11-19 | Ego Lite 내장 브라우저 (ego-browser) | 운영 흐름 화면이 실행 기록대로 칠해지는지 보기(읽기만) | 이미 관리자로 로그인된 브라우저로 `/admin/simulator`와 `/admin/flow?run=…` 두 실행을 열어 상자 색을 읽음. 버튼은 누르지 않음 | `docs/qa.md` P-13 행 | 아니오 |
