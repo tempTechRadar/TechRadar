@@ -12,6 +12,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
+| I-P-13-claude-adapter | Claude 호출 어댑터와 대응안 초안 연결: 서버 키(`ANTHROPIC_API_KEY`)가 있으면 Messages API로 부르는 어댑터를 만들고 `createAlertsForChange`가 보안 알림을 만들기 전에 초안을 부르게 함(키가 없으면 지금처럼 "만들지 못함"). 읽기 전용 검토 14건 중 12건 반영(나머지 2건은 열린 질문): 실패한 초안이 알림 만들 때마다 유료 호출을 되풀이하지 않게 같은 입력은 하루 한 번, 저장 실패도 호출 기록, 본문 읽기 오류·잘린 답 구분, 키가 잘리는 자리에 걸치는 경우, 키·모델 모양 이상 로그, 시험이 실제 Claude를 못 부르게 함. 새 시험 21개(변이 42개 모두 잡힘), `npm test` 723개 중 722 통과. 키가 없어 실제 호출은 못 해 봄 | 나(요청·"제가 만들어 PR로" 선택) · Claude(작성·시험·검토 반영) | `feat/P-13-claude-adapter`, `docs/intent.md` I-P-13-claude-adapter |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
@@ -19,6 +20,7 @@
 ### 아직 안 된 것
 - [ ] Vercel `CRON_SECRET`(Production) 넣고 운영 배포 한 번, 다음 06시 뒤 `runs`에 `schedule` 실행 확인 — 김영식(넣기)·Claude(확인)
 - [ ] 구글 OAuth 클라이언트와 Supabase 공급자·Site URL·Redirect URLs(P-12 전) — 김영식
+- [ ] `ANTHROPIC_API_KEY`(강사 키, SPEC-9 한도 확인 뒤)를 `.env`·Vercel Production에 넣고 모델·`max_tokens` 결정, 시뮬레이터로 실제 초안 한 번 확인(호출 비용 1회) — 황재웅(결정)·김영식(넣기)·Claude(확인). 열린 질문은 `docs/intent.md` I-P-13-claude-adapter ⑤⑥
 
 ## 2026-11-18 (수) — 회의 결정, plan, 뼈대, 개발 전 점검
 

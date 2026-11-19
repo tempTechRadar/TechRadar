@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-13-claude-adapter · 2026-11-19 · Claude 호출 어댑터와 대응안 초안 연결 (황재웅 P-13 자리를 김영식이 먼저 채움, 리뷰는 황재웅)
+- 브랜치: `feat/P-13-claude-adapter` (main `6754f77`)
+- 출처: 11-19 단계 점검 ❌ "Claude API"(`ANTHROPIC_API_KEY`가 코드·환경변수 어디에도 없음), PRD-F15·NF6, SPEC-9, `docs/flow.md` `summarize`, `lib/ai/ai-client.ts` 머리 글("실제 연결은 어댑터 한 파일이 채운다"). 사용자가 "제가 만들어 PR로 올리고 황재웅이 리뷰"를 골랐다
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | Claude를 실제로 부르는 어댑터가 없고, `generateDraft`(`lib/server/draft.ts`)는 어디서도 불리지 않는다. 그래서 알림 상세의 "대응안 초안"이 항상 비어 있고, 안내서 필수 항목 "Claude API(참고한 출처와 함께 보여 줌)"가 증거 없이 비어 있다 |
+| 기대 결과 | ① `createAnthropicClient()`: 서버 환경변수 `ANTHROPIC_API_KEY`가 있고 모양이 맞으면 Messages API로 글을 주고 글을 받는 `AiClient`를 돌려주고, 없으면 `null`(지금과 같이 "만들지 못함"). 도구는 넘기지 않는다(SPEC-9). 키는 요청 머리글에만 쓰고 오류·로그에 안 남는다. ② `createAlertsForChange`가 **보안 알림을 만들기 전에** `generateDraft`를 한 번 부른다(흐름 `save_change → summarize → notify`). 초안이 실패해도(키 없음 `not_configured` 포함) 알림은 그대로 만든다(실행 id를 넘기는 경로는 `summarize` 단계에 실패가 남는다). ③ **같은 입력은 하루(한국 시간)에 한 번만 보낸다**: 실패한 초안은 비어 남아서 막지 않으면 알림을 만들 때마다 유료 호출이 되풀이된다(코드 검토에서 나옴) |
+| 영향 범위 | 새 `lib/server/anthropic-client.ts`(+시험), `lib/server/alerts.ts`(황재웅 파일: 초안 부르기와 바꿔 끼울 수 있는 의존), `lib/server/draft.ts`(황재웅 파일: 같은 입력은 하루 한 번·저장 실패도 호출 기록·이미 초안이 있으면 한도 조회 생략·키 없음 로그), `alerts.test.ts`·`draft.test.ts`(새 시험), `first-read.test.ts`(셸에 키가 있어도 실제 Claude를 못 부르게 비움), `.env.example`, 문서(spec·flow·intent·worklog·qa·plan·agents) |
+| 제약 | 새 라이브러리 없음(`fetch`). 키는 사람이 구해 `.env`·Vercel에 넣는다(채팅·문서·코드에 안 씀). 한도는 `decideAiCall`이 정한다(변경마다 1번, 서비스 하루 200번, SPEC-9). 이번에는 **키가 없어 실제 호출을 해 보지 못한다**: 가짜 fetch로 요청 모양·답 읽기·오류 처리를 시험한다 |
+| 열린 질문 | ① 모델 기본값(`claude-sonnet-5-5`, `ANTHROPIC_MODEL`로 바꿈)과 `max_tokens` 2048은 비용·품질이 걸려 황재웅이 정한다. ② 적용 시나리오(F18)·위키 챗봇(F31)도 같은 어댑터를 쓰게 되지만 이번에는 대응안 초안만 연결한다. ③ 키가 없을 때 흐름 화면의 `summarize` 실패 줄(`not_configured`)은 **실행 id를 넘기는 경로(시뮬레이터)에서만** 남는다. 정기 OSV·첫 읽기는 실행 id가 없어 로그(`console.warn`)에만 남으므로, 정기 실행에서 키 확인은 Vercel 환경변수 **이름** 조회로 한다. ④ 시뮬레이터 보안 알림도 키가 있으면 초안을 부른다(하루 한도 안에서). ⑤ **같은 변경을 동시에 두 번 부르면**(두 사용자가 같은 위험 기술을 동시에 읽는 경우) Claude 호출이 두 번 나가고 하루 200번에도 한 번 더 들어갈 수 있다: 읽기와 호출 기록 사이에 잠금이 없다(다운로드·GitHub 수집기와 같은 지름길). 필요하면 호출 전에 기록 줄을 먼저 쓰는 방식으로 바꾼다. ⑥ **느리거나 멈춘 Claude는 알림 만들기를 최대 30초 늦춘다**(첫 읽기는 위험 변경마다 차례로 부르고, 정기 OSV는 기술마다 부른다). 초안을 알림 뒤로 미루는 길이 있지만 흐름(`summarize → notify` 순서, `flow.md`·`flow.json`)을 바꿔야 해서 황재웅이 정한다. ⑦ 같은 입력은 하루에 한 번만 보내므로 키·모델 문제를 고쳐도 같은 날에는 다시 안 부른다: 급하면 오늘의 `ai_calls` 줄을 지운다. ⑧ 실패한 초안 시도도 하루 200번에 센다(`draft.test.ts`). ⑨ `ai_calls` 기록을 한 줄이라도 남기려면 호출이 끝나야 한다: 글 답이 비어 던질 때 토큰 수는 버려진다 |
+
+**결과:** `createAnthropicClient()`(`lib/server/anthropic-client.ts`): `ANTHROPIC_API_KEY`가 있고 모양이 맞으면 Messages API(`fetch`, 새 라이브러리 없음)로 글을 주고받고, 없으면 `null`. 도구 없음, 키는 요청 머리글에만, 오류·로그에서 가림, 30초 시간 제한, 본문 읽기 오류와 잘린 답(`max_tokens`)을 구분해 던짐, 키·모델 모양이 이상하면 로그. `createAlertsForChange`가 보안 알림을 만들기 전에 `generateDraft`를 부르고(바꿔 끼울 수 있는 의존, 기존 시험은 초안 없이), `draft.ts`는 같은 입력을 하루 한 번만 보내고 저장 실패도 호출을 기록하며 이미 초안이 있으면 한도 조회를 생략한다. 읽기 전용 코드 검토 14건 중 12건 반영·2건 기록(열린 질문 ⑤⑥)하고, 일부만 반영한 것은 ⑨이다. 새 시험 21개(어댑터 12·알림 4·초안 5), 일부러 틀리게 고친 42곳 모두 잡힘, `npm test` 723개 중 722 통과·todo 1, 타입검사·웹팩 빌드 성공. **실제 Claude 호출은 키가 없어 못 해 봤다:** 가짜 `fetch`로 요청 모양·답 읽기·오류 처리만 시험했다. 사람이 할 것: 키(강사 키, SPEC-9 한도 확인 뒤)를 `.env`·Vercel에 넣고, 시뮬레이터로 실제 초안을 한 번 확인(호출 비용 1회), 모델·`max_tokens` 결정.
+
 ## I-auto-sync-main · 2026-11-19 · 열린 PR 브랜치에 main을 자동으로 합치는 GitHub Action: ADR 0017 개정 (공용)
 - 브랜치: `chore/auto-sync-main` (origin/main f237c2b 위, worktree `.claude/worktrees/auto-sync-main`)
 - 출처: 사용자 "git merge origin/main과 npm run precheck 이걸 알아서 되도록 설정할 순 없어? 자꾸 같은 파일이 충돌나" → 방법 A(명령)·B(GitHub Action)·C(기록 쪼개기) 비교 뒤 "B 만들어". 근거: ADR 0017(GitHub 화면은 `merge=union`을 무시), `CLAUDE.md` 10절
