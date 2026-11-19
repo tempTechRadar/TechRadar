@@ -6,6 +6,19 @@
 
 ---
 
+## I-supabase-url-origin · 2026-11-19 · Supabase 주소를 프로젝트 주소로만 쓰기: 구글 로그인이 /rest/v1/auth/v1로 가던 오류
+- 브랜치: `fix/supabase-url-origin` (origin/main d77cadd 위, worktree `.claude/worktrees/supabase-url`)
+- 출처: 사용자가 붙여 준 오류 "No API key found in request"(배포 주소에서 구글 로그인을 누름). 근거: Supabase edge 기록(2026-11-19 00:06 UTC, `GET 401 …supabase.co/rest/v1/auth/v1/authorize?provider=google…`), `docs/debug-note.md`의 11-18 같은 사례, PRD-F1
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 배포 주소에서 "구글로 계속하기"를 누르면 Supabase가 "No API key found in request"(401)를 돌려준다. 요청 주소가 `…supabase.co/rest/v1/auth/v1/authorize`라서, 운영 환경변수 `NEXT_PUBLIC_SUPABASE_URL`에 `/rest/v1`이 붙어 있는 것으로 보인다. 11-18에 로컬 `.env.local`에서도 같은 실수가 있었다(두 번째). |
+| 기대 결과 | 환경변수에 경로가 붙어 있어도 코드는 프로젝트 주소(origin)만 써서 로그인·조회가 정상 주소로 간다. 주소 모양이 아니면 연결 전(null)으로 본다. |
+| 영향 범위 | `lib/env.ts`(`readSupabasePublicConfig` 한 곳, 모든 Supabase 클라이언트가 여기서 주소를 받음)와 `lib/env.test.ts`, 기록(intent·worklog·debug-note). |
+| 제약 | 운영 환경변수 자체는 고치지 않았다(배포 설정이라 사람이 하거나 승인 필요). 이 PR이 합쳐져 배포되면 값을 고치지 않아도 동작하지만, 값도 바로잡는 것을 권한다. 운영의 실제 값은 보지 않았다(기록의 요청 주소로 추정). 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | Vercel 환경변수를 지금 고칠지(고치면 다시 배포 필요). 운영에서 다른 조회(REST)도 같은 이유로 깨져 있었는지. |
+
+**결과:** 시험 2개 추가(경로·끝 슬래시·공백 떼기, 주소가 아니면 null), 정리를 일부러 빼면 실패하는 것을 확인. 전체 시험·`tsc`는 아래 PR에 숫자로 적는다.
 ## I-first-real-run · 2026-11-19 · 운영 DB 첫 실제 수집(수동 한 번)과 그 결과 기록 (김영식)
 - 브랜치: `docs/first-real-run` (main `6754f77`). 코드 변경 없음, 기록만
 - 출처: 11-19 단계 점검(stage-check) "다음에 할 일 1번"(운영 DB가 비어 있음)에 사용자가 "우선순위 작업 추천대로 진행", `docs/plan.md` P-17·P-9, PRD-F8·F28, SPEC-8
