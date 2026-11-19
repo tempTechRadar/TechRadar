@@ -19,6 +19,21 @@
 | 열린 질문 | 데이터설계 146줄 ↔ erd 366줄 문구를 코드에 맞춰 고칠지(고치면 정답표 Q5를 다른 어긋남 질문으로 바꿔야 함) |
 
 **결과:** 3쪽 보정 + log.md 덧붙이기. 점검: 깨진 링크 0, 출처 없는 줄 0, 비밀값 꼴 0, 실명·아이디 0.
+## I-P-18c-category · 2026-11-19 · P-18c 분류 확인에서 갈래 정하기·고치기 (영역 C, 차세일)
+- 브랜치: `feat/P-18c-category` (main `da4fdb0`)
+- 출처: 김영식 님 "진행하세요. P-30과 같은 방식"(조건 셋: 새 칸은 erd·데이터설계와 같은 PR, `category_rank`·`category_score`는 grant에서 뺌, 운영 적용 전에 다시 알림), PRD-F24·F27, IA-17, ADR 0015·0021, 제품 불변 5, 제안서 `P-18c-갈래확정-제안.md`(저장소 밖)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 분류 확인 화면의 "갈래 확정·고치기"가 꺼진 자리다. P-2가 로그인 사용자의 `technologies` 쓰기를 모두 막아서, 관리자도 갈래(`category_id`)를 정할 DB 권한이 없다(PRD-F24 끝 기준 "고친 갈래와 담당자·시각·사유"가 남지 못함) |
+| 기대 결과 | ① 마이그레이션: `category_set_by`·`category_set_at` 칸(함께 있거나 함께 없음), 관리자만·본인 이름·작은 갈래만 바꾸는 정책, 열 권한은 세 칸만 ② DB 시험 SQL(일반 계정 0줄, 남의 이름·큰 갈래·비우기·등급·점수·추가·지우기 막힘) ③ `setCategory`(사유 검사 → 작은 갈래 확인 → 관리자 본인 연결로 세 칸 → 바꾼 기록) ④ 화면: 갈래가 없는 기술과 관리자가 정한 기술마다 작은 갈래 고르기와 사유 칸. 작은 갈래가 없으면 "갈래 목록은 팀 결정" 안내 |
+| 영향 범위 | 새 `supabase/migrations/202611191500_P-18c_category_admin.sql`, `supabase/tests/category_admin_p18c.sql`, `lib/admin/category-options.ts`(+시험). 고침: `lib/server/classify-edit.ts`(+시험), `lib/server/admin-queries.ts`(`readClassify`에 갈래 목록·정한 갈래·`technologies` 바꾼 기록), `app/admin/classify/`(동작·폼·화면), `docs/erd.md`·`docs/데이터설계.md` |
+| 제약 | **운영 DB 구조 변경**: 김영식 님 리뷰 필수. 합치면 바로 운영에 적용되므로 **적용 전에 영식 님께 한 번 더 알린다**. 운영 `categories`가 0줄이라 합쳐도 화면에는 "작은 갈래가 아직 없어 고를 수 없어요"만 보인다. 갈래 시드는 넣지 않는다 |
+| 열린 질문 | ① **갈래의 처음 목록은 팀 결정**: 문서(PRD·erd·GLOSSARY·ADR·design)에 정의된 목록이 없다(데이터설계 DQ2 "갈래의 처음 목록", design.md 11번 "큰 갈래 개수와 이름은 아직 없다"). ② 서버 분류(규칙·Claude 제안)를 만들 때 `category_set_by`가 있으면 덮어쓰지 않는 규칙을 코드·시험으로 지킨다(서비스 키는 RLS를 건너뜀) |
+
+**결과:** 시험을 먼저 써서 실패를 확인했다(`setCategory`·`categoryOptions` 없음). `setCategory` 시험 5개, 갈래 선택지 시험 3개를 더했다. DB 시험 SQL은 개발 DB에서 돌리지 않았다(DB에 손대지 않음, 리뷰 뒤 실행). **아직 안 된 것:** DB 시험 실행, 화면 확인(로그인·갈래 목록 필요), 갈래 목록 팀 결정.
+
+---
 
 ## I-P-12a-nickname-public · 2026-11-19 · P-12a 가입 때 별명 정하기와 설정의 "쓰고 있어요" 숨김 체크박스 (김영식)
 - 브랜치: `feat/P-12a-nickname-public` (main `285ee16`)
