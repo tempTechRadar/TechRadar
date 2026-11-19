@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-5b-opportunity-redirect · 2026-11-19 · 서버 동작이 try 안에서 redirect해 이유가 "NEXT_REDIRECT"로 바뀌던 것 (영역 C, 차세일)
+- 브랜치: `fix/P-5b-opportunity-redirect` (main `4c48db3`)
+- 출처: 운영 `/admin/simulator?error=NEXT_REDIRECT`("적용 기회 1건 만들기", 11-19 팀장 세션 발견), PRD-F29, SPEC-3.5, 불변 2(숨기지 않기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `runOpportunityAction`이 try 안에서 `back()`(= redirect)을 불러, redirect가 던지는 NEXT_REDIRECT를 아래 catch가 잡고 `error=NEXT_REDIRECT`로 바꿨다. 시작하지 않은 이유(r.reason)가 사용자에게 안 보였다 |
+| 기대 결과 | 시작하지 않은 이유가 그대로 보인다. 같은 패턴이 다른 서버 동작에 없다 |
+| 영향 범위 | `app/admin/simulator/actions.ts`·`run-now/actions.ts`·`demo/actions.ts`(같은 패턴 3곳, 모두 영역 C), 새 시험 `lib/admin/redirect-in-try.test.ts`(모든 `app/**/actions.ts` 훑기) |
+| 제약 | 고친 방법: not-started 이유도 갈 곳(target)에 담아 try 밖에서 한 번만 redirect. `isRedirectError`(Next 내부 경로) 다시 던지기는 쓰지 않음 |
+| 열린 질문 | 없음 |
+
+**결과:** 규칙 시험(try 안에서 redirect·redirect 도우미 금지, 도우미는 파일마다 찾아냄)을 먼저 써서 3곳 실패 확인 → 고침. 다른 영역 서버 동작에는 없음. `npm test` 957개 중 956 통과·실패 0·할 일 1, 타입 오류 0, `next build --webpack` 성공, precheck OK.
+
 ## I-design-concept-2 · 2026-11-19 · 지도 시안 2차: 화면 전체·간단 카드·상세·펼치기/접기·끌기 물리·선 반응 (김영식)
 - 브랜치: `docs/design-concept-2` (PR #98 `docs/design-concept`가 합쳐진 뒤 이어서, main `a6bd0ff`에 합침)
 - 출처: 사용자 "눈이 즐거워지게" → "화면이 좁아지면 맵을 가려" → "돌아가는 선이 단조로움" → "화면 전체를 맵이, 올리면 간단 상세, 누르면 상세 페이지, 펼치기는 따로, 모두 펼치기" → "비슷한 서비스 알아볼래" → "옵시디언처럼 끌면 형태 유지·부딪힘" → "반응이 약함, 빌릴 후보 모두, 선 대안" → "전부 진행" → "더 은은하게" → "진행"(기획 충돌·코드 검토·성능·커밋) → "보기 모드를 여러 개 두면 어때?(Claude Code - 스킬·커넥터, Codex, 툴)" → 모양 "둘 다"·여러 곳 기술은 "양쪽에 다 보이기"·"넣고 한 번에 푸시" → 쓰는 곳 지도 다듬기(간격·레이더 모양·육각형·마름모·올리면 이어진 것 밝힘) → "전체적인 디자인 점검하고 UI·UX·사용자 여정 등 종합 점검" → "진행"(1단계 반영) → "진행"(2단계 여정 잇기). 근거: `docs/design.md` 4·10절, IA-4·IA-10, PRD-F23, 불변 2·6
