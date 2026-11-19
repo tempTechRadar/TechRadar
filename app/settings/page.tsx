@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { isTempNickname } from "@/lib/domain/nickname";
@@ -32,6 +33,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <SettingsForm nickname={isTempNickname(user.nickname, user.id) ? "" : user.nickname} isPublic={data.is_public} welcome={welcome} next={safeNext(params.next)} />
       )}
       <p className="muted">로그인 방법: 구글</p>
+      <p><Link href="/taste">취향 고치기</Link></p>
     </main>
   );
 }
