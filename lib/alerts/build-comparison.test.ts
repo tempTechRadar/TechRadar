@@ -42,3 +42,17 @@ test("값이 없는 칸은 '찾지 못함'과 출처 없음(null)으로 채우�
   assert.deepEqual(rows.map((r) => r.mine), Array(5).fill({ value: "찾지 못함", source: null }));
   assert.deepEqual(rows[1].theirs, { value: "통과 — 알려진 문제가 없어요", source: null });
 });
+
+test("라이선스: none은 '라이선스 없음', other는 '종류를 알아보지 못함'으로 읽고(영어 내부 값을 보이지 않음), 출처는 저장소 그대로", () => {
+  const rows = buildComparison({ ...mine, license: "none" }, { ...theirs, license: "other" });
+
+  assert.deepEqual(rows[4].mine, { value: "라이선스 없음", source: "https://github.com/o/mine" });
+  assert.deepEqual(rows[4].theirs, { value: "종류를 알아보지 못함", source: "https://github.com/o/new" });
+});
+
+test("라이선스: 알아본 이름(MIT)은 그대로, 못 읽은 값(null)은 '라이선스 없음'이 아니라 '찾지 못함'", () => {
+  const rows = buildComparison(mine, { ...theirs, license: null });
+
+  assert.deepEqual(rows[4].mine, { value: "MIT", source: "https://github.com/o/mine" });
+  assert.deepEqual(rows[4].theirs, { value: "찾지 못함", source: null });
+});
