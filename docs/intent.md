@@ -19,6 +19,22 @@
 | 열린 질문 | ① 마이그레이션 기록 표(`supabase_migrations`)에는 `202611191500_P-18c_category_admin`이 없는데 칸·제약·정책·권한은 모두 운영에 있다(기록 표 밖에서 적용됨). `supabase db push`가 다시 적용하려 하면 "이미 있음"으로 실패하므로 팀이 기록 표를 맞출지 정한다(적용은 이미 됨, 기능 영향 없음). ② `rls_p3`·`rls_p11` 시험은 마이그레이션 직후 돌렸고 그 뒤 해당 표가 바뀌지 않아 다시 돌리지 않았다 |
 
 **결과:** `category_admin_p18c.sql` 12개, `rls_m0.sql` 26개(출처 줄 수만 9로 기대값 8과 달랐고 이유는 시뮬레이터가 늘린 줄), `rls_m1.sql` 24개 모두 기대값. 끝난 뒤 시험 계정·기술·갈래·규칙·알림·변경 흔적 0, 줄 수 변화 없음(profiles 4·technologies 5,542). `docs/qa.md`에 행 2개 추가. 같이 확인: 운영 실행 기록에 `schedule` 줄은 아직 없고(11-19 14:08에 수동 실행 1번 2,400건, 시뮬레이터 여러 번), 내일 06:00(KST) 뒤 확인한다. **아직 안 된 것:** 알림→판단→기록 실제 흐름(시연 계정 로그인 필요), 저장 실패 시연(`clearSimulated`)의 실제 DB 실행.
+## I-P-15-scenario-insert-columns · 2026-11-19 · 운영에서 적용 시나리오가 늘 실패하던 것 — 사용자 insert가 열리지 않은 칸(status)을 보냄 (P-15, 김영식)
+- 브랜치: `fix/P-15-scenario-insert-columns` (main `bea16b7` 뒤)
+- 출처: 사용자 "진행"(코드 동결 전 시연 경로 No Run 운영 QA), PRD-F18, SPEC-4.2, `supabase/migrations/202611181730_P-30_scenarios_insert_columns.sql`, 제품 불변 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 운영 알림 상세에서 "적용 시나리오 만들기"를 누르면 늘 "만들지 못했어요". Vercel 로그: `시나리오 요청을 저장하지 못함: permission denied for table scenarios`. P-30 보안 검토가 사용자에게 `alert_id`·`requested_by` 두 칸만 insert를 열었는데 P-15 코드(`lib/server/scenario.ts`)가 `status: "generating"`까지 보냈다. 가짜 DB 시험은 열 권한을 몰라 통과했다 |
+| 기대 결과 | 사용자 insert는 두 칸만 보내고 상태는 DB 기본값('generating')을 쓴다. 마이그레이션의 grant와 코드가 보내는 칸을 맞대는 시험을 더해 다시 어긋나면 `npm test`가 먼저 실패한다 |
+| 영향 범위 | `lib/server/scenario.ts` 한 줄, `lib/server/scenario.test.ts`. DB·마이그레이션 변경 없음 |
+| 제약 | 권한을 넓히지 않는다(사용자가 상태를 쓰지 못하게 한 P-30 결정 유지, 불변 5) |
+| 열린 질문 | 다른 칸 제한 표(profiles·my_technologies·tech_relations·technologies)는 사용자 연결이 연 칸만 쓰거나 서비스 연결로 써서 같은 문제가 없음(코드 검색으로 확인) |
+
+**결과:** 사용자 insert에서 `status`를 뺐다(DB 기본값). 마이그레이션의 grant를 읽어 코드가 보내는 칸과 맞대는 시험 추가: 고치기 전 코드에서 2개 실패, 고친 뒤 통과. `npm test` 959개 중 957 통과·todo 1·실패 0(건너뜀 포함), 타입 검사·`next build --webpack`·precheck 통과. **아직 안 된 것:** 합친 뒤 운영에서 시나리오가 실제로 만들어지는지(Claude 호출 1번)
+
+---
+
 ## I-a11y-tap-targets · 2026-11-19 · 누르는 칸이 작은 곳 고치기: 주 메뉴·프로젝트 주소 입력칸·표 안 링크 (김영식)
 - 브랜치: `fix/a11y-tap-targets` (main `a911cac`). CSS 변경과 기록, DB 변경 없음
 - 출처: 사용자 "진행"(11-19 실제 화면 접근성 점검 뒤 제안), PRD-NF5(접근성), WCAG 2.2 2.5.8(대상 크기 24px), `rules/code.md`(접근성 기본), `docs/intent.md` I-qa-a11y 열린 질문 ①
