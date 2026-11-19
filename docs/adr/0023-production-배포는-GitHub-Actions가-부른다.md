@@ -1,0 +1,40 @@
+# 0023. production 배포는 GitHub Actions가 부른다: 앱 코드가 바뀐 병합만, 잠잠해진 뒤 한 번
+
+- 날짜: 2026-11-19
+- 상태: **제안** (사용자가 "한도 아끼는 방법"을 물어 추천 1번 "잠잠해질 때까지 20분"을 골라 "진행". 다른 팀원은 PR 리뷰에서 확인)
+- ADR 0018을 이어서 고친다(0018의 "main 배포는 계속한다"는 그대로, **누가 언제 부르는지**만 바뀐다)
+
+## 배경
+2026-11-19 16:17~16:18(KST) main 병합 #150·#151·#152의 Vercel 배포가 `build-rate-limit`로 실패했고, 다시 배포도 `402 api-deployments-free-per-day`("more than 100")로 막혔다. 그 앞 #148·#149는 취소됐다. 운영은 #143에서 멈췄다(`docs/debug-note.md` 같은 날).
+
+지난 24시간 techradar의 production 배포 기록(Vercel API로 셈, 잰 것):
+- 77개 = 실제로 빌드한 것 47개 + 문서만 바뀌어 `ignoreCommand`로 건너뛴(취소) 것 30개
+- 다른 프로젝트는 며칠 동안 배포가 없었다(한도는 모두 techradar가 씀)
+- **건너뛴 배포도 기록이 생긴다.** 이것이 하루 한도에 드는지는 Vercel 문서로 확인하지 못했다. 다만 목록에 77개만 보이는데 "100개 넘음"이 났으므로 건너뛴 것·실패한 시도도 세는 것으로 본다(추정).
+- 앱 코드가 바뀐 빌드 47개를 "앞 병합 뒤 N분 조용하면 한 번"으로 묶으면: 10분 22개, **20분 13개**, 30분 10개(잰 기록에 계산을 적용한 것)
+
+## 정한 것
+- **`vercel.json`에서 main의 Git 자동 배포를 끈다**(`git.deploymentEnabled.main: false`). 문서만 바꾼 병합이 배포 기록을 만들지 않게 한다. `ignoreCommand`는 지운다: Deploy Hook은 main 맨 끝 커밋을 빌드하는데, 맨 끝 병합이 문서뿐이고 그 앞에 앱 변경이 쌓여 있으면 `HEAD^`와만 비교하는 `ignoreCommand`가 배포를 건너뛰어 버린다.
+- **`.github/workflows/deploy-production.yml`이 배포를 부른다.**
+  1. main에 합쳐지면 **20분 기다린다.** 그 사이 또 합쳐지면 앞 실행은 취소된다(`concurrency`). 몰린 병합은 마지막 하나만 배포를 부른다.
+  2. 운영 주소의 `/api/version`이 알려 주는 **지금 올라가 있는 커밋**과 main을 비교해, 앱에 영향을 주는 파일이 바뀌었을 때만 Vercel **Deploy Hook**을 부른다(`.github/scripts/deploy-decision.sh`). 제외 목록은 0018 개정의 `ignoreCommand`와 같고 `.github/`만 더했다(`wiki/`·`sim/`·`eval/`·`slides/`는 앱이 읽어서 넣지 않음).
+  3. 운영 커밋을 모르면(주소가 응답하지 않거나 그 커밋이 저장소에 없으면) 배포한다(모르면 배포 쪽으로).
+  4. **하루 한 번(16:40 KST)** 같은 판정을 돌려, 한도에 걸려 실패한 배포를 따라잡는다. "마지막으로 부른 커밋"이 아니라 **실제로 올라간 커밋**과 비교하므로, 실패한 배포는 다음 판정에서 다시 부른다.
+  5. 급하면 Actions 화면에서 `production 배포`를 **수동 실행**하고 `force`를 켜면 기다리지 않고 바로 부른다.
+- `app/api/version`은 빌드 때의 커밋 번호(`VERCEL_GIT_COMMIT_SHA`)만 돌려준다. 공개 저장소의 커밋 번호라 숨길 것이 없다.
+- 미리보기를 끄는 브랜치 목록에 `test/*`·`perf/*`를 더했다(커밋 종류와 맞춤).
+- **사람이 할 일(비밀값):** Vercel 프로젝트 설정 → Git → Deploy Hooks에서 `main` 브랜치 훅을 만들고, 그 주소를 GitHub 저장소 Settings → Secrets → Actions에 `VERCEL_DEPLOY_HOOK_URL`로 넣는다. 주소는 채팅·문서·커밋에 쓰지 않는다.
+
+## 결과
+- 문서만 바꾼 병합은 배포 기록이 0개, 몰린 병합은 20분 단위로 1개. 지난 24시간 기준 77개 → 약 13개(추정 계산).
+- 병합 뒤 운영 반영이 최대 20분쯤 늦다. PR·커밋에 붙던 Vercel 배포 표시는 Deploy Hook 배포에는 다르게 붙을 수 있다.
+- 공개 저장소라 GitHub Actions 시간은 무료다. 20분 기다리는 동안도 실행 시간으로 센다.
+- 되돌리려면 `vercel.json`의 `"main": false`를 지우고(0018 개정의 `ignoreCommand`를 다시 넣고) 워크플로 파일을 지운다.
+- **확인한 것:** 판정 스크립트를 임시 저장소에서 14가지로 시험(문서·루트 md·`.github/`·`interviews/`만 → 안 함, `app/`·`wiki/`·`sim/skills/`·`slides/`·`vercel.json` → 함, 운영 커밋 모름·없는 커밋·`force` → 함, 앱 변경 뒤 문서 변경이 몰린 경우 → 함). `npm test`·`npm run build` 통과.
+- **확인하지 못한 것(합친 뒤 첫 실행에서 볼 것):** `deploymentEnabled.main: false`가 Deploy Hook까지 막지 않는지(문서는 `github.enabled: false`만 막는다고 적음), Hook 배포가 production으로 붙는지, 건너뛴 배포가 정말 한도에 드는지. **막히면** Deploy Hook 대신 Vercel CLI(`vercel deploy --prod`, 토큰은 Secret)로 바꾼다.
+
+## 고르지 않은 것
+- **하루 몇 번 정해진 시간에만 배포:** 배포 수는 가장 적지만 반영이 몇 시간 늦어 QA·시연에 불편하다.
+- **팀 규칙만("병합은 몰아서"):** 설정이 필요 없지만 오늘처럼 몰리면 다시 터진다.
+- **Vercel Pro:** 비용이라 팀이 정할 일(0018과 같음).
+- **"마지막으로 부른 커밋"을 태그로 기억:** 한도에 걸려 배포가 실패해도 태그가 앞으로 가서 다시 부르지 않는다. 그래서 실제로 올라간 커밋을 묻는 방식을 골랐다.

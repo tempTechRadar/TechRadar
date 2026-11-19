@@ -6,6 +6,19 @@
 
 ---
 
+## I-deploy-via-actions · 2026-11-19 · production 배포를 GitHub Actions가 부른다(앱 코드가 바뀐 병합만, 20분 잠잠하면 한 번) (김영식)
+- 브랜치: `chore/deploy-via-actions` (main `3683977`)
+- 출처: 사용자 "머지완료" → 배포 실패 확인 → "허용"(다시 배포 → 하루 한도로 거절) → "한도 아끼는 방법 없냐" → 추천 1번(20분) "진행". 근거: ADR 0018(배포 횟수 아끼기), `CLAUDE.md` 10절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 11-19 main 병합 #150~#152 배포가 무료 하루 한도로 실패해 운영이 #143에 멈췄다. 지난 24시간 배포 기록 77개 중 30개는 문서만 바뀌어 건너뛴 것인데도 기록이 생겨 한도를 쓰고, 몰린 병합이 하나하나 배포됐다 |
+| 기대 결과 | 문서만 바뀐 병합은 배포 기록 0개, 몰린 병합은 20분 단위로 1개(지난 24시간 기준 77 → 약 13). 실패한 배포는 다음 판정·하루 한 번 따라잡기로 다시 부른다. 급하면 수동 실행 |
+| 영향 범위 | `vercel.json`(main 자동 배포 끔·`ignoreCommand` 지움·`test/*`·`perf/*` 미리보기 끔), 새 `.github/workflows/deploy-production.yml`·`.github/scripts/deploy-decision.sh`, 새 `app/api/version/route.ts`(커밋 번호만), ADR 0023·0018 개정, `CLAUDE.md` 10절, `debug-note`·`connectors` |
+| 제약 | Deploy Hook 주소는 비밀값이라 사람이 Vercel에서 만들고 GitHub Secret(`VERCEL_DEPLOY_HOOK_URL`)에 넣는다. 새 라이브러리 없음. 이 PR을 합치면 그 병합부터 새 방식이라 Secret이 먼저 있어야 한다 |
+| 열린 질문 | `deploymentEnabled.main: false`가 Deploy Hook까지 막는지(막히면 Vercel CLI + 토큰으로), 건너뛴 배포가 정말 한도에 드는지, 20분이 QA·시연에 너무 긴지 |
+
+**결과:** 판정 스크립트를 임시 저장소에서 14가지로 시험해 모두 기대대로(문서·루트 md·`.github/`·`interviews/`만 → 안 함, `app/`·`wiki/`·`sim/skills/`·`slides/`·`vercel.json` → 함, 운영 커밋 모름·저장소에 없는 커밋·`force` → 함, 앱 변경 뒤 문서 변경이 몰린 경우 → 함). 지난 24시간 실제 배포 시각에 20분 묶기를 적용하면 앱 빌드 47개 → 13개(계산). 못 한 것: 실제 Actions·Deploy Hook 실행(합친 뒤 첫 실행에서 확인).
 ## I-B-record-prompt-grants · 2026-11-19 · 프롬프트 규칙 기록과 쓰기 권한 점검 결과 (영역 B, 황재웅)
 - 브랜치: `docs/B-record-prompt-grants`(문서만). 코드 변경은 PR #154(합침)
 

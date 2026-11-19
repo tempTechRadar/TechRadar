@@ -1,13 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [{ "path": "/api/cron/daily", "schedule": "0 21 * * *" }],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs' ':(exclude)interviews' ':(exclude)rules' ':(exclude).claude' ':(exclude,glob)*.md' && exit 0 || exit 1",
   "git": {
     "deploymentEnabled": {
+      "main": false,
       "feat/*": false,
       "fix/*": false,
       "docs/*": false,
-      "chore/*": false
+      "chore/*": false,
+      "test/*": false,
+      "perf/*": false
     }
   }
 }
