@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"lib/**/*.test.ts\"",
-    "precheck": "git fetch origin && git --attr-source=4b825dc642cb6eb9a060e54bf8d69288fbee4904 merge-tree --write-tree --name-only origin/main HEAD && echo precheck OK - no conflict with origin/main",
+    "precheck": "git fetch origin && git --attr-source=4b825dc642cb6eb9a060e54bf8d69288fbee4904 merge-tree --write-tree --name-only origin/main HEAD && echo precheck OK - no conflict with origin/main && node supabase/precheck-migrations.mts",
     "eval": "node eval/run.ts"
   },
   "engines": {
