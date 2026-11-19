@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AiClient } from "../ai/ai-client.ts";
 import { COMMAND_NOTICE } from "../ai/parse-scenario-response.ts";
@@ -104,7 +105,7 @@ test("보안 알림: 요청 → 만드는 중 줄 → 대체 기술 비교표(�
 
   assert.deepEqual(result, { status: "created", scenarioId: "scenarios-1" });
   const inserted = user.writes.find((w) => w.table === "scenarios" && w.op === "insert");
-  assert.deepEqual([inserted?.value.alert_id, inserted?.value.requested_by, inserted?.value.status], ["al-1", "u1", "generating"]);
+  assert.deepEqual(inserted?.value, { alert_id: "al-1", requested_by: "u1" });
   assert.match(seen[0].user, /supergateway/);
   const saved = service.writes.find((w) => w.table === "scenarios" && w.op === "update")!.value;
   assert.equal(saved.status, "done");
@@ -241,4 +242,17 @@ test("결과를 저장하지 못해도 던지지 않고, 이미 든 호출은 �
   assert.equal(result.status, "failed");
   const call = service.writes.find((w) => w.table === "ai_calls")!.value;
   assert.deepEqual([call.status, call.tokens_in], ["failed", 100]);
+});
+
+// 운영 QA 11-19: 사용자 연결이 열 grant 밖의 칸(status)을 보내 "permission denied for table scenarios"로 시나리오가 늘 실패했다.
+// 사용자 insert가 보내는 칸이 마이그레이션의 grant 안에 드는지 묶어 둔다(my-tech-insert-columns.test.ts와 같은 방식).
+test("사용자 연결의 시나리오 insert는 마이그레이션이 연 칸만 보낸다", async () => {
+  const sql = readFileSync("supabase/migrations/202611181730_P-30_scenarios_insert_columns.sql", "utf8");
+  const granted = (sql.match(/^grant insert \(([^)]+)\) on public\.scenarios to authenticated;$/m)?.[1] ?? "").split(",").map((c) => c.trim());
+  assert.deepEqual(granted.sort(), ["alert_id", "requested_by"]);
+  const user = fakeDb(baseTables());
+  await run(user.db, fakeDb(baseTables()).db, fakeAi().ai);
+  const inserted = user.writes.filter((w) => w.table === "scenarios" && w.op === "insert");
+  assert.equal(inserted.length, 1);
+  for (const column of Object.keys(inserted[0].value)) assert.ok(granted.includes(column), `사용자 연결이 ${column}을 보냄`);
 });
