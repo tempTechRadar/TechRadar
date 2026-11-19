@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-5b-opportunity-redirect · 2026-11-19 · 서버 동작이 try 안에서 redirect해 이유가 "NEXT_REDIRECT"로 바뀌던 것 (영역 C, 차세일)
+- 브랜치: `fix/P-5b-opportunity-redirect` (main `4c48db3`)
+- 출처: 운영 `/admin/simulator?error=NEXT_REDIRECT`("적용 기회 1건 만들기", 11-19 팀장 세션 발견), PRD-F29, SPEC-3.5, 불변 2(숨기지 않기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `runOpportunityAction`이 try 안에서 `back()`(= redirect)을 불러, redirect가 던지는 NEXT_REDIRECT를 아래 catch가 잡고 `error=NEXT_REDIRECT`로 바꿨다. 시작하지 않은 이유(r.reason)가 사용자에게 안 보였다 |
+| 기대 결과 | 시작하지 않은 이유가 그대로 보인다. 같은 패턴이 다른 서버 동작에 없다 |
+| 영향 범위 | `app/admin/simulator/actions.ts`·`run-now/actions.ts`·`demo/actions.ts`(같은 패턴 3곳, 모두 영역 C), 새 시험 `lib/admin/redirect-in-try.test.ts`(모든 `app/**/actions.ts` 훑기) |
+| 제약 | 고친 방법: not-started 이유도 갈 곳(target)에 담아 try 밖에서 한 번만 redirect. `isRedirectError`(Next 내부 경로) 다시 던지기는 쓰지 않음 |
+| 열린 질문 | 없음 |
+
+**결과:** 규칙 시험(try 안에서 redirect·redirect 도우미 금지, 도우미는 파일마다 찾아냄)을 먼저 써서 3곳 실패 확인 → 고침. 다른 영역 서버 동작에는 없음. `npm test` 957개 중 956 통과·실패 0·할 일 1, 타입 오류 0, `next build --webpack` 성공, precheck OK.
+
 ## I-NF5-c-screens · 2026-11-19 · PRD-NF5 접근성을 영역 C 화면에 채우기 (차세일)
 - 브랜치: `fix/NF5-c-screens` (main `21ef4ed`)
 - 출처: 위키 연결지도의 "PR이 없는 요구" PRD-NF5(글자 대비, 키보드로 끝까지, 이미지 대체 텍스트), plan "접근성은 각자 자기 화면", 빅보스 지시
