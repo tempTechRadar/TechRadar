@@ -21,7 +21,7 @@
     h1 { margin: 20px 0 4px; font: 800 30px/1.2 var(--mono); letter-spacing: -.02em; overflow-wrap: anywhere; }
     .sub { margin: 0; font: 13px var(--mono); color: var(--muted); }
     .grade { margin: 20px 0 0; padding: 14px 16px; border-left: 4px solid var(--g, var(--dim)); background: rgba(255, 255, 255, .03); }
-    .grade b { display: block; font: 700 18px var(--mono); color: var(--g, var(--ink)); }
+    .grade b { display: block; font: 700 18px var(--mono); color: var(--ink); } /* 등급 색은 왼쪽 막대에만(흐린 회색 글자는 대비가 모자라서). 등급은 글자로 읽힌다 */
     .grade p { margin: 4px 0 0; }
     h2 { margin: 28px 0 8px; font: 700 14px var(--mono); color: var(--green); }
     dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; margin: 0; font: 13px/1.7 var(--mono); }
@@ -30,7 +30,7 @@
     li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--grid); }
     li i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
     .todo { font: 12px/1.6 var(--mono); color: var(--muted); }
-    .err { margin-top: 24px; color: var(--warn); font: 13px var(--mono); }
+    .err { margin-top: 24px; color: var(--ink); font: 13px var(--mono); } /* 노랑은 주의 등급에만 쓴다 */
   </style>
 </head>
 <body>
@@ -50,11 +50,11 @@
         <dt>최근 변경</dt><dd id="chg"></dd>
         <dt>쓰는 곳</dt><dd id="hosts"></dd>
         <dt>내 기술</dt><dd id="mine"></dd>
-        <dt>근거</dt><dd>OSV 기록 링크(실제 앱에서 출처마다 링크)</dd>
+        <dt>근거</dt><dd>OSV 기록(실제 앱에서는 출처마다 링크가 붙어요)</dd>
       </dl>
       <h2>같은 역할의 기술</h2>
       <ul id="nb"></ul>
-      <h2>더 들어갈 것 (IA-4)</h2>
+      <h2>아직 시안에 없는 것</h2>
       <p class="todo">최근 활동·라이선스, 사용량과 별(7일 증가), 이 기술에 대한 내 판단 기록, 쓰고 있어요(별명과 수), 사용기, 비교 모드. 시안에는 아직 없어요.</p>
     </div>
     <p class="err" id="err" role="alert" hidden>보여 줄 기술 정보가 없어요. 지도에서 점을 눌러 열어 주세요.</p>
@@ -62,7 +62,7 @@
   <script>
     (() => {
       const $ = (id) => document.getElementById(id);
-      const COLOR = { d: 'var(--danger)', w: 'var(--warn)', p: 'var(--lit)', u: 'var(--dim)', n: 'var(--dim)' };
+      const COLOR = { d: 'var(--danger)', w: 'var(--warn)', p: 'var(--dim)', u: 'var(--dim)', n: 'var(--dim)' }; // 통과는 최근 확인일 때만 청록(지도와 같게, 아래 fresh)
       $('back').addEventListener('click', () => { if (history.length > 1) history.back(); else location.href = 'map.html'; });
       let d = null;
       try { d = JSON.parse(new URLSearchParams(location.search).get('d') || 'null'); } catch { d = null; }
@@ -71,13 +71,13 @@
       document.title = `${text(d.name)} 상세 시안 (샘플)`;
       $('name').textContent = text(d.name);
       $('sub').textContent = `${text(d.kind)} · ${text(d.quad)} 갈래`;
-      $('gradeBox').style.setProperty('--g', COLOR[d.g] || 'var(--dim)');
+      $('gradeBox').style.setProperty('--g', d.g === 'p' && d.fresh ? 'var(--lit)' : COLOR[d.g] || 'var(--dim)');
       $('gradeLab').textContent = `보안 등급: ${text(d.grade)}`;
       $('why').textContent = text(d.why);
       $('last').textContent = text(d.last);
       $('chg').textContent = typeof d.chg === 'string' && d.chg ? d.chg : '없음';
       $('hosts').textContent = text(d.hosts) || '모름';
-      $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '아니에요(같은 역할로 보여 주는 기술)';
+      $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '내 기술 아님 · 비교용으로 보여 줘요';
       const nb = Array.isArray(d.nb) ? d.nb.filter((m) => m && typeof m === 'object') : []; // 주소가 망가져도 빈 화면이 되지 않게
       if (!nb.length) $('nb').innerHTML = '<li>이어진 기술이 없어요</li>';
       nb.forEach((m) => {

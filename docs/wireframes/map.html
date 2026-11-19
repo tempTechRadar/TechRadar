@@ -25,7 +25,7 @@
     canvas.node, canvas.pointer { cursor: pointer; } canvas.grabbing { cursor: grabbing; }
     canvas:focus-visible { outline: 2px solid var(--green); outline-offset: -4px; }
 
-    /* 위 한 줄: 로고·찾기·거르기·모두 펼치기. 보기 단추와 갈래 단추는 "도구"에 접어 둔다(단축키는 접혀도 그대로) */
+    /* 위 한 줄: 로고·움직임 멈추기·보기 방식·찾기·거르기·모두 펼치기·모두 접기. 화면 조작(전체 보기·확대·옮긴 점 되돌리기·표)·예시 점검·갈래 단추는 "도구"에 접어 둔다(단축키는 접혀도 그대로) */
     .title { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 16px 16px;
       background: linear-gradient(rgba(10, 14, 20, .94) 60%, rgba(10, 14, 20, 0)); pointer-events: none; }
     .title h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1; color: var(--green); }
@@ -33,7 +33,7 @@
     .tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; pointer-events: auto; }
     [role="toolbar"] { flex-basis: 100%; }
     #folds, #focusbar { flex-basis: 100%; }
-    .many { flex-basis: 100%; margin: 0; font: 12px/1.5 var(--mono); color: #fbbf24; } /* 점이 너무 많을 때 알림(R16). 숨기지는 않는다 */
+    .many { flex-basis: 100%; margin: 0; font: 12px/1.5 var(--mono); color: var(--ink); } /* 점이 너무 많을 때 알림(R16). 숨기지는 않는다. 노랑은 주의 등급에만 쓴다 */
     .title:not(.open) .opt, .title:not(.open) #folds { display: none; }
     .tbtn { font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .7); border: 1px solid transparent; border-bottom-color: var(--green-dim); padding: 0 12px; min-height: 44px; cursor: pointer; }
     .tbtn:hover, .tbtn[aria-pressed="true"], .tbtn[aria-expanded="true"] { border-color: var(--green); }
@@ -62,6 +62,7 @@
     .tree > ul { max-width: 820px; padding-left: 0; }
     .tree summary { display: flex; align-items: center; gap: 8px; min-height: 44px; color: var(--green); cursor: pointer; }
     .tree summary b { font-weight: 400; color: var(--ink); }
+    .tree summary::before { content: "▸"; width: 1em; color: var(--muted); } .tree details[open] > summary::before { content: "▾"; } /* flex로 바꾸면 기본 표시가 사라져 직접 단다 */
     .tree .rk { color: #f87171; }
     .tree .row { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--grid); }
     .tree .leaf { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 44px; padding: 0 8px; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; }
@@ -99,6 +100,10 @@
     .dpad .tbtn { padding: 0; border-color: var(--green-dim); }
     .stat { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 40%; margin: 0; text-align: center; font: 11px/1.6 var(--mono); color: var(--green-dim); text-shadow: 0 0 4px var(--bg); pointer-events: none; }
 
+    /* 짧은 알림: 위 단추 줄 바로 아래(아래쪽은 위험 삼각형·범례·옮기기 단추 자리). 같은 글을 화면 읽기 프로그램은 #say로 읽으므로 여기는 눈으로만(aria-hidden) */
+    .toast { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); z-index: 3; max-width: min(560px, calc(100% - 32px)); margin: 0; padding: 8px 14px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .95); border: 1px solid var(--green-dim); pointer-events: none; }
+    .tscroll { overflow-x: auto; } /* 좁은 화면에서 표가 페이지를 옆으로 밀지 않게 */
+
     details.table { padding: 8px 0 32px; }
     details.table summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font: 13px var(--mono); color: var(--green); }
     table { border-collapse: collapse; width: 100%; font: 13px var(--mono); }
@@ -114,8 +119,7 @@
     @media (max-width: 720px) {
       .title .hint { display: none; }
       .search { flex: 1 1 140px; } .search input { width: 100%; }
-      .stat { left: -9999px; } /* 좁은 화면엔 둘 자리가 없다. 화면 읽기 프로그램은 그대로 읽는다 */
-    }
+      .stat { left: -9999px; } /* 좁은 화면엔 둘 자리가 없다. 바뀐 알림은 짧은 알림(.toast)으로 보이고, 화면 읽기 프로그램은 그대로 읽는다 */    }
   </style>
 </head>
 <body>
@@ -134,7 +138,7 @@
           <button type="button" class="tbtn" data-view="host" aria-pressed="false">쓰는 곳 지도</button>
           <button type="button" class="tbtn" data-view="tree" aria-pressed="false">쓰는 곳 나무</button>
         </div>
-        <button type="button" class="tbtn opt" id="pause" aria-pressed="false" aria-keyshortcuts="Space"></button>
+        <button type="button" class="tbtn" id="pause" aria-pressed="false" aria-keyshortcuts="Space"></button>
         <button type="button" class="tbtn opt" id="fit" aria-keyshortcuts="0">전체 보기</button>
         <button type="button" class="tbtn opt" id="zin" aria-label="확대" aria-keyshortcuts="+">확대 +</button>
         <button type="button" class="tbtn opt" id="zout" aria-label="축소" aria-keyshortcuts="-">축소 −</button>
@@ -155,8 +159,8 @@
           </div>
         </details>
         <button type="button" class="tbtn" id="expAll"></button>
-        <button type="button" class="tbtn" id="foldAll">처음으로 접기</button>
-        <button type="button" class="tbtn" id="runBtn" title="시안: 예시 실행 기록을 읽어 선이 점검을 따라가요"></button>
+        <button type="button" class="tbtn" id="foldAll">모두 접기</button>
+        <button type="button" class="tbtn opt" id="runBtn" title="시안: 예시 실행 기록을 읽어 선이 점검을 따라가요. 실제 점검이 아니에요"></button>
       </div>
       <p class="many" id="many" role="status" hidden></p>
       <div class="tools" id="folds" role="group" aria-label="갈래 접기와 펴기"></div>
@@ -165,7 +169,7 @@
         <button type="button" class="tbtn" id="fdec" aria-keyshortcuts="1 2 3">단계 −</button>
         <span class="fname" id="fdepth"></span>
         <button type="button" class="tbtn" id="finc">단계 +</button>
-        <button type="button" class="tbtn" id="fexit" aria-keyshortcuts="Escape">전체 보기 (Esc)</button>
+        <button type="button" class="tbtn" id="fexit" aria-keyshortcuts="Escape">중심 보기 끝내기 (Esc)</button>
       </div>
       <p class="sr" id="qnote" role="status"></p>
     </header>
@@ -175,6 +179,7 @@
     </details>
     <p class="stat" id="stat" aria-hidden="true"></p>
     <p class="sr" id="say" role="status"></p>
+    <p class="toast" id="toast" aria-hidden="true" hidden></p>
     <div class="dock" role="group" aria-label="지도 옮기기와 위험 찾기">
       <div class="risk" id="risk">
         <button type="button" class="tbtn" id="rprev" aria-label="이전 위험·주의 점" aria-keyshortcuts="[">◀</button>
@@ -200,10 +205,10 @@
         <label>이름 <input id="tQ" type="search" placeholder="이름 일부" autocomplete="off"></label>
       </div>
       <p class="note" id="tableNote" role="status"></p>
-      <table>
+      <div class="tscroll"><table>
         <thead><tr><th scope="col">이름</th><th scope="col">종류</th><th scope="col">갈래</th><th scope="col">보안 등급</th><th scope="col">마지막 확인</th><th scope="col">최근 변경</th><th scope="col">펼치기</th></tr></thead>
         <tbody id="rows"></tbody>
-      </table>
+      </table></div>
     </details>
   </div>
 
