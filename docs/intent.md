@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-15-scenario · 2026-11-19 · 적용 시나리오(알림 상세 카드와 Claude 호출) (P-15, 영역 B, 황재웅)
+- 브랜치: `feat/P-15-scenario` (PR #120, 합침, 승인 김영식). 이 기록은 `docs/P-15-scenario-record`(문서만)
+- 출처: `docs/spec.md` SPEC-4.2·9, PRD-F18·NF6, ADR 0009·0010, IA-8, UJ-5, `docs/erd.md` `scenarios`·`ai_calls`, 와이어프레임 `docs/wireframes/scenario.html`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 알림 상세에 "적용 시나리오 만들기"가 없다(PRD-F18). P-13의 Claude 어댑터(#110)가 합쳐져 시작할 수 있게 됐다 |
+| 기대 결과 | 누를 때만 Claude를 불러 비교표·적용 단계·위험과 되돌리는 방법·출처를 저장하고 카드로 보여 준다. 판단은 건드리지 않는다(참고 자료, ADR 0010). 설치 명령은 쓰지 않는다(ADR 0009) |
+| 영향 범위 | 새 `lib/ai/build-scenario-prompt.ts`·`parse-scenario-response.ts`, `lib/server/scenario.ts`·`scenario-queries.ts`, `lib/alerts/to-scenario-view.ts`, `app/alerts/[id]/scenario-card.tsx`·`scenario-actions.ts`·`page.tsx`, `app/dev/scenario-sample/`. 기존 코드는 `wrapOutside`·`readSameRoleTechIds`에 `export`만. DB 변경 없음(기존 `scenarios` 표) |
+| 제약 | 카탈로그에 공식 설치 명령 칸이 없어 설치·실행 명령으로 보이는 줄은 모두 "공식 문서에서 직접 확인하세요"로 바꾼다. 비교표는 코드가 채우고 Claude는 단계·위험만 쓴다(PRD-NF6). 한도는 사용자당 하루 5번·서비스 하루 200번(한국 시간 0시). 실제 Claude·DB는 이 컴퓨터에서 못 씀 |
+| 열린 질문 | ① 실패해도 하루 5번 중 한 번을 쓰는 것(내 가정)이 맞는지 ② 설치 명령 거르기가 보수적이라 "docker 이미지 확인" 같은 일반 문장도 바뀔 수 있음 — 카탈로그에 공식 설치 명령 칸을 둘지 ③ "만드는 중" 10분 뒤 실패 처리 ④ 모델 종료(`model_eol`) 알림에 카드를 붙일지(3순위) |
+
+**결과:** PR #120을 합쳤다(승인 김영식). 새 시험 34개를 먼저 실패시킨 뒤 구현했고, 코드를 일부러 망가뜨려 시험이 잡는지 8곳 확인했다. main 합친 뒤 전체 793개 중 792 통과, 실패 0, todo 1. **확인하지 못한 것:** 실제 Claude 응답, `scenarios` 표의 권한(RLS)·서비스 키 결과 쓰기, 로그인한 실제 화면, Vercel `maxDuration`. 사람 QA 1건은 No Run(`docs/qa.md`).
+
+---
+
 ## I-p13-prod-key-check · 2026-11-19 · P-13 운영 키 확인 결과로 낡은 "못 본 것" 문장 바로잡기 (김영식)
 - 브랜치: `docs/p13-prod-key-check` (main `406fe92`). 코드 변경 없음, 기록만
 - 출처: 사용자 "/ego-browser 해봐"(운영 흐름 화면 확인)와 "진행"(문서 갱신 승인), `docs/intent.md` I-p13-real-call-check(PR #118, 합침), PRD-F15·NF6, SPEC-9, 제품 불변 6(흐름 화면은 실제 기록으로 칠함)
