@@ -10,6 +10,7 @@ import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
 import { createAlertsForChange, type CreateAlertsInput } from "./alerts.ts";
 import { readLatestChange, saveChange, type NewChange } from "./changes.ts";
 import { CollectError, queryOsv, type ErrorKind } from "./collect-fetch.ts";
+import { countKinds } from "./collect-util.ts";
 import { insertObservation, markError, readOsvSource, readOsvTargets, saveGrade } from "./osv-store.ts";
 import { recordStep } from "./run-log.ts";
 
@@ -124,11 +125,6 @@ async function ensureDanger(run: Run, t: OsvTarget, result: GradeResult): Promis
   tally.alerts += await d.createAlerts(db, { changeId, techId: t.techId, kind: "security" });
   tally.dangers++; // 알림 만들기까지 끝난 위험 기술만 센다(실패했는데 notify를 성공으로 남기지 않게)
 }
-
-const countKinds = (failed: Failure[]) =>
-  Object.entries(failed.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.kind]: (acc[f.kind] ?? 0) + 1 }), {}))
-    .map(([kind, n]) => `${kind} ${n}`)
-    .join(", ");
 
 const sourceFailure = (t: Tally) =>
   new CollectError(t.failed[0].kind, `OSV를 다 읽지 못했어요(읽음 ${t.read}개, 실패 ${t.failed.length}개: ${countKinds(t.failed)}${t.blocked ? ", 한도 초과로 중단" : ""}). 첫 오류: ${t.failed[0].message}`);

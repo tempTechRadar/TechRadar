@@ -25,7 +25,7 @@ function fixedVersionOf(currValue: unknown): string | null {
 }
 
 export async function saveJudgment(db: SupabaseClient, actor: JudgmentActor, request: JudgmentRequest): Promise<JudgmentResult> {
-  if (actor.role === "admin") return refused("관리자는 판단을 저장할 수 없어요.");
+  // 관리자도 자기 알림에는 판단을 저장한다(ADR 0016). 남의 알림은 아래 getMyAlert(본인 것만)에서 거절되고, DB save_judgment도 막는다(불변 1·5).
   const alert = await getMyAlert(db, actor.id, request.alertId).catch((e) => {
     console.error("판단할 알림을 읽지 못함", maskSecrets(String(e?.message ?? e)));
     return "read-failed" as const;

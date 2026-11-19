@@ -25,10 +25,13 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const supabase = (await getServerSupabase())!;
   const { data, error: loadError } = await supabase
     .from("projects")
-    .select("id, name, kind, repo_url, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name))")
+    .select("id, name, kind, repo_url, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name)), runs!runs_project_id_fkey(status, created_at)")
     .eq("owner_id", user.id)
     .is("archived_at", null)
     .order("created_at");
+  // runs: 마지막 읽기 상태 안내용. 본인의 첫 읽기·다시 읽기만 RLS로 보이고, 최신 선택은 readStatusNotice가 created_at으로 한다(서버 정렬에 기대지 않음).
+  // 외래키 이름을 적어 나중에 projects↔runs 연결이 늘어도 이 목록 전체가 깨지지 않게 한다.
+  // shortcut: runs에 project_id 인덱스가 없어 행이 수만 개가 되면 느려진다. 그때 runs(project_id, created_at) 인덱스를 더하거나 프로젝트별 최신 1개만 읽는다.
   // DB 타입을 생성하기 전이라 다대일(technologies)도 배열로 추론된다. 실제 응답은 한 줄 객체.
   const projects = (data ?? []) as unknown as ProjectRow[];
   const term = searchTerm(query.q ?? "");
@@ -53,7 +56,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </label>
         <button className="btn btn-primary" type="submit">등록하고 읽기</button>
       </form>
-      <p className="muted">package.json과 .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
+      <p className="muted">package.json, requirements.txt, .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
       {query.notice && NOTICE_TEXT[query.notice] && <p className="notice notice-empty" role="status">{NOTICE_TEXT[query.notice]}</p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 "누가·언제 바꿨는지" 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}

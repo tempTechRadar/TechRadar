@@ -21,3 +21,13 @@ test("Supabase 공개 설정은 주소와 키가 둘 다 있어야 한다", () =
     { url: "https://x.supabase.co", anonKey: "k" },
   );
 });
+
+test("Supabase 주소는 프로젝트 주소만 쓴다: /rest/v1 같은 경로·끝 슬래시·공백은 떼어 낸다(로그인이 /rest/v1/auth/v1로 가지 않게)", () => {
+  for (const raw of ["https://x.supabase.co/rest/v1", "https://x.supabase.co/rest/v1/", "https://x.supabase.co/", "  https://x.supabase.co  ", "https://x.supabase.co/auth/v1"]) {
+    assert.equal(readSupabasePublicConfig({ NEXT_PUBLIC_SUPABASE_URL: raw, NEXT_PUBLIC_SUPABASE_ANON_KEY: "k" })?.url, "https://x.supabase.co", raw);
+  }
+});
+
+test("Supabase 주소가 주소 모양이 아니면 연결 전(null)으로 본다", () => {
+  assert.equal(readSupabasePublicConfig({ NEXT_PUBLIC_SUPABASE_URL: "x.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "k" }), null);
+});

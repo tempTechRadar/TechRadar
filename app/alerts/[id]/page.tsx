@@ -54,8 +54,6 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           <h2 id="judged-title">내 판단</h2>
           <p>{view.judgmentLine}</p>
         </article>
-      ) : user.role === "admin" ? (
-        <p className="muted">관리자는 판단을 저장할 수 없어요.</p>
       ) : (
         <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} />
       )}
