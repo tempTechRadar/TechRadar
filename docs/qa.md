@@ -71,6 +71,7 @@
 | 배포 주소에서 저장소 등록 다시 (위 Fail 행을 고친 뒤, P-3·P-9e, PRD-F4·F6, UJ-1) | 운영 `SUPABASE_SERVICE_ROLE_KEY`를 사람이 다시 넣고 #114를 다시 배포한 뒤(2회째), 같은 저장소를 "등록하고 읽기" | 프로젝트가 생기고 스킬 2개가 내 기술로 보임 | 15초 만에 프로젝트 "TechRadar"가 생기고 `abbs-log`·`stage-check`가 "찾지 못함"·출처 `.claude/skills/<이름>`으로 보임. 중간 시도: 키 값이 맞지 않아 `Invalid API key`(01:51 UTC) → 값을 다시 넣어 해결 | Pass | Claude, 2026-11-19 | 작업 `I-google-login-site-url`, Vercel 기록 |
 | 배포 주소의 내 실행 기록 (P-6, PRD-F28, 불변 6) | 등록 직후 `/projects/runs` | 방금 실행이 실제 기록대로 칠해짐 | "처음 등록 읽기 · 성공 · 7초 · 2건", 저장소 파일 읽기·내 기술 뽑기·등급 계산·사건인가?가 성공, 나머지는 안 켜짐 | Pass | Claude, 2026-11-19 | 작업 `I-google-login-site-url` |
 | 배포 주소에서 알림 → 판단 → 기록 (M0, PRD-F14·F17·F22) | 위험 기술이 있는 저장소나 직접 추가가 필요 | 알림이 생기고 판단 저장 뒤 기록에 남음 | 시험할 재료가 없음: `mcp-remote`가 모은 기술에 없어 직접 추가로는 경고가 안 오고, GitHub 코드 검색으로 찾은 공개 저장소(.mcp.json 6곳)는 모두 고친 버전(0.1.29~0.1.43). 시험 계정은 관리자가 아니라 시뮬레이터도 못 씀 | No Run | Claude, 2026-11-19 | 작업 `I-google-login-site-url` |
+| 시뮬레이터 알림 근거·조치 실행 잇기 (P-5, PRD-F14·F29, 불변 5·6) | `simulator.test.ts`(변경 값·알림 상세 문구), `alerts.test.ts` 2개·`opportunity-alerts.test.ts` 1개(가짜 변경은 runId를 알림 줄에, 진짜 변경은 runId가 있어도 안 적음) | 상세에 GHSA·심각도·OSV 주소·쉬운 이유, 다시 누른 실행의 알림이 그 실행에 이어짐 | 새·고친 시험 모두 통과, 전체 819개 중 818 통과·todo 1·실패 0. 운영 화면은 합친 뒤 확인 | Pass(가짜 DB만) | Claude, 2026-11-19 | 작업 `I-simulator-alert-evidence` |
 
 ## 사람 QA
 | 검사 항목 | 방법 | 정상이면 보이는 것 | 주의점 | 상태 | 수행자, 날짜 | 증거 |

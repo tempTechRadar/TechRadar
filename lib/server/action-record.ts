@@ -13,7 +13,7 @@ type Row = Record<string, any>;
 const one = (raw: Row | Row[] | null | undefined): Row | null => (Array.isArray(raw) ? raw[0] ?? null : raw ?? null);
 
 /**
- * 알림이 생긴 실행 id. 알림 줄의 run_id(읽은 본인의 실행)를 먼저 본다. 없으면(옛 알림·시뮬레이터) 변경 → 수집 자료 경로로, 그것도 없으면 null.
+ * 알림이 생긴 실행 id. 알림 줄의 run_id(읽은 본인의 실행)를 먼저 본다. 없으면(옛 알림·남의 읽기에서 생긴 알림) 변경 → 수집 자료 경로로, 그것도 없으면 null.
  * 변경 경로는 공유 변경이면 다른 사람의 실행을 가리킬 수 있어서 run_id가 우선이다(불변 5).
  */
 async function runOfAlert(db: SupabaseClient, alertId: string): Promise<string | null> {
