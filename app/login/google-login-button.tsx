@@ -26,7 +26,7 @@ export default function GoogleLoginButton({ next }: { next?: string }) {
 
   return (
     <div>
-      <button type="button" onClick={onClick} disabled={busy} style={{ minHeight: 44, padding: "8px 16px" }}>
+      <button type="button" className="btn btn-primary" onClick={onClick} disabled={busy}>
         {busy ? "구글로 이동하는 중…" : "구글로 계속하기"}
       </button>
       {message && <p role="status">{message}</p>}

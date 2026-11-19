@@ -48,7 +48,8 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
 
   return (
     <main>
-      <p><Link href="/projects">← 내 프로젝트</Link></p>
+      {/* 메뉴에서 빠진 대시보드·비교로 가는 길(design.md 13절 1). 칸반으로 바뀔 때(P-12d-screens) 숫자 칸에 붙인다 */}
+      <p><Link href="/projects">← 내 프로젝트</Link> · <Link href="/dashboard">숫자로 보기(대시보드)</Link> · <Link href="/compare">기술 비교</Link></p>
       <h1>보기</h1>
       <nav aria-label="보기 바꾸기" style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
         {TABS.map(([k, name]) => (

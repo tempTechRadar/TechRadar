@@ -1,13 +1,14 @@
-/* 알림 화면 스타일. 토큰은 docs/design.md, 모양은 docs/wireframes/alerts.html과 같다. .alerts 안에서만 적용한다. */
+/* 알림 화면 스타일. 값은 공용 토큰(app/tokens.css)을 가리키고, 모양은 docs/wireframes/alerts.html과 같다. .alerts 안에서만 적용한다.
+   상태 안내 글자·옅은 바탕은 글자로 읽혀야 해서(4.5:1) 공용 상태 색 대신 여기 값을 둔다 */
 .alerts {
-  --color-text: #111827;
-  --color-muted: #4b5563;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f9fafb;
-  --color-border: #e5e7eb;
-  --color-border-strong: #6b7280;
-  --color-primary: #000000;
-  --color-on-primary: #ffffff;
+  --color-text: var(--ink);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--sunken);
+  --color-border: var(--line);
+  --color-border-strong: var(--ink-2);
+  --color-primary: var(--ink);
+  --color-on-primary: var(--on-ink);
   --color-danger: #b91c1c;
   --color-danger-bg: #fef2f2;
   --color-warning: #b45309;
@@ -15,23 +16,23 @@
   --color-success: #15803d;
   --color-success-bg: #f0fdf4;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --space-1: var(--sp-1);
+  --space-2: var(--sp-2);
+  --space-3: var(--sp-3);
+  --space-4: var(--sp-4);
+  --space-5: var(--sp-5);
+  --space-6: var(--sp-6);
 
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-md: 16px;
-  --text-lg: 20px;
-  --text-xl: 24px;
-  --text-2xl: 32px;
+  --text-xs: var(--fs-cap);
+  --text-sm: var(--fs-sm);
+  --text-md: var(--fs-body);
+  --text-lg: var(--fs-h2);
+  --text-xl: var(--fs-h1);
+  --text-2xl: 32px; /* 대시보드 큰 숫자만 */
 
-  --font-sans: Geist, system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-sans: var(--font);
   --font-mono: "Fira Code", ui-monospace, Consolas, monospace;
-  --radius: 6px;
+  --radius: var(--r-md);
   font-family: var(--font-sans); color: var(--color-text);
 }
 .alerts h1 { font-size: var(--text-xl); margin: 0 0 var(--space-3); }
