@@ -1,0 +1,50 @@
+# main 배포를 모아서 한 번에(ADR 0018 개정 2). Vercel의 main 자동 배포는 vercel.json에서 껐다.
+# 코드가 바뀐 병합만 이 작업을 깨우고, 10분 동안 다음 병합이 없으면 그때의 main 끝을 배포 훅으로 한 번 배포한다.
+# 문서만 바뀐 병합은 아예 깨우지 않는다(예전 ignoreCommand와 같은 제외 목록). 10분 안에 코드 병합이 또 오면 앞 실행은 취소되고 뒤 실행이 기다린다.
+name: main 배포 모으기
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "interviews/**"
+      - "rules/**"
+      - ".claude/**"
+      - "*.md"
+  workflow_dispatch:
+    inputs:
+      wait_minutes:
+        description: "배포 전에 기다릴 분(바로 배포는 0)"
+        type: number
+        default: 0
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: 다음 병합을 기다리기
+        env:
+          # format으로 글자로 바꾼다: 숫자 0은 && || 식에서 거짓이라 10으로 바뀌어 버린다
+          WAIT_MINUTES: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.wait_minutes) || '10' }}
+        run: sleep $(( WAIT_MINUTES * 60 ))
+      - name: Vercel 배포 훅 부르기
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::저장소 비밀값 VERCEL_DEPLOY_HOOK_URL이 없어 배포하지 못했어요(ADR 0018 개정 2의 설정 순서 참고)"
+            exit 1
+          fi
+          code=$(curl -sS -o response.json -w "%{http_code}" -X POST "$HOOK")
+          echo "배포 훅 응답: HTTP $code"
+          # 응답에는 작업 id만 있다(훅 주소는 출력하지 않는다)
+          cat response.json; echo
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ] || { echo "::error::배포 훅이 실패했어요(HTTP $code)"; exit 1; }
