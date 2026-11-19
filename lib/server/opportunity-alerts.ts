@@ -10,7 +10,7 @@ type Input = { changeId: string; techId: string; onlyDemo?: boolean; runId?: str
 type Result = { created: number; people: number };
 
 const COMPARABLE_COLUMNS =
-  "id, tech_key, display_name, created_at, grade, grade_reason, grade_evidence, one_liner, one_liner_source, last_activity_at, last_activity_kind, repo_url, license, signals";
+  "id, tech_key, display_name, created_at, status, grade, grade_reason, grade_evidence, one_liner, one_liner_source, last_activity_at, last_activity_kind, repo_url, license, signals";
 
 // 짝은 작은 id가 a라서 새 기술이 어느 쪽에 있어도 상대편을 가져온다.
 async function readRelations(db: SupabaseClient, techId: string): Promise<OpportunityRelation[]> {
@@ -40,7 +40,7 @@ export async function createOpportunityAlerts(db: SupabaseClient, input: Input):
   const usages = (await readUsages(db, [input.techId, ...relatedIds])).map((usage) => ({ ...usage, techKey: techs.get(usage.techId)?.tech_key ?? "" }));
   const alerts = decideOpportunityAlerts({
     change: { id: input.changeId, isSimulated },
-    newTech: { id: input.techId, techKey: newTech.tech_key, grade: newTech.grade, createdAt: newTech.created_at },
+    newTech: { id: input.techId, techKey: newTech.tech_key, grade: newTech.grade, status: newTech.status, createdAt: newTech.created_at },
     relations,
     usages,
     existingAlertKeys: await readExistingAlertKeys(db, input.changeId),
