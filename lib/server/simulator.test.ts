@@ -112,6 +112,10 @@ test("runSimulator: 고친 버전은 fixed_version 키로 저장해 알림 화�
     change: { kind: "grade_to_danger", techName: "mcp-remote", detectedAt: null, prevValue: saved[0].prevValue, currValue: saved[0].currValue, draft: null },
   });
   assert.equal(view.canCandidate, true);
+  // QA 11-19: 근거·쉬운 이유가 비어 상세가 "찾지 못함"뿐이었다
+  const lines = view.lines.join("\n");
+  assert.match(lines, /무엇이 바뀌었나: GHSA-6xpm-ggf7-wc3p \(심각도 CRITICAL\) \(https:\/\/osv\.dev\/vulnerability\/GHSA-6xpm-ggf7-wc3p/);
+  assert.match(lines, /쉬운 이유: 이 버전\(0\.1\.15\)에 심각도 CRITICAL.*0\.1\.16 이상으로 올리면/);
 });
 
 test("runSimulator: 기술이 동시에 만들어져 upsert가 빈 줄을 돌려주면 다시 읽어 그 id를 쓴다", async () => {
