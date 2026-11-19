@@ -11,6 +11,7 @@ export const ADMIN_TABS = [
   { id: "flow", href: "/admin/flow", label: "흐름 화면" },
   { id: "classify", href: "/admin/classify", label: "분류 확인" },
   { id: "simulator", href: "/admin/simulator", label: "시뮬레이터" },
+  { id: "chat", href: "/admin/chat", label: "위키 챗봇" },
 ] as const;
 
 type Props = { tab: string; title: string; lead?: string; blocked?: "forbidden" | "no_db"; error?: string | null; children?: ReactNode };
