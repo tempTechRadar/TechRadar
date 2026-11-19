@@ -9,7 +9,8 @@ import { CollectError, errorKindOf, fetchText, type ErrorKind } from "./collect-
 // shortcut: 읽기 한 번에 스킬 30개까지(폴더마다 SKILL.md 요청 1번, 한꺼번에). 넘는 폴더가 흔해지면 한도와 동시 요청 수를 함께 손본다.
 const MAX_SKILLS = 30;
 
-export type SkillError = { path: string; kind: ErrorKind; message: string };
+/** onlyUnread = 스킬 폴더 아래에서 이번에 못 읽은 줄만 가리킨다(한도 뒤의 스킬). 없으면 path 하나 또는 폴더 전체 */
+export type SkillError = { path: string; kind: ErrorKind; message: string; onlyUnread?: boolean };
 export type SkillRead = { found: FoundTech[]; errors: SkillError[]; folders: number };
 
 const messageOf = (e: unknown) => String(e instanceof Error ? e.message : e);
@@ -30,9 +31,8 @@ export async function readSkills(repo: { owner: string; repo: string }): Promise
     return out;
   }
   out.folders = names.length;
-  // 한도 뒤의 스킬은 읽지 않았으니 그 스킬 줄만 수집 오류로 남긴다(읽은 30개까지 오류로 덮지 않게, 불변 2)
-  const skipped = `스킬 폴더가 ${names.length}개라 앞의 ${MAX_SKILLS}개만 읽음`;
-  for (const name of names.slice(MAX_SKILLS)) out.errors.push({ path: `${SKILLS_DIR}/${name}`, kind: "parse", message: skipped });
+  // 한도 뒤의 스킬은 읽지 않았으니 이번에 못 읽은 스킬 줄만 수집 오류로(읽은 30개는 덮지 않게, 불변 2). 폴더가 아무리 많아도 오류는 하나·DB 갱신은 한 번
+  if (names.length > MAX_SKILLS) out.errors.push({ path: SKILLS_DIR, kind: "parse", message: `스킬 폴더가 ${names.length}개라 앞의 ${MAX_SKILLS}개만 읽음`, onlyUnread: true });
   const reads = await Promise.all(names.slice(0, MAX_SKILLS).map(async (name) => {
     try {
       return { name, md: await fetchText(`https://raw.githubusercontent.com/${o}/${r}/HEAD/${SKILLS_DIR}/${encodeURIComponent(name)}/${SKILL_FILE}`) };

@@ -52,9 +52,10 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음).
   // 목록이 전부가 아닐 수 있다는 안내(soft, requirements.txt의 -r)는 읽은 기술 줄의 잘못이 아니라서 줄에 딱지를 붙이지 않는다.
   for (const f of fileErrors.filter((e) => !e.soft)) {
-    // 스킬 폴더 목록을 못 읽었으면 그 아래 스킬 줄 모두(".claude/skills/<이름>")가 대상이다
+    // 스킬 폴더 오류는 그 아래 스킬 줄(".claude/skills/<이름>") 모두, 한도로 일부만 읽었으면 그중 이번에 못 읽은 줄만 대상이다
     const q = db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId);
-    const r = await (f.path === SKILLS_DIR ? q.like("source_file", `${SKILLS_DIR}/%`) : q.eq("source_file", f.path));
+    const skillRows = () => q.like("source_file", `${SKILLS_DIR}/%`);
+    const r = await (f.path !== SKILLS_DIR ? q.eq("source_file", f.path) : f.onlyUnread ? skillRows().or(`read_at.is.null,read_at.lt."${readAt}"`) : skillRows());
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
   if (dropped.length) {
@@ -112,7 +113,7 @@ function runStatus(fileErrors: FileError[], osvErrors: number, filesParsed: numb
 }
 
 /** soft = 파일은 읽었지만 일부를 못 읽었다는 안내(그 파일에서 읽은 기술 줄에는 오류 딱지를 붙이지 않는다) */
-type FileError = { path: string; kind: ErrorKind; message: string; soft?: boolean };
+type FileError = { path: string; kind: ErrorKind; message: string; soft?: boolean; onlyUnread?: boolean };
 
 /** 연 파일이 하나도 없는데 일부는 404일 때: "파일 없음"인지 저장소가 안 열린 것인지 저장소부터 확인한다(404는 비공개·없는 저장소도 같다, 불변 2). */
 async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<FileError[]> {

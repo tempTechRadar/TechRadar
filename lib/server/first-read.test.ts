@@ -442,6 +442,17 @@ test("스킬 하나의 SKILL.md를 못 읽으면 그 스킬만 수집 오류, �
   assert.ok(marks[0].chain.some((c) => c.m === "eq" && c.args[0] === "source_file" && c.args[1] === ".claude/skills/broken"), "그 스킬 줄만 대상");
 });
 
+test("스킬이 30개를 넘으면 이번에 못 읽은 스킬 줄만 한 번에 수집 오류(읽은 30개는 덮지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, skills: listing(...Array.from({ length: 31 }, (_, i) => `s${String(i).padStart(2, "0")}`)) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.equal(r.status, "partial");
+  const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind);
+  assert.equal(marks.length, 1, "DB 갱신은 한 번");
+  assert.ok(marks[0].chain.some((c) => c.m === "like" && c.args[1] === ".claude/skills/%"));
+  assert.ok(marks[0].chain.some((c) => c.m === "or" && /read_at\.lt\./.test(String(c.args[0]))), "이번에 읽지 않은 줄만");
+});
+
 test("스킬 오류만으로는 '실패'가 아니다: 저장소 파일을 읽었으면 일부 성공", async (t) => {
   stubWeb(t, { files: { "package.json": PKG }, skills: status(500) });
   const r = await registerAndRead(USER, REPO, { db: fakeDb().db });

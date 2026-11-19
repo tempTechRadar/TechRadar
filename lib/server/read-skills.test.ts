@@ -52,7 +52,7 @@ test("스킬이 30개를 넘으면 앞의 30개만 읽고, 못 읽은 스킬만 
   assert.equal(r.found.length, 30);
   assert.equal(r.folders, 31);
   assert.equal(urls.length, 31);
-  assert.deepEqual(r.errors.map((e) => [e.path, e.kind]), [[".claude/skills/s30", "parse"]]);
+  assert.deepEqual(r.errors.map((e) => [e.path, e.kind, e.onlyUnread]), [[".claude/skills", "parse", true]]); // 폴더가 많아도 오류는 하나
   assert.match(r.errors[0].message, /31개라 앞의 30개만/);
 });
 
