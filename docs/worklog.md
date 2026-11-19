@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-a11y-tap-targets | 누르는 칸 고침: 운영 실제 화면 접근성 점검에서 나온 작은 클릭 대상(메뉴 링크 20px·로그아웃 19px·주소 입력칸 17px·표 링크 16~19px)을 메뉴 44px·입력칸 44px·표 링크 24px로 키움. 고침 전은 운영 값을 재현해 재고 고친 뒤 비교. 시험 3개, DB 변경 없음 | 나(요청 "진행") · Claude(측정·수정·시험) | `fix/a11y-tap-targets`, `docs/intent.md` I-a11y-tap-targets, `docs/qa.md` |
 | I-qa-run-areaA | QA No Run 정리 1차: 운영 응답 헤더 행을 Pass로(다섯 헤더 확인), 로그인 없는 점검을 새 화면까지 다시 돌려 Pass, 사람 QA 흐름 화면 세 행에 Claude 관찰 메모(사람 확인 아님). 읽기 요청만, 코드·DB 변경 없음 | 나(요청 "진행") · Claude(실행·기록) | `docs/qa-run-areaA`, `docs/intent.md` I-qa-run-areaA, `docs/qa.md` |
 | I-admin-runs-demo-copy | 관리자 화면 문구 2곳: 수집 실행 탭의 꺼진 "지금 한 번 실행" 자리를 `/admin/run-now` 링크로, 실패 시연 ⑤의 "관리자는 판단할 수 없으니"를 ADR 0016 문구로. 소스 훑기 시험 2개 먼저 | 차세일(Claude) | `app/admin/runs/page.tsx`, `app/admin/demo/page.tsx` |
 | I-P-9c-prompt-wrap | AI 입력 감싸기: P-9c 검토 높음 2건이 이미 해결된 것을 현재 main과 대조해 확인하고(트리거·활동 중 우선), 남은 구멍인 대응안·시나리오 프롬프트의 기술 이름·근거·비교표를 `<자료>` 안에만 넣게 고침. DB 변경 없음 | 나(요청 "다음 작업") · Claude(대조·작성·시험) | `fix/P-9c-prompt-wrap`, `docs/intent.md` I-P-9c-prompt-wrap |
