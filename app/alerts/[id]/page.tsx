@@ -1,17 +1,23 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { toScenarioView } from "@/lib/alerts/to-scenario-view";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { readScenarioState } from "@/lib/server/scenario-queries";
 import { readSimilarJudgments } from "@/lib/server/similar-judgments";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { DraftCard } from "./draft-card";
 import { JudgmentForm } from "./judgment-form";
 import { ComparisonCard, ReasonCard } from "./opportunity-cards";
+import { ScenarioCard } from "./scenario-card";
 import { SimilarCard } from "./similar-card";
 import "../alerts.css";
 
-// 알림 상세(IA-7, PRD-F15). 적용 기회는 이유와 비교표(P-14). 대응안 초안은 P-13, 적용 시나리오는 P-13 인프라(Claude 한도) 뒤에 붙인다.
+// 알림 상세(IA-7, PRD-F15). 적용 기회는 이유와 비교표(P-14), 대응안 초안(P-13), 적용 시나리오(P-15, IA-8).
+// 적용 시나리오 만들기는 Claude를 부르는 서버 액션이라 시간이 걸린다(Vercel 함수 한도를 늘림).
+export const maxDuration = 60;
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +32,8 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
   const similar = await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
+  const scenario = loaded.record.kind === "model_eol" ? undefined
+    : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   return (
     <main className="alerts">
       <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
@@ -49,6 +57,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
       {view.reasonLine && <ReasonCard line={view.reasonLine} />}
       {view.comparison && <ComparisonCard comparison={view.comparison} />}
       <SimilarCard similar={similar} />
+      {scenario !== undefined && <ScenarioCard alertId={loaded.record.id} card={scenario} />}
       {view.judgmentLine ? (
         <article className="card" aria-labelledby="judged-title">
           <h2 id="judged-title">내 판단</h2>
