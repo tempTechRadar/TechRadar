@@ -151,7 +151,9 @@
       <li>package.json: 기술 2개</li><li>.mcp.json: 기술 2개</li><li>.claude/skills/: 기술 1개</li></ul>
       <p><b>첫 점검:</b> 보안 위험 1 · 주의 1. 읽지 못한 파일이 있으면 "수집 오류"로 따로 보여요.</p>
       <a class="btn primary" href="#map" data-act="toMap">지도에서 내 기술 보기</a></div>`;
-    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">아직 내 프로젝트가 없어요. 모은 기술 전체를 분야별로 보여 줘요. <a class="btn primary" href="#start/repo">내 프로젝트 등록하기</a></p>
+    // 지도는 로그인 없이 누구나 본다(사용자 11-20). 모은 기술만 보이고, 관심·판단·내 기술·알림은 로그인 뒤
+    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 모은 기술 지도를 볼 수 있어요. 관심 · 판단 · 내 기술 비교는 로그인하면 열려요.
+      <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a></p>
       <div class="map-box" style="margin-top:10px">${mapSvg('', true)}</div>`;
   }
 
@@ -180,7 +182,7 @@
 
   function alertsView() {
     return `<h1 tabindex="-1">알림</h1><p class="muted">내 기술에 생긴 일 가운데 내 판단이 필요한 것만 와요.</p>
-      <ul class="list">${ALERTS.map((a) => `<li><div><span class="tag">${a.kind}</span> <b>${a.tech}</b><br>${a.what}<br><span class="muted">${a.at}</span></div>
+      <ul class="list">${ALERTS.map((a) => `<li><div><b>${a.tech}</b><div class="row" style="margin:2px 0"><span class="tag strong">${a.kind}</span><span class="tag">${FIELDS[byId[a.tech].f]}</span><span class="tag">${byId[a.tech].kind}</span>${tagRow(byId[a.tech])}</div>${a.what}<br><span class="muted">${a.at}</span></div>
         <div class="row"><span class="tag${a.status === 'wait' ? ' strong' : ''}">${a.status === 'wait' ? '판단 대기' : '완료 · ' + (a.kind === '보안 경고' && a.result === 'cand' ? '고친 버전으로' : JN[a.result])}</span><a class="btn" href="#alert/${a.id}">${a.status === 'wait' ? '판단하기' : '보기'}</a></div></li>`).join('')}</ul>`;
   }
 
@@ -200,13 +202,16 @@
 
   function recordsView() {
     return `<h1 tabindex="-1">기록</h1><p class="muted">지난 판단과 이유예요. 비슷한 기술이 나오면 여기서 다시 찾아요.</p>
-      <div class="tools"><label class="search">${icon('search')}<input id="rq" placeholder="기술 이름이나 이유로 찾기" aria-label="기록 찾기"></label>
+      <div class="tools"><label class="search">${icon('search')}<input id="rq" placeholder="기술 이름 · 이유 · 코멘트 · 태그로 찾기" aria-label="기록 찾기"></label>
         <select id="rj" aria-label="판단으로 거르기"><option value="">모든 판단</option>${['cand', 'int', 'hold'].map((j) => `<option value="${j}">${JN[j]}</option>`).join('')}</select></div>
       <ul class="list" id="rlist">${recordRows()}</ul>`;
   }
   function recordRows(q = '', j = '') {
-    const l = records.filter((r) => (!j || r.j === j) && (r.id + r.why).toLowerCase().includes(q.toLowerCase()));
-    return l.map((r) => `<li><div><span class="muted">${r.at}</span> · <b>${r.id}</b> · ${r.label || JN[r.j]}<br>${esc(r.why) || '<span class="muted">이유 없음</span>'}</div><a class="btn" href="#tech/${r.id}">상세</a></li>`).join('') || '<li><div class="muted">맞는 기록이 없어요.</div></li>';
+    const l = records.filter((r) => (!j || r.j === j) && (r.id + r.why + r.note + byId[r.id].tags.join(' ')).toLowerCase().includes(q.toLowerCase()));
+    return l.map((r) => { const t = byId[r.id]; return `<li><div><span class="muted">${r.at}</span> · <b>${r.id}</b>
+        <div class="row" style="margin:2px 0"><span class="tag strong">${r.label || JN[r.j]}</span><span class="tag">${FIELDS[t.f]}</span><span class="tag">${t.kind}</span>${tagRow(t)}</div>${esc(r.why) || '<span class="muted">이유 없음</span>'}
+        <div class="row rating" role="group" aria-label="${r.id} 결과 만족도">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-act="rate" data-key="${r.key}" data-val="${n}" aria-pressed="${r.rating >= n}" aria-label="별 ${n}개">${r.rating >= n ? '★' : '☆'}</button>`).join('')}
+          <input class="note-in" data-note="${r.key}" value="${esc(r.note)}" maxlength="60" placeholder="한 줄 코멘트(결과가 어땠나)" aria-label="${r.id} 코멘트"></div></div><a class="btn" href="#tech/${r.id}">상세</a></li>`; }).join('') || '<li><div class="muted">맞는 기록이 없어요.</div></li>';
   }
 
   // ---- 저장(샘플: 메모리에만). 적용 후보·보류를 지도에서 골라도 같은 기술의 적용 기회 알림이 함께 완료된다
@@ -217,7 +222,7 @@
     const done = alert ? [alert] : j === 'int' ? [] : waiting().filter((a) => a.tech === id && a.kind === '적용 기회');
     done.forEach((a) => { a.status = 'done'; a.result = j; });
     const label = alert && alert.kind === '보안 경고' && j === 'cand' ? `고친 버전 ${alert.fixed}로 올리기` : '';
-    records.unshift({ id, j, why: why || '', at: '방금', label });
+    records.unshift({ key: `r${Date.now()}`, id, j, why: why || '', at: '방금', label, rating: 0, note: '' });
     ui.holdFor = '';
     say(`판단을 저장했어요: ${label || JN[j]}. 설치하거나 바꾼 것은 없어요.${done.length && !alert ? ` 알림 ${done.length}건도 판단을 마쳤어요.` : ''}`);
     render();
@@ -231,7 +236,7 @@
 
   // ---- 길(해시)과 그리기
   const VIEWS = { map: mapView, start: startView, new: newView, tech: techView, alerts: alertsView, alert: alertView, records: recordsView, ...TR.views };
-  const STEP = { map: 'find', new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', blueprint: 'build', start: 'start' };
+  const STEP = { map: 'find', new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', start: 'start' };
   const main = document.getElementById('main');
   function render() {
     const [name, arg = ''] = (location.hash.slice(1) || 'map').split('/');
@@ -283,6 +288,7 @@
     if (act === 'groupVal') { setGroup(ui.group.by, el.dataset.val); document.querySelector(`[data-act="groupVal"][data-val="${el.dataset.val}"]`)?.focus(); }
     if (act === 'groupTag') setGroup('tag', el.dataset.val);
     if (act === 'band') { ui.firstCheck = false; render(); }
+    if (act === 'rate') { const r = records.find((x) => x.key === el.dataset.key); r.rating = r.rating === Number(el.dataset.val) ? 0 : Number(el.dataset.val); document.getElementById('rlist').innerHTML = recordRows(document.getElementById('rq').value, document.getElementById('rj').value); document.querySelector(`[data-act="rate"][data-key="${r.key}"][data-val="${el.dataset.val}"]`)?.focus(); say(r.rating ? `만족도 별 ${r.rating}개로 남겼어요.` : '만족도를 지웠어요.'); }
     if (act === 'toMap') ui.firstCheck = true;
     if (act === 'scenario') say('적용 시나리오는 누를 때만 만들어요(IA-8). 이 시안에서는 만들지 않아요.');
     if (act === 'stub') say('이 시안에서는 동작하지 않아요(IA-3·IA-22).');
@@ -304,6 +310,7 @@
     save(f.dataset.id, 'hold', why, f.dataset.alert);
   });
   document.addEventListener('input', (e) => {
+    if (e.target.dataset.note) { records.find((x) => x.key === e.target.dataset.note).note = e.target.value.slice(0, 60); return; }
     if (e.target.id === 'rq' || e.target.id === 'rj') document.getElementById('rlist').innerHTML = recordRows(document.getElementById('rq').value, document.getElementById('rj').value);
   });
   document.addEventListener('change', (e) => {

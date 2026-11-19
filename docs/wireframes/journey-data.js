@@ -51,9 +51,10 @@
   const SEC = { d: '보안 위험', w: '보안 주의', e: '수집 오류' };
   const judged = Object.fromEntries(TECH.filter((t) => t.j).map((t) => [t.id, t.j]));
   const records = [
-    { id: 'sample-skill-5', j: 'int', why: '팀 커밋 규칙이 생기면 써 보기', at: '11월 15일' },
-    { id: 'sample-pkg-2', j: 'cand', why: 'CSV 읽기를 직접 짜는 것보다 낫다', at: '11월 12일' },
-    { id: 'sample-skill-9', j: 'hold', why: '보안 위험이 풀릴 때까지 기다림', at: '11월 10일' },
+    // rating = 그때 결과물이 마음에 들었는지(별 1~5, 0 = 아직 안 남김), note = 짧은 코멘트(사용자 11-20)
+    { key: 'r1', id: 'sample-skill-5', j: 'int', why: '팀 커밋 규칙이 생기면 써 보기', at: '11월 15일', rating: 0, note: '' },
+    { key: 'r2', id: 'sample-pkg-2', j: 'cand', why: 'CSV 읽기를 직접 짜는 것보다 낫다', at: '11월 12일', rating: 4, note: '큰 파일에서 조금 느렸지만 만족' },
+    { key: 'r3', id: 'sample-skill-9', j: 'hold', why: '보안 위험이 풀릴 때까지 기다림', at: '11월 10일', rating: 2, note: '써 본 버전은 결과가 들쭉날쭉' },
   ];
 
   const stateOf = (t) => (t.mine ? 'use' : judged[t.id]);
