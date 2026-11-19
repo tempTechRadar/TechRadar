@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clearSimulated, runSimulator, type SimulatorDeps } from "./simulator.ts";
 import { toAlertView } from "../alerts/to-alert-view.ts";
+import { readFileSync } from "node:fs";
+import { gradeFromOsv, type OsvVuln } from "../domain/grade.ts";
 
 type Call = { table: string; op: string; row?: Record<string, unknown>; filters: [string, string, unknown][]; single: boolean };
 type Reply = { data?: unknown; error?: { message: string } };
@@ -100,7 +102,7 @@ test("runSimulator: 가짜 표시와 G1 값이 붙는다", async () => {
 test("runSimulator: 고친 버전은 fixed_version 키로 저장해 알림 화면에서 적용 후보를 고를 수 있다", async () => {
   const { deps, calls, saved } = fakeDeps();
   await runSimulator(deps, { adminId: "a" });
-  assert.deepEqual(saved[0].currValue, { grade: "danger", fixed_version: "0.1.16" });
+  assert.equal(saved[0].currValue.fixed_version, "0.1.16");
   const observed = calls.find((c) => c.table === "observations")?.row?.curr_value as Record<string, unknown>;
   assert.equal(observed.fixed_version, "0.1.16");
   assert.equal("fixedVersion" in observed, false);
@@ -285,4 +287,31 @@ test("clearSimulated: 중간에 실패해도 지운 수와 가린 오류를 바�
 test("clearSimulated: 바꾼 기록 저장이 실패하면 성공으로 돌려주지 않는다", async () => {
   const { db } = fakeDb(clearResponder((c) => (c.table === "audit_logs" ? { error: { message: "기록 거부" } } : undefined)));
   await assert.rejects(() => clearSimulated({ db }, { adminId: "a" }), /바꾼 기록을 남기지 못함/);
+});
+
+// M0 사람 확인(11-19)에서 찾은 것: 시뮬레이터 알림 상세의 "무엇이 바뀌었나"·"쉬운 이유"가 "찾지 못함"이었다.
+// 진짜 첫 읽기(first-read.ts)는 변경 값에 reason·evidence를 넣는데 시뮬레이터는 grade·fixed_version만 넣었기 때문이다.
+const G1_GRADE = gradeFromOsv("0.1.15", (JSON.parse(readFileSync(new URL("../domain/fixtures/osv-mcp-remote-0.1.15.json", import.meta.url), "utf8")) as { vulns: OsvVuln[] }).vulns);
+
+test("runSimulator: 변경 값은 진짜 첫 읽기와 같은 모양(grade·reason·fixed_version·evidence)이고 값은 등급 규칙이 G1에 내는 것과 같다", async () => {
+  const { deps, saved } = fakeDeps();
+  await runSimulator(deps, { adminId: "a" });
+  assert.deepEqual(saved[0].currValue, { grade: "danger", reason: G1_GRADE.reason, fixed_version: "0.1.16", evidence: G1_GRADE.evidence });
+  assert.equal(G1_GRADE.fixedVersion, "0.1.16");
+});
+
+test("runSimulator: 시뮬레이터 알림 상세에 무엇이 바뀌었나·쉬운 이유가 '찾지 못함' 없이 나온다", async () => {
+  const { deps, saved } = fakeDeps();
+  await runSimulator(deps, { adminId: "a" });
+  const view = toAlertView({
+    id: "alert-1", kind: "security", status: "pending", createdAt: "2026-11-18T01:30:00Z",
+    projectId: "p-1", projectName: "시연 프로젝트", sourceFile: "package.json", judgment: null, comparison: null,
+    change: { kind: "grade_to_danger", techName: "mcp-remote", detectedAt: "2026-11-18T01:30:00Z", prevValue: saved[0].prevValue, currValue: saved[0].currValue, draft: null },
+  });
+  const changed = view.lines.find((l) => l.startsWith("무엇이 바뀌었나"));
+  const easy = view.lines.find((l) => l.startsWith("쉬운 이유"));
+  assert.ok(changed && !changed.includes("찾지 못함"), changed);
+  assert.match(changed!, /GHSA-6xpm-ggf7-wc3p/);
+  assert.match(changed!, /osv\.dev\/vulnerability\/GHSA-6xpm-ggf7-wc3p/);
+  assert.ok(easy && !easy.includes("찾지 못함"), easy);
 });

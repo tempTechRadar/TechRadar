@@ -6,6 +6,19 @@
 
 ---
 
+## I-P-5-alert-view-fields · 2026-11-19 · 시뮬레이터 알림 상세의 "찾지 못함" 고치기 (P-5, 영역 C, 차세일)
+- 브랜치: `fix/P-5-alert-view-fields` (main `285ee16`)
+- 출처: M0 사람 확인 결과(11-19, Playwright): 시뮬레이터 알림 상세의 "무엇이 바뀌었나"·"쉬운 이유"·"내 프로젝트"가 "찾지 못함". PRD-F29, SPEC-3.5, `lib/alerts/build-alert-message.ts`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 시뮬레이터가 저장하는 변경 값(`changes.curr_value`)이 `{grade, fixed_version}`뿐이다. 진짜 첫 읽기(`first-read.ts` 92줄)는 `{grade, reason, fixed_version, evidence}`를 넣고, 알림 화면(`to-alert-view.ts`)은 `evidence[0]`(원인 id·심각도·주소)과 `reason`을 읽는다. 그래서 시연 화면에서만 "찾지 못함"이 나왔다 |
+| 기대 결과 | 시뮬레이터 변경 값이 첫 읽기와 같은 모양이고, 값은 등급 규칙이 저장된 G1 OSV 응답에 내는 것과 같다. 알림 상세에 "GHSA-6xpm-ggf7-wc3p (심각도 CRITICAL) (https://osv.dev/…)"와 쉬운 이유가 나온다 |
+| 영향 범위 | `lib/server/simulator.ts`(값 두 칸), `lib/server/simulator.test.ts`(시험 2개, 기존 1개 조건 완화). 화면(B 영역)·DB 변경 없음 |
+| 제약 | 런타임 JSON 가져오기 대신 상수로 두고, 시험이 등급 규칙 결과와 같은지 본다(배포 묶음 걱정 없음). 이미 DB에 있는 가짜 변경은 옛 모양이라 **시뮬레이터 지우기 → 다시 만들기**를 해야 화면이 바뀐다 |
+| 열린 질문 | "내 프로젝트: 찾지 못함 · 찾지 못함"은 이 변경과 별개다. 시연 계정의 내 기술 줄에 프로젝트·파일이 없으면(SQL로 넣은 줄, 프로젝트 밖) 화면이 "찾지 못함"을 보인다. 목록 부제(`subtitleOf`)는 같은 경우를 "프로젝트 밖(내 컴퓨터)"로 쓰므로, 상세 줄도 같게 하자고 B 영역에 제안 |
+
+**결과:** 시험 2개를 먼저 써서 실패를 확인한 뒤 고쳤다. `npm test` 818개 중 817 통과·todo 1·실패 0, 타입검사 통과. **아직 안 된 것:** 화면 확인(지우기 → 가짜 변경 다시 만들기 → 시연 계정 알림 상세), "내 프로젝트" 줄은 B 영역 결정.
 ## I-P-26-wiki-1119 · 2026-11-19 · P-26 위키 첫 반영(wiki/ 18쪽, 연결지도) (영역 C, 차세일)
 - 브랜치: `feat/P-26-wiki-1119` (main `0c8553c`). 로컬에 옛 `feat/P-26-wiki`가 있어 이름에 날짜를 붙임
 - 출처: PRD-F31, 안내서 6장(`.claude/skills/stage-check/references/requirements.md` 7절 — 안내서 원문 HTML은 찾지 못해 직접 읽지 못함), CLAUDE.md 4절, `docs/plan.md` "11-19 점검" 표 1번
