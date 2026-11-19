@@ -1,7 +1,6 @@
 // 시뮬레이터(P-5): 버튼 한 번에 가짜 변경 1건(정답 사례 G1)을 만들고, 실행 기록을 단계마다 남긴다. 주인: 차세일(C).
 // 저장·알림 함수는 주입받는다(changes.ts가 "@/" 별칭을 써서 node --test에서 못 불러오므로). 서비스 키 클라이언트로 부른다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { gradeFromOsv } from "../domain/grade.ts";
 import { maskSecrets } from "../domain/redact.ts";
 import { npmKey, type TechRef } from "../domain/tech-key.ts";
 import type { CreateAlertsInput } from "./alerts.ts";
@@ -18,15 +17,12 @@ export type SimulatorResult = { runId: string; changeId: string; changeCreated: 
 
 // G1(docs/spec.md 10절): npm mcp-remote 0.1.16 미만은 위험. 고친 버전은 0.1.16.
 const G1 = { name: "mcp-remote", version: "0.1.15", causeId: "GHSA-6xpm-ggf7-wc3p", cve: "CVE-2025-6514", fixedVersion: "0.1.16" };
+// 알림 상세가 읽는 칸(쉬운 이유·근거)을 진짜 첫 읽기(first-read.ts)와 같은 모양으로 채운다. 값은 등급 규칙(gradeFromOsv)이 저장된 OSV 응답
+// (lib/domain/fixtures/osv-mcp-remote-0.1.15.json)에 내는 것과 같고, 시험이 둘이 같은지 본다. 빠지면 화면에 "찾지 못함"이 나온다(M0 사람 확인 11-19).
+const G1_REASON = "이 버전(0.1.15)에 심각도 CRITICAL인 알려진 문제가 있어요(GHSA-6xpm-ggf7-wc3p / CVE-2025-6514). 0.1.16 이상으로 올리면 고쳐져요.";
+const G1_EVIDENCE = [{ id: G1.causeId, aliases: [G1.cve], severity: "CRITICAL", fixed: G1.fixedVersion, url: `https://osv.dev/vulnerability/${G1.causeId}` }];
 // 변경 저장용 원인 id. 진짜 첫 등록 읽기(first-read.ts)가 만드는 중복 막기 키와 겹치지 않게 접두어를 붙인다(SPEC-3.5).
 const SIM_CAUSE_ID = `sim:${G1.causeId}`;
-// 알림 상세의 근거·쉬운 이유(to-alert-view.ts)가 "찾지 못함"으로 비지 않게, 진짜 첫 읽기와 같은 등급 함수로 G1 OSV 기록에서 만든다
-const G1_GRADE = gradeFromOsv(G1.version, [{
-  id: G1.causeId,
-  aliases: [G1.cve],
-  database_specific: { severity: "CRITICAL" },
-  affected: [{ package: { name: G1.name }, ranges: [{ type: "SEMVER", events: [{ introduced: "0.0.5" }, { fixed: G1.fixedVersion }] }] }],
-}]);
 const SOURCE_NAME = "시뮬레이터(가짜 출처)";
 const METRIC = "osv_advisory";
 
@@ -110,8 +106,7 @@ async function saveAndNotify(deps: SimulatorDeps, flow: Flow, tech: TechRef, ids
     tech,
     causeId: SIM_CAUSE_ID,
     prevValue: { grade: "pass" },
-    // first-read.ts와 같은 모양: judgments.ts·to-alert-view.ts·draft.ts가 이 키로 읽는다
-    currValue: { grade: G1_GRADE.grade, reason: G1_GRADE.reason, fixed_version: G1_GRADE.fixedVersion, evidence: G1_GRADE.evidence },
+    currValue: { grade: "danger", reason: G1_REASON, fixed_version: G1.fixedVersion, evidence: G1_EVIDENCE }, // first-read.ts와 같은 모양. judgments.ts·to-alert-view.ts가 이 키로 읽는다
     observationId: ids.observationId,
     isSimulated: true,
   });
