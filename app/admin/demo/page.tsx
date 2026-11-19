@@ -51,7 +51,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
 
       <section style={card} aria-labelledby="demo-5">
         <h2 id="demo-5" style={{ fontSize: 20, margin: "0 0 4px" }}>⑤ 저장 실패</h2>
-        <p style={{ margin: "4px 0" }}>켜면 <b>이 브라우저</b>에서 <b>시연 계정</b>의 다음 판단 저장 1번이 실패해요(10분 뒤 저절로 꺼짐). 관리자는 판단할 수 없으니, 켠 뒤 시연 계정으로 로그인해 알림을 판단하세요.</p>
+        <p style={{ margin: "4px 0" }}>켜면 <b>이 브라우저</b>에서 <b>시연 계정</b>의 다음 판단 저장 1번이 실패해요(10분 뒤 저절로 꺼짐). 관리자도 자기 알림은 판단할 수 있지만 남의 알림은 판단할 수 없어요(ADR 0016). 시연 알림은 시연 계정 것이니, 켠 뒤 같은 브라우저에서 시연 계정으로 로그인해 알림을 판단하세요.</p>
         <p style={{ margin: "4px 0", color: "#4b5563" }}>보이는 것: "저장하지 못했어요" 안내, 알림은 판단 대기 그대로, 흐름 화면의 조치 상자 빨강(조치 기록 연결 뒤).</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <form action={armSaveFailureAction}><button type="submit" style={btn} disabled={!on}>다음 저장 1번 실패시키기</button></form>

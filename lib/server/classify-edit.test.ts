@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addRule, confirmRelation, setRuleEnabled, type EditCtx } from "./classify-edit.ts";
+import { addRule, confirmRelation, setCategory, setRuleEnabled, type EditCtx } from "./classify-edit.ts";
 
 type Row = Record<string, unknown>;
 type Op = { table: string; op: "select" | "update" | "insert"; row?: Row; filters: [string, unknown][] };
@@ -130,4 +130,62 @@ test("규칙 추가: 검사한 값으로 넣고(고친 사람 = 나) 사유를 �
   const dup = ctx({ rule_lists: [] }, { insertCode: "23505" });
   assert.deepEqual(await addRule(dup.c, { kind: "hn_keyword", ecosystem: "", value: "MCP" }, "새 낱말 추가함"), { ok: false, code: "duplicate" });
   assert.deepEqual(await addRule(dup.c, { kind: "risk_pattern", ecosystem: "", value: "P9" }, "새 패턴 추가함"), { ok: false, code: "input" });
+});
+
+// ── P-18c 갈래 확정(PRD-F24 "고친 갈래와 담당자·시각·사유"): 작은 갈래만, 갈래 세 칸만, 사유는 바꾼 기록에
+const TECH = "33333333-3333-4333-8333-333333333333";
+const BIG = "44444444-4444-4444-8444-444444444444";
+const SMALL = "55555555-5555-4555-8555-555555555555";
+const SMALL2 = "66666666-6666-4666-8666-666666666666";
+const catTables = (category_id: string | null = null) => ({
+  categories: [{ id: BIG, parent_id: null }, { id: SMALL, parent_id: BIG }, { id: SMALL2, parent_id: BIG }],
+  technologies: [{ id: TECH, category_id }],
+});
+
+test("갈래 확정: 작은 갈래를 넣고 정한 사람(나)·시각을 함께 쓰며, 사유를 바꾼 기록에 남긴다", async () => {
+  const { c, userOps, auditOps } = ctx(catTables());
+  assert.deepEqual(await setCategory(c, TECH, SMALL, "레지스트리 설명이 브라우저 자동화"), { ok: true, changed: true, auditFailed: false });
+  const upd = userOps.find((o) => o.op === "update")!;
+  assert.equal(upd.table, "technologies");
+  assert.deepEqual(Object.keys(upd.row!).sort(), ["category_id", "category_set_at", "category_set_by"]);
+  assert.equal(upd.row!.category_id, SMALL);
+  assert.equal(upd.row!.category_set_by, ADMIN);
+  assert.ok(!Number.isNaN(Date.parse(String(upd.row!.category_set_at))));
+  const log = auditOps.find((o) => o.op === "insert")!.row!;
+  assert.deepEqual([log.action, log.target_table, log.target_id, log.actor_id, log.actor_role], ["category_set", "technologies", TECH, ADMIN, "admin"]);
+});
+
+test("갈래 고치기: 다른 작은 갈래로 바꿀 수 있고, 같은 갈래면 바꾸지도 기록하지도 않는다", async () => {
+  const changed = ctx(catTables(SMALL));
+  assert.deepEqual(await setCategory(changed.c, TECH, SMALL2, "더 맞는 갈래로 옮김"), { ok: true, changed: true, auditFailed: false });
+  const same = ctx(catTables(SMALL));
+  assert.deepEqual(await setCategory(same.c, TECH, SMALL, "같은 갈래 다시"), { ok: true, changed: false, auditFailed: false });
+  assert.equal(same.userOps.some((o) => o.op === "update"), false);
+  assert.equal(same.auditOps.length, 0);
+});
+
+test("갈래 확정: 큰 갈래(부모 없음)는 받지 않는다(2단계, 작은 갈래에만 붙임)", async () => {
+  const { c, userOps } = ctx(catTables());
+  assert.deepEqual(await setCategory(c, TECH, BIG, "큰 갈래에 바로 붙이기"), { ok: false, code: "input" });
+  assert.equal(userOps.some((o) => o.op === "update"), false);
+});
+
+test("갈래 확정: 없는 기술·없는 갈래·잘못된 id·짧은 사유는 DB를 바꾸지 않는다", async () => {
+  const missingCat = ctx(catTables());
+  assert.deepEqual(await setCategory(missingCat.c, TECH, "77777777-7777-4777-8777-777777777777", "없는 갈래로"), { ok: false, code: "not_found" });
+  const missingTech = ctx(catTables());
+  assert.deepEqual(await setCategory(missingTech.c, "88888888-8888-4888-8888-888888888888", SMALL, "없는 기술에"), { ok: false, code: "not_found" });
+  const badId = ctx(catTables());
+  assert.deepEqual(await setCategory(badId.c, "x", SMALL, "잘못된 아이디"), { ok: false, code: "not_found" });
+  const shortWhy = ctx(catTables());
+  assert.deepEqual(await setCategory(shortWhy.c, TECH, SMALL, "짧음"), { ok: false, code: "reason" });
+  for (const x of [missingCat, missingTech, badId, shortWhy]) assert.equal(x.userOps.some((o) => o.op === "update"), false);
+});
+
+test("갈래 확정 불변 5: DB(RLS)가 막아 0줄이면 실패, 기록 실패는 되돌리지 않고 auditFailed", async () => {
+  const blocked = ctx(catTables(), { blockWrites: true });
+  assert.deepEqual(await setCategory(blocked.c, TECH, SMALL, "일반 계정이 시도"), { ok: false, code: "failed" });
+  assert.equal(blocked.auditOps.length, 0);
+  const noAudit = ctx(catTables(), {}, "fail");
+  assert.deepEqual(await setCategory(noAudit.c, TECH, SMALL, "기록이 실패하는 경우"), { ok: true, changed: true, auditFailed: true });
 });
