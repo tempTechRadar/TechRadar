@@ -24,6 +24,50 @@
 
 ---
 
+## I-redact-lowercase-flags · 2026-11-19 · 비밀값 가리기가 소문자 머리글·`--token` 옵션 값을 놓치는 것 고치기 (영역 C QA, 차세일)
+- 브랜치: `fix/redact-lowercase-flags` (main `ac7f10f`)
+- 출처: `docs/worklog.md` 2026-11-18 "아직 안 된 것"(P-10 뒤: `maskSecrets`는 소문자 머리글·`--token …`을 못 가림 — 차세일에게 알리기), `docs/plan.md` 1절 영역 C 맡는 QA "비밀값 가리기", PRD-NF2, SPEC-8 "비밀값 가리기"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `lib/domain/redact.ts`의 `maskSecrets`는 대문자 이름(`GITHUB_TOKEN:`)·주소의 `?token=`·모양(`sk-`·`ghp_`·JWT·`Bearer`)만 가린다. `x-api-key: 값`, `authorization: bearer 값`(소문자), `--token 값`·`--token=값`·`--api-key 값`은 그대로 남아, `recordStep`이 `cleanForLog`로 저장하는 실행 기록 요약·오류(`run_steps`)에 키가 남을 수 있다. 검사 결과 줄은 `risk-patterns.ts`가 따로 가리지만 실행 기록 쪽은 아니다 |
+| 기대 결과 | 위 5가지 모양의 값이 `***`로 바뀌고 이름(머리글·옵션)은 남는다. 값이 없는 평범한 글(`token` 낱말, 한국어 문장, 옵션 이름만, 비밀 없는 주소, `key=npm:…`)은 그대로다. 기존 시험은 모두 통과 |
+| 영향 범위 | `lib/domain/redact.ts`(머리글·옵션 패턴, 검토 뒤 따옴표 값·자리표시자 규칙 포함 4개), 시험 `lib/domain/redact.test.ts`(새 10개)·`lib/install/validate-item.test.ts`·`parse-import-lines.test.ts`(자리표시자 줄은 통과), `lib/domain/risk-patterns.ts`(주석 한 줄만). `maskSecrets`를 쓰는 곳 전부(실행 기록 `run-log.ts`, 오류 메시지, 흐름 상세 `lib/flow/detail.ts`, 프롬프트 만들기, 설치 항목 비밀값 검사 `looksSecret`)가 함께 바뀐다. DB·권한 변경 없음 |
+| 제약 | 새 라이브러리 없음. 지나치게 가리는 쪽이 안전하지만 평범한 글은 망가뜨리지 않는다(값은 ASCII 영문·숫자·기호가 이어진 만큼, 한국어·꺾쇠·괄호가 바로 붙으면 거기서 끊음. 다음 옵션 `--verbose`·자리표시자 `$API_KEY`·`<your-token>`·`{{TOKEN}}`은 값으로 안 봄. `key`로 끝나는 이름은 `tech_key`·`dedupe_key`가 흔해 `api`·`private`·`client` 같은 비밀 쪽 앞말이 붙은 것만). 긴 글에서 느려지지 않게. 줄바꿈은 넘지 않음 |
+| 열린 질문 | ① `risk-patterns.ts`의 `LOWER_SECRET`(검사 결과 줄용, 더 넓게 가림: `token 값`처럼 콜론 없는 것·자리표시자도)과 합칠지 — 주인(P-10, 김영식)과 정함, 이번엔 주석 한 줄만 고침 ② `looksSecret`(설치 항목 검사)이 `--token 값`·`password: 값`이 든 항목을 이제 비밀값으로 거른다(자리표시자는 통과, 시험으로 고정). 영역 C 설치 프롬프트 화면에서 확인은 안 함 ③ `password: 8자`처럼 콜론 바로 뒤에 숫자·영문이 붙은 안내 글은 앞 덩어리가 가려진다(`password: ***자`). 값 뒤에 한국어가 붙은 비밀값을 놓치지 않으려고 받아들임 ④ `$`로 시작하는 진짜 비밀값은 자리표시자로 보고 안 가린다 |
+
+**결과:** 고치기 전 9가지 입력(`x-api-key: 값`, `-H "x-api-key: 값"`, `authorization: bearer 값`, `Authorization: Basic 값`, `{"api_key":"값"}`, `--token 값`, `--token=값`, `--api-key 값`, `--auth-token '값'`)이 모두 그대로 남는 것을 확인하고 시험 4개를 먼저 썼다(전체 979개 중 3개 실패). `HEADER`·`FLAG` 패턴을 더해 전체 979개 중 978 통과·실패 0·todo 1, `tsc --noEmit` 통과, `npm run build` 통과. 평범한 글 8가지와 `Unexpected token }`·`{"tokens_in":12}`도 그대로인 것을 확인. **검토 반영(같은 날, 따로 띄운 code-review):** 새로 새는 곳 12가지(값 뒤 한국어·`<br>`: `x-api-key: abc123xyz가 잘못됨`·`--token=abc123xyz에서 실패`·`x-api-key: abc123<br>`, 앞말 붙은 이름: `client_secret`·`refresh_token`·`github_token`·`private_key`·`db_password`, 따옴표 값 `{"password":"my pass word"}`→`*** pass word`, `=` 구분: `api_key=…`·`password=…`, `-`로 시작하는 값 `--token -AbC…`)와 잘못 가리기 3가지(`--password` 다음 줄, `--monkey banana`, `--api-key $API_KEY`)를 고치기 전 코드로 재현하고 시험부터 씀(9개 실패). 규칙을 다시 짜(이름은 앞말 허용, 따옴표 값 통째로·따옴표는 남김, `:`·`=`, 줄바꿈 안 넘음, 자리표시자 제외) 전체 986개 중 985 통과·실패 0·todo 1, `tsc --noEmit`·`npm run build` 통과. 20만 자 입력 7가지 모두 5ms 안(옛 `NAMED`의 `KEY` 12만 자 느림은 고치기 전후 같음, `cleanForLog`가 먼저 잘라 막음). 처음 시험 두 곳을 바꿈: `--auth-token '값'`은 따옴표를 남겨 `'***'`, `password: 8자`는 ③ 때문에 "평범한 글"에서 `password 칸은 8자`로. **확인하지 못한 것:** 운영 `run_steps`에 실제로 이런 글이 들어간 적이 있는지(DB 조회 안 함), 설치 프롬프트 화면에서 거르기 동작.
+## I-fail-demo-prod · 2026-11-19 · 배포 주소에서 실패(빨간 상자) 보여 주는 길 찾기 (P-20c, 영역 C, 차세일)
+- 브랜치: `docs/fail-demo-prod` (origin/main `ac7f10f` 위). 문서 + 시험 1개, 앱 코드 변경 없음
+- 출처: 레드팀 지적 2번(배포 주소에서 일부러 실패한 실행이 빨갛게 보여야 함), `docs/flow.md` 4절, `docs/qa.md` "운영 실패 시연 ①②⑤ No Run", ADR 0018, CLAUDE.md 3절 불변 2·6, 작업 `I-P-20c-fail-demo`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 실패 시연(`/admin/demo` ①②⑤)은 운영에서 설계상 꺼지고(`lib/demo/demo-switch.ts`), 미리보기 배포도 꺼져 있어(ADR 0018) 배포 주소에서 빨간 상자를 보여 줄 길이 문서에 없다 |
+| 기대 결과 | 스위치 없이 운영에서 진짜로 실패 실행을 남기는 길을 코드로 추적해 표로 정리하고, 가장 안전하고 되풀이할 수 있는 길의 누르는 순서를 관리자 설명서에 둔다. 운영 동작을 바꾸는 안은 제안으로만(ADR) |
+| 영향 범위 | `docs/관리자-사용설명서.md` 5-3(새)·5-2·하면 안 되는 것, `docs/adr/0024`(새, 제안), `docs/flow.md` 4절 한 문단, `slides/index.html` 시연 장 한 줄, `docs/qa.md` No Run 1행, 시험 `lib/server/first-read.test.ts` 1개 |
+| 제약 | 운영 동작을 바꾸지 않는다(코드 동결 11-20 21:00). 운영에 로그인할 수 없어 눌러 보지 못함. 공개 저장소를 새로 만드는 일은 외부 공개라 사람 몫 |
+| 열린 질문 | ① 시연 저장소 `csaeil/techradar-fail-demo`를 누가 만들지 ② ADR 0024 채택 여부 ③ 운영 ①만 관리자에게 여는 작은 코드 변경을 원하는지(실행에 가짜 표시 칸이 필요해 마이그레이션) |
+
+**결과:** 후보 7가지를 코드로 추적했다. 없는·비공개 저장소는 실행을 만들기 전에 막혀(`first-read.ts:32`) 빨간 상자가 없고, **package.json만 깨진 공개 저장소 등록**이 스위치 없이 운영에서 실패 실행(시작 상자·`extract_my_tech` 빨강, `fetch_repo` 초록)을 남기는 가장 안전한 길이다(변경·알림·수집 자료 없음, 다시 등록해도 프로젝트는 안 늘어남). 그 모양을 시험 1개로 걸었다(처음 등록·다시 읽기 둘 다). 설명서 5-3에 누르는 순서, ADR 0024(제안), flow.md·슬라이드에 "실패 시연 버튼은 로컬에서만, 배포 주소는 깨진 저장소로" 한 줄. **확인하지 못한 것:** 시연 저장소가 아직 없음, 운영에서 실제로 눌러 보기, GitHub 무인증 한도에 걸릴 때 `fetch_repo`도 빨개지는지.
+
+---
+
+## I-plan-qa-c-sync-1119 · 2026-11-19 · plan·qa-c의 영역 C 낡은 기록 맞추기 (차세일)
+- 브랜치: `docs/plan-qa-c-sync-1119` (main `ac7f10f`). 문서만, 코드·DB 변경 없음
+- 출처: `gh pr view` #125·#126·#131·#133·#134·#135·#155·#164·#165·#166(읽기만), `gh pr list --state merged`(17시, 165개), `supabase/migrations/`, `docs/intent.md` I-P-18c-category, `docs/debug-note.md`(#133 장애), `docs/wiki-chat.md`, CLAUDE.md 9절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | plan P-18은 "남음: 갈래 확정", P-26은 "아직 PR 없음"이라고 적혀 있는데 둘 다 main에 합쳐졌다. "11-19 점검" 표 1번·8번, 5절 PR·리뷰 숫자(115개 기준), `qa-c.md` 조각 상태 표(11-18, "PR 열림")도 옛 상태다. `qa-c.md`는 위키 챗봇을 H13·H14로 섞어 부른다 |
+| 기대 결과 | P-18·P-26 상태 칸에 합친 PR과 한 일, 진짜 남은 것(갈래 목록 시드, 운영 Q5 재질문). 점검 표는 11시 사실을 두고 "11-19 저녁 갱신" 메모만 덧붙임. 5절 숫자를 다시 셈. qa-c 조각 상태 표를 main 기준으로, H13 = P-18b·H14 = 위키 챗봇으로 언급을 맞춤(행 번호는 그대로) |
+| 영향 범위 | `docs/plan.md`(4절 P-18·P-26·점검 표, 5절, 바뀐 기록), `docs/qa-c.md`, `docs/intent.md`, `docs/worklog.md` |
+| 제약 | 리뷰·승인 상태 말은 쓰지 않는다(CLAUDE.md 9절). 다른 문서가 "qa-c.md H14"로 위키 챗봇을 가리키므로 행 번호는 바꾸지 않는다. 운영 DB는 다시 보지 않았다(갈래 0줄은 I-P-18c-category 기록) |
+| 열린 질문 | 갈래 처음 목록(데이터설계 DQ2)을 누가 언제 정할지 |
+
+**결과:** 위 기대 결과대로 고쳤다. 5절: 합쳐진 PR 165개, 만든 수·리뷰한 수는 김영식 99·48, 황재웅 27·79, 차세일 39·22(다른 사람 리뷰 없이 합친 PR은 #1–#24 그대로 24개). `npm test` 975개 중 974 통과·실패 0·todo 1(기록 검사 포함). **확인하지 못한 것:** 운영 `categories` 지금 줄 수, 운영 Q5 Claude 답
+
+---
 ## I-P-14-seed-same-role · 2026-11-19 · 같은 역할 처음 짝 시드 14쌍 (P-14, 영역 B, 황재웅)
 - 브랜치: `feat/P-14-seed-same-role` (PR #162, 합침, 승인 차세일). 이 기록은 `docs/P-14-seed-record`(문서만)
 - 출처: `docs/spec.md` SPEC-4.4·SQ2, ADR 0015, 초안 `docs/seed-same-role-pairs.md`(브랜치 `docs/P-14-seed-pairs`)

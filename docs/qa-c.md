@@ -3,23 +3,27 @@
 `docs/qa.md`와 같은 열이다. 상태는 Pass / Fail / No Run. 근거 없이 Pass를 쓰지 않는다(V6). 일부만 확인했으면 확인한 범위를 적고, 남은 부분은 사람 QA 행으로 넘긴다.
 - **시트 옮기기 대기:** plan P-28은 Google Sheets(Claude 탭·사용자 탭)지만 `docs/qa.md`·plan에 시트 주소가 아직 없고, 시트 쓰기는 커넥터 승인이 필요하다. 그래서 이 표를 먼저 쓰고 시트가 정해지면 옮긴다.
 - **기준:** main `515bc3e`(2026-11-18) + 열린 PR 브랜치 머리(아래 표). 1차는 Claude가 2026-11-18에 직접 실행했다.
-- **11-19 갱신:** C6·C15·H1–H6·H9·H12를 Pass로(C6은 I-flow-sample-dup-scene), H7은 지금 실행만 Pass(운영), H8은 ①만 Pass, H14(위키 챗봇, P-18b의 H13과 번호가 겹치지 않게)를 더함(실제 답 4/5, Q5 Fail). 근거는 11-19 로컬 3001(main 0da0467·0c8553c) 사람 확인·Playwright, 운영(차세일 구글 계정, Playwright: H6·H8), main `285ee16`의 `npm test`·`npm run eval`. 남은 No Run은 H7(운영 관리자 권한 대기)·H8 ②·H10·H11과 H13의 실제 답 5개(운영 관리자 권한 대기).
+- **11-19 갱신:** C6·C15·H1–H6·H9·H12를 Pass로(C6은 I-flow-sample-dup-scene), H7은 지금 실행만 Pass(운영), H8은 ①만 Pass, H14(위키 챗봇, P-18b의 H13과 번호가 겹치지 않게)를 더함(실제 답 4/5, Q5 Fail). 근거는 11-19 로컬 3001(main 0da0467·0c8553c) 사람 확인·Playwright, 운영(차세일 구글 계정, Playwright: H6·H8), main `285ee16`의 `npm test`·`npm run eval`. 남은 No Run은 H7(운영 관리자 권한 대기)·H8 ②·H10·H11과 H14의 실제 답 5개(운영 관리자 권한 대기).
+- **번호 정리(11-19 저녁, I-plan-qa-c-sync-1119):** 이 표에서 **H13 = P-18b 같은 역할 확정·규칙 고치기, H14 = P-26 위키 챗봇**이다. 위키 챗봇 행을 처음 더할 때(`docs/intent.md` I-qa-c-1119 기록) H13이라 불렀다가 P-18b와 겹쳐 H14로 바꿨고, 그때 남은 H13 언급(위 줄, H1·H2 증거, 끝 기준 대조 P-26)을 H14로 맞췄다. 행 번호는 바꾸지 않았다(다른 문서가 "qa-c.md H14"로 위키 챗봇을 가리킴). intent의 옛 기록은 그대로 둔다.
 - **실행 환경:** Windows, 각 브랜치를 따로 꺼낸 작업 폴더(node_modules는 원본 폴더 연결). 개발 서버는 비밀 키 없이(`next dev --webpack`, Supabase 미연결) 띄워 로그인 전 동작만 봤다. 실제 DB·로그인·배포 주소는 쓰지 않았다.
 - **11-19 H14 Q5 재확인(Claude):** 고침 PR #131이 main에 들어간 뒤 키 없이 코드만 다시 봤다. Q5 쪽 찾기와 Claude에 넘기는 글은 Pass, Q5 Claude 실제 답은 No Run(운영에서 다시 물어야 함). 처음 적은 원인("쪽 찾기 보강 필요")은 틀렸고, 실제 원인은 쪽마다 앞 2000자만 넘긴 것이었다.
 
-## 조각 상태 (2026-11-18 기준)
+## 조각 상태 (2026-11-19 17시 기준, main `ac7f10f`)
 | 조각 | 내용 | 상태 | 확인한 코드 |
 |---|---|---|---|
 | P-4 | 실행 기록 도구 | 합침(PR #30) | main |
 | P-5 | 시뮬레이터 | 합침(PR #40, 검토 반영 포함) | main |
 | P-6 | 흐름 화면 최소판 | 합침(PR #32) | main |
 | P-17 | 정기 실행·지금 실행 | 합침(PR #51). 등록된 수집기 0개(P-9 뒤) | main |
-| P-18 | 관리자 화면(읽기) | PR #52 열림 | `0ee1012` |
+| P-18 | 관리자 화면(읽기) | 합침(PR #52) | main |
+| P-18b | 같은 역할 확정·규칙 켜기·끄기·추가 | 합침(PR #128) | main |
+| P-18c | 갈래 정하기(마이그레이션 `202611191500_P-18c_category_admin.sql`) | 합침(PR #133, #135 새 칸이 없을 때도 탭이 열리게). 운영 적용 11-19 15:01(`docs/debug-note.md`). 갈래 목록(`categories`) 시드가 없어 갈래 정하기는 아직 쓸 수 없음 | main |
 | P-19 | 설치 프롬프트 순수 함수 | 합침(PR #42) | main |
-| P-19b | 설치 프롬프트 화면·가져오기 저장 | PR #53 열림(자비스 구현) | `4cff2e0` |
+| P-19b | 설치 프롬프트 화면·가져오기 저장 | 합침(PR #53, 자비스 구현) | main |
 | P-20 | 흐름 화면 완성(건수·상세·실행 목록·내 실행 기록) | 합침(PR #46) | main |
-| P-20b | 채점(정답 사례 G1–G9) | PR #47 열림 | `9250d06` |
-| P-20c | 실패 시연 5가지(`/admin/demo`) | PR #54 열림. 판단 화면 연결은 황재웅 님 확인 뒤 | `0214853` |
+| P-20b | 채점(정답 사례 G1–G9) | 합침(PR #47, 화면 버튼 연결 #67) | main |
+| P-20c | 실패 시연 5가지(`/admin/demo`) | 합침(PR #54). ⑤ 저장 실패를 판단 화면에 잇는 것은 B 영역 PR #62로 합침 | main |
+| P-26 | 위키·챗봇 | 합침(PR #125 챗봇 `/admin/chat`, #126 `wiki/` 18쪽, #131 Q5 원인 고침, #134 위키 낡은 사실 보정, #164 Q5 재확인 기록) | main |
 
 ## Claude QA (1차, 직접 실행)
 | 검사 항목 | 입력이나 행동 | 기대 결과 | 실제 결과 | 상태 | 수행자, 날짜 | 증거 |
@@ -41,6 +45,7 @@
 | C15. 배포 빌드 | `next build` | 빌드 성공 | 로컬은 실행 못 함(11-18: 작업 폴더의 node_modules 연결을 Turbopack이 못 찾음, 11-19: 메모리 여유 653MB). 대신 Vercel이 main `0c8553c`를 빌드·배포 성공(GitHub 커밋 상태 "Deployment has completed"), 그 뒤 main `285ee16`은 문서만이라 "Ignored Build Step" | Pass | Claude(프라이데이), 2026-11-19 | GitHub 커밋 상태(Vercel). 빌드 중 "Next.js 16.4.4에 알려진 보안 취약점, 업그레이드 권장" 안내(남은 오류 참고) |
 | C16. P-18b 같은 역할 확정·규칙 고치기 (PRD-F24·F27, IA-17, ADR 0015, 불변 4·5) | 브랜치 `feat/P-18b-relations`(main `285ee16` 기준)에서 `npm test`, `npx tsc --noEmit`, `next build --webpack` | 실패 0, 타입 오류 0, 빌드 성공. 새 시험: 입력 검사(사유 5–300자·비밀값 거절, 위험 패턴 추가 거절), 가짜 DB(확정 3칸만·후보일 때만, RLS가 막아 0줄이면 실패·기록 없음, 기록 실패는 auditFailed, DB 오류 글 숨김, 중복), 소스 훑기(서버 동작마다 adminGate, 서비스 키는 audit_logs에만) | 831개 중 830 통과·실패 0(할 일 1), 타입 오류 0, 빌드 성공. 실제 DB·화면은 확인 안 함(H13) | Pass(가짜 DB·빌드까지) | Claude, 2026-11-19 | 작업 `I-P-18b-relations` |
 | C17. PRD-NF5 접근성 — 영역 C 화면 정적 점검 (`/admin/*`·`/admin/flow`·`/projects/runs`·`/projects/install`) | `node --test lib/a11y/*.test.ts lib/flow/look.test.ts lib/flow/text-alt.test.ts`: 소스 훑기(입력·고르기·글 칸의 이름, div·span 등 onClick, img alt, 링크를 품은 SVG의 role, outline 없앰)와 대비 계산(WCAG AA 4.5:1) | 문제 0, 대비 모두 4.5 이상 | 고치기 전: 흐름 그림 SVG가 `role="img"`인데 상자 링크를 품어 화면 읽기에서 링크가 빠짐(Fail) → `role="group"`으로, 상자 링크 이름에 상태("OSV 수집: 실패. 상세 보기"), SVG 안 초점 테두리(파란 굵은 테두리), 그림 아래 "그림을 글로 보기"(켜진 상자·지나간 화살표·건수)를 더함. 입력 칸 이름·img alt·onClick은 원래 문제 없음. 대비: 흐름 상자 6상태 × 이름·상태 글자, 배지, 화살표 건수, 관리자 토큰 7쌍, 화면의 글자색 4가지 모두 4.5 이상 | Pass | Claude(프라이데이), 2026-11-19 | `lib/a11y/`(scan·contrast), `lib/flow/text-alt.ts`·`look.ts`. 정적 점검이라 실제 초점 이동·읽어 주기는 H15 |
+| C18. 비밀값 가리기 — 소문자 머리글·명령 옵션 (PRD-NF2, SPEC-8, plan 영역 C QA) | `maskSecrets`·`cleanForLog`에 `x-api-key: 값`, `curl -H "x-api-key: 값"`, `authorization: bearer 값`, `Authorization: Basic 값`, `{"api_key":"값"}`, `--token 값`, `--token=값`, `--api-key 값`, `--auth-token '값'`을 넣음. 반대로 값 없는 글 8가지(`the token expired`, 한국어 문장, `password: 8자 이상`, `--token 옵션은`, `--token-file`·`--no-token`, `--keyword`, 비밀 없는 주소, `key=npm:mcp-remote`) | 값만 `***`, 이름은 남음. 평범한 글은 그대로 | 고치기 전: 9가지 모두 그대로 남음(Fail, 11-18 worklog 지적 확인) → `redact.ts`에 머리글·옵션 패턴을 더한 뒤 9가지 모두 가려짐, 평범한 글 8가지 그대로. `node --test lib/domain/redact.test.ts` 11개 통과. 검토 반영: 새는 곳 12가지(값 뒤 한국어·`<br>`, `client_secret`·`refresh_token` 같은 앞말 붙은 이름, 띄어쓴 따옴표 값, `api_key=`·`password=`, `--token -값`)와 잘못 가리기 3가지(`--password` 다음 줄, `--monkey banana`, `--api-key $API_KEY`)를 고치기 전에 재현(시험 9개 실패) → 고친 뒤 모두 기대대로, 자리표시자 든 설치 줄은 비밀값 줄로 안 걸림. 전체 `npm test` 986개 중 985 통과·실패 0·todo 1, `tsc --noEmit`·`npm run build` 통과, 20만 자 입력 5ms 안 | Pass | Claude, 2026-11-19 | `fix/redact-lowercase-flags`, `lib/domain/redact.test.ts`(새 10개), `lib/install/validate-item.test.ts`·`parse-import-lines.test.ts`, `docs/intent.md` I-redact-lowercase-flags. 운영 `run_steps`의 기존 줄은 확인 안 함 |
 | C19. 채점 경계 사례 (PRD-F30, SPEC-3.1·3.2·3.4·3.5·4.1, 불변 2·3·4) | 브랜치 `feat/eval-more-cases`에서 `npm run eval`, `npm test`, `npx tsc --noEmit`, `npm run build` | 등급 사례 12개의 결과는 그대로, 경계 사례 37개(보안 경고 6·적용 기회 7·변화 없음 3·수집 실패 10·거절·보류 6·두 번 입력 5)를 앱의 진짜 순수 함수(+ 손으로 따라 쓴 수집기 분기)로 채점, 실행 실패 0 | 등급 사례 12: 놓침 0·잘못 울림 0·등급 맞음 8/12(전과 같음). 경계 사례 37(리뷰 반영 전 32): 맞음 36·놓침 0·잘못 울림 0·**결과 다름 1**(`E-collect-next-page`: OSV 다음 쪽 표시를 무시하고 "변화 없음", 주인 김영식 A, `docs/debug-note.md`). 전체 49: 놓침 0·잘못 울림 0·결과 다름 1. `npm test` 998개 중 994 통과·실패 0·건너뜀 3·할 일 1(새 시험 23), 타입 오류 0, 빌드 통과 | Fail(1건, 영역 A) · 나머지 Pass | Claude, 2026-11-19 | `eval/result.md` 경계 사례 절, `lib/eval/edge.test.ts`·`edge-score.test.ts`. 채점 밖(DB가 있어야 함): `save_judgment` 저장과 저장 실패 때 되돌림(판단 사례는 입력 검사만 봄), `changes.dedupe_key`·알림 유일 제약, 수집기 전체 흐름. 수집기 분기(checkOne·gradeOf·applyResult·readLatestChange·saveGrade·createSecurityAlerts)는 `lib/eval/edge.ts`에 손으로 따라 씀. 관리자 채점 버튼은 등급 사례만 보여 줌 |
 
 ## 사람 QA (2차) — 순서대로
@@ -48,8 +53,8 @@
 
 | 검사 항목 | 방법 | 정상이면 보이는 것 | 주의점 | 상태 | 수행자, 날짜 | 증거 |
 |---|---|---|---|---|---|---|
-| H1. 관리자 화면 열기 (P-18, PR #52 합친 뒤) | 관리자 계정으로 로그인 → 위 메뉴 "관리자" → 탭을 하나씩 누르고(회원별 등록·수집 자료·알림과 처리 현황·수집 실행과 오류·흐름 화면·분류 확인·시뮬레이터·위키 챗봇), 회원·기간 등 거르기를 한 번씩 바꿈 | 표가 뜨거나 "없어요" 문구(빨간 "불러오지 못했어요"가 아님). 알림 탭에 판단 버튼이 없음 | 지금 실행은 `/admin/run-now`(H7). "고치기"·"확정" 버튼은 다음 단계 | Pass | 차세일·빅보스(Playwright), 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인. 그때 탭 5개를 확인(위키 챗봇 탭은 #125로 뒤에 더해짐, H13) |
-| H2. 일반 계정 막힘 (P-18·P-5·P-6, PRD-F3, 불변 5) | 일반 계정으로 로그인 → 주소창에 `/admin`, `/admin/flow`, `/admin/simulator`, `/admin/run-now`, `/admin/demo`, `/admin/chat`을 직접 입력 | 모두 "관리자만 볼 수 있어요/쓸 수 있어요" | 화면 막힘만 보이고 DB 막힘(RLS)은 `supabase/tests/rls_m0.sql`이 확인함 | Pass | 차세일, 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인(시연 계정으로 `/admin` 막힘). 서버 관문은 `lib/admin/admin-guard.test.ts` 5개 통과. `/admin/chat`은 #125 뒤라 같은 관문(`adminGate`)으로 막힘(H13) |
+| H1. 관리자 화면 열기 (P-18, PR #52 합친 뒤) | 관리자 계정으로 로그인 → 위 메뉴 "관리자" → 탭을 하나씩 누르고(회원별 등록·수집 자료·알림과 처리 현황·수집 실행과 오류·흐름 화면·분류 확인·시뮬레이터·위키 챗봇), 회원·기간 등 거르기를 한 번씩 바꿈 | 표가 뜨거나 "없어요" 문구(빨간 "불러오지 못했어요"가 아님). 알림 탭에 판단 버튼이 없음 | 지금 실행은 `/admin/run-now`(H7). "고치기"·"확정" 버튼은 다음 단계 | Pass | 차세일·빅보스(Playwright), 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인. 그때 탭 5개를 확인(위키 챗봇 탭은 #125로 뒤에 더해짐, H14) |
+| H2. 일반 계정 막힘 (P-18·P-5·P-6, PRD-F3, 불변 5) | 일반 계정으로 로그인 → 주소창에 `/admin`, `/admin/flow`, `/admin/simulator`, `/admin/run-now`, `/admin/demo`, `/admin/chat`을 직접 입력 | 모두 "관리자만 볼 수 있어요/쓸 수 있어요" | 화면 막힘만 보이고 DB 막힘(RLS)은 `supabase/tests/rls_m0.sql`이 확인함 | Pass | 차세일, 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인(시연 계정으로 `/admin` 막힘). 서버 관문은 `lib/admin/admin-guard.test.ts` 5개 통과. `/admin/chat`은 #125 뒤라 같은 관문(`adminGate`)으로 막힘(H14) |
 | H3. 시뮬레이터 버튼 (P-5, PRD-F29) | 시연 계정이 내 기술에 `mcp-remote` 0.1.15를 가진 상태에서 → 관리자로 `/admin/simulator` → "가짜 변경 1건 만들기" | 흐름 화면으로 이동, 사람 판단 상자가 주황 점선. 시연 계정 알림에 1건. 일반 계정 알림은 0건 | 시연 계정이 그 기술을 안 가지면 알림 0건이고 화면에 이유가 나옴(정상). 화면 검색으로는 가짜 기술을 못 넣어(검색은 진짜 기술만) 시연 계정 줄은 SQL로 넣었다 | Pass | 차세일·빅보스(Playwright), 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인: "[보안 경고] mcp-remote — 통과 → 위험", 판단 대기 1건, 흐름 notify→human_judgment 2건(시연 계정 2개). 메모: 알림 상세 "찾지 못함"은 #127로 고침, 합친 뒤 지우기→다시 만들기 필요 |
 | H4. 흐름 화면이 실제 기록으로 칠해짐 (P-4·P-6·P-20, 불변 6) | H3 직후 `/admin/flow` → 실행 목록에서 방금 실행 고르기 → 상자 하나 누르기 | 지나간 상자만 색, 화살표 위 건수, 상자 상세에 들어온·나간 수 | 기록이 없는 상자는 회색이어야 정상 | Pass | 차세일·빅보스(Playwright), 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인: 시연 계정 [적용 후보] 저장 뒤 조치와 기록(action_record) 성공. `lib/flow/*.test.ts` 37개 통과 |
 | H5. 같은 시나리오 두 번 (P-5, flow.md 4절 ③) | H3의 버튼을 한 번 더 | 변경 저장 "이미 있는 변경", 알림 수 그대로 | C6의 샘플과 다르게 보이면 실제 화면이 맞는 것 | Pass | 차세일·빅보스(Playwright), 2026-11-19 | 11-19 로컬 3001(main 0da0467·0c8553c), 시연·관리자 테스트 계정, Playwright(빅보스 조작) + 사람 확인: "가짜 변경은 이미 있음. 알림 0건" |
@@ -71,10 +76,10 @@
 | P-5 | 버튼 한 번에 가짜 변경 1건 → 시연 계정에만 알림 1건, 가짜 표시 줄만 지우기 | C3 | H3·H5·H12 |
 | P-6 | 상자·화살표, 실행을 고르면 기록으로 색칠, 판단 대기 주황 점선 | C4·C5 | H4 |
 | P-17 | 배포 앱에서 매일 06:00 실행 기록, 관리자 지금 실행 | C8·C9 | H7 |
-| P-18 | 관리자 화면 다섯, 판단 버튼 없음, 일반 계정 거부(화면·서버·DB). 규칙 켜기·끄기·추가와 같은 역할 확정(담당자·시각·사유, P-18b). 갈래 확정은 남음(DB 권한) | C7·C11·C16 | H1·H2·H13 |
+| P-18 | 관리자 화면 다섯, 판단 버튼 없음, 일반 계정 거부(화면·서버·DB). 규칙 켜기·끄기·추가와 같은 역할 확정(담당자·시각·사유, P-18b). 갈래 정하기(P-18c, #133·#135)는 코드·DB 권한이 있고 운영 RLS 12개 Pass(`docs/qa.md`, #155), 갈래 목록 시드가 없어 화면에서 고를 갈래가 아직 없음 | C7·C11·C16 | H1·H2·H13 |
 | P-19 | 세 출처 규칙, 값 검사, 비밀값 빈칸, 위험 버전 제외, 같은 목록 같은 글, 가져오기 "프로젝트 밖" | C10·C12 | H8 |
 | P-20 | 채점 결과, 상자 상세, 실행 목록, 화살표 건수, 실패 시연 5가지, 내 실행 기록 탭 | C4·C5·C6·C13·C14·C19 | H4·H6·H9·H10·H11 |
-| P-26 | 관리자 탭 위키 챗봇: 위키 쪽만 근거, 출처 표시, 없으면 "위키에 없습니다", 하루 20개·답 800자 | `lib/server/chat.test.ts` 등 30개(#125) | H13, `docs/wiki-chat.md` |
+| P-26 | 관리자 탭 위키 챗봇: 위키 쪽만 근거, 출처 표시, 없으면 "위키에 없습니다", 하루 20개·답 800자 | `lib/server/chat.test.ts` 등 30개(#125) | H14, `docs/wiki-chat.md` |
 | PRD-NF5(영역 C 화면) | 글자 대비, 키보드로 끝까지, 이미지 대체 텍스트 | C17 | H15 |
 
 ## 남은 오류
