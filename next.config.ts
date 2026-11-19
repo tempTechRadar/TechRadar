@@ -15,7 +15,11 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   // 위키 챗봇(P-26)은 서버가 wiki/*.md를 파일로 읽는다: 배포 묶음에 넣어 두지 않으면 배포 주소에서 늘 "위키에 없습니다"가 된다.
-  outputFileTracingIncludes: { "/admin/chat": ["./wiki/**/*.md"] },
+  // 채점 칸(P-20, /admin/demo)도 서버가 정답·저장된 결과(eval/)와 저장된 OSV 응답·시험용 스킬을 파일로 읽는다.
+  outputFileTracingIncludes: {
+    "/admin/chat": ["./wiki/**/*.md"],
+    "/admin/demo": ["./eval/*.json", "./lib/domain/fixtures/**/*", "./sim/skills/**/*"],
+  },
   async headers() {
     return process.env.NODE_ENV === "production" ? [{ source: "/:path*", headers: SECURITY_HEADERS }] : [];
   },
