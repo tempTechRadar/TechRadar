@@ -51,14 +51,30 @@
       });
     }
     const byId = Object.assign(Object.create(null), Object.fromEntries(techs.map((t) => [t.id, t])));
-    // 비교군: journey의 확정 쌍 + 같은 세부 갈래 안에서 드문드문(같은 역할, ADR 0015. 화면 글자는 "비교군")
-    const edges = TR.SAME.map((e) => [...e]);
+    // 비교군: journey의 확정 쌍 + 같은 세부 갈래 안에서 드문드문(같은 역할, ADR 0015. 화면 글자는 "비교군").
+    // 이유는 DB tech_relations의 quote(한 줄 근거) · made_by(seed/rule/ai/admin) · confirmed_at과 같은 모양
+    const edges = TR.SAME.map((e) => [...e]), why = new Map();
+    TR.SAME.forEach(([a, b], i) => why.set(`${a}|${b}`, { quote: SAME_WHY[i], by: 'admin', confirmedAt: '11월 12일', who: '관리자 확인 · 11월 12일' }));
     const bySub = {};
     techs.forEach((t) => t.sub && (bySub[t.sub] ||= []).push(t.id));
-    Object.values(bySub).forEach((ids) => ids.forEach((id, k) => { if (k && r() < 0.12) edges.push([ids[k - 1], id]); }));
-    return { techs, byId, edges };
+    Object.values(bySub).forEach((ids) => ids.forEach((id, k) => {
+      if (!k || r() >= 0.12) return;
+      const a = byId[ids[k - 1]], b = byId[id];
+      edges.push([a.id, b.id]);
+      why.set(`${a.id}|${b.id}`, { quote: `둘 다 '${b.sub}' 일을 해요${a.kind === b.kind ? ` · 같은 종류(${b.kind})` : ''}`, by: 'rule', confirmedAt: '', who: '규칙 후보 · 아직 확인 전' });
+    }));
+    const none = { quote: '근거가 아직 없어요', by: 'rule', confirmedAt: '', who: '확인 전' };
+    return { techs, byId, edges, why: (a, b) => why.get(`${a}|${b}`) || why.get(`${b}|${a}`) || none };
   }
+  // 지도 사이드바와 기술 상세가 같이 쓰는 글
+  const pathOf = (t) => `${t.big || UNSORTED} › ${t.sub || UNSORTED} · ${t.kind} · ${t.host}`;
+  const SEC_TEXT = { 위험: '보안 위험: 알려진 취약점이 있어요(OSV). 위험한 버전은 적용 후보로 고를 수 없어요.', 주의: '보안 주의: 오래 고쳐지지 않은 이슈가 있어요.', '찾지 못함': '보안: 아직 등급을 찾지 못했어요.', 통과: '보안: 알려진 문제를 찾지 못했어요(안전하다는 보증은 아니에요).' };
+  const ERR_TEXT = '수집 오류: 지난번 읽기에 실패했어요. "문제 없음"이 아니에요. 마지막으로 읽은 값을 그대로 둬요.';
+  const SAME_WHY = [ // journey-data.js SAME 순서대로
+    '둘 다 Claude Code가 바깥 서비스(GitHub·원격 서버)에 닿게 해 줘요', '둘 다 저장소 일(이슈·PR·커밋)을 다뤄요', '둘 다 코드를 올리기 전에 문제를 찾아요(리뷰·비밀값)',
+    '둘 다 표 데이터를 읽어 다뤄요(CSV·Postgres)', '둘 다 데이터베이스의 데이터를 정리·질의해요', '둘 다 화면 컴포넌트를 만들 때 써요', '둘 다 화면 컴포넌트를 확인해요(미리보기·접근성)',
+  ];
 
   const n = Math.min(1200, Math.max(13, Number(new URLSearchParams(location.search).get('n')) || 320)); // ?n=1200 으로 많을 때를 본다
-  TR.radar = { CATS, BIG, UNSORTED, lcg, ...build(n) };
+  TR.radar = { CATS, BIG, UNSORTED, lcg, pathOf, SEC_TEXT, ERR_TEXT, ...build(n) };
 })();

@@ -1,9 +1,11 @@
-// 레이더 시안의 상태·화면 조각: 보기 설정 도구 줄, 범례, 덮는 사이드바, 올리기 카드, 키보드 목록, 주소·계정 저장, 카메라, 그리기 고리.
+// 레이더 시안의 상태·화면 조각: 보기 설정 도구 줄, 이 분류만 보기(경로 칩), 범례, 덮는 사이드바, 올리기 카드, 키보드 목록, 주소·계정 저장, 카메라, 그리기 고리.
 // 저장 규칙(design.md 14절): 로그인 전 = 아무것도 남기지 않음(주소로 공유만), 로그인 뒤 = 보기 설정·옮긴 자리를 계정에(시안은 이 브라우저로 흉내).
 (() => {
-  const { icon, esc, JN, judged, ALERTS } = TR;
-  const { techs, edges, byId: T, UNSORTED } = TR.radar;
+  const { icon, esc, ALERTS } = TR;
+  const { techs, edges, byId: T } = TR.radar;
   const RL = TR.radarLayout, { FIRST_RING } = RL, phys = TR.radarPhysics.create(), { draw } = TR.radarDraw;
+  const ZMIN = 0.05, ZMAX = 12; // 확대·축소 제한을 넓혀 끝없는 판처럼(사용자 11-20)
+  const clampK = (k) => Math.max(ZMIN, Math.min(ZMAX, k));
   const $ = (id) => document.getElementById(id);
   const canvas = $('map'), c = canvas.getContext('2d'), stage = $('stage');
   const ACCOUNT = 'radar-account'; // 로그인한 척일 때만 쓰는 "계정" 자리
@@ -50,14 +52,50 @@
     if (from) phys.settleTo(vis.map((it) => [it.id, homeOf(it, moves)]), 0.07);
     else vis.forEach((it) => { const b = phys.B.get(it.id), [x, y] = homeOf(it, moves); Object.assign(b, { x, y, rest: [x, y] }); });
     S.hasDanger = vis.some((it) => it.type === 't' && it.t.grade === '위험');
-    syncControls(); syncLegend(); syncStatus(); syncList(); setFocus(S.focusId);
+    const sc = S.view.scope;
+    S.scopeLabel = sc.length ? `${sc[sc.length - 1].value} · ${S.L.shown}개` : '';
+    syncControls(); syncLegend(); syncStatus(); syncList(); syncCrumbs(); setFocus(S.focusId);
     $('empty').hidden = S.L.shown > 0;
   }
-  function setView(patch) {
-    const regroup = patch.group && patch.group.join() !== S.view.group.join();
+  /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리(들어간 묶음 자리 등) */
+  function setView(patch, from = [0, 0]) {
+    const regroup = (patch.group && patch.group.join() !== S.view.group.join()) || patch.scope;
     S.view = { ...S.view, ...patch };
-    rebuild(() => [0, 0], regroup ? null : [...S.collapsed]);
+    rebuild(() => from, regroup ? null : [...S.collapsed]);
+    if (patch.scope) flyTo(homeCam(), false);
     saveState(); dirty();
+  }
+  /** 이 분류만 보기: 그 묶음까지의 경로를 scope에 더하고, 그 안만 원반 전체로 다시 펼친다 */
+  function drill(id) {
+    const g = S.L.byId.get(id);
+    if (!g || g.type !== 'g') return;
+    const chain = [];
+    for (let p = g; p; p = p.parent && S.L.byId.get(p.parent)) chain.unshift({ dim: p.dim, value: p.value });
+    const b = phys.B.get(id);
+    hideDrill(true); closeSide();
+    setView({ scope: [...S.view.scope, ...chain] }, b ? [b.x, b.y] : [0, 0]);
+    say(`${g.value}만 보고 있어요. 위 경로에서 한 단계씩 나올 수 있어요.`);
+  }
+  function syncCrumbs() {
+    const sc = S.view.scope, el = $('crumbs');
+    el.hidden = !sc.length;
+    el.innerHTML = sc.length ? `<button class="chip" data-crumb="0">전체</button>${sc.map((s, i) => `<span aria-hidden="true">›</span>${i === sc.length - 1
+      ? `<b aria-current="location">${esc(s.value)}</b>` : `<button class="chip" data-crumb="${i + 1}">${esc(s.value)}</button>`}`).join('')}<button class="chip" data-crumb="0" aria-label="분류만 보기 끝내기">✕</button>` : '';
+  }
+  // 묶음에 올리면 옆에 뜨는 "이 분류만 보기" 단추. 포인터가 단추로 옮겨 가는 동안(0.3초) 남아 있다
+  let drillT = 0;
+  function showDrill(id) { clearTimeout(drillT); S.drillId = id; syncDrill(); }
+  function hideDrill(now) {
+    clearTimeout(drillT);
+    const off = () => { S.drillId = ''; $('drill').hidden = true; };
+    if (now) off(); else drillT = setTimeout(off, 300);
+  }
+  function syncDrill() {
+    const el = $('drill'), it = S.drillId && S.L.byId.get(S.drillId), b = it && phys.B.get(it.id);
+    if (!b || S.hidden.has(it.id)) { el.hidden = true; return; }
+    const [x, y] = toScreen(b.x, b.y), r = it.r * Math.min(1.4, Math.max(0.7, S.scale() ** 0.5));
+    el.hidden = false; el.dataset.drill = it.id; el.setAttribute('aria-label', `${it.value}만 보기`);
+    el.style.left = `${Math.min(S.W - S.right - el.offsetWidth - 8, x + r + 6)}px`; el.style.top = `${Math.max(S.top, y - r - 34)}px`;
   }
   const shiftOf = (id) => { const it = S.L.byId.get(id), b = phys.B.get(id); return it && b ? [b.x - it.x, b.y - it.y] : [0, 0]; };
   /** 묶음 펼치기·접기. 펼치면 자식이 묶음 자리에서 튀어나오고, 접으면 묶음으로 빨려 들어간다 */
@@ -84,20 +122,19 @@
     syncList(); syncStatus(); saveState(); dirty();
     if (S.sel === id) openSide(id, false);
   }
-  /** 보기 초기화: 처음 화면(기본 카메라 · 옮긴 점 제자리 · 기본 펼침). 묶기·색·거르기는 그대로 */
+  /** 보기 초기화: 맨 처음 화면으로(묶기·색·필터·분류만 보기·펼침·옮긴 자리·카메라 모두, 사용자 11-20) */
   function resetView() {
-    if (login) { const acc = store.get(ACCOUNT) || {}; if (acc.moved) delete acc.moved[viewKey()]; store.set(ACCOUNT, acc); }
-    closeSide();
-    S.collapsed = RL.defaultCollapsed(S.L); S.hidden = RL.hiddenOf(S.L, S.collapsed); S.leaving.clear();
-    phys.sync(visible(), (it) => { const p = it.parent && phys.B.get(it.parent); return p ? [p.x, p.y] : null; });
-    phys.settleTo(visible().map((it) => [it.id, [it.x, it.y]]), 0.06);
-    flyTo(homeCam(), false); syncList(); syncStatus(); saveState(); dirty();
-    say('처음 보기로 돌아왔어요. 묶기·색·거르기는 그대로예요.');
+    if (login) { const acc = store.get(ACCOUNT) || {}; delete acc.moved; store.set(ACCOUNT, acc); }
+    closeSide(); hideDrill(true);
+    S.view = RL.parseView(new URLSearchParams(), login, techs);
+    rebuild((it) => { const p = it.parent && phys.B.get(it.parent); return p ? [p.x, p.y] : [0, 0]; }, null);
+    flyTo(homeCam(), false); saveState(); dirty();
+    say('처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요.');
   }
 
   // ---- 카메라
   const homeCam = () => { // 처음 보기: 보이는 것(접힌 묶음 제외)이 꽉 차게, 도구 줄 밑 가운데에
-    const vr = Math.max(FIRST_RING, ...visible().map((it) => Math.hypot(it.x, it.y))) + 40, k = Math.max(0.2, Math.min(6, S.L.radius / vr));
+    const vr = Math.max(FIRST_RING, ...visible().map((it) => Math.hypot(it.x, it.y))) + 40, k = clampK(S.L.radius / vr);
     return { x: 0, y: -S.top / 2 / (k * S.base()), k };
   };
   const toWorld = (sx, sy) => [S.cam.x + (sx - S.W / 2) / S.scale(), S.cam.y + (sy - S.H / 2) / S.scale()];
@@ -105,14 +142,14 @@
   function flyTo(to, user = true) { S.userCam = user; if (S.still) { S.cam = { ...to }; S.fly = null; } else S.fly = { from: { ...S.cam }, to, t0: S.now, dur: 0.5 }; dirty(); }
   function zoomAt(sx, sy, f) {
     const [wx, wy] = toWorld(sx, sy);
-    S.fly = null; S.userCam = true; S.cam.k = Math.max(0.2, Math.min(6, S.cam.k * f));
+    S.fly = null; S.userCam = true; S.cam.k = clampK(S.cam.k * f);
     S.cam.x = wx - (sx - S.W / 2) / S.scale(); S.cam.y = wy - (sy - S.H / 2) / S.scale(); dirty();
   }
   function fitVisible() {
     const bs = visible().map((it) => phys.B.get(it.id)).filter(Boolean);
     if (!bs.length) return;
     const xs = bs.map((b) => b.x), ys = bs.map((b) => b.y), w = Math.max(80, Math.max(...xs) - Math.min(...xs)), h = Math.max(80, Math.max(...ys) - Math.min(...ys));
-    const k = Math.max(0.2, Math.min(6, Math.min((S.W - S.right - 40) / w, (S.H - S.top - 40) / h) / S.base()));
+    const k = clampK(Math.min((S.W - S.right - 40) / w, (S.H - S.top - 40) / h) / S.base());
     const sc = k * S.base(), cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
     flyTo({ k, x: cx + S.right / 2 / sc, y: cy - S.top / 2 / sc });
   }
@@ -130,16 +167,13 @@
     const on = S.focusId || (S.L.byId.has(S.sel) ? S.sel : '');
     S.lit = on ? RL.connected(S.L, on) : null; dirty();
   }
-  const secText = { 위험: '보안 위험: 알려진 취약점이 있어요(OSV). 위험한 버전은 적용 후보로 고를 수 없어요.', 주의: '보안 주의: 오래 고쳐지지 않은 이슈가 있어요.', '찾지 못함': '보안: 아직 등급을 찾지 못했어요.', 통과: '보안: 알려진 문제를 찾지 못했어요(안전하다는 보증은 아니에요).' };
-  const errText = '수집 오류: 지난번 읽기에 실패했어요. "문제 없음"이 아니에요. 마지막으로 읽은 값을 그대로 둬요.';
-  const pathOf = (t) => `${t.big || UNSORTED} › ${t.sub || UNSORTED} · ${t.kind} · ${t.host}`;
   function tipHtml(it) {
     if (it.type === 'g') {
       const shut = S.collapsed.has(it.id);
       return `<b>${esc(it.value)}</b><span class="muted">${dimName(it.dim)} · ${it.count}개${it.danger ? ` · 위험 ${it.danger}` : ''}${it.caution ? ` · 주의 ${it.caution}` : ''}${it.err ? ` · 수집 오류 ${it.err}` : ''}</span><span class="muted">누르면 ${shut ? '펼쳐요' : '접어요'} · 이름을 누르면 목록 · 끌면 함께 옮겨요</span>`;
     }
     const t = it.t;
-    return `<b>${esc(t.id)}${t.nw ? ' <span class="tag new">NEW</span>' : ''}</b><span class="muted">${esc(pathOf(t))}</span>${t.grade === '위험' || t.grade === '주의' ? `<span>${t.grade === '위험' ? '✕ 보안 위험' : '! 보안 주의'}</span>` : ''}${t.err ? '<span>수집 오류(지난 값 표시)</span>' : ''}<span class="muted">누르면 자세히 · 끌면 이웃이 따라와요</span>`;
+    return `<b>${esc(t.id)}${t.nw ? ' <span class="tag new">NEW</span>' : ''}</b><span class="muted">${esc(TR.radarSide.pathOf(t))}</span>${t.grade === '위험' || t.grade === '주의' ? `<span>${t.grade === '위험' ? '✕ 보안 위험' : '! 보안 주의'}</span>` : ''}${t.err ? '<span>수집 오류(지난 값 표시)</span>' : ''}<span class="muted">누르면 자세히 · 끌면 이웃이 따라와요</span>`;
   }
   function showTip(id, sx, sy) {
     const tip = $('tip'), it = id && S.L.byId.get(id);
@@ -149,33 +183,13 @@
     tip.style.left = `${Math.max(8, left)}px`; tip.style.top = `${Math.min(S.H - tip.offsetHeight - 8, Math.max(S.top, sy + 12))}px`;
   }
 
-  // ---- 사이드바(지도 위에 덮음)
+  // ---- 사이드바(지도 위에 덮음, 내용은 radar-side.js)
   let lastFocus = null;
   const dotOf = (it) => `<i style="background:var(${it ? it.token : '--unknown'})"></i>`;
-  function sideTech(it) {
-    const t = it.t, nb = edges.filter((e) => e.includes(t.id)).map((e) => T[e[0] === t.id ? e[1] : e[0]]), j = judged[t.id];
-    return `<h2 id="sTitle" tabindex="-1">${esc(t.id)}</h2><div class="muted">${esc(pathOf(t))}</div>
-      <div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new">NEW</span>' : ''}${login && t.mine ? '<span class="tag strong">내 기술 · 쓰는 중</span>' : ''}${login && j ? `<span class="tag strong">${JN[j]}</span>` : ''}</div>
-      <p>${esc(t.desc)}</p><p class="muted">${esc(t.pop)} · 업데이트 ${esc(t.upd)}</p><p class="muted">${secText[t.grade]}</p>${t.err ? `<p class="muted">${errText}</p>` : ''}
-      <h3>비교군 ${nb.length}</h3><ul class="near">${nb.map((n) => `<li>${dotOf(S.L.byId.get(n.id))}<button data-go="${esc(n.id)}">${esc(n.id)}</button>${n.grade === '위험' ? '<span class="tag">위험</span>' : ''}</li>`).join('') || '<li class="muted">아직 없어요.</li>'}</ul>
-      <h3>내 판단</h3>${login ? (TR.byId[t.id] ? `<a class="btn" href="journey.html#tech/${t.id}">관심 · 적용 후보 · 보류 고르기</a>` : '<p class="muted">판단 화면은 샘플 13개에만 있어요.</p>') : '<p class="muted">로그인하면 관심 · 판단을 남길 수 있어요. 지도는 로그인 없이 볼 수 있어요.</p>'}
-      ${TR.byId[t.id] ? `<p style="margin-top:14px"><a class="btn primary" href="journey.html#tech/${t.id}">전체 상세 보기</a></p>` : ''}`;
-  }
-  function sideGroup(g) {
-    const sev = (t) => (t.grade === '위험' ? 0 : t.grade === '주의' ? 1 : t.err ? 2 : 3);
-    const list = S.L.items.filter((it) => it.type === 't' && RL.isUnder(S.L, it, g.id)).sort((a, b) => sev(a.t) - sev(b.t) || (a.id < b.id ? -1 : 1));
-    const unsorted = g.value === UNSORTED && (g.dim === 'field' || g.dim === 'sub');
-    const cls = unsorted ? `<div class="box"><b>분류 전 ${g.count}개</b><span class="muted">기본 규칙(이름·설명 낱말)으로 갈래를 정하지 못한 기술이에요.</span>
-      ${login ? `<div class="row"><a class="btn" href="classify.html">직접 분류하기</a><a class="btn" href="classify.html">AI 제안 받기 · 오늘 남은 20</a></div><span class="muted">AI 제안은 내가 확인해야 내 분류에 저장돼요.</span>`
-        : `<div class="row"><span class="btn" aria-disabled="true">직접 분류하기</span><span class="btn" aria-disabled="true">AI 제안 받기</span></div><span class="muted">로그인하면 나만의 분류를 만들 수 있어요.</span>`}</div>` : '';
-    return `<h2 id="sTitle" tabindex="-1">${esc(g.value)}</h2><div class="muted">${g.level}단계 · ${dimName(g.dim)} · ${g.count}개${g.danger ? ` · 위험 ${g.danger}` : ''}${g.caution ? ` · 주의 ${g.caution}` : ''}${g.err ? ` · 수집 오류 ${g.err}` : ''}</div>
-      <p class="row" style="margin-top:8px"><button class="btn" data-toggle="${esc(g.id)}">${S.collapsed.has(g.id) ? '펼치기' : '접기'}</button></p>${cls}
-      <h3>기술 ${list.length}${list.length > 50 ? ' (위험·주의 먼저 50개)' : ''}</h3><ul class="near">${list.slice(0, 50).map((it) => `<li>${dotOf(it)}<button data-go="${esc(it.id)}">${esc(it.id)}</button>${it.t.grade === '위험' || it.t.grade === '주의' ? `<span class="tag">${it.t.grade}</span>` : ''}${it.t.err ? '<span class="tag">수집 오류</span>' : ''}</li>`).join('')}</ul>`;
-  }
   function openSide(id, move = true) {
     const it = S.L.byId.get(id); if (!it) return;
     if (!stage.classList.contains('open')) lastFocus = document.activeElement;
-    S.sel = id; $('side').innerHTML = `<button class="btn close" data-close aria-label="닫기">${icon('close', 16)}</button>${it.type === 'g' ? sideGroup(it) : sideTech(it)}`;
+    S.sel = id; $('side').innerHTML = `<button class="btn close" data-close aria-label="닫기">${icon('close', 16)}</button>${it.type === 'g' ? TR.radarSide.group(it) : TR.radarSide.tech(it)}`;
     stage.classList.add('open'); measure(); setFocus(S.focusId);
     $('sTitle').focus({ preventScroll: true }); // 초점 때문에 화면이 밀렸다 돌아오던 문제(11-19)
     if (move) reveal(id);
@@ -186,10 +200,14 @@
     S.sel = ''; stage.classList.remove('open'); measure(); setFocus(S.focusId); saveState();
     if (lastFocus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
   }
-  /** 찾기·비교군 누르기: 걸러졌으면 거르기를 풀고, 접힌 묶음 안이면 펼친 뒤 고른다 */
+  /** 찾기·비교군 누르기: 필터·분류만 보기에 걸리면 풀고, 접힌 묶음 안이면 펼친 뒤 고른다 */
   function goTo(id) {
     if (!T[id]) return say('모은 기술에서 찾지 못했어요.');
-    if (!RL.passes(T[id], S.view)) { setView({ filter: {}, risky: false, mine: false, nw: false }); say('거르기를 풀었어요.'); }
+    if (!RL.passes(T[id], S.view)) {
+      const scoped = S.view.scope.length;
+      setView({ filter: {}, risky: false, mine: false, nw: false, ...(scoped ? { scope: [] } : {}) });
+      say(scoped ? '필터와 분류만 보기를 풀었어요.' : '필터를 풀었어요.');
+    }
     const it = S.L.byId.get(id);
     let p = it.parent;
     while (p) { if (S.collapsed.has(p)) toggle(p); p = S.L.byId.get(p).parent; }
@@ -203,7 +221,7 @@
     const g = S.view.group;
     $('g1').innerHTML = opts(g[0]); $('g2').innerHTML = opts(g[1] || '', true); $('g3').innerHTML = opts(g[2] || '', true);
     $('g3').disabled = !g[1]; $('color').innerHTML = opts(S.view.color);
-    const kinds = [...new Set(techs.map((t) => t.kind))], fields = [...TR.radar.BIG, UNSORTED], f = S.view.filter;
+    const kinds = [...new Set(techs.map((t) => t.kind))], fields = [...TR.radar.BIG, TR.radar.UNSORTED], f = S.view.filter;
     const box = (dim, v) => `<label><input type="checkbox" data-f="${dim}" value="${esc(v)}"${f[dim] && f[dim].has(v) ? ' checked' : ''}> ${esc(v)}</label>`;
     $('fPop').innerHTML = `<fieldset><legend>보안</legend><label><input type="checkbox" data-b="risky"${S.view.risky ? ' checked' : ''}> 위험·주의만</label></fieldset>
       <fieldset><legend>새로 들어옴</legend><label><input type="checkbox" data-b="nw"${S.view.nw ? ' checked' : ''}> NEW만(이번 주)</label></fieldset>
@@ -216,7 +234,7 @@
     $('login').checked = login;
   }
   function syncLegend() {
-    const dim = S.view.color, f = S.view.filter[dim];
+    const dim = S.L.color, f = S.view.filter[dim];
     $('legend').innerHTML = S.L.legend.map((l) => l.rest ? `<span class="chip">${dotOf(l)}${esc(l.value)} ${l.count}</span>`
       : `<button class="chip" data-lv="${esc(l.value)}" aria-pressed="${!!(f && f.has(l.value))}">${dotOf(l)}${esc(l.value)} ${l.count}</button>`).join('');
   }
@@ -228,7 +246,7 @@
     const kids = new Map();
     S.L.items.forEach((it) => { if (!kids.has(it.parent)) kids.set(it.parent, []); kids.get(it.parent).push(it); });
     const li = (it) => it.type === 'g'
-      ? `<li><button data-k="${esc(it.id)}" aria-expanded="${!S.collapsed.has(it.id)}">${S.collapsed.has(it.id) ? '▸' : '▾'} ${esc(it.value)} (${it.count}${it.danger ? ` · 위험 ${it.danger}` : ''})</button>${S.collapsed.has(it.id) ? '' : `<ul>${(kids.get(it.id) || []).map(li).join('')}</ul>`}</li>`
+      ? `<li><button data-k="${esc(it.id)}" aria-expanded="${!S.collapsed.has(it.id)}">${S.collapsed.has(it.id) ? '▸' : '▾'} ${esc(it.value)} (${it.count}${it.danger ? ` · 위험 ${it.danger}` : ''})</button> <button data-drill="${esc(it.id)}" aria-label="${esc(it.value)}만 보기">만 보기</button>${S.collapsed.has(it.id) ? '' : `<ul>${(kids.get(it.id) || []).map(li).join('')}</ul>`}</li>`
       : `<li><button data-k="${esc(it.id)}">${esc(it.id)}${it.t.grade === '위험' || it.t.grade === '주의' ? ` · ${it.t.grade}` : ''}${it.t.err ? ' · 수집 오류' : ''}</button></li>`;
     $('klist').innerHTML = `<p class="muted">Enter: 묶음은 펼치기/접기, 기술은 자세히</p><ul>${(kids.get(null) || []).map(li).join('')}</ul>`;
   }
@@ -262,13 +280,13 @@
     if (wasBusy && !phys.busy()) saveMoves();
     wasBusy = phys.busy();
     const sweeping = !S.still && now - S.sweep.start < 20;
-    if (needDraw || anim || sweeping || S.leaving.size || (S.hasDanger && !S.still && tick % 2 === 0)) { draw(c, S, now); needDraw = false; }
+    if (needDraw || anim || sweeping || S.leaving.size || (S.hasDanger && !S.still && tick % 2 === 0)) { draw(c, S, now); needDraw = false; if (S.drillId) syncDrill(); }
   }
 
   // ---- 시작
   function start() {
     let p = new URLSearchParams(location.hash.slice(1));
-    const viewKeys = ['g', 'c', 'risky', 'mine', 'new', 'x', ...Object.values(RL.FKEY)];
+    const viewKeys = ['g', 'c', 'in', 'risky', 'mine', 'new', 'x', ...Object.values(RL.FKEY)];
     if (login && !viewKeys.some((k) => p.has(k))) { const acc = store.get(ACCOUNT); if (acc && acc.q) { const q = new URLSearchParams(acc.q); for (const [k, v] of p) q.set(k, v); p = q; } }
     S.view = RL.parseView(p, login, techs);
     measure();
@@ -292,7 +310,10 @@
   new ResizeObserver(measure).observe(stage);
   new ResizeObserver(measure).observe($('hud'));
 
-  TR.radarUI = { S, $, phys, canvas, stage, toWorld, toScreen, zoomAt, fitVisible, flyTo, setView, toggle, resetView, openSide, closeSide, goTo, setFocus, showTip, say, dirty, saveState, syncList, syncStatus,
+  // 사이드바에서 판단을 남기면 내용만 다시 그린다(초점은 tr-judge가 누른 단추로 돌려놓음)
+  TR.judge.onChange = (id, msg, warnOnly) => { say(msg); if (!warnOnly && S.sel === id) openSide(id, false); };
+
+  TR.radarUI = { S, $, phys, canvas, stage, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, toggle, drill, showDrill, hideDrill, resetView, openSide, closeSide, goTo, setFocus, showTip, say, dirty, saveState, syncList, syncStatus,
     get login() { return login; }, setLogin(v) { login = v; S.login = v; try { sessionStorage.setItem('radar-login', v ? '1' : '0'); } catch { /* 탭을 닫으면 로그인 전으로 */ } S.view = RL.parseView(RL.viewParams(S.view), v, techs); rebuild(null, [...S.collapsed]); saveState(); dirty(); } };
   start();
 })();

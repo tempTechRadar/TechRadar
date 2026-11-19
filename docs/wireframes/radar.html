@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>기술 지도 시안</title>
   <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="tr-judge.css">
   <style>
     /* 첫 화면 기술 지도 시안(팀 확인 전, 11-20). 레이더 위에 사용자가 고른 1~3단계로 묶고, 색 = 색 기준 값, 보안은 기호.
        조작은 지도 위에서 직접: 끌기(이웃이 대형을 유지하며 따라옴) · 묶음 누르기(펼치기/접기) · 휠·꼬집기 확대 · 스페이스 누른 채 끌면 화면만 이동.
@@ -65,6 +66,12 @@
     .pop legend { font-weight: 700; font-size: var(--fs-sm); margin-bottom: 2px; }
     .pop label { display: flex; align-items: center; gap: 8px; min-height: 30px; }
     .hud .grow { flex: 1; }
+    /* 이 분류만 보기: 경로 칩(도구 줄 아래 한 줄)과 묶음 옆에 뜨는 단추 */
+    .crumbs { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-sm); }
+    .crumbs[hidden] { display: none; }
+    .crumbs b { padding: 0 6px; }
+    .drill { position: absolute; z-index: 5; box-shadow: var(--shadow-pop); white-space: nowrap; }
+    .drill[hidden] { display: none; }
     .save-note { font-size: var(--fs-cap); color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: var(--r-pill); }
 
     .dock { position: absolute; left: 12px; bottom: 12px; right: 12px; display: grid; gap: 6px; justify-items: start; pointer-events: none; }
@@ -93,7 +100,7 @@
     .side .close { float: right; min-height: 36px; padding: 0 10px; }
     .near { list-style: none; margin: 0; padding: 0; }
     .near li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 14px; }
-    .near button { flex: 1; min-height: 36px; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+    .near button { flex: 1; min-width: 0; min-height: 36px; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
     .near i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
     .box { padding: 10px 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); display: grid; gap: 6px; }
 
@@ -145,18 +152,20 @@
       <label class="search"><span class="sr">기술 찾기</span><input id="q" list="names" placeholder="기술 찾기" autocomplete="off"></label><datalist id="names"></datalist>
       <span class="seg" role="group" aria-label="묶기 단계">묶기 <select id="g1" aria-label="1단계"></select><span class="arrow">›</span><select id="g2" aria-label="2단계"></select><span class="arrow">›</span><select id="g3" aria-label="3단계"></select></span>
       <span class="seg">색 <select id="color" aria-label="색 기준"></select></span>
-      <details class="filter" id="filter"><summary class="btn">거르기 <span id="fCount"></span></summary><div class="pop" id="fPop"></div></details>
+      <details class="filter" id="filter"><summary class="btn">필터 <span id="fCount"></span></summary><div class="pop" id="fPop"></div></details>
       <span class="grow"></span>
       <span class="save-note" id="saveNote"></span>
       <button class="btn" id="reset" type="button">보기 초기화</button>
+      <nav class="crumbs" id="crumbs" aria-label="보고 있는 분류" hidden></nav>
     </div>
+    <button class="btn sm drill" id="drill" type="button" hidden>이 분류만 보기</button>
     <div class="dock">
       <div class="notice partial" id="partial" hidden><strong>일부만 읽었어요</strong><span>출처 3곳 중 2곳만 읽었어요. 못 읽은 곳의 기술은 지난번 값 그대로이고, 점선 고리(수집 오류)로 보여요.</span></div>
       <div class="notice" id="band" hidden></div>
       <div class="legend" id="legend" role="group" aria-label="색 기준 값(누르면 그 값만)"></div>
       <div class="status" id="status" aria-live="polite"></div>
     </div>
-    <div class="notice empty center-notice" id="empty" hidden><strong>거르기에 맞는 기술이 없어요</strong><span>거르기를 풀면 다시 보여요.</span><button class="btn sm" id="clearF" type="button">거르기 풀기</button></div>
+    <div class="notice empty center-notice" id="empty" hidden><strong>필터에 맞는 기술이 없어요</strong><span>필터를 풀면 다시 보여요.</span><button class="btn sm" id="clearF" type="button">필터 풀기</button></div>
     <div class="notice center-notice" id="loading" hidden><strong id="loadText">기술을 불러오는 중이에요</strong><span>모은 기술 목록을 읽고 있어요.</span></div>
     <div class="tip" id="tip" role="tooltip" hidden></div>
     <aside class="side" id="side" aria-label="고른 것 자세히"></aside>
@@ -166,9 +175,11 @@
   <script src="journey-data.js"></script>
   <script src="journey-capture.js"></script>
   <script src="radar-data.js"></script>
+  <script src="tr-judge.js"></script>
   <script src="radar-layout.js"></script>
   <script src="radar-physics.js"></script>
   <script src="radar-draw.js"></script>
+  <script src="radar-side.js"></script>
   <script src="radar-ui.js"></script>
   <script src="radar-input.js"></script>
   <script src="radar-check.js"></script>

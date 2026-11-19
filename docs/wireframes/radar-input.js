@@ -21,7 +21,10 @@
   const labelAt = (sx, sy) => S.hubLabels.find((l) => sx >= l.x && sx <= l.x + l.w && sy >= l.y && sy <= l.y + l.h);
   const riskAt = (sx, sy) => S.riskRects.find((r) => Math.hypot(r.x - sx, r.y - sy) < 18);
   function hover(id, sx, sy) {
-    if (S.hover !== id) { S.hover = id; U.setFocus(id); }
+    if (S.hover !== id) {
+      S.hover = id; U.setFocus(id);
+      if (id && S.L.byId.get(id).type === 'g') U.showDrill(id); else U.hideDrill();
+    }
     canvas.classList.toggle('on-item', !!id);
     U.showTip(id, sx, sy);
   }
@@ -33,8 +36,10 @@
     phys.kick(d.id, team, pairs);
     const b = phys.B.get(d.id), [wx, wy] = U.toWorld(d.x, d.y);
     d.off = [b.x - wx, b.y - wy]; d.drag = true;
-    canvas.classList.add('dragging'); hover('', 0, 0);
+    canvas.classList.add('dragging'); hover('', 0, 0); U.hideDrill(true);
   }
+  $('drill').addEventListener('pointerenter', () => U.showDrill(S.drillId));
+  $('drill').addEventListener('pointerleave', () => U.hideDrill());
 
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
@@ -47,6 +52,7 @@
     }
     const cam = { ...S.cam };
     if (hand) { down = { mode: 'pan', x, y, cam }; stage.classList.add('panning'); return; }
+    if (S.homeArrow && Math.hypot(S.homeArrow.x - x, S.homeArrow.y - y) < 40) { U.flyTo(U.homeCam(), false); return; } // 멀리 나갔을 때 "지도로 돌아가기"
     const r = riskAt(x, y), lab = labelAt(x, y), it = hit(x, y);
     down = r ? { mode: 'risk', r, x, y } : it ? { mode: 'item', id: it.id, x, y } : lab ? { mode: 'label', id: lab.id, x, y } : { mode: 'pan', x, y, cam, click: true };
   });
@@ -133,19 +139,21 @@
   });
   $('legend').addEventListener('click', (e) => {
     const v = e.target.closest('[data-lv]')?.dataset.lv; if (v == null) return;
-    const dim = S.view.color, filter = { ...S.view.filter }, set = new Set(filter[dim] || []);
+    const dim = S.L.color, filter = { ...S.view.filter }, set = new Set(filter[dim] || []);
     if (set.has(v)) set.delete(v); else set.add(v);
     filter[dim] = set; U.setView({ filter });
     $('legend').querySelector(`[data-lv="${CSS.escape(v)}"]`)?.focus();
   });
   document.addEventListener('click', (e) => {
     if ($('filter').open && !e.target.closest('#filter')) $('filter').open = false;
-    const t = e.target.closest('[data-close],[data-go],[data-toggle],[data-judge]');
+    const t = e.target.closest('[data-close],[data-go],[data-toggle],[data-judge],[data-drill],[data-crumb]');
     if (!t) return;
     if (t.dataset.close != null) U.closeSide();
     if (t.dataset.go) U.goTo(t.dataset.go);
     if (t.dataset.toggle) { U.toggle(t.dataset.toggle); $('side').querySelector('[data-toggle]')?.focus(); }
-    if (t.dataset.judge) { TR.judged[t.dataset.id] = t.dataset.judge; U.say('관심에 넣었어요. 설치하거나 바꾼 것은 없어요.'); } // "+ 기술 넣기" 상자
+    if (t.dataset.judge) U.say(TR.judge.save(t.dataset.id, t.dataset.judge)); // "+ 기술 넣기" 상자
+    if (t.dataset.drill) U.drill(t.dataset.drill);
+    if (t.dataset.crumb != null) U.setView({ scope: S.view.scope.slice(0, Number(t.dataset.crumb)) });
   });
   $('reset').addEventListener('click', U.resetView);
   $('clearF').addEventListener('click', () => U.setView({ filter: {}, risky: false, mine: false, nw: false }));

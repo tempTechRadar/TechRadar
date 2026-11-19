@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>화면 흐름 시안</title>
   <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="tr-judge.css">
   <style>
     /* 화면 흐름 시안(무채색, 팀 확인 전). 흐름과 배치만 본다. 색·테마는 주말 연구 뒤에 입힌다(docs/design.md 5절). 이름·숫자는 샘플 */
     :root { /* 값은 tokens.css 한 곳(테마는 거기서만 바꿈). 이 시안의 옛 이름은 공용 토큰을 가리키는 별칭 */
@@ -66,6 +67,21 @@
 
     /* 기술 지도는 radar.html(11-20). 이 시안의 #map은 그쪽으로 보낸다 */
 
+    /* 기술 상세 = 머리 + 2단(사용자 11-20). 머리(이름·배지·경로·판단 줄)는 스크롤해도 위에 붙는다 */
+    .dhead { position: sticky; top: 0; z-index: 3; display: grid; gap: 4px; margin: -16px -16px 16px; padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    .dhead h1 { margin: 0; }
+    .jbar { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; margin-top: 6px; }
+    .jlabel { font-weight: 700; min-height: 44px; display: inline-flex; align-items: center; }
+    .dgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 12px; align-items: start; }
+    .dmain, .dside { display: grid; gap: 12px; }
+    .dside { position: sticky; top: 150px; }
+    .dgrid h2 { font-size: 16px; }
+    button.link { min-height: 32px; padding: 0; border: 0; background: none; font: inherit; text-align: left; text-decoration: underline; cursor: pointer; color: var(--ink); }
+    button.link[aria-pressed="true"] { font-weight: 800; text-decoration-thickness: 2px; }
+    table.cmp { margin-top: 10px; border: 1px solid var(--line); }
+    .near .rel a.btn { flex: none; }
+    .btn.sm { min-height: 32px; padding: 0 10px; font-size: 13px; }
+
     /* 내 레이더 = 칸반, 블루프린트 = 단계 줄 + 후보 표 + 내보내기 */
     .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: start; }
     .kanban .col { background: var(--sub); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-height: 200px; }
@@ -116,6 +132,9 @@
 
     @media (max-width: 880px) {
       .cols, .kanban { grid-template-columns: 1fr; }
+      /* 좁으면 한 줄: 머리 → 판단 → 핵심 정보 → 본문 → 판단 기록 */
+      .dgrid { grid-template-columns: 1fr; } .dmain, .dside { display: contents; } .dside { position: static; }
+      .dside > :first-child { order: -1; } .dside > :not(:first-child) { order: 1; }
       .guide .start { margin-left: 0; }
       .top { display: block; } .top nav { flex-wrap: nowrap; overflow-x: auto; } .top nav a { white-space: nowrap; }
     }
@@ -146,6 +165,8 @@
   <main id="main"></main>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="journey-data.js"></script>
+  <script src="radar-data.js"></script>
+  <script src="tr-judge.js"></script>
   <script src="journey-board.js"></script>
   <script src="journey-capture.js"></script>
   <script src="journey.js"></script>

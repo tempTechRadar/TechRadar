@@ -16,13 +16,23 @@
   ok('주소 → 설정 → 주소 왕복', RL.viewParams(v).toString() === P('g=kind,host&c=grade&fk=MCP&risky=1').toString());
   const bad = RL.parseView(P('g=constructor,__proto__,kind&c=evil&fk=없는값&ff=리서치'), false, techs);
   ok('모르는 이름·값은 버림', bad.group.join() === 'kind' && bad.color === 'kind' && !bad.filter.kind && bad.filter.field.has('리서치'));
-  ok('로그인 전에는 내 프로젝트 묶기·내 기술만 거르기 안 됨', RL.parseView(P('g=project&mine=1'), false, techs).group.join() === 'field,kind' && !RL.parseView(P('mine=1'), false, techs).mine);
+  ok('로그인 전에는 내 프로젝트 묶기·내 기술만 필터 안 됨', RL.parseView(P('g=project&mine=1'), false, techs).group.join() === 'field,kind' && !RL.parseView(P('mine=1'), false, techs).mine);
   ok('분류 전은 맨 뒤 + 회색', (() => { const g = a.items.filter((i) => i.level === 1); return g[g.length - 1].value === UNSORTED && g[g.length - 1].token === '--unknown'; })());
   ok('보안 등급 색: 위험 = --danger', RL.layout(techs, edges, { ...base, color: 'grade' }).legend.find((l) => l.value === '위험').token === '--danger');
   const g1 = a.items.find((i) => i.level === 1), hid = RL.hiddenOf(a, new Set([g1.id]));
   ok('접은 묶음 아래는 숨김, 묶음 자신은 보임', !hid.has(g1.id) && a.items.filter((i) => RL.isUnder(a, i, g1.id)).every((i) => hid.has(i.id)));
   const leaf = a.items.find((i) => i.type === 't'), con = RL.connected(a, leaf.id);
   ok('기술 올리기 = 위로 가는 길 + 비교군', [...con].every((id) => id === leaf.id || a.byId.get(id).type === 'g' || edges.some((e) => e.includes(leaf.id) && e.includes(id))));
+
+  // 이 분류만 보기(scope)
+  const sv = RL.parseView(P('in=field:리서치'), false, techs), SL = RL.layout(techs, edges, sv);
+  ok('분류만 보기: 그 안의 기술만', SL.items.filter((i) => i.type === 't').every((i) => i.t.big === '리서치') && SL.shown === techs.filter((t) => t.big === '리서치').length);
+  ok('분류만 보기: 쓴 기준은 묶기에서 빠짐(하는 일 › 종류 → 종류만)', SL.depth === 1 && SL.items.filter((i) => i.type === 'g').every((i) => i.dim === 'kind'));
+  ok('분류만 보기: 주소 왕복', RL.viewParams(RL.parseView(P('in=field:리서치|kind:MCP'), false, techs)).get('in') === 'field:리서치|kind:MCP');
+  ok('분류만 보기: 모르는 기준·없는 값·같은 기준 두 번은 버림', RL.parseView(P('in=evil:x|field:없는갈래|kind:MCP|kind:스킬|field'), false, techs).scope.map((s) => s.dim + s.value).join() === 'kindMCP');
+  const reset = RL.parseView(P(''), false, techs);
+  ok('보기 초기화 = 기본 설정(필터·분류만 보기 없음)', reset.group.join() === 'field,kind' && reset.color === 'field' && !Object.keys(reset.filter).length && !reset.scope.length && !reset.risky && !reset.nw);
+  ok('비교군마다 이유가 있음', edges.every(([x, y]) => TR.radar.why(x, y).quote && TR.radar.why(x, y).who));
 
   const fail = rows.filter((r) => r.결과 !== '통과').length;
   console.table(rows);

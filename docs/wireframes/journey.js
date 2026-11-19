@@ -1,41 +1,28 @@
 // 화면 흐름 시안(무채색). 탐색 → 이해 → 판단 → 기억 → 조립을 눌러 본다. 데이터는 journey-data.js의 샘플이고 새로고침하면 처음으로 돌아간다.
 (() => {
-  const { icon, esc, FIELDS, TECH, byId, SAME, ALERTS, NEWS, JN, SEC, judged, records, stateOf, secIcon, path, tagRow, ui } = TR;
+  const { icon, esc, FIELDS, TECH, byId, SAME, ALERTS, NEWS, JN, SEC, judged, records, stateOf, path, tagRow, ui } = TR;
+  const R = (id) => TR.radar.byId[id]; // 지도와 같은 카탈로그(radar-data.js): 샘플 13개 + 모은 기술 표본
   const neighbors = (id) => SAME.filter((e) => e.includes(id)).map((e) => (e[0] === id ? e[1] : e[0]));
   const waiting = () => ALERTS.filter((a) => a.status === 'wait');
-  const secText = {
-    d: '보안 위험: 알려진 취약점이 있어요(OSV). 위험한 버전은 적용 후보로 고를 수 없어요.',
-    w: '보안 주의: 오래 고쳐지지 않은 이슈가 있어요.',
-    e: '수집 오류: 지난번 읽기에 실패했어요. "문제 없음"이 아니에요. 마지막으로 읽은 값을 그대로 둬요.',
-  };
-  const secLine = (t) => `<p class="muted">${t.sec ? icon(secIcon(t.sec), 15) + ' ' + secText[t.sec] : '보안: 알려진 문제를 찾지 못했어요(안전하다는 보증은 아니에요).'}</p>`;
-  // 기술 지도는 radar.html(11-20 새 레이더). 이 흐름 시안의 #map·#map/<id>는 그쪽으로 보낸다
-  const mapUrl = (id) => `radar.html${id ? `#sel=${encodeURIComponent(id)}` : ''}`;
+  // 기술 지도는 radar.html(11-20 새 레이더). 이 흐름 시안의 #map·#map/<id>는 그쪽으로 보낸다(?n= 표본 크기는 그대로)
+  const mapUrl = (id) => `radar.html${location.search}${id ? `#sel=${encodeURIComponent(id)}` : ''}`;
 
-  // ---- 판단 단추. 판단은 기록일 뿐 아무것도 설치·변경하지 않는다(불변 1, ADR 0010)
+  // ---- 알림 판단 단추. 판단은 기록일 뿐 아무것도 설치·변경하지 않는다(불변 1, ADR 0010). 알림 없는 판단은 tr-judge.js 세 단추
   function judgeBox(t, alert) {
-    const holdForm = `<form class="hold" data-id="${t.id}" data-alert="${alert ? alert.id : ''}" hidden>
+    const holdForm = `<form class="hold" data-id="${t.id}" data-alert="${alert.id}" hidden>
       <label for="why-${t.id}">보류 이유 (5자 이상)</label><textarea id="why-${t.id}" minlength="5" required></textarea>
       <div class="row"><button class="btn primary">보류로 저장</button><button type="button" class="btn" data-act="holdCancel">취소</button></div></form>`;
-    if (alert) {
-      if (alert.status === 'done') return `<p class="note">판단을 마쳤어요: <b>${alert.kind === '보안 경고' && alert.result === 'cand' ? '고친 버전으로 올리기' : JN[alert.result]}</b>. 완료는 판단을 마쳤다는 뜻이고, 설치하거나 바꾼 것은 없어요.</p>`;
-      const sec = alert.kind === '보안 경고';
-      const cand = sec ? (alert.fixed ? `고친 버전 ${alert.fixed}로 올리기` : '') : '써 볼 후보로';
-      return `<div class="row">${cand ? `<button class="btn primary" data-judge="cand" data-id="${t.id}" data-alert="${alert.id}">${cand}</button>` : ''}<button class="btn" data-act="hold">보류</button></div>${holdForm}`;
-    }
-    if (t.mine) {
-      const w = waiting().filter((a) => a.tech === t.id);
-      return `<p class="muted">저장소에서 읽은 내 기술이라 <b>쓰는 중</b>이에요.</p>${w.map((a) => `<a class="btn primary" href="#alert/${a.id}">${icon('bell', 16)}${a.kind} 판단하기</a>`).join(' ')}`;
-    }
-    const s = judged[t.id], risky = t.sec === 'd';
-    const b = (j, extra = '') => `<button class="btn" ${j === 'hold' ? 'data-act="hold"' : `data-judge="${j}" data-id="${t.id}"`} aria-pressed="${s === j}" ${extra}>${JN[j]}</button>`;
-    return `<div class="row">${b('int')}${b('cand', risky ? 'disabled aria-describedby="risk-' + t.id + '"' : '')}${b('hold')}</div>
-      ${risky ? `<p class="muted" id="risk-${t.id}">위험한 버전은 적용 후보가 될 수 없어요.</p>` : ''}${holdForm}`;
+    if (alert.status === 'done') return `<p class="note">판단을 마쳤어요: <b>${alert.kind === '보안 경고' && alert.result === 'cand' ? '고친 버전으로 올리기' : JN[alert.result]}</b>. 완료는 판단을 마쳤다는 뜻이고, 설치하거나 바꾼 것은 없어요.</p>`;
+    const sec = alert.kind === '보안 경고';
+    const cand = sec ? (alert.fixed ? `고친 버전 ${alert.fixed}로 올리기` : '') : '써 볼 후보로';
+    return `<div class="row">${cand ? `<button class="btn primary" data-judge="cand" data-id="${t.id}" data-alert="${alert.id}">${cand}</button>` : ''}<button class="btn" data-act="hold">보류</button></div>${holdForm}`;
   }
 
-  function compareTable(t, mine) {
-    const rows = [['하는 일', (x) => x.desc], ['인기', (x) => x.pop], ['마지막 업데이트', (x) => x.upd], ['보안', (x) => ({ d: '위험', w: '주의', e: '수집 오류' })[x.sec] || '알려진 문제 없음']];
-    return `<table><caption class="sr">${t.id}와 내 ${mine.id} 비교</caption><thead><tr><th></th><th>${t.id}</th><th>내 ${mine.id}</th></tr></thead><tbody>${rows.map(([k, f]) => `<tr><th scope="row">${k}</th><td>${f(t)}</td><td>${f(mine)}</td></tr>`).join('')}</tbody></table>`;
+  /** 두 기술 나란히(지도 카탈로그 값). b가 내 기술이면 "내 …" */
+  function compareTable(a, b) {
+    const rows = [['하는 일', (x) => x.desc], ['세부 갈래', (x) => x.sub || TR.radar.UNSORTED], ['종류', (x) => x.kind], ['쓰는 곳', (x) => x.host], ['인기', (x) => x.pop], ['마지막 업데이트', (x) => x.upd], ['보안', (x) => x.grade + (x.err ? ' · 수집 오류' : '')]];
+    const nb = `${b.mine ? '내 ' : ''}${esc(b.id)}`;
+    return `<table class="cmp"><caption class="sr">${esc(a.id)}와 ${nb} 비교</caption><thead><tr><th></th><th>${esc(a.id)}</th><th>${nb}</th></tr></thead><tbody>${rows.map(([k, f]) => `<tr><th scope="row">${k}</th><td>${esc(f(a))}</td><td>${esc(f(b))}</td></tr>`).join('')}</tbody></table>`;
   }
 
   // ---- 화면들
@@ -48,7 +35,7 @@
       <p><b>첫 점검:</b> 보안 위험 1 · 주의 1. 읽지 못한 파일이 있으면 "수집 오류"로 따로 보여요.</p>
       <a class="btn primary" href="radar.html#from=start">지도에서 내 기술 보기</a></div>`;
     // 지도는 로그인 없이 누구나 본다(사용자 11-20). 모은 기술만 보이고, 관심·판단·내 기술·알림은 로그인 뒤
-    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 그동안 모은 기술 지도를 볼 수 있어요. 묶기·거르기는 둘러보는 동안만 바뀌고 저장되지 않아요. 로그인하면 보기 설정 · 관심 · 판단이 내 계정에 남아요.
+    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 그동안 모은 기술 지도를 볼 수 있어요. 묶기·필터는 둘러보는 동안만 바뀌고 저장되지 않아요. 로그인하면 보기 설정 · 관심 · 판단이 내 계정에 남아요.
       <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a><a class="btn" href="radar.html">로그인 없이 지도 보기</a></p>`;
   }
 
@@ -60,19 +47,33 @@
       <h3>공식 소식 (알림이 아니에요)</h3><ul class="list">${NEWS.map(([a, b]) => `<li><div>${a}<br><span class="muted">${b}</span></div></li>`).join('')}</ul>`;
   }
 
+  // ---- 기술 상세(머리 + 2단, 사용자 11-20): 위 머리·판단 줄 / 왼쪽 본문(하는 일 → 비교군과 이유 → 보안·수집 → 시나리오) / 오른쪽 요약(핵심 정보 · 판단 기록)
+  const BADGE = { 위험: ['danger', '보안 위험'], 주의: ['caution', '보안 주의'] };
   function techView(id) {
-    const t = byId[id];
-    if (!t) return `<h1 tabindex="-1">찾지 못했어요</h1><a href="#map">지도로</a>`;
-    const nb = neighbors(id).map((n) => byId[n]), mine = nb.find((n) => n.mine), rec = records.filter((r) => r.id === id);
-    return `<a class="btn" href="#map/${id}">${icon('back', 16)}지도로</a>
-      <div class="cols" style="margin-top:12px"><div class="box">
-        <h1 tabindex="-1">${t.id}</h1><div class="muted">${path(t)}</div><div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new" title="이번 주에 들어온 기술">NEW</span>' : ''}${tagRow(t)}</div>
-        <p>${t.desc}</p><dl class="kv"><dt>인기</dt><dd>${t.pop}</dd><dt>마지막 업데이트</dt><dd>${t.upd}</dd><dt>비교군</dt><dd>${nb.map((n) => `<a href="#tech/${n.id}">${n.id}</a>`).join(', ') || '없음'}</dd></dl>
-        ${mine && !t.mine ? `<h3>내 ${mine.id}와 비교</h3>${compareTable(t, mine)}` : ''}
-        <h3>보안 (곁들임)</h3>${secLine(t)}
-        <h3>적용 시나리오</h3><p class="muted">내 프로젝트에 넣는 방법을 Claude가 써 줘요. 누를 때만 만들어요(참고 자료).</p><button class="btn" data-act="scenario">적용 시나리오 만들기</button>
-      </div><div class="box"><h2>내 판단</h2>${judgeBox(t)}
-        <h3>이 기술의 판단 기록</h3>${rec.length ? `<ul class="near">${rec.map((r) => `<li>${r.at} · <b>${r.label || JN[r.j]}</b> ${esc(r.why)}</li>`).join('')}</ul>` : '<p class="muted">아직 없어요.</p>'}</div></div>`;
+    const t = R(id);
+    if (!t) return `<h1 tabindex="-1">찾지 못했어요</h1><a class="btn" href="${mapUrl()}">지도로</a>`;
+    const rels = TR.radar.edges.filter((e) => e.includes(id)).map((e) => { const o = e[0] === id ? e[1] : e[0]; return { n: R(o), why: TR.radar.why(id, o) }; });
+    const pick = (rels.find((r) => r.n.id === ui.cmp) || rels.find((r) => r.n.mine) || rels[0] || {}).n;
+    const rec = records.filter((r) => r.id === id), badge = BADGE[t.grade], base = byId[id];
+    const facts = [['종류', t.kind], ['쓰는 곳', t.host], ['하는 일', t.big || TR.radar.UNSORTED], ['세부 갈래', t.sub || TR.radar.UNSORTED], ['인기', t.pop], ['마지막 업데이트', t.upd],
+      ['마지막 확인', t.err ? '읽기 실패 · 지난 값(11월 18일 06:00)' : '오늘 06:00 정기 수집']];
+    return `<header class="dhead">
+        <div class="row"><a class="btn" href="${mapUrl(id)}">${icon('back', 16)}지도로</a><h1 tabindex="-1">${esc(id)}</h1>${t.nw ? '<span class="tag new" title="이번 주에 들어온 기술">NEW</span>' : ''}${badge ? `<span class="tag strong">${icon(badge[0], 14)} ${badge[1]}</span>` : ''}${t.err ? `<span class="tag strong">${icon('error', 14)} 수집 오류</span>` : ''}</div>
+        <div class="muted">${esc(TR.radar.pathOf(t))}</div>
+        <div class="jbar"><span class="jlabel">내 판단</span>${TR.judge.html(t, { login: true })}${waiting().filter((a) => a.tech === id).map((a) => `<a class="btn primary" href="#alert/${a.id}">${icon('bell', 16)}${a.kind} 판단하기</a>`).join('')}</div>
+      </header>
+      <div class="dgrid"><div class="dmain">
+        <section class="box"><h2>하는 일</h2><p>${esc(t.desc)}</p>${base ? `<div class="row">${tagRow(base)}</div>` : ''}</section>
+        <section class="box"><h2>비교군 ${rels.length}</h2>${rels.length ? `<p class="muted">같은 역할을 하는 기술이에요. 이름을 누르면 아래 표에서 나란히 봐요.</p>
+          <ul class="near">${rels.map(({ n, why }) => `<li class="rel"><div><button class="link" data-act="cmp" data-val="${esc(n.id)}" aria-pressed="${n === pick}">${esc(n.id)}${n.mine ? ' (내 기술)' : ''}</button><span class="why">왜: ${esc(why.quote)}</span><span class="muted">${why.who}</span></div><a class="btn sm" href="#tech/${encodeURIComponent(n.id)}">상세</a></li>`).join('')}</ul>
+          ${compareTable(t, pick)}` : '<p class="muted">아직 비교군이 없어요.</p>'}</section>
+        <section class="box"><h2>보안 · 수집 상태</h2><p>${badge ? icon(badge[0], 15) + ' ' : ''}${TR.radar.SEC_TEXT[t.grade]}</p>${t.err ? `<p>${icon('error', 15)} ${TR.radar.ERR_TEXT}</p>` : ''}<p class="muted">출처: OSV · GitHub Advisory. 보안은 곁들임 정보예요.</p></section>
+        <section class="box"><h2>적용 시나리오</h2><p class="muted">내 프로젝트에 넣는 방법을 Claude가 써 줘요. 누를 때만 만들어요(참고 자료).</p><button class="btn" data-act="scenario">적용 시나리오 만들기</button></section>
+      </div><aside class="dside">
+        <section class="box"><h2>핵심 정보</h2><dl class="kv">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></section>
+        <section class="box"><h2>내 판단 기록</h2>${rec.length ? `<ul class="near">${rec.map((r) => `<li><div><span class="muted">${r.at}</span> · <b>${r.label || JN[r.j]}</b> ${esc(r.why)}${r.rating ? ` <span aria-label="별 ${r.rating}개">${'★'.repeat(r.rating)}</span>` : ''}${r.note ? `<div class="muted">${esc(r.note)}</div>` : ''}</div></li>`).join('')}</ul>` : '<p class="muted">아직 없어요. 위 판단 단추로 바로 남겨요.</p>'}</section>
+        <a class="btn" href="${mapUrl(id)}">지도에서 보기</a>
+      </aside></div>`;
   }
 
   function alertsView() {
@@ -85,11 +86,11 @@
     const a = ALERTS.find((x) => x.id === id);
     if (!a) return `<h1 tabindex="-1">찾지 못했어요</h1><a href="#alerts">알림으로</a>`;
     const t = byId[a.tech], sec = a.kind === '보안 경고', mine = neighbors(t.id).map((n) => byId[n]).find((n) => n.mine);
-    const past = records.filter((r, i) => byId[r.id].f === t.f && r.id !== t.id && records.findIndex((x) => x.id === r.id) === i); // 기술마다 최신 판단 하나
+    const past = records.filter((r, i) => R(r.id).big === R(t.id).big && r.id !== t.id && records.findIndex((x) => x.id === r.id) === i); // 같은 갈래, 기술마다 최신 판단 하나
     return `<a class="btn" href="#alerts">${icon('back', 16)}알림 목록</a>
       <div class="cols" style="margin-top:12px"><div class="box"><span class="tag">${a.kind}</span><h1 tabindex="-1">${t.id}</h1>
         <dl class="kv"><dt>무엇이 바뀌었나</dt><dd>${a.what}</dd><dt>언제</dt><dd>${a.at}</dd>${sec ? `<dt>고친 버전</dt><dd>${a.fixed}</dd>` : ''}</dl>
-        ${sec ? `<h3>대응안 초안 (Claude, 참고)</h3><p>고친 버전 ${a.fixed}로 올리기를 권해요. 출처: OSV, GitHub Advisory.</p>` : mine ? `<h3>내 ${mine.id}와 비교</h3>${compareTable(t, mine)}` : ''}
+        ${sec ? `<h3>대응안 초안 (Claude, 참고)</h3><p>고친 버전 ${a.fixed}로 올리기를 권해요. 출처: OSV, GitHub Advisory.</p>` : mine ? `<h3>내 ${mine.id}와 비교</h3>${compareTable(R(t.id), R(mine.id))}` : ''}
         <h3>비슷한 과거 판단</h3>${past.length ? past.map((r) => `<p>${r.at} · ${r.id} · <b>${r.label || JN[r.j]}</b> ${esc(r.why)}</p>`).join('') : '<p class="muted">없어요.</p>'}
         <div class="row" style="margin-top:8px"><a class="btn" href="#map/${t.id}">지도에서 보기</a><a class="btn" href="#tech/${t.id}">기술 상세</a><button class="btn" data-act="scenario">적용 시나리오 만들기</button></div>
       </div><div class="box"><h2>판단</h2><p class="muted">판단하기 전에는 아무것도 바뀌지 않아요.</p>${judgeBox(t, a)}</div></div>`;
@@ -98,31 +99,27 @@
   function recordsView() {
     return `<h1 tabindex="-1">기록</h1><p class="muted">지난 판단과 이유예요. 비슷한 기술이 나오면 여기서 다시 찾아요.</p>
       <div class="tools"><label class="search">${icon('search')}<input id="rq" placeholder="기술 이름 · 이유 · 코멘트 · 태그로 찾기" aria-label="기록 찾기"></label>
-        <select id="rj" aria-label="판단으로 거르기"><option value="">모든 판단</option>${['cand', 'int', 'hold'].map((j) => `<option value="${j}">${JN[j]}</option>`).join('')}</select></div>
+        <select id="rj" aria-label="판단 필터"><option value="">모든 판단</option>${['cand', 'int', 'hold'].map((j) => `<option value="${j}">${JN[j]}</option>`).join('')}</select></div>
       <ul class="list" id="rlist">${recordRows()}</ul>`;
   }
   function recordRows(q = '', j = '') {
-    const l = records.filter((r) => (!j || r.j === j) && (r.id + r.why + r.note + byId[r.id].tags.join(' ')).toLowerCase().includes(q.toLowerCase()));
-    return l.map((r) => { const t = byId[r.id]; return `<li><div><span class="muted">${r.at}</span> · <b>${r.id}</b>
-        <div class="row" style="margin:2px 0"><span class="tag strong">${r.label || JN[r.j]}</span><span class="tag">${FIELDS[t.f]}</span><span class="tag">${t.kind}</span>${tagRow(t)}</div>${esc(r.why) || '<span class="muted">이유 없음</span>'}
+    // 기록은 지도의 어떤 기술에도 남을 수 있어서 갈래·종류는 지도 카탈로그(R)에서, 태그는 샘플 13개에만 있다
+    const tagsOf = (id) => (byId[id] ? byId[id].tags : []);
+    const l = records.filter((r) => (!j || r.j === j) && (r.id + r.why + r.note + tagsOf(r.id).join(' ')).toLowerCase().includes(q.toLowerCase()));
+    return l.map((r) => { const t = R(r.id); return `<li><div><span class="muted">${r.at}</span> · <b>${esc(r.id)}</b>
+        <div class="row" style="margin:2px 0"><span class="tag strong">${r.label || JN[r.j]}</span><span class="tag">${esc(t.big || TR.radar.UNSORTED)}</span><span class="tag">${t.kind}</span>${byId[r.id] ? tagRow(byId[r.id]) : ''}</div>${esc(r.why) || '<span class="muted">이유 없음</span>'}
         <div class="row rating" role="group" aria-label="${r.id} 결과 만족도">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-act="rate" data-key="${r.key}" data-val="${n}" aria-pressed="${r.rating >= n}" aria-label="별 ${n}개">${r.rating >= n ? '★' : '☆'}</button>`).join('')}
           <input class="note-in" data-note="${r.key}" value="${esc(r.note)}" maxlength="60" placeholder="한 줄 코멘트(결과가 어땠나)" aria-label="${r.id} 코멘트"></div></div><a class="btn" href="#tech/${r.id}">상세</a></li>`; }).join('') || '<li><div class="muted">맞는 기록이 없어요.</div></li>';
   }
 
-  // ---- 저장(샘플: 메모리에만). 적용 후보·보류를 지도에서 골라도 같은 기술의 적용 기회 알림이 함께 완료된다
+  // ---- 저장은 tr-judge.js(지도 사이드바와 같은 규칙: 적용 후보·보류를 고르면 같은 기술의 적용 기회 알림도 함께 완료)
   function save(id, j, why, alertId) {
-    const t = byId[id], alert = ALERTS.find((a) => a.id === alertId);
-    if (j === 'cand' && t.sec === 'd' && !alert) return say('위험한 버전은 적용 후보로 고를 수 없어요.');
-    if (!t.mine) judged[id] = j;
-    const done = alert ? [alert] : j === 'int' ? [] : waiting().filter((a) => a.tech === id && a.kind === '적용 기회');
-    done.forEach((a) => { a.status = 'done'; a.result = j; });
-    const label = alert && alert.kind === '보안 경고' && j === 'cand' ? `고친 버전 ${alert.fixed}로 올리기` : '';
-    records.unshift({ key: `r${Date.now()}`, id, j, why: why || '', at: '방금', label, rating: 0, note: '' });
     ui.holdFor = '';
-    say(`판단을 저장했어요: ${label || JN[j]}. 설치하거나 바꾼 것은 없어요.${done.length && !alert ? ` 알림 ${done.length}건도 판단을 마쳤어요.` : ''}`);
+    say(TR.judge.save(id, j, why || '', alertId));
     render();
-    (document.getElementById('pTitle') || main.querySelector('h1'))?.focus();
+    main.querySelector('h1')?.focus();
   }
+  TR.judge.onChange = (id, msg, warnOnly) => { say(msg); if (!warnOnly) render(); };
   let toastT;
   function say(msg) {
     const el = document.getElementById('toast');
@@ -155,12 +152,14 @@
     if (act === 'hold') { const f = e.target.closest('.box').querySelector('form.hold'); f.hidden = false; f.querySelector('textarea').focus(); }
     if (act === 'holdCancel') { e.target.closest('form').hidden = true; ui.holdFor = ''; }
     if (act === 'rate') { const r = records.find((x) => x.key === el.dataset.key); r.rating = r.rating === Number(el.dataset.val) ? 0 : Number(el.dataset.val); document.getElementById('rlist').innerHTML = recordRows(document.getElementById('rq').value, document.getElementById('rj').value); document.querySelector(`[data-act="rate"][data-key="${r.key}"][data-val="${el.dataset.val}"]`)?.focus(); say(r.rating ? `만족도 별 ${r.rating}개로 남겼어요.` : '만족도를 지웠어요.'); }
+    if (act === 'cmp') { ui.cmp = el.dataset.val; render(); main.querySelector(`[data-act="cmp"][data-val="${CSS.escape(ui.cmp)}"]`)?.focus(); }
     if (act === 'scenario') say('적용 시나리오는 누를 때만 만들어요(IA-8). 이 시안에서는 만들지 않아요.');
     if (act === 'stub') say('이 시안에서는 동작하지 않아요(IA-3·IA-22).');
   });
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
+    if (f.classList.contains('jform')) return; // 세 단추의 보류 이유는 tr-judge.js가 받는다
     if (f.dataset.act === 'repo') { location.hash = '#start/read'; return; }
     const why = f.querySelector('textarea').value.trim();
     if (why.length < 5) return say('보류 이유를 5자 이상 써 주세요.');

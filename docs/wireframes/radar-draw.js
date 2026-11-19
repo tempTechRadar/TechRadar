@@ -28,12 +28,12 @@
     const P = (it) => { const b = phys.B.get(it.id); return b ? toS(b.x, b.y) : toS(it.x, it.y); };
     c.fillStyle = col('--surface'); c.fillRect(0, 0, W, H);
     const [ox, oy] = toS(0, 0);
+    endless(c, S, sc, ox, oy);
 
-    // 고리와 십자선(배경)
+    // 고리(지도 안쪽은 진하게)
     c.strokeStyle = col('--line'); c.lineWidth = 1;
     for (let l = 1; l <= L.depth; l++) { c.beginPath(); c.arc(ox, oy, (FIRST_RING + (l - 1) * LEVEL_GAP) * sc, 0, TAU); c.stroke(); }
     c.beginPath(); c.arc(ox, oy, L.leafR * sc, 0, TAU); c.stroke();
-    c.globalAlpha = 0.5; c.beginPath(); c.moveTo(ox - L.radius * sc, oy); c.lineTo(ox + L.radius * sc, oy); c.moveTo(ox, oy - L.radius * sc); c.lineTo(ox, oy + L.radius * sc); c.stroke(); c.globalAlpha = 1;
 
     // 훑는 선(처음만 진하게)
     const sa = sweepAlpha(S, now), ang = sweepAngle(S, now);
@@ -72,7 +72,7 @@
 
     // 가운데
     c.fillStyle = col('--ink'); c.beginPath(); c.arc(ox, oy, 4, 0, TAU); c.fill();
-    label(c, S.login ? '나' : `모은 기술 ${L.total}`, ox, oy + 18, 12, col('--muted'), 'center');
+    label(c, S.scopeLabel || (S.login ? '나' : `모은 기술 ${L.total}`), ox, oy + 18, 12, col('--muted'), 'center', S.scopeLabel ? 700 : 400);
 
     // 기술 점
     const sweepAge = (it) => (((ang - (angleOf(it.x, it.y) - Math.PI / 2)) % TAU + TAU) % TAU) / (TAU / PERIOD);
@@ -131,6 +131,54 @@
     c.globalAlpha = 1;
     leafLabels(c, S, vis, P, sc);
     S.riskRects = offscreenRisks(c, S, vis, P);
+    S.homeArrow = homeArrow(c, S, ox, oy, L.radius * sc);
+  }
+
+  // ---- 끝없는 판(사용자 11-20): 깊이감 별가루 2겹(시차) · 세상에 붙은 점 모눈 · 지도 밖으로도 이어지는 고리와 십자선
+  const STAR_TILE = 480, STARS = (() => { const r = TR.radar.lcg(11); return [0.3, 0.6].map((f) => ({ f, pts: Array.from({ length: 46 }, () => [r() * STAR_TILE, r() * STAR_TILE, r()]) })); })();
+  const mod = (a, n) => ((a % n) + n) % n;
+  function endless(c, S, sc, ox, oy) {
+    const { W, H } = S;
+    c.fillStyle = col('--faint');
+    for (const { f, pts } of STARS) { // 움직임 줄이기면 시차 없이 고정
+      const dx = S.still ? 0 : mod(-S.cam.x * sc * f, STAR_TILE), dy = S.still ? 0 : mod(-S.cam.y * sc * f, STAR_TILE);
+      c.globalAlpha = f === 0.3 ? 0.5 : 0.75;
+      for (let tx = -STAR_TILE; tx < W + STAR_TILE; tx += STAR_TILE) for (let ty = -STAR_TILE; ty < H + STAR_TILE; ty += STAR_TILE)
+        for (const [x, y, s] of pts) { const px = tx + x + dx, py = ty + y + dy; if (px > -2 && py > -2 && px < W + 2 && py < H + 2) c.fillRect(px, py, f === 0.3 ? 1 : 1 + s, f === 0.3 ? 1 : 1 + s); }
+    }
+    // 점 모눈: 화면 간격 20~40px가 되게 세상 간격을 두 배씩 바꾸고, 잘게 나뉘는 단계는 옅게 들어온다
+    const g = 40 * 2 ** Math.ceil(Math.log2(20 / (40 * sc))), gs = g * sc, fine = Math.min(1, (gs - 20) / 20);
+    c.fillStyle = col('--ink-2');
+    for (const [step, a] of [[g, 0.3 * fine], [g * 2, 0.3]]) {
+      if (a < 0.01) continue;
+      c.globalAlpha = a;
+      const s = step * sc, x0 = mod(ox, s), y0 = mod(oy, s);
+      for (let x = x0; x < W; x += s) for (let y = y0; y < H; y += s) c.fillRect(x - 0.75, y - 0.75, 1.5, 1.5);
+    }
+    // 고리·십자선은 지도 밖으로도 화면 끝까지, 멀수록 옅게(고리가 너무 촘촘하면 건너뜀)
+    const far = Math.max(Math.hypot(ox, oy), Math.hypot(W - ox, oy), Math.hypot(ox, H - oy), Math.hypot(W - ox, H - oy));
+    const L = S.L, step = LEVEL_GAP * 2 ** Math.max(0, Math.ceil(Math.log2(10 / (LEVEL_GAP * sc))));
+    c.strokeStyle = col('--line'); c.lineWidth = 1;
+    const near = Math.hypot(Math.max(0, -ox, ox - W), Math.max(0, -oy, oy - H)); // 가운데가 화면 밖이면 화면까지의 거리
+    let n = 0;
+    for (let r = L.leafR + step; r * sc < far && n < 300; r += step, n++) {
+      if (r * sc < near) continue;
+      c.globalAlpha = Math.max(0.12, 0.7 - n * 0.05);
+      c.beginPath(); c.arc(ox, oy, r * sc, 0, TAU); c.stroke();
+    }
+    c.globalAlpha = 0.45; c.beginPath(); c.moveTo(0, oy); c.lineTo(W, oy); c.moveTo(ox, 0); c.lineTo(ox, H); c.stroke(); c.globalAlpha = 1;
+  }
+  /** 지도(가운데 원반)가 화면 밖으로 다 나가면 가장자리에 가운데 쪽 화살표 + "지도로 돌아가기" */
+  function homeArrow(c, S, ox, oy, R) {
+    const { W, H, top, right } = S, vw = W - right;
+    if (ox + R > 0 && ox - R < vw && oy + R > top && oy - R < H) return null;
+    const cx = vw / 2, cy = (H + top) / 2, a = Math.atan2(oy - cy, ox - cx), dx = Math.cos(a), dy = Math.sin(a), pad = 40;
+    const d = Math.min(Math.abs(dx) > 1e-6 ? (cx - pad) / Math.abs(dx) : Infinity, Math.abs(dy) > 1e-6 ? ((H - top) / 2 - pad) / Math.abs(dy) : Infinity);
+    const x = cx + dx * d, y = cy + dy * d;
+    c.save(); c.translate(x, y); c.rotate(a); c.beginPath(); c.moveTo(14, 0); c.lineTo(-8, -10); c.lineTo(-8, 10); c.closePath();
+    c.fillStyle = col('--ink'); c.fill(); c.restore();
+    label(c, '지도로 돌아가기', x - dx * 26, y - dy * 26, 13, col('--ink'), dx > 0.5 ? 'right' : dx < -0.5 ? 'left' : 'center', 700);
+    return { x, y };
   }
 
   function badge(c, x, y, ch, color) {

@@ -1,4 +1,4 @@
-// 보기 설정(묶기 1~3단계 · 색 · 거르기) ↔ 주소, 그리고 레이더 위 자리 정하기. 화면을 건드리지 않는 순수 함수만 둔다.
+// 보기 설정(묶기 1~3단계 · 색 · 필터) ↔ 주소, 그리고 레이더 위 자리 정하기. 화면을 건드리지 않는 순수 함수만 둔다.
 // 규칙은 앱 코드(feat/P-12c-map lib/map/view-config.ts · layout.ts)와 같다: 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술,
 // 부채꼴 너비 ∝ √(들어 있는 기술 수), 하위 묶음은 부모 부채꼴을 나눈다. 다른 점 하나: 기술이 많으면 바깥 고리를 여러 줄로 쌓는다(앱은 3줄 번갈아).
 (() => {
@@ -8,7 +8,7 @@
     field: ['하는 일', (t) => t.big || UNSORTED], sub: ['세부 갈래', (t) => t.sub || UNSORTED], kind: ['종류', (t) => t.kind],
     host: ['쓰는 곳', (t) => t.host], grade: ['보안 등급', (t) => t.grade], project: ['내 프로젝트', (t) => t.project || NOT_MINE],
   };
-  const FKEY = { field: 'ff', sub: 'fs', kind: 'fk', host: 'fh', grade: 'fg', project: 'fp' }; // 거르기 주소 이름
+  const FKEY = { field: 'ff', sub: 'fs', kind: 'fk', host: 'fh', grade: 'fg', project: 'fp' }; // 필터 주소 이름
   const DEFAULT = { group: ['field', 'kind'], color: 'field' };
   const FIRST_RING = 110, LEVEL_GAP = 95, LEAF_GAP = 15, ROW_GAP = 16;
   const HUB_R = [0, 22, 15, 10]; // 단계마다 크기·모양: 1 육각 · 2 마름모 · 3 네모
@@ -21,13 +21,18 @@
   /** 주소(URLSearchParams) → 보기 설정. 모르는 이름·값은 버린다(주소는 누구나 고쳐 넣을 수 있어서 허용 목록만) */
   function parseView(p, login, techs) {
     const group = [...new Set((p.get('g') || '').split(',').filter((d) => dimOk(d, login)))].slice(0, 3);
-    const v = { group: group.length ? group : [...DEFAULT.group], color: '', filter: {}, risky: p.get('risky') === '1', mine: login && p.get('mine') === '1', nw: p.get('new') === '1' };
+    const v = { group: group.length ? group : [...DEFAULT.group], color: '', filter: {}, scope: [], risky: p.get('risky') === '1', mine: login && p.get('mine') === '1', nw: p.get('new') === '1' };
     v.color = dimOk(p.get('c'), login) ? p.get('c') : v.group[0];
+    const known = (dim) => new Set(techs.map((t) => val(t, dim)));
     for (const [dim, key] of Object.entries(FKEY)) {
       if (!dimOk(dim, login) || !p.get(key)) continue;
-      const known = new Set(techs.map((t) => val(t, dim)));
-      const vals = p.get(key).split('|').filter((x) => known.has(x));
+      const k = known(dim), vals = p.get(key).split('|').filter((x) => k.has(x));
       if (vals.length) v.filter[dim] = new Set(vals);
+    }
+    // "이 분류만 보기" 경로: in=field:리서치|kind:MCP (기준마다 한 번, 있는 값만)
+    for (const part of (p.get('in') || '').split('|').filter(Boolean)) {
+      const i = part.indexOf(':'), dim = part.slice(0, i), value = part.slice(i + 1);
+      if (i > 0 && dimOk(dim, login) && !v.scope.some((s) => s.dim === dim) && known(dim).has(value)) v.scope.push({ dim, value });
     }
     return v;
   }
@@ -37,13 +42,17 @@
     if (v.group.join() !== DEFAULT.group.join()) p.set('g', v.group.join());
     if (v.color !== v.group[0]) p.set('c', v.color);
     for (const [dim, set] of Object.entries(v.filter)) if (set.size) p.set(FKEY[dim], [...set].join('|'));
+    if (v.scope.length) p.set('in', v.scope.map((s) => `${s.dim}:${s.value}`).join('|'));
     if (v.risky) p.set('risky', '1');
     if (v.mine) p.set('mine', '1');
     if (v.nw) p.set('new', '1');
     return p;
   }
   const passes = (t, v) => (!v.risky || t.grade === '위험' || t.grade === '주의') && (!v.mine || t.mine) && (!v.nw || t.nw)
+    && v.scope.every((s) => val(t, s.dim) === s.value)
     && Object.entries(v.filter).every(([dim, set]) => !set.size || set.has(val(t, dim)));
+  /** 들어간 분류의 기준은 이미 하나로 정해졌으니 묶기에서 뺀다(리서치 안에서 다시 "하는 일"로 묶을 일은 없다) */
+  const groupOf = (v) => v.group.filter((d) => !v.scope.some((s) => s.dim === d));
 
   /** 색: 많은 값 8개까지 범주 색, 나머지는 "그 밖", 분류 전 같은 특별 값은 회색. 보안 등급은 뜻이 정해진 색 */
   function legendOf(nodes, dim) {
@@ -66,8 +75,9 @@
   /** 보기 설정 → 묶음·기술의 제자리(home). 같은 입력이면 같은 결과 */
   function layout(techs, edges, v) {
     const kept = techs.filter((t) => passes(t, v));
-    const { legend, tokenOf } = legendOf(kept, v.color);
-    const items = [], depth = v.group.length, leafR = FIRST_RING + depth * LEVEL_GAP + 15;
+    const group = groupOf(v), color = v.scope.some((s) => s.dim === v.color) ? group[0] || 'grade' : v.color; // 들어간 기준으로 칠하면 한 색뿐이라 다음 묶기 기준으로
+    const { legend, tokenOf } = legendOf(kept, color);
+    const items = [], depth = group.length, leafR = FIRST_RING + depth * LEVEL_GAP + 15;
     let maxR = leafR;
     function place(list, level, parent, a0, a1) {
       if (level > depth) {
@@ -78,11 +88,11 @@
           const r = leafR + row * ROW_GAP + (rows === 1 && sorted.length > 1 ? (i % 2) * 18 : 0); // 한 줄이면 번갈아 내밀어 이름표가 덜 겹치게
           const [x, y] = polar(a0 + ((a1 - a0) * (col + 0.5)) / inRow, r);
           maxR = Math.max(maxR, r);
-          items.push({ id: t.id, type: 't', t, parent, level, x, y, r: t.mine ? 6 : 4.5, token: tokenOf(val(t, v.color)) });
+          items.push({ id: t.id, type: 't', t, parent, level, x, y, r: t.mine ? 6 : 4.5, token: tokenOf(val(t, color)) });
         });
         return;
       }
-      const dim = v.group[level - 1], buckets = new Map();
+      const dim = group[level - 1], buckets = new Map();
       list.forEach((t) => { const k = val(t, dim); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(t); });
       const keys = [...buckets.keys()].sort(byValue), weight = (k) => Math.max(1, Math.sqrt(buckets.get(k).length));
       const total = keys.reduce((s, k) => s + weight(k), 0), pad = level === 1 && keys.length > 1 ? 0.04 : 0;
@@ -93,7 +103,7 @@
         items.push({
           id, type: 'g', level, dim, value: k, parent, x, y, r: HUB_R[level], count: inner.length,
           danger: inner.filter((t) => t.grade === '위험').length, caution: inner.filter((t) => t.grade === '주의').length,
-          err: inner.filter((t) => t.err).length, mine: inner.filter((t) => t.mine).length, token: dim === v.color ? tokenOf(k) : null,
+          err: inner.filter((t) => t.err).length, mine: inner.filter((t) => t.mine).length, token: dim === color ? tokenOf(k) : null,
         });
         place(inner, level + 1, id, start + span * pad, start + span * (1 - pad));
         start += span;
@@ -101,7 +111,7 @@
     }
     place(kept, 1, null, -Math.PI / 2, (3 * Math.PI) / 2);
     const byId = new Map(items.map((it) => [it.id, it]));
-    return { items, byId, legend, depth, leafR, radius: maxR + 30, shown: kept.length, total: techs.length,
+    return { items, byId, legend, color, depth, leafR, radius: maxR + 30, shown: kept.length, total: techs.length,
       edges: edges.filter(([a, b]) => byId.has(a) && byId.has(b)) };
   }
 
@@ -120,5 +130,5 @@
   /** 처음 펼침: 기술이 많으면(400 넘게) 맨 안쪽 묶음 단계를 접어 둔다 */
   const defaultCollapsed = (L) => new Set(L.shown > 400 ? L.items.filter((it) => it.type === 'g' && it.level === L.depth).map((it) => it.id) : []);
 
-  TR.radarLayout = { DIMS, FKEY, DEFAULT, FIRST_RING, LEVEL_GAP, OTHER, val, dimOk, parseView, viewParams, passes, layout, connected, isUnder, hiddenOf, defaultCollapsed };
+  TR.radarLayout = { DIMS, FKEY, DEFAULT, FIRST_RING, LEVEL_GAP, OTHER, val, dimOk, parseView, viewParams, passes, groupOf, layout, connected, isUnder, hiddenOf, defaultCollapsed };
 })();
