@@ -7,6 +7,15 @@ const MAX_LEN = 2000;
 const NAMED = /\b([A-Z][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*\s*[=:]\s*)("[^"]*"|'[^']*'|[^\s,;&"']+)/g;
 // 주소 뒤에 붙은 ?token=…&api_key=…
 const QUERY = /([?&][\w-]*(?:key|token|secret|password)[\w-]*=)[^&\s#]+/gi;
+// 비밀값 한 덩어리: 영문·숫자·기호만(한국어 문장 조각은 값으로 안 본다), 덩어리가 끝나는 곳에서 끝나야 한다("password: 8자"는 그대로)
+const VALUE = String.raw`[^\s"',;&()[\]{}<>\-\u0080-￿][^\s"',;&()[\]{}<>\u0080-￿]*(?=$|[\s"',;&)\]}])`;
+// 대소문자 상관없는 머리글·JSON 칸: x-api-key: 값, authorization: bearer 값, "api_key":"값"
+const HEADER = new RegExp(
+  String.raw`(\b(?:x-api-key|api[-_]?key|access[-_]?token|auth[-_]?token|authorization|token|secret|password)["']?\s*:\s*["']?(?:(?:bearer|basic|token)\s+)?)${VALUE}`,
+  "gi",
+);
+// 명령 옵션: --token 값, --token=값, --api-key '값'. 다음 옵션(--verbose)이나 한국어 낱말은 값으로 안 본다
+const FLAG = new RegExp(String.raw`(--[\w-]{0,40}?(?:token|key|secret|password)(?:=|\s+))(?:"[^"]*"|'[^']*'|${VALUE})`, "gi");
 // 모양만 봐도 키인 것
 const SHAPES: RegExp[] = [
   /\bsk-[A-Za-z0-9_-]{8,}/g, // Anthropic·OpenAI류
@@ -17,7 +26,7 @@ const SHAPES: RegExp[] = [
 ];
 
 export function maskSecrets(text: string): string {
-  let out = text.replace(NAMED, `$1${MASK}`).replace(QUERY, `$1${MASK}`);
+  let out = [NAMED, QUERY, HEADER, FLAG].reduce((acc, re) => acc.replace(re, `$1${MASK}`), text);
   for (const shape of SHAPES) out = out.replace(shape, (m) => (m.startsWith("Bearer") ? `Bearer ${MASK}` : MASK));
   return out;
 }
