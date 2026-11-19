@@ -3,7 +3,7 @@
 `docs/qa.md`와 같은 열이다. 상태는 Pass / Fail / No Run. 근거 없이 Pass를 쓰지 않는다(V6). 일부만 확인했으면 확인한 범위를 적고, 남은 부분은 사람 QA 행으로 넘긴다.
 - **시트 옮기기 대기:** plan P-28은 Google Sheets(Claude 탭·사용자 탭)지만 `docs/qa.md`·plan에 시트 주소가 아직 없고, 시트 쓰기는 커넥터 승인이 필요하다. 그래서 이 표를 먼저 쓰고 시트가 정해지면 옮긴다.
 - **기준:** main `515bc3e`(2026-11-18) + 열린 PR 브랜치 머리(아래 표). 1차는 Claude가 2026-11-18에 직접 실행했다.
-- **11-19 갱신:** C15·H1–H6·H9·H12를 Pass로, H7은 지금 실행만 Pass(운영), H8은 ①만 Pass, H14(위키 챗봇, P-18b의 H13과 번호가 겹치지 않게)를 더함(실제 답 4/5, Q5 Fail). 근거는 11-19 로컬 3001(main 0da0467·0c8553c) 사람 확인·Playwright, 운영(차세일 구글 계정, Playwright: H6·H8), main `285ee16`의 `npm test`·`npm run eval`. 남은 No Run은 H7(운영 관리자 권한 대기)·H8 ②·H10·H11과 H13의 실제 답 5개(운영 관리자 권한 대기).
+- **11-19 갱신:** C6·C15·H1–H6·H9·H12를 Pass로(C6은 I-flow-sample-dup-scene), H7은 지금 실행만 Pass(운영), H8은 ①만 Pass, H14(위키 챗봇, P-18b의 H13과 번호가 겹치지 않게)를 더함(실제 답 4/5, Q5 Fail). 근거는 11-19 로컬 3001(main 0da0467·0c8553c) 사람 확인·Playwright, 운영(차세일 구글 계정, Playwright: H6·H8), main `285ee16`의 `npm test`·`npm run eval`. 남은 No Run은 H7(운영 관리자 권한 대기)·H8 ②·H10·H11과 H13의 실제 답 5개(운영 관리자 권한 대기).
 - **실행 환경:** Windows, 각 브랜치를 따로 꺼낸 작업 폴더(node_modules는 원본 폴더 연결). 개발 서버는 비밀 키 없이(`next dev --webpack`, Supabase 미연결) 띄워 로그인 전 동작만 봤다. 실제 DB·로그인·배포 주소는 쓰지 않았다.
 
 ## 조각 상태 (2026-11-18 기준)
@@ -28,7 +28,7 @@
 | C3. P-5 시뮬레이터 (PRD-F29, SPEC-3.5) | `node --test lib/server/simulator.test.ts`(가짜 DB) | 가짜 변경 1건, 가짜 표시, 진짜 변경과 키 분리·진짜면 알림 없이 멈춤, 같은 변경 두 번이면 1건, 가짜 줄만 지우기·참조 있으면 남김·중간 실패도 감사 기록 | 17개 모두 통과 | Pass | Claude, 2026-11-18 | PR #40 검토 반영(`4cd94d5`). 시연 계정에만 알림이 가는 규칙은 B 영역 `decide-alerts` 시험. 실제 버튼은 H3 |
 | C4. P-6·P-20 흐름 색·배치·건수·상세·실행 목록 (PRD-F28, flow.md 3절, 불변 6) | `node --test lib/flow/*.test.ts` | 기록에 없는 상자는 안 켜짐, 실패>판단 대기>성공 순, 화살표 건수, 상자 상세, 실행 목록 | 5개 파일 31개 모두 통과(counts 9·detail 6·layout 6·run-list 4·status 6) | Pass | Claude, 2026-11-18 | `lib/flow/`. 실제 기록으로 칠해지는지는 H4 |
 | C5. 흐름 그림 화면(샘플) | 개발 서버에서 `/dev/flow-sample`을 브라우저로 열고 캡처, 390px 폭도 | 상자 36개, 상태 색(안 켜짐·실행 중·성공·실패·판단 대기·꺼 둠)과 범례, 가로 넘침 없음 | 200, 범례·색 표시, 데스크톱 문서 폭 = 창 폭, 390px에서도 문서 폭 390 | Pass | Claude, 2026-11-18 | 캡처 `qa/flow-sample-1.png`·`flow-sample-2.png`·`flow-sample-mobile.png`. 가짜 기록으로 칠한 개발 전용 화면 |
-| C6. 흐름 샘플의 ③ 중복 장면이 flow.md 4절과 같은가 | `app/dev/flow-sample/page.tsx` 39줄과 `docs/flow.md` 4절 비교 | flow.md(PR #40에서 정정): 두 번째 실행은 "이미 있는 변경", 새 알림 0건이라 **알림 상자 초록** | 샘플은 제목 "③ 중복(변경 저장에서 멈춤)", 단계가 `save_change`에서 끝나 알림 상자가 안 켜짐 | Fail | Claude, 2026-11-18 | 이슈(FE, 낮음): 샘플 제목을 "③ 중복(새 변경 없음, 알림 0건)"으로 바꾸고 단계에 `notify` 성공을 더한다(C 영역 파일). 실제 시뮬레이터는 notify 단계를 알림 함수가 기록함 |
+| C6. 흐름 샘플의 ③ 중복 장면이 flow.md 4절과 같은가 | `app/dev/flow-sample/page.tsx` ③ 장면(`DUPLICATE`)과 `docs/flow.md` 4절, 실제 알림 기록(`lib/server/alerts.ts`의 `notify` recordStep) 비교, `node --test lib/flow/flow-sample.test.ts` | flow.md(PR #40에서 정정): 두 번째 실행은 "이미 있는 변경", 새 알림 0건이라 **알림 상자 초록** | 11-18: 샘플은 제목 "③ 중복(변경 저장에서 멈춤)", 단계가 `save_change`에서 끝나 알림 상자가 안 켜짐(Fail). 11-19: 제목 "③ 중복(새 변경 없음, 알림 0건)", `save_change` "이미 있는 변경" 뒤 `notify` 성공(들어온 1·나간 0), 사람 판단 없음. 요약 글을 실제 기록 모양 "알림 0건 만듦"으로 맞춤. 새 시험 3개 통과(옛 샘플 `0ce150c`에 대면 3개 모두 실패) | Pass | Claude, 2026-11-19 | `fix/flow-sample-dup-scene`(I-flow-sample-dup-scene). 제목·`notify` 단계는 `bb0209c`(I-P-20-flow-polish)에서 이미 고쳐져 있었고 이번에 요약 글과 시험을 더함. `npm test` 968개 중 967 통과·실패 0·할 일 1, 타입 오류 0, `npm run build` 통과. 성공 → 초록은 `lib/flow/status.test.ts`가 지킴. 개발 서버 화면은 눈으로 보지 않음 |
 | C7. 로그인 전 관리자·실행 기록 주소 막기 (불변 5 화면 단계) | 개발 서버에서 로그인 없이 `/admin/flow`·`/admin/simulator`·`/admin/run-now`·`/projects/runs`·`/history` 요청 | 로그인 화면으로 이동 | 다섯 주소 모두 307 → `/login` | Pass | Claude, 2026-11-18 | `curl` 응답 코드. 일반 계정으로 로그인했을 때 막힘과 DB(RLS)는 H2 |
 | C8. P-17 예약 실행 API 보호 (SPEC-8) | 개발 서버에 비밀값 없이 `/api/cron/daily` 요청 | 401 | 401 | Pass | Claude, 2026-11-18 | `curl`. `CRON_SECRET` 고정 시간 비교는 `cron-auth.test.ts` |
 | C9. P-17 실행 묶음·재시도·이력 | `node --test lib/schedule/*.test.ts` | 출처 하나 실패해도 계속·실패는 수집 오류, 수집기 0개면 실행 기록 안 만듦, 2·4·8분 재시도, 3번 연속 실패 강조, 일정 06:00(한국) | 4개 파일 19개 모두 통과 | Pass | Claude, 2026-11-18 | `lib/schedule/`. **끝 기준 "배포 앱에서 매일 06:00 실행 기록"은 수집기가 0개라 아직 못 봄**(P-9 뒤, H7) |
@@ -76,5 +76,5 @@
 | PRD-NF5(영역 C 화면) | 글자 대비, 키보드로 끝까지, 이미지 대체 텍스트 | C17 | H15 |
 
 ## 남은 오류
-- C6: 흐름 샘플 ③ 장면이 정정된 flow.md 4절과 다름(Fail, 낮음, C 영역 파일).
+- ~~C6: 흐름 샘플 ③ 장면이 정정된 flow.md 4절과 다름(Fail, 낮음, C 영역 파일).~~ 11-19 해결: 제목·`notify` 단계는 `bb0209c`에서, 요약 글과 시험은 I-flow-sample-dup-scene에서. C6 Pass.
 - C15: 로컬 `next build`는 못 돌렸고 Vercel 빌드 기록으로 Pass(11-19). 빌드·개발 서버가 "Next.js 16.4.4 보안 취약점, 업그레이드 권장"을 띄움. 업그레이드는 새 의존성 변경이라 팀 결정이 필요하다(아무것도 실행하지 않음).
