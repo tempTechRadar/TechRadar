@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-qa-after-129 | #127·#129 합친 뒤 운영 확인: 시뮬레이터 지우기 → 다시 만들기 → 알림 상세에 근거·쉬운 이유 보임, 보류 뒤 조치 기록이 알림을 만든 실행에 붙음(Pass). PR #117이 마지막 푸시 전에 합쳐져 빠진 알림 흐름 QA 기록을 되살림 | 나(요청 "합친 뒤 할 일 진행") · Claude(ego 브라우저 확인·DB 조회·기록) | `docs/qa-after-129`, `docs/intent.md` I-qa-after-129 |
 | I-simulator-alert-evidence | 배포 QA에서 찾은 작은 실패 2건 고침: 알림 상세의 "찾지 못함"은 main의 fca1792(csaeil)가 먼저 고쳐 병합 때 이 PR의 같은 코드를 빼고 화면 문구 시험만 남김, 가짜 변경 알림에 그 시뮬레이터 실행 id를 적어 판단 뒤 조치 상자가 알림을 만든 실행에 칠해지게 함. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `fix/simulator-alert-evidence`, `docs/intent.md` I-simulator-alert-evidence |
 | I-P-18b-relations | P-18b: 분류 확인에서 같은 역할 후보 확정과 규칙 켜기·끄기·추가, 사유 필수, 담당자·시각·사유를 `audit_logs`에. 마이그레이션 없이 관리자 본인 연결(RLS)로 바꾸고 기록만 서버 연결. 갈래 확정은 DB 권한이 없어 남김 | 차세일(Claude) | `app/admin/classify/`, `lib/server/classify-edit.ts` |
 | I-P-26-wiki-1119 | P-26 위키 첫 반영: `wiki/` 18쪽(주제 15 + 목차·반영 기록·연결지도), 모든 내용 줄에 출처, 문서끼리 다른 곳 10건을 정리하지 않고 기록, 점검 4항목 0건. 안내서 원문은 찾지 못해 stage-check 요건 목록을 근거로 씀 | 차세일(Claude) | `wiki/` |
@@ -30,7 +31,6 @@
 | I-B-record-3-1119 | 위 세 작업을 `plan`(P-7·P-8·P-25 결과 칸)·`qa`(Claude QA 3행, 사람 QA 2행 No Run)·`intent`에 기록 | 나(요청) · Claude | `docs/plan.md`·`qa.md`·`intent.md`·`worklog.md` |
 | I-P-15-scenario | 적용 시나리오: 와이어프레임(`scenario.html`)을 먼저 확인받고 경계 4개(프롬프트·답 검사·서버·화면 값)를 정한 뒤, 시험 34개를 먼저 실패시키며 구현. 설치·실행 명령 줄은 "공식 문서에서 직접 확인하세요"로 바꾸고 비교표는 코드가 채움. 실제 컴포넌트를 샘플 데이터로 그려 상태 6가지를 확인(PR #120) | 나(요청) · Claude | `lib/server/scenario.ts`·`lib/ai/*scenario*`·`app/alerts/[id]/scenario-card.tsx` 외 |
 | I-plan-status-1119 | 안내서 요건표와 main·운영 DB·Vercel을 대조해 남은 일 9개와 팀원별 현황을 정리하고 plan 4절 상태 칸·"11-19 점검" 표·5절 숫자를 맞춤. 위키·챗봇 없음, 운영 알림 0건, `ai_calls` 0건, `schedule` 실행 0줄을 찾음 | 나(요청 "안내서 비교해서 미비한 것과 팀원별 현황") · Claude(대조·조회·정리) | `docs/plan.md` 4절 끝 "11-19 점검" |
-| I-google-login-site-url | 배포 주소 구글 로그인 오류: 돌아온 주소창의 `vercel.app를`으로 Supabase Site URL 끝의 "를"을 찾음(처음엔 DNS 문제로 잘못 짚음). 사용자가 Site URL·Redirect URLs(`/**`)를 고쳐 로그인 성공, 오류 기록·사람 QA Pass 1행. 이어 ego 브라우저 배포 QA: 화면 7개 Pass, 저장소 등록 Fail(운영 서비스 키 값이 비어 있음), 메뉴 로그인 표시 Fail(작음) → 키를 다시 넣고 재배포해 등록 Pass(스킬 2개), 실행 기록 Pass, 알림 흐름 No Run(재료 없음) | 나(오류 보고·설정 수정·로그인 확인) · Claude(ego 브라우저로 계정 선택 화면까지 확인, 원인 찾기·기록) | `docs/google-login-site-url` 브랜치 |
 | I-google-login-site-url | 배포 주소 구글 로그인 오류: 돌아온 주소창의 `vercel.app를`으로 Supabase Site URL 끝의 "를"을 찾음(처음엔 DNS 문제로 잘못 짚음). 사용자가 Site URL·Redirect URLs(`/**`)를 고쳐 로그인 성공, 오류 기록·사람 QA Pass 1행. 이어 ego 브라우저 배포 QA: 화면 7개 Pass, 저장소 등록 Fail(운영 서비스 키 값이 비어 있음), 메뉴 로그인 표시 Fail(작음) → 키를 다시 넣고 재배포해 등록 Pass(스킬 2개), 실행 기록 Pass, 알림 흐름 No Run(재료 없음) → 사람이 SQL로 관리자·시연 계정·가짜 기술 한 줄을 넣고 시뮬레이터 → 알림 → 보류 → 기록 Pass. 남은 것: 시뮬레이터 알림 근거 칸 "찾지 못함"(작음), 다시 누른 실행의 조치 상자가 첫 실행에 붙음(작음), 지우기 뒤 같은 날 초안 없음(설계대로·리허설 주의) | 나(오류 보고·설정 수정·로그인 확인·QA용 SQL 실행) · Claude(ego 브라우저로 계정 선택 화면까지 확인, 원인 찾기·기록) | `docs/google-login-site-url` 브랜치 |
 
 ### 정한 일과 이유
