@@ -47,8 +47,11 @@ function usage(t: ComparableTech): ComparisonCell {
   return typeof downloads === "number" ? { value: `주간 ${downloads.toLocaleString("en-US")}회 다운로드`, source: null } : missing;
 }
 
+// GitHub 수집기가 저장하는 표시용 낱말(P-9b): none = 라이선스 없음, other = 파일은 있는데 못 알아봄. 그 밖은 SPDX 이름 그대로.
+const LICENSE_LABEL: Record<string, string> = { none: "라이선스 없음", other: "종류를 알아보지 못함" };
+
 function license(t: ComparableTech): ComparisonCell {
-  return t.license ? { value: t.license, source: t.repoUrl } : missing;
+  return t.license ? { value: LICENSE_LABEL[t.license] ?? t.license, source: t.repoUrl } : missing;
 }
 
 const ITEMS: [string, (t: ComparableTech) => ComparisonCell][] = [

@@ -39,15 +39,24 @@ export default async function ClassifyPage({ searchParams }: { searchParams: Pro
 }
 
 // 갈래 목록(categories)이 비면 고를 것이 없다: 처음 목록은 팀이 정한다(데이터설계 DQ2).
+// 마이그레이션(P-18c) 전 DB면 갈래 칸이 없다: 갈래 정하기만 끄고 나머지는 그대로 보인다(readClassify가 null로 알림).
+const NotReady = () => (
+  <p className="admin-placeholder">
+    <button type="button" disabled>갈래 정하기</button> 갈래 정하기는 DB 준비 중이에요(마이그레이션 적용 대기). 다른 분류 칸은 그대로 쓸 수 있어요.
+  </p>
+);
+
 const NoCategories = () => (
   <p className="admin-note">작은 갈래가 아직 없어 고를 수 없어요. 갈래의 처음 목록은 팀이 정해요(데이터설계 DQ2).</p>
 );
 
-function Unclassifieds({ rows, manual, set, groups }: { rows: Unclassified[]; manual: Data["manualNames"]; set: Categorized[]; groups: CategoryGroup[] }) {
+function Unclassifieds({ rows, manual, set, groups: allGroups }: { rows: Unclassified[]; manual: Data["manualNames"]; set: Categorized[] | null; groups: CategoryGroup[] }) {
+  const ready = set !== null;
+  const groups = ready ? allGroups : []; // 준비 전에는 고르기 칸을 그리지 않는다
   return (
     <section aria-labelledby="h-unclassified">
       <h2 id="h-unclassified">갈래가 없는 기술 <span className="muted">({rows.length})</span></h2>
-      {groups.length === 0 ? <NoCategories /> : null}
+      {!ready ? <NotReady /> : allGroups.length === 0 ? <NoCategories /> : null}
       {rows.length === 0 ? <p>갈래가 비어 있는 기술이 없어요.</p> : (
         <ul>
           {rows.map((t) => (
@@ -58,8 +67,8 @@ function Unclassifieds({ rows, manual, set, groups }: { rows: Unclassified[]; ma
           ))}
         </ul>
       )}
-      <h2>관리자가 정한 갈래 <span className="muted">({set.length})</span></h2>
-      {set.length === 0 ? <p>아직 없어요.</p> : (
+      {set === null ? null : <h2>관리자가 정한 갈래 <span className="muted">({set.length})</span></h2>}
+      {set === null ? null : set.length === 0 ? <p>아직 없어요.</p> : (
         <ul>
           {set.map((t) => (
             <li key={t.id}>

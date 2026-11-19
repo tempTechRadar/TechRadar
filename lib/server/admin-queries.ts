@@ -18,6 +18,12 @@ async function rows<T>(query: Answer, what: string): Promise<T[]> {
 
 const one = (raw: Row | Row[] | null | undefined): Row | null => (Array.isArray(raw) ? raw[0] ?? null : raw ?? null);
 
+/** DB에 아직 없는 칸을 읽었다는 오류인가(Postgres 42703, 또는 PostgREST 메시지). 표가 없는 오류(42P01)·권한 오류는 아니다 */
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  return error.code === "42703" || /\bcolumn\b.*\bdoes not exist\b/i.test(error.message ?? "");
+}
+
 /* IA-12 회원별 등록 */
 export async function readMembers(db: SupabaseClient): Promise<{ profiles: ProfileRow[]; projects: ProjectRow[]; myTechs: MyTechRow[] }> {
   const [profiles, projects, myTechs] = await Promise.all([
@@ -88,7 +94,22 @@ export type Categorized = { id: string; name: string; categoryId: string; catego
 export type ClassifyAudit = { at: string; action: string; reason: string | null; actorId: string | null };
 const AUDIT_SHOWN = 10;
 
-export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow[]; relations: Relation[]; unclassified: Unclassified[]; manualNames: { name: string; createdAt: string }[]; audits: ClassifyAudit[]; categories: CategoryRow[]; categorized: Categorized[] }> {
+/**
+ * 관리자가 정한 갈래(P-18c 칸). 마이그레이션(202611191500_P-18c_category_admin.sql)이 아직 없는 DB면 null: 화면은 갈래 정하기만 "준비 중"으로 끄고
+ * 나머지 분류 칸은 그대로 보인다. 다른 오류는 던진다(불변 2).
+ */
+async function readCategorized(db: SupabaseClient): Promise<Row[] | null> {
+  const { data, error } = await db.from("technologies").select("id, display_name, category_id, category_set_by, category_set_at, categories(name)")
+    .not("category_set_at", "is", null).order("category_set_at", { ascending: false }).limit(LIMIT);
+  if (isMissingColumn(error)) {
+    console.warn("분류 확인: 갈래 칸이 DB에 아직 없어요(마이그레이션 적용 대기)");
+    return null;
+  }
+  if (error) throw new Error(`관리자가 정한 갈래을(를) 읽지 못함: ${maskSecrets(error.message)}`);
+  return (data ?? []) as Row[];
+}
+
+export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow[]; relations: Relation[]; unclassified: Unclassified[]; manualNames: { name: string; createdAt: string }[]; audits: ClassifyAudit[]; categories: CategoryRow[]; categorized: Categorized[] | null }> {
   const [rules, rel, techs, manual, audits, categories, setRows] = await Promise.all([
     rows<RuleRow>(db.from("rule_lists").select("id, kind, ecosystem, value, pattern_id, pattern_grade, enabled"), "규칙 목록"),
     rows<Row>(
@@ -106,11 +127,7 @@ export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow
       "분류 확인 바꾼 기록",
     ),
     rows<CategoryRow>(db.from("categories").select("id, name, parent_id"), "갈래 목록"),
-    rows<Row>(
-      db.from("technologies").select("id, display_name, category_id, category_set_by, category_set_at, categories(name)")
-        .not("category_set_at", "is", null).order("category_set_at", { ascending: false }).limit(LIMIT),
-      "관리자가 정한 갈래",
-    ),
+    readCategorized(db),
   ]);
   return {
     rules,
@@ -119,7 +136,7 @@ export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow
     unclassified: techs.map((t) => ({ id: t.id, name: t.display_name, type: t.type, techKey: t.tech_key })),
     manualNames: manual.map((m) => ({ name: m.manual_name, createdAt: m.created_at })),
     categories,
-    categorized: setRows.map((t) => ({ id: t.id, name: t.display_name, categoryId: t.category_id, categoryName: one(t.categories)?.name ?? "?", setBy: t.category_set_by ?? null, setAt: t.category_set_at ?? null })),
+    categorized: setRows && setRows.map((t) => ({ id: t.id, name: t.display_name, categoryId: t.category_id, categoryName: one(t.categories)?.name ?? "?", setBy: t.category_set_by ?? null, setAt: t.category_set_at ?? null })),
   };
 }
 
