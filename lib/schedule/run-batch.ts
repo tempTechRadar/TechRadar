@@ -63,10 +63,29 @@ async function scheduleRetry(deps: BatchDeps, runId: string, attempt: number, t:
   return plan;
 }
 
+/** 이보다 오래 "도는 중"인 줄은 멈춘 실행으로 본다(함수 한도 300초 + 여유 60초). 겹침 확인이 영영 막지 않게 */
+export const STALE_RUNNING_MS = 360_000;
+
+/**
+ * 정기·지금 실행이 이미 돌고 있는지 본다(같은 수집기를 동시에 돌리면 같은 자료를 두 번 읽고 쓴다).
+ * shortcut: 확인과 시작 사이는 잠그지 않는다 — 거의 같은 순간에 둘이 시작하면 둘 다 돈다. 완전히 막으려면 DB 유일 제약(마이그레이션)이 필요하다.
+ * 확인을 읽지 못하면 막지 않는다: 이 확인은 보조 장치라 읽기 오류로 수집을 멈추지 않는다(로그만).
+ */
+async function batchRunning(db: SupabaseClient, nowMs: number): Promise<boolean> {
+  const since = new Date(nowMs - STALE_RUNNING_MS).toISOString();
+  const { data, error } = await db.from("runs").select("id").in("trigger", ["schedule", "manual"]).eq("status", "running").gte("started_at", since).limit(1);
+  if (error) {
+    logFailure("겹침 확인(도는 실행 찾기)을 읽지 못함")(error.message);
+    return false;
+  }
+  return (data ?? []).length > 0;
+}
+
 export async function runBatch(deps: BatchDeps, input: BatchInput): Promise<BatchResult> {
   if (deps.collectors.length === 0) return { started: false, reason: "등록된 수집기가 없어요(P-9 수집 확장이 합쳐지면 생겨요)" };
   const now = deps.now ?? Date.now;
   const start = now();
+  if (await batchRunning(deps.db, start)) return { started: false, reason: "수집 실행이 이미 돌고 있어요. 끝난 뒤(최대 6분) 다시 눌러 주세요." };
   const deadlineMs = start + (deps.budgetMs ?? DEFAULT_BUDGET_MS);
   const runId = await startRun(deps.db, { trigger: input.trigger, startedBy: input.startedBy });
   const tally: Tally = { succeeded: [], failed: [], skipped: [], items: 0 };
