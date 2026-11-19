@@ -40,8 +40,9 @@ export async function runOpportunityAction(): Promise<void> {
   let target: string;
   try {
     const r = await runOpportunitySimulator({ db, saveChange, createAlertsForChange }, { adminId: user.id });
-    if (!r.started) return back("error", r.reason);
-    target = r.alertsCreated > 0 ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.note))}&run=${r.runId}`;
+    // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
+    target = !r.started ? `${PAGE}?error=${encodeURIComponent(maskSecrets(r.reason))}`
+      : r.alertsCreated > 0 ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.note))}&run=${r.runId}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }
