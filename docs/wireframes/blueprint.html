@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>블루프린트 시안</title>
+  <style>
+    /* 블루프린트 시안(무채색, 팀 확인 전): 설계도처럼 넓은 판에 단계 블록을 놓고, 순서를 바꾸고, 나란히(병렬) 갈라 놓고, 기술을 붙인다.
+       이름·이력은 샘플(journey-data.js). 같은 열 = 동시에(병렬), 왼쪽 → 오른쪽 = 순서 */
+    :root { --ink: #1a1a1a; --ink2: #444; --muted: #666; --faint: #b3b3b3; --line: #d4d4d4; --bg: #fff; --sub: #f3f3f3; --grid: #e9e9e9;
+      --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; display: flex; flex-direction: column; background: var(--sub); color: var(--ink); font: 15px/1.5 var(--sans); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .btn.sm { min-height: 30px; padding: 0 8px; font-size: 12px; }
+    .btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .tag { display: inline-block; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink2); background: var(--bg); }
+
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    .bar input#bpName { font: inherit; font-weight: 700; font-size: 17px; min-height: 40px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; }
+    .bar input#bpName:hover, .bar input#bpName:focus { border-color: var(--line); }
+    .bar .grow { flex: 1; }
+
+    .work { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+    .drawer { overflow: auto; padding: 12px; background: var(--bg); border-right: 1px solid var(--line); }
+    .drawer h2 { font-size: 15px; margin: 4px 0 6px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+    .drawer input[type=search] { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid var(--ink2); border-radius: 8px; font: inherit; }
+    .techs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+    .tech { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: grab; font-size: 13px; }
+    .tech b { font-size: 14px; }
+    .hist li { cursor: default; }
+
+    .canvas { position: relative; overflow: auto; background-color: var(--sub);
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 24px 24px; }
+    .lanes { position: relative; display: flex; align-items: center; gap: 0; padding: 40px 32px; min-height: 100%; width: max-content; }
+    svg.wires { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+    svg.wires path { fill: none; stroke: var(--ink2); stroke-width: 1.6; }
+    .col { display: flex; flex-direction: column; gap: 14px; align-items: stretch; padding: 8px; border-radius: 12px; }
+    .col.over, .gap.over { outline: 2px dashed var(--ink); outline-offset: 2px; }
+    .gap { width: 46px; align-self: stretch; display: flex; align-items: center; justify-content: center; }
+    .gap .btn { width: 32px; height: 32px; min-height: 32px; padding: 0; justify-content: center; border-radius: 50%; }
+    .stage { width: 220px; background: var(--bg); border: 2px solid var(--ink); border-radius: 10px; padding: 10px; display: grid; gap: 6px; cursor: grab; }
+    .stage.drop { outline: 2px dashed var(--ink); outline-offset: 3px; }
+    .stage header { display: flex; align-items: center; gap: 4px; }
+    .stage header b { flex: 1; font-size: 15px; }
+    .stage .slots { display: flex; flex-wrap: wrap; gap: 4px; min-height: 28px; padding: 4px; border: 1px dashed var(--line); border-radius: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 2px; padding: 0 2px 0 8px; border: 1px solid var(--ink2); border-radius: 999px; font-size: 12px; background: var(--bg); }
+    .chip button { width: 22px; height: 22px; border: 0; background: none; cursor: pointer; }
+    .stage .moves { display: flex; gap: 2px; flex-wrap: wrap; }
+    .addpar { align-self: center; }
+    .start, .end { width: 90px; text-align: center; font-weight: 700; color: var(--muted); }
+
+    .pop { position: absolute; z-index: 5; width: 260px; padding: 10px; background: var(--bg); border: 1px solid var(--ink); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.15); display: grid; gap: 6px; }
+    .pop input { min-height: 36px; padding: 0 8px; border: 1px solid var(--ink2); border-radius: 6px; font: inherit; }
+    dialog { width: min(720px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: 12px; padding: 18px; }
+    dialog::backdrop { background: rgba(0,0,0,.35); }
+    dialog h2 { margin: 0 0 6px; font-size: 18px; }
+    dialog textarea { width: 100%; min-height: 220px; font: 13px/1.5 ui-monospace, Consolas, monospace; padding: 8px; border: 1px solid var(--ink2); border-radius: 8px; }
+    .opts { display: grid; gap: 6px; margin: 10px 0; }
+    .opt { text-align: left; justify-content: flex-start; min-height: 44px; }
+    .opt .rec { margin-left: auto; font-size: 12px; border: 1px solid var(--ink2); border-radius: 4px; padding: 0 6px; }
+    #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); padding: 10px 16px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 14px; z-index: 10; }
+    #toast:empty { display: none; }
+    @media (max-width: 860px) { .work { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } .drawer { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--line); } }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="btn" href="journey.html#map">← 화면 흐름 시안</a>
+    <label class="sr" for="bpName">블루프린트 이름</label><input id="bpName" value="내 블루프린트">
+    <span class="grow"></span>
+    <button class="btn" data-act="tpl">템플릿</button>
+    <button class="btn" data-act="interview">인터뷰로 만들기</button>
+    <button class="btn" data-act="export">내보내기</button>
+    <button class="btn primary" data-act="adopt">이 조합으로 확정</button>
+  </div>
+  <div class="work">
+    <aside class="drawer" aria-label="기술 서랍과 내 이력">
+      <div class="tabs" role="tablist"><button class="btn sm" data-act="tab" data-val="tech" aria-pressed="true">기술</button><button class="btn sm" data-act="tab" data-val="hist" aria-pressed="false">내 이력</button></div>
+      <div id="drawer"></div>
+    </aside>
+    <main class="canvas" id="canvas" aria-label="블루프린트 판. 왼쪽에서 오른쪽으로 순서, 같은 열은 동시에(나란히)">
+      <div class="lanes" id="lanes"></div>
+    </main>
+  </div>
+  <dialog id="dlg"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="journey-data.js"></script>
+  <script src="blueprint.js"></script>
+</body>
+</html>
