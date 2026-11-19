@@ -17,6 +17,7 @@ function fakeDb(respond: (c: Call) => { data?: unknown; error?: { message: strin
       const mark = (op: string) => (row?: Record<string, unknown>) => { call.op = op; if (row) call.row = row; return b; };
       b.insert = mark("insert"); b.upsert = mark("upsert"); b.update = mark("update");
       b.select = () => b; b.order = () => b; b.limit = () => b; b.single = () => b; b.maybeSingle = () => b;
+      b.in = () => b; b.gte = () => b; // runBatch의 겹침 확인(도는 실행 찾기)이 쓴다. 기본 응답 null = 도는 실행 없음
       b.eq = (c: string, v: unknown) => (call.filters.push([c, v]), b);
       b.then = (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => {
         calls.push(call);
