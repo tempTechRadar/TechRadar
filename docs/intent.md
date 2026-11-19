@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-26-chat · 2026-11-19 · 위키 챗봇(관리자 탭 IA-18)과 질문 5개 정답표 (P-26, 영역 C, 차세일)
+- 브랜치: `feat/P-26-chat` (main `285ee16`). 위키 쪽(`wiki/`)은 자비스가 `feat/P-26-wiki-1119`에서 따로 쓴다(이 브랜치는 `wiki/`를 건드리지 않음)
+- 출처: 빅보스 지시(사용자가 C 영역 승인을 위임, 범위 해제), PRD-F31·NF6, IA-18, SPEC-9, CLAUDE.md 4절, 안내서 6장(`.claude/skills/stage-check/references/requirements.md` 144–145줄), `docs/erd.md` `chat_logs`·`ai_calls`, `docs/plan.md` P-26
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 안내서 6장 필수인 위키 챗봇과 `docs/wiki-chat.md` 정답표가 없다(plan "11-19 점검" 1번) |
+| 기대 결과 | ① 관리자 탭 "위키 챗봇"(`/admin/chat`): 질문 → 서버가 `wiki/`에서 맞는 쪽(상위 3)을 찾아 그 쪽만 Claude에 줌 → 답과 출처 쪽, 없으면 "위키에 없습니다" ② 위키 글은 `<자료>`로 감싸 지시로 따르지 않음, 넘긴 쪽 밖 출처는 버리고 출처가 없으면 "위키에 없습니다" ③ 한도: 1인 하루 20개는 `chat_logs`, 서비스 하루 200번은 `ai_calls`를 센다 ④ 질문·찾은 쪽·답을 `chat_logs`에, 호출을 `ai_calls`(`purpose: chatbot`)에 남김 ⑤ `docs/wiki-chat.md` 정답표(실제 답 칸 비움) |
+| 영향 범위 | 새 `lib/wiki/find-pages.ts`, `lib/ai/build-chat-prompt.ts`, `lib/ai/parse-chat-response.ts`, `lib/server/wiki-pages.ts`, `lib/server/chat.ts`(+시험 각각), `app/admin/chat/`. 고침: `lib/ai/decide-ai-call.ts`(`chatbot`·20개), `app/admin/admin-shell.tsx`·`app/admin/page.tsx`(탭 한 줄), `next.config.ts`(`wiki/**/*.md`를 배포 묶음에). **DB·마이그레이션 변경 없음**(`ai_calls.purpose`에 `chatbot`이 이미 있음), 새 라이브러리 없음 |
+| 제약 | 쪽 찾기는 낱말 맞추기(조사 떼기, 제목 가중)로 시작한다: 같은 질문에 같은 쪽이 나와야 정답표로 대조된다. 맞는 쪽이 없으면 Claude를 부르지 않는다(비용 0, 그래도 20개에 셈). 키가 없으면 부르지 않는다 |
+| 열린 질문 | ① 한도를 세는 표가 문서마다 다르다(데이터설계 146줄 `chat_logs` ↔ erd `ai_calls` 아래 "하루 한도는 이 테이블"). 코드는 20개=`chat_logs`, 200번=`ai_calls`로 했고, 문서 정리는 정답표 Q5를 돌린 뒤 한다 ② 낱말 맞추기가 뜻이 같은 다른 말(예: "크론"↔"정기 실행")을 못 찾는 한계 — 정답표 결과로 판단 |
+
+**결과:** 위 기대 결과 ①–⑤를 만들었다. 새 시험 30개(한도 2·쪽 찾기 6·프롬프트 3·답 검사 7·사용 사례 10·위키 읽기 2), 시험을 먼저 써서 실패를 확인한 뒤 구현. `npm test` 846개 중 845 통과·실패 0, 타입검사 통과. **아직 안 된 것:** 화면을 눈으로 확인(로그인 필요), 실제 Claude 호출과 정답표 실제 답(위키 쪽이 합쳐진 뒤), 배포 주소에서 `wiki/` 파일이 묶음에 들어가는지 확인.
+
+---
+
 ## I-P-12b-first-check · 2026-11-19 · P-12b 첫 점검 요약 띠 "첫 점검: 위험 n · 주의 n" (김영식)
 - 브랜치: `feat/P-12b-first-check` (main `75f1eb3`)
 - 출처: 사용자 "진행"(11-19 다음 작업 추천 1번, P-12를 12a·12b·12c로 나눔), PRD-F14·F11, IA-10, UJ-A4, SPEC-5.2(지도 띠 문구), 제품 불변 2·5·6, `docs/plan.md` P-12 "남음"

@@ -29,3 +29,12 @@ test("'하루'는 한국 시간 0시부터다: 한국 날짜가 바뀌는 시각
   assert.equal(startOfKoreanDay(new Date("2026-11-18T14:59:59Z")), "2026-11-17T15:00:00.000Z"); // 한국 11-18 23:59 → 11-18 0시
   assert.equal(startOfKoreanDay(new Date("2026-11-18T15:00:00Z")), "2026-11-18T15:00:00.000Z"); // 한국 11-19 0시 → 새 하루
 });
+
+test("위키 챗봇은 사람당 하루 20번까지(20번째는 되고 21번째부터 막힌다, PRD-F31)", () => {
+  assert.deepEqual(decideAiCall("chatbot", { ...fresh, userCallsToday: 19 }), { allow: true });
+  assert.deepEqual(decideAiCall("chatbot", { ...fresh, userCallsToday: 20 }), { allow: false, reason: "user_limit" });
+});
+
+test("위키 챗봇도 서비스 전체 하루 200번에 묶인다", () => {
+  assert.deepEqual(decideAiCall("chatbot", { ...fresh, serviceCallsToday: 200 }), { allow: false, reason: "service_limit" });
+});
