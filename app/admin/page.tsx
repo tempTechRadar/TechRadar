@@ -11,6 +11,7 @@ const ABOUT: Record<string, string> = {
   flow: "실제 실행 기록대로 칠한 흐름",
   classify: "갈래가 빈 기술, 같은 역할 후보, 규칙 목록",
   simulator: "가짜 변경 1건으로 처음부터 끝까지 시연",
+  chat: "프로젝트 위키에 묻고 출처와 함께 답 받기(팀원만)",
 };
 
 export default async function AdminHome() {
