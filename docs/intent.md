@@ -22,6 +22,19 @@
 
 ---
 
+## I-P-18b-relations · 2026-11-19 · P-18b 같은 역할 확정·규칙 목록 고치기 (영역 C, 차세일)
+- 브랜치: `feat/P-18b-relations` (main `285ee16`)
+- 출처: `docs/plan.md` P-18 "남음", PRD-F24·F27, IA-17, ADR 0015, `docs/erd.md` 2.3·4절(`rule_lists`·`tech_relations`·`audit_logs`), 제품 불변 1·4·5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 분류 확인 화면(IA-17)이 읽기만 해서 같은 역할 후보를 확정할 수 없고(적용 기회 알림은 확정된 관계만 씀, ADR 0015), 규칙 목록을 고치려면 DB를 직접 만져야 한다 |
+| 기대 결과 | 관리자가 후보를 "같은 역할로 확정", 규칙을 켜기·끄기·추가. 모두 사유를 받고 담당자·시각·사유를 남김. 일반 계정은 화면·서버 동작·DB 세 곳에서 막힘 |
+| 영향 범위 | 새 `lib/admin/classify-input.ts`·`lib/server/classify-edit.ts`(+시험), `app/admin/classify/actions.ts`·`classify-forms.tsx`, `app/admin/classify/page.tsx`, `lib/server/admin-queries.ts`(확정 시각·최근 바꾼 기록 읽기), `lib/admin/admin-guard.test.ts`. **마이그레이션 없음** |
+| 제약 | 바꾸기는 관리자 본인 연결(RLS: `rule_lists_admin_*`, `tech_relations_admin_confirm`과 열 권한 3칸), 서비스 키는 `audit_logs` 한 줄에만(erd 4절 "쓰기는 서버"). 기록이 실패하면 바꾼 것은 되돌리지 않고 알림(`my-tech.ts`와 같음). 위험 패턴은 코드 규칙(SPEC-2)과 짝이라 추가하지 않고 켜기·끄기만 |
+| 열린 질문 | ① 갈래 확정: `technologies`는 로그인 사용자에게 update 권한이 없어 마이그레이션이 필요(영식 리뷰) ② 확정 되돌리기를 둘지(지금은 없음) ③ #116 시드 20쌍의 `confirmed_by`(이 조각과 별개, 그대로 열림) |
+
+**결과:** 같은 역할 확정·규칙 켜기·끄기·추가와 "최근 바꾼 기록"(시각·한 일·나/다른 관리자·사유). 새 시험 15개(입력 5, 가짜 DB 8, 소스 훑기 2)를 먼저 써서 실패를 확인한 뒤 구현. `npm test` 831개 중 830 통과·실패 0, 타입 오류 0, `next build --webpack` 성공, precheck OK. 실제 DB·화면은 사람 QA H13.
 ## I-P-5-alert-view-fields · 2026-11-19 · 시뮬레이터 알림 상세의 "찾지 못함" 고치기 (P-5, 영역 C, 차세일)
 - 브랜치: `fix/P-5-alert-view-fields` (main `285ee16`)
 - 출처: M0 사람 확인 결과(11-19, Playwright): 시뮬레이터 알림 상세의 "무엇이 바뀌었나"·"쉬운 이유"·"내 프로젝트"가 "찾지 못함". PRD-F29, SPEC-3.5, `lib/alerts/build-alert-message.ts`
