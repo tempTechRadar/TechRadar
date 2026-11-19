@@ -4,6 +4,8 @@
 
 | 날짜 | 서비스 | 목적 | 실제로 한 일 | 결과 링크·캡처 | 앱 실행에도 쓰나 |
 |---|---|---|---|---|---|
+| 2026-11-19 | Supabase (MCP 커넥터) | 단계 점검과 첫 실제 수집 전후 확인 | `list_projects`·`list_migrations`(운영 DB `techradar`의 마이그레이션 10개가 저장소 파일 10개와 일치), 읽기 전용 `execute_sql`(표 20개의 줄 수, `runs`, 기술 분포, 레지스트리 이어 읽기 자리). 수집은 앱 코드(서비스 키)로 돌렸고 이 커넥터는 읽기만 | `docs/qa.md` 11-19 행: `runs` 0→1·`technologies` 0→3,166 | 앱 코드는 서비스 키로 씀 |
+| 2026-11-19 | Vercel (MCP 커넥터) | 정기 실행 설정과 배포 상태 확인(읽기만) | `list_teams`·`list_projects`·`filter_project_envs`(환경변수 **이름·대상만**, 값은 안 읽음: `GITHUB_TOKEN`·`CRON_SECRET`이 Production에 있음 확인)·`list_deployments`(최근 Production 6개 중 5개 READY, 1개는 연달아 합쳐져 CANCELED). 아무것도 바꾸지 않음 | https://techradar-theta.vercel.app | 예(배포 환경) |
 | 2026-11-17 | abbsbook (abigbigsketchbook MCP, 로컬 설치) | 프로젝트 진행 과정을 TechRadar 스케치북에 기록 | MCP 설치(체크섬 검증) 후 list_accounts·list_sketchbooks·verify_connection으로 연결 확인, 「에이전트 연동 완료」 이벤트 1개 생성 | [이벤트](https://abigbigsketchbook.com/s/74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e?event=8346912c-7d9f-50f7-a83e-8debf93661e3) | 아니오(개발 기록용) |
 | 2026-11-17 | Supabase (MCP 커넥터) | prd의 저장소 선택 근거 확인 | `list_projects`로 계정의 프로젝트 3개 확인, 켜져 있는 "tech-radar-agent"의 `list_tables`(public)로 테이블 20개·행 수만 읽음. 아무것도 바꾸지 않음 | `docs/prd.md` 4절 | 예(앱 DB로 쓸 예정, 새 팀 프로젝트) |
 | 2026-11-17 | Supabase (MCP 커넥터) | 데이터설계: 기존 "tech-radar-agent"에서 가져올 것 고르기 | `list_tables`(자세히)로 칸 구조, `execute_sql`로 SELECT만(기술 종류·관계 종류·설명 칸별 수, 기술 이름 목록). 아무것도 바꾸지 않음 | 채팅 보고, `docs/데이터설계.md`(작성 예정) | 아니오(이전 프로젝트 조사) |

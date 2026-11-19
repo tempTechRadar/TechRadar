@@ -6,6 +6,19 @@
 
 ---
 
+## I-first-real-run · 2026-11-19 · 운영 DB 첫 실제 수집(수동 한 번)과 그 결과 기록 (김영식)
+- 브랜치: `docs/first-real-run` (main `6754f77`). 코드 변경 없음, 기록만
+- 출처: 11-19 단계 점검(stage-check) "다음에 할 일 1번"(운영 DB가 비어 있음)에 사용자가 "우선순위 작업 추천대로 진행", `docs/plan.md` P-17·P-9, PRD-F8·F28, SPEC-8
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 점검에서 운영 DB가 비어 있었다(`runs`·`run_steps`·`technologies`·`observations` 모두 0줄). 06시 첫 정기 실행은 `CRON_SECRET`이 없어 못 돌았다. 시연·"DB 샘플(수집 실행 기록 포함)"·정기 실행 증거가 모두 이 빈 DB에 걸려 있다 |
+| 기대 결과 | 관리자 "지금 한 번 실행"(`app/admin/run-now/actions.ts`)과 같은 `runBatch`·`SCHEDULE_COLLECTORS` 수집기 4개를 운영 DB에 한 번 돌려, 실행 기록 1줄과 단계 줄, 레지스트리가 쌓은 얇은 기술이 남게 한다. 시험 줄은 만들지 않고 수집기가 만든 진짜 줄을 그대로 둔다. 결과(줄 수 전후, 단계, 분포)는 `docs/qa.md`에 남긴다 |
+| 영향 범위 | 운영 DB의 `runs`·`run_steps`·`technologies`와 `sources`의 레지스트리 이어 읽기 자리(`sync_started_at`·`sync_cursor`). 코드·마이그레이션 변경 없음. 문서: intent·worklog·qa·connectors |
+| 제약 | 실제 외부 호출(GitHub는 서버 토큰, 레지스트리는 공개 API 쪽당 1초 이상 간격)과 DB 쓰기라서 사용자 승인 뒤에만. 키·토큰 값은 출력·기록하지 않는다. 한 번만 돌린다(나머지는 정기 실행이 이어 읽음) |
+| 열린 질문 | ① GitHub·OSV·다운로드 수집기는 **두꺼운 기술이 있어야** 읽는다. 지금은 두꺼운 기술이 0개라 0개로 성공한다(레지스트리는 얇게 시작하고 쓰거나 공식 조직이면 두껍게, ADR 0019). 시연에서 이 세 줄을 켜려면 사람이 로그인해 프로젝트를 하나 등록해야 한다 — 김영식. ② 레지스트리 전체(66,788개)는 이번 실측 60초 32쪽(3,200개)이면 약 21번이다(전에는 ≈33일 추정, ADR 0019). ③ `/admin/flow`에서 불빛이 칠해지는지는 관리자 로그인이 필요해 이번에 못 봤다 — 사람. ④ 스크립트로 돌린 `manual` 줄은 `started_by`가 비어 있다(관리자 버튼으로 돌린 줄과 다름) |
+
+**결과:** 64초에 `succeeded`로 끝났다(`runs.id` `070c6274-e0f4-4e89-8331-bad60a22f539`). `runs` 0→1, `run_steps` 0→6(`fetch_osv`·`fetch_github`·`fetch_registry`·`fetch_downloads`·`normalize`·`compare`), `technologies` 0→3,166(전부 얇음·활동 중: `mcp` 2,830·`npm` 294·`pypi` 42). 레지스트리는 32쪽(서버 3,200개: 새 3,166, 중단·삭제된 새 서버 33개는 들이지 않음)을 읽고 시간이 모자라 이어 읽기 자리를 남겼다. OSV·GitHub·다운로드는 읽을 두꺼운 기술이 없어 0개로 성공했다(수집 오류가 아님). `observations`·`alerts`는 0이다: 새 기술은 "처음 들인 것"이라 변화 기록이 없다. **아직 안 된 것:** 06:00(KST) 정기 실행이 `schedule` 줄을 남기는지, `/admin/flow` 화면 확인(사람), 시연용 프로젝트 등록(사람).
 ## I-checklist-sync · 2026-11-19 · 제출물 체크리스트를 실제 상태에 맞추기
 - 브랜치: `docs/checklist-sync` (origin/main d77cadd 위, worktree `.claude/worktrees/checklist-sync`)
 - 출처: 사용자 "이거 작업 진행"(체크리스트와 실제가 다른 곳 8개 목록을 붙여 줌). 근거: `docs/제출물-체크리스트.md`(11-17~18 상태에서 멈춤), 11-19 제출 전 단계 점검의 "체크리스트와 실제가 다른 곳", origin/main 6754f77에서 다시 센 숫자
