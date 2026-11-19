@@ -20,6 +20,19 @@
 
 ---
 
+## I-nf2-secret-scan · 2026-11-20 · 비밀값 점검(PRD-NF2) — 저장소·git 기록·운영 응답 (김영식)
+- 브랜치: `feat/P-12a2-nickname-db`에 같이 둠(읽기만 한 점검이라 기록 문서만 바뀜, 사용자 "PR은 몰아서"). 아직 푸시 안 함
+- 출처: 사용자 "진행"(11-20), `docs/plan.md` 품질 요구(NF) 표 PRD-NF2("코드 동결 전에 저장소와 배포 응답에서 키 모양을 검색, QA 행"), 안내서 3장·12장(비밀값이 저장소·화면·로그·발표 자료에 없음), CLAUDE.md 10절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | PRD-NF2는 화면 코드·저장소·응답 어디에도 키·토큰이 없어야 한다고 한다. 계획은 코드 동결 전에 검색해 QA 행으로 남기라고 했는데 아직 한 번도 하지 않았다. 키는 이 팀에서 `.env`·Vercel 환경변수에만 있어야 한다 |
+| 기대 결과 | ① 올라갈 파일(추적+새 파일)과 git 전체 기록에서 키 모양이 실제로 있는지, ② 운영 주소가 내보내는 HTML·JS·CSS에서 키 모양·비밀 변수 이름·비밀 JWT가 있는지, ③ 소스맵과 인증 없는 정기 실행 주소가 열려 있는지를 읽기로만 확인해 숫자로 적는다. 값은 화면·기록에 찍지 않는다(가려서 보고) |
+| 영향 범위 | 읽기만(저장소 검색·운영 주소 GET). 기록: `docs/qa.md` 행 1개, `docs/intent.md`, `docs/worklog.md`. 코드·DB 변경 없음 |
+| 제약 | 로그인이 필요한 화면(`/dashboard`·`/projects`·`/admin` 등)은 로그인 없이는 307로 돌려보내져 검사하지 못했다. 키 모양은 정규식(Anthropic·OpenAI류 `sk-`, GitHub 토큰·PAT, Supabase 비밀 키, AWS, Google OAuth 비밀, 개인 키 블록, DB 접속 문자열, JWT)이라 모양이 다른 비밀은 못 잡는다 |
+| 열린 질문 | ① 로그인 화면(관리자 포함)의 응답도 검사할지(사람이 로그인한 브라우저에서 같은 검사를 한 번 더). ② Vercel 환경변수 값 자체는 열 수 없어(Sensitive) 값이 맞는지는 확인하지 못함. ③ 발표 자료(`slides/`) 별도 Vercel 주소(`techradar-slides.vercel.app`)는 이번에 안 검사함 |
+
+**결과:** **실제 키 0건.** ① 올라갈 파일 490개에서 걸린 4건은 모두 시험용 가짜 값(`redact.test.ts`의 가짜 JWT·`collect-github.test.ts`의 `ghp_TEST…`·`profile-settings.test.ts`와 `using-now.test.ts`의 `ghp_abcd…`), `.claude/skills` 0건, 추적되는 `.env*`는 `.env.example` 하나이고 값 칸이 비어 있음(`NEXT_PUBLIC_ENABLE_TEST_LOGIN=false`만 값), `.gitignore`에 `.env`·`.env.*`·`.claude/*`. git 전체 기록(모든 브랜치)에서도 시험용 가짜 값·가림 규칙 정의·기록 문서의 설명뿐이고 실제 키 모양은 0건. ② 운영 주소의 공개 페이지 3개(`/`·`/login`·`/api/version`)와 브라우저가 받는 JS·CSS 14개에서 키 모양 0건, 비밀 변수 이름(`SUPABASE_SERVICE_ROLE_KEY`·`service_role`·`CRON_SECRET`·`ANTHROPIC_API_KEY`·`GITHUB_TOKEN`) 0건, JWT 모양 토큰 0건, 공개용 Supabase 키(`sb_publishable_`) 1개(브라우저가 쓰도록 만든 값이라 정상). ③ 소스맵 `.map` 6개 모두 403, JS 안에 `sourceMappingURL` 주석 없음, 인증 없이 `/api/cron/daily`를 부르면 401. 나머지 페이지는 로그인 전이면 307이라 검사하지 못함. **아직 안 한 것:** 로그인한 화면(관리자 포함)의 응답, Vercel 환경변수 값 확인(열 수 없음), 발표 자료 주소.
 ## I-schedule-1123-2359 · 2026-11-19 · 제출 마감이 월요일 23:59라서 일정 문서를 늦춰 맞춤 (김영식)
 - 브랜치: `feat/P-12a2-nickname-db`에 같이 둠(문서만, 사용자 "PR은 최대한 몰아서"). 아직 커밋·푸시 안 함
 - 출처: 사용자 "우리 월요일 23:59까지 제출이라 좀 더 널럴하게 잡으면 돼"·"관련해서 plan등 일정 관련 문서 전부 조정해 줘"(11-19), `docs/plan.md` 3·4·5·6·7절, ADR 0018·0023(배포 한도)
