@@ -11,9 +11,10 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-p13-real-call-check | P-13 실제 호출 확인 기록: 사용자가 키를 넣은 뒤 Claude가 실제 호출 1번과 운영 DB 시뮬레이터 1번(확인 10개 통과, 만든 줄 모두 지움)으로 초안 저장을 확인하고 intent·qa·worklog·plan·connectors에 기록. #110이 이미 합쳐져 새 브랜치로 올림. 초안 품질 질문 2개는 열린 질문 ⑩ | 나(키 넣기·승인) · Claude(호출·확인·기록) | `docs/p13-real-call-check`, `docs/intent.md` I-p13-real-call-check |
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
 | I-slides-draft | 발표 슬라이드 초안: 단계 점검 9단계 ❌(`slides/` 0파일)에 사용자 "추천대로 진행"과 디자인 "앱 디자인 컨셉(기술 레이더)을 따라감"을 받아 `slides/index.html` 15장을 만듦. 문서·DB·`gh` 집계에서 가져온 사실에 장마다 출처를 달고, 아직 사실이 없는 곳은 "▢ 채울 것"으로 둠 | 나(요청·디자인 선택) · Claude(작성·확인) | `slides/index.html`, `docs/intent.md` I-slides-draft |
-| I-P-13-claude-adapter | Claude 호출 어댑터와 대응안 초안 연결: 서버 키(`ANTHROPIC_API_KEY`)가 있으면 Messages API로 부르는 어댑터를 만들고 `createAlertsForChange`가 보안 알림을 만들기 전에 초안을 부르게 함(키가 없으면 지금처럼 "만들지 못함"). 읽기 전용 검토 14건 중 12건 반영(나머지 2건은 열린 질문): 실패한 초안이 알림 만들 때마다 유료 호출을 되풀이하지 않게 같은 입력은 하루 한 번, 저장 실패도 호출 기록, 본문 읽기 오류·잘린 답 구분, 키가 잘리는 자리에 걸치는 경우, 키·모델 모양 이상 로그, 시험이 실제 Claude를 못 부르게 함. 새 시험 21개(변이 42개 모두 잡힘), `npm test` 723개 중 722 통과. 키가 없어 실제 호출은 못 해 봄 | 나(요청·"제가 만들어 PR로" 선택) · Claude(작성·시험·검토 반영) | `feat/P-13-claude-adapter`, `docs/intent.md` I-P-13-claude-adapter |
+| I-P-13-claude-adapter | Claude 호출 어댑터와 대응안 초안 연결: 서버 키(`ANTHROPIC_API_KEY`)가 있으면 Messages API로 부르는 어댑터를 만들고 `createAlertsForChange`가 보안 알림을 만들기 전에 초안을 부르게 함(키가 없으면 지금처럼 "만들지 못함"). 읽기 전용 검토 14건 중 12건 반영(나머지 2건은 열린 질문): 실패한 초안이 알림 만들 때마다 유료 호출을 되풀이하지 않게 같은 입력은 하루 한 번, 저장 실패도 호출 기록, 본문 읽기 오류·잘린 답 구분, 키가 잘리는 자리에 걸치는 경우, 키·모델 모양 이상 로그, 시험이 실제 Claude를 못 부르게 함. 새 시험 21개(변이 42개 모두 잡힘), `npm test` 723개 중 722 통과. 사람이 키를 넣은 뒤 실제 호출 2번(직접 1번·운영 DB 시뮬레이터 1번)으로 초안 저장까지 확인(10개 통과, 만든 줄은 모두 지움). 초안 품질 질문 2개(넘기지 않은 사실·지시문 언급)는 열린 질문 ⑩ | 나(요청·"제가 만들어 PR로" 선택) · Claude(작성·시험·검토 반영) | `feat/P-13-claude-adapter`, `docs/intent.md` I-P-13-claude-adapter |
 | I-supabase-url-origin | 구글 로그인 401 원인(운영 Supabase 주소에 /rest/v1이 붙음)을 기록으로 찾고, `readSupabasePublicConfig`가 주소를 origin으로 정리하게 고침. 시험 2개 | 나(오류 보고) · Claude(기록 조회·원인·수정·시험) | `fix/supabase-url-origin` 브랜치(미커밋) |
 | I-first-real-run | 운영 DB 첫 실제 수집: 점검에서 "운영 DB가 비어 있음"이 나와, 관리자 "지금 한 번 실행"과 같은 `runBatch`·수집기 4개를 스크립트로 한 번 실행(사용자 "우선순위 작업 추천대로 진행"). 64초에 성공, 레지스트리 3,200개를 읽어 얇은 기술 3,166개 저장. 나머지 수집기는 읽을 두꺼운 기술이 없어 0개로 성공. 결과는 `docs/qa.md` 행으로 기록 | 나(요청·승인) · Claude(실행·확인·기록) | `runs.id` `070c6274-…`, `docs/qa.md`, `docs/intent.md` I-first-real-run |
 | I-plan-status-sync | plan 상태 칸을 병합 뒤 실제와 맞춤: P-9 ④(#103) 합침, P-12에 합쳐진 것(#105·#109)과 남은 것(지도·첫 점검 띠·별명·체크박스), P-17 수집기 연결 끝남. 근거는 PR 본문과 main의 `SCHEDULE_COLLECTORS` | 나(요청 "진행") · Claude(확인·수정) | `docs/plan-status-sync` 브랜치, `docs/plan.md` |
@@ -38,7 +39,9 @@
 - [ ] `/admin/flow`에서 첫 실행(`070c6274`)이 칠해지는지 관리자 로그인으로 확인 — 김영식
 - [ ] 구글 OAuth 클라이언트와 Supabase 공급자·Site URL·Redirect URLs(P-12 전) — 김영식
 - [ ] 슬라이드의 "▢ 채울 것"(숫자 하나 재기, 화면 캡처, 하네스 개선 사례, 팀원별 안 남는 일)과 테마 결정(`docs/design.md` 10절 1번), 발표용 Vercel 주소·오프라인 파일 — 세 사람(`docs/intent.md` I-slides-draft 열린 질문)
-- [ ] `ANTHROPIC_API_KEY`(강사 키, SPEC-9 한도 확인 뒤)를 `.env`·Vercel Production에 넣고 모델·`max_tokens` 결정, 시뮬레이터로 실제 초안 한 번 확인(호출 비용 1회) — 황재웅(결정)·김영식(넣기)·Claude(확인). 열린 질문은 `docs/intent.md` I-P-13-claude-adapter ⑤⑥
+- [x] `ANTHROPIC_API_KEY`를 `.env.local`·Vercel Production에 넣고(김영식), 실제 호출 1번 + 운영 DB 시뮬레이터 1번으로 초안 저장 확인(Claude, 11-19, `docs/qa.md`)
+- [ ] 모델·`max_tokens` 결정과 초안 프롬프트 질문(넘기지 않은 사실·지시문 언급, `docs/intent.md` I-P-13-claude-adapter ⑩) — 황재웅. 열린 질문 ⑤⑥도 같이
+- [ ] 이 PR이 배포된 뒤 운영 시뮬레이터로 Vercel 키가 통하는지 한 번, 알림 상세 초안 카드·`/admin/flow` 화면 확인(관리자 로그인) — 김영식
 
 ## 2026-11-18 (수) — 회의 결정, plan, 뼈대, 개발 전 점검
 
