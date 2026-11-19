@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 19. 17시 17분 0초",
+  "when": "2026. 11. 19. 17시 26분 21초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -152,6 +152,7 @@
         "target": "mcp-remote 0.1.15: 통과였다가 OSV에 CRITICAL",
         "source": "SPEC-3.1 보안 등급 바뀜 · G1",
         "expectedOutcome": "새 변경 grade_to_danger r1 · change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p:r1",
+        "expectedEvent": true,
         "actualOutcome": "새 변경 grade_to_danger r1 · change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p:r1",
         "verdict": "맞음",
         "note": ""
@@ -162,6 +163,7 @@
         "target": "PyPI mcp 1.9.3: 처음 등록부터 위험",
         "source": "SPEC-3.1 처음 확인한 위험 · G4",
         "expectedOutcome": "새 변경 first_seen_danger r1 · change:pypi:mcp@1.9.3:GHSA-3qhf-m339-9g5v:r1",
+        "expectedEvent": true,
         "actualOutcome": "새 변경 first_seen_danger r1 · change:pypi:mcp@1.9.3:GHSA-3qhf-m339-9g5v:r1",
         "verdict": "맞음",
         "note": ""
@@ -172,6 +174,7 @@
         "target": "inspector 0.14.0: 위험 → 고쳐짐 → 다시 위험",
         "source": "SPEC-3.1 위험이 된 회차 · G2",
         "expectedOutcome": "새 변경 grade_to_danger r2 · change:npm:@modelcontextprotocol/inspector@0.14.0:GHSA-7f8r-222p-6f5g:r2",
+        "expectedEvent": true,
         "actualOutcome": "새 변경 grade_to_danger r2 · change:npm:@modelcontextprotocol/inspector@0.14.0:GHSA-7f8r-222p-6f5g:r2",
         "verdict": "맞음",
         "note": ""
@@ -182,7 +185,30 @@
         "target": "mcp-remote 0.1.15: 위험이었는데 OSV가 '없음'({})으로 답함(가상)",
         "source": "SPEC-3.4 위험 → 위험 아님(고쳐짐)은 알림 없음",
         "expectedOutcome": "바뀜(사건 아님)",
+        "expectedEvent": false,
         "actualOutcome": "바뀜(사건 아님)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-sec-other-cause",
+        "kind": "보안 경고",
+        "target": "mcp-remote 0.1.15: 다른 원인(가상 GHSA-bbbb)의 변경만 있는데 새 원인 GHSA-6xpm",
+        "source": "SPEC-3.1 중복 막기 키(원인이 다르면 다른 변경) · G1",
+        "expectedOutcome": "새 변경 grade_to_danger r1 · change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p:r1",
+        "expectedEvent": true,
+        "actualOutcome": "새 변경 grade_to_danger r1 · change:npm:mcp-remote@0.1.15:GHSA-6xpm-ggf7-wc3p:r1",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-sec-fixed-then-danger",
+        "kind": "보안 경고",
+        "target": "두 번 읽음: 첫 번째 '없음'({}), 두 번째 다시 CRITICAL",
+        "source": "SPEC-3.1 위험이 된 회차(고쳐짐 → 다시 위험) · G1",
+        "expectedOutcome": "변경 1 · 알림 2",
+        "expectedEvent": true,
+        "actualOutcome": "변경 1 · 알림 2",
         "verdict": "맞음",
         "note": ""
       },
@@ -192,6 +218,18 @@
         "target": "server-filesystem 2025.3.28: 어제와 같은 위험을 다시 읽음",
         "source": "SPEC-3.4 같은 값을 다시 읽음 · SPEC-3.1 · G3 · 불변 3",
         "expectedOutcome": "위험 이어짐(새 변경 없음)",
+        "expectedEvent": false,
+        "actualOutcome": "위험 이어짐(새 변경 없음)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-same-danger-alias",
+        "kind": "변화 없음",
+        "target": "mcp-remote 0.1.15: 같은 위험이 별칭(CVE-2025-6514)으로 저장돼 있음",
+        "source": "SPEC-3.1 같은 취약점의 별칭은 같은 원인 · 불변 3 · G1",
+        "expectedOutcome": "위험 이어짐(새 변경 없음)",
+        "expectedEvent": false,
         "actualOutcome": "위험 이어짐(새 변경 없음)",
         "verdict": "맞음",
         "note": ""
@@ -202,6 +240,7 @@
         "target": "mcp-remote 0.16.6(최신): 어제도 오늘도 취약점 0건",
         "source": "SPEC-3.4 같은 값을 다시 읽음 · G5c",
         "expectedOutcome": "변화 없음",
+        "expectedEvent": false,
         "actualOutcome": "변화 없음",
         "verdict": "맞음",
         "note": ""
@@ -212,6 +251,7 @@
         "target": "OSV가 404",
         "source": "불변 2 · SPEC-3.4 수집 실패 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "http_status"
@@ -222,6 +262,7 @@
         "target": "위험이던 기술을 다시 묻는데 OSV가 404",
         "source": "불변 2(사라짐·고쳐짐으로 단정 안 함) · SPEC-1 수집 오류 · G1",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "http_status"
@@ -232,6 +273,7 @@
         "target": "OSV가 503",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "http_status"
@@ -242,6 +284,7 @@
         "target": "OSV 한도 초과 429",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "rate_limited"
@@ -252,6 +295,7 @@
         "target": "연결 실패",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "network"
@@ -262,6 +306,7 @@
         "target": "시간 초과",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "timeout"
@@ -272,6 +317,7 @@
         "target": "200인데 모양이 다름([])",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "parse"
@@ -282,6 +328,18 @@
         "target": "200인데 HTML(점검 화면)",
         "source": "불변 2 · SPEC-8",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
+        "actualOutcome": "수집 오류",
+        "verdict": "맞음",
+        "note": "parse"
+      },
+      {
+        "id": "E-collect-grade-parse",
+        "kind": "수집 실패",
+        "target": "200이고 모양도 맞지만 심각도 칸이 숫자(등급으로 못 읽음)",
+        "source": "불변 2 · SPEC-8 · 수집기 gradeOf(해석 실패)",
+        "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "수집 오류",
         "verdict": "맞음",
         "note": "parse"
@@ -292,6 +350,7 @@
         "target": "200인데 첫 쪽만 오고 다음 쪽 표시(next_page_token)가 붙음(가상)",
         "source": "불변 2 · SPEC-3.4 수집 실패 · intent I-P-3-osv-404 열린 질문(next_page_token 무시)",
         "expectedOutcome": "수집 오류",
+        "expectedEvent": false,
         "actualOutcome": "변화 없음",
         "verdict": "결과 다름",
         "note": ""
@@ -302,6 +361,7 @@
         "target": "확정된 같은 역할 + 등록 뒤 들어온 새 기술 + 통과",
         "source": "SPEC-3.2 조건 1·2·3",
         "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
         "actualOutcome": "알림 1(u1)",
         "verdict": "맞음",
         "note": ""
@@ -312,6 +372,7 @@
         "target": "같은 역할이 후보일 뿐(확정 아님)",
         "source": "SPEC-3.2 조건 1 · SPEC-4.4 · ADR 0015",
         "expectedOutcome": "알림 0",
+        "expectedEvent": false,
         "actualOutcome": "알림 0",
         "verdict": "맞음",
         "note": ""
@@ -322,6 +383,7 @@
         "target": "새 기술이 위험",
         "source": "SPEC-3.2 조건 3",
         "expectedOutcome": "알림 0",
+        "expectedEvent": false,
         "actualOutcome": "알림 0",
         "verdict": "맞음",
         "note": ""
@@ -332,6 +394,7 @@
         "target": "새 기술이 찾지 못함(위험 아님)",
         "source": "SPEC-3.2 조건 3(위험이 아님)",
         "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
         "actualOutcome": "알림 1(u1)",
         "verdict": "맞음",
         "note": ""
@@ -342,6 +405,7 @@
         "target": "새 기술도 확정도 내가 등록하기 전",
         "source": "SPEC-3.2 조건 2",
         "expectedOutcome": "알림 0",
+        "expectedEvent": false,
         "actualOutcome": "알림 0",
         "verdict": "맞음",
         "note": ""
@@ -352,6 +416,7 @@
         "target": "새 기술은 전부터 있었지만 등록 뒤에 같은 역할로 확정",
         "source": "SPEC-3.2 조건 2(괄호)",
         "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
         "actualOutcome": "알림 1(u1)",
         "verdict": "맞음",
         "note": ""
@@ -362,6 +427,7 @@
         "target": "시뮬레이터 가짜 변경: 시연 계정에만",
         "source": "SPEC-3.5",
         "expectedOutcome": "알림 1(u-demo)",
+        "expectedEvent": true,
         "actualOutcome": "알림 1(u-demo)",
         "verdict": "맞음",
         "note": ""
@@ -372,6 +438,7 @@
         "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",
         "source": "불변 3 · SPEC-3.1 중복 막기 키 · G1",
         "expectedOutcome": "변경 1 · 알림 2",
+        "expectedEvent": true,
         "actualOutcome": "변경 1 · 알림 2",
         "verdict": "맞음",
         "note": ""
@@ -382,7 +449,19 @@
         "target": "첫 읽기 뒤 등급 저장이 실패한 채로 다시 읽음",
         "source": "불변 3 · SPEC-3.1 정기 OSV 재확인 문단 · G1",
         "expectedOutcome": "변경 1 · 알림 2",
+        "expectedEvent": true,
         "actualOutcome": "변경 1 · 알림 2",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-twice-second-user",
+        "kind": "두 번 입력",
+        "target": "이어지는 위험: u1은 이미 받음, u2는 아직 → u2만 새 알림",
+        "source": "SPEC-3.1 처음 확인한 위험(두 번째 사용자도 받음) · 불변 3 · G1",
+        "expectedOutcome": "변경 0 · 알림 1",
+        "expectedEvent": true,
+        "actualOutcome": "변경 0 · 알림 1",
         "verdict": "맞음",
         "note": ""
       },
@@ -392,6 +471,7 @@
         "target": "두 번 다 404",
         "source": "불변 2·3",
         "expectedOutcome": "변경 0 · 알림 0",
+        "expectedEvent": false,
         "actualOutcome": "변경 0 · 알림 0",
         "verdict": "맞음",
         "note": ""
@@ -402,6 +482,7 @@
         "target": "같은 적용 기회를 두 번 정함",
         "source": "불변 3 · SPEC-3.2 중복 막기 키",
         "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
         "actualOutcome": "알림 1(u1)",
         "verdict": "맞음",
         "note": ""
@@ -410,9 +491,10 @@
         "id": "E-judge-hold-short",
         "kind": "거절·보류",
         "target": "보류 이유 1자",
-        "source": "SPEC-4.1 보류 이유 5자 이상 · 불변 4",
-        "expectedOutcome": "거절 · 조치 기록 안 함",
-        "actualOutcome": "거절 · 조치 기록 안 함",
+        "source": "SPEC-4.1 보류 이유 5자 이상(입력 검사만)",
+        "expectedOutcome": "입력 검사 거절(저장 안 함)",
+        "expectedEvent": false,
+        "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "보류하는 이유를 5자 이상 적어 주세요."
       },
@@ -420,9 +502,10 @@
         "id": "E-judge-hold-spaces",
         "kind": "거절·보류",
         "target": "보류 이유가 빈칸으로 5자를 채움",
-        "source": "SPEC-4.1 보류 이유 5자 이상 · 불변 4",
-        "expectedOutcome": "거절 · 조치 기록 안 함",
-        "actualOutcome": "거절 · 조치 기록 안 함",
+        "source": "SPEC-4.1 보류 이유 5자 이상(입력 검사만)",
+        "expectedOutcome": "입력 검사 거절(저장 안 함)",
+        "expectedEvent": false,
+        "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "보류하는 이유를 5자 이상 적어 주세요."
       },
@@ -430,8 +513,9 @@
         "id": "E-judge-hold-keeps-version",
         "kind": "거절·보류",
         "target": "보류(=거절): 고친 버전으로 바꾸지 않음",
-        "source": "SPEC-4.1 '보류해도 버전은 그대로' · 불변 4",
+        "source": "SPEC-4.1 '보류해도 버전은 그대로' · 불변 4 중 '거절 시 기존 값 보존'의 입력 쪽(저장 실패 되돌림은 DB라 채점 밖)",
         "expectedOutcome": "저장으로 넘김 · hold · 고친 버전 없음",
+        "expectedEvent": true,
         "actualOutcome": "저장으로 넘김 · hold · 고친 버전 없음",
         "verdict": "맞음",
         "note": ""
@@ -441,8 +525,9 @@
         "kind": "거절·보류",
         "target": "고친 버전이 없는 보안 경고를 적용 후보로",
         "source": "SPEC-5.2 · ADR 0012",
-        "expectedOutcome": "거절 · 조치 기록 안 함",
-        "actualOutcome": "거절 · 조치 기록 안 함",
+        "expectedOutcome": "입력 검사 거절(저장 안 함)",
+        "expectedEvent": false,
+        "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "고친 버전이 아직 없어서 적용 후보로 저장할 수 없어요. 보류로 남겨 주세요."
       },
@@ -452,6 +537,7 @@
         "target": "보안 경고를 고친 버전으로 적용 후보",
         "source": "SPEC-4.3 · ADR 0012 · G1",
         "expectedOutcome": "저장으로 넘김 · candidate · 고친 버전 0.1.16",
+        "expectedEvent": true,
         "actualOutcome": "저장으로 넘김 · candidate · 고친 버전 0.1.16",
         "verdict": "맞음",
         "note": ""
@@ -461,16 +547,17 @@
         "kind": "거절·보류",
         "target": "정해진 두 가지 밖의 판단(approve)",
         "source": "SPEC-4.1 할 수 있는 일 · 불변 1",
-        "expectedOutcome": "거절 · 조치 기록 안 함",
-        "actualOutcome": "거절 · 조치 기록 안 함",
+        "expectedOutcome": "입력 검사 거절(저장 안 함)",
+        "expectedEvent": false,
+        "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "적용 후보나 보류 중에서 골라 주세요."
       }
     ],
     "totals": {
-      "cases": 32,
-      "hit": 12,
-      "quietOk": 19,
+      "cases": 37,
+      "hit": 15,
+      "quietOk": 21,
       "miss": 0,
       "falseAlarm": 0,
       "outcomeWrong": 1,
@@ -478,8 +565,8 @@
     },
     "byKind": {
       "보안 경고": {
-        "cases": 4,
-        "right": 4,
+        "cases": 6,
+        "right": 6,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
@@ -492,15 +579,15 @@
         "outcomeWrong": 0
       },
       "변화 없음": {
-        "cases": 2,
-        "right": 2,
+        "cases": 3,
+        "right": 3,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
       },
       "수집 실패": {
-        "cases": 9,
-        "right": 8,
+        "cases": 10,
+        "right": 9,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 1
@@ -513,8 +600,8 @@
         "outcomeWrong": 0
       },
       "두 번 입력": {
-        "cases": 4,
-        "right": 4,
+        "cases": 5,
+        "right": 5,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
@@ -522,9 +609,9 @@
     }
   },
   "overall": {
-    "cases": 44,
-    "hit": 18,
-    "quietOk": 25,
+    "cases": 49,
+    "hit": 21,
+    "quietOk": 27,
     "miss": 0,
     "falseAlarm": 0,
     "outcomeWrong": 1,

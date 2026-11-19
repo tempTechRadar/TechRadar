@@ -24,7 +24,7 @@ export type EdgeVerdict = Verdict | "결과 다름";
 
 export type EdgeRow = {
   id: string; kind: EdgeKind; target: string; source: string;
-  expectedOutcome: string; actualOutcome: string; verdict: EdgeVerdict; note: string;
+  expectedOutcome: string; expectedEvent: boolean; actualOutcome: string; verdict: EdgeVerdict; note: string;
 };
 export type EdgeTotals = { cases: number; hit: number; quietOk: number; miss: number; falseAlarm: number; outcomeWrong: number; failed: number };
 export type KindTotals = { cases: number; right: number; miss: number; falseAlarm: number; outcomeWrong: number };
@@ -36,12 +36,30 @@ export function edgeVerdictOf(expected: EdgeCase["expected"], actual: Pick<EdgeA
   return expected.outcome === actual.outcome ? "맞음" : "결과 다름";
 }
 
+const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+
+/** 정답 사례의 형식 검사. 틀리면 이유(첫 번째 하나), 맞으면 null. 정답 파일은 사람이 손으로 고치므로 채점 전에 본다. */
+export function edgeCaseProblem(c: EdgeCase): string | null {
+  const x = c as Partial<Record<keyof EdgeCase, unknown>> & { expected?: { outcome?: unknown; event?: unknown } };
+  if (!isText(x.id)) return "id가 없음";
+  if (!EDGE_KINDS.includes(x.kind as EdgeKind)) return `종류가 ${EDGE_KINDS.join("·")} 중 하나가 아님(${String(x.kind)})`;
+  if (!isText(x.source)) return "출처(source)가 없음";
+  if (typeof x.input !== "object" || x.input === null) return "input이 없음";
+  if (!isText(x.expected?.outcome)) return "expected.outcome이 없음";
+  if (typeof x.expected?.event !== "boolean") return "expected.event가 참·거짓이 아님";
+  return null;
+}
+
 function rowOf(c: EdgeCase, a: EdgeActual | undefined): EdgeRow {
-  const actual: EdgeActual = a ?? { id: c.id, outcome: "없음", event: false, error: "실제 결과 없음" };
-  const note = [actual.error ? `실행 실패: ${actual.error}` : "", actual.note ?? ""].filter(Boolean).join(" · ");
+  const problem = edgeCaseProblem(c);
+  const actual: EdgeActual = problem ? { id: c.id, outcome: "없음", event: false, error: `정답 형식 오류: ${problem}` } : a ?? { id: c.id, outcome: "없음", event: false, error: "실제 결과 없음" };
+  const note = [actual.error && !problem ? `실행 실패: ${actual.error}` : actual.error ?? "", actual.note ?? ""].filter(Boolean).join(" · ");
+  const expected = { outcome: String(c.expected?.outcome ?? ""), event: c.expected?.event === true };
   return {
     id: c.id, kind: c.kind, target: c.target, source: c.source,
-    expectedOutcome: c.expected.outcome, actualOutcome: actual.outcome, verdict: edgeVerdictOf(c.expected, actual), note,
+    expectedOutcome: expected.outcome, expectedEvent: expected.event, actualOutcome: actual.outcome,
+    // 형식 오류는 사건이 맞아 보여도 맞음으로 세지 않는다
+    verdict: problem && edgeVerdictOf(expected, actual) === "맞음" ? "결과 다름" : edgeVerdictOf(expected, actual), note,
   };
 }
 
@@ -49,17 +67,25 @@ function kindTotals(rows: EdgeRow[]): Record<EdgeKind, KindTotals> {
   const out = Object.fromEntries(EDGE_KINDS.map((k) => [k, { cases: 0, right: 0, miss: 0, falseAlarm: 0, outcomeWrong: 0 }])) as Record<EdgeKind, KindTotals>;
   const field = { 맞음: "right", 놓침: "miss", "잘못 울림": "falseAlarm", "결과 다름": "outcomeWrong" } as const;
   for (const r of rows) {
+    if (!(r.kind in out)) continue; // 모르는 종류는 종류별 표에는 없고 전체 수·실행 실패에만 든다
     out[r.kind].cases++;
     out[r.kind][field[r.verdict]]++;
   }
   return out;
 }
 
-/** 정답 순서대로 한 줄씩. 실제 결과가 빠진 사례는 "없음·사건 없음"으로 본다(숨기지 않음). */
+function assertUniqueIds(gold: EdgeCase[]): void {
+  const seen = new Set<string>();
+  const dup = gold.map((c) => c.id).filter((id) => (seen.has(id) ? true : (seen.add(id), false)));
+  if (dup.length) throw new Error(`정답 파일 경계 사례 id가 겹침: ${[...new Set(dup)].join(", ")} (id마다 한 줄이어야 채점이 섞이지 않음)`);
+}
+
+/** 정답 순서대로 한 줄씩. 실제 결과가 빠졌거나 정답 형식이 틀린 사례는 숨기지 않고 실행 실패로 센다. id가 겹치면 던진다. */
 export function scoreEdges(gold: EdgeCase[], actuals: EdgeActual[]): EdgeScore {
+  assertUniqueIds(gold);
   const byId = new Map(actuals.map((a) => [a.id, a]));
   const rows = gold.map((c) => rowOf(c, byId.get(c.id)));
-  const ok = (r: EdgeRow, event: boolean) => r.verdict === "맞음" && gold.find((c) => c.id === r.id)?.expected.event === event;
+  const ok = (r: EdgeRow, event: boolean) => r.verdict === "맞음" && r.expectedEvent === event;
   return {
     rows,
     totals: {
@@ -69,7 +95,7 @@ export function scoreEdges(gold: EdgeCase[], actuals: EdgeActual[]): EdgeScore {
       miss: rows.filter((r) => r.verdict === "놓침").length,
       falseAlarm: rows.filter((r) => r.verdict === "잘못 울림").length,
       outcomeWrong: rows.filter((r) => r.verdict === "결과 다름").length,
-      failed: gold.filter((c) => !byId.has(c.id) || byId.get(c.id)?.error).length,
+      failed: gold.filter((c) => edgeCaseProblem(c) || !byId.has(c.id) || byId.get(c.id)?.error).length,
     },
     byKind: kindTotals(rows),
   };
@@ -83,6 +109,9 @@ export function overallTotals(grade: Totals, edge: EdgeTotals): EdgeTotals {
   };
 }
 
+/** 표 칸: | 는 \| 로, 줄바꿈은 빈칸으로(정답 파일의 글이 표를 깨지 않게) */
+const cell = (v: unknown) => String(v ?? "").replace(/\r?\n/g, " ").replaceAll("|", "\\|");
+
 /** result.md 뒤에 붙는 경계 사례 절. 같은 점수면 같은 글. */
 export function edgeMarkdown(s: EdgeScore): string {
   const t = s.totals;
@@ -91,6 +120,9 @@ export function edgeMarkdown(s: EdgeScore): string {
     "",
     `- 사건: 맞게 울림 ${t.hit} · 맞게 조용함 ${t.quietOk} · **놓침 ${t.miss}** · **잘못 울림 ${t.falseAlarm}** · **결과 다름 ${t.outcomeWrong}** (사례 ${t.cases}) · 실행 실패 ${t.failed}`,
     "- 결과 다름 = 사건 수는 맞지만 앱이 낸 결과가 정답과 다름(예: 수집 오류를 변화 없음으로 봄).",
+    "- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment.",
+    "- 손으로 따라 쓴 수집기 분기(DB에 묶여 부를 수 없음, lib/eval/edge.ts): checkOne(오류 → 수집 오류)·gradeOf(등급 읽기 실패 → parse)·applyResult(위험 아니면 비교)·readLatestChange(원인·별칭이 같은 변경의 가장 큰 회차)·saveGrade(위험 아님 시각)·createSecurityAlerts(이미 있는 알림 키). 이 순서가 수집기와 어긋나면 채점이 못 잡는다.",
+    "- 채점 밖(DB가 있어야 함): save_judgment 저장과 저장 실패 때 되돌림, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록). 판단 사례는 입력 검사(validateJudgment)만 본다.",
     "",
     "| 종류 | 사례 | 맞음 | 놓침 | 잘못 울림 | 결과 다름 |",
     "|---|---|---|---|---|---|",
@@ -98,7 +130,7 @@ export function edgeMarkdown(s: EdgeScore): string {
     "",
     "| 사례 | 종류 | 대상 | 출처 | 기대 결과 | 실제 결과 | 판정 | 비고 |",
     "|---|---|---|---|---|---|---|---|",
-    ...s.rows.map((r) => `| ${r.id} | ${r.kind} | ${r.target} | ${r.source} | ${r.expectedOutcome} | ${r.actualOutcome} | ${r.verdict} | ${r.note} |`),
+    ...s.rows.map((r) => `| ${[r.id, r.kind, r.target, r.source, r.expectedOutcome, r.actualOutcome, r.verdict, r.note].map(cell).join(" | ")} |`),
   ];
   return lines.join("\n") + "\n";
 }
