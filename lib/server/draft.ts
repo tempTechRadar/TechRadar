@@ -14,7 +14,7 @@ import { recordStep } from "./run-log.ts";
 
 export type DraftResult =
   | { status: "created" }
-  | { status: "skipped"; reason: "already_drafted" | "not_security" | "user_limit" | "service_limit" }
+  | { status: "skipped"; reason: "already_drafted" | "already_tried_today" | "not_security" | "user_limit" | "service_limit" }
   | { status: "failed"; reason: string };
 
 type Input = { changeId: string; runId?: string; now?: Date };
@@ -43,6 +43,10 @@ async function callAndSave(db: SupabaseClient, ai: AiClient, change: Row, input:
     outsideTexts: [],
   });
   const inputHash = createHash("sha256").update(`${prompt.system}\n${prompt.user}`).digest("hex");
+  // 같은 입력은 하루에 한 번만 보낸다(ai_calls_input_hash, SPEC-9 "변경마다 1번"): 실패한 초안은 비어 남아서, 막지 않으면 알림을 만들 때마다
+  // (매일 OSV가 이어지는 위험을 지나갈 때, 사용자가 '다시 읽기'를 누를 때) 유료 호출이 다시 나간다. 다음 날에는 다시 시도해 일시 장애에서 회복한다.
+  const tried = rowsOrThrow(await db.from("ai_calls").select("id").eq("input_hash", inputHash).gte("created_at", startOfKoreanDay(input.now ?? new Date())), "이전 호출을 읽지 못함");
+  if (tried.length > 0) return { status: "skipped", reason: "already_tried_today" };
 
   let answer: Awaited<ReturnType<AiClient["complete"]>>;
   try {
@@ -58,8 +62,15 @@ async function callAndSave(db: SupabaseClient, ai: AiClient, change: Row, input:
     return { status: "failed", reason: parsed.error };
   }
   // 그 사이 다른 쪽이 먼저 만들었으면(draft_response가 더는 비어 있지 않으면) 덮어쓰지 않는다
-  const saved = await db.from("changes").update({ draft_response: parsed.draft, draft_sources: parsed.sources }).eq("id", input.changeId).is("draft_response", null).select("id");
-  const updated = rowsOrThrow(saved, "초안을 저장하지 못함");
+  let updated: Row[];
+  try {
+    const saved = await db.from("changes").update({ draft_response: parsed.draft, draft_sources: parsed.sources }).eq("id", input.changeId).is("draft_response", null).select("id");
+    updated = rowsOrThrow(saved, "초안을 저장하지 못함");
+  } catch (error) {
+    // 호출은 이미 끝나 토큰이 들었다: 저장이 실패해도 기록해야 하루 한도에 세고 같은 호출이 되풀이되지 않는다
+    await logCall(db, { input_hash: inputHash, tokens_in: answer.tokensIn ?? null, tokens_out: answer.tokensOut ?? null, status: "failed", error: cleanForLog(error instanceof Error ? error.message : String(error)) });
+    throw error;
+  }
   await logCall(db, { input_hash: inputHash, tokens_in: answer.tokensIn ?? null, tokens_out: answer.tokensOut ?? null, status: "succeeded" });
   return updated.length > 0 ? { status: "created" } : { status: "skipped", reason: "already_drafted" };
 }
@@ -69,10 +80,16 @@ async function createDraft(db: SupabaseClient, ai: AiClient | null, input: Input
   if (error || !data) throw failure("변경을 읽지 못함", error?.message);
   const change = data as Row;
   if (!SECURITY_CHANGE_KINDS.includes(change.kind)) return { status: "skipped", reason: "not_security" };
-  const today = rowsOrThrow(await db.from("ai_calls").select("id").gte("created_at", startOfKoreanDay(input.now ?? new Date())), "오늘 호출 수를 읽지 못함");
-  const decision = decideAiCall("draft", { changeHasDraft: Boolean(change.draft_response), userCallsToday: 0, serviceCallsToday: today.length });
+  const hasDraft = Boolean(change.draft_response);
+  // 이미 초안이 있으면 하루 호출 수는 읽을 필요가 없다(보안 알림을 만들 때마다 이 함수가 불린다)
+  const today = hasDraft ? [] : rowsOrThrow(await db.from("ai_calls").select("id").gte("created_at", startOfKoreanDay(input.now ?? new Date())), "오늘 호출 수를 읽지 못함");
+  const decision = decideAiCall("draft", { changeHasDraft: hasDraft, userCallsToday: 0, serviceCallsToday: today.length });
   if (!decision.allow) return { status: "skipped", reason: decision.reason };
-  if (!ai) return { status: "failed", reason: "not_configured" };
+  if (!ai) {
+    // 정기 OSV·첫 읽기는 실행 id를 넘기지 않아 summarize 단계가 안 남는다: 그 경로에서도 원인이 로그에 보이게 한다
+    console.warn("대응안 초안: ANTHROPIC_API_KEY가 없어 만들지 않았어요(알림은 그대로 만든다)");
+    return { status: "failed", reason: "not_configured" };
+  }
   return callAndSave(db, ai, change, input);
 }
 

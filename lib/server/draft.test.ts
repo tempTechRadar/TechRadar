@@ -11,6 +11,7 @@ type Tables = Record<string, Row[]>;
 function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
   const inserts: { table: string; row: Row }[] = [];
   const updates: { table: string; values: Row }[] = [];
+  const reads: string[] = [];
   const db = {
     from(table: string) {
       const readError = errors[`read:${table}`];
@@ -34,6 +35,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
           return q;
         },
         select() {
+          reads.push(table);
           let result = tables[table] ?? [];
           const failed = readError ? { data: null, error: { message: readError } } : null;
           const q = {
@@ -47,7 +49,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
       };
     },
   } as unknown as SupabaseClient;
-  return { db, inserts, updates };
+  return { db, inserts, updates, reads };
 }
 
 const NOW = new Date("2026-11-18T05:00:00Z"); // 한국 11-18 14:00 → 오늘은 UTC 11-17T15:00부터
@@ -209,4 +211,65 @@ test("부르는 사이에 다른 쪽이 먼저 초안을 만들었으면 덮어�
   assert.deepEqual(result, { status: "skipped", reason: "already_drafted" });
   assert.equal(tables.changes[0].draft_response, "다른 쪽이 먼저 만든 초안");
   assert.equal(inserts.find((i) => i.table === "ai_calls")?.row.status, "succeeded");
+});
+
+// ── 같은 입력은 다시 보내지 않는다(ai_calls_input_hash, SPEC-9 "변경마다 1번"): 실패한 초안이 알림 만들 때마다 유료 호출을 다시 부르지 않게
+test("같은 입력으로 오늘 이미 불러 봤으면(실패했어도) 다시 부르지 않는다. 다음 날에는 다시 시도한다", async () => {
+  const tables = baseTables();
+  const { db } = fakeDb(tables);
+  const first = fakeAi(new Error("503 과부하"));
+  assert.equal((await generateDraft(db, first.ai, input)).status, "failed");
+  assert.equal(first.prompts.length, 1);
+
+  const again = fakeAi(okAnswer); // 사용자가 '다시 읽기'를 반복하거나 매일 OSV가 같은 위험을 다시 지나가는 경우
+  assert.deepEqual(await generateDraft(db, again.ai, input), { status: "skipped", reason: "already_tried_today" });
+  assert.equal(again.prompts.length, 0);
+  assert.equal(tables.ai_calls.length, 1); // 건너뛴 것은 기록하지 않는다(한도에 안 센다)
+
+  tables.ai_calls.forEach((r) => (r.created_at = "2026-11-17T14:30:00.000Z")); // 어제(한국 11-17 23:30) 시도: 오늘(한국 11-18 00:00부터)에 안 센다
+  const nextDay = fakeAi(okAnswer);
+  assert.deepEqual(await generateDraft(db, nextDay.ai, input), { status: "created" });
+  assert.equal(nextDay.prompts.length, 1);
+});
+
+test("다른 입력(위험 근거가 바뀐 변경)은 오늘 불러 본 적이 있어도 부른다", async () => {
+  const tables = baseTables();
+  const { db } = fakeDb(tables);
+  assert.equal((await generateDraft(db, fakeAi(new Error("503")).ai, input)).status, "failed");
+  (tables.changes[0].curr_value as Row).reason = "근거가 바뀌었어요";
+  const { ai, prompts } = fakeAi(okAnswer);
+  assert.deepEqual(await generateDraft(db, ai, input), { status: "created" });
+  assert.equal(prompts.length, 1);
+});
+
+test("이미 초안이 있으면 하루 호출 수를 읽지도 않는다(불필요한 조회를 줄인다)", async () => {
+  const drafted = baseTables();
+  drafted.changes[0].draft_response = "예전 초안";
+  const { db, reads } = fakeDb(drafted);
+  assert.deepEqual(await generateDraft(db, fakeAi(okAnswer).ai, input), { status: "skipped", reason: "already_drafted" });
+  assert.equal(reads.includes("ai_calls"), false);
+});
+
+test("초안 저장이 실패해도 이미 비용이 든 Claude 호출은 실패로 기록한다(한도에 세고, 같은 호출을 되풀이하지 않게)", async () => {
+  const tables = baseTables();
+  const { db, inserts } = fakeDb(tables, { "write:changes": "저장 실패" });
+  const { ai } = fakeAi(okAnswer);
+  const result = await generateDraft(db, ai, input);
+  assert.equal(result.status, "failed");
+  const [call] = inserts.filter((i) => i.table === "ai_calls");
+  assert.deepEqual([call.row.status, call.row.tokens_in, call.row.tokens_out], ["failed", 120, 80]);
+  assert.match(String(call.row.error), /초안을 저장하지 못함/);
+});
+
+test("키가 없으면 로그에 한 줄 남긴다(실행 기록에 안 남는 경로에서도 원인을 찾게)", async () => {
+  const warnings: string[] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => void warnings.push(args.join(" "));
+  try {
+    await generateDraft(fakeDb(baseTables()).db, null, input);
+  } finally {
+    console.warn = original;
+  }
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /ANTHROPIC_API_KEY/);
 });

@@ -7,6 +7,9 @@ import type { CurrentUser } from "./current-user.ts";
 import { RepoNotPublicError } from "./collect-fetch.ts";
 import { registerAndRead } from "./first-read.ts";
 
+// 이 흐름은 실제 알림 만들기(대응안 초안 포함)를 거친다: 셸에 키가 있어도 시험이 실제 Claude를 부르지 못하게 비운다(각 시험 파일은 따로 뜬 프로세스)
+delete process.env.ANTHROPIC_API_KEY;
+
 const USER: CurrentUser = { id: "u1", nickname: "n", role: "user", isDemo: false };
 const REPO = { owner: "o", repo: "r", url: "https://github.com/o/r" };
 const PKG = JSON.stringify({ dependencies: { "mcp-remote": "0.1.15" } });
