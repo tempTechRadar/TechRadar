@@ -6,6 +6,24 @@
 
 ---
 
+## I-google-login-site-url · 2026-11-19 · 배포 주소 구글 로그인이 없는 주소로 가던 오류 기록 (김영식)
+- 브랜치: `docs/google-login-site-url` (origin/main 위, worktree `.claude/worktrees/login-site-url`)
+- 출처: 사용자 "구글 로그인은 … DNS_PROBE_FINISHED_NXDOMAIN 이러네", "/ego-browser 해봐", "로그인했는데 오류", "좋아 됐다". 근거: PRD-F1, P-12, `docs/debug-note.md`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 배포 주소에서 구글 계정을 고르면 `techradar-theta.vercel.app를`이라는 없는 주소로 가서 로그인이 끝나지 않았다. |
+| 기대 결과 | 원인(Supabase Site URL 끝의 "를", 허용 목록에 꼬리 `?next=`가 없음)과 고친 설정을 오류 기록·사람 QA에 남긴다. |
+| 영향 범위 | `docs/debug-note.md`·`docs/qa.md`(사람 QA 1행)·`docs/connectors.md`·이 기록·`docs/worklog.md`. 코드 변경 없음. |
+| 제약 | Supabase 인증 설정은 커넥터로 읽거나 바꿀 수 없어 사용자가 대시보드에서 고쳤다. 실제 계정 로그인은 사람만 한다. |
+| 열린 질문 | 없음. |
+
+**결과:** ego 브라우저로 `/login` → 구글 계정 선택 화면까지 확인했고, 계정을 고른 뒤 돌아온 주소창에서 "를"을 찾았다. 사용자가 Site URL을 고치고 Redirect URLs에 `/**`를 더한 뒤 로그인 성공을 확인했다("됐다"). 처음에 사용자 컴퓨터의 DNS 문제로 잘못 짚은 것도 오류 기록에 적었다.
+
+**이어서 배포 QA(사용자 "/ego-browser qa돌려"):** 로그인한 채 화면 7개는 모두 열림(Pass). 저장소 등록은 서버 오류(Fail): Vercel 기록상 운영의 `SUPABASE_SERVICE_ROLE_KEY` 값이 비어 있음(이름은 있음, 값은 읽지 않음) → 사람이 값을 넣고 다시 배포해야 함. 로그인해도 메뉴에 "로그인"·로그아웃 없음·첫 화면 "뼈대(P-1)" 문구(Fail, 작음). `docs/qa.md`에 Claude QA 3행·남은 오류 1줄.
+
+**다시 QA(사용자가 키를 넣고 다시 배포):** 첫 Redeploy는 문서 전용 커밋이라 취소, 두 번째는 `Invalid API key`, 세 번째에 등록 성공(스킬 2개 읽힘, 실행 기록 Pass). 알림 → 판단 흐름은 위험 기술 재료가 없어 No Run. `docs/qa.md` 3행 더함, debug-note 1행.
+
 ## I-B-record-3-1119 · 2026-11-19 · 영역 B 3차 기록 — 알림 수정(P-7)·알림 run_id(P-8)·보류 회고·비교·이번 주 요약(P-25) (소급 기록)
 - 작업 ID: 브랜치 이름에서 만듦(ADR 0017, 순번을 매기지 않음). 소급 기록이라 한 항목에 모음
 - 브랜치: `fix/alerts-version-batch`(I-alerts-version-batch, #81)·`fix/alert-run-id`(I-alert-run-id, #83)·`feat/P-25-extras`(I-P-25-extras, #114)(모두 합침). 이 기록은 `docs/B-record-3-1119`(문서만)
