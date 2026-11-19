@@ -1,4 +1,4 @@
-// 같은 역할 확정·규칙 목록 고치기(P-18b, PRD-F24·F27, IA-17, ADR 0015).
+// 같은 역할 확정·규칙 목록 고치기(P-18b)·갈래 확정(P-18c), PRD-F24·F27, IA-17, ADR 0015.
 // 바꾸기는 관리자 본인 로그인(db)으로만 해서 RLS가 한 번 더 막는다(불변 5). 일반 계정이면 0줄이 바뀌고 실패로 끝난다.
 // 바꾼 기록(audit_logs: 담당자·시각·사유)은 서버 연결(audit)로만 쓴다(erd 4절 "쓰기는 서버").
 // 기록이 실패해도 이미 바뀐 것은 되돌리지 않고 auditFailed로 알린다(lib/server/my-tech.ts와 같은 방식).
@@ -65,4 +65,27 @@ export async function addRule(ctx: EditCtx, input: RuleInput, rawReason: string)
   if (ins.error?.code === "23505") return fail("duplicate");
   if (ins.error || !ins.data) return fail("failed", ins.error?.message ?? "넣은 줄이 없음");
   return { ok: true, changed: true, auditFailed: !(await writeAudit(ctx, "rule_add", "rule_lists", String(ins.data.id), why.reason)) };
+}
+
+/**
+ * 기술의 갈래를 정하거나 고친다(P-18c). 작은 갈래(부모가 있는 갈래)만 받는다. 갈래·정한 사람(나)·시각 세 칸만 바꾼다:
+ * DB도 이 세 칸만 관리자에게 열었다(202611191500_P-18c_category_admin.sql). 같은 갈래면 그대로 둔다.
+ */
+export async function setCategory(ctx: EditCtx, techId: string, categoryId: string, rawReason: string): Promise<EditResult> {
+  const why = checkReason(rawReason);
+  if (!why.ok) return fail("reason");
+  if (!isUuid(techId) || !isUuid(categoryId)) return fail("not_found");
+  const cat = await ctx.db.from("categories").select("id, parent_id").eq("id", categoryId).maybeSingle();
+  if (cat.error) return fail("failed", cat.error.message);
+  if (!cat.data) return fail("not_found");
+  if (!cat.data.parent_id) return fail("input");
+  const tech = await ctx.db.from("technologies").select("id, category_id").eq("id", techId).maybeSingle();
+  if (tech.error) return fail("failed", tech.error.message);
+  if (!tech.data) return fail("not_found");
+  if (tech.data.category_id === categoryId) return { ok: true, changed: false, auditFailed: false };
+  const upd = await ctx.db.from("technologies")
+    .update({ category_id: categoryId, category_set_by: ctx.userId, category_set_at: new Date().toISOString() })
+    .eq("id", techId).select("id");
+  if (upd.error || !upd.data?.length) return fail("failed", upd.error?.message ?? "바뀐 줄이 없음(권한)");
+  return { ok: true, changed: true, auditFailed: !(await writeAudit(ctx, "category_set", "technologies", techId, why.reason)) };
 }
