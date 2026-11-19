@@ -164,6 +164,8 @@ UK: (project_id, tech_id), (project_id, manual_name).
 | display_name | text | ✔ | | 보이는 이름 |
 | type | text | ✔ | | `mcp` / `skill` / `plugin` / `sdk` / `model` / `service` / `concept` |
 | category_id | uuid | | FK→categories | 작은 갈래 |
+| category_set_by | uuid | | FK→profiles | 갈래를 정한 관리자(P-18c). 서버가 정한 갈래면 비움. 있으면 서버 분류가 덮어쓰지 않는다 |
+| category_set_at | timestamptz | | | 관리자가 갈래를 정한 시각. `category_set_by`와 함께 있거나 함께 없음(check) |
 | hosts | text[] | | | 쓰는 곳(Claude Code, Cursor …) |
 | depth | text | ✔ | | `thin` / `thick` |
 | thick_reasons | text[] | | | `used` / `same_role` / `official` / `popular` |
@@ -389,7 +391,7 @@ UK: (kind, ecosystem, value).
 |---|---|
 | profiles | 본인 읽기·별명·공개 여부 고치기, `role` 못 바꿈. 관리자 전체 읽기 |
 | projects · my_technologies | 본인 읽기·쓰기(보관·숨김). 관리자 읽기만 |
-| technologies · categories · tech_relations | 모두 읽기. 쓰기는 서버, 관리자는 갈래·관계 확정만 |
+| technologies · categories · tech_relations | 모두 읽기. 쓰기는 서버, 관리자는 갈래·관계 확정만(technologies는 `category_id`·`category_set_by`·`category_set_at` 세 칸, 본인 이름·작은 갈래만, P-18c) |
 | rule_lists · sources | 관리자 읽기·쓰기. 사용자 못 봄(허용 목록은 서버가 씀) |
 | runs · run_steps | 본인이 시작한 `user_reread`·`first_read`만 읽기. 관리자 전체 읽기, 지금 실행 |
 | observations · changes | 본인 알림에 이어진 것만 읽기. 관리자 전체 읽기. 쓰기는 서버 |
@@ -445,3 +447,4 @@ UK: (kind, ecosystem, value).
 - 2026-11-19 P-9b 2차 코드 검토 반영(작업 `I-P-9b-github`): 칸·마이그레이션 변화 없음. 활동 중인 줄의 낡은 `status_by`는 읽을 때 비운다. `signals.github_found_repo`는 "찾은 저장소"라 주소가 바뀐 줄이 옛 저장소를 찾은 적으로 "사라짐"이 되지 않는다. 찾은 적 없는 저장소는 `last_checked_ok_at`을 올리지 않는다.
 - 2026-11-18 P-9c 마이그레이션(`202611190900_P-9c_registry_sync.sql`, 작업 `I-P-9c-registry`): `sources`에 `last_synced_at`·`sync_started_at`·`sync_cursor`, `rule_lists.kind`에 `official_org`와 처음 값 3개(modelcontextprotocol·anthropics·openai). 실제 DB에 적용했고(사용자 승인) 제약·칸·줄 수를 읽어 확인했다.
 - 2026-11-18 P-9c 코드 검토 반영 마이그레이션(`202611190901_P-9c_thicken_on_use.sql`, 작업 `I-P-9c-registry`): ① `my_technologies` insert 뒤 트리거(`thicken_used_tech`, security definer, 실행 권한은 닫음): 얇은 기술을 누군가 내 기술로 두면 `depth='thick'`, `thick_reasons`에 `used`를 더한다(첫 읽기·직접 추가·가져오기 모두, 사용자 연결은 `technologies`를 못 고치므로). ② `official_org` 값을 낱말(modelcontextprotocol·anthropics·openai)에서 이름공간 전체(`io.github.modelcontextprotocol`·`io.github.anthropics`·`io.github.openai`)로 바꿈. 실제 DB 적용은 사용자 승인 뒤.
+- 2026-11-19 P-18c 마이그레이션(`202611191500_P-18c_category_admin.sql`, 작업 `I-P-18c-category`): `technologies.category_set_by`·`category_set_at` 칸 추가(함께 있거나 함께 없음), 관리자만 갈래 세 칸을 본인 이름·작은 갈래로 바꾸는 정책 `technologies_admin_set_category`와 열 권한. `category_score`·`category_rank`(P-21 서버 칸)는 열지 않음. 갈래 목록 시드는 없음(데이터설계 DQ2, 팀 결정). **운영 적용 전에 김영식 님께 다시 알림**(운영 categories 0줄).
