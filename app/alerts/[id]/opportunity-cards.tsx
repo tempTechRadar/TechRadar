@@ -39,7 +39,7 @@ export function ComparisonCard({ comparison }: { comparison: ComparisonView }) {
 }
 
 // 값을 못 찾은 칸("찾지 못함")에는 출처 줄을 달지 않는다. 값이 있는데 출처가 없으면 "출처 찾지 못함".
-function Cell({ label, cell }: { label: string; cell: CellView }) {
+export function Cell({ label, cell }: { label: string; cell: CellView }) {
   const found = cell.value !== "찾지 못함";
   return (
     <td data-label={label}>

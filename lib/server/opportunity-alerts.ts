@@ -1,9 +1,10 @@
 // 적용 기회 알림 만들기(SPEC-3.2, 5.3). 주인: 황재웅(B). 규칙은 decideOpportunityAlerts, 비교표는 buildComparison이 정한다.
 // 새 기술의 확정된 같은 역할 관계를 따라 "내 기술"을 쓰는 사람을 찾는다. 비교표는 만들 때 값으로 alerts.comparison에 저장한다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildComparison, type ComparableTech } from "../alerts/build-comparison.ts";
+import { buildComparison } from "../alerts/build-comparison.ts";
 import { decideOpportunityAlerts, type OpportunityRelation } from "../alerts/decide-opportunity-alerts.ts";
 import { failure, readChange, readExistingAlertKeys, readUsages, rowsOrThrow, writeAlerts, type Row } from "./alert-db.ts";
+import { toComparable } from "./comparable.ts";
 
 type Input = { changeId: string; techId: string; onlyDemo?: boolean };
 type Result = { created: number; people: number };
@@ -22,12 +23,6 @@ async function readRelations(db: SupabaseClient, techId: string): Promise<Opport
     ...rowsOrThrow(asB, "같은 역할을 읽지 못함").map((row) => toRelation(row.tech_a, row)),
   ];
 }
-
-const toComparable = (row: Row): ComparableTech => ({
-  oneLiner: row.one_liner, oneLinerSource: row.one_liner_source, grade: row.grade, gradeReason: row.grade_reason,
-  gradeEvidenceUrl: row.grade_evidence?.[0]?.url ?? null, lastActivityAt: row.last_activity_at, lastActivityKind: row.last_activity_kind,
-  repoUrl: row.repo_url, license: row.license, signals: row.signals,
-});
 
 export async function createOpportunityAlerts(db: SupabaseClient, input: Input): Promise<Result> {
   const change = await readChange(db, input.changeId);
