@@ -62,3 +62,10 @@ const ITEMS: [string, (t: ComparableTech) => ComparisonCell][] = [
 export function buildComparison(mine: ComparableTech, theirs: ComparableTech): ComparisonRow[] {
   return ITEMS.map(([item, read]) => ({ item, mine: read(mine), theirs: read(theirs) }));
 }
+
+/** 비교 모드(PRD-F42): 기술 2–3개를 같은 5항목으로 나란히. 칸 순서는 넘긴 순서. */
+export type ComparisonTableRow = { item: string; cells: ComparisonCell[] };
+
+export function buildComparisonTable(techs: ComparableTech[]): ComparisonTableRow[] {
+  return ITEMS.map(([item, read]) => ({ item, cells: techs.map(read) }));
+}

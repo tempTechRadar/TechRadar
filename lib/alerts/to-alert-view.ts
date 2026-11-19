@@ -120,7 +120,7 @@ function draftCardOf(record: AlertRecord): AlertView["draftCard"] {
 
 const confirmedDay = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
-const cellOf = ({ value, source }: { value: string; source: string | null }): CellView => ({
+export const cellOf = ({ value, source }: { value: string; source: string | null }): CellView => ({
   value,
   source,
   sourceIsLink: source !== null && /^https?:\/\//i.test(source),
