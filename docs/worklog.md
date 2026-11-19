@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-admin-runs-demo-copy | 관리자 화면 문구 2곳: 수집 실행 탭의 꺼진 "지금 한 번 실행" 자리를 `/admin/run-now` 링크로, 실패 시연 ⑤의 "관리자는 판단할 수 없으니"를 ADR 0016 문구로. 소스 훑기 시험 2개 먼저 | 차세일(Claude) | `app/admin/runs/page.tsx`, `app/admin/demo/page.tsx` |
 | I-P-9c-prompt-wrap | AI 입력 감싸기: P-9c 검토 높음 2건이 이미 해결된 것을 현재 main과 대조해 확인하고(트리거·활동 중 우선), 남은 구멍인 대응안·시나리오 프롬프트의 기술 이름·근거·비교표를 `<자료>` 안에만 넣게 고침. DB 변경 없음 | 나(요청 "다음 작업") · Claude(대조·작성·시험) | `fix/P-9c-prompt-wrap`, `docs/intent.md` I-P-9c-prompt-wrap |
 | I-admin-manual | 관리자 사용설명서(쉬운 말, 탭 8개·지금 실행·실패 시연, 화면 문구 그대로, 막혔을 때 표)와 README 영역 C 상태 줄·링크. 화면 문구가 코드와 어긋난 2곳(runs의 꺼진 지금 실행 자리, demo의 "관리자는 판단할 수 없으니")은 고치지 않고 열린 질문으로 | 차세일(Claude) | `docs/관리자-사용설명서.md`, `README.md` |
 | I-P-12-menu-logout | 메뉴에 로그인 상태(별명님)·[로그아웃] 서버 동작, 로그인 전이면 "로그인" 링크. 첫 화면의 "상태: 뼈대(P-1)" 문구를 지우고 주요 화면 링크로. 배포 QA Fail(작음) 고침 | 나(요청 "진행") · Claude(작성·검토) | `feat/P-12-menu-logout`, `docs/intent.md` I-P-12-menu-logout |
