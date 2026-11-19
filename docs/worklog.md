@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-simulator-alert-evidence | 배포 QA에서 찾은 작은 실패 2건 고침: 시뮬레이터 변경 값에 근거·쉬운 이유를 진짜 등급 함수로 넣어 알림 상세의 "찾지 못함"을 없앰, 가짜 변경 알림에 그 시뮬레이터 실행 id를 적어 판단 뒤 조치 상자가 알림을 만든 실행에 칠해지게 함. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `fix/simulator-alert-evidence`, `docs/intent.md` I-simulator-alert-evidence |
 | I-P-12b-first-check | P-12b 첫 점검 요약 띠: 가장 최근 첫 읽기 실행의 등급 건수로 "첫 점검: 위험 n · 주의 n"을 만들어 대시보드 맨 위에 한 번 보여 줌(확인을 누르면 사라짐), 읽지 못한 기술은 "빠졌어요"로 덧붙임. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12b-first-check`, `docs/intent.md` I-P-12b-first-check |
 | I-p13-prod-key-check | P-13 운영 확인 결과 반영: 운영에서 돈 시뮬레이터 실행(11:14 KST)의 초안 584자·`ai_calls` succeeded·`summarize` succeeded로 운영 키가 통함을 DB 읽기로 확인, 내장 브라우저로 `/admin/flow`가 두 실행을 기록대로 칠하는 것을 확인(버튼은 안 누름). 낡은 "못 본 것" 문장을 5개 문서에서 바로잡음 | 나(요청 "/ego-browser 해봐"·"진행") · Claude(읽기 확인·기록) | `docs/p13-prod-key-check`, `docs/intent.md` I-p13-prod-key-check |
 | I-p13-real-call-check | P-13 실제 호출 확인 기록: 사용자가 키를 넣은 뒤 Claude가 실제 호출 1번과 운영 DB 시뮬레이터 1번(확인 10개 통과, 만든 줄 모두 지움)으로 초안 저장을 확인하고 intent·qa·worklog·plan·connectors에 기록. #110이 이미 합쳐져 새 브랜치로 올림. 초안 품질 질문 2개는 열린 질문 ⑩ | 나(키 넣기·승인) · Claude(호출·확인·기록) | `docs/p13-real-call-check`, `docs/intent.md` I-p13-real-call-check |
