@@ -19,6 +19,22 @@
 | 열린 질문 | ① 남은 Claude QA의 "실제 DB는 No Run" 부분(알림 만들기·판단 저장·내 기술 RLS 등)은 운영(유일한) DB에 시험 줄을 만들고 지우는 일이라 항목별 승인이 필요하다. ② 접근성(키보드·대비) No Run은 개발 서버를 띄워 내장 브라우저로 볼 수 있다: 다음 조각 |
 
 **결과:** 운영 응답 헤더 행을 Pass로: `/`·`/login`·`/dashboard`·`/api/cron/daily` 모두 다섯 헤더가 있다(`X-Vercel-Cache`는 전부 MISS라 프리렌더 캐시 HIT 경로는 못 봄). 로그인 없는 점검을 새 화면(`/settings`·`/projects`·`/compare`·`/history`)과 개발용 화면 404까지 넣어 다시 돌려 Pass: 11개 화면 307 → `/login`(설정은 `?next=/settings`), 크론 401, `/login`에 입력칸 0개. 사람 QA의 흐름 화면 세 행(다운로드·GitHub·레지스트리 줄)에는 내가 내장 브라우저로 본 것을 "사람 확인 아님"으로 증거 칸에 적었다(상태는 No Run 그대로). **아직 안 된 것:** 사람 QA 약 20행, Claude QA의 실제 DB 부분(승인 필요), 접근성 키보드·대비.
+## I-NF5-c-screens · 2026-11-19 · PRD-NF5 접근성을 영역 C 화면에 채우기 (차세일)
+- 브랜치: `fix/NF5-c-screens` (main `21ef4ed`)
+- 출처: 위키 연결지도의 "PR이 없는 요구" PRD-NF5(글자 대비, 키보드로 끝까지, 이미지 대체 텍스트), plan "접근성은 각자 자기 화면", 빅보스 지시
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | NF5를 맡은 PR이 없었다. 영역 C 화면(`/admin/*`, 흐름 그림 `/admin/flow`·`/projects/runs`, `/projects/install`)이 키보드·화면 읽기·대비 기준을 지키는지 확인한 기록이 없었다 |
+| 기대 결과 | ① 소스 훑기 시험(`lib/a11y/scan.ts`): 입력·고르기·글 칸 이름, div·span onClick, img alt, 링크를 품은 SVG role, outline 없앰 ② 대비 시험(`lib/a11y/contrast.ts`, WCAG AA 4.5:1): 흐름 상자 색, 관리자 토큰, 화면 글자색 ③ 흐름 그림: 링크가 읽히게 `role="group"`, 상자 링크 이름에 상태, SVG 안 초점 테두리, "그림을 글로 보기"(`lib/flow/text-alt.ts`) |
+| 영향 범위 | 새 `lib/a11y/`(scan·contrast·시험 3), `lib/flow/look.ts`(상태 색을 그림에서 옮김)·`text-alt.ts`(+시험). 고침: `app/admin/flow/flow-diagram.tsx`. `docs/qa-c.md` C17·H15·끝 기준 줄. DB 변경 없음 |
+| 제약 | 정적 점검이라 실제 초점 이동·화면 읽기는 H15(사람·Playwright). 다른 영역 화면(알림·판단 UJ-3–6 등)은 각자 몫이라 보지 않았다 |
+| 열린 질문 | 다른 파일에서 감싸는 label은 훑기가 못 본다(같은 파일에서 이름을 붙이는 지금 코드는 문제없음) |
+
+**결과:** 시험을 먼저 써서 실패를 확인했다. 흐름 그림 SVG가 `role="img"`로 상자 링크를 숨기던 것(실제 문제 1건)을 고쳤다. 입력 칸 이름·alt·onClick·대비는 원래 문제없어서, 그 시험은 앞으로를 지키는 장치로 둔다. `npm test` 937개 중 936 통과·todo 1·실패 0, 타입검사 통과. **아직 안 된 것:** H15 키보드·초점 화면 확인.
+
+---
+
 ## I-P-9c-prompt-wrap · 2026-11-19 · AI 입력의 기술 이름·근거·비교표도 <자료> 안에만 넣기 (P-9c 검토 6번 후속) (김영식)
 - 브랜치: `fix/P-9c-prompt-wrap` (main `dc01bbc`). 코드 변경(프롬프트 2개)과 기록
 - 출처: 사용자 "다음 작업"(11-19, P-9c 코드 검토 보고서의 높음 지적을 현재 main과 대조), SPEC-9·SPEC-4.2(바깥 글은 자료로만), PRD-F15·F18·NF6, ADR 0019, 제품 불변 5·6, `docs/intent.md` I-P-13-claude-adapter ⑩
