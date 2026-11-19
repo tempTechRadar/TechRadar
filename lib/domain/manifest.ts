@@ -1,5 +1,5 @@
 // 저장소 파일 → 내 기술(SPEC-7). 네트워크·DB를 모르는 순수 규칙.
-// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1)를 읽는다. 스킬 폴더(.claude/skills)는 폴더 목록 조회(GitHub 서버 토큰)가 필요해 아직 읽지 않는다.
+// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1)를 읽는다. 스킬 폴더(.claude/skills)는 skills.ts(P-9e).
 
 import { mcpServerKey, npmKey, pypiKey, type TechRef } from "./tech-key.ts";
 
@@ -7,8 +7,10 @@ export type FoundTech = {
   /** null이면 기술 키를 만들 수 없음 = "찾지 못함"(서버 별명만 남긴다) */
   tech: TechRef | null;
   name: string;
-  type: "mcp" | "sdk";
+  type: "mcp" | "sdk" | "skill";
   sourceFile: string;
+  /** 스킬만: 원본 저장소를 몰라 내 저장소 것으로 두었다(SPEC-7.3 "출처 모름") */
+  unknownOrigin?: boolean;
 };
 
 // SPEC-7.2 허용 목록. `*`로 끝나면 그 접두어로 시작하는 것 모두. 관리자 고치기(rule_lists)는 P-30 뒤.

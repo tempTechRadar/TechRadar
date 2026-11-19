@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-9e-skills · 2026-11-19 · P-9e 스킬 폴더 읽기: `.claude/skills/<이름>/`을 내 기술로 (영역 A, 김영식)
+- 브랜치: `feat/P-9e-skills` (origin/main d77cadd 위에서 시작해 fa7fb19(#99 `requirements.txt`·#109까지)를 합침, worktree `.claude/worktrees/night-p9e-skills`)
+- 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: PRD-F6, SPEC-7.1·7.3, 문서 PR #95의 ADR 0020(스킬 폴더 읽기만 1순위), `lib/domain/tech-key.ts`의 `skillKey`, DB `technologies.type = 'skill'`·`my_technologies.unknown_origin`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | PRD-F6(1순위)은 저장소의 `.claude/skills/`를 읽으라고 하는데 코드는 `package.json`·`.mcp.json`만 읽어서, 스킬이 내 기술 목록에 나오지 않는다. |
+| 기대 결과 | `.claude/skills/<이름>/SKILL.md`가 있는 폴더가 내 기술로 들어간다. SKILL.md 머리(`source`·`repository`·`repo`·`homepage`·`github` 키)에 GitHub 저장소 주소가 있으면 `skill:<원본>/<이름>`, 없으면 내 저장소 키와 `unknown_origin = true`(SPEC-7.3). 폴더 목록·SKILL.md를 못 읽으면 "스킬 없음"이 아니라 수집 오류(불변 2)이고, 저장소 파일을 둘 다 못 읽은 때만 실행이 실패다. |
+| 영향 범위 | `lib/domain/skills.ts`(새)·`lib/domain/manifest.ts`(타입에 `skill`·`unknownOrigin`)·`lib/server/read-skills.ts`(새)·`lib/server/first-read.ts`(읽기·저장·`runStatus`)와 시험 4파일. DB·마이그레이션 없음(칸은 이미 있음). |
+| 제약 | 등급은 OSV로만 매겨서 스킬은 "찾지 못함"이다(위험 패턴 검사 연결은 다음 단계). GitHub API 무인증 시간당 60번 중 목록 1번을 쓰고, 스킬은 30개까지 읽는다(넘으면 오류로 남김, `shortcut:` 주석). 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 스킬에 `scanRiskPatterns`(P-10)를 연결할지(시연의 위험한 스킬 G6~G9를 화면에 보이려면 필요). 원본 주소를 README까지 볼지(지금은 머리 키만). 서버 토큰(P-9b와 함께). `flow.md` `fetch_repo` 줄과 plan P-9e 상태는 문서 PR #95와 겹쳐 그 쪽에서 맞춘다. |
+
+**결과:** 새 시험 21개(순수 규칙 7·읽기 어댑터 6·첫 읽기 통합 8)를 더하고 기존 첫 읽기 시험의 가짜 웹을 스킬 목록 호출에 맞게 고쳤으며, 목록 오류를 삼키기·`runStatus`를 옛 식으로·스킬 줄 전체 대신 폴더 하나만 표시하기를 일부러 넣어 시험이 잡는 것을 확인했다. 그 뒤 main(#99가 읽는 파일을 `REPO_FILES` 목록으로 바꾸고 실패 기준을 "해석한 파일이 하나도 없고 오류가 있으면 실패"로 바꿈)에 맞춰 합쳤다: 읽은 스킬도 해석한 것으로 세고, `requirements.txt`의 부분 오류(soft)는 그대로 둔다. 옛 기준으로 쓴 시험 1개(저장소 파일 하나 오류 + 스킬 목록 오류 = 일부 성공)는 새 기준(읽은 것 없음 = 실패)으로 고쳤다. 합친 뒤 전체 725개 중 721 통과·실패 0·건너뜀 3·todo 1, `tsc`·`next build --webpack` 통과. `flow.md` `fetch_repo` 줄도 지금 코드(4종)에 맞췄다. 실제 GitHub·DB는 부르지 않았다.
+
+**코드 검토 반영(2026-11-19, `code-review` 스킬):** 10건 중 7건을 고쳤다. ① SKILL.md 머리의 원본 주소를 믿으면 남의 공용 기술 줄에 끼어들 수 있고 설치 프롬프트 경로도 틀어져서, 사용자가 "전부 출처 모름"을 골랐다(ADR 0022, spec 7.3 고침, 머리 읽기 코드 삭제). ② 다시 읽을 때 저장소가 닫혔으면(비공개로 바뀜) 스킬 목록 404를 "스킬 없음"으로 읽어 전에 읽은 스킬 줄이 멀쩡해 보이던 것 → 스킬 줄 모두 수집 오류, 목록은 부르지 않음. ③ 30개를 넘으면 읽은 30개까지 수집 오류로 덮던 것 → 이번에 못 읽은 스킬 줄만(자동 보안 검토 지적으로 폴더가 수백 개여도 오류 하나·DB 갱신 한 번). ④ SKILL.md를 하나씩 차례로 받던 것 → 한꺼번에. ⑤ `fetch_repo`의 나간 건수에 스킬이 빠져 다음 단계의 들어온 건수와 어긋나던 것(불변 6). ⑥ 저장소 API 주소는 `repoApiUrl`로(`.`·`..` 거름). ⑦ 머리의 `#` 주석 문제는 ①로 없어짐. 남긴 것: 대소문자만 다른 폴더가 한 키로 합쳐지는 것·설치 경로의 소문자 문제(키 규칙의 한계, ADR 0022 결과), `SkillError`와 `FileError` 모양이 겹침. 고친 뒤 main(#110·#111)을 다시 합쳐 전체 745개 중 741 통과·실패 0·건너뜀 3·todo 1, `tsc`·빌드 통과.
 ## I-plan-status-sync · 2026-11-19 · plan 상태 칸을 병합 뒤 실제와 맞추기 (P-9 ④·P-12·P-17)
 - 브랜치: `docs/plan-status-sync` (origin/main `fa7fb19` 위, worktree `.claude/worktrees/plan-sync`). 코드 변경 없음, 기록만
 - 출처: 사용자 "진행"(직전 답변의 "이 세 곳을 고치는 문서 PR을 만들겠습니다"에 대한 승인). 근거: PR #103·#105·#109 본문, `lib/schedule/collectors.ts`(main), `docs/plan.md` 4절

@@ -8,6 +8,8 @@ import { readLatestChange, saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
 import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readRepoFile, requirementIncludes, type FoundTech } from "../domain/manifest.ts";
+import { SKILLS_DIR } from "../domain/skills.ts";
+import { readSkills } from "./read-skills.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
 
@@ -50,7 +52,10 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음).
   // 목록이 전부가 아닐 수 있다는 안내(soft, requirements.txt의 -r)는 읽은 기술 줄의 잘못이 아니라서 줄에 딱지를 붙이지 않는다.
   for (const f of fileErrors.filter((e) => !e.soft)) {
-    const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
+    // 스킬 폴더 오류는 그 아래 스킬 줄(".claude/skills/<이름>") 모두, 한도로 일부만 읽었으면 그중 이번에 못 읽은 줄만 대상이다
+    const q = db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId);
+    const skillRows = () => q.like("source_file", `${SKILLS_DIR}/%`);
+    const r = await (f.path !== SKILLS_DIR ? q.eq("source_file", f.path) : f.onlyUnread ? skillRows().or(`read_at.is.null,read_at.lt."${readAt}"`) : skillRows());
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
   if (dropped.length) {
@@ -108,7 +113,7 @@ function runStatus(fileErrors: FileError[], osvErrors: number, filesParsed: numb
 }
 
 /** soft = 파일은 읽었지만 일부를 못 읽었다는 안내(그 파일에서 읽은 기술 줄에는 오류 딱지를 붙이지 않는다) */
-type FileError = { path: string; kind: ErrorKind; message: string; soft?: boolean };
+type FileError = { path: string; kind: ErrorKind; message: string; soft?: boolean; onlyUnread?: boolean };
 
 /** 연 파일이 하나도 없는데 일부는 404일 때: "파일 없음"인지 저장소가 안 열린 것인지 저장소부터 확인한다(404는 비공개·없는 저장소도 같다, 불변 2). */
 async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<FileError[]> {
@@ -117,7 +122,8 @@ async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<Fi
     return [];
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e);
-    return REPO_FILES.filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
+    // 스킬 폴더도 같은 저장소 안이라 함께 못 읽은 것: 전에 읽은 스킬 줄도 수집 오류로(목록 404를 "스킬 없음"으로 읽지 않게, 불변 2)
+    return [...REPO_FILES, SKILLS_DIR].filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
   }
 }
 
@@ -143,13 +149,17 @@ async function fetchRepoFiles(repo: RepoRef) {
 /** fetch_repo → extract_my_tech. 파일마다 따로: 없는 파일은 건너뛰고, 못 읽거나 깨진 파일은 그 파일만 오류. */
 async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const { files, fileErrors } = await fetchRepoFiles(repo);
+  // 스킬 폴더(PRD-F6): 폴더 목록 1번 + 폴더마다 SKILL.md. 폴더가 없으면 읽은 스킬이 없을 뿐이고, 못 읽었으면 수집 오류다.
+  const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
+  const skills = closed ? { found: [], errors: [], folders: 0 } : await readSkills(repo);
+  fileErrors.push(...skills.errors);
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
     inputSummary: repo.url,
-    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}`,
-    countIn: REPO_FILES.length,
-    countOut: files.length,
+    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}`,
+    countIn: REPO_FILES.length + skills.folders,
+    countOut: files.length + skills.found.length,
     errorKind: fileErrors[0]?.kind,
     errorMessage: [...new Set(fileErrors.map((f) => f.message))].join("; ") || undefined,
   });
@@ -168,6 +178,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
       fileErrors.push({ path: f.path, kind: "parse", message: `${f.path}: ${e instanceof Error ? e.message : e}` });
     }
   }
+  found.push(...skills.found);
   // 같은 기술이 두 파일에 있으면 한 줄만: 버전을 아는 쪽을 남기고, 같으면 앞 파일(REPO_FILES 순서)을 남긴다. my_technologies (project_id, tech_id) UK와 맞춘다.
   const best = new Map<string, FoundTech>();
   for (const f of found) {
@@ -178,14 +189,15 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
-    countIn: files.length,
+    countIn: files.length + skills.found.length,
     countOut: unique.length,
     outputSummary: unique.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
     errorKind: fileErrors.find((f) => f.kind === "parse") && "parse",
     errorMessage: fileErrors.filter((f) => f.kind === "parse").map((f) => f.message).join("; ") || undefined,
   });
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
-  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed };
+  // 스킬을 하나라도 읽었으면 해석한 것이 있다(저장소 파일이 없고 스킬만 있는 저장소도 실패가 아니다)
+  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length };
 }
 
 /** 포함 경로는 믿을 수 없는 글이라 오류 메시지에 길게 싣지 않는다: 앞 3개, 하나당 80자까지 */
@@ -263,6 +275,7 @@ async function saveMyTechnologies(db: SupabaseClient, at: { ownerId: string; pro
     source_file: f.sourceFile,
     read_at: readAt,
     collect_error_kind: null,
+    unknown_origin: f.unknownOrigin === true,
     ...(f.tech ? { tech_id: ids.get(f.tech.key), version: f.tech.version } : { manual_name: f.name }),
   }));
   for (const [conflict, rows] of [["project_id,tech_id", mine.filter((m) => "tech_id" in m)], ["project_id,manual_name", mine.filter((m) => !("tech_id" in m))]] as const) {

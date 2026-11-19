@@ -76,6 +76,7 @@ type Web = {
   files?: Record<string, string | Error>; // 경로 → 본문 또는 연결 오류(없으면 404)
   repo?: Response | Error; // GitHub 저장소 확인(기본: 공개)
   osv?: (name: string) => Response | Error; // OSV(기본: 알려진 문제 없음)
+  skills?: Response | Error; // 스킬 폴더 목록(GitHub API, 기본: 폴더 없음 404)
 };
 const ok = (body: string) => new Response(body, { status: 200 });
 const status = (n: number) => new Response("", { status: n });
@@ -91,6 +92,7 @@ function stubWeb(t: { mock: { method: (o: object, n: "fetch", f: unknown) => unk
       return body === undefined ? status(404) : ok(body);
     }
     if (url === "https://api.github.com/repos/o/r") return give(web.repo ?? ok('{"private":false}'));
+    if (url === "https://api.github.com/repos/o/r/contents/.claude/skills") return give(web.skills ?? status(404));
     if (url === "https://api.osv.dev/v1/query") return give((web.osv ?? (() => ok('{"vulns":[]}')))(JSON.parse(String(init?.body)).package.name));
     throw new Error(`예상하지 못한 호출: ${url}`);
   });
@@ -178,12 +180,12 @@ test("새 등록: 확인도 안 되고 파일도 하나도 안 열리면 '없음
   stubWeb(t, { repo: status(429) });
   const { db, calls } = fakeDb();
   const r = await registerAndRead(USER, REPO, { db });
-  assert.deepEqual([r.status, r.errors], ["failed", 3]); // 읽는 파일 셋(package.json·.mcp.json·requirements.txt)이 모두 실패
+  assert.deepEqual([r.status, r.errors], ["failed", 4]); // 읽는 파일 셋(package.json·.mcp.json·requirements.txt)과 스킬 폴더가 모두 실패
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.error_kind, "rate_limited");
 });
 
-test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리면 성공으로 끝나지 않는다(전에 읽은 등급은 그대로)", async (t) => {
-  stubWeb(t, { repo: status(404) });
+test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리면 성공으로 끝나지 않는다(전에 읽은 등급은 그대로, 스킬 줄도 수집 오류)", async (t) => {
+  const urls = stubWeb(t, { repo: status(404) });
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
 
@@ -191,7 +193,10 @@ test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리�
   assert.equal(r.found, 0);
   assert.equal(ops(calls, "runs", "insert").map(arg0)[0].trigger, "user_reread");
   const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind === "http_status");
-  assert.deepEqual(marks.map((c) => c.chain.find((x) => x.m === "eq" && x.args[0] === "source_file")?.args[1]).sort(), [".mcp.json", "package.json", "requirements.txt"]);
+  const target = (c: (typeof marks)[number]) => c.chain.find((x) => (x.m === "eq" || x.m === "like") && x.args[0] === "source_file")?.args[1];
+  // 스킬 목록 404를 "스킬 없음"으로 읽지 않는다: 저장소가 닫혔으니 전에 읽은 스킬 줄 모두가 대상이고, 목록은 부르지 않는다(불변 2)
+  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".mcp.json", "package.json", "requirements.txt"]);
+  assert.ok(!urls.includes("https://api.github.com/repos/o/r/contents/.claude/skills"));
   assert.ok(updates(calls).every((p) => !("grade" in p)));
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "failed");
   assert.equal(ops(calls, "runs", "update").map(arg0).at(-1)?.status, "failed");
@@ -203,7 +208,7 @@ test("다시 읽기: 한 파일은 연결 오류, 나머지는 404여도 저장�
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.equal(r.status, "failed");
-  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "network"]);
+  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "http_status", "network"]);
 });
 
 test("저장소는 열리는데 읽는 파일이 다 없으면 오류가 아니다: 기술 0개, 성공", async (t) => {
@@ -375,4 +380,93 @@ test("위험이 없는 읽기는 변경이 없다: save_change는 0→0으로 �
   const save = steps(calls).find((s) => s.step_name === "save_change");
   assert.deepEqual([save?.count_in, save?.count_out], [0, 0]);
   assert.equal(steps(calls).filter((s) => s.step_name === "notify").length, 0);
+});
+
+// ---- 스킬 폴더(P-9e, PRD-F6, SPEC-7.3) ----
+const listing = (...names: string[]) => ok(JSON.stringify(names.map((name) => ({ type: "dir", name }))));
+const SOURCED = "---\nname: pdf\nsource: https://github.com/anthropics/skills\n---\n본문";
+const PLAIN = "---\nname: mine\n---\n본문";
+
+test("스킬 폴더를 읽어 내 기술로 넣는다: 머리에 원본 주소가 있어도 내 저장소 키와 출처 모름(남의 공용 줄에 끼어들지 않게)", async (t) => {
+  stubWeb(t, { skills: listing("pdf", "mine"), files: { ".claude/skills/pdf/SKILL.md": SOURCED, ".claude/skills/mine/SKILL.md": PLAIN } });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.status, r.errors, r.found], ["succeeded", 0, 2]);
+  const catalog = arg0(ops(calls, "technologies", "upsert")[0]) as unknown as Row[];
+  assert.deepEqual(catalog.map((c) => [c.tech_key, c.type]).sort(), [["skill:o/r/mine", "skill"], ["skill:o/r/pdf", "skill"]]);
+  const mine = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
+  assert.deepEqual(mine.map((m) => [m.source_file, m.unknown_origin]).sort(), [[".claude/skills/mine", true], [".claude/skills/pdf", true]]);
+  const fetch = steps(calls).find((s) => s.step_name === "fetch_repo");
+  assert.match(String(fetch?.output_summary), /스킬 폴더 2개/);
+  // 흐름 화면이 앞 단계의 나간 건수와 다음 단계의 들어온 건수를 잇도록(불변 6)
+  assert.deepEqual([fetch?.count_out, steps(calls).find((s) => s.step_name === "extract_my_tech")?.count_in], [2, 2]);
+});
+
+test("스킬 폴더가 없으면 오류가 아니다: 읽은 스킬이 없을 뿐(일부 실패로 보이지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG } });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.status, r.errors, r.found], ["succeeded", 0, 1]);
+  assert.doesNotMatch(String(steps(calls).find((s) => s.step_name === "fetch_repo")?.output_summary), /스킬/);
+});
+
+test("SKILL.md가 없는 폴더는 스킬이 아니다", async (t) => {
+  stubWeb(t, { skills: listing("docs-only"), files: {} });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.status, r.errors, r.found], ["succeeded", 0, 0]);
+  assert.equal(ops(calls, "technologies", "upsert").length, 0);
+});
+
+test("스킬 폴더 목록이 한도에 걸리면 '스킬 없음'이 아니라 수집 오류: 일부 성공, 스킬 줄 전체에 오류 종류, 다른 기술은 그대로(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, skills: new Response("", { status: 403, headers: { "x-ratelimit-remaining": "0" } }) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.status, r.errors, r.found], ["partial", 1, 1]);
+  const mark = ops(calls, "my_technologies", "update").find((c) => arg0(c).collect_error_kind === "rate_limited")!;
+  assert.ok(mark.chain.some((c) => c.m === "like" && c.args[0] === "source_file" && c.args[1] === ".claude/skills/%"), "스킬 줄 전체가 대상");
+  const fetchStep = steps(calls).find((s) => s.step_name === "fetch_repo");
+  assert.deepEqual([fetchStep?.status, fetchStep?.error_kind], ["failed", "rate_limited"]);
+});
+
+test("스킬 하나의 SKILL.md를 못 읽으면 그 스킬만 수집 오류, 다른 스킬은 계속", async (t) => {
+  stubWeb(t, { skills: listing("good", "broken"), files: { ".claude/skills/good/SKILL.md": PLAIN, ".claude/skills/broken/SKILL.md": new Error("연결 끊김") } });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.deepEqual([r.status, r.errors, r.found], ["partial", 1, 1]);
+  const marks = ops(calls, "my_technologies", "update").filter((c) => "collect_error_kind" in arg0(c));
+  assert.equal(marks.length, 1);
+  assert.ok(marks[0].chain.some((c) => c.m === "eq" && c.args[0] === "source_file" && c.args[1] === ".claude/skills/broken"), "그 스킬 줄만 대상");
+});
+
+test("스킬이 30개를 넘으면 이번에 못 읽은 스킬 줄만 한 번에 수집 오류(읽은 30개는 덮지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, skills: listing(...Array.from({ length: 31 }, (_, i) => `s${String(i).padStart(2, "0")}`)) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.equal(r.status, "partial");
+  const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind);
+  assert.equal(marks.length, 1, "DB 갱신은 한 번");
+  assert.ok(marks[0].chain.some((c) => c.m === "like" && c.args[1] === ".claude/skills/%"));
+  assert.ok(marks[0].chain.some((c) => c.m === "or" && /read_at\.lt\./.test(String(c.args[0]))), "이번에 읽지 않은 줄만");
+});
+
+test("스킬 오류만으로는 '실패'가 아니다: 저장소 파일을 읽었으면 일부 성공", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, skills: status(500) });
+  const r = await registerAndRead(USER, REPO, { db: fakeDb().db });
+  assert.equal(r.status, "partial");
+});
+
+test("저장소 파일을 둘 다 못 읽으면 스킬 오류가 겹쳐도 실패(저장소가 안 열린 것을 일부 성공처럼 보이지 않게)", async (t) => {
+  stubWeb(t, { files: { "package.json": new Error("끊김"), ".mcp.json": new Error("끊김") }, skills: status(500) });
+  const r = await registerAndRead(USER, REPO, { db: fakeDb().db });
+  assert.equal(r.status, "failed");
+});
+
+test("읽은 저장소 파일·스킬이 하나도 없고 오류뿐이면 실패(없는 파일은 오류가 아니어서, 못 읽은 것만 남는다)", async (t) => {
+  stubWeb(t, { files: { "package.json": new Error("끊김") }, skills: status(500) });
+  const r = await registerAndRead(USER, REPO, { db: fakeDb().db });
+  assert.deepEqual([r.status, r.errors], ["failed", 2]);
 });
