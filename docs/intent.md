@@ -20,6 +20,20 @@
 
 ---
 
+## I-deploy-no-cancel · 2026-11-20 · 병합이 이어져도 배포가 밀리지 않게 (김영식)
+- 브랜치: `chore/deploy-no-cancel` (origin/main `9334a17`)
+- 출처: ADR 0023, `.github/workflows/deploy-production.yml`, `docs/debug-note.md` 11-19 #153 배포 행, CLAUDE.md 10절(배포 횟수 아끼기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 배포 작업이 `cancel-in-progress: true`라, 20분 기다리는 중이나 배포를 부르기 직전에 새 병합이 오면 취소된다. 11-19 16:44~17:35 KST에 12번 모두 취소돼 #153(적용 시나리오 고침)이 1시간 넘게 운영에 못 나갔다 |
+| 기대 결과 | 돌고 있는 실행은 끝까지 가서 배포하고, 그 사이 병합은 기다리는 실행 하나로 모인다. 병합이 계속 와도 20분마다 최대 한 번은 배포된다 |
+| 영향 범위 | `.github/workflows/deploy-production.yml` 한 줄과 주석, ADR 0023 본문·바뀐 기록. 앱 코드·DB 영향 없음 |
+| 제약 | 배포 수가 늘면 안 된다(하루 한도, ADR 0018). 20분 기다림·판정 스크립트는 그대로 둔다 |
+| 열린 질문 | 수동 `force` 실행도 이미 기다리는 실행 뒤에 줄을 선다(최대 20분). 급한 배포에 이것이 불편하면 `force`를 다른 concurrency 묶음으로 뺄지 |
+
+**결과:** (합친 뒤 채움)
+
 ## I-qa-runsheet-1119 · 2026-11-19 · 남은 사람 QA 실행표와 QA 시트 ADR 초안 (P-28, 차세일)
 - 브랜치: `docs/qa-runsheet-1119` (origin/main `8c3bbe0`). 문서만
 - 출처: `docs/plan.md` P-28, `rules/qa.md`, `docs/qa.md`·`docs/qa-c.md`, `docs/제출물-체크리스트.md` QA 줄, `.claude/skills/stage-check/references/requirements.md` 8·9단계(QA·제출), `docs/관리자-사용설명서.md` 5-3, CLAUDE.md 9절

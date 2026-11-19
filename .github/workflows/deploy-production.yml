@@ -1,5 +1,5 @@
 # production 배포를 Vercel의 Git 자동 배포 대신 여기서 부른다(ADR 0023, ADR 0018 개정).
-# - main에 합쳐지면 20분 기다린다. 그 사이 또 합쳐지면 앞 실행은 취소돼서, 몰린 병합은 마지막 하나만 배포를 부른다.
+# - main에 합쳐지면 20분 기다린 뒤 그때의 main 끝을 배포한다. 그 사이 들어온 병합은 기다리는 실행 하나로 합쳐진다(아래 concurrency).
 # - 운영에 올라간 커밋(/api/version) 뒤로 앱에 영향을 주는 파일이 바뀌었을 때만 Deploy Hook을 부른다.
 #   문서만 바뀌면 배포 기록 자체를 만들지 않는다(건너뛴 배포도 하루 한도에 드는 것으로 보여서).
 # - 하루 한 번 운영이 main보다 뒤처졌는지 보고 따라잡는다(한도에 걸려 실패한 배포를 다시 부르는 몫).
@@ -17,10 +17,11 @@ on:
         type: boolean
         default: false
 
-# 새 실행이 오면 기다리던 앞 실행을 취소한다(마지막 실행 하나만 배포를 부른다).
+# 돌고 있는 실행은 끝까지 가서 배포한다. 새 실행은 그 뒤에 줄을 서고, 줄에는 마지막 하나만 남는다(GitHub 규칙).
+# 그래서 병합이 계속 와도 20분마다 최대 한 번은 배포된다. true였을 때는 병합이 20분 안에 이어지면 배포가 끝없이 밀렸다(11-19 16:44~17:35 12번 취소).
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
