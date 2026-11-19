@@ -6,6 +6,22 @@
 
 ---
 
+## I-checklist-sync · 2026-11-19 · 제출물 체크리스트를 실제 상태에 맞추기
+- 브랜치: `docs/checklist-sync` (origin/main d77cadd 위, worktree `.claude/worktrees/checklist-sync`)
+- 출처: 사용자 "이거 작업 진행"(체크리스트와 실제가 다른 곳 8개 목록을 붙여 줌). 근거: `docs/제출물-체크리스트.md`(11-17~18 상태에서 멈춤), 11-19 제출 전 단계 점검의 "체크리스트와 실제가 다른 곳", origin/main 6754f77에서 다시 센 숫자
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 체크리스트가 11-17~18 상태에서 멈춰 ADR·서브에이전트·오류·QA·PR·폴더·정기 실행·DB 칸이 실제보다 한참 뒤처져 있다. 제출 전에 이 표를 보고 판단하면 틀린 결론을 낸다. |
+| 기대 결과 | 붙여 준 8곳(ADR 21개, 서브에이전트 43건, 오류 22건, QA 표, PR 106개·세 사람 리뷰, sim·eval, 정기 실행, DB 20개)과 같은 종류로 낡은 칸(intent 수, 커넥터 서비스 수, watch·flow·app 칸)이 지금 숫자와 맞는다. 아직 안 된 것(QA 시트, 시드, 배포 실행 확인, 위키·발표)은 그대로 안 됨으로 남는다. |
+| 영향 범위 | `docs/제출물-체크리스트.md`의 해당 행만. 다른 문서·코드 없음. |
+| 제약 | 숫자는 main 6754f77의 파일과 GitHub PR 목록(1회 조회)으로 다시 셌다. 실제 DB·배포는 보지 않아서 DB는 마이그레이션 기준이고 정기 실행은 "배포 확인 전"으로 둔다. 커밋·푸시·PR은 사용자에게 물은 뒤 |
+| 열린 질문 | 체크리스트를 누가 언제 갱신할지(이번처럼 멈추지 않게). QA 시트를 만들지, 표로 대신할지. |
+
+**결과:** 해당 행을 고쳤다. 숫자: ADR 0001–0021(21개), agents 43행, debug-note 22행, connectors 서비스 4개, qa.md 66행·qa-c.md 47행, intent 91블록, PR 106개 모두 합침(작성 72·19·15, 남의 PR 리뷰 47·24·17), 테이블 20개(RLS 20), watch 7·sim 6·eval 4파일.
+
+---
+
 ## I-auto-sync-main · 2026-11-19 · 열린 PR 브랜치에 main을 자동으로 합치는 GitHub Action: ADR 0017 개정 (공용)
 - 브랜치: `chore/auto-sync-main` (origin/main f237c2b 위, worktree `.claude/worktrees/auto-sync-main`)
 - 출처: 사용자 "git merge origin/main과 npm run precheck 이걸 알아서 되도록 설정할 순 없어? 자꾸 같은 파일이 충돌나" → 방법 A(명령)·B(GitHub Action)·C(기록 쪼개기) 비교 뒤 "B 만들어". 근거: ADR 0017(GitHub 화면은 `merge=union`을 무시), `CLAUDE.md` 10절
