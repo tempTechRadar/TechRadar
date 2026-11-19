@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12-menu-logout | 메뉴에 로그인 상태(별명님)·[로그아웃] 서버 동작, 로그인 전이면 "로그인" 링크. 첫 화면의 "상태: 뼈대(P-1)" 문구를 지우고 주요 화면 링크로. 배포 QA Fail(작음) 고침 | 나(요청 "진행") · Claude(작성·검토) | `feat/P-12-menu-logout`, `docs/intent.md` I-P-12-menu-logout |
 | I-P-26-wiki-chat-facts | 위키 낡은 사실 보정: 챗봇 코드(#125) 전에 쓴 "코드에서 chat_logs·chatbot을 찾지 못함"을 코드 사실(20개 = chat_logs, 200번 = ai_calls)로 바꿈. 데이터설계 ↔ erd 충돌 기록은 그대로 | 차세일(Claude) | `wiki/` 3쪽, `wiki/log.md` |
 | I-P-12a-nickname-public | P-12a 별명 정하기·숨김 체크박스: `/settings`에서 별명과 "쓰고 있어요" 공개 여부를 고치고, 가입 직후(임시 별명)에는 설정으로 보내 별명을 정하게 함. 별명은 2~30자, `@`·임시 별명 모양 거절, 중복·저장 실패를 숨기지 않음. DB 변경 없음(남의 사용 수 DB 함수는 12a-2) | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12a-nickname-public`, `docs/intent.md` I-P-12a-nickname-public |
 | I-simulator-alert-evidence | 배포 QA에서 찾은 작은 실패 2건 고침: 알림 상세의 "찾지 못함"은 main의 fca1792(csaeil)가 먼저 고쳐 병합 때 이 PR의 같은 코드를 빼고 화면 문구 시험만 남김, 가짜 변경 알림에 그 시뮬레이터 실행 id를 적어 판단 뒤 조치 상자가 알림을 만든 실행에 칠해지게 함. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `fix/simulator-alert-evidence`, `docs/intent.md` I-simulator-alert-evidence |
