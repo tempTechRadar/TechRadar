@@ -2,13 +2,15 @@ import Link from "next/link";
 import { COLLECT_ERROR_TEXT, evidenceLinks, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import type { MyTechDetail } from "@/lib/server/my-tech";
+import { usingNowText, type UsingNowView } from "@/lib/views/using-now-text";
 
 // 기술 상세 본문(IA-4, PRD-F10). 읽기만 하는 화면 조각이라 page.tsx와 개발용 샘플 화면이 같이 쓴다.
-// 아직 없는 것: 같은 역할의 기술(P-14·P-18 확정 뒤), 이 기술에 대한 내 판단 기록, 3순위 칸(쓰고 있어요·사용기·비교 모드).
+// 아직 없는 것: 같은 역할의 기술(P-14·P-18 확정 뒤), 이 기술에 대한 내 판단 기록, 3순위 칸(사용기·비교 모드). 쓰고 있어요는 using_now 함수로(P-12a2).
 const NONE = "확인하지 못함";
 const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 
-export function TechDetail({ d }: { d: MyTechDetail }) {
+// using: 공개한 사람의 수·별명(null = 못 읽음, undefined = 카탈로그에 이어지지 않은 기술이라 해당 없음)
+export function TechDetail({ d, using }: { d: MyTechDetail; using?: UsingNowView | null }) {
   const info = d.technologies;
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
   const evidence = evidenceLinks(d.grade_evidence);
@@ -77,7 +79,8 @@ export function TechDetail({ d }: { d: MyTechDetail }) {
           <p>이름만 직접 추가한 기술이라 모아 둔 정보가 없어요. 등급은 "찾지 못함"이고 보안 경고는 오지 않아요.</p>
         )}
       </article>
-      <p className="muted">쓰고 있어요 · 사용기 · 비교 모드는 사용자가 모이면 열려요.</p>
+      {using !== undefined ? <p>{usingNowText(using)}</p> : null}
+      <p className="muted">사용기 · 비교 모드는 사용자가 모이면 열려요.</p>
     </main>
   );
 }
