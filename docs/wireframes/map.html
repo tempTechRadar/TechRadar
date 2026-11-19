@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>기술 레이더 끝없는 지도 시안 (샘플)</title>
   <style>
-    /* 레이더의 느낌(고리, 도는 선, 선이 지나가면 밝아지는 점)은 그대로, 경계만 없앤다.
-       고리는 바깥으로 계속 이어지며 흐려지고, 끌어서 옮기고 휠로 확대하며, 점을 누르면 같은 역할의 기술이 한 단계씩 펼쳐진다. */
+    /* 레이더의 느낌(고리, 도는 선, 선이 지나가면 밝아지는 점)은 그대로, 경계만 없앤다. 지도가 화면 전체를 차지하고 위에 띄우는 것은 최소로 둔다.
+       점에 올리면 바로 옆에 간단 카드, 누르면 상세(IA-4), 점에 붙은 +로 같은 역할 기술을 한 단계씩 펼친다(IA-10). */
     :root {
       --bg: #0a0e14; --green: #2ed573; --green-dim: #1fa85a; --ink: #e6edf3; --muted: #8fa3b0; --grid: #14261f;
       --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
@@ -17,20 +17,27 @@
     body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
     :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
     .pad { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-    .sample { margin: 0; padding: 12px 0 8px; font: 12px/1.5 var(--mono); color: var(--muted); }
 
-    .stage { position: relative; height: calc(100vh - 130px); min-height: 520px; overflow: hidden; border-top: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+    .stage { position: relative; height: 100vh; height: 100dvh; min-height: 480px; overflow: hidden; border-bottom: 1px solid var(--grid);
+      background: radial-gradient(120% 100% at 50% 50%, #0c131b 0%, var(--bg) 55%, #06090d 100%); } /* 가장자리를 살짝 어둡게 해서 지도가 화면 밖으로 이어지는 느낌 */
+    .loading { position: absolute; left: 50%; top: calc(50% + 28px); transform: translateX(-50%); margin: 0; font: 13px var(--mono); color: var(--green-dim); text-shadow: 0 0 4px var(--bg), 0 0 10px var(--bg); pointer-events: none; } /* 도는 선이 글자 위를 지나가도 읽히게 */
     canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-    canvas.node { cursor: grab; } canvas.pointer { cursor: pointer; } canvas.grabbing { cursor: grabbing; }
+    canvas.node, canvas.pointer { cursor: pointer; } canvas.grabbing { cursor: grabbing; }
     canvas:focus-visible { outline: 2px solid var(--green); outline-offset: -4px; }
 
-    .title { position: absolute; left: 24px; top: 8px; max-width: calc(100% - 350px); pointer-events: none; } /* 오른쪽 정보 카드(290px) 자리를 비워, 좁은 창에서 단추 줄이 카드에 겹치지 않고 줄바꿈된다 */
-    .title h1 { margin: 0; font-size: clamp(40px, 5vw, 68px); font-weight: 800; letter-spacing: -.035em; line-height: 1; color: var(--green); }
-    .title p { margin: 8px 0 0; font: 13px/1.6 var(--mono); color: var(--green-dim); }
-    .tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 8px; pointer-events: auto; }
+    /* 위 한 줄: 로고·움직임 멈추기·보기 방식·찾기·거르기·모두 펼치기·모두 접기. 화면 조작(전체 보기·확대·옮긴 점 되돌리기·표)·예시 점검·갈래 단추는 "도구"에 접어 둔다(단축키는 접혀도 그대로) */
+    .title { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 16px 16px;
+      background: linear-gradient(rgba(10, 14, 20, .94) 60%, rgba(10, 14, 20, 0)); pointer-events: none; }
+    .title h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1; color: var(--green); }
+    .title .hint { margin: 0; flex: 1 1 260px; font: 12px/1.5 var(--mono); color: var(--muted); }
+    .tools { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; pointer-events: auto; }
+    [role="toolbar"] { flex-basis: 100%; }
+    #folds, #focusbar { flex-basis: 100%; }
+    .many { flex-basis: 100%; margin: 0; font: 12px/1.5 var(--mono); color: var(--ink); } /* 점이 너무 많을 때 알림(R16). 숨기지는 않는다. 노랑은 주의 등급에만 쓴다 */
+    .title:not(.open) .opt, .title:not(.open) #folds { display: none; }
     .tbtn { font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .7); border: 1px solid transparent; border-bottom-color: var(--green-dim); padding: 0 12px; min-height: 44px; cursor: pointer; }
-    .tbtn:hover, .tbtn[aria-pressed="true"] { border-color: var(--green); }
-    #folds { margin-top: 0; }
+    .tbtn:hover, .tbtn[aria-pressed="true"], .tbtn[aria-expanded="true"] { border-color: var(--green); }
+    .tbtn:disabled { color: var(--muted); cursor: default; border-color: transparent; }
     .search { position: relative; }
     .search input { width: 200px; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--ink); background: rgba(10, 14, 20, .7); border: 1px solid transparent; border-bottom-color: var(--green-dim); }
     .search input::placeholder { color: var(--muted); }
@@ -39,29 +46,6 @@
     .hits button:hover { background: rgba(46, 213, 115, .1); }
     .hits .m { color: var(--muted); }
     .hits .more, .hits .none { padding: 8px 12px; font: 12px/1.5 var(--mono); color: var(--muted); }
-
-    .info { position: absolute; right: 24px; top: 8px; width: 290px; border: 1px solid var(--green-dim); background: rgba(10, 14, 20, .92); padding: 12px 16px; font: 13px/1.7 var(--mono); }
-    .info h2 { margin: 0 0 6px; font: 700 15px var(--mono); color: var(--green); }
-    .info dl { margin: 0; display: grid; grid-template-columns: 84px 1fr; gap: 2px 10px; }
-    .info dt { color: var(--muted); } .info dd { margin: 0; }
-    .info .empty { margin: 0; color: var(--muted); }
-    .legend { position: absolute; left: 0; right: 0; bottom: 0; padding-top: 22px !important; padding-bottom: 6px !important; background: linear-gradient(rgba(10, 14, 20, 0), rgba(10, 14, 20, .9) 60%); display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 18px; list-style: none; margin: 0; padding: 0 24px; font: 12px var(--mono); color: var(--muted); pointer-events: none; }
-    .legend li { display: flex; align-items: center; gap: 6px; }
-    .legend { right: 210px; }
-    .chip { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; font: 12px var(--mono); color: var(--muted); background: none; border: 1px solid transparent; cursor: pointer; pointer-events: auto; }
-    .chip:hover { border-color: var(--green-dim); }
-    .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--green); background: rgba(46, 213, 115, .12); }
-    .chip b { font-weight: 400; color: var(--ink); }
-    .dock { position: absolute; right: 24px; bottom: 84px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-    .risk { display: flex; align-items: center; background: rgba(10, 14, 20, .85); border: 1px solid var(--green-dim); }
-    .risk .tbtn { min-width: 44px; padding: 0; }
-    #rinfo { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
-    .dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 2px; }
-    .dpad .tbtn { padding: 0; border-color: var(--green-dim); }
-    .acts { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-    .acts .lab { width: 44px; color: var(--muted); }
-    .acts .tbtn { min-width: 44px; border-color: var(--green-dim); }
-    .info { max-height: calc(100% - 300px); overflow: auto; }
     .filter { position: relative; }
     .filter summary { display: flex; align-items: center; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .7); border-bottom: 1px solid var(--green-dim); cursor: pointer; list-style: none; }
     .filter summary::-webkit-details-marker { display: none; }
@@ -70,12 +54,69 @@
     .filter label { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; font: 12px var(--mono); color: var(--ink); cursor: pointer; }
     .filter input { width: 18px; height: 18px; accent-color: var(--green); }
     .fname { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
+    .views { display: flex; } .views .tbtn { white-space: nowrap; }
+    /* 주 메뉴(IA 1절): 지도에서 알림·내 기술·기록으로 가는 길. "알림"에 판단 대기 수를 붙인다(IA-10 "위에 판단 대기 숫자") */
+    .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; pointer-events: auto; font: 13px var(--mono); }
+    .nav a, .nav-x { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; color: var(--ink); text-decoration: none; }
+    .nav a[aria-current="page"] { color: var(--green); box-shadow: inset 0 -2px var(--green); }
+    .nav a:hover { color: var(--green); }
+    .nav-x { color: var(--muted); cursor: default; }
+    .nav b { padding: 1px 8px; font-weight: 700; color: var(--bg); background: var(--ink); border-radius: 9px; } /* 판단 대기 배지: 등급 색과 섞이지 않게 흰 바탕 */
+    .nav b:empty { display: none; }
+    /* 첫 점검 띠(PRD-F14, SPEC-5.2 "첫 점검: 위험 n · 주의 n"): 처음 한 번, 확인을 누르면 사라진다 */
+    .band { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding: 0 0 0 12px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .9); border-left: 3px solid var(--ink); pointer-events: auto; }
+    .band a { color: var(--green); }
 
-    .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 8px 0; }
-    .outline { font: 600 13px var(--mono); letter-spacing: .04em; color: var(--green); background: none; border: 1px solid var(--green-dim); padding: 0 20px; min-height: 44px; cursor: pointer; }
-    .outline:hover { background: rgba(46, 213, 115, .1); border-color: var(--green); }
-    .stat { text-align: right; font: 12px/1.6 var(--mono); color: var(--green-dim); }
-    details.table { border-top: 1px solid var(--grid); padding-bottom: 32px; }
+    /* 쓰는 곳별 나무: 지도 자리를 덮는 접고 펴는 목록. 위 단추 줄과 아래 범례는 그대로 쓴다(위 여백은 map.js가 단추 줄 높이에 맞춘다) */
+    .tree { position: absolute; inset: 0; overflow: auto; padding: 140px 16px 88px; background: var(--bg); font: 13px/1.6 var(--mono); }
+    .tree ul { list-style: none; margin: 0; padding-left: 20px; }
+    .tree > ul { max-width: 820px; padding-left: 0; }
+    .tree summary { display: flex; align-items: center; gap: 8px; min-height: 44px; color: var(--green); cursor: pointer; }
+    .tree summary b { font-weight: 400; color: var(--ink); }
+    .tree summary::before { content: "▸"; width: 1em; color: var(--muted); } .tree details[open] > summary::before { content: "▾"; } /* flex로 바꾸면 기본 표시가 사라져 직접 단다 */
+    .tree .rk { color: #f87171; }
+    .tree .row { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--grid); }
+    .tree .leaf { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 44px; padding: 0 8px; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; }
+    .tree .leaf:hover { background: rgba(46, 213, 115, .08); }
+    .tree .leaf .m { color: var(--muted); }
+    .stage[data-mode="tree"] canvas, .stage[data-mode="tree"] .dock, .stage[data-mode="tree"] .stat { visibility: hidden; } /* 크기는 남겨 둬 지도로 돌아올 때 그대로 */
+
+    /* 간단 카드: 올린(고른) 점 바로 옆에 뜬다. 자리는 map.js가 매 프레임 점을 따라 정한다 */
+    .tip { position: absolute; left: 0; top: 0; z-index: 2; width: 300px; max-width: calc(100% - 16px); padding: 10px 14px; background: rgba(10, 14, 20, .95); border: 1px solid var(--green-dim); font: 13px/1.6 var(--mono); }
+    .tip h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 4px; font: 700 14px var(--mono); color: var(--ink); }
+    .tip h2 .g { font-weight: 700; }
+    .tip p { margin: 0 0 4px; }
+    .tip .meta, .tip .hint { font-size: 12px; color: var(--muted); }
+    .tip .pend { font-size: 12px; } .tip .pend a { display: inline-flex; align-items: center; min-height: 32px; color: var(--green); } /* 판단 대기 → 알림(IA-6·7)으로 가는 길 */
+    .acts { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .acts .lab { width: 44px; font-size: 12px; color: var(--muted); }
+    .acts .tbtn { min-width: 44px; border-color: var(--green-dim); }
+
+    /* 아래 왼쪽 범례(누르면 위로 펼쳐짐) = 상태로 거르기. 아래 오른쪽은 위험 찾기와 옮기기 단추 */
+    .legendBox { position: absolute; left: 16px; bottom: 16px; }
+    .legendBox summary { display: flex; align-items: center; min-height: 44px; padding: 0 12px; font: 12px var(--mono); color: var(--green); background: rgba(10, 14, 20, .85); border: 1px solid var(--green-dim); cursor: pointer; list-style: none; }
+    .legendBox summary::-webkit-details-marker { display: none; }
+    .legend { position: absolute; left: 0; bottom: calc(100% + 4px); display: flex; flex-direction: column; align-items: flex-start; gap: 0; width: max-content; max-height: calc(100dvh - 160px); overflow: auto;
+      margin: 0; padding: 6px 8px; list-style: none; font: 12px var(--mono); color: var(--muted); background: rgba(10, 14, 20, .95); border: 1px solid var(--green-dim); }
+    .legend li { display: flex; align-items: center; gap: 6px; }
+    .legend li:not(:has(button)) { padding: 4px 10px; }
+    .chip { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; font: 12px var(--mono); color: var(--muted); background: none; border: 1px solid transparent; cursor: pointer; }
+    .chip:hover { border-color: var(--green-dim); }
+    .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--green); background: rgba(46, 213, 115, .12); }
+    .chip b { font-weight: 400; color: var(--ink); }
+    .dock { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .risk { display: flex; align-items: center; background: rgba(10, 14, 20, .85); border: 1px solid var(--green-dim); }
+    .risk .tbtn { min-width: 44px; padding: 0; }
+    #rinfo { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
+    .dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 2px; }
+    .dpad .tbtn { padding: 0; border-color: var(--green-dim); }
+    .stat { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 40%; margin: 0; text-align: center; font: 11px/1.6 var(--mono); color: var(--green-dim); text-shadow: 0 0 4px var(--bg); pointer-events: none; }
+
+    /* 짧은 알림: 위 단추 줄 바로 아래(아래쪽은 위험 삼각형·범례·옮기기 단추 자리). 같은 글을 화면 읽기 프로그램은 #say로 읽으므로 여기는 눈으로만(aria-hidden) */
+    .toast { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); z-index: 3; max-width: min(560px, calc(100% - 32px)); margin: 0; padding: 8px 14px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .95); border: 1px solid var(--green-dim); pointer-events: none; }
+    .tscroll { overflow-x: auto; } /* 좁은 화면에서 표가 페이지를 옆으로 밀지 않게 */
+
+    details.table { padding: 8px 0 32px; }
     details.table summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font: 13px var(--mono); color: var(--green); }
     table { border-collapse: collapse; width: 100%; font: 13px var(--mono); }
     th, td { text-align: left; padding: 4px 12px; border-bottom: 1px solid var(--grid); }
@@ -86,22 +127,45 @@
     td .tbtn { min-height: 44px; padding: 0 8px; border-color: var(--green-dim); }
     .note { font: 12px var(--mono); color: var(--muted); margin: 0 0 8px; }
     .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+    @media (max-width: 720px) {
+      .title .hint { display: none; }
+      .search { flex: 1 1 140px; } .search input { width: 100%; }
+      .nav-x { display: none; } /* 좁은 화면: 시안에 없는 메뉴는 빼서 메뉴를 한 줄로 */
+      .title:not(.open) #expAll, .title:not(.open) #foldAll { display: none; } /* 좁은 화면: 모두 펼치기·접기는 "도구" 안으로(지도 자리를 남긴다) */
+      .stat { left: -9999px; } /* 좁은 화면엔 둘 자리가 없다. 바뀐 알림은 짧은 알림(.toast)으로 보이고, 화면 읽기 프로그램은 그대로 읽는다 */    }
   </style>
 </head>
 <body>
-  <div class="pad"><p class="sample" role="note">시안입니다. 이름과 숫자는 모두 샘플이고 실제 데이터가 아닙니다. 펼쳐지는 기술도 예시예요.</p></div>
-
   <div class="stage" id="stage">
-    <canvas id="cv" tabindex="0" role="application" aria-label="기술 레이더 지도. 끌어서 옮기고, 휠이나 더하기·빼기 키로 확대하고 줄여요. 방향키로 옮기고, 0 키로 전체를 봐요. 점을 고른 뒤 쉬프트와 방향키로 그 점을 옮겨요. 슬래시 키로 기술을 찾고, 갈래 버튼으로 갈래를 접어요. 대괄호 키로 이전·다음 위험을 찾고, J와 K 키로 다음·이전 점을, 쉼표와 마침표 키로 고른 점의 이웃을 오가요. 이스케이프 키로 선택을 풀어요. 점을 고른 뒤 엔터로 그 점 중심으로 봐요. 같은 내용을 표로도 볼 수 있어요."></canvas>
+    <canvas id="cv" tabindex="0" role="application" aria-label="기술 레이더 지도. 점에 마우스를 올리면 간단 카드가, 누르거나 엔터를 치면 상세가 열려요. 점에 붙은 더하기 표시를 누르거나 E 키로 같은 역할 기술을 펼치고 접어요. 끌어서 옮기고, 휠이나 더하기·빼기 키로 확대하고 줄여요. 방향키로 옮기고, 0 키로 전체를 봐요. 점을 고른 뒤 쉬프트와 방향키로 그 점을 옮겨요. 슬래시 키로 기술을 찾고, 대괄호 키로 이전·다음 위험을, J와 K 키로 다음·이전 점을, 쉼표와 마침표 키로 고른 점의 이웃을 오가요. 이스케이프 키로 선택을 풀어요. 같은 내용을 표로도 볼 수 있어요."></canvas>
+    <section class="tip" id="tip" aria-label="고른 기술 요약" hidden></section>
+    <p class="loading" id="loading" role="status" hidden>지도를 불러오는 중이에요</p>
+    <section class="tree" id="treeView" aria-label="쓰는 곳별 나무" hidden></section>
     <header class="title">
       <h1>techradar</h1>
-      <p>끝없이 이어지는 내 AI 도구의 지도예요.<br>빈 곳을 끌면 지도가, 점을 끌면 그 점이 움직여요. 점선 고리가 있는 점은 눌러 펼쳐요.</p>
+      <nav class="nav" aria-label="주 메뉴"><!-- IA 1절 사용자 메뉴. 시안에 없는 화면은 흐린 글자로만 둔다 -->
+        <a href="map.html" aria-current="page">기술 지도</a>
+        <span class="nav-x" title="이 시안에는 아직 없어요">대시보드</span>
+        <span class="nav-x" title="이 시안에는 아직 없어요">내 기술</span>
+        <a href="alerts.html" id="navAlerts">알림 <b id="pendN"></b></a>
+        <span class="nav-x" title="이 시안에는 아직 없어요">기록 찾기</span>
+      </nav>
+      <p class="hint" role="note">시안이에요. 이름과 숫자는 모두 샘플이에요. 점에 올리면 요약, 누르면 상세, +로 펼쳐요.</p>
+      <p class="band" id="band" role="status" hidden><span id="bandTxt"></span><button type="button" class="tbtn" id="bandOk">확인</button></p>
       <div class="tools" role="toolbar" aria-label="지도 보기">
+        <button type="button" class="tbtn" id="more" aria-expanded="false">도구 ▾</button>
+        <div class="views" id="views" role="group" aria-label="보기 방식">
+          <button type="button" class="tbtn" data-view="cat" aria-pressed="true">갈래 지도</button>
+          <button type="button" class="tbtn" data-view="host" aria-pressed="false">쓰는 곳 지도</button>
+          <button type="button" class="tbtn" data-view="tree" aria-pressed="false">쓰는 곳 나무</button>
+        </div>
         <button type="button" class="tbtn" id="pause" aria-pressed="false" aria-keyshortcuts="Space"></button>
-        <button type="button" class="tbtn" id="fit" aria-keyshortcuts="0">전체 보기</button>
-        <button type="button" class="tbtn" id="zin" aria-label="확대" aria-keyshortcuts="+">확대 +</button>
-        <button type="button" class="tbtn" id="zout" aria-label="축소" aria-keyshortcuts="-">축소 −</button>
-        <button type="button" class="tbtn" id="home" disabled>원래 자리로</button>
+        <button type="button" class="tbtn opt" id="fit" aria-keyshortcuts="0">전체 보기</button>
+        <button type="button" class="tbtn opt" id="zin" aria-label="확대" aria-keyshortcuts="+">확대 +</button>
+        <button type="button" class="tbtn opt" id="zout" aria-label="축소" aria-keyshortcuts="-">축소 −</button>
+        <button type="button" class="tbtn opt" id="home" disabled>옮긴 점 원래 자리로</button>
+        <button type="button" class="tbtn opt" id="toTable">표로 보기</button>
         <div class="search">
           <label class="sr" for="q">기술 이름으로 찾기</label>
           <input id="q" type="search" placeholder="기술 찾기 ( / )" autocomplete="off" aria-controls="hits" aria-keyshortcuts="/">
@@ -116,25 +180,30 @@
             <label><input type="checkbox" data-scope="mine"> 내 기술만</label>
           </div>
         </details>
+        <button type="button" class="tbtn" id="expAll"></button>
+        <button type="button" class="tbtn" id="foldAll">모두 접기</button>
+        <button type="button" class="tbtn opt" id="runBtn" title="시안: 예시 실행 기록을 읽어 선이 점검을 따라가요. 실제 점검이 아니에요"></button>
       </div>
+      <p class="many" id="many" role="status" hidden></p>
       <div class="tools" id="folds" role="group" aria-label="갈래 접기와 펴기"></div>
       <div class="tools" id="focusbar" role="group" aria-label="중심으로 보기" hidden>
         <span class="fname" id="fname"></span>
         <button type="button" class="tbtn" id="fdec" aria-keyshortcuts="1 2 3">단계 −</button>
         <span class="fname" id="fdepth"></span>
         <button type="button" class="tbtn" id="finc">단계 +</button>
-        <button type="button" class="tbtn" id="fexit" aria-keyshortcuts="Escape">전체 보기 (Esc)</button>
+        <button type="button" class="tbtn" id="fexit" aria-keyshortcuts="Escape">중심 보기 끝내기 (Esc)</button>
       </div>
       <p class="sr" id="qnote" role="status"></p>
     </header>
-    <section class="info" aria-labelledby="infoTitle" aria-live="polite">
-      <h2 id="infoTitle">선택한 기술</h2>
-      <p class="empty" id="infoEmpty">점에 마우스를 올려 보세요.</p>
-      <div id="infoBody" hidden></div>
-    </section>
-    <ul class="legend" id="legend" aria-label="점 설명과 거르기. 상태를 누르면 그 상태의 점만 진하게 보여요"></ul>
+    <details class="legendBox" id="legendBox">
+      <summary id="lsum">범례</summary>
+      <ul class="legend" id="legend" aria-label="점 설명과 거르기. 상태를 누르면 그 상태의 점만 진하게 보여요"></ul>
+    </details>
+    <p class="stat" id="stat" aria-hidden="true"></p>
+    <p class="sr" id="say" role="status"></p>
+    <p class="toast" id="toast" aria-hidden="true" hidden></p>
     <div class="dock" role="group" aria-label="지도 옮기기와 위험 찾기">
-      <div class="risk">
+      <div class="risk" id="risk">
         <button type="button" class="tbtn" id="rprev" aria-label="이전 위험·주의 점" aria-keyshortcuts="[">◀</button>
         <span id="rinfo"></span>
         <button type="button" class="tbtn" id="rnext" aria-label="다음 위험·주의 점" aria-keyshortcuts="]">▶</button>
@@ -150,10 +219,6 @@
   </div>
 
   <div class="pad">
-    <div class="bar">
-      <button type="button" class="outline" id="toTable">표로 보기 →</button>
-      <div class="stat" id="stat" role="status"></div>
-    </div>
     <details class="table" id="tableBox">
       <summary>표로 보기</summary>
       <div class="tctl" role="group" aria-label="표 정렬과 거르기">
@@ -162,10 +227,10 @@
         <label>이름 <input id="tQ" type="search" placeholder="이름 일부" autocomplete="off"></label>
       </div>
       <p class="note" id="tableNote" role="status"></p>
-      <table>
+      <div class="tscroll"><table>
         <thead><tr><th scope="col">이름</th><th scope="col">종류</th><th scope="col">갈래</th><th scope="col">보안 등급</th><th scope="col">마지막 확인</th><th scope="col">최근 변경</th><th scope="col">펼치기</th></tr></thead>
         <tbody id="rows"></tbody>
-      </table>
+      </table></div>
     </details>
   </div>
 
