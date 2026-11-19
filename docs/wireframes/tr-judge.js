@@ -66,7 +66,7 @@
   }
 
   /** onChange(id, 안내 글, 안내만인가, 되돌리기) — 화면이 다시 그리고 토스트를 띄운다 */
-  const J = { save, clear, undo, html, onChange: () => {} };
+  const J = { save, clear, undo, html, keep, onChange: () => {} };
   function done(id, j, msg) {
     const ok = msg !== FAIL_MSG;
     J.onChange(id, msg, !ok, ok && last ? undo : null);
