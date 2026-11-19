@@ -127,6 +127,20 @@
     .cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; align-items: start; }
     .steps { list-style: none; padding: 0; margin: 8px 0; } .steps li { padding: 4px 0; }
 
+    /* 내 프로젝트(journey-project.js): 등록·내 기술 목록·실행 기록·직접 추가·설치 프롬프트·가져오기·설정 */
+    .narrow { max-width: 600px; display: grid; gap: 8px; }
+    label.check { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+    fieldset.prefs, fieldset.hits { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 0; }
+    .files { list-style: none; margin: 0; padding: 0; font-size: 14px; } .files li { padding: 6px 0; border-top: 1px solid var(--line); }
+    .files li.err, .steps li.err { font-weight: 700; }
+    .tools .grow { flex: 1; }
+    .box.proj { margin-bottom: 12px; } .phead { margin-bottom: 8px; } .phead h2 { margin: 0; } .phead .grow { flex: 1; }
+    .box.proj table td { vertical-align: top; }
+    tr.hid td { color: var(--muted); }
+    details.filesbox { margin-bottom: 12px; } details.filesbox summary { min-height: 32px; cursor: pointer; font-weight: 700; }
+    textarea.prompt { width: 100%; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+    @media (max-width: 880px) { .box.proj table, .box.proj tbody, .box.proj tr, .box.proj td { display: block; } .box.proj thead { display: none; } .box.proj tr { padding: 8px 0; border-top: 1px solid var(--line); } }
+
     #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--on-ink); font-size: 14px; }
     #toast:empty { display: none; }
 
@@ -159,7 +173,8 @@
       <a href="#alerts" data-nav="alerts">알림 <b id="bWait"></b></a>
       <a href="#records" data-nav="records">기록</a>
       <a href="blueprint.html" data-nav="blueprint">블루프린트</a>
-      <a href="#start/repo" data-nav="start" class="me">내 프로젝트</a>
+      <a href="#project" data-nav="start" class="me">내 프로젝트</a>
+      <a href="#settings" data-nav="settings">설정</a>
     </nav>
   </header>
   <main id="main"></main>
@@ -168,6 +183,7 @@
   <script src="radar-data.js"></script>
   <script src="tr-judge.js"></script>
   <script src="journey-board.js"></script>
+  <script src="journey-project.js"></script>
   <script src="journey-capture.js"></script>
   <script src="journey.js"></script>
 </body>

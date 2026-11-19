@@ -29,19 +29,7 @@
   }
 
   // ---- 화면들
-  function startView(step) {
-    if (step === 'repo') return `<h1 tabindex="-1">내 프로젝트 등록</h1><p class="muted">공개 GitHub 저장소 주소를 넣으면 쓰는 기술을 읽어 지도 가운데에 놓아요.</p>
-      <form class="box" data-act="repo" style="max-width:560px;display:grid;gap:8px"><label for="repo">저장소 주소</label><input type="url" id="repo" value="https://github.com/sample/my-app" required>
-      <div class="row"><button class="btn primary">등록하고 읽기</button><a class="btn" href="#start">나중에</a></div></form>`;
-    if (step === 'read') return `<h1 tabindex="-1">저장소를 읽었어요</h1><div class="box" style="max-width:560px"><ul class="steps">
-      <li>package.json: 기술 2개</li><li>.mcp.json: 기술 2개</li><li>.claude/skills/: 기술 1개</li></ul>
-      <p><b>첫 점검:</b> 보안 위험 1 · 주의 1. 읽지 못한 파일이 있으면 "수집 오류"로 따로 보여요.</p>
-      <a class="btn primary" href="radar.html#from=start">지도에서 내 기술 보기</a></div>`;
-    // 지도는 로그인 없이 누구나 본다(사용자 11-20). 모은 기술만 보이고, 관심·판단·내 기술·알림은 로그인 뒤
-    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 그동안 모은 기술 지도를 볼 수 있어요. 묶기·필터는 둘러보는 동안만 바뀌고 저장되지 않아요. 로그인하면 보기 설정 · 관심 · 판단이 내 계정에 남아요.
-      <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a><a class="btn" href="radar.html">로그인 없이 지도 보기</a></p>`;
-  }
-
+  // 시작·로그인·등록 화면은 journey-project.js(TR.views.start)
   function newView() {
     const nw = TR.radar.techs.filter((t) => t.nw), groups = [...TR.radar.BIG, TR.radar.UNSORTED]; // 지도와 같은 갈래(U19)
     return `<h1 tabindex="-1">새 기술</h1><p class="muted">이번 주에 알아서 모은 기술 ${nw.length}개예요. 판단은 필요할 때만 하면 돼요. 마지막 수집 ${TR.radar.LAST_RUN}.</p>
@@ -137,8 +125,8 @@
   }
 
   // ---- 길(해시)과 그리기
-  const VIEWS = { start: startView, new: newView, tech: techView, alerts: alertsView, alert: alertView, records: recordsView, ...TR.views };
-  const STEP = { new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', start: 'start' };
+  const VIEWS = { new: newView, tech: techView, alerts: alertsView, alert: alertView, records: recordsView, ...TR.views };
+  const STEP = { new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', project: 'keep', start: 'start' };
   const main = document.getElementById('main');
   function render() {
     const [name, arg = ''] = (location.hash.slice(1) || 'map').split('/');
@@ -169,8 +157,7 @@
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
-    if (f.classList.contains('jform')) return; // 세 단추의 보류 이유는 tr-judge.js가 받는다
-    if (f.dataset.act === 'repo') { location.hash = '#start/read'; return; }
+    if (f.classList.contains('jform') || f.dataset.pform != null) return; // 세 단추의 보류 이유는 tr-judge.js, 내 프로젝트 화면은 journey-project.js가 받는다
     const why = f.querySelector('textarea').value.trim();
     if (why.length < 5) return say('보류 이유를 5자 이상 써 주세요.');
     save(f.dataset.id, 'hold', why, f.dataset.alert);

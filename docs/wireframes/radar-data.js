@@ -64,6 +64,12 @@
       registry: t.kind === '패키지' ? `https://www.npmjs.com/package/${t.id}` : t.kind === 'MCP' ? `https://registry.modelcontextprotocol.io/?q=${t.id}` : '',
       advisory: t.grade === '위험' || t.grade === '주의' ? `https://osv.dev/list?q=${t.id}` : '', goodFor: GOOD_FOR[t.id] || '',
     }));
+    // "내 프로젝트"에서 직접 추가·가져오기·숨김한 것(journey-project.js, 같은 탭)을 내 기술에 반영
+    try {
+      const pj = JSON.parse(sessionStorage.getItem('tr-proj')) || {};
+      (pj.added || []).forEach((a) => { const t = techs.find((x) => x.id === a.id); if (t) t.mine = true; });
+      (pj.hidden || []).forEach((id) => { const t = techs.find((x) => x.id === id); if (t) t.mine = false; });
+    } catch { /* 없으면 샘플 그대로 */ }
     const byId = Object.assign(Object.create(null), Object.fromEntries(techs.map((t) => [t.id, t])));
     // 비교군: journey의 확정 쌍 + 같은 세부 갈래 안에서 드문드문(같은 역할, ADR 0015. 화면 글자는 "비교군").
     // 이유는 DB tech_relations의 quote(한 줄 근거) · made_by(seed/rule/ai/admin) · confirmed_at과 같은 모양
