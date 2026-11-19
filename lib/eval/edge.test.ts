@@ -59,7 +59,7 @@ test("적용 기회: 두 번 정하면 두 번째는 이미 있는 키라 새 �
   const input: EdgeInput = {
     type: "opportunity", times: 2,
     change: { id: "c1", isSimulated: false },
-    newTech: { id: "t-new", techKey: "npm:new", grade: "pass", createdAt: "2026-11-19T00:00:00Z" },
+    newTech: { id: "t-new", techKey: "npm:new", grade: "pass", status: "active", createdAt: "2026-11-19T00:00:00Z" },
     relations: [{ otherTechId: "t-mine", status: "confirmed", confirmedAt: "2026-11-01T00:00:00Z" }],
     usages: [{ userId: "u1", myTechnologyId: "m1", techId: "t-mine", techKey: "npm:mine", isDemo: false, hidden: false, archived: false, registeredAt: "2026-11-10T00:00:00Z" }],
   };
