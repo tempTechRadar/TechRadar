@@ -12,6 +12,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
+| I-slides-draft | 발표 슬라이드 초안: 단계 점검 9단계 ❌(`slides/` 0파일)에 사용자 "추천대로 진행"과 디자인 "앱 디자인 컨셉(기술 레이더)을 따라감"을 받아 `slides/index.html` 15장을 만듦. 문서·DB·`gh` 집계에서 가져온 사실에 장마다 출처를 달고, 아직 사실이 없는 곳은 "▢ 채울 것"으로 둠 | 나(요청·디자인 선택) · Claude(작성·확인) | `slides/index.html`, `docs/intent.md` I-slides-draft |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
@@ -19,6 +20,7 @@
 ### 아직 안 된 것
 - [ ] Vercel `CRON_SECRET`(Production) 넣고 운영 배포 한 번, 다음 06시 뒤 `runs`에 `schedule` 실행 확인 — 김영식(넣기)·Claude(확인)
 - [ ] 구글 OAuth 클라이언트와 Supabase 공급자·Site URL·Redirect URLs(P-12 전) — 김영식
+- [ ] 슬라이드의 "▢ 채울 것"(숫자 하나 재기, 화면 캡처, 하네스 개선 사례, 팀원별 안 남는 일)과 테마 결정(`docs/design.md` 10절 1번), 발표용 Vercel 주소·오프라인 파일 — 세 사람(`docs/intent.md` I-slides-draft 열린 질문)
 
 ## 2026-11-18 (수) — 회의 결정, plan, 뼈대, 개발 전 점검
 
