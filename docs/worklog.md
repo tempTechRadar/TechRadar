@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-migration-before-merge | #133 운영 장애(코드 먼저 배포 → 새 칸 없음 → 분류 탭 깨짐, 약 18분)를 debug-note에 기록하고, CLAUDE.md 10절에 "마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게(#135 방식), 대시보드 적용 시 기록 행도" 규칙 추가(영식 님 제안) | 차세일(Claude) | `CLAUDE.md`, `docs/debug-note.md` |
 | I-qa-after-129 | #127·#129 합친 뒤 운영 확인: 시뮬레이터 지우기 → 다시 만들기 → 알림 상세에 근거·쉬운 이유 보임, 보류 뒤 조치 기록이 알림을 만든 실행에 붙음(Pass). PR #117이 마지막 푸시 전에 합쳐져 빠진 알림 흐름 QA 기록을 되살림 | 나(요청 "합친 뒤 할 일 진행") · Claude(ego 브라우저 확인·DB 조회·기록) | `docs/qa-after-129`, `docs/intent.md` I-qa-after-129 |
 | I-P-26-wiki-chat-facts | 위키 낡은 사실 보정: 챗봇 코드(#125) 전에 쓴 "코드에서 chat_logs·chatbot을 찾지 못함"을 코드 사실(20개 = chat_logs, 200번 = ai_calls)로 바꿈. 데이터설계 ↔ erd 충돌 기록은 그대로 | 차세일(Claude) | `wiki/` 3쪽, `wiki/log.md` |
 | I-P-12a-nickname-public | P-12a 별명 정하기·숨김 체크박스: `/settings`에서 별명과 "쓰고 있어요" 공개 여부를 고치고, 가입 직후(임시 별명)에는 설정으로 보내 별명을 정하게 함. 별명은 2~30자, `@`·임시 별명 모양 거절, 중복·저장 실패를 숨기지 않음. DB 변경 없음(남의 사용 수 DB 함수는 12a-2) | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12a-nickname-public`, `docs/intent.md` I-P-12a-nickname-public |
