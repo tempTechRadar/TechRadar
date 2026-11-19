@@ -1,4 +1,4 @@
-// 수집 실행과 오류(IA-15, PRD-F27): 실행 기록(언제, 무엇이, 몇 건, 성공 여부), 수집 오류와 연속 실패. "지금 한 번 실행"은 P-17이 연결한다(지금은 자리만). 관리자만.
+// 수집 실행과 오류(IA-15, PRD-F27): 실행 기록(언제, 무엇이, 몇 건, 성공 여부), 수집 오류와 연속 실패. "지금 한 번 실행"은 /admin/run-now(P-17)로 가는 링크. 관리자만.
 import Link from "next/link";
 import { errorKindCounts, failureStreaks, type RunRow, type StepErrorRow } from "@/lib/admin/admin-summaries";
 import { ADMIN_READ_LIMIT, readRuns } from "@/lib/server/admin-queries";
@@ -23,9 +23,9 @@ export default async function RunsPage() {
 
   return (
     <AdminShell tab="runs" title={TITLE} lead={LEAD} error={error}>
-      <p className="admin-placeholder">
-        <button type="button" disabled aria-describedby="run-now-note">지금 한 번 실행</button>{" "}
-        <span id="run-now-note">정기 실행·지금 실행 조각(P-17)이 붙으면 켜져요.</span>
+      <p>
+        <Link href="/admin/run-now" style={{ display: "inline-flex", alignItems: "center", minHeight: 44 }}>지금 한 번 실행</Link>
+        <span className="muted"> · 매일 06:00(한국 시간) 정기 실행 말고 지금 한 번 더 돌릴 때</span>
       </p>
 
       <h2>연속 실패</h2>
