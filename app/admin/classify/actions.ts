@@ -4,7 +4,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminGate, type AdminGate } from "@/lib/server/admin-gate";
+import { createAlertsForChange } from "@/lib/server/alerts";
+import { saveChange } from "@/lib/server/changes";
 import { addRule, confirmRelation, setCategory, setRuleEnabled, type EditCtx, type EditResult } from "@/lib/server/classify-edit";
+import { notifyRelationConfirmed } from "@/lib/server/relation-opportunity";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 
 const PAGE = "/admin/classify";
@@ -32,9 +35,23 @@ function back(result: EditResult, done: string): never {
   return go("info", result.auditFailed ? `${done} 다만 바꾼 기록(담당자·시각·사유)을 남기지 못했어요.` : done);
 }
 
+/** 확정이 저장된 뒤에만 부른다(P-14, SPEC-3.2). 알림 실패가 확정을 되돌리지 않게 안내 문장만 덧붙인다.
+ *  shortcut: 알림만 실패했을 때 다시 만드는 버튼은 없다(확정된 줄은 "이미 그 상태"), 필요하면 확정 줄을 다시 읽는 재시도를 붙인다 */
+async function notifyConfirmed(relationId: string): Promise<string> {
+  const db = getServiceSupabase();
+  if (!db) return " 다만 서버 연결이 없어 적용 기회 알림은 만들지 못했어요.";
+  const result = await notifyRelationConfirmed({ db, saveChange, createAlertsForChange }, relationId);
+  if (result.failed.length === 0) return ` 적용 기회 알림 ${result.created}건을 만들었어요.`;
+  console.error("적용 기회 알림 만들기 실패", result.failed);
+  return ` 다만 적용 기회 알림을 만들지 못한 곳이 ${result.failed.length}곳 있어요. 확정은 그대로예요.`;
+}
+
 export async function confirmRelationAction(form: FormData): Promise<void> {
   const ctx = ctxOf(await adminGate());
-  back(await confirmRelation(ctx, text(form, "id"), text(form, "reason")), "같은 역할로 확정했어요.");
+  const id = text(form, "id");
+  const result = await confirmRelation(ctx, id, text(form, "reason"));
+  const note = result.ok && result.changed ? await notifyConfirmed(id) : "";
+  back(result, `같은 역할로 확정했어요.${note}`);
 }
 
 export async function toggleRuleAction(form: FormData): Promise<void> {
