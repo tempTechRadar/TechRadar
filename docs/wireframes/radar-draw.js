@@ -2,7 +2,7 @@
 // 보안은 기호로(위험 = 빨간 고리 + 맥박, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
 (() => {
   const { FIRST_RING, LEVEL_GAP } = TR.radarLayout;
-  const TAU = Math.PI * 2, PERIOD = 4;
+  const TAU = Math.PI * 2, PERIOD = 4, PULSE_SEC = 10;
   const css = {};
   const col = (token) => css[token] || (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#888');
   const resetColors = () => { for (const k in css) delete css[k]; };
@@ -84,13 +84,15 @@
       if (x < -40 || y < -40 || x > W + 40 || y > H + 40) continue;
       c.globalAlpha = a;
       if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
-      if (t.grade === '위험') { // 맥박: 움직임 줄이기면 멈춘 굵은 고리
-        const pulse = S.still ? 0 : (now % 1.6) / 1.6;
+      if (t.grade === '위험') { // 맥박: 처음 10초만(계속 움직이면 거슬리고 접근성 기준에도 걸림), 그 뒤·움직임 줄이기면 멈춘 굵은 고리
+        const pulse = S.still || now - S.sweep.start > PULSE_SEC ? 0 : (now % 1.6) / 1.6;
         c.strokeStyle = col('--danger'); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.stroke();
         if (pulse) { c.globalAlpha = a * (1 - pulse); c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, rp + 3 + pulse * 9, 0, TAU); c.stroke(); c.globalAlpha = a; }
       }
       if (t.err) { c.setLineDash([2, 2]); c.strokeStyle = col('--muted'); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (t.grade === '위험' ? 7 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
-      c.fillStyle = col(it.token); c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU); c.fill();
+      c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
+      if (it.hollow) { c.fillStyle = col('--surface'); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
+      else { c.fillStyle = col(it.token); c.fill(); }
       if (S.login && t.mine) { c.strokeStyle = col('--ink'); c.lineWidth = 2; c.stroke(); }
       if (t.grade === '주의') badge(c, x + rp + 2, y - rp - 2, '!', col('--caution'));
       if (t.grade === '위험') badge(c, x + rp + 2, y - rp - 2, '✕', col('--danger'));
@@ -101,8 +103,9 @@
     }
     c.globalAlpha = 1;
 
-    // 묶음(1 육각 · 2 마름모 · 3 네모)
-    S.hubLabels = [];
+    // 묶음(1 육각 · 2 마름모 · 3 네모). 누르면 사이드바, 오른쪽 아래 작은 +/− 손잡이 = 펼치기·접기(usability-review U4)
+    S.hubLabels = []; S.handles = [];
+    const jobs = [];
     for (const it of vis) {
       if (it.type !== 'g') continue;
       const a = alphaOf(it); if (a <= 0.01) continue;
@@ -110,23 +113,33 @@
       const shut = S.collapsed.has(it.id);
       c.globalAlpha = a;
       hubPath(c, x, y, r, it.level);
-      c.fillStyle = it.token ? col(it.token) : col('--surface'); c.fill();
-      c.strokeStyle = col(it.token ? '--surface' : '--ink-2'); c.lineWidth = it.token ? 2 : 1.4; c.stroke();
+      c.fillStyle = it.token && !it.hollow ? col(it.token) : col('--surface'); c.fill();
+      c.strokeStyle = col(it.token && !it.hollow ? '--surface' : it.hollow ? it.token : '--ink-2'); c.lineWidth = it.token ? 2 : 1.4; c.stroke();
       if (shut) { c.setLineDash([3, 3]); c.strokeStyle = col('--ink-2'); c.lineWidth = 1.2; hubPath(c, x, y, r + 5, it.level); c.stroke(); c.setLineDash([]); }
       if (it.id === S.sel) { c.strokeStyle = col('--ink'); c.lineWidth = 2; hubPath(c, x, y, r + 7, it.level); c.stroke(); }
       if (it.danger) badge(c, x + r * 0.8, y - r * 0.8, '✕', col('--danger'));
-      c.fillStyle = it.token ? col('--on-ink') : col('--ink'); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col('--font')}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = it.token && !it.hollow ? col('--on-ink') : col('--ink'); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col('--font')}`; c.textAlign = 'center'; c.textBaseline = 'middle';
       if (r >= 9) c.fillText(shut ? `+${it.count}` : String(it.count), x, y + 0.5);
-      // 이름표는 바깥 방향(가운데에서 멀어지는 쪽)에: 안쪽 고리는 좁아서 아래에 달면 서로 겹친다
-      const show = it.level === 1 || (it.level === 2 && sc > 1.3) || sc > 2 || (S.lit && S.lit.has(it.id) && (S.lit.size < 80 || it.level < 3));
-      if (show) {
-        const fs = it.level === 1 ? 13 : 12, ux = Math.cos(Math.atan2(it.y, it.x)), uy = Math.sin(Math.atan2(it.y, it.x));
-        const lx = x + ux * (r + 6), ly = y + uy * (r + 6) + (uy > 0.3 ? fs / 2 : uy < -0.3 ? -fs / 2 : 0), align = ux > 0.3 ? 'left' : ux < -0.3 ? 'right' : 'center';
-        label(c, it.value, lx, ly, fs, col('--ink'), align, it.level === 1 ? 700 : 600);
-        const w = c.measureText(it.value).width, left = align === 'left' ? lx : align === 'right' ? lx - w : lx - w / 2;
-        S.hubLabels.push({ id: it.id, x: left - 4, y: ly - fs / 2 - 3, w: w + 8, h: fs + 6 });
-        if (shut && (it.danger || it.caution)) label(c, `접힘 · 위험 ${it.danger} · 주의 ${it.caution}`, lx, ly + fs + 1, 11, col('--muted'), align);
-      }
+      const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3; // 펼치기·접기 손잡이
+      c.fillStyle = col('--surface'); c.strokeStyle = col('--ink-2'); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
+      c.strokeStyle = col('--ink'); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
+      S.handles.push({ id: it.id, x: hx, y: hy });
+      // 이름표는 바깥 방향(가운데에서 멀어지는 쪽)에. 1단계는 늘, 2단계 이하는 다른 이름표와 겹치지 않을 때만(U3)
+      const lit = S.lit && S.lit.has(it.id) && (S.lit.size < 80 || it.level < 3);
+      if (it.level === 1 || lit || it.level === 2 || sc > 2) jobs.push({ it, x, y, r, a, shut, must: it.level === 1 || lit });
+    }
+    jobs.sort((p, q) => q.must - p.must || p.it.level - q.it.level);
+    for (const { it, x, y, r, a, shut, must } of jobs) {
+      const fs = it.level === 1 ? 13 : 12, ux = Math.cos(Math.atan2(it.y, it.x)), uy = Math.sin(Math.atan2(it.y, it.x));
+      const lx = x + ux * (r + 10), ly = y + uy * (r + 10) + (uy > 0.3 ? fs / 2 : uy < -0.3 ? -fs / 2 : 0), align = ux > 0.3 ? 'left' : ux < -0.3 ? 'right' : 'center';
+      c.font = `${it.level === 1 ? 700 : 600} ${fs}px ${col('--font')}`;
+      const w = c.measureText(it.value).width, left = align === 'left' ? lx : align === 'right' ? lx - w : lx - w / 2;
+      const box = { id: it.id, x: left - 4, y: ly - fs / 2 - 3, w: w + 8, h: fs + 6 };
+      if (!must && S.hubLabels.some((o) => box.x < o.x + o.w && o.x < box.x + box.w && box.y < o.y + o.h && o.y < box.y + box.h)) continue;
+      c.globalAlpha = a;
+      label(c, it.value, lx, ly, fs, col('--ink'), align, it.level === 1 ? 700 : 600);
+      S.hubLabels.push(box);
+      if (shut && (it.danger || it.caution)) label(c, `접힘 · 위험 ${it.danger} · 주의 ${it.caution}`, lx, ly + fs + 1, 11, col('--muted'), align);
     }
     c.globalAlpha = 1;
     leafLabels(c, S, vis, P, sc);
@@ -231,5 +244,5 @@
     return rects;
   }
 
-  TR.radarDraw = { draw, resetColors, col };
+  TR.radarDraw = { draw, resetColors, col, PULSE_SEC };
 })();

@@ -21,7 +21,7 @@
   /** 주소(URLSearchParams) → 보기 설정. 모르는 이름·값은 버린다(주소는 누구나 고쳐 넣을 수 있어서 허용 목록만) */
   function parseView(p, login, techs) {
     const group = [...new Set((p.get('g') || '').split(',').filter((d) => dimOk(d, login)))].slice(0, 3);
-    const v = { group: group.length ? group : [...DEFAULT.group], color: '', filter: {}, scope: [], risky: p.get('risky') === '1', mine: login && p.get('mine') === '1', nw: p.get('new') === '1' };
+    const v = { group: group.length ? group : [...DEFAULT.group], color: '', filter: {}, scope: [], risky: p.get('risky') === '1', mine: login && p.get('mine') === '1', nw: p.get('new') === '1', err: p.get('err') === '1' };
     v.color = dimOk(p.get('c'), login) ? p.get('c') : v.group[0];
     const known = (dim) => new Set(techs.map((t) => val(t, dim)));
     for (const [dim, key] of Object.entries(FKEY)) {
@@ -46,9 +46,10 @@
     if (v.risky) p.set('risky', '1');
     if (v.mine) p.set('mine', '1');
     if (v.nw) p.set('new', '1');
+    if (v.err) p.set('err', '1');
     return p;
   }
-  const passes = (t, v) => (!v.risky || t.grade === '위험' || t.grade === '주의') && (!v.mine || t.mine) && (!v.nw || t.nw)
+  const passes = (t, v) => (!v.risky || t.grade === '위험' || t.grade === '주의') && (!v.mine || t.mine || t.nearMine) && (!v.nw || t.nw) && (!v.err || t.err)
     && v.scope.every((s) => val(t, s.dim) === s.value)
     && Object.entries(v.filter).every(([dim, set]) => !set.size || set.has(val(t, dim)));
   /** 들어간 분류의 기준은 이미 하나로 정해졌으니 묶기에서 뺀다(리서치 안에서 다시 "하는 일"로 묶을 일은 없다) */
@@ -67,7 +68,7 @@
     const legend = ranked.slice(0, 8).map(([value, count]) => ({ value, count, token: colored.get(value) }));
     const rest = ranked.slice(8).reduce((s, [, c]) => s + c, 0);
     if (rest) legend.push({ value: OTHER, count: rest, token: '--unknown', rest: true });
-    for (const [v, c] of counts) if (special(v)) legend.push({ value: v, count: c, token: '--unknown' });
+    for (const [v, c] of counts) if (special(v)) legend.push({ value: v, count: c, token: '--unknown', hollow: v === UNSORTED });
     return { legend, tokenOf: (v) => colored.get(v) || '--unknown' };
   }
 
@@ -88,7 +89,7 @@
           const r = leafR + row * ROW_GAP + (rows === 1 && sorted.length > 1 ? (i % 2) * 18 : 0); // 한 줄이면 번갈아 내밀어 이름표가 덜 겹치게
           const [x, y] = polar(a0 + ((a1 - a0) * (col + 0.5)) / inRow, r);
           maxR = Math.max(maxR, r);
-          items.push({ id: t.id, type: 't', t, parent, level, x, y, r: t.mine ? 6 : 4.5, token: tokenOf(val(t, color)) });
+          items.push({ id: t.id, type: 't', t, parent, level, x, y, r: t.mine ? 6 : 4.5, token: tokenOf(val(t, color)), hollow: val(t, color) === UNSORTED }); // 분류 전은 빈 점: 같은 회색인 '그 밖'과 모양으로 구별
         });
         return;
       }
@@ -103,7 +104,7 @@
         items.push({
           id, type: 'g', level, dim, value: k, parent, x, y, r: HUB_R[level], count: inner.length,
           danger: inner.filter((t) => t.grade === '위험').length, caution: inner.filter((t) => t.grade === '주의').length,
-          err: inner.filter((t) => t.err).length, mine: inner.filter((t) => t.mine).length, token: dim === color ? tokenOf(k) : null,
+          err: inner.filter((t) => t.err).length, mine: inner.filter((t) => t.mine).length, token: dim === color ? tokenOf(k) : null, hollow: k === UNSORTED,
         });
         place(inner, level + 1, id, start + span * pad, start + span * (1 - pad));
         start += span;

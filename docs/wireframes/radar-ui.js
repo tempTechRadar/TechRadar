@@ -54,7 +54,7 @@
     S.hasDanger = vis.some((it) => it.type === 't' && it.t.grade === '위험');
     const sc = S.view.scope;
     S.scopeLabel = sc.length ? `${sc[sc.length - 1].value} · ${S.L.shown}개` : '';
-    syncControls(); syncLegend(); syncStatus(); syncList(); syncCrumbs(); setFocus(S.focusId);
+    syncControls(); syncSummary(); syncLegend(); syncStatus(); syncList(); syncCrumbs(); setFocus(S.focusId);
     $('empty').hidden = S.L.shown > 0;
   }
   /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리(들어간 묶음 자리 등) */
@@ -119,13 +119,13 @@
       if (S.sel && under.some((it) => it.id === S.sel)) closeSide();
       say(`${g.value} 접음`);
     }
-    syncList(); syncStatus(); saveState(); dirty();
+    syncList(); syncStatus(); saveState(); dirty(); showTip(''); // 올리기 카드의 +/− 안내가 바뀌므로 닫음
     if (S.sel === id) openSide(id, false);
   }
   /** 보기 초기화: 맨 처음 화면으로(묶기·색·필터·분류만 보기·펼침·옮긴 자리·카메라 모두, 사용자 11-20) */
   function resetView() {
     if (login) { const acc = store.get(ACCOUNT) || {}; delete acc.moved; store.set(ACCOUNT, acc); }
-    closeSide(); hideDrill(true);
+    closeSide(); hideDrill(true); $('q').value = ''; showResults('');
     S.view = RL.parseView(new URLSearchParams(), login, techs);
     rebuild((it) => { const p = it.parent && phys.B.get(it.parent); return p ? [p.x, p.y] : [0, 0]; }, null);
     flyTo(homeCam(), false); saveState(); dirty();
@@ -170,7 +170,7 @@
   function tipHtml(it) {
     if (it.type === 'g') {
       const shut = S.collapsed.has(it.id);
-      return `<b>${esc(it.value)}</b><span class="muted">${dimName(it.dim)} · ${it.count}개${it.danger ? ` · 위험 ${it.danger}` : ''}${it.caution ? ` · 주의 ${it.caution}` : ''}${it.err ? ` · 수집 오류 ${it.err}` : ''}</span><span class="muted">누르면 ${shut ? '펼쳐요' : '접어요'} · 이름을 누르면 목록 · 끌면 함께 옮겨요</span>`;
+      return `<b>${esc(it.value)}</b><span class="muted">${dimName(it.dim)} · ${it.count}개${it.danger ? ` · 위험 ${it.danger}` : ''}${it.caution ? ` · 주의 ${it.caution}` : ''}${it.err ? ` · 수집 오류 ${it.err}` : ''}</span><span class="muted">누르면 목록 · 오른쪽 아래 ${shut ? '+로 펼쳐요' : '−로 접어요'} · 끌면 함께 옮겨요</span>`;
     }
     const t = it.t;
     return `<b>${esc(t.id)}${t.nw ? ' <span class="tag new">NEW</span>' : ''}</b><span class="muted">${esc(TR.radarSide.pathOf(t))}</span>${t.grade === '위험' || t.grade === '주의' ? `<span>${t.grade === '위험' ? '✕ 보안 위험' : '! 보안 주의'}</span>` : ''}${t.err ? '<span>수집 오류(지난 값 표시)</span>' : ''}<span class="muted">누르면 자세히 · 끌면 이웃이 따라와요</span>`;
@@ -185,7 +185,7 @@
 
   // ---- 사이드바(지도 위에 덮음, 내용은 radar-side.js)
   let lastFocus = null;
-  const dotOf = (it) => `<i style="background:var(${it ? it.token : '--unknown'})"></i>`;
+  const dotOf = (it) => (it && it.hollow ? `<i style="border:2px solid var(${it.token});box-sizing:border-box"></i>` : `<i style="background:var(${it ? it.token : '--unknown'})"></i>`);
   function openSide(id, move = true) {
     const it = S.L.byId.get(id); if (!it) return;
     if (!stage.classList.contains('open')) lastFocus = document.activeElement;
@@ -205,7 +205,7 @@
     if (!T[id]) return say('모은 기술에서 찾지 못했어요.');
     if (!RL.passes(T[id], S.view)) {
       const scoped = S.view.scope.length;
-      setView({ filter: {}, risky: false, mine: false, nw: false, ...(scoped ? { scope: [] } : {}) });
+      setView({ filter: {}, risky: false, mine: false, nw: false, err: false, ...(scoped ? { scope: [] } : {}) });
       say(scoped ? '필터와 분류만 보기를 풀었어요.' : '필터를 풀었어요.');
     }
     const it = S.L.byId.get(id);
@@ -222,16 +222,24 @@
     $('g1').innerHTML = opts(g[0]); $('g2').innerHTML = opts(g[1] || '', true); $('g3').innerHTML = opts(g[2] || '', true);
     $('g3').disabled = !g[1]; $('color').innerHTML = opts(S.view.color);
     const kinds = [...new Set(techs.map((t) => t.kind))], fields = [...TR.radar.BIG, TR.radar.UNSORTED], f = S.view.filter;
-    const box = (dim, v) => `<label><input type="checkbox" data-f="${dim}" value="${esc(v)}"${f[dim] && f[dim].has(v) ? ' checked' : ''}> ${esc(v)}</label>`;
-    $('fPop').innerHTML = `<fieldset><legend>보안</legend><label><input type="checkbox" data-b="risky"${S.view.risky ? ' checked' : ''}> 위험·주의만</label></fieldset>
-      <fieldset><legend>새로 들어옴</legend><label><input type="checkbox" data-b="nw"${S.view.nw ? ' checked' : ''}> NEW만(이번 주)</label></fieldset>
-      <fieldset><legend>내 기술</legend><label><input type="checkbox" data-b="mine"${S.view.mine ? ' checked' : ''}${login ? '' : ' disabled'}> 내 기술만${login ? '' : ' (로그인 뒤)'}</label></fieldset>
+    const base = techs.filter((t) => S.view.scope.every((sc) => RL.val(t, sc.dim) === sc.value)), cnt = (fn) => `<span class="muted">${base.filter(fn).length}</span>`; // 값마다 개수(Glama 필터 칩 참고)
+    const box = (dim, v) => `<label><input type="checkbox" data-f="${dim}" value="${esc(v)}"${f[dim] && f[dim].has(v) ? ' checked' : ''}> ${esc(v)} ${cnt((t) => RL.val(t, dim) === v)}</label>`;
+    $('fPop').innerHTML = `<fieldset><legend>보안</legend><label><input type="checkbox" data-b="risky"${S.view.risky ? ' checked' : ''}> 위험·주의만 ${cnt((t) => t.grade === '위험' || t.grade === '주의')}</label><label><input type="checkbox" data-b="err"${S.view.err ? ' checked' : ''}> 수집 오류만 ${cnt((t) => t.err)}</label></fieldset>
+      <fieldset><legend>새로 들어옴</legend><label><input type="checkbox" data-b="nw"${S.view.nw ? ' checked' : ''}> NEW만(이번 주) ${cnt((t) => t.nw)}</label></fieldset>
+      <fieldset><legend>내 기술</legend><label><input type="checkbox" data-b="mine"${S.view.mine ? ' checked' : ''}${login ? '' : ' disabled'}> 내 기술과 비교군(한 단계)${login ? ' ' + cnt((t) => t.mine || t.nearMine) : ' (로그인 뒤)'}</label></fieldset>
       <fieldset><legend>종류</legend>${kinds.map((v) => box('kind', v)).join('')}</fieldset><fieldset><legend>하는 일</legend>${fields.map((v) => box('field', v)).join('')}</fieldset>`;
-    const n = Object.values(f).reduce((s, x) => s + x.size, 0) + S.view.risky + S.view.mine + S.view.nw;
+    const n = Object.values(f).reduce((s, x) => s + x.size, 0) + S.view.risky + S.view.mine + S.view.nw + S.view.err;
     $('fCount').textContent = n ? n : '';
     $('saveNote').textContent = login ? '보기는 내 계정에 저장돼요' : '로그인 전: 보기는 저장 안 돼요 · 주소로 공유';
     $('loginNote').textContent = login ? '(보기 설정·옮긴 자리가 계정에 남음)' : '(아무것도 남기지 않음, 주소로만 공유)';
     $('login').checked = login;
+  }
+  function syncSummary() { // 첫 화면에서 바로 보이게(UJ-1, IA-Q1-3)
+    const wait = ALERTS.filter((a) => a.status === 'wait').length, nw = techs.filter((t) => t.nw).length, err = techs.filter((t) => t.err).length;
+    const mineN = techs.filter((t) => t.mine).length, nearN = techs.filter((t) => t.mine || t.nearMine).length;
+    // 로그인 뒤 기본은 전체 지도, 내 기술 중심은 칩 하나로(ADR 0027 제안: D8 "작게"를 필터로)
+    $('summary').innerHTML = `${login ? `<a class="chip strong" href="journey.html#alerts">판단 대기 <b>${wait}</b></a>` : ''}${login && mineN ? `<button class="chip" type="button" data-minechip aria-pressed="${S.view.mine}" title="내 기술 ${mineN}개와 확인된 비교군만">내 기술과 비교군 <b>${nearN}</b></button>` : ''}<button class="chip" type="button" data-nwchip aria-pressed="${S.view.nw}">이번 주 NEW <b>${nw}</b></button>
+      <span class="muted">마지막 수집 ${TR.radar.LAST_RUN} · 모은 기술 ${techs.length}${err ? ` · 수집 오류 ${err}` : ''}</span>`;
   }
   function syncLegend() {
     const dim = S.L.color, f = S.view.filter[dim];
@@ -251,8 +259,28 @@
     $('klist').innerHTML = `<p class="muted">Enter: 묶음은 펼치기/접기, 기술은 자세히</p><ul>${(kids.get(null) || []).map(li).join('')}</ul>`;
   }
 
+  /** 찾기(U1): 이름 일부 · 설명 · 갈래 이름. 갈래는 '이 분류만 보기'로, 기술은 고르기로 */
+  function showResults(q) {
+    const el = $('qres'), k = q.trim().toLowerCase();
+    if (!k) { el.hidden = true; el.innerHTML = ''; return; }
+    const cats = [...TR.radar.BIG.map((v) => ['field', v]), ...Object.values(TR.radar.CATS).flat().map((v) => ['sub', v])].filter(([, v]) => v.toLowerCase().includes(k)).slice(0, 3);
+    const hits = techs.filter((t) => (t.id + ' ' + t.desc).toLowerCase().includes(k)).sort((a, b) => (a.id.toLowerCase().startsWith(k) ? 0 : 1) - (b.id.toLowerCase().startsWith(k) ? 0 : 1)).slice(0, 8);
+    el.innerHTML = cats.map(([dim, v]) => `<li><button type="button" data-dim="${dim}" data-val="${esc(v)}">분류 · ${esc(v)}만 보기 <span class="muted">${techs.filter((t) => RL.val(t, dim) === v).length}개</span></button></li>`).join('')
+      + hits.map((t) => `<li><button type="button" data-tech="${esc(t.id)}">${esc(t.id)} <span class="muted">${esc(TR.radar.pathOf(t))}</span></button></li>`).join('')
+      || '<li class="muted">맞는 기술이나 분류가 없어요. 이름 일부나 하는 일로 찾아 보세요.</li>';
+    el.hidden = false;
+  }
+
   let toastT;
-  function say(msg) { const el = $('toast'); el.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => { el.textContent = ''; }, 2600); }
+  function say(msg, undo) {
+    const el = $('toast'); el.textContent = msg; clearTimeout(toastT);
+    if (undo) { // 판단을 실수로 눌렀을 때(U16)
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'undo'; b.textContent = '되돌리기';
+      b.addEventListener('click', () => { const id = undo(); el.textContent = '되돌렸어요.'; if (id && S.sel === id) openSide(id, false); toastT = setTimeout(() => { el.textContent = ''; }, 2000); });
+      el.append(b);
+    }
+    toastT = setTimeout(() => { el.textContent = ''; }, undo ? 6000 : 2600);
+  }
 
   // ---- 크기·그리기 고리
   function measure() {
@@ -280,7 +308,7 @@
     if (wasBusy && !phys.busy()) saveMoves();
     wasBusy = phys.busy();
     const sweeping = !S.still && now - S.sweep.start < 20;
-    if (needDraw || anim || sweeping || S.leaving.size || (S.hasDanger && !S.still && tick % 2 === 0)) { draw(c, S, now); needDraw = false; if (S.drillId) syncDrill(); }
+    if (needDraw || anim || sweeping || S.leaving.size || (S.hasDanger && !S.still && now - S.sweep.start < TR.radarDraw.PULSE_SEC + 1 && tick % 2 === 0)) { draw(c, S, now); needDraw = false; if (S.drillId) syncDrill(); }
   }
 
   // ---- 시작
@@ -292,8 +320,8 @@
     measure();
     rebuild(null, p.has('x') ? (p.get('x') === '-' ? [] : p.get('x').split('~')) : null);
     S.cam = homeCam();
-    $('names').innerHTML = techs.map((t) => `<option value="${esc(t.id)}">`).join('');
     $('bWait').textContent = ALERTS.filter((a) => a.status === 'wait').length || '';
+    $('bNew').textContent = techs.filter((t) => t.nw && !TR.judged[t.id]).length || ''; // journey 메뉴와 같은 셈(지도 카탈로그 기준)
     $('partial').hidden = p.get('state') !== 'partial';
     if (login && p.get('from') === 'start') {
       const mine = techs.filter((t) => t.mine);
@@ -311,9 +339,9 @@
   new ResizeObserver(measure).observe($('hud'));
 
   // 사이드바에서 판단을 남기면 내용만 다시 그린다(초점은 tr-judge가 누른 단추로 돌려놓음)
-  TR.judge.onChange = (id, msg, warnOnly) => { say(msg); if (!warnOnly && S.sel === id) openSide(id, false); };
+  TR.judge.onChange = (id, msg, warnOnly, undo) => { say(msg, undo); if (!warnOnly && S.sel === id) openSide(id, false); };
 
-  TR.radarUI = { S, $, phys, canvas, stage, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, toggle, drill, showDrill, hideDrill, resetView, openSide, closeSide, goTo, setFocus, showTip, say, dirty, saveState, syncList, syncStatus,
+  TR.radarUI = { S, $, phys, canvas, stage, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, showResults, setView, toggle, drill, showDrill, hideDrill, resetView, openSide, closeSide, goTo, setFocus, showTip, say, dirty, saveState, syncList, syncStatus,
     get login() { return login; }, setLogin(v) { login = v; S.login = v; try { sessionStorage.setItem('radar-login', v ? '1' : '0'); } catch { /* 탭을 닫으면 로그인 전으로 */ } S.view = RL.parseView(RL.viewParams(S.view), v, techs); rebuild(null, [...S.collapsed]); saveState(); dirty(); } };
   start();
 })();

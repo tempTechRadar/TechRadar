@@ -36,7 +36,7 @@
     .top nav a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -3px var(--ink); }
     .top nav b { padding: 0 7px; border-radius: 9px; font-size: 12px; background: var(--ink); color: var(--on-ink); }
     .top nav b:empty { display: none; }
-    .top .capture-open { margin: 6px 4px 6px auto; min-height: 36px; }
+    .top .capture-open { margin: 6px 4px 6px auto; min-height: 36px; white-space: nowrap; flex: none; } /* 좁으면 줄바꿈되어 머리 줄이 높아지던 것 */
     .rating { margin-top: 4px; } .star { min-width: 32px; min-height: 32px; border: 0; background: none; font-size: 20px; cursor: pointer; padding: 0; }
     .note-in { flex: 1; min-width: 180px; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 14px; }
     dialog.capture { width: min(640px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: 12px; padding: 16px; }

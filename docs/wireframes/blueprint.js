@@ -98,7 +98,7 @@
       <ul class="techs">${list.map((t) => { const x = u.get(t.id), risky = t.sec === "d";
         return `<li class="tech" ${risky ? "" : 'draggable="true"'} data-tech="${t.id}"><b>${t.id}</b> <span class="muted">${JN[stateOf(t)] ?? "아직 안 봄"}</span>
           <div class="muted">${t.desc}</div>${x ? `<div class="muted">내가 ${x.n}번 씀 · 프로젝트 ${x.projects.size}개</div>` : ""}
-          ${risky ? '<div class="muted">위험한 버전은 넣지 않아요</div>' : `<button class="btn sm" data-act="puttech" data-val="${t.id}" ${focus ? "" : "disabled"}>${focus ? `${esc(focus.name)}에 넣기` : "단계를 먼저 고르세요"}</button>`}</li>`; }).join("")}</ul>`;
+          ${risky ? '<div class="muted">위험한 버전은 넣지 않아요</div>' : focus ? `<button class="btn sm" data-act="puttech" data-val="${t.id}">${esc(focus.name)}에 넣기</button>` : ""}</li>`; }).join("")}</ul>`; // 단계를 고르기 전에는 흐린 단추를 줄마다 두지 않는다(위 안내 한 줄, usability-review U21)
   }
 
   // ---- 바꾸기

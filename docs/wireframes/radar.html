@@ -37,7 +37,7 @@
     .top nav a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -3px var(--ink); }
     .top nav b { padding: 0 7px; border-radius: 9px; font-size: 12px; background: var(--ink); color: var(--on-ink); }
     .top nav b:empty { display: none; }
-    .top .capture-open { margin: 6px 4px 6px auto; min-height: 36px; }
+    .top .capture-open { margin: 6px 4px 6px auto; min-height: 36px; white-space: nowrap; flex: none; } /* 좁으면 줄바꿈되어 머리 줄이 높아지던 것 */
     dialog.capture { width: min(640px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-xl); padding: 16px; }
     dialog.capture::backdrop { background: rgba(0, 0, 0, .35); }
     dialog.capture textarea { width: 100%; margin: 4px 0 8px; font: inherit; }
@@ -52,6 +52,12 @@
     .hud > * { pointer-events: auto; }
     .stage.open .hud { right: 392px; }
     .search { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 260px; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+    .search { position: relative; }
+    .qres { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 7; margin: 0; padding: 4px; list-style: none; max-height: 50vh; overflow: auto; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+    .qres[hidden] { display: none; }
+    .qres button { display: grid; width: 100%; min-height: 40px; padding: 4px 8px; text-align: left; background: none; border: 0; border-radius: var(--r-sm); font: inherit; font-size: 14px; cursor: pointer; }
+    .qres button:hover, .qres button:focus-visible { background: var(--sunken); }
+    .qres li.muted { padding: 8px; }
     .search input { flex: 1; min-width: 0; border: 0; font: inherit; background: none; min-height: 40px; }
     .search input:focus { outline: none; } .search:focus-within { outline: var(--focus); }
     .seg { display: inline-flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; min-height: var(--hit); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-sm); color: var(--muted); }
@@ -78,9 +84,14 @@
     .dock > * { pointer-events: auto; }
     .stage.open .dock { right: 392px; }
     .legend { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
-    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; text-decoration: none; color: var(--ink); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
     .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
     .chip i { width: 10px; height: 10px; border-radius: 50%; }
+    .chip.strong { border-color: var(--ink); font-weight: 700; }
+    .summary { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-sm); }
+    .summary .muted { background: var(--surface); padding: 2px 6px; border-radius: var(--r-pill); }
+    .btn.more { display: none; }
+    .pop label { min-height: 32px; }
     .status { font-size: var(--fs-cap); color: var(--ink-2); background: var(--surface); padding: 2px 8px; border-radius: var(--r-pill); }
     .notice { display: grid; gap: 4px; max-width: 340px; padding: 10px 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-sm); }
     .notice strong { font-size: 14px; }
@@ -116,10 +127,13 @@
     #check:empty { display: none; }
 
     @media (max-width: 720px) {
-      .top { display: block; } .top nav { flex-wrap: nowrap; overflow-x: auto; } .top nav a { white-space: nowrap; }
+      /* 휴대폰: 위쪽을 한 줄로, 묶기·색·필터는 "보기 설정" 단추 안에(U10) */
+      .top { flex-wrap: nowrap; } .logo { margin-right: 4px; } .top nav { flex-wrap: nowrap; overflow-x: auto; } .top nav a { white-space: nowrap; min-height: 44px; }
+      .btn.more { display: inline-flex; }
+      .hud:not(.more-open) .seg, .hud:not(.more-open) .filter { display: none; }
       .stage.open .hud, .stage.open .dock { right: 12px; }
       .search { flex-basis: 100%; }
-      .side { top: auto; height: 70%; width: 100%; border-left: 0; border-top: 1px solid var(--line); transform: translateY(100%); }
+      .side { top: auto; height: 60%; width: 100%; border-left: 0; border-top: 1px solid var(--line); transform: translateY(100%); }
       .save-note { display: none; }
       .legend { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; } .chip { white-space: nowrap; } /* 범례는 한 줄로 밀어 보기 */
     }
@@ -136,7 +150,7 @@
     <a class="logo" href="radar.html" id="logo">TechRadar</a>
     <nav aria-label="메뉴" id="nav">
       <a href="radar.html" data-nav="map" aria-current="page">기술 지도</a>
-      <a href="journey.html#new" data-nav="new">새 기술</a>
+      <a href="journey.html#new" data-nav="new">새 기술 <b id="bNew"></b></a>
       <a href="journey.html#radar" data-nav="radar">내 레이더</a>
       <a href="journey.html#alerts" data-nav="alerts">알림 <b id="bWait"></b></a>
       <a href="journey.html#records" data-nav="records">기록</a>
@@ -146,18 +160,20 @@
   </header>
   <main class="stage" id="stage">
     <h1 class="sr">기술 지도</h1>
-    <canvas id="map" role="img" aria-label="기술 지도. 묶음 목록은 Tab으로 열 수 있어요"></canvas>
-    <nav class="klist" id="klist" aria-label="지도의 묶음과 기술 목록"></nav>
+    <canvas id="map" role="img" aria-label="기술 지도. 같은 내용을 도구 줄 다음의 묶음 목록으로도 볼 수 있어요"></canvas>
     <div class="hud" id="hud">
-      <label class="search"><span class="sr">기술 찾기</span><input id="q" list="names" placeholder="기술 찾기" autocomplete="off"></label><datalist id="names"></datalist>
+      <div class="search"><label class="sr" for="q">기술 찾기</label><input id="q" placeholder="기술·하는 일 찾기" autocomplete="off" aria-controls="qres"><ul class="qres" id="qres" aria-label="찾은 것" hidden></ul></div>
+      <button class="btn more" id="more" type="button" aria-expanded="false" aria-controls="hud">보기 설정</button>
       <span class="seg" role="group" aria-label="묶기 단계">묶기 <select id="g1" aria-label="1단계"></select><span class="arrow">›</span><select id="g2" aria-label="2단계"></select><span class="arrow">›</span><select id="g3" aria-label="3단계"></select></span>
       <span class="seg">색 <select id="color" aria-label="색 기준"></select></span>
       <details class="filter" id="filter"><summary class="btn">필터 <span id="fCount"></span></summary><div class="pop" id="fPop"></div></details>
       <span class="grow"></span>
       <span class="save-note" id="saveNote"></span>
       <button class="btn" id="reset" type="button">보기 초기화</button>
+      <div class="summary" id="summary"></div>
       <nav class="crumbs" id="crumbs" aria-label="보고 있는 분류" hidden></nav>
     </div>
+    <nav class="klist" id="klist" aria-label="지도의 묶음과 기술 목록"></nav>
     <button class="btn sm drill" id="drill" type="button" hidden>이 분류만 보기</button>
     <div class="dock">
       <div class="notice partial" id="partial" hidden><strong>일부만 읽었어요</strong><span>출처 3곳 중 2곳만 읽었어요. 못 읽은 곳의 기술은 지난번 값 그대로이고, 점선 고리(수집 오류)로 보여요.</span></div>

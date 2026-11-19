@@ -34,6 +34,14 @@
   ok('보기 초기화 = 기본 설정(필터·분류만 보기 없음)', reset.group.join() === 'field,kind' && reset.color === 'field' && !Object.keys(reset.filter).length && !reset.scope.length && !reset.risky && !reset.nw);
   ok('비교군마다 이유가 있음', edges.every(([x, y]) => TR.radar.why(x, y).quote && TR.radar.why(x, y).who));
 
+  // 사용성 점검 뒤 고친 것(usability-review)
+  ok('수집 오류만 필터: 주소 왕복 · 오류 기술만', RL.viewParams(RL.parseView(P('err=1'), false, techs)).get('err') === '1' && RL.layout(techs, edges, RL.parseView(P('err=1'), false, techs)).items.filter((i) => i.type === 't').every((i) => i.t.err));
+  ok('분류 전은 빈 점(그 밖과 모양으로 구별)', a.items.filter((i) => i.type === 't' && !i.t.big).every((i) => i.hollow) && a.items.filter((i) => i.type === 't' && i.t.big).every((i) => !i.hollow));
+  ok('출처: 저장소 줄은 늘 있음(없으면 찾지 못함), 위험·주의는 보안 근거', techs.every((t) => TR.radar.sourcesOf(t)[0][0] === '저장소') && techs.filter((t) => t.grade === '위험').every((t) => t.advisory));
+
+  const mv = RL.parseView(P('mine=1'), true, techs), ML = RL.layout(techs, edges, mv), mineIds = techs.filter((t) => t.mine).map((t) => t.id);
+  ok('내 기술과 비교군: 내 기술 전부 + 확인된 비교군 한 단계만', mineIds.every((id) => ML.byId.has(id)) && ML.items.filter((i) => i.type === 't').every((i) => i.t.mine || TR.SAME.some(([x, y]) => (x === i.id && mineIds.includes(y)) || (y === i.id && mineIds.includes(x)))));
+
   const fail = rows.filter((r) => r.결과 !== '통과').length;
   console.table(rows);
   document.getElementById('check').textContent = `자체 점검 ${rows.length - fail}/${rows.length} 통과\n${rows.map((r) => `${r.결과 === '통과' ? '○' : '✕'} ${r.점검}`).join('\n')}`;

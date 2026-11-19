@@ -6,8 +6,13 @@
 .judge .jseg button[aria-disabled="true"] { color: var(--faint); cursor: not-allowed; }
 .judge p { margin: 6px 0 0; }
 .jform { display: grid; gap: 6px; margin-top: 8px; } .jform[hidden] { display: none; }
+.jreasons .chip { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+/* 토스트의 되돌리기 단추(지도·흐름 시안 공통) */
+#toast .undo { margin-left: 12px; min-height: 32px; padding: 0 10px; border: 1px solid var(--on-ink); border-radius: var(--r-md); background: none; color: var(--on-ink); font: inherit; font-weight: 700; cursor: pointer; }
 .jform textarea { font: inherit; min-height: 64px; padding: 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); }
 .near .rel { align-items: flex-start; }
+details.cands { margin-top: 6px; } details.cands summary { min-height: 32px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); font-size: var(--fs-sm); }
+.src a { color: inherit; }
 .rel > div { display: grid; flex: 1; }
 .rel .why { font-size: var(--fs-sm); color: var(--ink-2); }
 .rel i { margin-top: 13px; }

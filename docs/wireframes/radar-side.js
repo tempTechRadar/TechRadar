@@ -12,14 +12,19 @@
     return `<li class="rel">${dotOf(S.L.byId.get(n.id))}<div><span><button data-go="${esc(n.id)}">${esc(n.id)}</button>${n.grade === '위험' ? ' <span class="tag">위험</span>' : ''}</span>
       <span class="why">왜: ${esc(w.quote)}</span><span class="muted">${w.who}</span></div></li>`;
   }
+  const srcLine = (t) => TR.radar.sourcesOf(t).map(([label, url]) => (url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>` : `${label}: 찾지 못함`)).join(' · ');
   function tech(it) {
     const { S, login } = TR.radarUI, t = it.t;
     const nb = edges.filter((e) => e.includes(t.id)).map((e) => T[e[0] === t.id ? e[1] : e[0]]);
+    // 비교군 = 관리자 확인(ADR 0015). 규칙·AI 후보는 아래에 접어 따로(U13)
+    const ok = nb.filter((n) => why(t.id, n.id).by === 'admin'), cand = nb.filter((n) => why(t.id, n.id).by !== 'admin');
     return `<h2 id="sTitle" tabindex="-1">${esc(t.id)}</h2><div class="muted">${esc(pathOf(t))}</div>
       <div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new">NEW</span>' : ''}${login && t.mine ? '<span class="tag strong">내 기술 · 쓰는 중</span>' : ''}</div>
-      <p>${esc(t.desc)}</p><p class="muted">${esc(t.pop)} · 업데이트 ${esc(t.upd)}</p><p class="muted">${secText[t.grade]}</p>${t.err ? `<p class="muted">${errText}</p>` : ''}
+      <p>${esc(t.desc)}</p>${t.goodFor ? `<p><b>이럴 때 좋아요:</b> ${esc(t.goodFor)}</p>` : ''}<p class="muted">${esc(t.pop)} · 업데이트 ${esc(t.upd)} · 라이선스 ${esc(t.license || '찾지 못함')}</p>
+      <p class="muted">${secText[t.grade]}</p>${t.err ? `<p class="muted">${errText}</p>` : ''}<p class="muted src">출처: ${srcLine(t)}</p>
       <h3>내 판단</h3>${TR.judge.html(t, { login })}
-      <h3>비교군 ${nb.length}</h3><ul class="near">${nb.map((n) => relLine(S, t.id, n)).join('') || '<li class="muted">아직 없어요.</li>'}</ul>
+      <h3>비교군 ${ok.length}</h3><ul class="near">${ok.map((n) => relLine(S, t.id, n)).join('') || '<li class="muted">확인된 비교군이 아직 없어요.</li>'}</ul>
+      ${cand.length ? `<details class="cands"><summary>확인 전 후보 ${cand.length}</summary><ul class="near">${cand.map((n) => relLine(S, t.id, n)).join('')}</ul></details>` : ''}
       <p style="margin-top:14px"><a class="btn primary" href="${detailUrl(t.id)}">전체 상세 보기</a></p>`;
   }
   function group(g) {

@@ -1,4 +1,4 @@
-// 레이더 시안의 손 조작: 끌기(물리) · 누르기(묶음 펼치기/접기, 기술 자세히) · 빈 곳 끌어 이동 · 휠·꼬집기 확대 · 두 번 누르기 = 보이는 것 맞추기,
+// 레이더 시안의 손 조작: 끌기(물리) · 누르기(사이드바: 묶음은 목록·이 분류만 보기, 기술은 자세히) · 묶음 옆 +/− = 펼치기/접기 · 빈 곳 끌어 이동 · 휠·꼬집기 확대 · 두 번 누르기 = 보이는 것 맞추기,
 // 스페이스를 누른 채 끌면 피그마처럼 손 모양으로 화면만 이동(점과 닿아도 반응 없음). 단축키는 두지 않는다(사용자 11-20). Esc는 사이드바 닫기.
 (() => {
   const U = TR.radarUI, { S, phys, canvas, stage, $ } = U, RL = TR.radarLayout;
@@ -20,6 +20,7 @@
   }
   const labelAt = (sx, sy) => S.hubLabels.find((l) => sx >= l.x && sx <= l.x + l.w && sy >= l.y && sy <= l.y + l.h);
   const riskAt = (sx, sy) => S.riskRects.find((r) => Math.hypot(r.x - sx, r.y - sy) < 18);
+  const handleAt = (sx, sy) => (S.handles || []).find((h) => Math.hypot(h.x - sx, h.y - sy) < 11);
   function hover(id, sx, sy) {
     if (S.hover !== id) {
       S.hover = id; U.setFocus(id);
@@ -53,8 +54,8 @@
     const cam = { ...S.cam };
     if (hand) { down = { mode: 'pan', x, y, cam }; stage.classList.add('panning'); return; }
     if (S.homeArrow && Math.hypot(S.homeArrow.x - x, S.homeArrow.y - y) < 40) { U.flyTo(U.homeCam(), false); return; } // 멀리 나갔을 때 "지도로 돌아가기"
-    const r = riskAt(x, y), lab = labelAt(x, y), it = hit(x, y);
-    down = r ? { mode: 'risk', r, x, y } : it ? { mode: 'item', id: it.id, x, y } : lab ? { mode: 'label', id: lab.id, x, y } : { mode: 'pan', x, y, cam, click: true };
+    const r = riskAt(x, y), hd = handleAt(x, y), lab = labelAt(x, y), it = hit(x, y);
+    down = r ? { mode: 'risk', r, x, y } : hd ? { mode: 'handle', id: hd.id, x, y } : it ? { mode: 'item', id: it.id, x, y } : lab ? { mode: 'label', id: lab.id, x, y } : { mode: 'pan', x, y, cam, click: true };
   });
   canvas.addEventListener('pointermove', (e) => {
     const [x, y] = local(e);
@@ -64,7 +65,7 @@
       S.cam.x -= (m[0] - pinch.m[0]) / sc; S.cam.y -= (m[1] - pinch.m[1]) / sc;
       U.zoomAt(m[0], m[1], d / pinch.d); pinch = { d, m }; return;
     }
-    if (!down) { if (hand) hover('', 0, 0); else { const it = hit(x, y), lab = !it && labelAt(x, y); hover(it ? it.id : lab ? lab.id : '', x, y); } return; }
+    if (!down) { if (hand) hover('', 0, 0); else { const hd = handleAt(x, y), it = !hd && hit(x, y), lab = !hd && !it && labelAt(x, y); hover(hd ? hd.id : it ? it.id : lab ? lab.id : '', x, y); } return; }
     const moved = Math.hypot(x - down.x, y - down.y) > 4;
     if (down.mode === 'pan' && (moved || down.panning)) {
       down.panning = true; S.fly = null; S.userCam = true;
@@ -83,8 +84,8 @@
     if (d.drag) { phys.release(); return; }
     if (cancel || d.panning) return;
     if (d.mode === 'risk') { const worst = d.r.list.find((it) => it.t.grade === '위험') || d.r.list[0]; U.openSide(worst.id); }
-    else if (d.mode === 'label') U.openSide(d.id);
-    else if (d.mode === 'item') { const it = S.L.byId.get(d.id); if (it.type === 'g') U.toggle(it.id); else U.openSide(it.id); }
+    else if (d.mode === 'handle') U.toggle(d.id);
+    else if (d.mode === 'label' || d.mode === 'item') U.openSide(d.id); // 묶음도 누르면 사이드바(실수로 접히지 않게, U4)
     else if (d.click) U.closeSide();
   }
   canvas.addEventListener('pointerup', (e) => endPointer(e, false));
@@ -146,20 +147,39 @@
   });
   document.addEventListener('click', (e) => {
     if ($('filter').open && !e.target.closest('#filter')) $('filter').open = false;
-    const t = e.target.closest('[data-close],[data-go],[data-toggle],[data-judge],[data-drill],[data-crumb]');
+    const t = e.target.closest('[data-close],[data-go],[data-toggle],[data-judge],[data-drill],[data-crumb],[data-nwchip],[data-minechip]');
     if (!t) return;
     if (t.dataset.close != null) U.closeSide();
     if (t.dataset.go) U.goTo(t.dataset.go);
     if (t.dataset.toggle) { U.toggle(t.dataset.toggle); $('side').querySelector('[data-toggle]')?.focus(); }
     if (t.dataset.judge) U.say(TR.judge.save(t.dataset.id, t.dataset.judge)); // "+ 기술 넣기" 상자
+    if (t.dataset.nwchip != null) U.setView({ nw: !S.view.nw });
+    if (t.dataset.minechip != null) U.setView({ mine: !S.view.mine });
     if (t.dataset.drill) U.drill(t.dataset.drill);
     if (t.dataset.crumb != null) U.setView({ scope: S.view.scope.slice(0, Number(t.dataset.crumb)) });
   });
   $('reset').addEventListener('click', U.resetView);
-  $('clearF').addEventListener('click', () => U.setView({ filter: {}, risky: false, mine: false, nw: false }));
-  const search = () => { const v = $('q').value.trim(); if (v) U.goTo(v); };
-  $('q').addEventListener('change', search);
-  $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+  $('clearF').addEventListener('click', () => U.setView({ filter: {}, risky: false, mine: false, nw: false, err: false }));
+  // 찾기: 이름 일부 · 설명 · 갈래 이름으로(U1). 갈래면 '이 분류만 보기', 기술이면 고르기. ↓로 결과로 내려가고 Esc로 닫음
+  $('q').addEventListener('input', () => U.showResults($('q').value));
+  $('q').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('qres').querySelector('button')?.click(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); $('qres').querySelector('button')?.focus(); }
+    if (e.key === 'Escape') U.showResults('');
+  });
+  $('qres').addEventListener('keydown', (e) => {
+    const bs = [...$('qres').querySelectorAll('button')], i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); bs[Math.min(bs.length - 1, i + 1)]?.focus(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? bs[i - 1] : $('q')).focus(); }
+    if (e.key === 'Escape') { U.showResults(''); $('q').focus(); }
+  });
+  $('qres').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    U.showResults('');
+    if (b.dataset.tech) U.goTo(b.dataset.tech); else U.setView({ scope: [{ dim: b.dataset.dim, value: b.dataset.val }] });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.search')) U.showResults(''); });
+  $('more').addEventListener('click', () => { const on = $('hud').classList.toggle('more-open'); $('more').setAttribute('aria-expanded', on); });
   $('login').addEventListener('change', (e) => { U.setLogin(e.target.checked); U.say(e.target.checked ? '로그인한 척: 보기 설정과 옮긴 자리가 계정에 남아요.' : '로그인 전: 아무것도 남기지 않아요. 주소로만 공유돼요.'); });
   // "+ 기술 넣기" 결과의 "지도에서 보기"(#map/<id>)
   window.addEventListener('hashchange', () => { const m = location.hash.match(/^#map\/(.+)/); if (m) { document.querySelector('dialog[open]')?.close(); U.goTo(decodeURIComponent(m[1])); } });

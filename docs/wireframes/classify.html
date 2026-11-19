@@ -12,6 +12,9 @@
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--sub); color: var(--ink); font: 15px/1.6 var(--sans); }
     :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    /* 주 메뉴(다른 화면과 같은 자리, usability-review U20). 분류는 지도의 "분류 전" 묶음에서 들어옴 */
+    .mainnav { display: flex; gap: 2px; overflow-x: auto; padding: 0 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    .mainnav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: var(--muted); text-decoration: none; white-space: nowrap; }
     header.page { padding: 16px; background: var(--ink); color: var(--on-ink); }
     header.page h1 { margin: 0 0 4px; font-size: 20px; }
     header.page p { margin: 0; max-width: 90ch; color: var(--line); font-size: 14px; }
@@ -48,6 +51,7 @@
   </style>
 </head>
 <body>
+  <nav class="mainnav" aria-label="메뉴"><a href="radar.html">기술 지도</a><a href="journey.html#new">새 기술</a><a href="journey.html#radar">내 레이더</a><a href="journey.html#alerts">알림</a><a href="journey.html#records">기록</a><a href="blueprint.html">블루프린트</a></nav>
   <header class="page">
     <h1>분류 시안 · 기본 · 나만의 분류 · AI 제안</h1>
     <p>무채색, 팀 확인 전. 이름과 AI 제안은 샘플이에요. AI 분류는 호출 비용이 들어 승인된 뒤에 켜져요.</p>
