@@ -78,6 +78,9 @@ test("[검토 6] 비밀값: 대소문자를 바꿔도, AWS 키 ID·Slack 토큰�
     assert.equal(looksSecret(s), true, s);
   }
   assert.equal(looksSecret("@modelcontextprotocol/server-sequential-thinking"), false);
+  // 자리표시자는 비밀값이 아니다(설치 안내에 흔함). 진짜 값이 들어가면 걸린다
+  for (const s of ["--api-key $API_KEY", "--api-key ${BRAVE_API_KEY}", "password: <your-password>", "token: {{TOKEN}}"]) assert.equal(looksSecret(s), false, s);
+  for (const s of ["--api-key abc123xyz", "x-api-key: abc123xyz", "client_secret=abc123xyz"]) assert.equal(looksSecret(s), true, s);
   assert.match(reasonOf({ ...base, name: ghp }), /비밀값처럼/);
 });
 

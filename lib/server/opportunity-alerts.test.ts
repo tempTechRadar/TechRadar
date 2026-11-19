@@ -9,6 +9,7 @@ type Write = { table: string; rows: Row[]; options: { onConflict?: string; ignor
 
 // 실제 DB 대신 메모리 표로 "무엇을 읽고 무엇을 쓰려 했는지"만 모으는 가짜 클라이언트
 function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
+  const selects: { table: string; columns: string }[] = [];
   const writes: Write[] = [];
   const inserts: { table: string; row: Row }[] = [];
   const db = {
@@ -19,7 +20,8 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
           inserts.push({ table, row });
           return Promise.resolve({ error: null });
         },
-        select() {
+        select(columns = "") {
+          selects.push({ table, columns });
           let result = tables[table] ?? [];
           const q = {
             order() { return q; },
@@ -42,13 +44,13 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
       };
     },
   } as unknown as SupabaseClient;
-  return { db, writes, inserts };
+  return { db, writes, inserts, selects };
 }
 
 const tech = (id: string, key: string, overrides: Row = {}): Row => ({
   id, tech_key: key, display_name: `${key} 이름`, created_at: "2026-11-01T00:00:00Z", grade: "pass", grade_reason: "알려진 문제가 없어요", grade_evidence: null,
   one_liner: `${key} 설명`, one_liner_source: `https://registry.example/${key}`, last_activity_at: "2026-11-10T00:00:00Z",
-  last_activity_kind: "release", repo_url: `https://github.com/o/${key}`, license: "MIT", signals: null, ...overrides,
+  last_activity_kind: "release", repo_url: `https://github.com/o/${key}`, license: "MIT", signals: null, status: "active", ...overrides,
 });
 
 function baseTables(): Tables {
@@ -156,4 +158,17 @@ test("시뮬레이터 적용 기회 알림은 만든 실행(runId)에 잇고, �
   const real = fakeDb(baseTables());
   await createAlertsForChange(real.db, { ...input, runId: "osv-run" });
   assert.deepEqual(real.writes[0].rows.map((r) => "run_id" in r), [false, false]);
+});
+
+test("새 기술이 지원 종료(deprecated)면 알림을 만들지 않는다. 기술 줄을 읽을 때 status 칸도 가져온다(빠지면 이 거르기가 조용히 안 돈다)", async () => {
+  const tables = baseTables();
+  tables.technologies = [tech("mine", "mcp-mine"), tech("new", "mcp-new", { created_at: "2026-11-18T00:00:00Z", status: "deprecated" })];
+  const { db, writes, selects } = fakeDb(tables);
+
+  const created = await createAlertsForChange(db, input);
+
+  assert.equal(created, 0);
+  assert.equal(writes.length, 0);
+  const columns = selects.filter((s) => s.table === "technologies").map((s) => s.columns).join(",");
+  assert.match(columns, /\bstatus\b/);
 });

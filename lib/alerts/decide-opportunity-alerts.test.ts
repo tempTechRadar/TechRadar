@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decideOpportunityAlerts, type OpportunityUsage } from "./decide-opportunity-alerts.ts";
 
-const newTech = { id: "new", techKey: "mcp-new", grade: "pass", createdAt: "2026-11-18T00:00:00Z" };
+const newTech = { id: "new", techKey: "mcp-new", grade: "pass", status: "active", createdAt: "2026-11-18T00:00:00Z" };
 const relations = [{ otherTechId: "mine", status: "confirmed" as const, confirmedAt: "2026-11-18T01:00:00Z" }];
 
 function usage(userId: string, overrides: Partial<OpportunityUsage> = {}): OpportunityUsage {
@@ -71,4 +71,11 @@ test("같은 사람이 같은 기술을 여러 프로젝트에 써도 알림 1�
   assert.deepEqual(first.map((a) => a.myTechnologyId), ["mt-a"]);
   assert.deepEqual(again, []);
   assert.deepEqual(secondUser.map((a) => a.userId), ["late-user"]);
+});
+
+test("새 기술이 지원 종료(deprecated)이거나 사라졌으면(gone) 만들지 않고, 쓰는 중(active)·쉬는 중(dormant)이면 만든다", () => {
+  assert.deepEqual(run({ newTech: { ...newTech, status: "deprecated" } }), []);
+  assert.deepEqual(run({ newTech: { ...newTech, status: "gone" } }), []);
+  assert.equal(run({ newTech: { ...newTech, status: "dormant" } }).length, 2);
+  assert.equal(run().length, 2);
 });

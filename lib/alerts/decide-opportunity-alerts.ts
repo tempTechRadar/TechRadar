@@ -26,7 +26,7 @@ export type NewOpportunityAlert = {
 
 type Input = {
   change: { id: string; isSimulated: boolean };
-  newTech: { id: string; techKey: string; grade: string; createdAt: string };
+  newTech: { id: string; techKey: string; grade: string; /** technologies.status: 지원 종료·사라진 기술을 "새 기술"로 추천하지 않는다 */ status: string; createdAt: string };
   /** 새 기술이 맺은 같은 역할 관계들 */
   relations: OpportunityRelation[];
   usages: OpportunityUsage[];
@@ -34,7 +34,7 @@ type Input = {
 };
 
 export function decideOpportunityAlerts({ change, newTech, relations, usages, existingAlertKeys }: Input): NewOpportunityAlert[] {
-  if (newTech.grade === "danger") return [];
+  if (newTech.grade === "danger" || newTech.status === "deprecated" || newTech.status === "gone") return [];
   const confirmedAt = new Map(relations.filter((r) => r.status === "confirmed" && r.confirmedAt).map((r) => [r.otherTechId, r.confirmedAt!]));
   const alreadyUseNewTech = new Set(usages.filter((u) => u.techId === newTech.id).map((u) => u.userId));
   const isAfter = (iso: string, than: string) => new Date(iso).getTime() > new Date(than).getTime();
