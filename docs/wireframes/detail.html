@@ -48,6 +48,7 @@
       <dl>
         <dt>마지막 확인</dt><dd id="last"></dd>
         <dt>최근 변경</dt><dd id="chg"></dd>
+        <dt>쓰는 곳</dt><dd id="hosts"></dd>
         <dt>내 기술</dt><dd id="mine"></dd>
         <dt>근거</dt><dd>OSV 기록 링크(실제 앱에서 출처마다 링크)</dd>
       </dl>
@@ -75,6 +76,7 @@
       $('why').textContent = text(d.why);
       $('last').textContent = text(d.last);
       $('chg').textContent = typeof d.chg === 'string' && d.chg ? d.chg : '없음';
+      $('hosts').textContent = text(d.hosts) || '모름';
       $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '아니에요(같은 역할로 보여 주는 기술)';
       const nb = Array.isArray(d.nb) ? d.nb.filter((m) => m && typeof m === 'object') : []; // 주소가 망가져도 빈 화면이 되지 않게
       if (!nb.length) $('nb').innerHTML = '<li>이어진 기술이 없어요</li>';

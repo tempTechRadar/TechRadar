@@ -18,6 +18,10 @@
       n: '아직 한 번도 읽지 않았어요. 읽은 뒤에 등급이 정해져요',
     }[n.g]) + (n.err ? `. 지금은 읽기에 실패했어요(${n.err}). 등급은 마지막으로 읽은 결과이고, 문제가 없다고 보지 않아요` : '');
     const QUAD = ['코드 작성', '보안 점검', '데이터', '화면 디자인'];
+    // 쓰는 곳(erd `technologies.hosts`, 여러 개일 수 있음)은 갈래가 아니라 기술의 칸이다(ADR 0008 9번). 보기만 이 칸으로 다시 묶는다. 시안 값은 씨앗으로 정한 예시:
+    // 스킬은 Claude Code(셋 중 하나는 Codex에서도), MCP는 Claude Code나 Cursor(다섯 중 하나는 Codex에서도), 패키지는 따로 쓰는 도구.
+    const HOSTS = ['Claude Code', 'Codex', 'Cursor', '따로 쓰는 도구'];
+    const hostsOf = (kind, seed) => (kind === 'pkg' ? [3] : kind === 'skill' ? (seed % 3 ? [0] : [0, 1]) : [seed % 2 ? 2 : 0, ...(seed % 5 ? [] : [1])]);
     const WIN = 36, PERIOD = 18, TAIL = 150, TRAIL = 70, RAD = Math.PI / 180, RING = 110, MAXN = 1200, DUR = 0.6;
     // 처음 열 때 선은 한 바퀴 2초로 빠르게 돈다. LOAD는 시안에서 데이터를 기다리는 척하는 시간(초)이고 실제 앱에서는 데이터가 오면 끝난다. ?load=3 으로 길게 볼 수 있다.
     const FAST = 2, loadArg = Number(new URLSearchParams(location.search).get('load') ?? 0.9), LOAD = Number.isFinite(loadArg) ? Math.max(0, loadArg) : 0.9;
@@ -29,7 +33,7 @@
       if (g === 'e') { // 읽기 실패를 만드는 약속: 마지막으로 매긴 등급(통과였거나, 한 번도 못 읽었으면 찾지 못함)을 남기고 오류만 덧붙인다
         err = WHY[o.seed % 5]; g = o.seed % 2 ? 'u' : 'p'; h = g === 'u' ? null : 40 + (o.seed % 60);
       }
-      const n = { i: nodes.length, name: `sample-${o.kind}-${++count[o.kind]}`, kind: o.kind, g, h, err, pop: o.pop, chg: !!o.chg, mine: !!o.mine, tier: o.tier,
+      const n = { i: nodes.length, name: `sample-${o.kind}-${++count[o.kind]}`, kind: o.kind, hosts: hostsOf(o.kind, o.seed), g, h, err, pop: o.pop, chg: !!o.chg, mine: !!o.mine, tier: o.tier,
         x: o.x, y: o.y, tx: o.x, ty: o.y, px: o.x, py: o.y, hx: o.x, hy: o.y, parent: o.parent ?? -1, seed: o.seed, kidsN: o.kidsN, expanded: false, born: 0, nb: new Set(), spot: null, k: 0 };
       n.rad = Math.hypot(n.x, n.y); n.deg = ((Math.atan2(n.x, -n.y) / RAD) + 360) % 360; n.q = Math.floor(n.deg / 90);
       n.fresh = !n.err && n.h != null && n.h <= WIN; n.always = n.g === 'd' || n.g === 'w'; n.r = n.always ? Math.max(7, 3.2 + n.pop * 1.1) : 3.2 + n.pop * 1.1;
@@ -124,6 +128,8 @@
     const folded = [false, false, false, false], badgeRect = [null, null, null, null], riskRects = [];
     // 이 점 중심으로 보기: 고른 점과 N단계 이웃만 남긴다(나머지는 감춘다). 접힌 갈래와 같은 "감춤"이라 shown 하나로 처리한다.
     let focusSet = null, focusId = -1, focusDepth = 1, focusPrev = null, cardNode = null, riskTxt = '';
+    // 보기(mode): cat 지도·갈래별, host 지도·쓰는 곳별, tree 나무·쓰는 곳별. arr는 지도의 지금 배치(나무로 갔다 와도 그대로).
+    let mode = 'cat', arr = 'cat', hubs = [], shared = [], foldKeep = null;
     const shown = (n) => !n.cut && !folded[n.q] && (!focusSet || focusSet.has(n.i));
     // 접기: 펼쳐 나온 점은 지우지 않고 감춘다(n.cut). 부모가 접혔거나 감춰졌으면 감춘다. 자식은 늘 부모보다 뒤에 만들어지므로 한 번 훑으면 된다.
     const recut = () => nodes.forEach((n) => { n.cut = n.tier >= 2 && (!nodes[n.parent].expanded || nodes[n.parent].cut); });
@@ -178,7 +184,7 @@
       (pool.length ? pool : nodes.filter(shown)).forEach((n) => { x0 = Math.min(x0, n.tx); x1 = Math.max(x1, n.tx); y0 = Math.min(y0, n.ty); y1 = Math.max(y1, n.ty); });
       if (withOrigin === true || x0 > x1) { x0 = Math.min(x0, 0); x1 = Math.max(x1, 0); y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
       const s = Math.min(W / (x1 - x0 + 220), H / (y1 - y0 + 260));
-      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp(s / base(), 0.2, maxK));
+      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp((s / base()) * (arr === 'host' ? 0.88 : 1), 0.2, maxK)); // 쓰는 곳별은 묶음 이름이 점 위에 붙어 맨 위 묶음이 단추 줄에 가리지 않게 조금 더 물러난다
     }
     const loading = () => intro?.phase === 'load'; // 데이터가 오기 전에는 개수도 보이지 않는다(불변 6)
     function startReveal() { intro.phase = 'reveal'; intro.sweep0 = theta; $('loading').hidden = true; fit(); if (fly) fly.d = 1.8; refresh(); }
@@ -223,7 +229,7 @@
         ctx.strokeStyle = `rgba(30,143,85,${(g * Math.max(0.05, 0.42 / Math.pow(k, 0.7))).toFixed(3)})`; ctx.beginPath(); ctx.arc(cx, cy, r0 * g, 0, 6.2832); ctx.stroke(); lastRings++;
       }
       ctx.strokeStyle = 'rgba(30,143,85,.22)'; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
-      if (!intro && s > 0.45 && s < 3) { // 갈래 이름은 가까이 볼 때만
+      if (!intro && arr === 'cat' && s > 0.45 && s < 3) { // 갈래 이름은 가까이 볼 때만(쓰는 곳별 배치에서는 각도가 갈래가 아니라 빼다)
         ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = '#1fa85a'; ctx.textAlign = 'center';
         QUAD.forEach((t, q) => { if (folded[q]) return; const p = polar(q * 90 + 45, 395), [x, y] = toScreen(p.x, p.y); ctx.fillText(t, x, y); });
         ctx.textAlign = 'left';
@@ -254,7 +260,7 @@
         const pt = (now - pulseAt) / 2.4; // C 점검 한 번이 끝나면 한 번 퍼지는 파동
         if (pt < 1) { ctx.strokeStyle = `rgba(46,213,115,${((1 - pt) * 0.2).toFixed(3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, far * ease(pt), 0, 6.2832); ctx.stroke(); }
       }
-      if (!intro && !paused) QUAD.forEach((t, q) => { // A 갈래에 들어서면 그 갈래의 요약이 잠깐
+      if (!intro && !paused && arr === 'cat') QUAD.forEach((t, q) => { // A 갈래에 들어서면 그 갈래의 요약이 잠깐
         const age = now - quadAt[q]; if (folded[q] || age > 2.6) return;
         const vis = nodes.filter((n) => n.q === q && shown(n)), cnt = (f) => vis.filter(f).length;
         const R = clamp(395 * s, 130, 0.36 * Math.min(W, H)), ang = (q * 90 + 45) * RAD, x = cx + R * Math.sin(ang), y = cy - R * Math.cos(ang);
@@ -268,11 +274,21 @@
 
       const focus = hoverId >= 0 ? hoverId : selId, fam = focus >= 0 ? nodes[focus] : null;
       const P = nodes.map((n) => { const [x, y] = posOf(n, now); const [sx, sy] = toScreen(x, y); n.sx = sx; n.sy = sy; n.app = appear(n, now); n.hdl = null; return n; });
-      // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다.
+      if (arr === 'host') { // 쓰는 곳 → 종류 → 점을 잇는 옅은 선. 두 곳에서 쓰는 점은 두 묶음 모두에 닿는다
+        ctx.strokeStyle = 'rgba(46,213,115,.13)'; ctx.lineWidth = 1; ctx.beginPath();
+        hubs.forEach((hb) => { const [hx, hy] = toScreen(hb.x, hb.y); hb.kids.forEach((sb) => {
+          const [bx, by] = toScreen(sb.x, sb.y); ctx.moveTo(hx, hy); ctx.lineTo(bx, by);
+          sb.members.forEach((n) => { if (shown(n) && n.app) { ctx.moveTo(bx, by); ctx.lineTo(n.sx, n.sy); } });
+        }); });
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(46,213,115,.5)'; // 선이 모이는 묶음 중심(모두 다른 곳과 함께 쓰는 묶음은 점 없이 중심만 남는다)
+        hubs.forEach((hb) => [hb, ...hb.kids].forEach((b) => { const [x, y] = toScreen(b.x, b.y); ctx.beginPath(); ctx.arc(x, y, b === hb ? 4 : 2.5, 0, 6.2832); ctx.fill(); }));
+      }
+      // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다. 쓰는 곳별 배치에서는 묶음 선과 섞이지 않게 올린 점의 선만 그린다.
       const inFam = (e) => fam && (e.a === focus || e.b === focus), faint = [];
       ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${C.edge},${fam ? 0.07 : 0.24})`; ctx.beginPath();
       edges.forEach((e) => {
-        if (inFam(e)) return; const a = P[e.a], b = P[e.b]; if (!shown(a) || !shown(b)) return;
+        if (inFam(e) || arr === 'host') return; const a = P[e.a], b = P[e.b]; if (!shown(a) || !shown(b)) return;
         if ((a.sx < -50 && b.sx < -50) || (a.sx > W + 50 && b.sx > W + 50) || (a.sy < -50 && b.sy < -50) || (a.sy > H + 50 && b.sy > H + 50)) return;
         if (fActive && !(isOn(a) && isOn(b))) { faint.push(e); return; }
         const ap = Math.min(a.app, b.app); if (ap <= 0) return; // 처음 열 때 선은 두 점이 나타난 뒤 한쪽에서 뻗어 나간다
@@ -336,6 +352,19 @@
         ctx.globalAlpha = (fam && n !== fam && !fam.nb.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
       });
       ctx.globalAlpha = 1;
+      if (arr === 'host' && !intro) { // 묶음 이름과 지금 보이는 점 수(쓰는 곳은 크게, 종류는 작게)
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg;
+        hubs.forEach((hb) => {
+          const cnt = hb.kids.map((sb) => sb.members.filter(shown).length), tot = cnt.reduce((a, b) => a + b, 0); if (!tot) return;
+          const [x, y] = toScreen(hb.x, hb.y), t = `${hb.label} ${tot}`;
+          ctx.font = '700 14px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green; ctx.strokeText(t, x, y); ctx.fillText(t, x, y);
+          ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.muted;
+          hb.kids.forEach((sb, k) => { if (!cnt[k]) return; const [bx, by] = toScreen(sb.x, sb.y - sb.r), u = `${sb.label} ${cnt[k]}`; ctx.strokeText(u, bx, by - 10); ctx.fillText(u, bx, by - 10); }); // 묶음 위에(점 이름과 겹치지 않게)
+        });
+        ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.muted;
+        shared.forEach((sh) => { const c = sh.members.filter(shown).length; if (!c) return; const [x, y] = toScreen(sh.x, sh.y - sh.r), u = `${sh.label} ${c}`; ctx.strokeText(u, x, y - 10); ctx.fillText(u, x, y - 10); });
+        ctx.textAlign = 'left';
+      }
       if (intro) riskRects.length = 0; else drawRisk(P);
       placeTip();
     }
@@ -464,7 +493,7 @@
       const simming = simStep(dt), settling = settle(dt);
       const animating = simming || settling || nodes.some((n) => n.born || (n.rip && now - n.rip < 0.7)) || !!fly || !!intro;
       if (labelsDirty && now - lastLabelAt > 0.12 && !animating) placeLabels(now);
-      if ((!paused || dirty || animating) && (now - lastDraw >= 0.03 || dirty)) { draw(now); lastDraw = now; dirty = false; }
+      if (mode !== 'tree' && (!paused || dirty || animating) && (now - lastDraw >= 0.03 || dirty)) { draw(now); lastDraw = now; dirty = false; }
       requestAnimationFrame(frame);
     }
 
@@ -613,14 +642,14 @@
     function describe(n) {
       cardNode = n; tipBox = null;
       tip.innerHTML = `<h2>${dot(n)}<span>${n.name}</span><span class="g" style="color:${n.g === 'd' ? C.danger : n.g === 'w' ? C.warn : C.ink}">${gradeText(n)}</span></h2><p>${gradeWhy(n)}</p>
-        <p class="meta">마지막 확인 ${lastText(n)} · ${KIND[n.kind]} · ${QUAD[n.q]}${n.mine ? ' · 내 기술' : ''}</p>${deltaOf(n) ? `<p class="meta">최근 변경: ${deltaText(n)}</p>` : ''}
+        <p class="meta">마지막 확인 ${lastText(n)} · ${KIND[n.kind]} · ${QUAD[n.q]}${n.mine ? ' · 내 기술' : ''}</p><p class="meta">쓰는 곳: ${hostText(n)}</p>${deltaOf(n) ? `<p class="meta">최근 변경: ${deltaText(n)}</p>` : ''}
         <p class="hint">누르면 상세${n.kidsN ? (n.expanded ? ' · 펼쳤어요(−로 접어요)' : ` · 펼칠 수 있음 ${n.kidsN}개(+)`) : ''}</p>
         <div class="acts"><button type="button" class="tbtn" data-detail>상세 보기</button>${n.kidsN ? `<button type="button" class="tbtn" data-exp aria-keyshortcuts="E">${n.expanded ? '접기' : `펼치기 +${n.kidsN}`}</button>` : ''}<button type="button" class="tbtn" data-focus>${focusSet && focusId === n.i ? '중심으로 보는 중' : '중심 보기'}</button></div>
         ${n.i === selId ? `<div class="acts"><span class="lab">옮기기</span>${MOVES.map(([v, s, l]) => `<button type="button" class="tbtn" data-mv="${v}" aria-label="이 점을 ${l} 옮기기">${s}</button>`).join('')}</div>` : ''}`;
     }
     function syncTip() {
       clearTimeout(tipTimer);
-      if (drag?.node) { tip.hidden = true; return; } // 끄는 동안엔 따라오는 이웃을 가리지 않게 감추고, 놓으면 다시 띄운다
+      if (drag?.node || mode === 'tree') { tip.hidden = true; return; } // 끄는 동안엔 따라오는 이웃을 가리지 않게 감추고, 놓으면 다시 띄운다
       const i = tipHold && tipFor >= 0 ? tipFor : hoverId >= 0 ? hoverId : selId;
       if (i < 0 || !shown(nodes[i])) { tipFor = -1; cardNode = null; tip.hidden = true; return; }
       if (i !== tipFor) { tipFor = i; describe(nodes[i]); }
@@ -655,11 +684,12 @@
     });
 
     // ---- 상세(IA-4): 같은 탭에서 연다. 보던 자리와 펼친 순서를 주소(#)에 남겨, 뒤로 오면 그대로 되살린다(끌어 옮긴 자리·거르기·갈래 접기는 남기지 않는다).
-    const saveState = () => `v=${view.x.toFixed(1)},${view.y.toFixed(1)},${view.k.toFixed(3)}&e=${made.join('.')}&c=${made.filter((i) => !nodes[i].expanded).join('.')}`;
+    const saveState = () => `v=${view.x.toFixed(1)},${view.y.toFixed(1)},${view.k.toFixed(3)}&e=${made.join('.')}&c=${made.filter((i) => !nodes[i].expanded).join('.')}&m=${mode}`;
+    const hostText = (n) => n.hosts.map((h) => HOSTS[h]).join(' · ');
     function openDetail(n) {
       land();
       const nb = [...n.nb].map((i) => nodes[i]).filter((m) => !m.cut).slice(0, 12).map((m) => ({ name: m.name, grade: gradeText(m), g: m.g }));
-      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, nb };
+      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, hosts: hostText(n), nb };
       history.replaceState(null, '', `#${saveState()}`);
       location.href = `detail.html?d=${encodeURIComponent(JSON.stringify(d))}`;
     }
@@ -673,6 +703,9 @@
         const was = new Set(nodes.filter((m) => !m.cut).map((m) => m.i)), born = performance.now() / 1000;
         n.expanded = true; recut(); kids = nodes.filter((m) => !m.cut && !was.has(m.i));
         if (!paused) kids.forEach((k) => { k.born = born; });
+      } else if (arr === 'host') { // 갈래별 자리에서 펼친다(갈래별로 돌아가면 갈래 안에 있게). 그 뒤 쓰는 곳별로 다시 놓는다
+        nodes.forEach((m) => { [m.tx, m.ty] = m.cat; }); syncPolar();
+        kids = expand(n); kids.forEach((k) => { k.cat = [k.tx, k.ty, k.hx, k.hy]; }); hostLayout();
       } else kids = expand(n);
       if (focusSet && focusSet.has(n.i)) kids.forEach((k) => focusSet.add(k.i)); // 중심 보기 중에 펼친 점은 보인다
       if (!kids.length) { if (!quiet && n.kidsN) { $('stat').dataset.msg = '시안에서는 기술 1,200개까지만 펼쳐요'; refresh(); } return []; }
@@ -728,7 +761,7 @@
       $('home').disabled = !movedN;
       $('stat').innerHTML = `기술 ${nodes.length}개${hiddenN ? `(지금 감춘 ${hiddenN}개)` : ''} 연결 ${edges.length}개${movedN ? ` 옮긴 점 ${movedN}개` : ''}<br>최근 확인 ${fresh}개${msg ? `<br>${msg}` : ''}`;
       if (!run) say(msg);
-      renderTable();
+      renderTable(); renderTree();
     }
     // 표 보기: 지도와 같은 모든 점(접힌·걸러진·감춘 점도). 위험 먼저·이름순·마지막 확인이 오래된 순으로 정렬하고, 상태(범례와 같은 판정)와 이름으로 거른다.
     const SEV = (n) => (n.g === 'd' ? 0 : n.g === 'w' ? 1 : n.err ? 2 : n.g === 'u' ? 3 : n.g === 'n' ? 4 : 5);
@@ -748,6 +781,75 @@
       const at = [...$('rows').querySelectorAll('[data-expand]')].indexOf(b); expandNode(nodes[+b.dataset.expand]);
       const left = $('rows').querySelectorAll('[data-expand]'); (left[at] ?? left[left.length - 1] ?? $('tableBox').querySelector('summary')).focus(); // 누른 단추는 사라지므로 포커스를 다음 단추로
     });
+
+    // ---- 쓰는 곳별 지도: 같은 점을 쓰는 곳(큰 묶음) 둘레에 종류(작은 묶음)로 모은다. 여러 곳에서 쓰는 점은 그 묶음들 사이에 놓이고 선이 모두에 닿는다.
+    // 갈래별 자리(n.cat)는 기억해 두었다가 돌아갈 때 되살린다. 등급·밝기·갈래(q)는 자리가 아니라 데이터라 그대로다. 갈래 접기는 갈래별에서만 쓴다.
+    // 같은 쓰는 곳 묶음(예: Claude Code+Codex)·같은 종류인 점끼리 해바라기 모양으로 모은다(반지름이 √점 수에 비례). 두 곳 묶음은 두 종류 묶음의 가운데에 놓는다.
+    // 점 순서(i)대로 놓아서 펼쳐도 있던 점은 거의 그대로다(묶음이 커지면 간격만 넓어진다).
+    const spot = (c) => 24 * Math.sqrt(c) + 18; // 점 c개 해바라기의 반지름(세계 좌표)
+    function hostLayout() {
+      const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`;
+      nodes.forEach((n) => (sets.get(key(n)) ?? sets.set(key(n), []).get(key(n))).push(n));
+      const S = Math.max(...[...sets.values()].map((l) => spot(l.length))), R = 4.2 * S + 140, D = 1.8 * S + 40;
+      hubs = HOSTS.map((label, h) => { const a = 45 + h * 90; return { ...polar(a, R), a, label, kids: [] }; }); shared = [];
+      const subOf = (h, k) => {
+        const hb = hubs[h]; let sb = hb.kids.find((b) => b.kind === k);
+        if (!sb) { const o = polar(hb.a + (KINDS.indexOf(k) - 1) * 70, D); sb = { x: hb.x + o.x, y: hb.y + o.y, kind: k, label: KIND[k], r: 18, members: [] }; hb.kids.push(sb); }
+        return sb;
+      };
+      sets.forEach((l) => {
+        const subs = l[0].hosts.map((h) => subOf(h, l[0].kind)), cx = subs.reduce((s, b) => s + b.x, 0) / subs.length, cy = subs.reduce((s, b) => s + b.y, 0) / subs.length;
+        subs.forEach((b) => { b.members.push(...l); if (subs.length === 1) b.r = spot(l.length); });
+        if (subs.length > 1) shared.push({ x: cx, y: cy, r: spot(l.length), label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l });
+        l.forEach((n, j) => { const p = polar(j * 137.508, (subs.length > 1 ? 0 : 30) + 24 * Math.sqrt(j)); n.tx = n.hx = cx + p.x; n.ty = n.hy = cy + p.y; });
+      });
+      syncPolar(); dirty = labelsDirty = true;
+    }
+    function arrange(a) {
+      sim = null; arr = a;
+      if (a === 'host') { nodes.forEach((n) => { n.cat = [n.tx, n.ty, n.hx, n.hy]; }); foldKeep = [...folded]; folded.fill(false); hostLayout(); }
+      else { nodes.forEach((n) => { [n.tx, n.ty, n.hx, n.hy] = n.cat; }); folded.splice(0, 4, ...foldKeep); syncPolar(); }
+      $('folds').hidden = a === 'host'; syncFolds(); dropCut(); fit();
+    }
+    function setView(v) {
+      if (v === mode) return;
+      mode = v; if (v !== 'tree' && v !== arr) arrange(v);
+      $('stage').dataset.mode = v === 'tree' ? 'tree' : 'map'; $('treeView').hidden = v !== 'tree';
+      document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+      $('stat').dataset.msg = { cat: '갈래별 지도로 봐요', host: '쓰는 곳별 지도로 봐요. 큰 글자는 쓰는 곳, 작은 글자는 종류예요', tree: '쓰는 곳별 나무로 봐요' }[v];
+      syncTip(); refresh(); dirty = labelsDirty = true;
+    }
+    $('views').addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
+
+    // ---- 쓰는 곳별 나무: 쓰는 곳 → 종류 → 갈래 → 기술을 접고 펴는 목록으로. 지도에 지금 보이는(거르기에 맞는) 점만, 위험 먼저.
+    // 접힌 가지도 위험 수는 이름 옆에 남긴다(갈래 접기 배지와 같은 이유). 누르면 상세, "지도"는 그 점을 지도에서 보여 준다.
+    const treeFlip = new Set(); // 기본(쓰는 곳·종류는 펼침, 갈래는 접힘)과 다르게 둔 가지
+    let lastTree = '';
+    function renderTree() {
+      if (mode !== 'tree') return;
+      const box = $('treeView'), items = nodes.filter((n) => shown(n) && isOn(n)).sort((a, b) => (SEV(a) - SEV(b)) || nat(a, b));
+      const rk = (l) => { const d = l.filter((n) => n.g === 'd').length; return d ? ` <span class="rk">위험 ${d}</span>` : ''; };
+      const branch = (key, lvl, label, l, inner) => `<li><details data-k="${key}" data-l="${lvl}"${(lvl < 3) !== treeFlip.has(key) ? ' open' : ''}><summary>${label} <b>${l.length}</b>${rk(l)}</summary><ul>${inner}</ul></details></li>`;
+      const leaf = (n, h) => {
+        const also = n.hosts.filter((x) => x !== h).map((x) => HOSTS[x]);
+        return `<li class="row"><button type="button" class="leaf" data-open="${n.i}">${dot(n)}<span>${n.name}</span><span class="m">${gradeText(n)}${deltaOf(n) ? ` · ${deltaText(n)}` : ''}${also.length ? ` · ${also.join('·')}에서도` : ''}</span></button><button type="button" class="tbtn" data-map="${n.i}" aria-label="${n.name} 지도에서 보기">지도</button></li>`;
+      };
+      const html = HOSTS.map((hn, h) => {
+        const inH = items.filter((n) => n.hosts.includes(h)); if (!inH.length) return '';
+        return branch(`${h}`, 1, hn, inH, KINDS.map((k) => {
+          const inK = inH.filter((n) => n.kind === k); if (!inK.length) return '';
+          return branch(`${h}.${k}`, 2, KIND[k], inK, QUAD.map((qn, q) => { const l = inK.filter((n) => n.q === q); return l.length ? branch(`${h}.${k}.${q}`, 3, qn, l, l.map((n) => leaf(n, h)).join('')) : ''; }).join(''));
+        }).join(''));
+      }).join('');
+      const out = `<p class="note">쓰는 곳 → 종류 → 갈래로 묶었어요. 지도에 지금 보이는 기술 ${items.length}개만 나와요(모두 펼치기로 늘어요). 여러 곳에서 쓰는 기술은 곳마다 보여서 합계가 더 클 수 있어요.</p>${html ? `<ul>${html}</ul>` : '<p class="note">보여 줄 기술이 없어요. 거르기를 풀어 보세요</p>'}`;
+      box.style.paddingTop = `${document.querySelector('.title').offsetHeight + 8}px`;
+      if (out === lastTree) return; // 바뀐 게 없으면 다시 만들지 않는다(누르던 단추의 포커스가 날아가지 않게)
+      const a = document.activeElement, keep = box.contains(a) ? (a.dataset.open ? `[data-open="${a.dataset.open}"]` : a.dataset.map ? `[data-map="${a.dataset.map}"]` : a.parentElement?.dataset.k ? `[data-k="${a.parentElement.dataset.k}"] > summary` : null) : null;
+      lastTree = out; box.innerHTML = out;
+      if (keep) box.querySelector(keep)?.focus();
+    }
+    $('treeView').addEventListener('toggle', (e) => { const d = e.target; if (!d.dataset?.k) return; if (d.open === (+d.dataset.l < 3)) treeFlip.delete(d.dataset.k); else treeFlip.add(d.dataset.k); }, true);
+    $('treeView').addEventListener('click', (e) => { const o = e.target.closest('[data-open]'), m = e.target.closest('[data-map]'); if (o) openDetail(nodes[+o.dataset.open]); else if (m) goTo(nodes[+m.dataset.map]); });
 
     // ---- 갈래 접기: 단추 이름은 그대로 두고 펼침 상태(aria-expanded)만 바꾼다.
     const foldBox = $('folds');
@@ -775,7 +877,8 @@
       const t = text.trim().toLowerCase();
       return t ? nodes.filter((n) => `${n.name} ${KIND[n.kind]}`.toLowerCase().includes(t)).sort((a, b) => (b.always - a.always) || (b.mine - a.mine) || a.name.localeCompare(b.name, 'en', { numeric: true })) : [];
     };
-    function goTo(n, focusMap = true) { // 감춰져 있으면(중심 보기·거르기·접기) 풀고 보여 준다
+    function goTo(n, focusMap = true) { // 감춰져 있으면(중심 보기·거르기·접기) 풀고 보여 준다. 나무에서 부르면 지도로 돌아간다
+      if (mode === 'tree') setView(arr);
       if (focusSet && !focusSet.has(n.i)) exitFocus(false);
       if (fActive && !isOn(n)) clearFilters();
       if (folded[n.q]) setFold(n.q, false);
@@ -822,7 +925,7 @@
       + '<li><button type="button" class="chip" id="fclear" hidden>거르기 풀기</button></li>'
       + `<li>${svg(`<circle r="5.5" fill="${C.bg}" stroke="#2ed573" stroke-width="1.2"/><path d="M-3 0H3M0-3V3" stroke="#2ed573" stroke-width="1.2"/>`)}+ 손잡이: 같은 역할 기술 펼치기(−는 접기)</li>`
       + `<li>${svg(`<path d="M0-4.5L4.5 3.5H-4.5Z" fill="${C.ink}"/>`)}등급이 나빠짐 ${svg(`<path d="M0 4.5L4.5-3.5H-4.5Z" fill="${C.ink}"/>`)}나아짐</li>`
-      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
+      + `<li>${svg(`<path d="M0-5L1.3-1.3L5 0L1.3 1.3L0 5L-1.3 1.3L-5 0L-1.3-1.3Z" fill="${C.ink}"/>`)}새로 들어옴 ${svg(`<circle r="3" fill="${C.ink}"/>`)}그 밖의 변경(점 오른쪽 위, 지난 확인 대비)</li><li>최근 확인한 점은 선이 닿으면 밝아져요</li><li>쓰는 곳별 지도: 큰 글자는 쓰는 곳, 작은 글자는 종류예요. 두 곳 이상에서 쓰는 점은 그 사이에 놓여요</li><li>도는 선은 시간 표시예요. 검사 중이라는 뜻은 아니에요(점검 중에는 선이 읽는 점에서 멈춰요)</li>`;
     function syncLegend() {
       const vis = nodes.filter(shown);
       legend.querySelectorAll('[data-f]').forEach((b) => { b.setAttribute('aria-pressed', String(fstate.has(b.dataset.f))); b.querySelector('b').textContent = loading() ? '…' : vis.filter(STATE[b.dataset.f]).length; });
@@ -948,7 +1051,7 @@
 
     window.__g = { nodes, edges, view, expand: expandNode, fit, zoomAt, sc, toScreen, get theta() { return theta; }, get paused() { return paused; }, get rings() { return lastRings; }, TAIL, size: () => ({ W, H }), hit, folded, fold: setFold, find, goTo, badgeRect, move: moveNode, ropes: captureRopes, home: goHome, isMoved,
       isOn, fstate, fkind, afterFilter, clearFilters, riskList, jumpRisk, riskRects, focus: enterFocus, depth: setDepth, exitFocus, get focusSet() { return focusSet; }, nudge, shown, navList, stepNode, stepNeighbor, renderTable,
-      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; } };
+      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; }, setView, get mode() { return mode; }, get arr() { return arr; }, get hubs() { return hubs; }, HOSTS };
     // 상세에서 뒤로 왔으면(#v=…) 처음 열기 없이 보던 자리와 펼친 모습을 되살린다. 같은 순서로 다시 펼치면 같은 점이 같은 자리에 생긴다.
     const saved = new URLSearchParams(location.hash.slice(1)), sv = saved.get('v')?.split(',').map(Number), restored = sv?.length === 3 && sv.every(Number.isFinite);
     if (restored) {
@@ -959,6 +1062,8 @@
       Object.assign(view, { x: sv[0], y: sv[1], k: clamp(sv[2], 0.2, 6) });
     }
     resize(); syncFolds(); refresh(); syncPause();
+    const m0 = saved.get('m'); // 상세에서 돌아오면 보던 보기도 되살린다(쓰는 곳별 자리는 데이터로 다시 계산된다)
+    if (restored && (m0 === 'host' || m0 === 'tree')) { setView(m0); land(); nodes.forEach((n) => { n.px = n.tx; n.py = n.ty; }); Object.assign(view, { x: sv[0], y: sv[1], k: clamp(sv[2], 0.2, 6) }); }
     if (intro) { view.k = 2.2; $('loading').hidden = false; $('risk').hidden = true; } else if (!restored) { fit(); land(); } // 처음에는 나를 가까이서 보다가, 데이터가 오면 물러난다
     requestAnimationFrame(frame);
   })();
