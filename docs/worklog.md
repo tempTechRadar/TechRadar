@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12b-first-check | P-12b 첫 점검 요약 띠: 가장 최근 첫 읽기 실행의 등급 건수로 "첫 점검: 위험 n · 주의 n"을 만들어 대시보드 맨 위에 한 번 보여 줌(확인을 누르면 사라짐), 읽지 못한 기술은 "빠졌어요"로 덧붙임. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12b-first-check`, `docs/intent.md` I-P-12b-first-check |
 | I-p13-real-call-check | P-13 실제 호출 확인 기록: 사용자가 키를 넣은 뒤 Claude가 실제 호출 1번과 운영 DB 시뮬레이터 1번(확인 10개 통과, 만든 줄 모두 지움)으로 초안 저장을 확인하고 intent·qa·worklog·plan·connectors에 기록. #110이 이미 합쳐져 새 브랜치로 올림. 초안 품질 질문 2개는 열린 질문 ⑩ | 나(키 넣기·승인) · Claude(호출·확인·기록) | `docs/p13-real-call-check`, `docs/intent.md` I-p13-real-call-check |
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
 | I-slides-draft | 발표 슬라이드 초안: 단계 점검 9단계 ❌(`slides/` 0파일)에 사용자 "추천대로 진행"과 디자인 "앱 디자인 컨셉(기술 레이더)을 따라감"을 받아 `slides/index.html` 15장을 만듦. 문서·DB·`gh` 집계에서 가져온 사실에 장마다 출처를 달고, 아직 사실이 없는 곳은 "▢ 채울 것"으로 둠 | 나(요청·디자인 선택) · Claude(작성·확인) | `slides/index.html`, `docs/intent.md` I-slides-draft |
