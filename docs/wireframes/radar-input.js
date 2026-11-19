@@ -134,7 +134,9 @@
     if (dim) {
       const filter = { ...S.view.filter }, set = new Set(filter[dim] || []);
       if (el.checked) set.add(el.value); else set.delete(el.value);
-      filter[dim] = set; U.setView({ filter });
+      filter[dim] = set;
+      if (dim === 'field' && !el.checked && filter.sub) filter.sub = new Set([...filter.sub].filter((sv) => !(TR.radar.CATS[el.value] || []).includes(sv))); // 접힌 세부 갈래가 몰래 남지 않게
+      U.setView({ filter });
       $('fPop').querySelector(`[data-f="${dim}"][value="${CSS.escape(el.value)}"]`)?.focus();
     } else if (el.dataset.b) { U.setView({ [el.dataset.b]: el.checked }); $('fPop').querySelector(`[data-b="${el.dataset.b}"]`)?.focus(); }
   });

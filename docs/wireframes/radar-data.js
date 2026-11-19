@@ -75,7 +75,7 @@
     // 이유는 DB tech_relations의 quote(한 줄 근거) · made_by(seed/rule/ai/admin) · confirmed_at과 같은 모양
     const edges = TR.SAME.map((e) => [...e]), why = new Map();
     TR.SAME.forEach(([a, b], i) => why.set(`${a}|${b}`, { quote: SAME_WHY[i], by: 'admin', confirmedAt: '11월 12일', who: '관리자 확인 · 11월 12일' }));
-    // 내 기술의 확인된 비교군(한 단계, IA-Q5): "내 기술과 비교군" 필터가 쓴다(ADR 0027 제안)
+    // 내 기술의 확인된 비교군(한 단계, IA-Q5): "내 기술과 비교군" 필터가 쓴다(ADR 0027 확정)
     TR.SAME.forEach(([a, b]) => { if (byId[a].mine) byId[b].nearMine = true; if (byId[b].mine) byId[a].nearMine = true; });
     const bySub = {};
     techs.forEach((t) => t.sub && (bySub[t.sub] ||= []).push(t.id));

@@ -227,7 +227,7 @@
     $('fPop').innerHTML = `<fieldset><legend>보안</legend><label><input type="checkbox" data-b="risky"${S.view.risky ? ' checked' : ''}> 위험·주의만 ${cnt((t) => t.grade === '위험' || t.grade === '주의')}</label><label><input type="checkbox" data-b="err"${S.view.err ? ' checked' : ''}> 수집 오류만 ${cnt((t) => t.err)}</label></fieldset>
       <fieldset><legend>새로 들어옴</legend><label><input type="checkbox" data-b="nw"${S.view.nw ? ' checked' : ''}> NEW만(이번 주) ${cnt((t) => t.nw)}</label></fieldset>
       <fieldset><legend>내 기술</legend><label><input type="checkbox" data-b="mine"${S.view.mine ? ' checked' : ''}${login ? '' : ' disabled'}> 내 기술과 비교군(한 단계)${login ? ' ' + cnt((t) => t.mine || t.nearMine) : ' (로그인 뒤)'}</label></fieldset>
-      <fieldset><legend>종류</legend>${kinds.map((v) => box('kind', v)).join('')}</fieldset><fieldset><legend>하는 일</legend>${fields.map((v) => box('field', v)).join('')}</fieldset>`;
+      <fieldset><legend>종류</legend>${kinds.map((v) => box('kind', v)).join('')}</fieldset><fieldset><legend>하는 일</legend>${fields.map((v) => box('field', v) + (f.field && f.field.has(v) && TR.radar.CATS[v] ? `<div class="subf" role="group" aria-label="${esc(v)}의 세부 갈래">${TR.radar.CATS[v].map((sv) => box('sub', sv)).join('')}</div>` : '')).join('')}</fieldset>`;
     const n = Object.values(f).reduce((s, x) => s + x.size, 0) + S.view.risky + S.view.mine + S.view.nw + S.view.err;
     $('fCount').textContent = n ? n : '';
     $('saveNote').textContent = login ? '보기는 내 계정에 저장돼요' : '로그인 전: 보기는 저장 안 돼요 · 주소로 공유';
@@ -237,7 +237,7 @@
   function syncSummary() { // 첫 화면에서 바로 보이게(UJ-1, IA-Q1-3)
     const wait = ALERTS.filter((a) => a.status === 'wait').length, nw = techs.filter((t) => t.nw).length, err = techs.filter((t) => t.err).length;
     const mineN = techs.filter((t) => t.mine).length, nearN = techs.filter((t) => t.mine || t.nearMine).length;
-    // 로그인 뒤 기본은 전체 지도, 내 기술 중심은 칩 하나로(ADR 0027 제안: D8 "작게"를 필터로)
+    // 로그인 뒤 기본은 전체 지도, 내 기술 중심은 칩 하나로(ADR 0027 확정: D8 "작게"를 필터로)
     $('summary').innerHTML = `${login ? `<a class="chip strong" href="journey.html#alerts">판단 대기 <b>${wait}</b></a>` : ''}${login && mineN ? `<button class="chip" type="button" data-minechip aria-pressed="${S.view.mine}" title="내 기술 ${mineN}개와 확인된 비교군만">내 기술과 비교군 <b>${nearN}</b></button>` : ''}<button class="chip" type="button" data-nwchip aria-pressed="${S.view.nw}">이번 주 NEW <b>${nw}</b></button>
       <span class="muted">마지막 수집 ${TR.radar.LAST_RUN} · 모은 기술 ${techs.length}${err ? ` · 수집 오류 ${err}` : ''}</span>`;
   }
