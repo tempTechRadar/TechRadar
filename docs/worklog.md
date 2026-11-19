@@ -22,6 +22,7 @@
 | I-alert-run-id | 첫 읽기 알림의 조치 상자가 회색인 원인을 확인: `observationId`로 이으면 공유 변경 때문에 남의 실행에 기록됨(불변 5). 알림에 `run_id` 칸(마이그레이션)을 더해 읽기를 실행한 본인의 알림에만 적고 조치 기록이 먼저 보게 함. 시험 4개를 먼저 실패시킨 뒤 구현(PR #83) | 나(요청) · Claude | `supabase/migrations/202611181800_P-8_alert_run_id.sql`, `lib/server/action-record.ts`·`notify-owner.ts` |
 | I-P-25-extras | 보류 회고·기술 비교·이번 주 요약: 와이어프레임(`extras.html`)을 먼저 확인받고, 순수 함수·읽기 시험 14개를 먼저 실패시킨 뒤 구현. 실제 컴포넌트를 샘플 데이터로 그려 데스크톱·390px 화면을 확인(PR #114) | 나(요청) · Claude | `app/dashboard/extra-cards.tsx`, `app/compare/`, `lib/alerts/find-review-due.ts` 외 |
 | I-B-record-3-1119 | 위 세 작업을 `plan`(P-7·P-8·P-25 결과 칸)·`qa`(Claude QA 3행, 사람 QA 2행 No Run)·`intent`에 기록 | 나(요청) · Claude | `docs/plan.md`·`qa.md`·`intent.md`·`worklog.md` |
+| I-plan-status-1119 | 안내서 요건표와 main·운영 DB·Vercel을 대조해 남은 일 9개와 팀원별 현황을 정리하고 plan 4절 상태 칸·"11-19 점검" 표·5절 숫자를 맞춤. 위키·챗봇 없음, 운영 알림 0건, `ai_calls` 0건, `schedule` 실행 0줄을 찾음 | 나(요청 "안내서 비교해서 미비한 것과 팀원별 현황") · Claude(대조·조회·정리) | `docs/plan.md` 4절 끝 "11-19 점검" |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
