@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -18,7 +19,7 @@ export default async function TastePage({ searchParams }: { searchParams: Promis
       <h1>취향 알려 주기</h1>
       <p className="muted">모두 건너뛸 수 있고, 나중에 여기서 고칠 수 있어요. 고른 관심 분야로 추천 목록을 만들어요(알림이 아니에요).</p>
       {saved === undefined ? (
-        <div className="notice notice-error" role="alert"><strong>취향을 불러오지 못했어요.</strong> 잠시 뒤에 다시 열어 주세요.</div>
+        <div className="notice notice-error" role="alert"><strong>취향을 불러오지 못했어요.</strong> 잠시 뒤에 다시 열어 주세요. {params.onboarding === "1" ? <Link href={safeNext(params.next)}>건너뛰기</Link> : null}</div>
       ) : (
         <TasteForm initial={saved ?? { build: null, tools: [], interests: [] }} onboarding={params.onboarding === "1"} next={safeNext(params.next)} />
       )}
