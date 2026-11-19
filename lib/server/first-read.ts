@@ -8,6 +8,8 @@ import { readLatestChange, saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
 import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readMcpJson, readPackageJson, type FoundTech } from "../domain/manifest.ts";
+import { SKILLS_DIR } from "../domain/skills.ts";
+import { readSkills } from "./read-skills.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
 
@@ -49,7 +51,9 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   const techIds = await saveMyTechnologies(db, { ownerId: ctx.ownerId, projectId, readAt }, found);
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음)
   for (const f of fileErrors) {
-    const r = await db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId).eq("source_file", f.path);
+    // 스킬 폴더 목록을 못 읽었으면 그 아래 스킬 줄 모두(".claude/skills/<이름>")가 대상이다
+    const q = db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId);
+    const r = await (f.path === SKILLS_DIR ? q.like("source_file", `${SKILLS_DIR}/%`) : q.eq("source_file", f.path));
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
   if (dropped.length) {
@@ -100,7 +104,7 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
 /** 파일을 하나도 못 읽고 오류뿐이면 실패(저장소가 안 열린 것을 성공·일부 성공처럼 보이지 않게, 불변 2). 일부만 오류면 일부 성공. */
 function runStatus(fileErrors: FileError[], osvErrors: number): RunResult {
   if (fileErrors.length + osvErrors === 0) return "succeeded";
-  return new Set(fileErrors.map((f) => f.path)).size >= REPO_FILES.length ? "failed" : "partial";
+  return REPO_FILES.every((p) => fileErrors.some((f) => f.path === p)) ? "failed" : "partial";
 }
 
 type FileError = { path: string; kind: ErrorKind; message: string };
@@ -129,11 +133,14 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
     }
   }
   if (files.length === 0 && fileErrors.length < REPO_FILES.length) fileErrors.push(...(await closedRepoErrors(repo, fileErrors)));
+  // 스킬 폴더(PRD-F6): 폴더 목록 1번 + 폴더마다 SKILL.md. 폴더가 없으면 읽은 스킬이 없을 뿐이고, 못 읽었으면 수집 오류다.
+  const skills = await readSkills(repo);
+  fileErrors.push(...skills.errors);
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
     inputSummary: repo.url,
-    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}`,
+    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}`,
     countIn: REPO_FILES.length,
     countOut: files.length,
     errorKind: fileErrors[0]?.kind,
@@ -149,13 +156,14 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
       fileErrors.push({ path: f.path, kind: "parse", message: `${f.path}: ${e instanceof Error ? e.message : e}` });
     }
   }
+  found.push(...skills.found);
   // 같은 기술이 두 파일에 있으면 한 줄만(package.json 먼저). my_technologies (project_id, tech_id) UK와 맞춘다.
   const seen = new Set<string>();
   const unique = found.filter((f) => !f.tech || (!seen.has(f.tech.key) && seen.add(f.tech.key)));
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
-    countIn: files.length,
+    countIn: files.length + skills.found.length,
     countOut: unique.length,
     outputSummary: unique.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
     errorKind: fileErrors.find((f) => f.kind === "parse") && "parse",
@@ -233,6 +241,7 @@ async function saveMyTechnologies(db: SupabaseClient, at: { ownerId: string; pro
     source_file: f.sourceFile,
     read_at: readAt,
     collect_error_kind: null,
+    unknown_origin: f.unknownOrigin === true,
     ...(f.tech ? { tech_id: ids.get(f.tech.key), version: f.tech.version } : { manual_name: f.name }),
   }));
   for (const [conflict, rows] of [["project_id,tech_id", mine.filter((m) => "tech_id" in m)], ["project_id,manual_name", mine.filter((m) => !("tech_id" in m))]] as const) {

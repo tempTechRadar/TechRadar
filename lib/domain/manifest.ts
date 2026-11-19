@@ -1,5 +1,5 @@
 // 저장소 파일 → 내 기술(SPEC-7). 네트워크·DB를 모르는 순수 규칙.
-// 1-0은 package.json·.mcp.json만. requirements.txt·스킬 폴더는 P-9·P-11에서 더한다.
+// 이 파일은 package.json·.mcp.json만 읽는다. 스킬 폴더는 skills.ts(P-9e), requirements.txt는 3순위.
 
 import { mcpServerKey, npmKey, type TechRef } from "./tech-key.ts";
 
@@ -7,8 +7,10 @@ export type FoundTech = {
   /** null이면 기술 키를 만들 수 없음 = "찾지 못함"(서버 별명만 남긴다) */
   tech: TechRef | null;
   name: string;
-  type: "mcp" | "sdk";
+  type: "mcp" | "sdk" | "skill";
   sourceFile: string;
+  /** 스킬만: 원본 저장소를 몰라 내 저장소 것으로 두었다(SPEC-7.3 "출처 모름") */
+  unknownOrigin?: boolean;
 };
 
 export const REPO_FILES = ["package.json", ".mcp.json"] as const;
