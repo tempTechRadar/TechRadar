@@ -53,3 +53,37 @@ test("cleanForLog: 앞쪽 비밀값은 자르기 전에도 가려지고, 가려�
   // 미리 자른 4000자 안에서 가려져 2000자 아래로 줄어도, 원래 글이 더 길었다는 표시는 남는다
   assert.equal(cleanForLog(`MY_TOKEN=${"a".repeat(3_000)} ${"y".repeat(5_000)}`), `MY_TOKEN=*** ${"y".repeat(990)}…`);
 });
+
+test("소문자 머리글(x-api-key:·authorization: bearer)과 JSON 칸 값을 가린다(이름은 남긴다)", () => {
+  assert.equal(maskSecrets("x-api-key: abc123xyz"), "x-api-key: ***");
+  assert.equal(maskSecrets('curl -H "x-api-key: abc123xyz" https://api.example.com'), 'curl -H "x-api-key: ***" https://api.example.com');
+  assert.equal(maskSecrets("authorization: bearer abcdef123456"), "authorization: bearer ***");
+  assert.equal(maskSecrets("Authorization: Basic dXNlcjpwYXNz"), "Authorization: Basic ***");
+  assert.equal(maskSecrets('{"api_key":"abc123xyz","name":"demo"}'), '{"api_key":"***","name":"demo"}');
+});
+
+test("명령 옵션 --token 값·--token=값·--api-key 값을 가린다(옵션 이름은 남긴다)", () => {
+  assert.equal(maskSecrets("npx tool --token abc123xyz --verbose"), "npx tool --token *** --verbose");
+  assert.equal(maskSecrets("npx tool --token=abc123xyz"), "npx tool --token=***");
+  assert.equal(maskSecrets("npx tool --api-key abc123xyz"), "npx tool --api-key ***");
+  assert.equal(maskSecrets("gh auth --auth-token 'abc 123'"), "gh auth --auth-token ***");
+});
+
+test("cleanForLog(실행 기록 요약·오류)도 소문자 머리글·옵션 값을 가린다", () => {
+  assert.equal(cleanForLog("mcp-remote 실행 실패: --token abc123xyz"), "mcp-remote 실행 실패: --token ***");
+  assert.equal(cleanForLog("401 x-api-key: abc123xyz"), "401 x-api-key: ***");
+});
+
+test("값이 없는 평범한 글은 그대로 둔다(token 낱말·한국어 문장·옵션 이름만·비밀 없는 주소)", () => {
+  const plain = [
+    "the token expired, please log in again",
+    "토큰(token)이 만료되었어요. password 칸을 다시 확인하세요",
+    "password: 8자 이상으로 정하세요",
+    "--token 옵션은 쓰지 마세요",
+    "npx tool --token-file ./secret.txt --no-token --verbose",
+    "npx tool --keyword search",
+    "https://api.example.com/v1/tokens?page=2&sort=name",
+    "key=npm:mcp-remote 0.1.15",
+  ];
+  for (const text of plain) assert.equal(maskSecrets(text), text);
+});
