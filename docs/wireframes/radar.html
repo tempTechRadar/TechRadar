@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기술 지도 시안</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* 첫 화면 기술 지도 시안(팀 확인 전, 11-20). 레이더 위에 사용자가 고른 1~3단계로 묶고, 색 = 색 기준 값, 보안은 기호.
+       조작은 지도 위에서 직접: 끌기(이웃이 대형을 유지하며 따라옴) · 묶음 누르기(펼치기/접기) · 휠·꼬집기 확대 · 스페이스 누른 채 끌면 화면만 이동.
+       버튼은 보기 초기화 하나(사용자 11-20: 사분면·단축키·잔버튼 뺌). 이름·숫자는 샘플(radar-data.js) */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--sunken); color: var(--ink); font: var(--fs-body)/var(--lh) var(--font); }
+    a { color: inherit; }
+    :focus-visible { outline: var(--focus); outline-offset: 2px; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .muted { color: var(--muted); font-size: var(--fs-sm); }
+    .btn { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--hit); padding: 0 var(--sp-4); border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+    .btn.sm { min-height: var(--hit-sm); padding: 0 var(--sp-2); font-size: var(--fs-cap); }
+    .btn[aria-disabled="true"] { color: var(--faint); border-color: var(--line); cursor: not-allowed; }
+    .row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+    .tag { display: inline-block; padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); color: var(--ink-2); white-space: nowrap; }
+    .tag.strong { border-color: var(--ink); color: var(--ink); font-weight: 700; }
+    .tag.new { border-color: var(--ink); background: var(--ink); color: var(--on-ink); font-weight: 800; }
+
+    /* 시안 안내 줄(앱 밖) + 앱 위 줄: journey.html과 같은 모양 */
+    .guide { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 16px; font-size: var(--fs-sm); background: var(--ink); color: var(--on-ink); }
+    .guide label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+    .guide a { margin-left: auto; }
+    .top { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .logo { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; font-weight: 800; text-decoration: none; min-height: 48px; }
+    .top nav { display: flex; flex-wrap: wrap; flex: 1; }
+    .top nav a { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 10px; text-decoration: none; color: var(--muted); }
+    .top nav a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -3px var(--ink); }
+    .top nav b { padding: 0 7px; border-radius: 9px; font-size: 12px; background: var(--ink); color: var(--on-ink); }
+    .top nav b:empty { display: none; }
+    .top .capture-open { margin: 6px 4px 6px auto; min-height: 36px; }
+    dialog.capture { width: min(640px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-xl); padding: 16px; }
+    dialog.capture::backdrop { background: rgba(0, 0, 0, .35); }
+    dialog.capture textarea { width: 100%; margin: 4px 0 8px; font: inherit; }
+    dialog .list { list-style: none; margin: 0; padding: 0; } dialog .list li { padding: 8px 0; border-top: 1px solid var(--line); }
+
+    /* 지도 = 남은 화면 전체. 위 도구 줄 · 아래 범례는 지도 위에 뜬다. 사이드바도 지도 위에 덮는다(지도 크기 안 바뀜) */
+    .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--surface); }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; }
+    canvas.on-item { cursor: pointer; } canvas.dragging { cursor: grabbing; }
+    .stage.hand canvas { cursor: grab; } .stage.hand.panning canvas { cursor: grabbing; }
+    .hud { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; pointer-events: none; }
+    .hud > * { pointer-events: auto; }
+    .stage.open .hud { right: 392px; }
+    .search { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 260px; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+    .search input { flex: 1; min-width: 0; border: 0; font: inherit; background: none; min-height: 40px; }
+    .search input:focus { outline: none; } .search:focus-within { outline: var(--focus); }
+    .seg { display: inline-flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; min-height: var(--hit); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-sm); color: var(--muted); }
+    .seg select { min-height: 36px; border: 1px solid transparent; border-radius: var(--r-sm); background: none; font: inherit; font-size: 14px; color: var(--ink); }
+    .seg select:hover { border-color: var(--line); }
+    .seg .arrow { color: var(--faint); }
+    details.filter { position: relative; }
+    details.filter summary { list-style: none; } details.filter summary::-webkit-details-marker { display: none; }
+    details.filter[open] summary { box-shadow: inset 0 0 0 2px var(--ink); }
+    .pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 4; width: 300px; max-height: 60vh; overflow: auto; padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); font-size: 14px; }
+    .pop fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
+    .pop legend { font-weight: 700; font-size: var(--fs-sm); margin-bottom: 2px; }
+    .pop label { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+    .hud .grow { flex: 1; }
+    .save-note { font-size: var(--fs-cap); color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: var(--r-pill); }
+
+    .dock { position: absolute; left: 12px; bottom: 12px; right: 12px; display: grid; gap: 6px; justify-items: start; pointer-events: none; }
+    .dock > * { pointer-events: auto; }
+    .stage.open .dock { right: 392px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+    .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
+    .chip i { width: 10px; height: 10px; border-radius: 50%; }
+    .status { font-size: var(--fs-cap); color: var(--ink-2); background: var(--surface); padding: 2px 8px; border-radius: var(--r-pill); }
+    .notice { display: grid; gap: 4px; max-width: 340px; padding: 10px 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-sm); }
+    .notice strong { font-size: 14px; }
+    .notice.empty { border-style: dashed; } .notice.fail { border-width: 2px; } .notice.partial { border-left: 6px solid var(--ink); }
+    .center-notice { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+    .notice[hidden], .center-notice[hidden] { display: none; }
+
+    .tip { position: absolute; z-index: 5; width: 260px; padding: 8px 10px; display: grid; gap: 2px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); font-size: var(--fs-sm); pointer-events: none; }
+    .tip[hidden] { display: none; }
+    .tip b { font-size: 14px; }
+
+    .side { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; max-width: 100%; padding: 16px; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); transform: translateX(100%); visibility: hidden; z-index: 6; }
+    .stage.open .side { transform: none; visibility: visible; }
+    @media (prefers-reduced-motion: no-preference) { .side { transition: transform var(--dur) var(--ease), visibility var(--dur); } .stage.open .side { transition: transform var(--dur) var(--ease); } }
+    .side h2 { font-size: var(--fs-h2); margin: 0 0 4px; } .side h3 { font-size: 14px; margin: 16px 0 6px; color: var(--muted); }
+    .side p { margin: 0 0 8px; }
+    .side .close { float: right; min-height: 36px; padding: 0 10px; }
+    .near { list-style: none; margin: 0; padding: 0; }
+    .near li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 14px; }
+    .near button { flex: 1; min-height: 36px; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+    .near i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+    .box { padding: 10px 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); display: grid; gap: 6px; }
+
+    /* 키보드·화면 읽기용 묶음 목록: 평소엔 숨고, 초점이 들어오면 왼쪽에 보인다(지도와 같은 동작) */
+    .klist { position: absolute; left: 12px; top: 64px; bottom: 60px; width: 300px; overflow: auto; padding: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); z-index: 5; font-size: 14px; }
+    .klist:not(:focus-within) { width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); }
+    .klist ul { list-style: none; margin: 0; padding-left: 14px; } .klist > ul { padding-left: 0; }
+    .klist button { min-height: 32px; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
+
+    #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); padding: 10px 16px; border-radius: var(--r-lg); background: var(--ink); color: var(--on-ink); font-size: 14px; z-index: 9; }
+    #toast:empty { display: none; }
+    #check { position: fixed; right: 8px; bottom: 8px; z-index: 9; max-width: 420px; max-height: 50vh; overflow: auto; margin: 0; padding: 8px; background: var(--surface); border: 2px solid var(--ink); font-size: 12px; white-space: pre-wrap; }
+    #check:empty { display: none; }
+
+    @media (max-width: 720px) {
+      .top { display: block; } .top nav { flex-wrap: nowrap; overflow-x: auto; } .top nav a { white-space: nowrap; }
+      .stage.open .hud, .stage.open .dock { right: 12px; }
+      .search { flex-basis: 100%; }
+      .side { top: auto; height: 70%; width: 100%; border-left: 0; border-top: 1px solid var(--line); transform: translateY(100%); }
+      .save-note { display: none; }
+      .legend { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; } .chip { white-space: nowrap; } /* 범례는 한 줄로 밀어 보기 */
+    }
+  </style>
+</head>
+<body>
+  <div class="guide" aria-label="시안 안내(앱 밖)">
+    <b>기술 지도 시안 · 팀 확인 전</b>
+    <label><input type="checkbox" id="login"> 로그인한 척 보기</label>
+    <span id="loginNote"></span>
+    <a href="journey.html#new">화면 흐름 시안으로</a>
+  </div>
+  <header class="top">
+    <a class="logo" href="radar.html" id="logo">TechRadar</a>
+    <nav aria-label="메뉴" id="nav">
+      <a href="radar.html" data-nav="map" aria-current="page">기술 지도</a>
+      <a href="journey.html#new" data-nav="new">새 기술</a>
+      <a href="journey.html#radar" data-nav="radar">내 레이더</a>
+      <a href="journey.html#alerts" data-nav="alerts">알림 <b id="bWait"></b></a>
+      <a href="journey.html#records" data-nav="records">기록</a>
+      <a href="blueprint.html" data-nav="blueprint">블루프린트</a>
+      <a href="journey.html#start/repo" data-nav="start">내 프로젝트</a>
+    </nav>
+  </header>
+  <main class="stage" id="stage">
+    <h1 class="sr">기술 지도</h1>
+    <canvas id="map" role="img" aria-label="기술 지도. 묶음 목록은 Tab으로 열 수 있어요"></canvas>
+    <nav class="klist" id="klist" aria-label="지도의 묶음과 기술 목록"></nav>
+    <div class="hud" id="hud">
+      <label class="search"><span class="sr">기술 찾기</span><input id="q" list="names" placeholder="기술 찾기" autocomplete="off"></label><datalist id="names"></datalist>
+      <span class="seg" role="group" aria-label="묶기 단계">묶기 <select id="g1" aria-label="1단계"></select><span class="arrow">›</span><select id="g2" aria-label="2단계"></select><span class="arrow">›</span><select id="g3" aria-label="3단계"></select></span>
+      <span class="seg">색 <select id="color" aria-label="색 기준"></select></span>
+      <details class="filter" id="filter"><summary class="btn">거르기 <span id="fCount"></span></summary><div class="pop" id="fPop"></div></details>
+      <span class="grow"></span>
+      <span class="save-note" id="saveNote"></span>
+      <button class="btn" id="reset" type="button">보기 초기화</button>
+    </div>
+    <div class="dock">
+      <div class="notice partial" id="partial" hidden><strong>일부만 읽었어요</strong><span>출처 3곳 중 2곳만 읽었어요. 못 읽은 곳의 기술은 지난번 값 그대로이고, 점선 고리(수집 오류)로 보여요.</span></div>
+      <div class="notice" id="band" hidden></div>
+      <div class="legend" id="legend" role="group" aria-label="색 기준 값(누르면 그 값만)"></div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </div>
+    <div class="notice empty center-notice" id="empty" hidden><strong>거르기에 맞는 기술이 없어요</strong><span>거르기를 풀면 다시 보여요.</span><button class="btn sm" id="clearF" type="button">거르기 풀기</button></div>
+    <div class="notice center-notice" id="loading" hidden><strong id="loadText">기술을 불러오는 중이에요</strong><span>모은 기술 목록을 읽고 있어요.</span></div>
+    <div class="tip" id="tip" role="tooltip" hidden></div>
+    <aside class="side" id="side" aria-label="고른 것 자세히"></aside>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <pre id="check"></pre>
+  <script src="journey-data.js"></script>
+  <script src="journey-capture.js"></script>
+  <script src="radar-data.js"></script>
+  <script src="radar-layout.js"></script>
+  <script src="radar-physics.js"></script>
+  <script src="radar-draw.js"></script>
+  <script src="radar-ui.js"></script>
+  <script src="radar-input.js"></script>
+  <script src="radar-check.js"></script>
+</body>
+</html>

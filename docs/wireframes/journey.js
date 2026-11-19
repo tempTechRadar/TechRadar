@@ -1,6 +1,6 @@
 // 화면 흐름 시안(무채색). 탐색 → 이해 → 판단 → 기억 → 조립을 눌러 본다. 데이터는 journey-data.js의 샘플이고 새로고침하면 처음으로 돌아간다.
 (() => {
-  const { I, icon, esc, FIELDS, TAGS, TECH, byId, SAME, ALERTS, NEWS, JN, SEC, judged, records, stateOf, secIcon, dotSvg, dotIcon, path, tagRow, ui } = TR;
+  const { icon, esc, FIELDS, TECH, byId, SAME, ALERTS, NEWS, JN, SEC, judged, records, stateOf, secIcon, path, tagRow, ui } = TR;
   const neighbors = (id) => SAME.filter((e) => e.includes(id)).map((e) => (e[0] === id ? e[1] : e[0]));
   const waiting = () => ALERTS.filter((a) => a.status === 'wait');
   const secText = {
@@ -9,76 +9,8 @@
     e: '수집 오류: 지난번 읽기에 실패했어요. "문제 없음"이 아니에요. 마지막으로 읽은 값을 그대로 둬요.',
   };
   const secLine = (t) => `<p class="muted">${t.sec ? icon(secIcon(t.sec), 15) + ' ' + secText[t.sec] : '보안: 알려진 문제를 찾지 못했어요(안전하다는 보증은 아니에요).'}</p>`;
-  const secSvg = (s, x, y) => `<g transform="translate(${x} ${y})"><rect x="-1" y="-1" width="16" height="16" rx="4" fill="var(--bg)"/><g class="sec" transform="scale(.58)">${I[secIcon(s)]}</g></g>`;
-  const legend = () => `<div class="legend">${['use', 'cand', 'int', 'hold', ''].map((j) => `<span>${dotIcon(j)}${JN[j] || '아직 안 봄'}</span>`).join('')}
-    <span><svg width="18" height="18"><circle cx="9" cy="9" r="8" class="nw"/></svg>NEW = 이번 주에 들어온 기술</span>
-    <span>${icon('danger', 15)}${icon('caution', 15)}${icon('error', 15)}보안 위험·주의·수집 오류</span></div>`;
-
-  // ---- 묶어 보기: 태그·종류·쓰는 곳 중 하나를 고르면 그 무리를 둥근 테두리로 감싼다. 분야(자리)는 그대로라 분야마다 따로 감싼다
-  const GROUP_BY = { tag: ['태그', (t) => t.tags], kind: ['종류', (t) => [t.kind]], host: ['쓰는 곳', (t) => [t.host]] };
-  const groupValues = (by) => (by === 'tag' ? TAGS : [...new Set(TECH.map((t) => GROUP_BY[by][1](t)[0]))]).map((v) => [v, TECH.filter((t) => GROUP_BY[by][1](t).includes(v)).length]).filter(([, n]) => n);
-  const inGroup = (t) => !ui.group.by || GROUP_BY[ui.group.by][1](t).includes(ui.group.val);
-  function hull(p) { // 볼록 껍질(단조 사슬). 점이 1~2개면 그대로 돌려준다
-    if (p.length < 3) return p;
-    const s = [...p].sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-    const half = (l) => l.reduce((h, q) => { while (h.length > 1 && cr(h[h.length - 2], h[h.length - 1], q) <= 0) h.pop(); h.push(q); return h; }, []);
-    const lo = half(s), up = half(s.reverse());
-    return lo.slice(0, -1).concat(up.slice(0, -1));
-  }
-  function hullsSvg(pos) {
-    if (!ui.group.by) return '';
-    return FIELDS.map((_, q) => TECH.filter((t) => t.f === q && inGroup(t)).map(pos)).filter((p) => p.length).map((p) => {
-      const h = hull(p), top = p.reduce((a, b) => (b[1] < a[1] ? b : a));
-      const shape = h.length === 1 ? `<circle cx="${h[0][0]}" cy="${h[0][1]}" r="26" class="hull"/>` : `<path d="M${h.map((q) => q.join(' ')).join('L')}Z" class="hull" stroke-width="52" stroke-linejoin="round"/>`;
-      return `${shape}<text x="${top[0]}" y="${top[1] - 32}" text-anchor="middle" class="hl">${ui.group.by === 'tag' ? '#' : ''}${ui.group.val} ${p.length}</text>`;
-    }).join('');
-  }
-
-  // ---- 지도: 분야를 땅처럼, 가운데 "나", 점 = 판단, 고르면 그 기술의 같은 역할만 진하게(나머지는 흐리게)
-  function mapSvg(sel, fresh) {
-    const W = 720, H = 440, cx = 340, cy = 220, kx = 1.4, ky = 1.5;
-    const near = sel ? new Set([sel, ...neighbors(sel)]) : null;
-    const pos = (t) => [cx + t.x * kx, cy + t.y * ky];
-    let g = `<svg viewBox="0 0 ${W} ${H}" class="map" role="group" aria-label="기술 지도(샘플). 점에 올리면 한 줄 설명, 누르면 오른쪽에 자세한 설명이 열려요">`;
-    const Z = [[cx, 0, W - cx, cy], [cx, cy, W - cx, H - cy], [0, cy, cx, H - cy], [0, 0, cx, cy]];
-    const L = [[W - 14, 24, 'end'], [W - 14, H - 12, 'end'], [14, H - 12, 'start'], [14, 24, 'start']];
-    Z.forEach(([x, y, w, h], q) => {
-      const n = TECH.filter((t) => t.f === q);
-      g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="z${q % 2}"/><text x="${L[q][0]}" y="${L[q][1]}" text-anchor="${L[q][2]}" class="zl">${FIELDS[q]} <tspan>${n.length}개 · NEW ${n.filter((t) => t.nw).length}</tspan></text>`;
-    });
-    for (let r = 70; r < 400; r += 70) g += `<circle cx="${cx}" cy="${cy}" r="${r}" class="ring"/>`;
-    if (!fresh) g += hullsSvg(pos);
-    SAME.forEach(([a, b]) => {
-      const on = near && (a === sel || b === sel), [x1, y1] = pos(byId[a]), [x2, y2] = pos(byId[b]);
-      g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="edge${on ? ' on' : ''}${(near && !on) || ui.group.by ? ' dim' : ''}"/>`;
-      if (on) g += `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 6}" text-anchor="middle" class="el">비교군</text>`;
-    });
-    if (!fresh) g += `<g transform="translate(${cx - 10} ${cy - 10})" color="var(--muted)">${icon('radar', 20)}</g><text x="${cx}" y="${cy + 26}" text-anchor="middle" class="lbl soft">나</text>`;
-    TECH.forEach((t) => {
-      const [x, y] = pos(t), s = fresh ? '' : stateOf(t), dim = (near && !near.has(t.id)) || (ui.onlyNew && !t.nw) || (!fresh && !inGroup(t));
-      const say = [t.id, path(t), JN[s] || '아직 안 봄', t.nw && '이번 주 들어온 새 기술', SEC[t.sec], t.desc].filter(Boolean).join(', ');
-      g += `<g class="dot${dim ? ' dim' : ''}" data-id="${t.id}" ${fresh ? '' : `tabindex="0" role="button" aria-pressed="${t.id === sel}"`} aria-label="${say}"><circle cx="${x}" cy="${y}" r="18" class="hit"/>`;
-      if (t.nw) g += `<circle cx="${x}" cy="${y}" r="11" class="nw"/>`;
-      g += dotSvg(s, x, y);
-      if (t.sec) g += secSvg(t.sec, x + 4, y - 20);
-      if (t.id === sel) g += `<circle cx="${x}" cy="${y}" r="16" class="sel"/>`;
-      g += `<text x="${x + 14}" y="${y + 4}" class="lbl${s || t.nw ? '' : ' soft'}">${t.id}${t.nw ? '<tspan class="new"> NEW</tspan>' : ''}</text></g>`;
-    });
-    return g + '</svg>';
-  }
-
-  // ---- 올리면 한 줄 설명(누르지 않아도 무엇인지 안다). 키보드 초점에도 같이 뜬다
-  function showTip(dot) {
-    const tip = document.getElementById('tip'), stage = document.getElementById('stage'), t = byId[dot.dataset.id];
-    if (!tip || !stage || !t) return;
-    tip.innerHTML = `<b>${t.id}</b>${t.nw ? ' <span class="tag new">NEW</span>' : ''}<div class="muted">${path(t)}</div><div>${t.desc}</div><div class="row">${tagRow(t)}</div>`;
-    tip.hidden = false;
-    const r = dot.getBoundingClientRect(), s = stage.getBoundingClientRect(), room = s.width - (stage.classList.contains('open') ? 400 : 0);
-    const left = r.right - s.left + 8 + tip.offsetWidth > room ? r.left - s.left - tip.offsetWidth - 8 : r.right - s.left + 8;
-    tip.style.left = `${Math.max(8, left)}px`;
-    tip.style.top = `${Math.min(s.height - tip.offsetHeight - 8, Math.max(8, r.top - s.top - 8))}px`;
-  }
-  const hideTip = () => { const tip = document.getElementById('tip'); if (tip) tip.hidden = true; };
+  // 기술 지도는 radar.html(11-20 새 레이더). 이 흐름 시안의 #map·#map/<id>는 그쪽으로 보낸다
+  const mapUrl = (id) => `radar.html${id ? `#sel=${encodeURIComponent(id)}` : ''}`;
 
   // ---- 판단 단추. 판단은 기록일 뿐 아무것도 설치·변경하지 않는다(불변 1, ADR 0010)
   function judgeBox(t, alert) {
@@ -106,43 +38,7 @@
     return `<table><caption class="sr">${t.id}와 내 ${mine.id} 비교</caption><thead><tr><th></th><th>${t.id}</th><th>내 ${mine.id}</th></tr></thead><tbody>${rows.map(([k, f]) => `<tr><th scope="row">${k}</th><td>${f(t)}</td><td>${f(mine)}</td></tr>`).join('')}</tbody></table>`;
   }
 
-  // ---- 사이드바(이해). 지도를 떠나지 않고 연다. 태그를 누르면 그 태그로 묶어 보기
-  function panel(t) {
-    const s = stateOf(t), nb = neighbors(t.id).map((id) => byId[id]), mine = nb.find((n) => n.mine);
-    return `<a class="btn close" href="#map" aria-label="닫기">${icon('close', 16)}</a>
-      <h2 id="pTitle" tabindex="-1">${t.id}</h2>
-      <div class="muted">${path(t)}</div>
-      <div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new" title="이번 주에 들어온 기술">NEW</span>' : ''}${s ? `<span class="tag strong">${JN[s]}</span>` : ''}${tagRow(t, true)}</div>
-      <p>${t.desc}</p><p class="muted">${icon('trend', 15)} ${t.pop} · 업데이트 ${t.upd}</p>${secLine(t)}
-      <h3>비교군 ${nb.length}</h3><ul class="near">${nb.map((n) => `<li>${dotIcon(stateOf(n))}<a href="#map/${n.id}">${n.id}</a><span class="muted">${JN[stateOf(n)] || ''}</span></li>`).join('')}</ul>
-      ${mine && !t.mine ? `<p style="margin-top:8px"><a class="btn" href="#tech/${t.id}">${icon('compare', 16)}내 ${mine.id}와 비교</a></p>` : ''}
-      <h3>내 판단</h3>${judgeBox(t)}
-      <p style="margin-top:14px"><a class="btn primary" href="#tech/${t.id}">전체 상세 보기${icon('chevron', 16)}</a></p>`;
-  }
-
   // ---- 화면들
-  // 지도 위에 뜨는 요약 칩(= 대시보드 숫자 바로가기). 판단하면 숫자가 바뀌어 따로 다시 그린다
-  function chips() {
-    const nw = TECH.filter((t) => t.nw), mine = TECH.filter((t) => t.mine);
-    const band = ui.firstCheck ? `<span class="chip">첫 점검: 내 기술 ${mine.length}개 · 위험 1 · 주의 1 <a href="#alerts">알림에서 보기</a><button class="btn" data-act="band">확인</button></span>` : '';
-    return `${band}<a class="chip" href="#new" aria-label="이번 주 새 기술 ${nw.length}, 아직 판단 안 한 것 ${nw.filter((t) => !stateOf(t)).length}"><span class="tag new">NEW</span><b>${nw.length}</b></a>
-      <a class="chip" href="#alerts">${icon('bell', 16)}판단 기다림 <b>${waiting().length}</b></a><a class="chip" href="#radar">${icon('radar', 16)}내 레이더 <b>${mine.length}</b></a>`;
-  }
-  const groupSelect = () => `<select id="gBy" aria-label="묶어 보기"><option value="">묶어 보기: 없음</option>${Object.entries(GROUP_BY).map(([k, [n]]) => `<option value="${k}" ${k === ui.group.by ? 'selected' : ''}>묶어 보기: ${n}</option>`).join('')}</select>`;
-  const groupBar = () => (ui.group.by ? groupValues(ui.group.by).map(([v, n]) => `<button class="tag" data-act="groupVal" data-val="${v}" aria-pressed="${v === ui.group.val}">${ui.group.by === 'tag' ? '#' : ''}${v} ${n}</button>`).join('') : '');
-
-  function mapView(id) {
-    const t = byId[id];
-    return `<h1 class="sr" tabindex="-1">기술 지도</h1><div class="stage${t ? ' open' : ''}${ui.group.by ? ' grouped' : ''}" id="stage">
-      <div class="map-full" id="mapHost">${mapSvg(t ? id : '')}</div>
-      <div class="hud"><label class="search">${icon('search')}<input id="q" list="names" placeholder="기술 찾기" aria-label="기술 찾기"></label><datalist id="names">${TECH.map((x) => `<option value="${x.id}">`).join('')}</datalist>
-        <button class="btn" data-act="onlyNew" aria-pressed="${ui.onlyNew}"><span class="tag new">NEW</span>만 보기</button>${groupSelect()}<span class="muted" title="로그인 전에는 저장하지 않아요">보기는 내 계정에 저장돼요</span><span class="row" id="chips">${chips()}</span></div>
-      <div class="gbar" id="gbar" role="group" aria-label="묶음 고르기">${groupBar()}</div>
-      <div class="dock"><details class="float-box"><summary>범례</summary>${legend()}</details></div>
-      <div class="tip" id="tip" role="tooltip" hidden></div>
-      <aside class="side" id="side" aria-label="고른 기술">${t ? panel(t) : ''}</aside></div>`;
-  }
-
   function startView(step) {
     if (step === 'repo') return `<h1 tabindex="-1">내 프로젝트 등록</h1><p class="muted">공개 GitHub 저장소 주소를 넣으면 쓰는 기술을 읽어 지도 가운데에 놓아요.</p>
       <form class="box" data-act="repo" style="max-width:560px;display:grid;gap:8px"><label for="repo">저장소 주소</label><input type="url" id="repo" value="https://github.com/sample/my-app" required>
@@ -150,11 +46,10 @@
     if (step === 'read') return `<h1 tabindex="-1">저장소를 읽었어요</h1><div class="box" style="max-width:560px"><ul class="steps">
       <li>package.json: 기술 2개</li><li>.mcp.json: 기술 2개</li><li>.claude/skills/: 기술 1개</li></ul>
       <p><b>첫 점검:</b> 보안 위험 1 · 주의 1. 읽지 못한 파일이 있으면 "수집 오류"로 따로 보여요.</p>
-      <a class="btn primary" href="#map" data-act="toMap">지도에서 내 기술 보기</a></div>`;
+      <a class="btn primary" href="radar.html#from=start">지도에서 내 기술 보기</a></div>`;
     // 지도는 로그인 없이 누구나 본다(사용자 11-20). 모은 기술만 보이고, 관심·판단·내 기술·알림은 로그인 뒤
     return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 그동안 모은 기술 지도를 볼 수 있어요. 묶기·거르기는 둘러보는 동안만 바뀌고 저장되지 않아요. 로그인하면 보기 설정 · 관심 · 판단이 내 계정에 남아요.
-      <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a></p>
-      <div class="map-box" style="margin-top:10px">${mapSvg('', true)}</div>`;
+      <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a><a class="btn" href="radar.html">로그인 없이 지도 보기</a></p>`;
   }
 
   function newView() {
@@ -235,72 +130,34 @@
   }
 
   // ---- 길(해시)과 그리기
-  const VIEWS = { map: mapView, start: startView, new: newView, tech: techView, alerts: alertsView, alert: alertView, records: recordsView, ...TR.views };
-  const STEP = { map: 'find', new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', start: 'start' };
+  const VIEWS = { start: startView, new: newView, tech: techView, alerts: alertsView, alert: alertView, records: recordsView, ...TR.views };
+  const STEP = { new: 'find', tech: 'know', alert: 'judge', alerts: 'judge', radar: 'keep', records: 'keep', start: 'start' };
   const main = document.getElementById('main');
   function render() {
     const [name, arg = ''] = (location.hash.slice(1) || 'map').split('/');
-    const key = Object.hasOwn(VIEWS, name) ? name : 'map', id = decodeURIComponent(arg);
-    const stage = document.getElementById('stage');
-    if (key === 'map' && stage) { // 지도에 머물면 틀은 그대로 두고 바뀐 곳만 고친다(그래야 사이드바가 밀려나오고 찾기 칸 글자가 남는다)
-      const t = byId[id], side = document.getElementById('side');
-      document.getElementById('mapHost').innerHTML = mapSvg(t ? id : '');
-      document.getElementById('chips').innerHTML = chips();
-      document.getElementById('gbar').innerHTML = groupBar();
-      stage.classList.toggle('grouped', !!ui.group.by);
-      if (t) side.innerHTML = panel(t); // 닫을 때는 내용을 둔 채 밀려 들어간다
-      stage.classList.toggle('open', !!t);
-      hideTip();
-    } else main.innerHTML = VIEWS[key](id);
-    document.body.classList.toggle('full', key === 'map');
+    if (!Object.hasOwn(VIEWS, name)) { location.replace(mapUrl(name === 'map' ? decodeURIComponent(arg) : '')); return { key: 'map', id: '' }; }
+    const key = name, id = decodeURIComponent(arg);
+    main.innerHTML = VIEWS[key](id);
     document.querySelectorAll('[data-nav]').forEach((a) => (a.dataset.nav === key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
-    const step = key === 'map' && byId[id] ? 'know' : STEP[key];
-    document.querySelectorAll('[data-step]').forEach((a) => (a.dataset.step === step ? a.setAttribute('aria-current', 'step') : a.removeAttribute('aria-current')));
+    document.querySelectorAll('[data-step]').forEach((a) => (a.dataset.step === STEP[key] ? a.setAttribute('aria-current', 'step') : a.removeAttribute('aria-current')));
     document.getElementById('bNew').textContent = TECH.filter((t) => t.nw && !stateOf(t)).length || '';
     document.getElementById('bWait').textContent = waiting().length || '';
     return { key, id };
   }
   function onRoute() {
-    const prev = ui.prev, { key, id } = render();
-    ui.prev = location.hash;
-    // 사이드바만 바뀌면 사이드바 제목으로, 닫히면 그 점으로, 화면이 바뀌면 그 화면 제목으로 초점을 옮긴다
-    const was = prev.match(/^#map\/(.+)/);
-    if (key === 'map' && id) document.getElementById('pTitle')?.focus();
-    else if (key === 'map' && was) main.querySelector(`.dot[data-id="${was[1]}"]`)?.focus();
-    else main.querySelector('h1')?.focus();
-  }
-  function setGroup(by, val) {
-    ui.group = { by, val: by ? val ?? groupValues(by)[0][0] : '' };
-    const sel = document.getElementById('gBy');
-    if (sel) sel.value = by; // 고르는 칸은 다시 그리지 않으므로(초점 유지) 사이드바 태그로 바뀔 때 값만 맞춘다
-    if (!location.hash.startsWith('#map')) location.hash = '#map'; else render();
+    if (render().key !== 'map') main.querySelector('h1')?.focus();
   }
 
   document.addEventListener('click', (e) => {
-    const dot = e.target.closest('.dot[tabindex]');
-    if (dot) return void (location.hash = `#map/${dot.dataset.id}`);
     const jb = e.target.closest('[data-judge]');
     if (jb) return save(jb.dataset.id, jb.dataset.judge, '', jb.dataset.alert);
     const el = e.target.closest('[data-act]'), act = el?.dataset.act;
-    if (act === 'hold') { const f = e.target.closest('.box, .side').querySelector('form.hold'); f.hidden = false; f.querySelector('textarea').focus(); }
+    if (act === 'hold') { const f = e.target.closest('.box').querySelector('form.hold'); f.hidden = false; f.querySelector('textarea').focus(); }
     if (act === 'holdCancel') { e.target.closest('form').hidden = true; ui.holdFor = ''; }
-    if (act === 'onlyNew') { ui.onlyNew = !ui.onlyNew; render(); document.querySelector('[data-act="onlyNew"]').setAttribute('aria-pressed', ui.onlyNew); }
-    if (act === 'groupVal') { setGroup(ui.group.by, el.dataset.val); document.querySelector(`[data-act="groupVal"][data-val="${el.dataset.val}"]`)?.focus(); }
-    if (act === 'groupTag') setGroup('tag', el.dataset.val);
-    if (act === 'band') { ui.firstCheck = false; render(); }
     if (act === 'rate') { const r = records.find((x) => x.key === el.dataset.key); r.rating = r.rating === Number(el.dataset.val) ? 0 : Number(el.dataset.val); document.getElementById('rlist').innerHTML = recordRows(document.getElementById('rq').value, document.getElementById('rj').value); document.querySelector(`[data-act="rate"][data-key="${r.key}"][data-val="${el.dataset.val}"]`)?.focus(); say(r.rating ? `만족도 별 ${r.rating}개로 남겼어요.` : '만족도를 지웠어요.'); }
-    if (act === 'toMap') ui.firstCheck = true;
     if (act === 'scenario') say('적용 시나리오는 누를 때만 만들어요(IA-8). 이 시안에서는 만들지 않아요.');
     if (act === 'stub') say('이 시안에서는 동작하지 않아요(IA-3·IA-22).');
   });
-  document.addEventListener('keydown', (e) => {
-    const dot = e.target.closest?.('.dot[tabindex]');
-    if (dot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); location.hash = `#map/${dot.dataset.id}`; }
-    if (e.key === 'Escape') { hideTip(); if (/^#map\/./.test(location.hash)) location.hash = '#map'; }
-  });
-  document.addEventListener('mouseover', (e) => { const d = e.target.closest?.('.dot'); if (d) showTip(d); });
-  document.addEventListener('mouseout', (e) => { if (e.target.closest?.('.dot') && !e.relatedTarget?.closest?.('.dot')) hideTip(); });
-  document.addEventListener('focusin', (e) => (e.target.closest?.('.dot') ? showTip(e.target.closest('.dot')) : hideTip()));
   document.addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
@@ -313,13 +170,8 @@
     if (e.target.dataset.note) { records.find((x) => x.key === e.target.dataset.note).note = e.target.value.slice(0, 60); return; }
     if (e.target.id === 'rq' || e.target.id === 'rj') document.getElementById('rlist').innerHTML = recordRows(document.getElementById('rq').value, document.getElementById('rj').value);
   });
-  document.addEventListener('change', (e) => {
-    if (e.target.id === 'q' && byId[e.target.value]) location.hash = `#map/${e.target.value}`;
-    if (e.target.id === 'gBy') setGroup(e.target.value);
-  });
   Object.assign(TR, { save, say, render });
   document.getElementById('logo').insertAdjacentHTML('afterbegin', icon('radar', 20));
   window.addEventListener('hashchange', onRoute);
-  ui.prev = location.hash;
   render();
 })();

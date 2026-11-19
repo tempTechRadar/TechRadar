@@ -8,7 +8,7 @@
   <style>
     /* 화면 흐름 시안(무채색, 팀 확인 전). 흐름과 배치만 본다. 색·테마는 주말 연구 뒤에 입힌다(docs/design.md 5절). 이름·숫자는 샘플 */
     :root { /* 값은 tokens.css 한 곳(테마는 거기서만 바꿈). 이 시안의 옛 이름은 공용 토큰을 가리키는 별칭 */
-      --ink2: var(--ink-2); --bg: var(--surface); --sub: var(--sunken); --sans: var(--font); --zone0: #f7f7f7; --zone1: #efefef; /* 지도 분야 땅: 바탕보다 조금 밝게·어둡게 */ }
+      --ink2: var(--ink-2); --bg: var(--surface); --sub: var(--sunken); --sans: var(--font); }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--sub); color: var(--ink); font: 15px/1.6 var(--sans); }
     a { color: inherit; }
@@ -64,32 +64,7 @@
     .search input:focus { outline: none; }
     .search:focus-within { outline: 2px solid var(--ink); }
 
-    /* 지도 = 전체 화면, 점을 누르면 오른쪽에서 사이드바가 밀려나온다(노션 사이드 피크처럼). 지도는 사이드바만큼 비켜서 고른 점이 가려지지 않는다 */
-    body.full { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-    body.full main { flex: 1; min-height: 0; max-width: none; width: 100%; padding: 0; position: relative; }
-    .map-box { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-    .stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
-    .map-full { position: absolute; inset: 64px 0 0 0; }
-    .map-full svg.map { width: 100%; height: 100%; }
-    .hud { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .hud .search { flex: 0 1 320px; }
-    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); text-decoration: none; font-size: 14px; }
-    .chip b { font-size: 16px; }
-    .dock { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; max-width: calc(100% - 24px); }
-    .float-box { max-width: 560px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 13px; }
-    .float-box summary { cursor: pointer; min-height: 28px; font-weight: 600; }
-    .hud select { min-height: 44px; }
-    .gbar { position: absolute; top: 62px; left: 12px; right: 12px; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-    .gbar:empty { display: none; }
-    .stage.grouped .map-full { top: 100px; }
-    .stage.open .gbar, .stage.open .hud { right: 412px; }
-    .stage.open #chips { display: none; } /* 사이드바가 열리면 요약 칩은 숨긴다(같은 숫자가 위 메뉴 배지에 있음) */
-    button.tag { font: inherit; font-size: 12px; min-height: 28px; background: var(--bg); cursor: pointer; }
-    button.tag[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
-    .tip { position: absolute; z-index: 5; width: 280px; padding: 10px 12px; display: grid; gap: 4px; background: var(--bg); border: 1px solid var(--ink2); border-radius: 8px; box-shadow: var(--shadow-pop); font-size: 13px; pointer-events: none; }
-    .tip[hidden] { display: none; }
-    .hull { fill: var(--ink); stroke: var(--ink); opacity: .1; }
-    .hl { font: 700 13px var(--sans); fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 4; }
+    /* 기술 지도는 radar.html(11-20). 이 시안의 #map은 그쪽으로 보낸다 */
 
     /* 내 레이더 = 칸반, 블루프린트 = 단계 줄 + 후보 표 + 내보내기 */
     .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: start; }
@@ -111,17 +86,6 @@
     .slot { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 6px; }
     .slot .x { margin-left: auto; min-width: 28px; min-height: 28px; display: grid; place-items: center; background: none; border: 0; cursor: pointer; }
     tr[draggable="true"] { cursor: grab; }
-    .side { position: absolute; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; padding: 16px; overflow: auto; background: var(--bg); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); transform: translateX(100%); visibility: hidden; }
-    .stage.open .side { transform: none; visibility: visible; }
-    .stage.open .map-full { right: 400px; }
-    .side .close { float: right; min-height: 36px; padding: 0 8px; }
-    @media (prefers-reduced-motion: no-preference) {
-      .side { transition: transform .28s ease, visibility .28s; }
-      .stage.open .side { transition: transform .28s ease; } /* 열 때는 바로 보이게 해야 제목으로 초점이 간다 */
-      .map-full { transition: right .28s ease; }
-    }
-    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink2); }
-    .legend span { display: inline-flex; align-items: center; gap: 6px; }
     .near { list-style: none; margin: 0; padding: 0; }
     .near li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
     .near li a { flex: 1; }
@@ -129,22 +93,8 @@
     textarea, input[type=url], select { font: inherit; padding: 8px 10px; border: 1px solid var(--ink2); border-radius: 8px; min-height: 44px; background: var(--bg); color: var(--ink); }
     textarea { min-height: 72px; }
 
-    svg.map { display: block; width: 100%; height: auto; }
-    .z0 { fill: var(--zone0); } .z1 { fill: var(--zone1); }
-    .zl { font: 700 15px var(--sans); fill: var(--ink2); } .zl tspan { font-weight: 400; font-size: 13px; }
-    .ring { fill: none; stroke: var(--line); }
-    .edge { stroke: var(--faint); } .edge.on { stroke: var(--ink); stroke-width: 2; }
-    .el { font: 12px var(--sans); fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 4; }
-    .f-ink { fill: var(--ink); } .s-ink { fill: var(--bg); stroke: var(--ink); } .s-muted { fill: var(--bg); stroke: var(--muted); stroke-width: 1.6; } .f-faint { fill: var(--faint); }
-    .nw { fill: none; stroke: var(--ink); stroke-dasharray: 2 2.5; }
-    .sel { fill: none; stroke: var(--ink); stroke-width: 2; }
-    .lbl { font: 13px var(--sans); fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 4; } .lbl.soft { fill: var(--muted); }
-    .lbl tspan.new { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+    .f-ink { fill: var(--ink); } .s-ink { fill: var(--bg); stroke: var(--ink); } .s-muted { fill: var(--bg); stroke: var(--muted); stroke-width: 1.6; } .f-faint { fill: var(--faint); } /* 판단 모양 아이콘(dotIcon) */
     .tag.new { border-color: var(--ink); background: var(--ink); color: var(--on-ink); font-weight: 800; letter-spacing: .04em; }
-    .sec path, .sec circle { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
-    .dot { cursor: pointer; outline: none; } .hit { fill: transparent; }
-    .dot:focus-visible .hit { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 2; }
-    .dim { opacity: .22; }
 
     /* 목록 */
     .list { list-style: none; margin: 0; padding: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
@@ -166,28 +116,25 @@
 
     @media (max-width: 880px) {
       .cols, .kanban { grid-template-columns: 1fr; }
-      .map-full { top: 120px; }
-      .stage.open .map-full { right: 0; }
       .guide .start { margin-left: 0; }
       .top { display: block; } .top nav { flex-wrap: nowrap; overflow-x: auto; } .top nav a { white-space: nowrap; }
     }
-    @media (prefers-reduced-motion: no-preference) { .dot g, .edge { transition: opacity .2s; } }
   </style>
 </head>
 <body>
   <div class="guide" aria-label="시안 흐름 안내(앱 밖)">
     <b>화면 흐름 시안 · 무채색 · 팀 확인 전</b>
-    <a href="#map" data-step="find">① 탐색: 지도 · 새 기술</a>
-    <a href="#map/sample-mcp-3" data-step="know">② 이해: 패널 · 상세</a>
+    <a href="radar.html" data-step="find">① 탐색: 지도 · 새 기술</a>
+    <a href="radar.html#sel=sample-mcp-3" data-step="know">② 이해: 패널 · 상세</a>
     <a href="#alerts" data-step="judge">③ 판단: 관심 · 적용 후보 · 보류</a>
     <a href="#radar" data-step="keep">④ 기억: 내 레이더 · 기록</a>
     <a href="blueprint.html" data-step="build">⑤ 조립: 블루프린트(별도 화면)</a>
     <a href="#start" data-step="start" class="start">로그인 없이 보기</a>
   </div>
   <header class="top">
-    <a class="logo" href="#map" id="logo">TechRadar</a>
+    <a class="logo" href="radar.html" id="logo">TechRadar</a>
     <nav aria-label="메뉴" id="nav">
-      <a href="#map" data-nav="map">기술 지도</a>
+      <a href="radar.html" data-nav="map">기술 지도</a>
       <a href="#new" data-nav="new">새 기술 <b id="bNew"></b></a>
       <a href="#radar" data-nav="radar">내 레이더</a>
       <a href="#alerts" data-nav="alerts">알림 <b id="bWait"></b></a>

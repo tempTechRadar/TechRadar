@@ -68,8 +68,8 @@
   }
   const dotIcon = (s) => `<svg width="16" height="16" aria-hidden="true">${dotSvg(s, 8, 8)}</svg>`;
   const path = (t) => `${t.host} › ${t.kind} › ${FIELDS[t.f]}`;
-  const tagRow = (t, act) => t.tags.map((g) => (act ? `<button class="tag" data-act="groupTag" data-val="${g}">#${g}</button>` : `<span class="tag">#${g}</span>`)).join('');
+  const tagRow = (t) => t.tags.map((g) => `<span class="tag">#${g}</span>`).join('');
 
   window.TR = { I, icon, esc, FIELDS, TAGS, TECH, byId, SAME, ALERTS, NEWS, JN, SEC, judged, records, stateOf, secIcon, dotSvg, dotIcon, path, tagRow,
-    ui: { onlyNew: false, firstCheck: false, prev: '', group: { by: '', val: '' }, holdFor: '', bp: [[], [], [], [], [], [], []], bpStage: 3, bpOut: 'prompt' } };
+    ui: { holdFor: '', bp: [[], [], [], [], [], [], []], bpStage: 3, bpOut: 'prompt' } };
 })();
