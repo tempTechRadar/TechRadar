@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-qa-c-q5-recheck | 위키 챗봇 Q5 재확인: 고침 PR #131이 main에 들어간 뒤 키 없이 코드만 다시 봄. Q5 쪽 찾기 1·2순위가 정답 두 쪽이고, 두 쪽 모두 Claude에 넘기는 글에 `chat_logs`·`ai_calls`·문서 A·B가 들어 있음(고치기 전 방식이면 두 쪽 모두 잘림). 두 쪽 모두를 보는 시험 1개 더함(`npm test` 966개 중 965 통과·todo 1·실패 0). `wiki-chat.md`·`qa-c.md` H14에 "쪽 찾기 Pass, Claude 답 No Run"과 바로잡은 원인(쪽 찾기가 아니라 앞 2000자 자르기). 아직 안 된 것: 운영에서 Q5 다시 묻기 | 차세일(Claude) | `docs/qa-c-q5-recheck`, `docs/intent.md` I-qa-c-q5-recheck, `docs/wiki-chat.md` "11-19 재확인" |
 | I-records-sync-1119 | 낡은 문서 정리·erd 2차 대조: qa.md 남은 오류 두 줄(이미 해결)에 근거와 줄 긋기, README 상태 문구·QA 링크 갱신, erd 7절에 운영 DB와의 2차 대조(표 20개·칸 이름 일치, RLS 20개)와 팀 대조 빈칸. 읽기만, 코드·DB 변경 없음 | 나(요청 "승인") · Claude(대조·정리) | `docs/records-sync-1119`, `docs/intent.md` I-records-sync-1119, `docs/erd.md` 7절 |
 | I-deploy-via-actions | 배포 한도 대응: #150~#152 배포가 하루 한도로 실패해 운영이 #143에 멈춘 것을 Vercel 기록으로 확인(24시간 77개, 그중 문서만 바뀌어 건너뛴 30개). main 자동 배포를 끄고 GitHub Actions가 "20분 잠잠 + 운영 커밋 뒤로 앱 파일이 바뀐 경우"에만 Deploy Hook을 부르게 바꿈, 하루 한 번 따라잡기, 운영 커밋을 알려 주는 `/api/version`. 판정 스크립트 14가지 시험 통과. ADR 0023 | 나(요청·방식 선택·Deploy Hook과 Secret 만들기) · Claude(조사·작성·시험) | `chore/deploy-via-actions`, ADR 0023, `docs/intent.md` I-deploy-via-actions |
 | I-qa-db-rollback | QA 운영 DB 되돌림 시험: P-18c 갈래 확정 RLS 12개를 운영에서 처음 돌리고(모두 기대값), P-2·P-30 RLS(26+24개)를 마이그레이션이 늘어난 뒤 다시 돌려 회귀 확인. 전부 되돌렸고 흔적 0·줄 수 같음을 확인. 마이그레이션 기록 표에 P-18c가 없는 것을 열린 질문으로 | 나(요청 "다하자 진행") · Claude(시험 실행·기록) | `docs/qa-db-rollback`, `docs/intent.md` I-qa-db-rollback, `docs/qa.md` |
