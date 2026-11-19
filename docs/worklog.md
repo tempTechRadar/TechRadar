@@ -12,6 +12,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-P-12b-first-check | P-12b 첫 점검 요약 띠: 가장 최근 첫 읽기 실행의 등급 건수로 "첫 점검: 위험 n · 주의 n"을 만들어 대시보드 맨 위에 한 번 보여 줌(확인을 누르면 사라짐), 읽지 못한 기술은 "빠졌어요"로 덧붙임. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12b-first-check`, `docs/intent.md` I-P-12b-first-check |
+| I-p13-prod-key-check | P-13 운영 확인 결과 반영: 운영에서 돈 시뮬레이터 실행(11:14 KST)의 초안 584자·`ai_calls` succeeded·`summarize` succeeded로 운영 키가 통함을 DB 읽기로 확인, 내장 브라우저로 `/admin/flow`가 두 실행을 기록대로 칠하는 것을 확인(버튼은 안 누름). 낡은 "못 본 것" 문장을 5개 문서에서 바로잡음 | 나(요청 "/ego-browser 해봐"·"진행") · Claude(읽기 확인·기록) | `docs/p13-prod-key-check`, `docs/intent.md` I-p13-prod-key-check |
 | I-p13-real-call-check | P-13 실제 호출 확인 기록: 사용자가 키를 넣은 뒤 Claude가 실제 호출 1번과 운영 DB 시뮬레이터 1번(확인 10개 통과, 만든 줄 모두 지움)으로 초안 저장을 확인하고 intent·qa·worklog·plan·connectors에 기록. #110이 이미 합쳐져 새 브랜치로 올림. 초안 품질 질문 2개는 열린 질문 ⑩ | 나(키 넣기·승인) · Claude(호출·확인·기록) | `docs/p13-real-call-check`, `docs/intent.md` I-p13-real-call-check |
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
 | I-slides-draft | 발표 슬라이드 초안: 단계 점검 9단계 ❌(`slides/` 0파일)에 사용자 "추천대로 진행"과 디자인 "앱 디자인 컨셉(기술 레이더)을 따라감"을 받아 `slides/index.html` 15장을 만듦. 문서·DB·`gh` 집계에서 가져온 사실에 장마다 출처를 달고, 아직 사실이 없는 곳은 "▢ 채울 것"으로 둠 | 나(요청·디자인 선택) · Claude(작성·확인) | `slides/index.html`, `docs/intent.md` I-slides-draft |
@@ -24,6 +25,7 @@
 | I-alert-run-id | 첫 읽기 알림의 조치 상자가 회색인 원인을 확인: `observationId`로 이으면 공유 변경 때문에 남의 실행에 기록됨(불변 5). 알림에 `run_id` 칸(마이그레이션)을 더해 읽기를 실행한 본인의 알림에만 적고 조치 기록이 먼저 보게 함. 시험 4개를 먼저 실패시킨 뒤 구현(PR #83) | 나(요청) · Claude | `supabase/migrations/202611181800_P-8_alert_run_id.sql`, `lib/server/action-record.ts`·`notify-owner.ts` |
 | I-P-25-extras | 보류 회고·기술 비교·이번 주 요약: 와이어프레임(`extras.html`)을 먼저 확인받고, 순수 함수·읽기 시험 14개를 먼저 실패시킨 뒤 구현. 실제 컴포넌트를 샘플 데이터로 그려 데스크톱·390px 화면을 확인(PR #114) | 나(요청) · Claude | `app/dashboard/extra-cards.tsx`, `app/compare/`, `lib/alerts/find-review-due.ts` 외 |
 | I-B-record-3-1119 | 위 세 작업을 `plan`(P-7·P-8·P-25 결과 칸)·`qa`(Claude QA 3행, 사람 QA 2행 No Run)·`intent`에 기록 | 나(요청) · Claude | `docs/plan.md`·`qa.md`·`intent.md`·`worklog.md` |
+| I-P-15-scenario | 적용 시나리오: 와이어프레임(`scenario.html`)을 먼저 확인받고 경계 4개(프롬프트·답 검사·서버·화면 값)를 정한 뒤, 시험 34개를 먼저 실패시키며 구현. 설치·실행 명령 줄은 "공식 문서에서 직접 확인하세요"로 바꾸고 비교표는 코드가 채움. 실제 컴포넌트를 샘플 데이터로 그려 상태 6가지를 확인(PR #120) | 나(요청) · Claude | `lib/server/scenario.ts`·`lib/ai/*scenario*`·`app/alerts/[id]/scenario-card.tsx` 외 |
 | I-plan-status-1119 | 안내서 요건표와 main·운영 DB·Vercel을 대조해 남은 일 9개와 팀원별 현황을 정리하고 plan 4절 상태 칸·"11-19 점검" 표·5절 숫자를 맞춤. 위키·챗봇 없음, 운영 알림 0건, `ai_calls` 0건, `schedule` 실행 0줄을 찾음 | 나(요청 "안내서 비교해서 미비한 것과 팀원별 현황") · Claude(대조·조회·정리) | `docs/plan.md` 4절 끝 "11-19 점검" |
 | I-google-login-site-url | 배포 주소 구글 로그인 오류: 돌아온 주소창의 `vercel.app를`으로 Supabase Site URL 끝의 "를"을 찾음(처음엔 DNS 문제로 잘못 짚음). 사용자가 Site URL·Redirect URLs(`/**`)를 고쳐 로그인 성공, 오류 기록·사람 QA Pass 1행. 이어 ego 브라우저 배포 QA: 화면 7개 Pass, 저장소 등록 Fail(운영 서비스 키 값이 비어 있음), 메뉴 로그인 표시 Fail(작음) → 키를 다시 넣고 재배포해 등록 Pass(스킬 2개), 실행 기록 Pass, 알림 흐름 No Run(재료 없음) | 나(오류 보고·설정 수정·로그인 확인) · Claude(ego 브라우저로 계정 선택 화면까지 확인, 원인 찾기·기록) | `docs/google-login-site-url` 브랜치 |
 
@@ -42,7 +44,8 @@
 - [ ] 슬라이드의 "▢ 채울 것"(숫자 하나 재기, 화면 캡처, 하네스 개선 사례, 팀원별 안 남는 일)과 테마 결정(`docs/design.md` 10절 1번), 발표용 Vercel 주소·오프라인 파일 — 세 사람(`docs/intent.md` I-slides-draft 열린 질문)
 - [x] `ANTHROPIC_API_KEY`를 `.env.local`·Vercel Production에 넣고(김영식), 실제 호출 1번 + 운영 DB 시뮬레이터 1번으로 초안 저장 확인(Claude, 11-19, `docs/qa.md`)
 - [ ] 모델·`max_tokens` 결정과 초안 프롬프트 질문(넘기지 않은 사실·지시문 언급, `docs/intent.md` I-P-13-claude-adapter ⑩) — 황재웅. 열린 질문 ⑤⑥도 같이
-- [ ] 이 PR이 배포된 뒤 운영 시뮬레이터로 Vercel 키가 통하는지 한 번, 알림 상세 초안 카드·`/admin/flow` 화면 확인(관리자 로그인) — 김영식
+- [x] 운영 Vercel 키가 통하고 `/admin/flow`가 기록대로 칠해짐(11-19, 운영 시뮬레이터 실행 기록·내장 브라우저로 확인)
+- [ ] 알림 상세 초안 카드 확인: 시연 계정이 mcp-remote를 쓰게 등록해 알림이 생겨야 보임 — 김영식
 
 ## 2026-11-18 (수) — 회의 결정, plan, 뼈대, 개발 전 점검
 
