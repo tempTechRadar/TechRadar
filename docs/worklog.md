@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-redact-lowercase-flags | 비밀값 가리기 보강(11-18 "아직 안 된 것" 지적): `maskSecrets`가 소문자 머리글(`x-api-key:`·`authorization: bearer`·`Basic`)·JSON 칸(`"api_key":"…"`)·명령 옵션(`--token 값`·`--token=값`·`--api-key 값`) 값을 못 가리던 9가지를 시험으로 먼저 확인(979개 중 3개 실패) → 머리글·옵션 패턴 2개를 더함. 값 없는 평범한 글 8가지는 그대로인 시험도 더함. `npm test` 978 통과·실패 0·todo 1, 타입·빌드 통과. QA C18 Pass. 실행 기록(`recordStep`→`cleanForLog`)·오류 메시지·설치 항목 검사가 함께 바뀜 | 차세일(Claude) | `fix/redact-lowercase-flags`, `lib/domain/redact.ts`, `docs/qa-c.md` C18, `docs/intent.md` I-redact-lowercase-flags |
 | I-readme-submit-1119 | README 제출 항목 채우기: 상태 문구(main `3461b20` 사실), 서비스·발표·QA·위키 링크, 팀원 표(이름·GitHub·영역), 대표 PR과 승인한 사람(사람마다 2개), 기록·확인 자료 위치. 제출물 체크리스트 숫자를 다시 셈(ADR 23·서브에이전트 55·커넥터 38·오류 30·intent 136·QA 109/32행·합친 PR 159)과 위키·챗봇·정답표·발표 초안 상태 반영. 발표 자료는 배포 주소에서 404(앱이 `slides/`를 내보내지 않음)라 "확인 전" | 차세일(Claude) | `docs/readme-submit-1119`, `README.md`, `docs/제출물-체크리스트.md`, `docs/intent.md` I-readme-submit-1119 |
 | I-qa-c-q5-recheck | 위키 챗봇 Q5 재확인: 고침 PR #131이 main에 들어간 뒤 키 없이 코드만 다시 봄. Q5 쪽 찾기 1·2순위가 정답 두 쪽이고, 두 쪽 모두 Claude에 넘기는 글에 `chat_logs`·`ai_calls`·문서 A·B가 들어 있음(고치기 전 방식이면 두 쪽 모두 잘림). 두 쪽 모두를 보는 시험 1개 더함(`npm test` 966개 중 965 통과·todo 1·실패 0). `wiki-chat.md`·`qa-c.md` H14에 "쪽 찾기 Pass, Claude 답 No Run"과 바로잡은 원인(쪽 찾기가 아니라 앞 2000자 자르기). 아직 안 된 것: 운영에서 Q5 다시 묻기 | 차세일(Claude) | `docs/qa-c-q5-recheck`, `docs/intent.md` I-qa-c-q5-recheck, `docs/wiki-chat.md` "11-19 재확인" |
 | I-flow-sample-dup-scene | QA C6(Fail, 낮음) 정리: 흐름 샘플 ③ 중복 장면의 제목·`notify` 성공 단계는 `bb0209c`(I-P-20-flow-polish)에서 이미 flow.md 4절대로 고쳐져 있었고, C6 행만 Fail로 남아 있던 것을 확인. 남은 차이(알림 요약 글이 실제 기록 "알림 N건 만듦"과 다름)를 맞추고 시험 3개를 먼저 씀(옛 샘플에 대면 3개 실패). `npm test` 967 통과·실패 0, 타입 오류 0, 빌드 통과. C6 Pass. 실제 서버 코드는 안 바꿈 | 차세일(Claude) | `fix/flow-sample-dup-scene`, `lib/flow/flow-sample.test.ts`, `docs/qa-c.md` C6, `docs/intent.md` I-flow-sample-dup-scene |
@@ -141,7 +142,7 @@
 - [ ] P-2 마이그레이션·P-29 공용 함수 자리 — 김영식
 - [ ] Vercel 환경변수·팀원 권한 확인 — 김영식
 - [ ] P-10: 커밋·푸시·PR(리뷰 1명), P2 규칙은 11-18 사용자가 "가까운 줄"로 정함(→ I-P-10-p2-nearby-lines), 저장소 정보(P-9) 뒤 G5를 "통과"로 바꾸기 — 김영식
-- [ ] P-10 뒤: `redact.ts`의 `maskSecrets`는 소문자 머리글(`x-api-key: …`)·`--token …`을 못 가림. 검사 결과 줄은 따로 가렸지만 실행 기록 쪽은 그대로 — 차세일에게 알리기
+- [x] P-10 뒤: `redact.ts`의 `maskSecrets`는 소문자 머리글(`x-api-key: …`)·`--token …`을 못 가림. 검사 결과 줄은 따로 가렸지만 실행 기록 쪽은 그대로 — 차세일에게 알리기 → 11-19 `maskSecrets`에 소문자 머리글·옵션 패턴을 더해 고침(I-redact-lowercase-flags, QA C18). `risk-patterns.ts`의 따로 가리기와 합칠지는 남음
 - [ ] 점검 반영 PR(`docs/doc-fixes-1118`): 커밋·푸시는 사용자 확인 뒤, 팀원 1명 리뷰. `flow/flow.json`은 주인(차세일)이 확인 — 팀
 - [ ] 점검 Y-9의 P-2 끝 기준(남은 테이블의 남의 줄 시험·시연 계정 시드를 할지, 끝 기준을 고칠지) — 팀이 정함
 - [ ] 이번 범위 밖 점검 항목: Y-1·4·8·10·11·14–16, ⚪ 14개 (D-7·D-8·Y-3은 `fix/P-3-collect-errors`, I-043)

@@ -6,6 +6,22 @@
 
 ---
 
+## I-redact-lowercase-flags · 2026-11-19 · 비밀값 가리기가 소문자 머리글·`--token` 옵션 값을 놓치는 것 고치기 (영역 C QA, 차세일)
+- 브랜치: `fix/redact-lowercase-flags` (main `ac7f10f`)
+- 출처: `docs/worklog.md` 2026-11-18 "아직 안 된 것"(P-10 뒤: `maskSecrets`는 소문자 머리글·`--token …`을 못 가림 — 차세일에게 알리기), `docs/plan.md` 1절 영역 C 맡는 QA "비밀값 가리기", PRD-NF2, SPEC-8 "비밀값 가리기"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `lib/domain/redact.ts`의 `maskSecrets`는 대문자 이름(`GITHUB_TOKEN:`)·주소의 `?token=`·모양(`sk-`·`ghp_`·JWT·`Bearer`)만 가린다. `x-api-key: 값`, `authorization: bearer 값`(소문자), `--token 값`·`--token=값`·`--api-key 값`은 그대로 남아, `recordStep`이 `cleanForLog`로 저장하는 실행 기록 요약·오류(`run_steps`)에 키가 남을 수 있다. 검사 결과 줄은 `risk-patterns.ts`가 따로 가리지만 실행 기록 쪽은 아니다 |
+| 기대 결과 | 위 5가지 모양의 값이 `***`로 바뀌고 이름(머리글·옵션)은 남는다. 값이 없는 평범한 글(`token` 낱말, 한국어 문장, 옵션 이름만, 비밀 없는 주소, `key=npm:…`)은 그대로다. 기존 시험은 모두 통과 |
+| 영향 범위 | `lib/domain/redact.ts`(머리글·옵션 패턴 2개 추가), 시험 `lib/domain/redact.test.ts`(새 4개). `maskSecrets`를 쓰는 곳 전부(실행 기록 `run-log.ts`, 오류 메시지, 흐름 상세 `lib/flow/detail.ts`, 프롬프트 만들기, 설치 항목 비밀값 검사 `looksSecret`)가 함께 바뀐다. DB·권한 변경 없음 |
+| 제약 | 새 라이브러리 없음. 지나치게 가리는 쪽이 안전하지만 평범한 글은 망가뜨리지 않는다(값은 영문·숫자·기호 덩어리만, 한국어 조각·다음 옵션 `--verbose`는 값으로 안 봄). 긴 글에서 느려지지 않게(옵션 이름 40자 제한) |
+| 열린 질문 | ① `risk-patterns.ts`의 `LOWER_SECRET`(검사 결과 줄용, 더 넓게 가림: `token 값`처럼 콜론 없는 것도)과 합칠지 — 주인(P-10, 김영식)과 정함, 이번엔 안 건드림 ② `looksSecret`(설치 항목 검사)이 `--token 값`·`password: 값`이 든 항목을 이제 비밀값으로 거른다. 의도에 맞는다고 봤지만 영역 C 설치 프롬프트 화면에서 확인은 안 함 |
+
+**결과:** 고치기 전 9가지 입력(`x-api-key: 값`, `-H "x-api-key: 값"`, `authorization: bearer 값`, `Authorization: Basic 값`, `{"api_key":"값"}`, `--token 값`, `--token=값`, `--api-key 값`, `--auth-token '값'`)이 모두 그대로 남는 것을 확인하고 시험 4개를 먼저 썼다(전체 979개 중 3개 실패). `HEADER`·`FLAG` 패턴을 더해 전체 979개 중 978 통과·실패 0·todo 1, `tsc --noEmit` 통과, `npm run build` 통과. 평범한 글 8가지와 `Unexpected token }`·`{"tokens_in":12}`도 그대로인 것을 확인. **확인하지 못한 것:** 운영 `run_steps`에 실제로 이런 글이 들어간 적이 있는지(DB 조회 안 함), 설치 프롬프트 화면에서 거르기 동작.
+
+---
+
 ## I-P-14-seed-same-role · 2026-11-19 · 같은 역할 처음 짝 시드 14쌍 (P-14, 영역 B, 황재웅)
 - 브랜치: `feat/P-14-seed-same-role` (PR #162, 합침, 승인 차세일). 이 기록은 `docs/P-14-seed-record`(문서만)
 - 출처: `docs/spec.md` SPEC-4.4·SQ2, ADR 0015, 초안 `docs/seed-same-role-pairs.md`(브랜치 `docs/P-14-seed-pairs`)
