@@ -4,6 +4,7 @@
 
 | 날짜 | 서비스 | 목적 | 실제로 한 일 | 결과 링크·캡처 | 앱 실행에도 쓰나 |
 |---|---|---|---|---|---|
+| 2026-11-19 | Vercel (CLI, 차세일 개인 계정) | 발표 슬라이드를 서비스와 별개 주소로(안내서 11장 "Vercel 주소(서비스 주소와 별개)") | `slides/index.html` 한 파일만 담은 폴더를 `vercel deploy --prod`로 새 프로젝트 `techradar-slides`에 올림. 올리기 전 비밀값·연락처·인터뷰 대상 신원 검색 0건. 팀 운영 프로젝트·배포 횟수와 무관 | https://techradar-slides.vercel.app (HTTP 200, 제목 확인) | 아니오(발표용) |
 | 2026-11-19 | Supabase (MCP 커넥터) | 운영 시뮬레이터 실행 기록 확인(읽기만) | 읽기 전용 `execute_sql`: 시작 전 줄 수와, 관리자 계정으로 돈 운영 시뮬레이터 실행의 `ai_calls`(succeeded, 393/1036)·변경 초안 길이(584자)·`run_steps`(`summarize` succeeded)를 조회. 아무것도 바꾸지 않음 | `docs/qa.md` P-13 행 | 예(앱 DB) |
 | 2026-11-19 | Ego Lite 내장 브라우저 (ego-browser) | 운영 흐름 화면이 실행 기록대로 칠해지는지 보기(읽기만) | 이미 관리자로 로그인된 브라우저로 `/admin/simulator`와 `/admin/flow?run=…` 두 실행을 열어 상자 색을 읽음. 버튼은 누르지 않음 | `docs/qa.md` P-13 행 | 아니오 |
 | 2026-11-19 | Vercel (MCP 커넥터) | Claude 키가 운영에 들어갔는지 확인(읽기만) | `list_teams`·`list_projects`·`filter_project_envs`(**이름·대상만**, Sensitive라 값은 열 수 없음): `ANTHROPIC_API_KEY`가 Production에만 있고 Preview에는 없음을 확인. `list_deployments`로 키를 넣은 뒤 만들어진 최근 Production 배포(READY)가 어댑터 코드가 든 커밋(`d034d9f`)임을 확인. 아무것도 바꾸지 않음 | `docs/intent.md` I-P-13-claude-adapter | 예(배포 환경) |
