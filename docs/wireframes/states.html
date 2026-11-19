@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>화면 상태 모음</title>
+  <style>
+    /* 화면 상태 모음판(무채색, 팀 확인 전): 화면마다 빈 상태·불러오는 중·읽지 못함·일부만 읽음·로그인 필요·저장 실패를 같은 규칙으로.
+       불변 2(수집 실패를 "변화 없음"으로 안 보임)·불변 4(저장 실패면 이전 상태 유지, "완료"로 안 보임)를 화면에서 지키는 모습. 문구는 샘플 */
+    :root { --ink: #1a1a1a; --ink2: #444; --muted: #666; --faint: #b3b3b3; --line: #d4d4d4; --bg: #fff; --sub: #f3f3f3;
+      --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--sub); color: var(--ink); font: 15px/1.55 var(--sans); }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    header.page { padding: 16px; background: var(--ink); color: #fff; }
+    header.page h1 { margin: 0 0 4px; font-size: 20px; }
+    header.page p { margin: 0; color: #ddd; font-size: 14px; max-width: 100ch; }
+    main { max-width: 1280px; margin: 0 auto; padding: 16px; }
+    .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .rule { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+    .rule b { display: block; }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+    .filters button { min-height: 36px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 999px; background: var(--bg); font: inherit; font-size: 13px; cursor: pointer; }
+    .filters button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+    h2 { font-size: 17px; margin: 18px 0 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .frame { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+    .frame .cap { padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+    .frame .cap b { color: var(--ink); }
+    .frame .body { padding: 14px; flex: 1; display: grid; gap: 8px; align-content: start; min-height: 150px; }
+    .msg { display: grid; gap: 4px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--ink2); }
+    .msg.empty { border-style: dashed; }
+    .msg.fail { border-width: 2px; }
+    .msg.partial { border-left: 6px solid var(--ink); }
+    .msg strong { font-size: 15px; }
+    .msg span { font-size: 13px; color: var(--ink2); }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 8px; background: var(--bg); font: inherit; font-size: 13px; font-weight: 600; }
+    .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .skel { height: 12px; border-radius: 6px; background: var(--line); }
+    .skel.w60 { width: 60%; } .skel.w80 { width: 80%; } .skel.w40 { width: 40%; }
+    .why { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
+    @media (prefers-reduced-motion: no-preference) { .skel { animation: pulse 1.4s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .45; } } }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <h1>화면 상태 모음</h1>
+    <p>무채색, 팀 확인 전. 화면마다 같은 규칙으로 빈 상태 · 불러오는 중 · 읽지 못함 · 일부만 읽음 · 로그인 필요 · 저장 실패를 보여요. 문구는 샘플이에요.</p>
+  </header>
+  <main>
+    <div class="rules" aria-label="공통 규칙">
+      <div class="rule"><b>"없음"과 "읽지 못함"은 다른 모양</b>없음 = 점선 테두리 + 다음에 할 일. 읽지 못함 = 굵은 테두리 + "~이 없다는 뜻이 아니에요" + 다시 시도(불변 2).</div>
+      <div class="rule"><b>일부만 읽음은 숨기지 않음</b>읽은 것은 보이고, 못 읽은 것은 몇 개·어떤 것인지 왼쪽 굵은 띠로. "통과"나 "없음"으로 채우지 않음.</div>
+      <div class="rule"><b>저장 실패면 그대로 둠</b>판단·관심·기록 저장이 실패하면 이전 상태 그대로, "저장했어요"를 띄우지 않음, 쓴 글은 지우지 않음(불변 4).</div>
+      <div class="rule"><b>불러오는 중은 자리만</b>모양만 흐린 막대로. 가짜 숫자·가짜 점을 그리지 않음(불변 6). 3초가 넘으면 "아직 읽는 중" 한 줄.</div>
+      <div class="rule"><b>문구는 무엇이 · 왜 · 어떻게</b>사과하지 않고, 모호하지 않게. 단추는 실제로 하는 일 이름(다시 읽기, 로그인, 거르기 풀기).</div>
+    </div>
+    <div class="filters" role="group" aria-label="상태로 거르기" id="filters"></div>
+    <div id="out"></div>
+  </main>
+  <script>
+    (() => {
+      // [화면, 상태, 제목, 설명, 단추들, 왜(규칙·출처)]
+      const S = [
+        ["기술 지도", "빈 상태", "아직 지도에 올릴 기술이 없어요", "내 프로젝트를 등록하면 저장소에서 읽은 기술과 비교군이 지도에 와요.", ["내 프로젝트 등록하기"], "IA-10 · UJ-A2"],
+        ["기술 지도", "로그인 전", "로그인 없이 모은 기술 지도를 보고 있어요", "관심 · 판단 · 내 기술 비교는 로그인하면 열려요.", ["구글로 계속하기"], "14절 ①"],
+        ["기술 지도", "불러오는 중", "", "", [], "불변 6: 가짜 점 없음"],
+        ["기술 지도", "읽지 못함", "지도를 읽지 못했어요", "기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 읽어 주세요. 내 기술 목록은 따로 볼 수 있어요.", ["다시 읽기", "내 기술 목록"], "불변 2"],
+        ["기술 지도", "거르기에 걸림", "이 보기의 거르기에 맞는 기술이 없어요", "기술이 없는 게 아니라 고른 거르기 때문이에요.", ["보기 처음대로"], "ADR 0026"],
+        ["기술 지도", "일부만 읽음", "기술 3개는 마지막 확인에 실패했어요", "점선 고리로 표시했어요. 등급은 마지막으로 읽은 값이고, '문제 없음'이 아니에요.", ["실패한 기술만 보기"], "불변 2 · SPEC-1"],
+        ["새 기술", "빈 상태", "이번 주에 새로 들어온 기술이 없어요", "수집은 매일 06시에 돌아요. 지난주 것은 아래에서 볼 수 있어요.", ["지난주 보기"], "ADR 0025 결정 4"],
+        ["새 기술", "읽지 못함", "새 기술 목록을 읽지 못했어요", "새 기술이 없다는 뜻이 아니에요. 오늘 수집이 실패했을 수 있어요.", ["다시 읽기"], "불변 2"],
+        ["내 레이더", "빈 상태", "아직 판단한 기술이 없어요", "지도에서 기술을 눌러 관심 · 적용 후보 · 보류를 남기면 여기에 모여요.", ["지도로 가기"], "PRD-F36"],
+        ["내 레이더", "읽지 못함", "내 레이더를 읽지 못했어요", "판단 기록은 그대로 있어요. 잠시 뒤 다시 읽어 주세요.", ["다시 읽기"], "불변 2"],
+        ["내 레이더", "저장 실패", "옮기지 못했어요 — 카드는 원래 칸에 그대로예요", "판단이 저장되지 않았어요. 연결을 확인하고 다시 옮겨 주세요. 쓴 보류 이유는 남겨 뒀어요.", ["다시 저장"], "불변 4"],
+        ["알림", "빈 상태", "판단을 기다리는 알림이 없어요", "내 기술에 보안 경고나 적용 기회가 생기면 여기로 와요. 앱 밖으로는 보내지 않아요.", ["완료된 알림 보기"], "IA-6 · IA-Q7"],
+        ["알림", "읽지 못함", "알림을 읽지 못했어요", "알림이 없다는 뜻이 아니에요. 판단 대기 수도 확인하지 못했어요.", ["다시 읽기"], "불변 2 · PRD-F22"],
+        ["알림", "저장 실패", "판단을 저장하지 못했어요 — 아직 판단 대기예요", "아무것도 바뀌지 않았어요. 다시 저장하면 이어서 돼요. 쓴 이유는 그대로 있어요.", ["다시 저장"], "불변 1 · 4 · SPEC-4.1"],
+        ["기록", "빈 상태", "아직 남긴 판단이 없어요", "판단과 이유, 결과 만족도를 남기면 비슷한 기술이 나올 때 다시 찾아 줘요.", ["지도로 가기"], "IA-9"],
+        ["기록", "찾기 결과 없음", "'벡터 DB'에 맞는 기록이 없어요", "이름 · 이유 · 코멘트 · 태그에서 찾았어요. 다른 낱말로 찾아보세요.", ["찾기 지우기"], "14절 ③"],
+        ["기록", "저장 실패", "만족도를 저장하지 못했어요", "별과 코멘트는 화면에 남겨 뒀어요. 다시 저장해 주세요.", ["다시 저장"], "불변 4"],
+        ["+ 기술 넣기", "찾지 못함", "모은 기술에서 찾지 못했어요", "철자를 확인하거나, 이름만 내 기술 목록에 적어 둘 수 있어요(등급은 '찾지 못함').", ["이름만 적어 두기"], "IA-3"],
+        ["+ 기술 넣기", "영상·SNS 링크", "링크만으로는 어떤 기술인지 알 수 없어요", "영상에서 본 이름을 적어 주세요.", [], "14절 ②"],
+        ["블루프린트", "빈 상태", "아직 단계가 없어요", "처음이라면 템플릿이나 인터뷰로 시작해 보세요.", ["템플릿", "인터뷰로 만들기"], "14절 ⑤"],
+        ["블루프린트", "로그인 전", "블루프린트를 저장하려면 로그인해요", "만들어 보기와 내보내기는 로그인 없이도 돼요. 확정 · 이력은 로그인 뒤.", ["구글로 계속하기"], "14절 ① · ⑤"],
+        ["관리자 화면", "권한 없음", "관리자만 볼 수 있는 화면이에요", "주소로 들어와도 서버와 DB가 막아요. 내 화면으로 돌아가요.", ["기술 지도로"], "불변 5"],
+      ];
+      const STATES = [...new Set(S.map((x) => x[1]))];
+      let pick = "";
+      function frame([screen, state, title, body, btns, why]) {
+        const loading = state === "불러오는 중";
+        const kind = /읽지 못함|저장 실패|권한 없음/.test(state) ? "fail" : state === "일부만 읽음" ? "partial" : "empty";
+        const inner = loading
+          ? '<div class="skel w80"></div><div class="skel w60"></div><div class="skel w40"></div><span class="muted" style="font-size:13px">불러오는 중… (3초가 넘으면 "아직 읽는 중" 한 줄)</span>'
+          : `<div class="msg ${kind}" role="${kind === "fail" ? "alert" : "status"}"><strong>${title}</strong><span>${body}</span>${btns.length ? `<div class="row">${btns.map((b, i) => `<span class="btn${i === 0 ? " primary" : ""}">${b}</span>`).join("")}</div>` : ""}</div>`;
+        return `<div class="frame"><div class="cap"><b>${screen}</b><span>${state}</span></div><div class="body">${inner}<div class="why">${why}</div></div></div>`;
+      }
+      function render() {
+        document.getElementById("filters").innerHTML = ["", ...STATES].map((s) => `<button data-s="${s}" aria-pressed="${s === pick}">${s || "모든 상태"}</button>`).join("");
+        const screens = [...new Set(S.map((x) => x[0]))];
+        document.getElementById("out").innerHTML = screens.map((sc) => {
+          const list = S.filter((x) => x[0] === sc && (!pick || x[1] === pick));
+          return list.length ? `<h2>${sc}</h2><div class="grid">${list.map(frame).join("")}</div>` : "";
+        }).join("") || '<p class="muted">이 상태가 있는 화면이 없어요.</p>';
+      }
+      document.getElementById("filters").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { pick = b.dataset.s; render(); document.querySelector(`#filters [data-s="${pick}"]`)?.focus(); } });
+      render();
+    })();
+  </script>
+</body>
+</html>
