@@ -6,7 +6,7 @@ import { decideOpportunityAlerts, type OpportunityRelation } from "../alerts/dec
 import { failure, readChange, readExistingAlertKeys, readUsages, rowsOrThrow, writeAlerts, type Row } from "./alert-db.ts";
 import { toComparable } from "./comparable.ts";
 
-type Input = { changeId: string; techId: string; onlyDemo?: boolean };
+type Input = { changeId: string; techId: string; onlyDemo?: boolean; runId?: string };
 type Result = { created: number; people: number };
 
 const COMPARABLE_COLUMNS =
@@ -36,9 +36,10 @@ export async function createOpportunityAlerts(db: SupabaseClient, input: Input):
   const newTech = techs.get(input.techId);
   if (!newTech) throw failure("새 기술을 찾지 못함", input.techId);
 
+  const isSimulated = change.is_simulated || input.onlyDemo === true;
   const usages = (await readUsages(db, [input.techId, ...relatedIds])).map((usage) => ({ ...usage, techKey: techs.get(usage.techId)?.tech_key ?? "" }));
   const alerts = decideOpportunityAlerts({
-    change: { id: input.changeId, isSimulated: change.is_simulated || input.onlyDemo === true },
+    change: { id: input.changeId, isSimulated },
     newTech: { id: input.techId, techKey: newTech.tech_key, grade: newTech.grade, createdAt: newTech.created_at },
     relations,
     usages,
@@ -52,6 +53,8 @@ export async function createOpportunityAlerts(db: SupabaseClient, input: Input):
     const mine = techs.get(alert.myTechId)!;
     return {
       user_id: alert.userId, change_id: input.changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey,
+      // 시뮬레이터 알림은 만든 실행에 잇는다(alerts.ts와 같은 이유). 칸은 값이 있을 때만 보낸다
+      ...(isSimulated && input.runId ? { run_id: input.runId } : {}),
       comparison: {
         myTechName: mine.display_name,
         newTechName: newTech.display_name,

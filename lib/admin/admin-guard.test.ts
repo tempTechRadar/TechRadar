@@ -4,7 +4,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { adminAccess } from "./admin-access.ts";
 
-// P-18 끝 기준: 관리자 화면은 관리자만(PRD-F3, 불변 5), 판단 버튼 없음(불변 1), 규칙 고치기는 이번엔 자리만.
+// P-18 끝 기준: 관리자 화면은 관리자만(PRD-F3, 불변 5), 판단 버튼 없음(불변 1).
+// P-18b: 같은 역할 확정·규칙 고치기는 서버 동작(app/admin/classify/actions.ts)과 lib/server/classify-edit.ts에만 둔다.
 function files(dir: string, re: RegExp): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = join(dir, e.name);
@@ -35,7 +36,25 @@ test("P-18 화면·읽기 코드에는 판단 저장·쓰기 코드가 없다(�
   assert.deepEqual(bad.map((f) => f.path), []);
 });
 
-test("P-18은 아직 쓰지 않는다: 규칙·같은 역할·감사 기록에 쓰는 코드와 서버 동작이 없다", () => {
+test("P-18b: 분류 확인의 서버 동작은 동작마다 관리자 확인(adminGate)을 다시 거친다(화면만 믿지 않음, 불변 5)", () => {
+  const { text } = read("app/admin/classify/actions.ts");
+  assert.match(text, /^["']use server["']/);
+  const actions = [...text.matchAll(/export async function (\w+)\([^)]*\)[^{]*\{([\s\S]*?)\n\}/g)];
+  assert.ok(actions.length >= 3, `서버 동작이 ${actions.length}개뿐`);
+  const open = actions.filter(([, , body]) => !/await adminGate\(\)/.test(body)).map(([, name]) => name);
+  assert.deepEqual(open, []);
+});
+
+test("P-18b: 규칙·같은 역할 바꾸기는 관리자 본인 연결로만, 서비스 키 연결은 바꾼 기록(audit_logs)에만 쓴다", () => {
+  const { text } = read("lib/server/classify-edit.ts");
+  assert.doesNotMatch(text, /getServiceSupabase|SUPABASE_SERVICE_ROLE_KEY|service-supabase/);
+  const auditTables = [...text.matchAll(/audit\s*\.\s*from\(\s*["'`](\w+)["'`]/g)].map((m) => m[1]);
+  assert.ok(auditTables.length > 0);
+  assert.deepEqual([...new Set(auditTables)], ["audit_logs"]);
+  assert.doesNotMatch(text, /db\s*\.\s*from\(\s*["'`]audit_logs/);
+});
+
+test("P-18 읽기 화면·읽기 코드는 쓰지 않는다: 쓰기는 classify-edit와 서버 동작에만 있다", () => {
   const writes = /\.\s*(insert|update|upsert|delete)\s*\(/;
   const bad = p18Files.filter(({ text }) => writes.test(text) || /["']use server["']/.test(text));
   assert.deepEqual(bad.map((f) => f.path), []);

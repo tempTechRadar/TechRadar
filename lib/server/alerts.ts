@@ -17,10 +17,11 @@ export type CreateAlertsInput = {
   onlyDemo?: boolean;
   /**
    * 이 알림 만들기를 부른 읽기 실행. 실행한 사람(ownerId)의 알림 줄에만 run_id로 적는다(남의 줄은 비움: 변경은 공유라 남의 실행에 연결하면 안 됨, 불변 5).
+   * 가짜(시뮬레이터)·시연 전용 알림은 이 칸 대신 runId를 모든 알림 줄에 적는다(보안·적용 기회 둘 다).
    * 판단 뒤 "조치" 기록이 이 실행을 찾는 길이다(action-record.ts)
    */
   originRun?: { ownerId: string; runId: string };
-  /** 있으면 흐름 화면용 `notify` 단계를 이 실행에 남긴다(P-4 recordStep, 불변 6) */
+  /** 있으면 흐름 화면용 `notify` 단계를 이 실행에 남긴다(P-4 recordStep, 불변 6). 가짜·시연 전용 알림이면 알림 줄의 run_id에도 적는다 */
   runId?: string;
 };
 
@@ -30,10 +31,10 @@ const SECURITY_CHANGE_KINDS = ["grade_to_danger", "first_seen_danger"];
 export type AlertDeps = { aiClient: () => AiClient | null; generateDraft: typeof generateDraft };
 const realDeps: AlertDeps = { aiClient: () => createAnthropicClient(), generateDraft };
 
-function toAlertRow(changeId: string, alert: NewAlert, originRun: CreateAlertsInput["originRun"]): Row {
+function toAlertRow(changeId: string, alert: NewAlert, runId: string | undefined): Row {
   const row: Row = { user_id: alert.userId, change_id: changeId, my_technology_id: alert.myTechnologyId, kind: alert.kind, dedupe_key: alert.dedupeKey };
-  // 칸은 값이 있을 때만 보낸다: 마이그레이션이 DB에 들어가기 전에도 시뮬레이터·적용 기회 경로가 깨지지 않게
-  if (originRun && originRun.ownerId === alert.userId) row.run_id = originRun.runId;
+  // 칸은 값이 있을 때만 보낸다: 마이그레이션이 DB에 들어가기 전에도 적용 기회 경로가 깨지지 않게
+  if (runId) row.run_id = runId;
   return row;
 }
 
@@ -96,5 +97,8 @@ async function createSecurityAlerts(db: SupabaseClient, input: CreateAlertsInput
   });
   const people = new Set(usages.map((usage) => usage.userId)).size;
   if (alerts.length === 0) return { created: 0, people };
-  return { created: await writeAlerts(db, alerts.map((alert) => toAlertRow(input.changeId, alert, input.originRun))), people };
+  // 가짜·시연 전용 알림은 모두 지금 이 실행이 만든다: 그 실행에 잇는다. 안 이으면 다시 누른 실행의 판단(조치)이
+  // 변경을 처음 만든 실행(알림 0건일 수 있음)에 붙는다(QA 11-19). 진짜 변경은 읽기를 실행한 본인 줄에만(불변 5)
+  const runIdFor = (userId: string) => (isSimulated ? input.runId : input.originRun?.ownerId === userId ? input.originRun.runId : undefined);
+  return { created: await writeAlerts(db, alerts.map((alert) => toAlertRow(input.changeId, alert, runIdFor(alert.userId)))), people };
 }

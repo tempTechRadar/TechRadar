@@ -1,7 +1,8 @@
 // 관리자 화면(P-18) 읽기. 주인: 차세일(C). 로그인한 관리자의 클라이언트로 부른다(서비스 키 아님): 일반 계정이면 RLS가 0줄로 막는다(불변 5).
-// 읽기만 한다. 판단(judgments)·규칙(rule_lists)에 쓰는 코드는 여기 없다(불변 1, 규칙 고치기는 담당자·시각·사유를 남기는 다음 조각).
+// 읽기만 한다. 판단(judgments)에 쓰는 코드는 없다(불변 1). 규칙·같은 역할·갈래 고치기는 lib/server/classify-edit.ts(P-18b·18c).
 // 읽기에 실패하면 던진다: 화면이 "없음"과 "불러오지 못함"을 다르게 보여 줘야 한다(design.md).
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CategoryRow } from "../admin/category-options.ts";
 import type { AdminAlert, MyTechRow, ProfileRow, ProjectRow, RuleRow, RunRow, StepErrorRow } from "../admin/admin-summaries.ts";
 import { maskSecrets } from "../domain/redact.ts";
 
@@ -79,27 +80,46 @@ export async function readRuns(db: SupabaseClient): Promise<{ runs: RunRow[]; er
 }
 
 /* IA-17 분류 확인 */
-export type Relation = { id: string; a: string; b: string; status: string; madeBy: string; quote: string | null; createdAt: string };
+export type Relation = { id: string; a: string; b: string; status: string; madeBy: string; quote: string | null; createdAt: string; confirmedAt: string | null };
 export type Unclassified = { id: string; name: string; type: string; techKey: string };
+/** 관리자가 갈래를 정한 기술(P-18c). 고치기와 "누가·언제"를 보인다. */
+export type Categorized = { id: string; name: string; categoryId: string; categoryName: string; setBy: string | null; setAt: string | null };
+/** 분류 확인에서 바꾼 기록(담당자·시각·사유, P-18b). */
+export type ClassifyAudit = { at: string; action: string; reason: string | null; actorId: string | null };
+const AUDIT_SHOWN = 10;
 
-export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow[]; relations: Relation[]; unclassified: Unclassified[]; manualNames: { name: string; createdAt: string }[] }> {
-  const [rules, rel, techs, manual] = await Promise.all([
+export async function readClassify(db: SupabaseClient): Promise<{ rules: RuleRow[]; relations: Relation[]; unclassified: Unclassified[]; manualNames: { name: string; createdAt: string }[]; audits: ClassifyAudit[]; categories: CategoryRow[]; categorized: Categorized[] }> {
+  const [rules, rel, techs, manual, audits, categories, setRows] = await Promise.all([
     rows<RuleRow>(db.from("rule_lists").select("id, kind, ecosystem, value, pattern_id, pattern_grade, enabled"), "규칙 목록"),
     rows<Row>(
       db.from("tech_relations")
-        .select("id, status, made_by, quote, created_at, a:technologies!tech_relations_tech_a_fkey(display_name), b:technologies!tech_relations_tech_b_fkey(display_name)")
+        .select("id, status, made_by, quote, created_at, confirmed_at, a:technologies!tech_relations_tech_a_fkey(display_name), b:technologies!tech_relations_tech_b_fkey(display_name)")
         .order("created_at", { ascending: false }).limit(LIMIT),
       "같은 역할 후보",
     ),
     // 얇은 줄(공식 MCP 레지스트리가 넣은 수천 개)은 쓰는 사람이 생겨 두꺼워지면 보인다: 안 거르면 목록 500칸을 다 차지한다
     rows<Row>(db.from("technologies").select("id, display_name, type, tech_key").is("category_id", null).eq("depth", "thick").order("display_name").limit(LIMIT), "갈래가 없는 기술"),
     rows<Row>(db.from("my_technologies").select("manual_name, created_at").not("manual_name", "is", null).order("created_at", { ascending: false }).limit(LIMIT), "직접 추가한 이름"),
+    rows<Row>(
+      db.from("audit_logs").select("created_at, action, reason, actor_id").in("target_table", ["tech_relations", "rule_lists", "technologies"])
+        .order("created_at", { ascending: false }).limit(AUDIT_SHOWN),
+      "분류 확인 바꾼 기록",
+    ),
+    rows<CategoryRow>(db.from("categories").select("id, name, parent_id"), "갈래 목록"),
+    rows<Row>(
+      db.from("technologies").select("id, display_name, category_id, category_set_by, category_set_at, categories(name)")
+        .not("category_set_at", "is", null).order("category_set_at", { ascending: false }).limit(LIMIT),
+      "관리자가 정한 갈래",
+    ),
   ]);
   return {
     rules,
-    relations: rel.map((r) => ({ id: r.id, a: one(r.a)?.display_name ?? "?", b: one(r.b)?.display_name ?? "?", status: r.status, madeBy: r.made_by, quote: r.quote, createdAt: r.created_at })),
+    relations: rel.map((r) => ({ id: r.id, a: one(r.a)?.display_name ?? "?", b: one(r.b)?.display_name ?? "?", status: r.status, madeBy: r.made_by, quote: r.quote, createdAt: r.created_at, confirmedAt: r.confirmed_at ?? null })),
+    audits: audits.map((x) => ({ at: x.created_at, action: x.action, reason: x.reason ?? null, actorId: x.actor_id ?? null })),
     unclassified: techs.map((t) => ({ id: t.id, name: t.display_name, type: t.type, techKey: t.tech_key })),
     manualNames: manual.map((m) => ({ name: m.manual_name, createdAt: m.created_at })),
+    categories,
+    categorized: setRows.map((t) => ({ id: t.id, name: t.display_name, categoryId: t.category_id, categoryName: one(t.categories)?.name ?? "?", setBy: t.category_set_by ?? null, setAt: t.category_set_at ?? null })),
   };
 }
 
