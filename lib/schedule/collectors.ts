@@ -9,3 +9,4 @@ import { registryCollector } from "../server/collect-registry.ts";
 import type { Collector } from "./run-batch.ts";
 
 export const SCHEDULE_COLLECTORS: Collector[] = [osvCollector(), githubCollector(), registryCollector(), downloadsCollector()];
+// 갈래 분류(P-12c)는 수집이 아니라 여기 넣지 않는다: 부르는 쪽이 묶음 뒤에 classifyAfterBatch를 부른다(lib/server/classify-store.ts)

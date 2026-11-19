@@ -41,9 +41,12 @@
     }
     // 최근 변경의 종류(R17, Zalando·BYOR): 지난 확인보다 등급이 나빠짐 ▲·나아짐 ▼, 새로 들어옴 ★, 그 밖(버전·정보) ●.
     // 넷째 표시("최근 변경")의 모양만 나눈 것이라 표시 수는 넷 그대로다. 실제 앱은 등급 이력·추가된 시각에서 나온다(시안은 예시: 검사 전 = 새로).
-    // 판단 대기: 내 기술에 위험·주의 알림이 와서 아직 판단(적용 후보·보류 등)을 안 한 것(IA-6·7, 문제정의 "판단 근거가 보이는 지도").
-    // 시안은 예시로 "내 기술 + 위험·주의"를 모두 판단 대기로 본다. 실제 앱은 알림과 판단 기록(alerts·judgments)에서 센다.
-    const pending = (n) => n.mine && (n.g === 'd' || n.g === 'w');
+    // 판단 대기: 판단(적용 후보·보류 등)을 아직 안 한 알림(IA-6·7, 문제정의 "판단 근거가 보이는 지도").
+    // 알림은 보안 경고(위험이 됨·처음 본 위험)와 적용 기회(같은 역할 새 기술 확정)만 생긴다(erd alerts.kind). 주의는 알림이 없다.
+    // 시안은 alerts.html과 같은 예시 알림 목록을 쓴다(두 화면 숫자가 맞게). 실제 앱은 alerts·judgments에서 센다.
+    const ALERTS = [{ tech: 'sample-mcp-1', kind: '보안 경고' }, { tech: 'sample-mcp-1', kind: '적용 기회' }];
+    const pendingOf = (n) => ALERTS.filter((a) => a.tech === n.name).length;
+    const pending = (n) => pendingOf(n) > 0;
     const deltaOf = (n) => (n.g === 'n' ? 'new' : !n.chg ? null : n.always ? 'worse' : n.seed % 3 === 0 ? 'better' : 'other');
     const deltaText = (n) => ({ worse: `등급이 나빠졌어요(${n.g === 'd' ? '주의' : '통과'} → ${GRADE[n.g]})`, better: '등급이 나아졌어요(주의 → 통과)', new: '새로 들어왔어요', other: '버전·정보가 바뀌었어요' })[deltaOf(n)] ?? '';
     const markPending = (n) => { n.g = 'n'; n.h = null; n.fresh = false; n.err = null; }; // 아직 한 번도 읽지 않은 점
@@ -154,9 +157,10 @@
       return [n.px, n.py];
     };
     function settle(dt) {
-      let moving = false; const f = 1 - Math.exp(-dt * 14);
+      let moving = false; const f = 1 - Math.exp(-dt * 14), now = performance.now() / 1000;
       nodes.forEach((n) => {
         if (n.born) return;
+        if (n.wait) { if (!paused && now < n.wait) { moving = true; return; } n.wait = 0; } // 보기를 바꿀 때 출발 순서를 기다린다
         const dx = n.tx - n.px, dy = n.ty - n.py;
         if (paused || Math.abs(dx) + Math.abs(dy) < 0.05) { n.px = n.tx; n.py = n.ty; return; }
         n.px += dx * f; n.py += dy * f; moving = true;
@@ -277,17 +281,18 @@
         const pt = (now - pulseAt) / 2.4; // C 점검 한 번이 끝나면 한 번 퍼지는 파동
         if (pt < 1) { ctx.strokeStyle = `rgba(46,213,115,${((1 - pt) * 0.2).toFixed(3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, far * ease(pt), 0, 6.2832); ctx.stroke(); }
       }
-      if (!intro && !paused && arr === 'cat') QUAD.forEach((t, q) => { // A 갈래에 들어서면 그 갈래의 요약이 잠깐
-        const age = now - quadAt[q]; if (folded[q] || age > 2.6) return;
-        const vis = nodes.filter((n) => n.q === q && shown(n)), cnt = (f) => vis.filter(f).length;
-        const R = clamp(395 * s, 130, 0.36 * Math.min(W, H)), ang = (q * 90 + 45) * RAD, x = cx + R * Math.sin(ang), y = cy - R * Math.cos(ang);
+      const sweepSum = (t, vis, deg, age) => { // A 도는 선이 갈래(쓰는 곳 지도에서는 조각)에 들어서면 그 이름과 요약이 잠깐
+        const cnt = (f) => vis.filter(f).length;
+        const R = clamp(395 * s, 130, 0.36 * Math.min(W, H)), ang = deg * RAD, x = cx + R * Math.sin(ang), y = cy - R * Math.cos(ang);
         ctx.globalAlpha = age < 0.3 ? age / 0.3 : Math.max(0, 1 - (age - 0.3) / 2.3);
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg;
         ctx.font = '700 13px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green; ctx.strokeText(t, x, y); ctx.fillText(t, x, y);
         const sum = `위험 ${cnt((n) => n.g === 'd')} · 주의 ${cnt((n) => n.g === 'w')} · 최근 확인 ${cnt((n) => n.fresh)}`;
         ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.strokeText(sum, x, y + 17); ctx.fillText(sum, x, y + 17);
         ctx.globalAlpha = 1; ctx.textAlign = 'left';
-      });
+      };
+      if (!intro && !paused && arr === 'cat') QUAD.forEach((t, q) => { const age = now - quadAt[q]; if (!folded[q] && age <= 2.6) sweepSum(t, nodes.filter((n) => n.q === q && shown(n)), q * 90 + 45, age); });
+      if (!intro && !paused && arr === 'host') segs.forEach((g) => { const age = now - (g.at ?? -9); if (age <= 2.6) sweepSum(g.label, g.members.filter(shown), (g.a0 + g.a1) / 2, age); });
 
       const focus = hoverHub ? -1 : hoverId >= 0 ? hoverId : selId, fam = focus >= 0 ? nodes[focus] : null, lit = litOf(fam);
       const P = nodes.map((n) => { const [x, y] = posOf(n, now); const [sx, sy] = toScreen(x, y); n.sx = sx; n.sy = sy; n.app = appear(n, now); n.hdl = null; return n; });
@@ -485,6 +490,7 @@
     // C 점검 한 번이 끝나면 가운데에서 파동이 한 번 퍼진다(바퀴마다가 아니라). D 점검 중에는 실행 기록(run_steps)을 읽어 선이 읽는 기술로 가서 멈추고 결과를 그린다.
     let run = null, pulseAt = -9, heat = 0, redAt = -9, lastQ = -1;
     const quadAt = [-9, -9, -9, -9];
+    let lastSeg = null; // 쓰는 곳 지도에서 도는 선이 지금 지나는 조각
     // 시안의 예시 실행 기록: 보이는 점(검사 전 제외)을 선이 도는 순서로 읽는다. 원래 읽기 실패였던 점은 또 실패하고, 하나는 이번에 새로 실패한다.
     // 실패해도 등급은 그대로 두고 오류만 덧붙인다(불변 2). 실제 앱은 서버의 runs·run_steps를 읽는다.
     function makeRun() {
@@ -540,6 +546,7 @@
           });
           heat = Math.min(1.5, heat * Math.exp(-dt * 2.5) + pinged * 0.35);
           const qn = Math.floor(theta / 90); if (qn !== lastQ) { if (lastQ >= 0) quadAt[qn] = now; lastQ = qn; }
+          if (arr === 'host') { const g = segs.find((x) => theta >= x.a0 && theta < x.a1); if (g && g !== lastSeg) { if (lastSeg) g.at = now; lastSeg = g; } }
         }
         if (intro?.phase === 'reveal') {
           intro.swept += step;
@@ -708,7 +715,7 @@
       cardNode = n; tipBox = null;
       tip.innerHTML = `<h2>${dot(n)}<span>${n.name}</span><span class="g" style="color:${n.g === 'd' ? C.danger : n.g === 'w' ? C.warn : C.ink}">${gradeText(n)}</span></h2><p>${gradeWhy(n)}</p>
         <p class="meta">마지막 확인 ${lastText(n)} · ${KIND[n.kind]} · ${QUAD[n.q]}${n.mine ? ' · 내 기술' : ''}</p><p class="meta">쓰는 곳: ${hostText(n)}</p>${deltaOf(n) ? `<p class="meta">최근 변경: ${deltaText(n)}</p>` : ''}
-        ${pending(n) ? '<p class="pend">판단 대기 1건 · <a href="alerts.html">알림에서 판단하기</a></p>' : ''}
+        ${pending(n) ? `<p class="pend">판단 대기 ${pendingOf(n)}건 · <a href="alerts.html#list">알림에서 판단하기</a></p>` : ''}
         <p class="hint">누르면 상세${n.kidsN ? (n.expanded ? ' · 펼쳤어요(−로 접어요)' : room(n) ? ` · 펼칠 수 있음 ${n.kidsN}개(+)` : ` · 같은 역할 ${n.kidsN}개가 더 있지만 시안 한도(${MAXN.toLocaleString()}개)라 펼치지 않아요`) : ''}</p>
         <div class="acts"><button type="button" class="tbtn" data-detail>상세 보기</button>${n.kidsN && (n.expanded || room(n)) ? `<button type="button" class="tbtn" data-exp aria-keyshortcuts="E">${n.expanded ? '접기' : `펼치기 +${n.kidsN}`}</button>` : ''}<button type="button" class="tbtn" data-focus>${focusSet && focusId === n.i ? '중심으로 보는 중' : '중심 보기'}</button></div>
         ${n.i === selId ? `<div class="acts"><span class="lab">옮기기</span>${MOVES.map(([v, s, l]) => `<button type="button" class="tbtn" data-mv="${v}" aria-label="이 점을 ${l} 옮기기">${s}</button>`).join('')}</div>` : ''}`;
@@ -754,10 +761,10 @@
       fstate.size && `f=${[...fstate].join('.')}`, fkind.size && `k=${[...fkind].join('.')}`, fmine && 'mi=1',
       folded.some(Boolean) && `fo=${folded.map((f, q) => (f ? q : '')).filter(String).join('.')}`, focusSet && `fc=${focusId}.${focusDepth}`].filter(Boolean).join('&');
     const hostText = (n) => n.hosts.map((h) => HOSTS[h]).join(' · ');
-    function openDetail(n, replace = false) { // replace: 상세의 "같은 역할" 링크로 왔을 때(뒤로 가면 앞 상세로 가게 지도 칸을 바꿔 끼운다)
+    function openDetail(n, replace = false, from = '') { // from: 알림 화면에서 왔으면 'alerts'(상세의 "돌아가기"가 알림으로) // replace: 상세의 "같은 역할" 링크로 왔을 때(뒤로 가면 앞 상세로 가게 지도 칸을 바꿔 끼운다)
       land();
       const nb = [...n.nb].map((i) => nodes[i]).filter((m) => !m.cut).slice(0, 12).map((m) => ({ i: m.i, name: m.name, grade: gradeText(m), g: m.g }));
-      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, fresh: n.fresh, pending: pending(n), hosts: hostText(n), nb, h: saveState() };
+      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, fresh: n.fresh, pending: pendingOf(n), pt: ALERTS.length, from, hosts: hostText(n), nb, h: saveState() };
       history.replaceState(null, '', `#${saveState()}`);
       location[replace ? 'replace' : 'assign'](`detail.html?d=${encodeURIComponent(JSON.stringify(d))}`);
     }
@@ -839,7 +846,7 @@
         $('stat').textContent = '불러오는 중'; $('expAll').textContent = '모두 펼치기'; $('expAll').disabled = true; $('foldAll').disabled = true; $('many').hidden = true; return;
       }
       syncExpandButtons();
-      const pendN = nodes.filter(pending).length; $('pendN').textContent = pendN ? `판단 대기 ${pendN}` : ''; syncBand();
+      const pendN = ALERTS.length; $('pendN').textContent = pendN ? `판단 대기 ${pendN}` : ''; syncBand();
       const visN = nodes.filter(shown).length;
       $('many').hidden = visN <= MANY; $('many').textContent = `지금 보이는 점이 ${visN}개예요. ${MANY}개가 넘으면 읽기 어려워요. 모두 접기나 거르기로 줄여 보세요.`;
       const fresh = nodes.filter((n) => n.fresh).length;
@@ -913,6 +920,7 @@
       if (a === 'host') { nodes.forEach((n) => { n.cat = [n.tx, n.ty, n.hx, n.hy]; }); foldKeep = [...folded]; folded.fill(false); hostLayout(); }
       else { nodes.forEach((n) => { [n.tx, n.ty, n.hx, n.hy] = n.cat; }); folded.splice(0, 4, ...foldKeep); syncPolar(); }
       $('folds').hidden = a === 'host'; syncFolds(); dropCut(); fit();
+      if (!paused) { const t0 = performance.now() / 1000; nodes.forEach((n) => { n.wait = t0 + Math.min(0.5, Math.hypot(n.tx, n.ty) / 2000); }); } // 가운데에서 가까운 점부터 차례로 출발한다(모여드는 느낌)
     }
     function setView(v) {
       if (v === mode) return;
@@ -1129,6 +1137,7 @@
     pause.addEventListener('click', togglePause); $('fit').addEventListener('click', () => fit()); $('home').addEventListener('click', goHome);
     $('more').addEventListener('click', (e) => { e.currentTarget.setAttribute('aria-expanded', document.querySelector('.title').classList.toggle('open')); syncBar(); });
     $('runBtn').addEventListener('click', startRun); syncRunBtn();
+    $('keysBtn').addEventListener('click', () => $('keys').showModal());
     $('expAll').addEventListener('click', expandAll); $('foldAll').addEventListener('click', foldAll);
     $('zin').addEventListener('click', () => zoomAt(W / 2, H / 2, 1.4)); $('zout').addEventListener('click', () => zoomAt(W / 2, H / 2, 1 / 1.4));
     $('toTable').addEventListener('click', () => { const d = $('tableBox'); d.open = true; d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); d.querySelector('summary').focus(); });
@@ -1152,6 +1161,7 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && focusSet && !e.target.closest('#q, #hits')) { exitFocus(); e.preventDefault(); return; }
       if (focusSet && /^[1-3]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, textarea, select')) { setDepth(+e.key); e.preventDefault(); return; } // 지도에 포커스가 없어도(카드 단추 위에서도) 된다
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, select, textarea')) { e.preventDefault(); $('keys').showModal(); return; } // 단축키 도움말
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input, select, textarea')) { e.preventDefault(); qIn.focus(); return; }
       if (e.key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('button, a, summary, input, select, textarea')) { e.preventDefault(); togglePause(); }
     });
@@ -1179,8 +1189,12 @@
     syncFocus();
     const m0 = saved.get('m'); // 상세에서 돌아오면 보던 보기도 되살린다(쓰는 곳별 자리는 데이터로 다시 계산된다)
     if (restored && (m0 === 'host' || m0 === 'tree')) { setView(m0); land(); nodes.forEach((n) => { n.px = n.tx; n.py = n.ty; }); Object.assign(view, { x: sv[0], y: sv[1], k: clamp(sv[2], 0.2, 6) }); }
-    const go = Number(saved.get('go')); // 상세의 "같은 역할" 링크: 지도 상태를 되살린 뒤 그 기술 상세로 바로 간다
-    if (restored && saved.has('go') && nodes[go] && !nodes[go].cut) openDetail(nodes[go], true);
+    // 다른 화면에서 온 링크: go = 그 기술 상세로 바로(상세의 "같은 역할"·알림의 "기술 상세"), sel = 지도에서 그 점을 골라 보여 주기(알림의 "지도에서 보기").
+    // 값은 점 번호나 이름(알림 화면은 이름으로 건다). from=alerts면 상세의 돌아가기가 알림으로 간다.
+    const pick = (v) => (v == null ? null : nodes.find((n) => n.name === v) ?? nodes[Number(v)] ?? null);
+    const goN = pick(saved.get('go')), selN = pick(saved.get('sel'));
+    if (restored && goN && !goN.cut) openDetail(goN, true, saved.get('from') === 'alerts' ? 'alerts' : '');
+    else if (restored && selN && !selN.cut) goTo(selN);
     if (intro) { view.k = 2.2; $('loading').hidden = false; $('risk').hidden = true; } else if (!restored) { fit(); land(); } // 처음에는 나를 가까이서 보다가, 데이터가 오면 물러난다
     requestAnimationFrame(frame);
   })();
