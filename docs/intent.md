@@ -6,6 +6,19 @@
 
 ---
 
+## I-contrib-recount-1119 · 2026-11-19 · 발표 14장 기여 표와 plan 5절 숫자를 같은 시점으로 다시 세기 (차세일)
+- 브랜치: `docs/contrib-recount-1119` (origin/main `f21dc17`). 문서만
+- 출처: `docs/plan.md` 5절 집계 규칙, `slides/index.html` 14장 HTML 주석, CLAUDE.md 9절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 발표 14장 표(11-19 #161까지: 김영식 99·43, 차세일 35·21, 황재웅 25·79)와 plan 5절(11-19 17시 #167까지: 99·48, 39·22, 27·79)이 서로 다른 시점이라 숫자가 어긋난다 |
+| 기대 결과 | 같은 명령·같은 규칙으로 지금 다시 세어 두 곳을 같은 숫자와 같은 기준(날짜·시각, 합친 PR 수, 마지막 PR 번호)으로 맞춘다. plan 5절의 옛 숫자는 괄호에 남긴다 |
+| 영향 범위 | `slides/index.html` 14장(제목 숫자, 표 6칸, HTML 주석, 출처 줄), `docs/plan.md` 5절(표, "위 숫자는 …" 문장), 이 파일, `docs/worklog.md`. 코드 변경 없음 |
+| 제약 | 규칙은 plan 5절 그대로: 만든 PR = 작성자 아이디별 개수, 리뷰한 PR = 남의 PR에 리뷰를 1번 이상 남긴 PR 수(한 PR은 1번, 본인 PR 제외). 사람이 채울 ▢ 칸은 건드리지 않는다 |
+| 열린 질문 | 금요일 저녁 집계 때 다시 센다. 14장 ▢(GitHub에 안 남는 일)는 각자 채운다 |
+
+**결과:** 2026-11-19 17:29에 `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`로 센 합친 PR 169개(#171까지, 닫힌 #116·#160 제외). 김영식 99·52, 황재웅 28·79, 차세일 42·22. 남의 PR에 남은 리뷰 기록 157번 중 156번이 승인, 1번이 의견(차세일, #77). 남의 리뷰 없이 합쳐진 PR은 그대로 #1–#24. 세 사람 밖의 작성자 아이디는 없음. 14장 제목(159개→169개)·표·주석·출처와 plan 5절을 같은 숫자로 맞춤.
 ## I-eval-more-cases · 2026-11-19 · 채점에 사건 종류·경계 사례 더하기 (P-20, 영역 C, 차세일)
 - 브랜치: `feat/eval-more-cases` (origin/main `ac7f10f` 위)
 - 출처: `docs/plan.md` P-20(PRD-F30), `docs/spec.md` SPEC-3.1·3.2·3.4·3.5·4.1·SPEC-10, CLAUDE.md 3절 불변 2·3·4, ADR 0012·0014·0015, `.claude/skills/stage-check/references/requirements.md` 채점 줄(변화 없음·수집 실패·승인 거절·같은 입력 두 번)
