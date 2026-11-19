@@ -1,13 +1,14 @@
 // 분류 확인(IA-17, PRD-F24·F27, ADR 0015): 갈래가 없는 기술, 이름만 써서 직접 추가한 기술, 같은 역할 후보, 규칙 목록(rule_lists).
-// 같은 역할 확정·규칙 켜기·끄기·추가는 사유를 받아 담당자·시각·사유를 남긴다(P-18b, audit_logs). 갈래 확정은 DB 권한이 없어 아직 자리만. 관리자만.
+// 같은 역할 확정·규칙 켜기·끄기·추가(P-18b)와 갈래 정하기·고치기(P-18c)는 사유를 받아 담당자·시각·사유를 남긴다(audit_logs). 관리자만.
 import { groupRules, type RuleRow } from "@/lib/admin/admin-summaries";
-import { readClassify, type Relation, type Unclassified } from "@/lib/server/admin-queries";
+import { categoryOptions, type CategoryGroup } from "@/lib/admin/category-options";
+import { readClassify, type Categorized, type Relation, type Unclassified } from "@/lib/server/admin-queries";
 import { adminGate } from "@/lib/server/admin-gate";
 import { AdminShell, when } from "../admin-shell";
-import { AddRuleForm, AuditList, ConfirmRelationForm, RULE_KO, ToggleRuleForm } from "./classify-forms";
+import { AddRuleForm, AuditList, ConfirmRelationForm, RULE_KO, SetCategoryForm, ToggleRuleForm } from "./classify-forms";
 
 const TITLE = "분류 확인";
-const LEAD = "지도 분류가 비어 있거나 사람이 확인해야 하는 것들이에요. 같은 역할 확정과 규칙 고치기는 사유를 남겨야 해요.";
+const LEAD = "지도 분류가 비어 있거나 사람이 확인해야 하는 것들이에요. 갈래 정하기, 같은 역할 확정, 규칙 고치기는 사유를 남겨야 해요.";
 const MADE_BY_KO: Record<string, string> = { seed: "처음 자료", rule: "규칙", ai: "Claude 제안", admin: "관리자" };
 
 type Data = Awaited<ReturnType<typeof readClassify>>;
@@ -27,7 +28,7 @@ export default async function ClassifyPage({ searchParams }: { searchParams: Pro
       {info ? <p role="status" className="admin-note">{info}</p> : null}
       {data ? (
         <>
-          <Unclassifieds rows={data.unclassified} manual={data.manualNames} />
+          <Unclassifieds rows={data.unclassified} manual={data.manualNames} set={data.categorized} groups={categoryOptions(data.categories)} />
           <Relations rows={data.relations} />
           <Rules rows={data.rules} />
           <AuditList rows={data.audits} me={gate.user.id} />
@@ -37,24 +38,41 @@ export default async function ClassifyPage({ searchParams }: { searchParams: Pro
   );
 }
 
-const Later = ({ what }: { what: string }) => (
-  <p className="admin-placeholder">
-    <button type="button" disabled>{what}</button> 기술 표(technologies)를 관리자가 고칠 DB 권한이 아직 없어 다음 조각에서 켜져요.
-  </p>
+// 갈래 목록(categories)이 비면 고를 것이 없다: 처음 목록은 팀이 정한다(데이터설계 DQ2).
+const NoCategories = () => (
+  <p className="admin-note">작은 갈래가 아직 없어 고를 수 없어요. 갈래의 처음 목록은 팀이 정해요(데이터설계 DQ2).</p>
 );
 
-function Unclassifieds({ rows, manual }: { rows: Unclassified[]; manual: Data["manualNames"] }) {
+function Unclassifieds({ rows, manual, set, groups }: { rows: Unclassified[]; manual: Data["manualNames"]; set: Categorized[]; groups: CategoryGroup[] }) {
   return (
     <section aria-labelledby="h-unclassified">
       <h2 id="h-unclassified">갈래가 없는 기술 <span className="muted">({rows.length})</span></h2>
+      {groups.length === 0 ? <NoCategories /> : null}
       {rows.length === 0 ? <p>갈래가 비어 있는 기술이 없어요.</p> : (
-        <ul>{rows.map((t) => <li key={t.id}>{t.name} <span className="muted">· {t.type} · {t.techKey}</span></li>)}</ul>
+        <ul>
+          {rows.map((t) => (
+            <li key={t.id}>
+              {t.name} <span className="muted">· {t.type} · {t.techKey}</span>
+              {groups.length > 0 ? <SetCategoryForm techId={t.id} groups={groups} /> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      <h2>관리자가 정한 갈래 <span className="muted">({set.length})</span></h2>
+      {set.length === 0 ? <p>아직 없어요.</p> : (
+        <ul>
+          {set.map((t) => (
+            <li key={t.id}>
+              {t.name} <span className="muted">· {t.categoryName} · {when(t.setAt)}</span>
+              {groups.length > 0 ? <SetCategoryForm techId={t.id} groups={groups} current={t.categoryId} /> : null}
+            </li>
+          ))}
+        </ul>
       )}
       <h2>이름만 써서 직접 추가한 기술 <span className="muted">({manual.length})</span></h2>
       {manual.length === 0 ? <p>없어요.</p> : (
         <ul>{manual.map((m, i) => <li key={`${m.name}-${i}`}>{m.name} <span className="muted">· {when(m.createdAt)}</span></li>)}</ul>
       )}
-      <Later what="갈래 확정·고치기" />
     </section>
   );
 }
