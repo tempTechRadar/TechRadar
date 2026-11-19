@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createAlertsForChange } from "./alerts.ts";
+import type { AiClient } from "../ai/ai-client.ts";
+import { createAlertsForChange as createWithDeps, type AlertDeps } from "./alerts.ts";
+
+// 기존 시험은 알림 만들기만 본다: 초안은 부르지 않는 가짜 의존을 끼운다(초안 연결은 파일 맨 끝 시험이 본다)
+const noDraft: AlertDeps = { aiClient: () => null, generateDraft: async () => ({ status: "skipped", reason: "not_security" }) };
+const createAlertsForChange = (db: SupabaseClient, input: Parameters<typeof createWithDeps>[1]) => createWithDeps(db, input, noDraft);
 
 type Row = Record<string, unknown>;
 type Tables = Record<string, Row[]>;
@@ -297,4 +302,43 @@ test("originRun이 없으면 알림 줄에 run_id 칸을 보내지 않는다(마
   await createAlertsForChange(db, input);
 
   assert.deepEqual(tables.alerts.map((a) => "run_id" in a), [false, false]);
+});
+
+// ── 대응안 초안 연결(PRD-F15, SPEC-9, flow `save_change → summarize → notify`)
+const fakeAi: AiClient = { complete: async () => ({ text: "{}" }) };
+
+test("보안 알림은 만들기 전에 대응안 초안을 한 번 부른다: 변경 id·실행 id·Claude 클라이언트를 넘기고, 그때까지 알림은 아직 안 쓴다", async () => {
+  const { db, writes } = fakeDb(baseTables());
+  const seen: { changeId: string; runId: string | undefined; ai: AiClient | null; writesSoFar: number }[] = [];
+  const deps: AlertDeps = {
+    aiClient: () => fakeAi,
+    generateDraft: async (_db, ai, i) => (seen.push({ changeId: i.changeId, runId: i.runId, ai, writesSoFar: writes.length }), { status: "created" }),
+  };
+  const created = await createWithDeps(db, { ...input, runId: "run-9" }, deps);
+  assert.deepEqual(seen, [{ changeId: "change-1", runId: "run-9", ai: fakeAi, writesSoFar: 0 }]);
+  assert.equal(created, 2);
+  assert.equal(writes.length, 1); // 알림 쓰기는 초안 뒤
+});
+
+test("초안이 실패해도(키 없음 포함) 알림은 그대로 만들고 notify 단계도 남긴다 — 실패는 summarize 단계에 남는다(draft.ts)", async () => {
+  const { db, inserts } = fakeDb(baseTables());
+  const deps: AlertDeps = { aiClient: () => null, generateDraft: async () => ({ status: "failed", reason: "not_configured" }) };
+  assert.equal(await createWithDeps(db, { ...input, runId: "run-1" }, deps), 2);
+  assert.deepEqual(inserts.map((i) => [i.table, i.row.step_name]), [["run_steps", "notify"]]);
+});
+
+test("실행 id가 없으면 초안도 실행 id 없이 부른다. 한도로 건너뛴 초안도 알림 만들기를 막지 않는다", async () => {
+  const { db } = fakeDb(baseTables());
+  const runIds: (string | undefined)[] = [];
+  const deps: AlertDeps = { aiClient: () => null, generateDraft: async (_db, _ai, i) => (runIds.push(i.runId), { status: "skipped", reason: "service_limit" }) };
+  assert.equal(await createWithDeps(db, input, deps), 2);
+  assert.deepEqual(runIds, [undefined]);
+});
+
+test("적용 기회 알림은 초안을 부르지 않는다(초안은 보안 변경만, SPEC-9)", async () => {
+  const { db } = fakeDb(baseTables());
+  const deps: AlertDeps = { aiClient: () => fakeAi, generateDraft: async () => { throw new Error("호출되면 안 됨"); } };
+  // 이 가짜 표로 적용 기회가 끝까지 가는지는 상관없다: 초안을 부르면 위 오류가 나오므로, 나온 오류가 그것이 아니면 된다
+  const outcome = await createWithDeps(db, { ...input, kind: "opportunity" }, deps).then(() => null, (e: Error) => e);
+  assert.ok(outcome === null || !/호출되면 안 됨/.test(outcome.message));
 });
