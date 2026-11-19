@@ -19,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Link href="/dashboard">대시보드</Link>
           <Link href="/history">기록</Link>
           <Link href="/compare">비교</Link>
+          <Link href="/settings">설정</Link>
           <Link href="/login">로그인</Link>
           <Link href="/admin">관리자</Link>
         </nav>
