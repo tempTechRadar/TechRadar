@@ -4,7 +4,9 @@
 
 | 날짜 | 서비스 | 목적 | 실제로 한 일 | 결과 링크·캡처 | 앱 실행에도 쓰나 |
 |---|---|---|---|---|---|
-| 2026-11-19 | Vercel (MCP 커넥터) | Claude 키가 운영에 들어갔는지 확인(읽기만) | `list_teams`·`list_projects`·`filter_project_envs`(**이름·대상만**, Sensitive라 값은 열 수 없음): `ANTHROPIC_API_KEY`가 Production에만 있고 Preview에는 없음을 확인. 아무것도 바꾸지 않음 | `docs/intent.md` I-P-13-claude-adapter | 예(배포 환경) |
+| 2026-11-19 | Supabase (MCP 커넥터) | 운영 시뮬레이터 실행 기록 확인(읽기만) | 읽기 전용 `execute_sql`: 시작 전 줄 수와, 관리자 계정으로 돈 운영 시뮬레이터 실행의 `ai_calls`(succeeded, 393/1036)·변경 초안 길이(584자)·`run_steps`(`summarize` succeeded)를 조회. 아무것도 바꾸지 않음 | `docs/qa.md` P-13 행 | 예(앱 DB) |
+| 2026-11-19 | Ego Lite 내장 브라우저 (ego-browser) | 운영 흐름 화면이 실행 기록대로 칠해지는지 보기(읽기만) | 이미 관리자로 로그인된 브라우저로 `/admin/simulator`와 `/admin/flow?run=…` 두 실행을 열어 상자 색을 읽음. 버튼은 누르지 않음 | `docs/qa.md` P-13 행 | 아니오 |
+| 2026-11-19 | Vercel (MCP 커넥터) | Claude 키가 운영에 들어갔는지 확인(읽기만) | `list_teams`·`list_projects`·`filter_project_envs`(**이름·대상만**, Sensitive라 값은 열 수 없음): `ANTHROPIC_API_KEY`가 Production에만 있고 Preview에는 없음을 확인. `list_deployments`로 키를 넣은 뒤 만들어진 최근 Production 배포(READY)가 어댑터 코드가 든 커밋(`d034d9f`)임을 확인. 아무것도 바꾸지 않음 | `docs/intent.md` I-P-13-claude-adapter | 예(배포 환경) |
 | 2026-11-19 | Anthropic API (Messages API, 서버 키) | 대응안 초안 실제 호출 확인 | 어댑터(`lib/server/anthropic-client.ts`)로 실제 호출 2번: 직접 1번(DB 없이), 운영 DB 시뮬레이터 1번(초안 저장·`ai_calls` 기록을 확인한 뒤 만든 줄을 지움). 키는 `.env.local`에서만 읽고 출력하지 않음 | `docs/qa.md` P-13 행, `docs/intent.md` I-P-13-claude-adapter | 예(서버) |
 | 2026-11-19 | Supabase (MCP 커넥터) | 단계 점검과 첫 실제 수집 전후 확인 | `list_projects`·`list_migrations`(운영 DB `techradar`의 마이그레이션 10개가 저장소 파일 10개와 일치), 읽기 전용 `execute_sql`(표 20개의 줄 수, `runs`, 기술 분포, 레지스트리 이어 읽기 자리). 수집은 앱 코드(서비스 키)로 돌렸고 이 커넥터는 읽기만 | `docs/qa.md` 11-19 행: `runs` 0→1·`technologies` 0→3,166 | 앱 코드는 서비스 키로 씀 |
 | 2026-11-19 | Vercel (MCP 커넥터) | 정기 실행 설정과 배포 상태 확인(읽기만) | `list_teams`·`list_projects`·`filter_project_envs`(환경변수 **이름·대상만**, 값은 안 읽음: `GITHUB_TOKEN`·`CRON_SECRET`이 Production에 있음 확인)·`list_deployments`(최근 Production 6개 중 5개 READY, 1개는 연달아 합쳐져 CANCELED). 아무것도 바꾸지 않음 | https://techradar-theta.vercel.app | 예(배포 환경) |
