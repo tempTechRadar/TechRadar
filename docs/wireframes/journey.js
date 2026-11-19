@@ -51,7 +51,7 @@
     SAME.forEach(([a, b]) => {
       const on = near && (a === sel || b === sel), [x1, y1] = pos(byId[a]), [x2, y2] = pos(byId[b]);
       g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="edge${on ? ' on' : ''}${(near && !on) || ui.group.by ? ' dim' : ''}"/>`;
-      if (on) g += `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 6}" text-anchor="middle" class="el">같은 역할</text>`;
+      if (on) g += `<text x="${(x1 + x2) / 2}" y="${(y1 + y2) / 2 - 6}" text-anchor="middle" class="el">비교군</text>`;
     });
     if (!fresh) g += `<g transform="translate(${cx - 10} ${cy - 10})" color="var(--muted)">${icon('radar', 20)}</g><text x="${cx}" y="${cy + 26}" text-anchor="middle" class="lbl soft">나</text>`;
     TECH.forEach((t) => {
@@ -114,7 +114,7 @@
       <div class="muted">${path(t)}</div>
       <div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new" title="이번 주에 들어온 기술">NEW</span>' : ''}${s ? `<span class="tag strong">${JN[s]}</span>` : ''}${tagRow(t, true)}</div>
       <p>${t.desc}</p><p class="muted">${icon('trend', 15)} ${t.pop} · 업데이트 ${t.upd}</p>${secLine(t)}
-      <h3>같은 역할 ${nb.length}</h3><ul class="near">${nb.map((n) => `<li>${dotIcon(stateOf(n))}<a href="#map/${n.id}">${n.id}</a><span class="muted">${JN[stateOf(n)] || ''}</span></li>`).join('')}</ul>
+      <h3>비교군 ${nb.length}</h3><ul class="near">${nb.map((n) => `<li>${dotIcon(stateOf(n))}<a href="#map/${n.id}">${n.id}</a><span class="muted">${JN[stateOf(n)] || ''}</span></li>`).join('')}</ul>
       ${mine && !t.mine ? `<p style="margin-top:8px"><a class="btn" href="#tech/${t.id}">${icon('compare', 16)}내 ${mine.id}와 비교</a></p>` : ''}
       <h3>내 판단</h3>${judgeBox(t)}
       <p style="margin-top:14px"><a class="btn primary" href="#tech/${t.id}">전체 상세 보기${icon('chevron', 16)}</a></p>`;
@@ -136,7 +136,7 @@
     return `<h1 class="sr" tabindex="-1">기술 지도</h1><div class="stage${t ? ' open' : ''}${ui.group.by ? ' grouped' : ''}" id="stage">
       <div class="map-full" id="mapHost">${mapSvg(t ? id : '')}</div>
       <div class="hud"><label class="search">${icon('search')}<input id="q" list="names" placeholder="기술 찾기" aria-label="기술 찾기"></label><datalist id="names">${TECH.map((x) => `<option value="${x.id}">`).join('')}</datalist>
-        <button class="btn" data-act="onlyNew" aria-pressed="${ui.onlyNew}"><span class="tag new">NEW</span>만 보기</button>${groupSelect()}<span class="row" id="chips">${chips()}</span></div>
+        <button class="btn" data-act="onlyNew" aria-pressed="${ui.onlyNew}"><span class="tag new">NEW</span>만 보기</button>${groupSelect()}<span class="muted" title="로그인 전에는 저장하지 않아요">보기는 내 계정에 저장돼요</span><span class="row" id="chips">${chips()}</span></div>
       <div class="gbar" id="gbar" role="group" aria-label="묶음 고르기">${groupBar()}</div>
       <div class="dock"><details class="float-box"><summary>범례</summary>${legend()}</details></div>
       <div class="tip" id="tip" role="tooltip" hidden></div>
@@ -152,7 +152,7 @@
       <p><b>첫 점검:</b> 보안 위험 1 · 주의 1. 읽지 못한 파일이 있으면 "수집 오류"로 따로 보여요.</p>
       <a class="btn primary" href="#map" data-act="toMap">지도에서 내 기술 보기</a></div>`;
     // 지도는 로그인 없이 누구나 본다(사용자 11-20). 모은 기술만 보이고, 관심·판단·내 기술·알림은 로그인 뒤
-    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 모은 기술 지도를 볼 수 있어요. 관심 · 판단 · 내 기술 비교는 로그인하면 열려요.
+    return `<h1 tabindex="-1">기술 지도</h1><p class="note row">로그인하지 않아도 그동안 모은 기술 지도를 볼 수 있어요. 묶기·거르기는 둘러보는 동안만 바뀌고 저장되지 않아요. 로그인하면 보기 설정 · 관심 · 판단이 내 계정에 남아요.
       <a class="btn primary" href="#start/repo">구글로 계속하기</a><a class="btn" href="#start/repo">내 프로젝트 등록하기</a></p>
       <div class="map-box" style="margin-top:10px">${mapSvg('', true)}</div>`;
   }
@@ -172,7 +172,7 @@
     return `<a class="btn" href="#map/${id}">${icon('back', 16)}지도로</a>
       <div class="cols" style="margin-top:12px"><div class="box">
         <h1 tabindex="-1">${t.id}</h1><div class="muted">${path(t)}</div><div class="row" style="margin:6px 0 8px">${t.nw ? '<span class="tag new" title="이번 주에 들어온 기술">NEW</span>' : ''}${tagRow(t)}</div>
-        <p>${t.desc}</p><dl class="kv"><dt>인기</dt><dd>${t.pop}</dd><dt>마지막 업데이트</dt><dd>${t.upd}</dd><dt>같은 역할</dt><dd>${nb.map((n) => `<a href="#tech/${n.id}">${n.id}</a>`).join(', ') || '없음'}</dd></dl>
+        <p>${t.desc}</p><dl class="kv"><dt>인기</dt><dd>${t.pop}</dd><dt>마지막 업데이트</dt><dd>${t.upd}</dd><dt>비교군</dt><dd>${nb.map((n) => `<a href="#tech/${n.id}">${n.id}</a>`).join(', ') || '없음'}</dd></dl>
         ${mine && !t.mine ? `<h3>내 ${mine.id}와 비교</h3>${compareTable(t, mine)}` : ''}
         <h3>보안 (곁들임)</h3>${secLine(t)}
         <h3>적용 시나리오</h3><p class="muted">내 프로젝트에 넣는 방법을 Claude가 써 줘요. 누를 때만 만들어요(참고 자료).</p><button class="btn" data-act="scenario">적용 시나리오 만들기</button>

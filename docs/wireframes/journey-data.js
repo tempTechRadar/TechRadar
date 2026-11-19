@@ -43,8 +43,8 @@
   const SAME = [['sample-mcp-1', 'sample-mcp-3'], ['sample-mcp-1', 'sample-skill-5'], ['sample-skill-1', 'sample-mcp-7'], ['sample-pkg-2', 'sample-mcp-2'], ['sample-mcp-2', 'sample-skill-9'], ['sample-pkg-1', 'sample-pkg-4'], ['sample-pkg-1', 'sample-skill-3']];
   const ALERTS = [
     { id: 'a1', tech: 'sample-mcp-1', kind: '보안 경고', what: '보안 등급 주의 → 위험 (새 취약점)', fixed: '1.4.2', at: '11월 18일 10:30', status: 'wait' },
-    { id: 'a2', tech: 'sample-mcp-3', kind: '적용 기회', what: '내가 쓰는 sample-mcp-1과 같은 역할의 새 기술', at: '11월 19일 08:10', status: 'wait' },
-    { id: 'a3', tech: 'sample-pkg-2', kind: '적용 기회', what: '내가 쓰는 sample-mcp-2와 같은 역할', at: '11월 12일 09:00', status: 'done', result: 'cand' },
+    { id: 'a2', tech: 'sample-mcp-3', kind: '적용 기회', what: '내가 쓰는 sample-mcp-1의 비교군에 새 기술', at: '11월 19일 08:10', status: 'wait' },
+    { id: 'a3', tech: 'sample-pkg-2', kind: '적용 기회', what: '내가 쓰는 sample-mcp-2의 비교군', at: '11월 12일 09:00', status: 'done', result: 'cand' },
   ];
   const NEWS = [['Claude Code 새 버전', '공식 블로그 · 어제'], ['sample-mcp-1 공식 보안 공지', 'GitHub Advisory · 11월 18일']];
   const JN = { use: '쓰는 중', cand: '적용 후보', int: '관심', hold: '보류' };

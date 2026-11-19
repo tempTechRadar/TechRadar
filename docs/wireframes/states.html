@@ -4,24 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>화면 상태 모음</title>
+  <link rel="stylesheet" href="tokens.css">
   <style>
     /* 화면 상태 모음판(무채색, 팀 확인 전): 화면마다 빈 상태·불러오는 중·읽지 못함·일부만 읽음·로그인 필요·저장 실패를 같은 규칙으로.
        불변 2(수집 실패를 "변화 없음"으로 안 보임)·불변 4(저장 실패면 이전 상태 유지, "완료"로 안 보임)를 화면에서 지키는 모습. 문구는 샘플 */
-    :root { --ink: #1a1a1a; --ink2: #444; --muted: #666; --faint: #b3b3b3; --line: #d4d4d4; --bg: #fff; --sub: #f3f3f3;
-      --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; }
+    :root { /* 값은 tokens.css 한 곳(테마는 거기서만 바꿈). 이 시안의 옛 이름은 공용 토큰을 가리키는 별칭 */
+      --ink2: var(--ink-2); --bg: var(--surface); --sub: var(--sunken); --sans: var(--font); }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--sub); color: var(--ink); font: 15px/1.55 var(--sans); }
     :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-    header.page { padding: 16px; background: var(--ink); color: #fff; }
+    header.page { padding: 16px; background: var(--ink); color: var(--on-ink); }
     header.page h1 { margin: 0 0 4px; font-size: 20px; }
-    header.page p { margin: 0; color: #ddd; font-size: 14px; max-width: 100ch; }
+    header.page p { margin: 0; color: var(--line); font-size: 14px; max-width: 100ch; }
     main { max-width: 1280px; margin: 0 auto; padding: 16px; }
     .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-bottom: 16px; }
     .rule { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
     .rule b { display: block; }
     .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
     .filters button { min-height: 36px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 999px; background: var(--bg); font: inherit; font-size: 13px; cursor: pointer; }
-    .filters button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+    .filters button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
     h2 { font-size: 17px; margin: 18px 0 8px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
     .frame { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
@@ -36,7 +37,7 @@
     .msg span { font-size: 13px; color: var(--ink2); }
     .row { display: flex; flex-wrap: wrap; gap: 6px; }
     .btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 8px; background: var(--bg); font: inherit; font-size: 13px; font-weight: 600; }
-    .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .btn.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
     .skel { height: 12px; border-radius: 6px; background: var(--line); }
     .skel.w60 { width: 60%; } .skel.w80 { width: 80%; } .skel.w40 { width: 40%; }
     .why { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
