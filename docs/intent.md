@@ -20,6 +20,22 @@
 
 ---
 
+## I-qa-runsheet-1119 · 2026-11-19 · 남은 사람 QA 실행표와 QA 시트 ADR 초안 (P-28, 차세일)
+- 브랜치: `docs/qa-runsheet-1119` (origin/main `8c3bbe0`). 문서만
+- 출처: `docs/plan.md` P-28, `rules/qa.md`, `docs/qa.md`·`docs/qa-c.md`, `docs/제출물-체크리스트.md` QA 줄, `.claude/skills/stage-check/references/requirements.md` 8·9단계(QA·제출), `docs/관리자-사용설명서.md` 5-3, CLAUDE.md 9절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 남은 No Run·Fail이 두 파일에 흩어져 있고 행마다 필요한 계정·장소가 달라, 사람이 같은 로그인을 여러 번 되풀이해야 한다. 또 P-28은 Google Sheets를 약속했는데 시트가 없어, 제출 요건 "QA 시트 공유"를 어떻게 채울지 정해지지 않았다 |
+| 기대 결과 | ① `docs/qa-실행표.md`: 아직 No Run·Fail인 행을 파일·줄과 함께 한 표로, 로그인 묶음별·앞뒤 순서대로(필요한 것·장소·누르는 순서·기대 결과·고칠 곳). 결과 적는 법을 맨 위에 ② ADR 0025(제안): 시트 대신 md 표를 정본으로 둘지, 안 세 개와 추천 ③ `docs/qa.md`·`docs/qa-c.md` 머리에 링크 한 줄, plan P-28에 날짜 메모 |
+| 영향 범위 | 새 파일 `docs/qa-실행표.md`·`docs/adr/0025-…md`, `docs/qa.md`·`docs/qa-c.md`(머리 한 줄씩), `docs/plan.md` P-28 상태 칸, 이 파일, `docs/worklog.md`. 코드 변경 없음 |
+| 제약 | 행의 상태를 하나도 바꾸지 않는다(실행표는 결과가 아님). 시트를 만들거나 공유하지 않는다(외부 공개·커넥터는 승인 사항). ADR은 제안으로만 두고 결정은 팀이 |
+| 열린 질문 | ① ADR 0025의 ①·③ 중 무엇으로 할지(팀) ② `qa.md` L122 첫 읽기 조치 상자는 위험 버전을 쓰는 공개 저장소가 없어 재료가 없음(새로 만들지 사람 결정) ③ L109 비슷한 지난 판단은 "같은 기술의 새 알림"을 만드는 길이 정해지지 않음 |
+
+**결과:** 실행표 32줄(묶음 0–8). `docs/qa.md`에서 상태 칸이 No Run·Fail 그대로인 행 27개(L80·L84는 이미 다른 행에서 Pass라 실행표에 25개), Pass에 남은 No Run이 붙은 행 16개(실행표에 3개, 13개는 대응표). `docs/qa-c.md` 8개(H7·H8·H10·H11·H13·H14·H15·C19) 모두 실행표에. 상태 칸은 바꾸지 않음. ADR 0025(제안) 추가. `npm test` 결과는 worklog에.
+
+---
+
 ## I-contrib-recount-1119 · 2026-11-19 · 발표 14장 기여 표와 plan 5절 숫자를 같은 시점으로 다시 세기 (차세일)
 - 브랜치: `docs/contrib-recount-1119` (origin/main `f21dc17`). 문서만
 - 출처: `docs/plan.md` 5절 집계 규칙, `slides/index.html` 14장 HTML 주석, CLAUDE.md 9절
