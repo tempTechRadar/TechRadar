@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { maskSecrets } from "@/lib/domain/redact";
 import { SCHEDULE_COLLECTORS } from "@/lib/schedule/collectors";
 import { runBatch } from "@/lib/schedule/run-batch";
+import { classifyAfterBatch } from "@/lib/server/classify-store";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 
@@ -19,6 +20,7 @@ export async function runNowAction(): Promise<void> {
   let target: string;
   try {
     const r = await runBatch({ db, collectors: SCHEDULE_COLLECTORS }, { trigger: "manual", startedBy: user.id });
+    if (r.started) await classifyAfterBatch(db, r.runId);
     // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
     target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.reason))}`;
   } catch (error) {
