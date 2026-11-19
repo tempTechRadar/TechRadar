@@ -121,7 +121,7 @@ test("이렇게 만든 값은 적용 기회 규칙(B의 decideOpportunityAlerts)
   const tech = calls.find((c) => c.table === "technologies" && c.op === "upsert")!.row!;
   const alerts = decideOpportunityAlerts({
     change: { id: "chg-1", isSimulated: true },
-    newTech: { id: NEW_TECH, techKey: String(tech.tech_key), grade: String(tech.grade), createdAt: new Date().toISOString() },
+    newTech: { id: NEW_TECH, techKey: String(tech.tech_key), grade: String(tech.grade), status: "active", createdAt: new Date().toISOString() },
     relations: [{ otherTechId: DEMO_TECH, status: rel.status as "confirmed", confirmedAt: String(rel.confirmed_at) }],
     usages: [
       { userId: "demo-1", myTechnologyId: "m1", techId: DEMO_TECH, techKey: "npm:mcp-remote", isDemo: true, hidden: false, archived: false, registeredAt: "2026-11-17T00:00:00Z" },

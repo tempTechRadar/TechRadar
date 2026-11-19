@@ -61,7 +61,7 @@ const P3: RegExp[] = [
 
 const hit = (res: RegExp[], line: string) => res.some((re) => re.test(line));
 
-// maskSecrets가 못 잡는 소문자 머리글·옵션(x-api-key: …, --token …, Authorization: Basic …)까지 가린다. 지나치게 가리는 쪽이 안전하다.
+// maskSecrets(소문자 머리글·옵션도 가림)보다 넓게, 콜론 없는 `token 값`과 자리표시자까지 가린다. 검사 결과 줄은 지나치게 가리는 쪽이 안전하다.
 const LOWER_SECRET = /((?:x-api-key|api[-_]?key|authorization|token|secret|password)\b["']?\s*[:=\s]\s*(?:(?:Basic|Bearer)\s+)?)["']?[^\s"',;&]+/gi;
 const maskLine = (s: string) => maskSecrets(s).replace(LOWER_SECRET, "$1***");
 
