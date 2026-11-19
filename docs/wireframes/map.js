@@ -11,7 +11,7 @@
     const WHY = ['시간 초과', '네트워크', '한도 초과', '상태 코드', '해석 실패'];
     const gradeText = (n) => GRADE[n.g] + (n.err ? ' · 수집 오류' : '');
     const gradeWhy = (n) => ({
-      d: '알려진 취약점이 있어요(심각도 높음). 고친 버전은 알림에서 확인해요',
+      d: '알려진 취약점이 있어요(심각도 높음)' + (n.mine ? '. 고친 버전은 알림에서 확인해요' : ''), // 알림은 내 기술에만 온다
       w: '12개월 넘게 활동이 없거나 주의할 패턴이 있어요',
       p: '알려진 문제를 찾지 못했어요. 안전하다는 보증은 아니에요',
       u: '근거를 하나도 확인하지 못했어요. 문제가 없다는 뜻은 아니에요',
@@ -41,6 +41,9 @@
     }
     // 최근 변경의 종류(R17, Zalando·BYOR): 지난 확인보다 등급이 나빠짐 ▲·나아짐 ▼, 새로 들어옴 ★, 그 밖(버전·정보) ●.
     // 넷째 표시("최근 변경")의 모양만 나눈 것이라 표시 수는 넷 그대로다. 실제 앱은 등급 이력·추가된 시각에서 나온다(시안은 예시: 검사 전 = 새로).
+    // 판단 대기: 내 기술에 위험·주의 알림이 와서 아직 판단(적용 후보·보류 등)을 안 한 것(IA-6·7, 문제정의 "판단 근거가 보이는 지도").
+    // 시안은 예시로 "내 기술 + 위험·주의"를 모두 판단 대기로 본다. 실제 앱은 알림과 판단 기록(alerts·judgments)에서 센다.
+    const pending = (n) => n.mine && (n.g === 'd' || n.g === 'w');
     const deltaOf = (n) => (n.g === 'n' ? 'new' : !n.chg ? null : n.always ? 'worse' : n.seed % 3 === 0 ? 'better' : 'other');
     const deltaText = (n) => ({ worse: `등급이 나빠졌어요(${n.g === 'd' ? '주의' : '통과'} → ${GRADE[n.g]})`, better: '등급이 나아졌어요(주의 → 통과)', new: '새로 들어왔어요', other: '버전·정보가 바뀌었어요' })[deltaOf(n)] ?? '';
     const markPending = (n) => { n.g = 'n'; n.h = null; n.fresh = false; n.err = null; }; // 아직 한 번도 읽지 않은 점
@@ -160,9 +163,12 @@
       });
       return moving;
     }
+    // 위 단추 줄(메뉴·첫 점검 띠·도구가 열리면 높이가 바뀐다)의 높이. 카드와 위쪽 위험 삼각형이 그 밑으로 숨지 않게 쓴다. 매 프레임 재지 않고 바뀔 때만 잰다
+    let barH = 96;
+    const syncBar = () => { barH = document.querySelector(".title").offsetHeight; dirty = true; };
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight;
-      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); dirty = labelsDirty = true;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); dirty = labelsDirty = true; syncBar();
     }
     new ResizeObserver(resize).observe(cv);
     // 카메라는 목표로 미끄러져 간다. 멈춘 상태면 바로 간다. 휠·확대 단추·방향키는 미끄러지던 것을 먼저 끝낸다.
@@ -213,7 +219,7 @@
     };
     const radiusPx = (n) => Math.max(2.4, n.r * Math.pow(sc(), 0.6));
     const status = (n) => (n.g === 'd' ? C.danger : n.g === 'w' ? C.warn : n.fresh ? C.lit : C.dim);
-    const labelText = (n) => n.name + (n.always ? ` ${GRADE[n.g]}${n.err ? ' ✕' : ''}` : ''); // 위험·주의는 등급을 글자로 늘 적고, 읽기에 실패했으면 ✕도
+    const labelText = (n) => n.name + (n.always ? ` ${GRADE[n.g]}${n.err ? ' ✕' : ''}` : '') + (pending(n) ? ' · 판단 대기' : ''); // 위험·주의는 등급을 글자로 늘 적고, 수집 오류면 ✕도. 내 기술이면 판단 대기도(새 모양 대신 글자로)
 
     function draw(now) {
       ctx.clearRect(0, 0, W, H);
@@ -438,7 +444,7 @@
       });
       bk.forEach((b) => {
         // 가장자리에서 조금 안쪽(위는 단추 줄, 아래는 범례·옮기기 단추를 피해 72px)에 놓는다. 가운데에서 점 쪽으로 쏜 선이 그 틀과 만나는 곳.
-        const ux = Math.cos(b.a), uy = Math.sin(b.a), tx = ux > 0 ? (W - 18 - W / 2) / ux : ux < 0 ? (18 - W / 2) / ux : 1e9, ty = uy > 0 ? (H - 72 - H / 2) / uy : uy < 0 ? (72 - H / 2) / uy : 1e9;
+        const ux = Math.cos(b.a), uy = Math.sin(b.a), tx = ux > 0 ? (W - 18 - W / 2) / ux : ux < 0 ? (18 - W / 2) / ux : 1e9, ty = uy > 0 ? (H - 72 - H / 2) / uy : uy < 0 ? (barH + 16 - H / 2) / uy : 1e9;
         const t = Math.max(0, Math.min(tx, ty)), x = W / 2 + ux * t, y = H / 2 + uy * t;
         // 위험은 속이 찬 삼각형, 주의는 속이 빈 삼각형(색만으로 구분하지 않는다)
         const dg = b.w.g === 'd';
@@ -702,6 +708,7 @@
       cardNode = n; tipBox = null;
       tip.innerHTML = `<h2>${dot(n)}<span>${n.name}</span><span class="g" style="color:${n.g === 'd' ? C.danger : n.g === 'w' ? C.warn : C.ink}">${gradeText(n)}</span></h2><p>${gradeWhy(n)}</p>
         <p class="meta">마지막 확인 ${lastText(n)} · ${KIND[n.kind]} · ${QUAD[n.q]}${n.mine ? ' · 내 기술' : ''}</p><p class="meta">쓰는 곳: ${hostText(n)}</p>${deltaOf(n) ? `<p class="meta">최근 변경: ${deltaText(n)}</p>` : ''}
+        ${pending(n) ? '<p class="pend">판단 대기 1건 · <a href="alerts.html">알림에서 판단하기</a></p>' : ''}
         <p class="hint">누르면 상세${n.kidsN ? (n.expanded ? ' · 펼쳤어요(−로 접어요)' : room(n) ? ` · 펼칠 수 있음 ${n.kidsN}개(+)` : ` · 같은 역할 ${n.kidsN}개가 더 있지만 시안 한도(${MAXN.toLocaleString()}개)라 펼치지 않아요`) : ''}</p>
         <div class="acts"><button type="button" class="tbtn" data-detail>상세 보기</button>${n.kidsN && (n.expanded || room(n)) ? `<button type="button" class="tbtn" data-exp aria-keyshortcuts="E">${n.expanded ? '접기' : `펼치기 +${n.kidsN}`}</button>` : ''}<button type="button" class="tbtn" data-focus>${focusSet && focusId === n.i ? '중심으로 보는 중' : '중심 보기'}</button></div>
         ${n.i === selId ? `<div class="acts"><span class="lab">옮기기</span>${MOVES.map(([v, s, l]) => `<button type="button" class="tbtn" data-mv="${v}" aria-label="이 점을 ${l} 옮기기">${s}</button>`).join('')}</div>` : ''}`;
@@ -724,7 +731,7 @@
       tip.style.visibility = off ? 'hidden' : ''; if (off) return;
       const [w, h] = tipBox, r =radiusPx(n) + (n.kidsN ? 34 : 14); // 손잡이("+3")를 가리지 않게
       let x = n.sx + r; if (x + w > W - 8) x = n.sx - r - w;
-      tip.style.transform = `translate(${Math.round(clamp(x, 8, W - w - 8))}px, ${Math.round(clamp(n.sy - h / 2, 64, H - h - 8))}px)`;
+      tip.style.transform = `translate(${Math.round(clamp(x, 8, W - w - 8))}px, ${Math.round(clamp(n.sy - h / 2, barH + 4, H - h - 8))}px)`;
     }
     tip.addEventListener('pointerenter', () => { tipHold = true; clearTimeout(tipTimer); });
     tip.addEventListener('pointerleave', () => { tipHold = false; laterTip(); });
@@ -742,15 +749,17 @@
       else if (m) { const [dx, dy] = m.dataset.mv.split(',').map(Number), d = 24 / sc(); nudge(n, dx * d, dy * d); tip.querySelector(`[data-mv="${m.dataset.mv}"]`)?.focus(); }
     });
 
-    // ---- 상세(IA-4): 같은 탭에서 연다. 보던 자리와 펼친 순서를 주소(#)에 남겨, 뒤로 오면 그대로 되살린다(끌어 옮긴 자리·거르기·갈래 접기는 남기지 않는다).
-    const saveState = () => `v=${view.x.toFixed(1)},${view.y.toFixed(1)},${view.k.toFixed(3)}&e=${made.join('.')}&c=${made.filter((i) => !nodes[i].expanded).join('.')}&m=${mode}`;
+    // ---- 상세(IA-4): 같은 탭에서 연다. 보던 자리·펼친 순서·보기·거르기·갈래 접기·중심 보기를 주소(#)에 남겨, 뒤로 오면 그대로 되살린다(끌어 옮긴 자리는 남기지 않는다).
+    const saveState = () => [`v=${view.x.toFixed(1)},${view.y.toFixed(1)},${view.k.toFixed(3)}`, `e=${made.join('.')}`, `c=${made.filter((i) => !nodes[i].expanded).join('.')}`, `m=${mode}`,
+      fstate.size && `f=${[...fstate].join('.')}`, fkind.size && `k=${[...fkind].join('.')}`, fmine && 'mi=1',
+      folded.some(Boolean) && `fo=${folded.map((f, q) => (f ? q : '')).filter(String).join('.')}`, focusSet && `fc=${focusId}.${focusDepth}`].filter(Boolean).join('&');
     const hostText = (n) => n.hosts.map((h) => HOSTS[h]).join(' · ');
-    function openDetail(n) {
+    function openDetail(n, replace = false) { // replace: 상세의 "같은 역할" 링크로 왔을 때(뒤로 가면 앞 상세로 가게 지도 칸을 바꿔 끼운다)
       land();
-      const nb = [...n.nb].map((i) => nodes[i]).filter((m) => !m.cut).slice(0, 12).map((m) => ({ name: m.name, grade: gradeText(m), g: m.g }));
-      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, fresh: n.fresh, hosts: hostText(n), nb };
+      const nb = [...n.nb].map((i) => nodes[i]).filter((m) => !m.cut).slice(0, 12).map((m) => ({ i: m.i, name: m.name, grade: gradeText(m), g: m.g }));
+      const d = { name: n.name, kind: KIND[n.kind], quad: QUAD[n.q], g: n.g, grade: gradeText(n), why: gradeWhy(n), last: lastText(n), chg: deltaText(n), mine: n.mine, fresh: n.fresh, pending: pending(n), hosts: hostText(n), nb, h: saveState() };
       history.replaceState(null, '', `#${saveState()}`);
-      location.href = `detail.html?d=${encodeURIComponent(JSON.stringify(d))}`;
+      location[replace ? 'replace' : 'assign'](`detail.html?d=${encodeURIComponent(JSON.stringify(d))}`);
     }
 
     // ---- 펼치기·접기: 손잡이(+/−), 카드 단추, E 키. 처음 펼치면 새로 만들고, 그 뒤로는 감춘 것을 다시 보인다(같은 점이 같은 자리에).
@@ -803,6 +812,16 @@
       $('expAll').textContent = gain ? `모두 펼치기 +${gain}` : nodes.some((n) => shown(n) && n.kidsN && !n.expanded) ? '시안 한도에 닿았어요' : '모두 펼쳤어요'; $('expAll').disabled = !gain;
       $('foldAll').disabled = !nodes.some((n) => n.expanded);
     }
+    // 첫 점검 띠(PRD-F14, SPEC-5.2): 내 기술의 첫 점검 결과를 처음 한 번 보인다. 확인을 누르면 이 탭에서는 다시 안 보인다(실제 앱은 실행 id로 기억, P-12b).
+    // 읽지 못한 내 기술이 있으면 "빠졌어요"를 붙여 0으로 단정하지 않는다(불변 2). 불러오는 동안에는 숫자를 보이지 않는다(불변 6).
+    let bandSeen = false; try { bandSeen = sessionStorage.getItem('tr-band') === '1'; } catch { /* 저장소를 못 쓰면 매번 보인다 */ }
+    function syncBand() {
+      if (bandSeen || loading()) { $('band').hidden = true; return; }
+      const mine = nodes.filter((n) => n.mine), c = (g) => mine.filter((n) => n.g === g).length, miss = mine.filter((n) => n.err).length;
+      $('bandTxt').innerHTML = `첫 점검: 위험 ${c('d')} · 주의 ${c('w')}${miss ? ` · 읽지 못한 내 기술 ${miss}개는 빠졌어요` : ''} · <a href="alerts.html">알림에서 보기</a>`;
+      $('band').hidden = false;
+    }
+    $('bandOk').addEventListener('click', () => { bandSeen = true; try { sessionStorage.setItem('tr-band', '1'); } catch { /* 이 탭에서만 감춘다 */ } syncBand(); syncBar(); cv.focus({ preventScroll: true }); });
     // R16(Grafana는 기본 200개까지만 보이고 나머지를 숨긴다): 우리는 숨기지 않고(위험이 가려질 수 있어서) 알리기만 한다.
     const MANY = 200;
     // 화면 읽기 프로그램에는 바뀐 알림 글만 읽힌다(통계 전체를 매번 읽지 않게). 점검 중에는 시작과 끝만.
@@ -820,6 +839,7 @@
         $('stat').textContent = '불러오는 중'; $('expAll').textContent = '모두 펼치기'; $('expAll').disabled = true; $('foldAll').disabled = true; $('many').hidden = true; return;
       }
       syncExpandButtons();
+      const pendN = nodes.filter(pending).length; $('pendN').textContent = pendN ? `판단 대기 ${pendN}` : ''; syncBand();
       const visN = nodes.filter(shown).length;
       $('many').hidden = visN <= MANY; $('many').textContent = `지금 보이는 점이 ${visN}개예요. ${MANY}개가 넘으면 읽기 어려워요. 모두 접기나 거르기로 줄여 보세요.`;
       const fresh = nodes.filter((n) => n.fresh).length;
@@ -827,7 +847,7 @@
       $('home').disabled = !movedN;
       $('stat').innerHTML = `기술 ${nodes.length}개${hiddenN ? `(지금 감춘 ${hiddenN}개)` : ''} 연결 ${edges.length}개${movedN ? ` 옮긴 점 ${movedN}개` : ''}<br>최근 확인 ${fresh}개${msg ? `<br>${msg}` : ''}`;
       if (!run) say(msg);
-      renderTable(); renderTree();
+      renderTable(); renderTree(); syncBar();
     }
     // 표 보기: 지도와 같은 모든 점(접힌·걸러진·감춘 점도). 위험 먼저·이름순·마지막 확인이 오래된 순으로 정렬하고, 상태(범례와 같은 판정)와 이름으로 거른다.
     const SEV = (n) => (n.g === 'd' ? 0 : n.g === 'w' ? 1 : n.err ? 2 : n.g === 'u' ? 3 : n.g === 'n' ? 4 : 5);
@@ -1107,7 +1127,7 @@
     // 운영체제의 "움직임 줄이기"를 쓰는 중에 바꿔도 따른다
     matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => { if (e.matches !== paused) togglePause(); });
     pause.addEventListener('click', togglePause); $('fit').addEventListener('click', () => fit()); $('home').addEventListener('click', goHome);
-    $('more').addEventListener('click', (e) => e.currentTarget.setAttribute('aria-expanded', document.querySelector('.title').classList.toggle('open')));
+    $('more').addEventListener('click', (e) => { e.currentTarget.setAttribute('aria-expanded', document.querySelector('.title').classList.toggle('open')); syncBar(); });
     $('runBtn').addEventListener('click', startRun); syncRunBtn();
     $('expAll').addEventListener('click', expandAll); $('foldAll').addEventListener('click', foldAll);
     $('zin').addEventListener('click', () => zoomAt(W / 2, H / 2, 1.4)); $('zout').addEventListener('click', () => zoomAt(W / 2, H / 2, 1 / 1.4));
@@ -1147,10 +1167,20 @@
       (saved.get('c') || '').split('.').filter(Boolean).forEach((i) => { if (nodes[+i]) nodes[+i].expanded = false; });
       recut(); nodes.forEach((n) => { n.born = 0; n.px = n.tx; n.py = n.ty; });
       Object.assign(view, { x: sv[0], y: sv[1], k: clamp(sv[2], 0.2, 6) });
+      (saved.get('fo') || '').split('.').filter((q) => /^[0-3]$/.test(q)).forEach((q) => { folded[+q] = true; });
+      (saved.get('f') || '').split('.').filter((k) => STATE[k]).forEach((k) => fstate.add(k));
+      (saved.get('k') || '').split('.').filter((k) => KIND[k]).forEach((k) => { fkind.add(k); $('filterBox').querySelector(`[data-kind="${k}"]`).checked = true; });
+      if (saved.get('mi') === '1') { fmine = true; $('filterBox').querySelector('[data-scope]').checked = true; }
+      const fc = (saved.get('fc') || '').split('.').map(Number);
+      if (saved.has('fc') && nodes[fc[0]] && !nodes[fc[0]].cut) { focusId = fc[0]; focusDepth = clamp(fc[1] || 1, 1, 3); calcFocus(); }
     }
     resize(); syncFolds(); refresh(); syncPause();
+    if (fstate.size || fkind.size || fmine) afterFilter();
+    syncFocus();
     const m0 = saved.get('m'); // 상세에서 돌아오면 보던 보기도 되살린다(쓰는 곳별 자리는 데이터로 다시 계산된다)
     if (restored && (m0 === 'host' || m0 === 'tree')) { setView(m0); land(); nodes.forEach((n) => { n.px = n.tx; n.py = n.ty; }); Object.assign(view, { x: sv[0], y: sv[1], k: clamp(sv[2], 0.2, 6) }); }
+    const go = Number(saved.get('go')); // 상세의 "같은 역할" 링크: 지도 상태를 되살린 뒤 그 기술 상세로 바로 간다
+    if (restored && saved.has('go') && nodes[go] && !nodes[go].cut) openDetail(nodes[go], true);
     if (intro) { view.k = 2.2; $('loading').hidden = false; $('risk').hidden = true; } else if (!restored) { fit(); land(); } // 처음에는 나를 가까이서 보다가, 데이터가 오면 물러난다
     requestAnimationFrame(frame);
   })();

@@ -30,6 +30,7 @@
     li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--grid); }
     li i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
     .todo { font: 12px/1.6 var(--mono); color: var(--muted); }
+    .pend { margin: 12px 0 0; font: 13px/1.6 var(--mono); } .pend a, li a { display: inline-flex; align-items: center; min-height: 44px; color: var(--green); } /* 상세에서 알림·다른 기술로 가는 길(막다른 곳이 되지 않게) */
     .err { margin-top: 24px; color: var(--ink); font: 13px var(--mono); } /* 노랑은 주의 등급에만 쓴다 */
   </style>
 </head>
@@ -44,6 +45,7 @@
         <b id="gradeLab"></b>
         <p id="why"></p>
       </section>
+      <p class="pend" id="pend" hidden>판단 대기 1건이 있어요 · <a href="alerts.html">알림에서 판단하기</a></p>
       <h2>속성</h2>
       <dl>
         <dt>마지막 확인</dt><dd id="last"></dd>
@@ -77,13 +79,16 @@
       $('last').textContent = text(d.last);
       $('chg').textContent = typeof d.chg === 'string' && d.chg ? d.chg : '없음';
       $('hosts').textContent = text(d.hosts) || '모름';
+      $('pend').hidden = d.pending !== true;
       $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '내 기술 아님 · 비교용으로 보여 줘요';
       const nb = Array.isArray(d.nb) ? d.nb.filter((m) => m && typeof m === 'object') : []; // 주소가 망가져도 빈 화면이 되지 않게
       if (!nb.length) $('nb').innerHTML = '<li>이어진 기술이 없어요</li>';
       nb.forEach((m) => {
         const li = document.createElement('li'), dot = document.createElement('i'), t = document.createElement('span');
         dot.style.background = COLOR[m.g] || 'var(--dim)'; t.textContent = `${text(m.name)} · ${text(m.grade)}`;
-        li.append(dot, t); $('nb').append(li);
+        // 같은 역할 기술 → 그 기술 상세: 지도 상태(h)를 되살린 지도로 가서 바로 그 점의 상세를 연다(go). 주소 앞부분은 늘 map.html#라 다른 곳으로 새지 않는다
+        if (typeof d.h === 'string' && Number.isInteger(m.i)) { const a = document.createElement('a'); a.href = `map.html#${d.h}&go=${m.i}`; a.append(t); li.append(dot, a); } else li.append(dot, t);
+        $('nb').append(li);
       });
       $('body').hidden = false;
       $('back').focus();

@@ -55,6 +55,17 @@
     .filter input { width: 18px; height: 18px; accent-color: var(--green); }
     .fname { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
     .views { display: flex; } .views .tbtn { white-space: nowrap; }
+    /* 주 메뉴(IA 1절): 지도에서 알림·내 기술·기록으로 가는 길. "알림"에 판단 대기 수를 붙인다(IA-10 "위에 판단 대기 숫자") */
+    .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; pointer-events: auto; font: 13px var(--mono); }
+    .nav a, .nav-x { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; color: var(--ink); text-decoration: none; }
+    .nav a[aria-current="page"] { color: var(--green); box-shadow: inset 0 -2px var(--green); }
+    .nav a:hover { color: var(--green); }
+    .nav-x { color: var(--muted); cursor: default; }
+    .nav b { padding: 1px 8px; font-weight: 700; color: var(--bg); background: var(--ink); border-radius: 9px; } /* 판단 대기 배지: 등급 색과 섞이지 않게 흰 바탕 */
+    .nav b:empty { display: none; }
+    /* 첫 점검 띠(PRD-F14, SPEC-5.2 "첫 점검: 위험 n · 주의 n"): 처음 한 번, 확인을 누르면 사라진다 */
+    .band { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding: 0 0 0 12px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .9); border-left: 3px solid var(--ink); pointer-events: auto; }
+    .band a { color: var(--green); }
 
     /* 쓰는 곳별 나무: 지도 자리를 덮는 접고 펴는 목록. 위 단추 줄과 아래 범례는 그대로 쓴다(위 여백은 map.js가 단추 줄 높이에 맞춘다) */
     .tree { position: absolute; inset: 0; overflow: auto; padding: 140px 16px 88px; background: var(--bg); font: 13px/1.6 var(--mono); }
@@ -76,6 +87,7 @@
     .tip h2 .g { font-weight: 700; }
     .tip p { margin: 0 0 4px; }
     .tip .meta, .tip .hint { font-size: 12px; color: var(--muted); }
+    .tip .pend { font-size: 12px; } .tip .pend a { display: inline-flex; align-items: center; min-height: 32px; color: var(--green); } /* 판단 대기 → 알림(IA-6·7)으로 가는 길 */
     .acts { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
     .acts .lab { width: 44px; font-size: 12px; color: var(--muted); }
     .acts .tbtn { min-width: 44px; border-color: var(--green-dim); }
@@ -119,6 +131,8 @@
     @media (max-width: 720px) {
       .title .hint { display: none; }
       .search { flex: 1 1 140px; } .search input { width: 100%; }
+      .nav-x { display: none; } /* 좁은 화면: 시안에 없는 메뉴는 빼서 메뉴를 한 줄로 */
+      .title:not(.open) #expAll, .title:not(.open) #foldAll { display: none; } /* 좁은 화면: 모두 펼치기·접기는 "도구" 안으로(지도 자리를 남긴다) */
       .stat { left: -9999px; } /* 좁은 화면엔 둘 자리가 없다. 바뀐 알림은 짧은 알림(.toast)으로 보이고, 화면 읽기 프로그램은 그대로 읽는다 */    }
   </style>
 </head>
@@ -130,7 +144,15 @@
     <section class="tree" id="treeView" aria-label="쓰는 곳별 나무" hidden></section>
     <header class="title">
       <h1>techradar</h1>
+      <nav class="nav" aria-label="주 메뉴"><!-- IA 1절 사용자 메뉴. 시안에 없는 화면은 흐린 글자로만 둔다 -->
+        <a href="map.html" aria-current="page">기술 지도</a>
+        <span class="nav-x" title="이 시안에는 아직 없어요">대시보드</span>
+        <span class="nav-x" title="이 시안에는 아직 없어요">내 기술</span>
+        <a href="alerts.html" id="navAlerts">알림 <b id="pendN"></b></a>
+        <span class="nav-x" title="이 시안에는 아직 없어요">기록 찾기</span>
+      </nav>
       <p class="hint" role="note">시안이에요. 이름과 숫자는 모두 샘플이에요. 점에 올리면 요약, 누르면 상세, +로 펼쳐요.</p>
+      <p class="band" id="band" role="status" hidden><span id="bandTxt"></span><button type="button" class="tbtn" id="bandOk">확인</button></p>
       <div class="tools" role="toolbar" aria-label="지도 보기">
         <button type="button" class="tbtn" id="more" aria-expanded="false">도구 ▾</button>
         <div class="views" id="views" role="group" aria-label="보기 방식">
