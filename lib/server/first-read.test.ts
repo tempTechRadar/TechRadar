@@ -298,6 +298,23 @@ test("package.json은 깨졌고 requirements.txt는 글자 파일이 아니어�
   assert.deepEqual([r.status, r.errors, r.found], ["failed", 2, 0]);
 });
 
+// 배포 주소 실패 시연(docs/관리자-사용설명서.md 5-3, ADR 0024): 실패 시연 스위치 없이 진짜 입력으로 빨간 상자를 만드는 길. 이 모양이 바뀌면 설명서도 고친다.
+test("package.json 하나만 깨진 공개 저장소: 가져오기는 성공, 기술 읽기는 해석 실패, 실행은 실패. 다시 등록해도 같은 결과이고 프로젝트·변경·알림은 늘지 않는다", async (t) => {
+  stubWeb(t, { files: { "package.json": "{ \"dependencies\": " } });
+  for (const existing of [false, true]) {
+    const { db, calls } = fakeDb(existing);
+    const r = await registerAndRead(USER, REPO, { db });
+    const step = (name: string) => steps(calls).find((s) => s.step_name === name);
+    assert.deepEqual([r.status, r.found, r.danger], ["failed", 0, 0]);
+    assert.equal(ops(calls, "runs", "insert").map(arg0)[0].trigger, existing ? "user_reread" : "first_read");
+    assert.equal(step("fetch_repo")?.status, "succeeded");
+    assert.deepEqual([step("extract_my_tech")?.status, step("extract_my_tech")?.error_kind], ["failed", "parse"]);
+    assert.equal(ops(calls, "runs", "update").map(arg0).at(-1)?.status, "failed");
+    assert.equal(ops(calls, "projects", "insert").length, existing ? 0 : 1);
+    assert.equal(ops(calls, "changes", "upsert").length + ops(calls, "alerts", "upsert").length, 0);
+  }
+});
+
 test("-r 경로는 믿을 수 없는 글이라 오류 메시지에 길게 싣지 않고, 기록 저장도 오래 걸리지 않는다(앞 3개·80자까지)", async (t) => {
   const huge = "KEY".repeat(30_000);
   stubWeb(t, { files: { "requirements.txt": `-r ${huge}\n-r a.txt\n-r b.txt\n-r c.txt\nmcp==1.2.0\n` } });
