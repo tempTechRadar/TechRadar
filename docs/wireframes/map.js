@@ -283,12 +283,12 @@
         ctx.globalAlpha = 1; ctx.textAlign = 'left';
       });
 
-      const focus = hoverId >= 0 ? hoverId : selId, fam = focus >= 0 ? nodes[focus] : null;
+      const focus = hoverHub ? -1 : hoverId >= 0 ? hoverId : selId, fam = focus >= 0 ? nodes[focus] : null, lit = litOf(fam);
       const P = nodes.map((n) => { const [x, y] = posOf(n, now); const [sx, sy] = toScreen(x, y); n.sx = sx; n.sy = sy; n.app = appear(n, now); n.hdl = null; return n; });
-      if (arr === 'host' && !intro) drawHubLines(s, cx, cy);
+      if (arr === 'host' && !intro) drawHubLines(s, cx, cy, lit);
       // 선: 평소엔 가늘고 흐리게 모두 보이고, 점을 올리면 그 가족의 선만 밝아진다. 쓰는 곳 지도에서는 같은 역할이 여러 조각에 흩어져 선이 얽히므로 아주 옅게 둔다.
       const inFam = (e) => fam && (e.a === focus || e.b === focus), faint = [];
-      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${C.edge},${fam ? 0.07 : arr === 'host' ? 0.07 : 0.24})`; ctx.beginPath();
+      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${C.edge},${lit ? 0.06 : arr === 'host' ? 0.07 : 0.24})`; ctx.beginPath();
       edges.forEach((e) => {
         if (inFam(e)) return; const a = P[e.a], b = P[e.b]; if (!shown(a) || !shown(b)) return;
         if ((a.sx < -50 && b.sx < -50) || (a.sx > W + 50 && b.sx > W + 50) || (a.sy < -50 && b.sy < -50) || (a.sy > H + 50 && b.sy > H + 50)) return;
@@ -303,7 +303,7 @@
       const crowded = P.filter((n) => shown(n) && n.sx > 0 && n.sx < W && n.sy > 0 && n.sy < H).length > 120;
       P.forEach((n) => {
         if (!n.app || !shown(n) || n.sx < -40 || n.sx > W + 40 || n.sy < -40 || n.sy > H + 40) { n.k = 0; return; }
-        const rp = radiusPx(n) * n.app, dimmed = fam && n !== fam && !fam.nb.has(n.i), off = fActive && !isOn(n), A = (off ? 0.1 : dimmed ? 0.22 : 1) * n.app;
+        const rp = radiusPx(n) * n.app, dimmed = lit && !lit.nodes.has(n.i), off = fActive && !isOn(n), A = (off ? 0.1 : dimmed ? 0.22 : 1) * n.app;
         n.k = !paused && n.fresh ? glow((((theta - n.deg) % 360) + 360) % 360) : 0;
         ctx.globalAlpha = A;
         if (n.fresh || n.always) { if (n.k > 0.01) { const g = rp * 5.5; ctx.globalAlpha = (A) * n.k * 0.7; ctx.drawImage(sprite[n.g === 'd' ? 'd' : n.g === 'w' ? 'w' : 'p'], n.sx - g / 2, n.sy - g / 2, g, g); ctx.globalAlpha = A; } }
@@ -351,10 +351,10 @@
         const a = n.i === hoverId || n.i === selId ? 1 : Math.max(zoomA, n.k);
         if (a < 0.03 || n.sx < -80 || n.sx > W + 80 || n.sy < -20 || n.sy > H + 20) return;
         const sp = n.spot || { dx: radiusPx(n) + 8, dy: 0 }, t = labelText(n);
-        ctx.globalAlpha = (fam && n !== fam && !fam.nb.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
+        ctx.globalAlpha = (lit && !lit.nodes.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
       });
       ctx.globalAlpha = 1;
-      if (arr === 'host' && !intro) drawHubs(s);
+      if (arr === 'host' && !intro) drawHubs(s, lit);
       if (intro) riskRects.length = 0; else drawRisk(P);
       placeTip();
     }
@@ -363,13 +363,34 @@
     // 두 곳 이상에서 함께 쓰는 조각의 마름모는 점선 테두리이고 두 쓰는 곳 모두와 이어진다. 숫자는 지금 보이는 점 수다.
     const shapePath = (x, y, r, sides, rot) => { ctx.beginPath(); for (let i = 0; i < sides; i++) { const a = rot + (i * 2 * Math.PI) / sides; ctx[i ? 'lineTo' : 'moveTo'](x + r * Math.cos(a), y + r * Math.sin(a)); } ctx.closePath(); };
     const hubPx = (s, big) => Math.max(big ? 11 : 6, (big ? 24 : 12) * Math.pow(s, 0.6));
-    function drawHubLines(s, cx, cy) { // 점보다 먼저 그린다(선이 점을 가리지 않게)
-      ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(46,213,115,.3)'; ctx.beginPath();
-      hubs.forEach((b) => { const [x, y] = toScreen(b.x, b.y); ctx.moveTo(cx, cy); ctx.lineTo(x, y); segs.forEach((g) => { if (!g.hosts.includes(b.h)) return; const [gx, gy] = toScreen(g.x, g.y); ctx.moveTo(x, y); ctx.lineTo(gx, gy); }); });
-      ctx.stroke();
-      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(46,213,115,.1)'; ctx.beginPath();
-      segs.forEach((g) => { const [gx, gy] = toScreen(g.x, g.y); g.members.forEach((n) => { if (shown(n) && n.app) { ctx.moveTo(gx, gy); ctx.lineTo(n.sx, n.sy); } }); });
-      ctx.stroke();
+    // 커서를 올린 항목과 이어진 것(밝게 둘 것). 점이면 그 점·같은 역할 이웃과, 쓰는 곳 지도에서는 그 점의 종류·쓰는 곳까지.
+    // 마름모(종류)면 그 종류의 점들과 쓰는 곳, 육각형(쓰는 곳)이면 그 쓰는 곳의 종류와 점 모두. 아무것도 안 올렸으면 null(모두 보통).
+    let hoverHub = null; // { host } 또는 { seg }: 쓰는 곳 지도에서 커서가 올라간 육각형·마름모
+    function litOf(fam) {
+      const hostsOf2 = (gs) => new Set(hubs.filter((b) => gs.some((g) => g.hosts.includes(b.h))));
+      if (hoverHub?.host) { const gs = segs.filter((g) => g.hosts.includes(hoverHub.host.h)); return { nodes: new Set(gs.flatMap((g) => g.members.map((n) => n.i))), segs: new Set(gs), hubs: new Set([hoverHub.host]) }; }
+      if (hoverHub?.seg) { const g = hoverHub.seg; return { nodes: new Set(g.members.map((n) => n.i)), segs: new Set([g]), hubs: hostsOf2([g]) }; }
+      if (!fam) return null;
+      const gs = arr === 'host' && fam.seg ? [fam.seg] : [];
+      return { nodes: new Set([fam.i, ...fam.nb]), segs: new Set(gs), hubs: hostsOf2(gs) };
+    }
+    const hubAt = (x, y) => { // 쓰는 곳 지도의 육각형·마름모(꼬리표 포함) 위인지
+      if (arr !== 'host' || intro) return null;
+      const s = sc(), b = hubs.find((b) => { const [hx, hy] = toScreen(b.x, b.y); return Math.hypot(hx - x, hy - y) < hubPx(s, true) + 4; });
+      if (b) return { host: b };
+      const g = segs.find((g) => { const [gx, gy] = toScreen(g.x, g.y), p = kindTag(g, s, g.members.length); return Math.hypot(gx - x, gy - y) < hubPx(s, false) + 6 || (x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h); });
+      return g ? { seg: g } : null;
+    };
+    function drawHubLines(s, cx, cy, lit) { // 점보다 먼저 그린다(선이 점을 가리지 않게). 이어진 것을 밝힐 때는 나머지 선을 더 옅게
+      const on = (b, g) => lit && lit.hubs.has(b) && (!g || lit.segs.has(g)), dim = lit ? 0.4 : 1;
+      const tree = (pick) => { hubs.forEach((b) => { const [x, y] = toScreen(b.x, b.y); if (pick(b)) { ctx.moveTo(cx, cy); ctx.lineTo(x, y); } segs.forEach((g) => { if (!g.hosts.includes(b.h) || !pick(b, g)) return; const [gx, gy] = toScreen(g.x, g.y); ctx.moveTo(x, y); ctx.lineTo(gx, gy); }); }); };
+      ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(46,213,115,${0.3 * dim})`; ctx.beginPath(); tree((b, g) => !on(b, g)); ctx.stroke();
+      const leaves = (pick) => segs.forEach((g) => { const [gx, gy] = toScreen(g.x, g.y); g.members.forEach((n) => { if (shown(n) && n.app && pick(g, n)) { ctx.moveTo(gx, gy); ctx.lineTo(n.sx, n.sy); } }); });
+      const leafOn = (g, n) => lit && lit.segs.has(g) && lit.nodes.has(n.i);
+      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(46,213,115,${0.1 * dim})`; ctx.beginPath(); leaves((g, n) => !leafOn(g, n)); ctx.stroke();
+      if (!lit) return;
+      ctx.strokeStyle = 'rgba(46,213,115,.85)'; ctx.lineWidth = 2; ctx.beginPath(); tree(on); ctx.stroke();
+      ctx.strokeStyle = 'rgba(46,213,115,.6)'; ctx.lineWidth = 1.2; ctx.beginPath(); leaves(leafOn); ctx.stroke();
     }
     function kindTag(g, s, c) { // 종류 꼬리표 자리: 마름모의 바깥쪽 옆(이름표 자리 정하기도 같은 자리를 피한다)
       ctx.font = '12px ui-monospace, Consolas, monospace';
@@ -377,11 +398,12 @@
       const ax = x + u.x * (r + 6), ay = y + u.y * (r + 6);
       return { t, w, h, x: u.x > 0.3 ? ax : u.x < -0.3 ? ax - w : ax - w / 2, y: Math.abs(u.x) > 0.3 ? ay - h / 2 : u.y > 0 ? ay : ay - h };
     }
-    function drawHubs(s) {
+    function drawHubs(s, lit) {
       const live = (g) => g.members.filter(shown).length;
       ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
       segs.forEach((g) => {
         const c = live(g); if (!c) return;
+        ctx.globalAlpha = lit && !lit.segs.has(g) ? 0.3 : 1;
         const [x, y] = toScreen(g.x, g.y), r = hubPx(s, false), u = polar((g.a0 + g.a1) / 2, 1);
         shapePath(x, y, r, 4, 0); ctx.fillStyle = C.bg; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#7fdca6'; ctx.setLineDash(g.hosts.length > 1 ? [2.5, 2.5] : []); ctx.stroke(); ctx.setLineDash([]);
         const p = kindTag(g, s, c); // 점이 많아 겹쳐도 읽히게 바탕이 있는 꼬리표로
@@ -390,13 +412,14 @@
       });
       hubs.forEach((b) => {
         const c = new Set(segs.filter((g) => g.hosts.includes(b.h)).flatMap((g) => g.members.filter(shown))).size; if (!c) return;
-        const [x, y] = toScreen(b.x, b.y), r = hubPx(s, true);
-        shapePath(x, y, r, 6, Math.PI / 6); ctx.fillStyle = '#0f2a1d'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = C.green; ctx.stroke();
+        const [x, y] = toScreen(b.x, b.y), r = hubPx(s, true), on = lit && lit.hubs.has(b);
+        ctx.globalAlpha = lit && !on ? 0.3 : 1;
+        shapePath(x, y, r, 6, Math.PI / 6); ctx.fillStyle = on ? '#1a4a31' : '#0f2a1d'; ctx.fill(); ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = C.green; ctx.stroke();
         ctx.textAlign = 'center'; ctx.font = '700 13px ui-monospace, Consolas, monospace'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green;
         ctx.strokeText(b.label, x, y + r + 12); ctx.fillText(b.label, x, y + r + 12);
         ctx.font = '700 11px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.ink; ctx.fillText(String(c), x, y + 0.5);
       });
-      ctx.textAlign = 'left';
+      ctx.textAlign = 'left'; ctx.globalAlpha = 1;
     }
 
     // 화면 밖의 위험·주의: 지도가 끝없어서 놓칠 수 있으니 가장자리에 삼각형으로 알린다. 방향이 비슷한 것은 하나로 묶고 개수를 적는다.
@@ -647,6 +670,8 @@
       const hd = handleAt(x, y), h = hd >= 0 ? -1 : hit(x, y);
       cv.classList.toggle('node', h >= 0); cv.classList.toggle('pointer', h < 0 && (hd >= 0 || badgeAt(x, y) >= 0 || riskAt(x, y) >= 0));
       if (hd !== hoverHdl) { hoverHdl = hd; dirty = true; }
+      const hb = h < 0 && hd < 0 ? hubAt(x, y) : null; // 육각형·마름모에 올리면 이어진 것을 밝힌다
+      if ((hb?.host ?? hb?.seg) !== (hoverHub?.host ?? hoverHub?.seg)) { hoverHub = hb; dirty = true; }
       if (h !== hoverId) { const was = hoverId; hoverId = h; dirty = true; if (h < 0 && was >= 0) laterTip(); else syncTip(); }
     });
     const endDrag = (e) => {
@@ -663,7 +688,7 @@
       if (dropped) refreshTip(); // 끄는 동안 감춘 카드를 놓은 점 옆에 다시
     };
     cv.addEventListener('pointerup', (e) => { endDrag(e); lift(e); }); cv.addEventListener('pointercancel', (e) => { lift(e); drag = null; cv.classList.remove('grabbing'); });
-    cv.addEventListener('pointerleave', () => { hoverHdl = -1; if (!drag && hoverId >= 0) { hoverId = -1; cv.classList.remove('pointer', 'node'); dirty = true; laterTip(); } }); // 카드로 마우스를 옮기는 동안 카드가 사라지지 않게 잠깐 기다린다
+    cv.addEventListener('pointerleave', () => { hoverHdl = -1; hoverHub = null; dirty = true; if (!drag && hoverId >= 0) { hoverId = -1; cv.classList.remove('pointer', 'node'); dirty = true; laterTip(); } }); // 카드로 마우스를 옮기는 동안 카드가 사라지지 않게 잠깐 기다린다
     cv.addEventListener('wheel', (e) => { e.preventDefault(); finishIntro(); const [x, y] = local(e); zoomAt(x, y, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
     cv.addEventListener('dblclick', () => fit()); // 이벤트가 인자로 넘어가면 "가운데 빼기"로 읽히므로 비워서 부른다
 
@@ -849,7 +874,7 @@
         return { a0, a1, label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, kind: KIND[l[0].kind], hosts: l[0].hosts, members: l, host: l[0].hosts.join('+') };
       });
       let k = -1, prev = ''; segs.forEach((g) => { if (g.hosts.length === 1 && g.host !== prev) { k++; prev = g.host; } g.shade = k % 2; }); // 쓰는 곳마다 번갈아 칠할 명암
-      segs.forEach((g) => Object.assign(g, polar((g.a0 + g.a1) / 2, KIND_R))); // 종류 마름모는 조각 가운데
+      segs.forEach((g) => { Object.assign(g, polar((g.a0 + g.a1) / 2, KIND_R)); g.members.forEach((n) => { n.seg = g; }); }); // 종류 마름모는 조각 가운데
       hubs = HOSTS.map((label, h) => { // 쓰는 곳 육각형은 혼자 쓰는 조각들의 가운데(없으면 함께 쓰는 조각들의 가운데)
         const any = segs.filter((g) => g.hosts.includes(h)), own = any.filter((g) => g.hosts.length === 1), l = own.length ? own : any;
         return l.length ? { ...polar((l[0].a0 + l[l.length - 1].a1) / 2, HUB_R), label, h } : null;
@@ -857,7 +882,7 @@
       syncPolar(); dirty = labelsDirty = true;
     }
     function arrange(a) {
-      sim = null; arr = a;
+      sim = null; arr = a; hoverHub = null;
       if (a === 'host') { nodes.forEach((n) => { n.cat = [n.tx, n.ty, n.hx, n.hy]; }); foldKeep = [...folded]; folded.fill(false); hostLayout(); }
       else { nodes.forEach((n) => { [n.tx, n.ty, n.hx, n.hy] = n.cat; }); folded.splice(0, 4, ...foldKeep); syncPolar(); }
       $('folds').hidden = a === 'host'; syncFolds(); dropCut(); fit();
@@ -1102,7 +1127,7 @@
 
     window.__g = { nodes, edges, view, expand: expandNode, fit, zoomAt, sc, toScreen, get theta() { return theta; }, get paused() { return paused; }, get rings() { return lastRings; }, TAIL, size: () => ({ W, H }), hit, folded, fold: setFold, find, goTo, badgeRect, move: moveNode, ropes: captureRopes, home: goHome, isMoved,
       isOn, fstate, fkind, afterFilter, clearFilters, riskList, jumpRisk, riskRects, focus: enterFocus, depth: setDepth, exitFocus, get focusSet() { return focusSet; }, nudge, shown, navList, stepNode, stepNeighbor, renderTable,
-      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; }, setView, get mode() { return mode; }, get arr() { return arr; }, get segs() { return segs; }, get hubs() { return hubs; }, HOSTS };
+      get intro() { return intro; }, get fly() { return fly; }, finishIntro, land, select, toggleOpen, expandAll, foldAll, saveState, made, get tipFor() { return tipFor; }, syncTip, get sim() { return sim; }, PHYS, startRun, get run() { return run; }, get heat() { return heat; }, quadAt, get pulseAt() { return pulseAt; }, get redAt() { return redAt; }, setView, get mode() { return mode; }, get arr() { return arr; }, get segs() { return segs; }, get hubs() { return hubs; }, get hoverHub() { return hoverHub; }, litOf, HOSTS };
     // 상세에서 뒤로 왔으면(#v=…) 처음 열기 없이 보던 자리와 펼친 모습을 되살린다. 같은 순서로 다시 펼치면 같은 점이 같은 자리에 생긴다.
     const saved = new URLSearchParams(location.hash.slice(1)), sv = saved.get('v')?.split(',').map(Number), restored = sv?.length === 3 && sv.every(Number.isFinite);
     if (restored) {
