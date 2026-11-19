@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getMyTechDetail, recordGradeView, type MyTechDetail } from "@/lib/server/my-tech";
+import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "../../../alerts/alerts.css";
 import { TechDetail } from "./tech-detail";
@@ -24,7 +25,14 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
   if (!detail) notFound();
   // 이름만 직접 추가한 기술은 카탈로그에 이어져 있지 않아(tech_id 없음) 열람 기록을 남길 수 없다.
   if (detail.technologies) await recordGradeView({ db: supabase, audit: null, userId: user.id }, detail.technologies.id);
-  return <TechDetail d={detail} />;
+  // "쓰고 있어요"(PRD-F34): 못 읽어도 기술 상세는 그대로 보여 주고(로그는 남김), 화면은 "불러오지 못했어요"로 알린다(0명으로 단정하지 않음, 불변 2)
+  let using: { count: number; nicknames: string[] } | null | undefined;
+  if (detail.technologies) {
+    const r = await readUsingNow(supabase, detail.technologies.id);
+    if (r.ok) using = { count: r.count, nicknames: r.nicknames };
+    else { console.error(r.error); using = null; }
+  }
+  return <TechDetail d={detail} using={using} />;
 }
 
 function LoadError() {
