@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-qa-db-rollback | QA 운영 DB 되돌림 시험: P-18c 갈래 확정 RLS 12개를 운영에서 처음 돌리고(모두 기대값), P-2·P-30 RLS(26+24개)를 마이그레이션이 늘어난 뒤 다시 돌려 회귀 확인. 전부 되돌렸고 흔적 0·줄 수 같음을 확인. 마이그레이션 기록 표에 P-18c가 없는 것을 열린 질문으로 | 나(요청 "다하자 진행") · Claude(시험 실행·기록) | `docs/qa-db-rollback`, `docs/intent.md` I-qa-db-rollback, `docs/qa.md` |
 | I-P-15-scenario-insert-columns | 운영 QA에서 적용 시나리오가 늘 실패하는 것을 찾음(로그: permission denied for table scenarios). 사용자 insert가 열 grant 밖의 `status`를 보내던 것을 빼고, 마이그레이션 grant와 코드가 보내는 칸을 맞대는 시험 추가 | 나(요청 "진행") · Claude(운영 QA·원인·고침) | `fix/P-15-scenario-insert-columns`, `docs/intent.md` I-P-15-scenario-insert-columns |
 | I-a11y-tap-targets | 누르는 칸 고침: 운영 실제 화면 접근성 점검에서 나온 작은 클릭 대상(메뉴 링크 20px·로그아웃 19px·주소 입력칸 17px·표 링크 16~19px)을 메뉴 44px·입력칸 44px·표 링크 24px로 키움. 고침 전은 운영 값을 재현해 재고 고친 뒤 비교. 시험 3개, DB 변경 없음 | 나(요청 "진행") · Claude(측정·수정·시험) | `fix/a11y-tap-targets`, `docs/intent.md` I-a11y-tap-targets, `docs/qa.md` |
 | I-P-5b-opportunity-redirect | 운영 "적용 기회 1건 만들기"가 `error=NEXT_REDIRECT`로 이유를 잃던 것: try 안 redirect를 try 밖으로(시뮬레이터·지금 실행·실패 시연 3곳), 모든 서버 동작을 훑는 규칙 시험 추가 | 차세일(Claude) | `app/admin/*/actions.ts`, `lib/admin/redirect-in-try.test.ts` |
