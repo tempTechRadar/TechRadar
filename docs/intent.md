@@ -7,7 +7,7 @@
 ---
 
 ## I-P-9e-skills · 2026-11-19 · P-9e 스킬 폴더 읽기: `.claude/skills/<이름>/`을 내 기술로 (영역 A, 김영식)
-- 브랜치: `feat/P-9e-skills` (origin/main d77cadd 위, worktree `.claude/worktrees/night-p9e-skills`)
+- 브랜치: `feat/P-9e-skills` (origin/main d77cadd 위에서 시작해 fa7fb19(#99 `requirements.txt`·#109까지)를 합침, worktree `.claude/worktrees/night-p9e-skills`)
 - 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: PRD-F6, SPEC-7.1·7.3, 문서 PR #95의 ADR 0020(스킬 폴더 읽기만 1순위), `lib/domain/tech-key.ts`의 `skillKey`, DB `technologies.type = 'skill'`·`my_technologies.unknown_origin`
 
 | 칸 | 내용 |
@@ -18,7 +18,8 @@
 | 제약 | 등급은 OSV로만 매겨서 스킬은 "찾지 못함"이다(위험 패턴 검사 연결은 다음 단계). GitHub API 무인증 시간당 60번 중 목록 1번을 쓰고, 스킬은 30개까지 읽는다(넘으면 오류로 남김, `shortcut:` 주석). 커밋·푸시·PR은 사용자에게 물은 뒤 |
 | 열린 질문 | 스킬에 `scanRiskPatterns`(P-10)를 연결할지(시연의 위험한 스킬 G6~G9를 화면에 보이려면 필요). 원본 주소를 README까지 볼지(지금은 머리 키만). 서버 토큰(P-9b와 함께). `flow.md` `fetch_repo` 줄과 plan P-9e 상태는 문서 PR #95와 겹쳐 그 쪽에서 맞춘다. |
 
-**결과:** 새 시험 21개(순수 규칙 7·읽기 어댑터 6·첫 읽기 통합 8)를 더하고 기존 첫 읽기 시험의 가짜 웹을 스킬 목록 호출에 맞게 고쳤으며, 전체 570개 중 569 통과·실패 0·todo 1, `tsc` 통과. 목록 오류를 삼키기·`runStatus`를 옛 식으로·스킬 줄 전체 대신 폴더 하나만 표시하기를 일부러 넣어 시험이 잡는 것을 확인했다. 실제 GitHub·DB는 부르지 않았다.
+**결과:** 새 시험 21개(순수 규칙 7·읽기 어댑터 6·첫 읽기 통합 8)를 더하고 기존 첫 읽기 시험의 가짜 웹을 스킬 목록 호출에 맞게 고쳤으며, 목록 오류를 삼키기·`runStatus`를 옛 식으로·스킬 줄 전체 대신 폴더 하나만 표시하기를 일부러 넣어 시험이 잡는 것을 확인했다. 그 뒤 main(#99가 읽는 파일을 `REPO_FILES` 목록으로 바꾸고 실패 기준을 "해석한 파일이 하나도 없고 오류가 있으면 실패"로 바꿈)에 맞춰 합쳤다: 읽은 스킬도 해석한 것으로 세고, `requirements.txt`의 부분 오류(soft)는 그대로 둔다. 옛 기준으로 쓴 시험 1개(저장소 파일 하나 오류 + 스킬 목록 오류 = 일부 성공)는 새 기준(읽은 것 없음 = 실패)으로 고쳤다. 합친 뒤 전체 725개 중 721 통과·실패 0·건너뜀 3·todo 1, `tsc`·`next build --webpack` 통과. `flow.md` `fetch_repo` 줄도 지금 코드(4종)에 맞췄다. 실제 GitHub·DB는 부르지 않았다.
+
 ## I-supabase-url-origin · 2026-11-19 · Supabase 주소를 프로젝트 주소로만 쓰기: 구글 로그인이 /rest/v1/auth/v1로 가던 오류
 - 브랜치: `fix/supabase-url-origin` (origin/main d77cadd 위, worktree `.claude/worktrees/supabase-url`)
 - 출처: 사용자가 붙여 준 오류 "No API key found in request"(배포 주소에서 구글 로그인을 누름). 근거: Supabase edge 기록(2026-11-19 00:06 UTC, `GET 401 …supabase.co/rest/v1/auth/v1/authorize?provider=google…`), `docs/debug-note.md`의 11-18 같은 사례, PRD-F1

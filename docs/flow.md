@@ -53,7 +53,7 @@ flowchart LR
 | fetch_github | API | 저장소 정보 | 두꺼운 기술의 저장소 | 마지막 푸시·라이선스·별·보관·404(릴리스는 다음 조각). 저장소마다 1번 | GitHub(서버 토큰) | 그 저장소만 수집 오류. 서버 토큰이 없거나 모양이 이상하면 호출 없이 이 상자가 실패. 읽은 것이 하나도 없으면 이 상자가 실패 |
 | fetch_downloads | API | 다운로드 수 | 패키지 이름 | 주간 다운로드 | npm·PyPI | 인기 신호만 비움: 일부 기술이 실패하면 그 기술의 **이전 값을 그대로 두고** `collect_error`에 건수로 센다(불변 2·4). 한쪽 출처(npm 또는 PyPI)가 통째로 실패하면 이 상자가 실패(재시도·3번 연속 강조가 보게). 한도 초과(429)가 나면 그 출처는 그 실행에서 더 부르지 않는다. 404를 0으로 읽지 않는다 |
 | fetch_popularity | API | 인기 신호 (3순위) | 기술 목록 | HF·HN·skills.sh 신호 | HF·HN·Firecrawl | 인기 신호만 비움 |
-| fetch_repo | API | 내 저장소 읽기 | 공개 저장소 주소 | 파일 내용: **지금 구현은 `package.json`·`.mcp.json` 2종**, 1순위 목표는 `.claude/skills/`를 더한 3종(P-9e, 11-20). `requirements.txt`는 3순위(PRD-F6, SPEC-7.1, ADR 0020) | GitHub | 그 파일의 기술만 수집 오류(불변 2) |
+| fetch_repo | API | 내 저장소 읽기 | 공개 저장소 주소 | 파일 내용: `package.json`·`.mcp.json`·`requirements.txt`와 `.claude/skills/<이름>/SKILL.md`(P-9e: 폴더 목록 1번 + 폴더마다 1번, 30개까지)(PRD-F6, SPEC-7.1, ADR 0020) | GitHub | 그 파일의 기술만 수집 오류(불변 2) |
 | extract_my_tech | 변환 | 내 기술 뽑기 | 파일 내용 | 기술 키와 버전(SPEC-7) | — | 형식이 이상한 줄은 건너뛰고 이유를 남김 |
 | normalize | 변환 | 같은 모양으로 | 출처마다 다른 응답 | 출처·대상·지표·이전 값·현재 값·**바뀐 정도**·시각 | — | 해석 실패 → 수집 오류 |
 | compare | 변환 | 이전 값과 비교 | 지금 값 | 바뀐 것만(`observations`) | — | — |
@@ -116,3 +116,4 @@ v1 알림은 **앱 안**(알림 목록·지도 띠)만 쓴다. 안내서 그림�
 - 2026-11-18 GitHub 코드 검토 반영(작업 `I-P-9b-github`): `fetch_github`의 나간 건수는 읽은 **기술** 수(같은 저장소를 가리키는 기술은 한 번 읽어 모두에 적용), 호출은 저장소마다 1번.
 - 2026-11-18 공식 MCP 레지스트리 수집(작업 `I-P-9c-registry`): `fetch_registry`가 정기 실행에서도 돈다. 수집기는 `fetch_registry`(나간 건수 = 읽은 최신 버전 서버 수) 뒤에 `normalize`(N → N), `compare`(N → 나가는 건수 **0**: 레지스트리의 바뀐 값은 등급 계산으로 넘어가지 않아 `compare→grade` 화살표에 OSV 숫자와 섞이지 않게. 새·고침·상태 바뀜·그대로·들이지 않음 개수는 요약에)를 남기고, 모양이 이상해 읽지 못한 항목이 있으면 `collect_error`(그 항목 수)를 남긴다. `grade`·`is_event`는 지나지 않는다(서버 목록은 사건이 아니다). 상태가 바뀐 서버는 수집 자료(status)로 남는다.
 - 2026-11-18 2차 점검 결정(Y-8·Y-4 ②·Y-11 ④⑤, ADR 0020, 사용자가 정하고 팀은 PR 리뷰에서 확인)(작업 `I-doc-fixes-3`): `fetch_repo` 읽는 파일의 1순위 목표를 3종(`.claude/skills/` 추가, P-9e)으로, `requirements.txt`를 3순위로 고침(점검 Y-8). `no_change`·`collect_error` 상자가 실제 실행에서 켜지는 경우를 코드 기준으로 적음(점검 Y-4 ②): 코드는 그대로 두기로 정함 — 정기 수집과 실패 시연은 `collect_error`를 단계로 기록해 켜지고, 처음 읽기의 `collect_error`와 처음 읽기·정기 수집의 `no_change`는 건수로만 보이고, 관리자 시연 ②(같은 값 두 번)만 `no_change`를 단계로 켠다. 이유: 오류 시연에 필요한 불빛은 이미 켜지고 건수는 화살표에 실제 기록으로 보이며, 코드 동결 이틀 전에 실행 기록 코드를 건드리지 않는다
+- 2026-11-19 스킬 폴더 읽기(작업 `I-P-9e-skills`): `fetch_repo`가 읽는 것을 지금 코드에 맞춤. `requirements.txt`(P-9 조각, PR #99)와 `.claude/skills/`(P-9e)를 더함. 폴더 목록을 못 읽으면 그 아래 스킬 줄 모두 수집 오류(불변 2).
