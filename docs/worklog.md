@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-deploy-via-actions | 배포 한도 대응: #150~#152 배포가 하루 한도로 실패해 운영이 #143에 멈춘 것을 Vercel 기록으로 확인(24시간 77개, 그중 문서만 바뀌어 건너뛴 30개). main 자동 배포를 끄고 GitHub Actions가 "20분 잠잠 + 운영 커밋 뒤로 앱 파일이 바뀐 경우"에만 Deploy Hook을 부르게 바꿈, 하루 한 번 따라잡기, 운영 커밋을 알려 주는 `/api/version`. 판정 스크립트 14가지 시험 통과. ADR 0023 | 나(요청·방식 선택·Deploy Hook과 Secret 만들기) · Claude(조사·작성·시험) | `chore/deploy-via-actions`, ADR 0023, `docs/intent.md` I-deploy-via-actions |
 | I-P-15-scenario-insert-columns | 운영 QA에서 적용 시나리오가 늘 실패하는 것을 찾음(로그: permission denied for table scenarios). 사용자 insert가 열 grant 밖의 `status`를 보내던 것을 빼고, 마이그레이션 grant와 코드가 보내는 칸을 맞대는 시험 추가 | 나(요청 "진행") · Claude(운영 QA·원인·고침) | `fix/P-15-scenario-insert-columns`, `docs/intent.md` I-P-15-scenario-insert-columns |
 | I-a11y-tap-targets | 누르는 칸 고침: 운영 실제 화면 접근성 점검에서 나온 작은 클릭 대상(메뉴 링크 20px·로그아웃 19px·주소 입력칸 17px·표 링크 16~19px)을 메뉴 44px·입력칸 44px·표 링크 24px로 키움. 고침 전은 운영 값을 재현해 재고 고친 뒤 비교. 시험 3개, DB 변경 없음 | 나(요청 "진행") · Claude(측정·수정·시험) | `fix/a11y-tap-targets`, `docs/intent.md` I-a11y-tap-targets, `docs/qa.md` |
 | I-P-5b-opportunity-redirect | 운영 "적용 기회 1건 만들기"가 `error=NEXT_REDIRECT`로 이유를 잃던 것: try 안 redirect를 try 밖으로(시뮬레이터·지금 실행·실패 시연 3곳), 모든 서버 동작을 훑는 규칙 시험 추가 | 차세일(Claude) | `app/admin/*/actions.ts`, `lib/admin/redirect-in-try.test.ts` |
