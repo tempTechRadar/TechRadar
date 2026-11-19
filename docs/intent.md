@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-14-seed-same-role · 2026-11-19 · 같은 역할 처음 짝 시드 14쌍 (P-14, 영역 B, 황재웅)
+- 브랜치: `feat/P-14-seed-same-role` (PR #162, 합침, 승인 차세일). 이 기록은 `docs/P-14-seed-record`(문서만)
+- 출처: `docs/spec.md` SPEC-4.4·SQ2, ADR 0015, 초안 `docs/seed-same-role-pairs.md`(브랜치 `docs/P-14-seed-pairs`)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 운영 `tech_relations`가 0줄이라 적용 기회가 시뮬레이터로만 나온다(실제 경로 없음) |
+| 기대 결과 | 처음 짝 목록이 확정 상태로 들어 있어, 그 짝의 한쪽을 "내 기술"로 쓰는 사람이 이후 새 기술 유입(P-9)이나 관리자 확정 때 적용 기회 알림 대상이 된다. 시드를 넣는 순간에는 알림이 없다 |
+| 영향 범위 | 새 `supabase/migrations/202611191700_P-14_seed_same_role.sql`, 시험 `lib/server/seed-same-role-migration.test.ts`. 코드 변경 없음(데이터만) |
+| 제약 | 확신 "높음" 14쌍만(근접 6쌍은 팀이 정한 뒤). 시드는 관리자 확인 없이 확정으로 넣는 예외(ADR 0015): `confirmed_at`은 DB 제약상 필수라 지금 시각, `confirmed_by`는 비움. 마이그레이션은 합치기 전에 운영에 먼저 적용(영식 리뷰, precheck 경고). 이 컴퓨터에는 Postgres·Docker·Supabase CLI가 없어 SQL을 실행하지 못함 |
+| 열린 질문 | ① 14쌍 중 6쌍에 npm 지원 종료 패키지가 있다. 8쌍으로 줄일지(내 선택은 종료된 내 기술을 쓰는 사람에게 대체를 알리는 쪽이라 포함) ② 확정 알림(#139)이 지원 종료 기술을 "새 기술"로 추천할 수 있다: 종료·보관된 새 기술은 거르는 작은 수정 ③ 종료 기술의 `technologies.status`는 기본값 `active`로 들어간다(상태는 수집기 P-9b·9c가 정함) ④ 14쌍이 "같은 역할"인지는 공개 설명을 읽은 내 판단이라 팀 확인이 필요하다 |
+
+**결과:** PR #162를 합쳤다(승인 차세일). 시험 6개(14쌍·키 오타·중복·자기 짝 금지·confirmed+confirmed_at+seed·least/greatest)를 마이그레이션 텍스트에 걸어 두었고, SQL을 일부러 망가뜨린 6곳(오타·쌍 삭제·`confirmed_by` 추가·`least` 제거·알림 표 건드림·기술 중복)을 모두 잡았다. 시험은 파일을 먼저 쓰고 나중에 써서 빨간불 단계는 없었다. 전체 971개 중 970 통과, 실패 0, todo 1, `tsc --noEmit` 통과. **확인하지 못한 것:** SQL 실행 자체, 운영 `technologies`에 이 기술들이 이미 있는지·이름 저장 형태, 적용 뒤 알림이 정말 안 나가는지, **운영 적용(영식 몫, 아직 안 됨)**. 사람 QA 1건은 No Run(`docs/qa.md`).
+
+---
+
 ## I-readme-submit-1119 · 2026-11-19 · README 제출 항목과 체크리스트 숫자 맞추기 (차세일)
 - 브랜치: `docs/readme-submit-1119` (main `3461b20` 이후). 문서만, 코드·DB 변경 없음
 - 출처: `docs/제출물-체크리스트.md` F절(README에 실행 방법·서비스·발표·QA 링크·팀원 GitHub·대표 PR과 리뷰·자료 위치), `docs/plan.md` 4절 "11-19 점검" 8번(README 발표·QA 링크 없음)
