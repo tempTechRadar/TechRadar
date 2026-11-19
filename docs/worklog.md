@@ -12,6 +12,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-P-12a-nickname-public | P-12a 별명 정하기·숨김 체크박스: `/settings`에서 별명과 "쓰고 있어요" 공개 여부를 고치고, 가입 직후(임시 별명)에는 설정으로 보내 별명을 정하게 함. 별명은 2~30자, `@`·임시 별명 모양 거절, 중복·저장 실패를 숨기지 않음. DB 변경 없음(남의 사용 수 DB 함수는 12a-2) | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12a-nickname-public`, `docs/intent.md` I-P-12a-nickname-public |
+| I-P-18b-relations | P-18b: 분류 확인에서 같은 역할 후보 확정과 규칙 켜기·끄기·추가, 사유 필수, 담당자·시각·사유를 `audit_logs`에. 마이그레이션 없이 관리자 본인 연결(RLS)로 바꾸고 기록만 서버 연결. 갈래 확정은 DB 권한이 없어 남김 | 차세일(Claude) | `app/admin/classify/`, `lib/server/classify-edit.ts` |
 | I-P-26-wiki-1119 | P-26 위키 첫 반영: `wiki/` 18쪽(주제 15 + 목차·반영 기록·연결지도), 모든 내용 줄에 출처, 문서끼리 다른 곳 10건을 정리하지 않고 기록, 점검 4항목 0건. 안내서 원문은 찾지 못해 stage-check 요건 목록을 근거로 씀 | 차세일(Claude) | `wiki/` |
 | I-P-12b-first-check | P-12b 첫 점검 요약 띠: 가장 최근 첫 읽기 실행의 등급 건수로 "첫 점검: 위험 n · 주의 n"을 만들어 대시보드 맨 위에 한 번 보여 줌(확인을 누르면 사라짐), 읽지 못한 기술은 "빠졌어요"로 덧붙임. DB 변경 없음 | 나(요청 "진행") · Claude(작성·시험) | `feat/P-12b-first-check`, `docs/intent.md` I-P-12b-first-check |
 | I-p13-prod-key-check | P-13 운영 확인 결과 반영: 운영에서 돈 시뮬레이터 실행(11:14 KST)의 초안 584자·`ai_calls` succeeded·`summarize` succeeded로 운영 키가 통함을 DB 읽기로 확인, 내장 브라우저로 `/admin/flow`가 두 실행을 기록대로 칠하는 것을 확인(버튼은 안 누름). 낡은 "못 본 것" 문장을 5개 문서에서 바로잡음 | 나(요청 "/ego-browser 해봐"·"진행") · Claude(읽기 확인·기록) | `docs/p13-prod-key-check`, `docs/intent.md` I-p13-prod-key-check |
