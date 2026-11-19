@@ -13,6 +13,7 @@
 |---|---|---|---|
 | I-cron-secret-missing | 첫 정기 실행 확인: `runs` 0줄 → 운영 환경변수(이름만)와 크론 코드를 대조해 `CRON_SECRET`이 없어 401로 막힌 것을 찾음. 코드가 읽는 환경변수·열린 PR이 새로 읽는 값·plan/PRD의 사람 할 일을 모아 "미리 할 설정" 목록을 만듦 | 나(요청 "조회해봐", "미리 설정할거 한꺼번에 알려줘") · Claude(조회·정리) | `docs/intent.md` I-cron-secret-missing, `docs/debug-note.md` |
 | I-supabase-url-origin | 구글 로그인 401 원인(운영 Supabase 주소에 /rest/v1이 붙음)을 기록으로 찾고, `readSupabasePublicConfig`가 주소를 origin으로 정리하게 고침. 시험 2개 | 나(오류 보고) · Claude(기록 조회·원인·수정·시험) | `fix/supabase-url-origin` 브랜치(미커밋) |
+| I-checklist-sync | 제출물 체크리스트를 실제 숫자로 맞춤: ADR·서브에이전트·오류·QA·PR·intent·커넥터·폴더·정기 실행·DB 칸(main 6754f77에서 다시 셈), 안 된 것은 그대로 둠 | 나(요청) · Claude(숫자 다시 세기·수정) | `docs/checklist-sync` 브랜치(미커밋) |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
