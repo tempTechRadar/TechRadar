@@ -464,6 +464,7 @@ UK: (kind, ecosystem, value).
 | technologies | 34 | 2 | 켜짐 | ✔ |
 
 ## 바뀐 기록
+- 2026-11-19 P-12a2(작업 `I-P-12a2-nickname-db`, **운영 적용 전**, 합치기 전에 먼저 적용): 새 칸 없음. `profiles`에 `lower(nickname)` 유니크 인덱스, 별명 규칙 함수 `nickname_clean`·`nickname_problem`(한 곳), 가입 트리거 `handle_new_user`가 그 규칙을 거치고 동시 가입 충돌 때 임시 별명으로 재시도, **별명이 바뀔 때만 도는 `profiles_nickname_guard` 트리거**(직접 PATCH로도 규칙을 못 피함, 맞으면 NFC·공백 정리), 새 함수 `using_now(p_tech_id)`(security definer, 로그인한 사람만 호출, 공개한 사람의 수·별명만, 숨긴 기술·보관 프로젝트·시연 계정 제외). 접근 규칙(4절): 남의 `my_technologies`는 여전히 본인·관리자만 읽고, `using_now`만 수와 별명을 내보낸다
 - 2026-11-19 2차 대조(코드·마이그레이션 변경 없음, 작업 `I-records-sync-1119`): 표 20개·칸 이름이 실제 DB와 모두 일치(7절). 팀 확인 대기
 - 2026-11-18 P-30: M1 테이블 7개를 실제 DB에 만듦(7절). 칸은 2절 그대로, 지우기 금지와 확정 칸만 고치기를 더함
 - 2026-11-18 P-3 코드 검토: `my_technologies`에 내 버전 등급 칸(`grade`·`grade_reason`·`grade_evidence`·`grade_rule_version`·`graded_at`·`last_checked_ok_at`). `technologies.grade` 한 칸이면 다른 버전을 쓰는 사람끼리 등급을 덮어써서(사용자 결정 "칸 추가"). 사용자가 고칠 수 있는 칸을 `hidden_at`·`manual_name`·`version`으로 좁힘. 마이그레이션 `202611181600_P-3_my_tech_grade.sql`
