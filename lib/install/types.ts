@@ -22,10 +22,8 @@ export type InstallItem = {
   envKeys?: string[];
   /** 보안 경고에서 고른 것: 이 고친 버전으로 고정한다(ADR 0012) */
   pinTo?: string;
-  /** 위험 등급이면 이유와 고친 버전. 기본으로 프롬프트에서 뺀다 */
+  /** 위험 등급이면 이유와 고친 버전. 어떤 경우에도 프롬프트에 넣지 않는다(ADR 0012, SPEC-4.3) */
   danger?: { reason: string; fixedVersion?: string };
-  /** 위험인데 사용자가 직접 넣겠다고 한 것(SPEC-4.3) */
-  userIncluded?: boolean;
   /** 적용 후보(candidate)일 때 공식 레지스트리에 있는 이름. pkg와 정확히 같아야 넣는다 */
   registryName?: string;
 };

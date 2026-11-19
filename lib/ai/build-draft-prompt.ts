@@ -29,7 +29,7 @@ const SYSTEM = [
 // 자료 안의 글이 표시를 흉내 내서 밖으로 나오지 못하게, 표시 글자를 무력화한다.
 const neutralize = (text: string) => text.replaceAll("<자료", "‹자료").replaceAll("</자료>", "‹/자료›");
 
-function wrapOutside({ source, text }: { source: string; text: string }): string {
+export function wrapOutside({ source, text }: { source: string; text: string }): string {
   const clean = neutralize(maskSecrets(text)).slice(0, MAX_OUTSIDE_CHARS);
   return `<자료 출처="${source.replaceAll('"', "'")}">\n${clean}\n</자료>`;
 }

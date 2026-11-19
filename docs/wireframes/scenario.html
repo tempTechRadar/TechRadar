@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>적용 시나리오 카드 와이어프레임 (샘플)</title>
+  <link rel="stylesheet" href="wireframe.css">
+</head>
+<body>
+  <nav class="app-nav" aria-label="주 메뉴">
+    <ul>
+      <li class="brand">TechRadar</li>
+      <li><a href="#">기술 지도</a></li>
+      <li><a href="#">내 기술</a></li>
+      <li><a href="#">알림 <span class="badge badge-warning">판단 대기 3</span></a></li>
+      <li><a href="#">대시보드</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <p class="sample-banner" role="note">와이어프레임입니다. 이름과 숫자는 모두 샘플이고, 실제 데이터가 아닙니다. 알림 상세(IA-7) 안에서 판단 카드 아래에 붙는 "적용 시나리오" 카드(IA-8)의 상태 여섯 가지예요. 시나리오는 <strong>참고 자료</strong>라 판단 전후 언제든 만들 수 있고, 실제 설치·적용은 하지 않아요(ADR 0010).</p>
+
+    <section id="before" class="sheet" aria-labelledby="s1">
+      <h1 id="s1">① 만들기 전 (누르기 전에는 만들지 않아요)</h1>
+      <article class="card" aria-labelledby="sc-title-1">
+        <h2 id="sc-title-1">적용 시나리오</h2>
+        <p class="muted">이 알림을 어떻게 적용할지 참고용으로 정리해 줘요. 설치나 적용은 하지 않고, 판단을 돕는 글만 만들어요. 누르면 하루 5번 중 한 번을 써요(오늘 남은 횟수 4번).</p>
+        <div class="actions"><button type="button" class="btn">적용 시나리오 만들기</button></div>
+      </article>
+    </section>
+
+    <section id="done" class="sheet" aria-labelledby="s2">
+      <h1 id="s2">② 만들었어요</h1>
+      <article class="card" aria-labelledby="sc-title-2">
+        <h2 id="sc-title-2">적용 시나리오 <span class="badge badge-neutral">참고 자료</span></h2>
+        <p class="muted">11월 19일 14:02에 만들었어요. 판단 전후 언제든 볼 수 있어요.</p>
+
+        <h3>비교</h3>
+        <p class="muted">대체 기술은 확정된 같은 역할 기술이에요. 값과 출처는 코드가 채워요(AI가 지어내지 않아요).</p>
+        <table class="compare">
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">내 기술 sample-mcp-a</th><th scope="col">대체 sample-mcp-d</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">하는 일</th><td data-label="내 기술">원격 MCP 서버에 연결해 줘요 <a class="source" href="#">출처</a></td><td data-label="대체">원격 MCP 연결 프록시 <a class="source" href="#">출처</a></td></tr>
+            <tr><th scope="row">보안 등급과 이유</th><td data-label="내 기술">위험 — 심각한 문제가 있어요 <a class="source" href="#">출처</a></td><td data-label="대체">통과 — 알려진 문제가 없어요 <span class="source muted">출처 찾지 못함</span></td></tr>
+            <tr><th scope="row">최근 업데이트</th><td data-label="내 기술">2026-11-11 (릴리스) <a class="source" href="#">출처</a></td><td data-label="대체">2026-11-18 (커밋) <a class="source" href="#">출처</a></td></tr>
+            <tr><th scope="row">사용량</th><td data-label="내 기술">찾지 못함</td><td data-label="대체">찾지 못함</td></tr>
+            <tr><th scope="row">라이선스</th><td data-label="내 기술">MIT <a class="source" href="#">출처</a></td><td data-label="대체">Apache-2.0 <a class="source" href="#">출처</a></td></tr>
+          </tbody>
+        </table>
+
+        <h3>적용 단계</h3>
+        <ol>
+          <li>고친 버전 0.1.16으로 올리는 것이 먼저예요. 설정 파일의 버전을 바꿔 주세요.</li>
+          <li>설치 명령은 <strong>공식 문서에서 직접 확인하세요.</strong></li>
+          <li>바꾼 뒤 연결이 되는지 한 번 확인해요.</li>
+        </ol>
+
+        <h3>위험과 되돌리는 방법</h3>
+        <ul>
+          <li>위험: 버전을 올린 뒤 연결 설정이 달라질 수 있어요.</li>
+          <li>되돌리기: 설정 파일의 버전을 이전 값으로 돌리면 돼요.</li>
+        </ul>
+
+        <h3>참고한 출처</h3>
+        <ul>
+          <li><a class="source" href="#">https://example.com/advisory</a></li>
+          <li><a class="source" href="#">https://example.com/release-notes</a></li>
+        </ul>
+        <p class="muted">AI가 쓴 글이에요. 실제로 적용하기 전에 출처를 직접 확인하세요.</p>
+      </article>
+    </section>
+
+    <section id="states" class="sheet" aria-labelledby="s3">
+      <h1 id="s3">③ 안 될 때 (모두 "완료"로 보이지 않아요)</h1>
+
+      <h3>만들지 못했어요 → 다시 요청</h3>
+      <div class="notice notice-error" role="alert">
+        <strong>적용 시나리오를 만들지 못했어요.</strong> 알림과 판단은 그대로예요. 잠시 뒤에 다시 요청해 주세요.
+        <div class="actions"><button type="button" class="btn">다시 요청</button></div>
+      </div>
+
+      <h3>오늘 5번을 다 썼어요</h3>
+      <div class="notice notice-empty" role="status">
+        <strong>오늘은 적용 시나리오를 5번 모두 만들었어요.</strong> 내일 0시(한국 시간)부터 다시 만들 수 있어요. 이미 만든 시나리오는 위에서 볼 수 있어요.
+      </div>
+
+      <h3>서비스 전체 한도에 닿았어요 / 연결이 안 돼 있어요</h3>
+      <div class="notice notice-empty" role="status">
+        <strong>지금은 적용 시나리오를 만들 수 없어요.</strong> 잠시 뒤에 다시 시도해 주세요. (한도 때문이면 내일 0시에 풀려요)
+      </div>
+
+      <h3>이전 시나리오를 못 불러왔어요</h3>
+      <div class="notice notice-error" role="alert">
+        <strong>시나리오를 불러오지 못했어요.</strong> 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요.
+      </div>
+    </section>
+
+    <section id="where" class="sheet" aria-labelledby="s4">
+      <h1 id="s4">④ 알림 상세 안에서의 위치</h1>
+      <pre class="muted" style="white-space: pre-wrap">알림 상세
+  ├─ 대응안 초안 (보안 경고) / 나오게 된 이유·비교표 (적용 기회)
+  ├─ 비슷한 지난 판단
+  ├─ 적용 시나리오   ← 새로 붙는 카드 (이 문서)
+  └─ 판단 (적용 후보 / 보류)</pre>
+    </section>
+  </main>
+</body>
+</html>

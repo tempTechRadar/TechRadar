@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>이번 주 요약·보류 회고·비교 모드 와이어프레임 (샘플)</title>
+  <link rel="stylesheet" href="wireframe.css">
+</head>
+<body>
+  <nav class="app-nav" aria-label="주 메뉴">
+    <ul>
+      <li class="brand">TechRadar</li>
+      <li><a href="#">기술 지도</a></li>
+      <li><a href="#">내 기술</a></li>
+      <li><a href="#">알림 <span class="badge badge-warning">판단 대기 3</span></a></li>
+      <li><a href="#dashboard">대시보드</a></li>
+      <li><a href="#compare-pick">비교</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    <p class="sample-banner" role="note">와이어프레임입니다. 이름과 숫자는 모두 샘플이고, 실제 데이터가 아닙니다. 대시보드는 숫자 카드 아래에 새 카드 둘이 붙는 모양이에요(숫자 카드와 최근 변경은 이미 있어요).</p>
+
+    <section id="dashboard" class="sheet" aria-labelledby="dash-title">
+      <h1 id="dash-title">대시보드</h1>
+      <p class="muted">… 숫자 카드 4개, 거르기, 최근 변경은 지금 화면 그대로 …</p>
+
+      <article class="card" aria-labelledby="week-title">
+        <h2 id="week-title">이번 주 요약</h2>
+        <p>이번 주(최근 7일) 내 기술 변화 <strong>3건</strong></p>
+        <p><a href="#">알림에서 보기</a></p>
+      </article>
+
+      <article class="card" aria-labelledby="review-title">
+        <h2 id="review-title">다시 볼까요?</h2>
+        <p class="muted">보류한 지 30일이 지난 판단이에요. 이 건수는 "판단 대기"에 들어가지 않아요.</p>
+        <ul class="alert-list">
+          <li><a class="alert-row" href="#">
+            <span class="badge badge-neutral">보류</span>
+            <span class="alert-main"><strong>sample-mcp-a</strong><span class="muted">이유: 지금은 바꿀 시간이 없어요</span></span>
+            <span class="badge badge-neutral">42일 전</span>
+            <time class="alert-time" datetime="2026-10-07">10월 7일 보류</time>
+          </a></li>
+          <li><a class="alert-row" href="#">
+            <span class="badge badge-neutral">보류</span>
+            <span class="alert-main"><strong>sample-skill-b</strong><span class="muted">이유: 마감이라 나중에</span></span>
+            <span class="badge badge-neutral">31일 전</span>
+            <time class="alert-time" datetime="2026-10-18">10월 18일 보류</time>
+          </a></li>
+        </ul>
+        <p class="muted">보류한 판단은 고칠 수 없어요. 같은 기술에 새 알림이 오면 그때 다시 판단해요. 30일이 지난 보류가 없으면 이 카드는 보이지 않아요.</p>
+      </article>
+
+      <h3>비어 있을 때와 실패했을 때</h3>
+      <div class="notice notice-empty"><strong>이번 주에는 내 기술에 변화가 없어요.</strong></div>
+      <div class="notice notice-error" role="alert"><strong>이번 주 요약을 불러오지 못했어요.</strong> 변화가 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요.</div>
+    </section>
+
+    <section id="compare-pick" class="sheet" aria-labelledby="pick-title">
+      <h1 id="pick-title">기술 비교</h1>
+      <p class="muted">비교할 기술을 2개에서 3개까지 골라 주세요. 값과 출처는 적용 기회 비교표와 같은 항목이에요.</p>
+      <form class="card" aria-labelledby="pick-legend">
+        <fieldset class="pick">
+          <legend id="pick-legend">비교할 기술</legend>
+          <label><input type="checkbox" checked> sample-mcp-a</label>
+          <label><input type="checkbox" checked> sample-mcp-d</label>
+          <label><input type="checkbox"> sample-skill-b</label>
+          <label><input type="checkbox"> sample-lib-c</label>
+          <label><input type="checkbox"> sample-lib-e</label>
+        </fieldset>
+        <div class="actions"><button type="button" class="btn btn-primary">비교하기</button></div>
+      </form>
+      <div class="notice notice-empty" role="status"><strong>2개에서 3개까지 골라 주세요.</strong> 지금은 1개만 골랐어요.</div>
+    </section>
+
+    <section id="compare-result" class="sheet" aria-labelledby="result-title">
+      <p class="muted"><a href="#compare-pick">← 다시 고르기</a></p>
+      <h1 id="result-title">sample-mcp-a · sample-mcp-d · sample-skill-b 비교</h1>
+      <article class="card" aria-labelledby="table-title">
+        <h2 id="table-title">비교</h2>
+        <p class="muted">지금 값이에요. 항목마다 출처를 붙였어요.</p>
+        <table class="compare">
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">sample-mcp-a</th><th scope="col">sample-mcp-d</th><th scope="col">sample-skill-b</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">하는 일</th>
+              <td data-label="sample-mcp-a">원격 MCP 서버에 연결해 줘요 <a class="source" href="#">출처</a></td>
+              <td data-label="sample-mcp-d">원격 MCP 연결 프록시 <a class="source" href="#">출처</a></td>
+              <td data-label="sample-skill-b">디자인 규칙을 알려 줘요 <a class="source" href="#">출처</a></td>
+            </tr>
+            <tr>
+              <th scope="row">보안 등급과 이유</th>
+              <td data-label="sample-mcp-a">주의 — 덜 심각한 알려진 문제가 1건 있어요 <a class="source" href="#">출처</a></td>
+              <td data-label="sample-mcp-d">통과 — 알려진 문제가 없어요 <span class="source muted">출처 찾지 못함</span></td>
+              <td data-label="sample-skill-b">위험 — 비밀 키를 밖으로 보내는 줄이 있어요 <a class="source" href="#">출처</a></td>
+            </tr>
+            <tr>
+              <th scope="row">최근 업데이트</th>
+              <td data-label="sample-mcp-a">2026-11-11 (릴리스) <a class="source" href="#">출처</a></td>
+              <td data-label="sample-mcp-d">2026-11-18 (커밋) <a class="source" href="#">출처</a></td>
+              <td data-label="sample-skill-b">찾지 못함</td>
+            </tr>
+            <tr>
+              <th scope="row">사용량</th>
+              <td data-label="sample-mcp-a">주간 12,000회 다운로드 <span class="source muted">출처 찾지 못함</span></td>
+              <td data-label="sample-mcp-d">찾지 못함</td>
+              <td data-label="sample-skill-b">찾지 못함</td>
+            </tr>
+            <tr>
+              <th scope="row">라이선스</th>
+              <td data-label="sample-mcp-a">MIT <a class="source" href="#">출처</a></td>
+              <td data-label="sample-mcp-d">Apache-2.0 <a class="source" href="#">출처</a></td>
+              <td data-label="sample-skill-b">찾지 못함</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+      <div class="notice notice-error" role="alert"><strong>비교할 기술을 불러오지 못했어요.</strong> 기술이 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요.</div>
+    </section>
+  </main>
+</body>
+</html>
