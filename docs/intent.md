@@ -6,6 +6,23 @@
 
 ---
 
+## I-B-record-3-1119 · 2026-11-19 · 영역 B 3차 기록 — 알림 수정(P-7)·알림 run_id(P-8)·보류 회고·비교·이번 주 요약(P-25) (소급 기록)
+- 작업 ID: 브랜치 이름에서 만듦(ADR 0017, 순번을 매기지 않음). 소급 기록이라 한 항목에 모음
+- 브랜치: `fix/alerts-version-batch`(I-alerts-version-batch, #81)·`fix/alert-run-id`(I-alert-run-id, #83)·`feat/P-25-extras`(I-P-25-extras, #114)(모두 합침). 이 기록은 `docs/B-record-3-1119`(문서만)
+- 출처: 김영식의 P-3 점검 전달(`lib/server/alerts.ts` 문제 5가지), `docs/plan.md` P-7·P-8·P-25, PRD-F41·F42·F43, SPEC-3.1, 이전 기록 `I-B-record-2-1118`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | ① 보안 알림이 변경의 버전과 다른 버전을 쓰는 사람에게도 가고, `.in()` 목록이 길면 실패하고 1000줄에서 잘리고, notify 기록 실패가 알림 만들기를 막는다 ② 첫 읽기 알림의 조치 상자가 회색이다. `observationId`로 변경과 실행을 이으면 변경이 공유라서 두 번째 사용자의 판단이 첫 번째 사용자의 실행에 기록된다(불변 5) ③ 3순위 PRD-F41·F42·F43이 없다 |
+| 기대 결과 | ① 다른 버전 사용자 제외(시연 변경은 예외), 100개씩 끊고 쪽을 나눠 읽기, 기록 실패는 로그만 ② 알림 줄에 `run_id`를 읽기를 실행한 본인의 알림에만 적고 조치 기록이 먼저 봄 ③ 대시보드 "이번 주 요약"·"다시 볼까요?", 기술 비교 `/compare` |
+| 영향 범위 | `lib/server/alerts.ts`·`alert-db.ts`·`notify-owner.ts`·`action-record.ts`, 새 마이그레이션 `202611181800_P-8_alert_run_id.sql`, 새 `lib/alerts/find-review-due.ts`·`count-recent-changes.ts`·`parse-compare-selection.ts`·`build-comparison.ts`(`buildComparisonTable`), `lib/server/comparable.ts`·`compare-queries.ts`, `app/dashboard/`·`app/compare/`, `app/layout.tsx`(메뉴 "비교"), `docs/wireframes/extras.html` |
+| 제약 | 서비스 키가 없어 실제 DB·접근 권한·화면은 못 봄(가짜 DB·샘플 렌더). 마이그레이션은 코드보다 먼저 DB에 들어가야 함. 보류 회고 닫기는 DB 칸이 필요해 이번엔 없음 |
+| 열린 질문 | ① `runId` 필수화·notify를 한 번만 기록(`userId`를 받아 사람별 건수 돌려주기)은 영식·차세일 파일과 함께 팀 합의 ② 시연 변경은 버전을 보지 않는 예외(내 가정) ③ `technologies`를 일반 사용자가 읽을 수 있는지(RLS) ④ 보류 회고에 닫기 칸을 둘지 ⑤ 이번 주 요약을 "최근 7일 알림 수"로 본 것이 맞는지 |
+
+**결과:** #81·#83·#114를 합쳤다. 시험은 #81 때 main 414 → 420, #83 때 460(통과 459, todo 1), P-25는 새 시험 14개를 더해 main을 합친 뒤 739(통과 738, todo 1), 실패 0. 새 시험은 모두 먼저 실패하는 것을 확인했다. **확인하지 못한 것:** 실제 DB에서 `run_id` 칸·접근 권한·1000줄 한도, 첫 읽기 → 판단 → 흐름 화면 색칠, `technologies` 읽기 권한, 실제 데이터의 대시보드·`/compare`. 사람 QA 2건은 No Run(`docs/qa.md`).
+
+---
+
 ## I-P-9e-skills · 2026-11-19 · P-9e 스킬 폴더 읽기: `.claude/skills/<이름>/`을 내 기술로 (영역 A, 김영식)
 - 브랜치: `feat/P-9e-skills` (origin/main d77cadd 위에서 시작해 fa7fb19(#99 `requirements.txt`·#109까지)를 합침, worktree `.claude/worktrees/night-p9e-skills`)
 - 출처: 사용자 "그 외 내 허가 없이 할 수 있는 작업 다 찾아서 밤새 진행해줘". 근거: PRD-F6, SPEC-7.1·7.3, 문서 PR #95의 ADR 0020(스킬 폴더 읽기만 1순위), `lib/domain/tech-key.ts`의 `skillKey`, DB `technologies.type = 'skill'`·`my_technologies.unknown_origin`

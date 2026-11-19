@@ -18,6 +18,10 @@
 | I-first-real-run | 운영 DB 첫 실제 수집: 점검에서 "운영 DB가 비어 있음"이 나와, 관리자 "지금 한 번 실행"과 같은 `runBatch`·수집기 4개를 스크립트로 한 번 실행(사용자 "우선순위 작업 추천대로 진행"). 64초에 성공, 레지스트리 3,200개를 읽어 얇은 기술 3,166개 저장. 나머지 수집기는 읽을 두꺼운 기술이 없어 0개로 성공. 결과는 `docs/qa.md` 행으로 기록 | 나(요청·승인) · Claude(실행·확인·기록) | `runs.id` `070c6274-…`, `docs/qa.md`, `docs/intent.md` I-first-real-run |
 | I-plan-status-sync | plan 상태 칸을 병합 뒤 실제와 맞춤: P-9 ④(#103) 합침, P-12에 합쳐진 것(#105·#109)과 남은 것(지도·첫 점검 띠·별명·체크박스), P-17 수집기 연결 끝남. 근거는 PR 본문과 main의 `SCHEDULE_COLLECTORS` | 나(요청 "진행") · Claude(확인·수정) | `docs/plan-status-sync` 브랜치, `docs/plan.md` |
 | I-checklist-sync | 제출물 체크리스트를 실제 숫자로 맞춤: ADR·서브에이전트·오류·QA·PR·intent·커넥터·폴더·정기 실행·DB 칸(main 6754f77에서 다시 셈), 안 된 것은 그대로 둠 | 나(요청) · Claude(숫자 다시 세기·수정) | `docs/checklist-sync` 브랜치(미커밋) |
+| I-alerts-version-batch | 영식이 P-3을 하다 알려 준 `alerts.ts` 문제 5개 중 내 파일만의 3개를 고침: 다른 버전 사용자 제외(시연 변경은 예외), 긴 `.in()`·1000줄 끊어 읽기, notify 성공 기록 실패 분리. 나머지 2개는 영식·차세일 파일까지 걸려 합의로 남김. 시험 6개를 먼저 실패시킨 뒤 구현(PR #81) | 나(요청) · Claude | `lib/server/alerts.ts`·`alert-db.ts`, `docs/intent.md` I-B-record-3-1119 |
+| I-alert-run-id | 첫 읽기 알림의 조치 상자가 회색인 원인을 확인: `observationId`로 이으면 공유 변경 때문에 남의 실행에 기록됨(불변 5). 알림에 `run_id` 칸(마이그레이션)을 더해 읽기를 실행한 본인의 알림에만 적고 조치 기록이 먼저 보게 함. 시험 4개를 먼저 실패시킨 뒤 구현(PR #83) | 나(요청) · Claude | `supabase/migrations/202611181800_P-8_alert_run_id.sql`, `lib/server/action-record.ts`·`notify-owner.ts` |
+| I-P-25-extras | 보류 회고·기술 비교·이번 주 요약: 와이어프레임(`extras.html`)을 먼저 확인받고, 순수 함수·읽기 시험 14개를 먼저 실패시킨 뒤 구현. 실제 컴포넌트를 샘플 데이터로 그려 데스크톱·390px 화면을 확인(PR #114) | 나(요청) · Claude | `app/dashboard/extra-cards.tsx`, `app/compare/`, `lib/alerts/find-review-due.ts` 외 |
+| I-B-record-3-1119 | 위 세 작업을 `plan`(P-7·P-8·P-25 결과 칸)·`qa`(Claude QA 3행, 사람 QA 2행 No Run)·`intent`에 기록 | 나(요청) · Claude | `docs/plan.md`·`qa.md`·`intent.md`·`worklog.md` |
 
 ### 정한 일과 이유
 - **운영에서 돌 거라고 기다리기 전에, 그 기능이 읽는 설정이 실제로 있는지 커넥터로 먼저 확인한다(I-cron-secret-missing):** "확인 못 함"으로 적어 둔 것이 설정 누락이었다. 사람이 할 설정은 생길 때마다가 아니라 한꺼번에 알린다 — 김영식(사용자 요청)
