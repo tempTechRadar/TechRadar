@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기술 상세 시안 (샘플)</title>
+  <style>
+    /* IA-4 기술 상세의 간단 시안. 지도(map.html)에서 누른 점의 값을 주소로 받아 그린다. 실제 앱에서는 서버에서 읽는다. */
+    :root {
+      --bg: #0a0e14; --green: #2ed573; --green-dim: #1fa85a; --ink: #e6edf3; --muted: #8fa3b0; --grid: #14261f;
+      --danger: #f87171; --warn: #fbbf24; --lit: #5ec8ff; --dim: #5a7890;
+      --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.7 var(--sans); }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+    .back { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font: 13px var(--mono); color: var(--green); background: none; border: 1px solid var(--green-dim); cursor: pointer; }
+    .sample { margin: 12px 0 0; font: 12px/1.5 var(--mono); color: var(--muted); }
+    h1 { margin: 20px 0 4px; font: 800 30px/1.2 var(--mono); letter-spacing: -.02em; overflow-wrap: anywhere; }
+    .sub { margin: 0; font: 13px var(--mono); color: var(--muted); }
+    .grade { margin: 20px 0 0; padding: 14px 16px; border-left: 4px solid var(--g, var(--dim)); background: rgba(255, 255, 255, .03); }
+    .grade b { display: block; font: 700 18px var(--mono); color: var(--g, var(--ink)); }
+    .grade p { margin: 4px 0 0; }
+    h2 { margin: 28px 0 8px; font: 700 14px var(--mono); color: var(--green); }
+    dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; margin: 0; font: 13px/1.7 var(--mono); }
+    dt { color: var(--muted); } dd { margin: 0; }
+    ul { margin: 0; padding: 0; list-style: none; font: 13px/1.7 var(--mono); }
+    li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--grid); }
+    li i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+    .todo { font: 12px/1.6 var(--mono); color: var(--muted); }
+    .err { margin-top: 24px; color: var(--warn); font: 13px var(--mono); }
+  </style>
+</head>
+<body>
+  <main>
+    <button type="button" class="back" id="back">← 지도로 돌아가기</button>
+    <p class="sample" role="note">시안이에요. 이름과 숫자는 모두 샘플이고, 지도에서 누른 점의 값을 그대로 보여 줘요.</p>
+    <div id="body" hidden>
+      <h1 id="name"></h1>
+      <p class="sub" id="sub"></p>
+      <section class="grade" id="gradeBox" aria-labelledby="gradeLab">
+        <b id="gradeLab"></b>
+        <p id="why"></p>
+      </section>
+      <h2>속성</h2>
+      <dl>
+        <dt>마지막 확인</dt><dd id="last"></dd>
+        <dt>최근 변경</dt><dd id="chg"></dd>
+        <dt>내 기술</dt><dd id="mine"></dd>
+        <dt>근거</dt><dd>OSV 기록 링크(실제 앱에서 출처마다 링크)</dd>
+      </dl>
+      <h2>같은 역할의 기술</h2>
+      <ul id="nb"></ul>
+      <h2>더 들어갈 것 (IA-4)</h2>
+      <p class="todo">최근 활동·라이선스, 사용량과 별(7일 증가), 이 기술에 대한 내 판단 기록, 쓰고 있어요(별명과 수), 사용기, 비교 모드. 시안에는 아직 없어요.</p>
+    </div>
+    <p class="err" id="err" role="alert" hidden>보여 줄 기술 정보가 없어요. 지도에서 점을 눌러 열어 주세요.</p>
+  </main>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const COLOR = { d: 'var(--danger)', w: 'var(--warn)', p: 'var(--lit)', u: 'var(--dim)', n: 'var(--dim)' };
+      $('back').addEventListener('click', () => { if (history.length > 1) history.back(); else location.href = 'map.html'; });
+      let d = null;
+      try { d = JSON.parse(new URLSearchParams(location.search).get('d') || 'null'); } catch { d = null; }
+      if (!d || typeof d.name !== 'string') { $('err').hidden = false; return; }
+      const text = (v) => (v == null ? '' : String(v)); // 주소로 받은 값은 글자로만 넣는다(태그로 읽지 않는다)
+      document.title = `${text(d.name)} 상세 시안 (샘플)`;
+      $('name').textContent = text(d.name);
+      $('sub').textContent = `${text(d.kind)} · ${text(d.quad)} 갈래`;
+      $('gradeBox').style.setProperty('--g', COLOR[d.g] || 'var(--dim)');
+      $('gradeLab').textContent = `보안 등급: ${text(d.grade)}`;
+      $('why').textContent = text(d.why);
+      $('last').textContent = text(d.last);
+      $('chg').textContent = typeof d.chg === 'string' && d.chg ? d.chg : '없음';
+      $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '아니에요(같은 역할로 보여 주는 기술)';
+      const nb = Array.isArray(d.nb) ? d.nb.filter((m) => m && typeof m === 'object') : []; // 주소가 망가져도 빈 화면이 되지 않게
+      if (!nb.length) $('nb').innerHTML = '<li>이어진 기술이 없어요</li>';
+      nb.forEach((m) => {
+        const li = document.createElement('li'), dot = document.createElement('i'), t = document.createElement('span');
+        dot.style.background = COLOR[m.g] || 'var(--dim)'; t.textContent = `${text(m.name)} · ${text(m.grade)}`;
+        li.append(dot, t); $('nb').append(li);
+      });
+      $('body').hidden = false;
+      $('back').focus();
+    })();
+  </script>
+</body>
+</html>
