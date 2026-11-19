@@ -1,7 +1,7 @@
 -- P-2 RLS·불변 규칙 시험(불변 1·3·4·5). Supabase SQL 편집기나 MCP execute_sql로 그대로 돌린다.
 -- 시험 계정과 줄을 만든 뒤 마지막에 일부러 예외를 내서 **모두 되돌린다**(실제 DB에 아무것도 남지 않음).
 -- 결과는 오류 메시지 "RLS_TEST_RESULT ..."에 나온다. 괄호 안이 기대값이고, ...blocked=YES가 막혀야 할 것.
--- 2026-11-18 결과: 26개 모두 기대값(docs/qa.md).
+-- 2026-11-18 결과: 26개 모두 기대값(docs/qa.md). 2026-11-19 다시 돌려 26개 모두 기대값(출처 줄 수는 시뮬레이터가 늘려 9, 그래서 기대값을 ">=8"로).
 do $$
 declare
   u1 uuid := gen_random_uuid(); u2 uuid := gen_random_uuid(); adm uuid := gen_random_uuid();
@@ -97,7 +97,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   select count(*) into n from public.projects where owner_id in (u1, u2); msg := msg || 'admin_sees_projects=' || n || '(2);';
-  select count(*) into n from public.sources; msg := msg || 'admin_sees_sources=' || n || '(8);';
+  select count(*) into n from public.sources; msg := msg || 'admin_sees_sources=' || n || '(>=8);';
   begin
     perform public.save_judgment(a2, 'hold', '관리자가 대신 판단');
     msg := msg || 'admin_judge_other_blocked=NO;';
