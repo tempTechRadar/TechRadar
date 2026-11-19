@@ -29,8 +29,8 @@ async function runDemoBatch(pick: (db: NonNullable<ReturnType<typeof getServiceS
   try {
     // 지금 실행과 같은 묶음·같은 시작 상자(manual). 실패는 묶음이 실제로 기록한다.
     const r = await runBatch({ db, collectors: [pick(db)] }, { trigger: "manual", startedBy: user.id });
-    if (!r.started) return back("info", r.reason);
-    target = `/admin/flow?run=${r.runId}`;
+    // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
+    target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.reason))}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }
