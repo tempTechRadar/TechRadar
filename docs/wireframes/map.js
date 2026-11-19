@@ -184,7 +184,7 @@
       (pool.length ? pool : nodes.filter(shown)).forEach((n) => { x0 = Math.min(x0, n.tx); x1 = Math.max(x1, n.tx); y0 = Math.min(y0, n.ty); y1 = Math.max(y1, n.ty); });
       if (withOrigin === true || x0 > x1) { x0 = Math.min(x0, 0); x1 = Math.max(x1, 0); y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
       const s = Math.min(W / (x1 - x0 + 220), H / (y1 - y0 + 260));
-      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp(s / base(), 0.2, maxK));
+      flyTo((x0 + x1) / 2, (y0 + y1) / 2, clamp((s / base()) * (arr === 'host' ? 0.9 : 1), 0.2, maxK)); // 쓰는 곳 지도는 바깥 끝에 조각 이름이 붙어 조금 더 물러난다
     }
     const loading = () => intro?.phase === 'load'; // 데이터가 오기 전에는 개수도 보이지 않는다(불변 6)
     function startReveal() { intro.phase = 'reveal'; intro.sweep0 = theta; $('loading').hidden = true; fit(); if (fly) fly.d = 1.8; refresh(); }
@@ -221,6 +221,11 @@
       // 나를 둘러싼 은은한 빛. 세계에 붙어 있어 지도를 옮기면 같이 움직인다.
       const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, RING * 3 * s);
       gl.addColorStop(0, 'rgba(46,213,115,.07)'); gl.addColorStop(1, 'rgba(46,213,115,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+      if (arr === 'host') segs.forEach((g) => { // 쓰는 곳 지도: 쓰는 곳마다 부채꼴 배경을 번갈아 아주 옅게(등급 색과 섞이지 않게 초록 명암만). 함께 쓰는 조각은 칠하지 않는다
+        if (g.hosts.length > 1) return;
+        ctx.fillStyle = `rgba(46,213,115,${g.shade ? 0.05 : 0.025})`; ctx.beginPath();
+        ctx.arc(cx, cy, far, (g.a0 - 90) * RAD, (g.a1 - 90) * RAD); ctx.arc(cx, cy, HOST_RING * s, (g.a1 - 90) * RAD, (g.a0 - 90) * RAD, true); ctx.closePath(); ctx.fill();
+      });
       // 고리: 바깥으로 계속 이어지며 흐려진다. 경계가 없다. 처음 열 때는 안쪽부터 차례로 퍼져 나온다.
       ctx.lineWidth = 1; lastRings = 0;
       for (let k = 1; k < 90; k++) {
@@ -348,17 +353,50 @@
         ctx.globalAlpha = (fam && n !== fam && !fam.nb.has(n.i) ? 0.2 : 1) * a * clamp((now - introEnd - 0.15) / 0.5, 0, 1); ctx.lineWidth = 3.5; ctx.strokeStyle = C.bg; ctx.fillStyle = C.green; ctx.strokeText(t, n.sx + sp.dx, n.sy + sp.dy); ctx.fillText(t, n.sx + sp.dx, n.sy + sp.dy);
       });
       ctx.globalAlpha = 1;
-      if (arr === 'host' && !intro) { // 조각 이름 "쓰는 곳 종류 n"(n = 지금 보이는 점 수)을 조각 가운데 각도에. 갈래 요약(A)과 같은 거리(확대에 따라 화면 안쪽에 머문다)
-        const R = clamp(395 * s, 130, 0.36 * Math.min(W, H));
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg; ctx.font = '700 12px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green;
-        segs.forEach((g) => {
-          const c = g.members.filter(shown).length; if (!c) return;
-          const u = polar((g.a0 + g.a1) / 2, R), t = `${g.label} ${c}`; ctx.strokeText(t, cx + u.x, cy + u.y); ctx.fillText(t, cx + u.x, cy + u.y);
-        });
-        ctx.textAlign = 'left';
-      }
+      if (arr === 'host' && !intro) drawHostRing(s, cx, cy);
       if (intro) riskRects.length = 0; else drawRisk(P);
       placeTip();
+    }
+
+    // 쓰는 곳 고리: 나 둘레에 쓰는 곳마다 호 하나(혼자 쓰는 조각은 실선, 함께 쓰는 조각은 점선)와 그 바깥에 쓰는 곳 이름.
+    // 종류 이름과 점 수는 그 조각 점들의 바깥 끝에 작게 적는다(이름이 점 사이에 떠서 겹치지 않게). 멀리 봐서 고리가 작으면 쓰는 곳 이름을 조각 이름에 붙인다.
+    const arcText = (t, mid, R, cx, cy) => { // 고리를 따라 휘어진 글자. 아래쪽 반은 거꾸로 읽히지 않게 방향을 뒤집는다
+      const ws = [...t].map((c) => ctx.measureText(c).width), tot = ws.reduce((a, b) => a + b, 0) / R, low = Math.cos(mid * RAD) < 0, dir = low ? -1 : 1;
+      let a = mid * RAD - (dir * tot) / 2;
+      ctx.textAlign = 'center';
+      [...t].forEach((c, i) => {
+        const ca = a + (dir * ws[i]) / R / 2; a += (dir * ws[i]) / R;
+        ctx.save(); ctx.translate(cx + R * Math.sin(ca), cy - R * Math.cos(ca)); ctx.rotate(low ? ca + Math.PI : ca); ctx.strokeText(c, 0, 0); ctx.fillText(c, 0, 0); ctx.restore();
+      });
+    };
+    function drawHostRing(s, cx, cy) {
+      const rr = HOST_RING * s, live = (g) => g.members.filter(shown), named = new Set();
+      ctx.lineWidth = 3;
+      segs.forEach((g) => {
+        const gap = Math.min(1.2, (g.a1 - g.a0) * 0.2), both = g.hosts.length > 1;
+        ctx.strokeStyle = both ? 'rgba(46,213,115,.35)' : 'rgba(46,213,115,.6)'; ctx.setLineDash(both ? [3, 4] : []);
+        ctx.beginPath(); ctx.arc(cx, cy, rr, (g.a0 + gap - 90) * RAD, (g.a1 - gap - 90) * RAD); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      const put = (t, deg, R) => { // 오른쪽은 왼쪽 맞춤, 왼쪽은 오른쪽 맞춤(글자가 가운데 쪽으로 파고들지 않게). 화면(단추 줄·아래 알림 글) 안에 머문다
+        const u = polar(deg, 1), w = ctx.measureText(t).width, al = u.x > 0.25 ? 'left' : u.x < -0.25 ? 'right' : 'center', off = al === 'left' ? 0 : al === 'right' ? w : w / 2;
+        const x = clamp(cx + u.x * R, 8 + off, W - 8 - w + off), y = clamp(cy + u.y * R, 100, H - 80);
+        ctx.textAlign = al; ctx.strokeText(t, x, y); ctx.fillText(t, x, y);
+      };
+      ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = C.bg;
+      ctx.font = '700 13px ui-monospace, Consolas, monospace'; ctx.fillStyle = C.green;
+      HOSTS.forEach((name, h) => { // 혼자 쓰는 조각들에 걸쳐(없으면 함께 쓰는 조각들에 걸쳐) 고리 바깥에 휘어 적는다. 호보다 길면 조각 이름에 붙인다
+        const any = segs.filter((g) => g.hosts.includes(h) && live(g).length), own = any.filter((g) => g.hosts.length === 1), l = own.length ? own : any;
+        if (!l.length || rr < 80 || ctx.measureText(name).width / (rr + 11) > (l[l.length - 1].a1 - l[0].a0) * RAD * 0.9) return; // 멀리 봐서 고리가 작으면 점 이름과 겹치니 빼고 조각 이름에 붙인다
+        arcText(name, (l[0].a0 + l[l.length - 1].a1) / 2, rr + 11, cx, cy); named.add(h);
+      });
+      ctx.font = '12px ui-monospace, Consolas, monospace'; ctx.fillStyle = '#1fa85a';
+      segs.forEach((g) => {
+        const vis = live(g); if (!vis.length) return;
+        const R = (Math.max(...vis.map((n) => Math.hypot(n.tx, n.ty))) + 26) * s;
+        put(`${g.hosts.length === 1 && named.has(g.hosts[0]) ? g.kind : g.label} ${vis.length}`, (g.a0 + g.a1) / 2, R);
+      });
+      ctx.textAlign = 'left';
     }
 
     // 화면 밖의 위험·주의: 지도가 끝없어서 놓칠 수 있으니 가장자리에 삼각형으로 알린다. 방향이 비슷한 것은 하나로 묶고 개수를 적는다.
@@ -398,11 +436,17 @@
       ctx.font = '12px ui-monospace, Consolas, monospace';
       const sx = (n) => toScreen(n.tx, n.ty), boxes = vis.map((n) => { const [x, y] = sx(n), r = radiusPx(n) + 4; return { n, x: x - r, y: y - r, w: 2 * r, h: 2 * r }; });
       const clash = (a, list) => list.some((q) => a.x < q.x + q.w && q.x < a.x + a.w && a.y < q.y + q.h && q.y < a.y + a.h);
+      const [ox, oy] = toScreen(0, 0), rr = HOST_RING * s; // 쓰는 곳 지도: 고리와 휘어진 이름 띠(고리 안쪽 6 ~ 바깥 22px)에는 이름표를 놓지 않는다
+      const inRing = (a) => {
+        if (arr !== 'host') return false;
+        const nx = Math.max(a.x - ox, 0, ox - a.x - a.w), ny = Math.max(a.y - oy, 0, oy - a.y - a.h), far = Math.max(Math.hypot(a.x - ox, a.y - oy), Math.hypot(a.x + a.w - ox, a.y - oy), Math.hypot(a.x - ox, a.y + a.h - oy), Math.hypot(a.x + a.w - ox, a.y + a.h - oy));
+        return Math.hypot(nx, ny) < rr + 22 && far > rr - 6;
+      };
       const placed = []; nodes.forEach((n) => { n.spot = null; });
       want.forEach((n) => {
         const [x, y] = sx(n), rp = radiusPx(n), w = ctx.measureText(labelText(n)).width + 6, H2 = 14, b = rp + 8, d = b * 0.75, others = boxes.filter((q) => q.n !== n);
         const cand = [[b, 0], [-b - w, 0], [-w / 2, -b - 6], [-w / 2, b + 6], [d, -d - 6], [d, d + 6], [-d - w, -d - 6], [-d - w, d + 6]];
-        const hit = cand.find(([dx, dy]) => { const r = { x: x + dx, y: y + dy - H2 / 2, w, h: H2 }; return !clash(r, placed) && !clash(r, others); });
+        const hit = cand.find(([dx, dy]) => { const r = { x: x + dx, y: y + dy - H2 / 2, w, h: H2 }; return !clash(r, placed) && !clash(r, others) && !inRing(r); });
         if (!hit) return;
         placed.push({ x: x + hit[0], y: y + hit[1] - H2 / 2, w, h: H2 }); n.spot = { dx: hit[0], dy: hit[1] };
       });
@@ -778,13 +822,14 @@
     // 가운데에서의 거리는 갈래 지도의 거리(가까울수록 내 기술, 펼친 점은 바깥)를 그대로 쓴다. 두 곳 이상에서 쓰는 점은 두 쓰는 곳 조각 사이에 따로 조각을 둔다.
     // 조각 안에서는 가까운 점부터, 갈래 안에서의 각도와 비슷한 자리를 먼저 보고, 원래 거리 이상에서 겹치지 않는 첫 자리에 놓는다(난수 없음: 같은 데이터면 같은 자리).
     // 갈래 지도의 자리(n.cat)는 기억해 두었다가 돌아갈 때 되살린다. 등급·밝기·갈래(q)는 자리가 아니라 데이터라 그대로다. 갈래 접기는 갈래 지도에서만 쓴다.
+    const HOST_RING = 150; // 쓰는 곳 고리의 반지름(세계 좌표). 점은 이보다 50 바깥부터 놓는다
     function hostLayout() {
       const sets = new Map(), key = (n) => `${n.hosts.join('+')}|${n.kind}`, grid = new Map(), cell = (x, y) => Math.floor(x / 40) * 100003 + Math.floor(y / 40);
       nodes.forEach((n) => (sets.get(key(n)) ?? sets.set(key(n), []).get(key(n))).push(n));
       // shortcut: 둘레 순서를 쓰는 곳 번호의 평균으로 정해서, 처음과 끝(Claude Code와 따로 쓰는 도구)을 함께 쓰는 묶음이 생기면 가운데로 간다. 그런 묶음이 생기면 둘레를 이어서 센다.
       const mid = (l) => l[0].hosts.reduce((s, h) => s + h, 0) / l[0].hosts.length;
       const list = [...sets.values()].sort((a, b) => (mid(a) - mid(b)) || (KINDS.indexOf(a[0].kind) - KINDS.indexOf(b[0].kind)));
-      const wt = (l) => Math.max(4, l.length), total = list.reduce((s, l) => s + wt(l), 0);
+      const wt = (l) => Math.max(1.6, Math.sqrt(l.length)), total = list.reduce((s, l) => s + wt(l), 0); // √점 수: 큰 조각이 둘레를 독차지하지 않고 작은 조각도 보이게
       const free = (x, y, r) => { for (let i = -40; i <= 40; i += 40) for (let j = -40; j <= 40; j += 40) for (const o of grid.get(cell(x + i, y + j)) ?? []) if (Math.hypot(x - o.tx, y - o.ty) < r + o.r + 12) return false; return true; };
       let a = 0;
       segs = list.map((l) => {
@@ -792,7 +837,7 @@
         const lo = a0 + pad, w = a1 - pad - lo, rOf = (n) => Math.hypot(n.cat[0], n.cat[1]);
         [...l].sort((p, q) => (rOf(p) - rOf(q)) || (p.i - q.i)).forEach((n) => {
           const t0 = clamp(((((Math.atan2(n.cat[0], -n.cat[1]) / RAD) + 360) % 90) - 6) / 78, 0, 1); // 갈래 안에서의 각도 비율
-          for (let r = Math.max(90, rOf(n)); r < 6000; r += 8) {
+          for (let r = Math.max(HOST_RING + 50, rOf(n)); r < 6000; r += 8) { // 쓰는 곳 고리와 그 이름 자리는 비워 둔다
             const steps = Math.max(1, Math.floor((w * RAD * r) / (2 * n.r + 12))), s0 = Math.round(t0 * steps);
             for (let d = 0; d <= steps; d++) for (const s of d ? [s0 + d, s0 - d] : [s0]) {
               if (s < 0 || s > steps) continue;
@@ -803,8 +848,9 @@
             }
           }
         });
-        return { a0, a1, label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, members: l, host: l[0].hosts.join('+') };
+        return { a0, a1, label: `${l[0].hosts.map((h) => HOSTS[h]).join('·')} ${KIND[l[0].kind]}`, kind: KIND[l[0].kind], hosts: l[0].hosts, members: l, host: l[0].hosts.join('+') };
       });
+      let k = -1, prev = ''; segs.forEach((g) => { if (g.hosts.length === 1 && g.host !== prev) { k++; prev = g.host; } g.shade = k % 2; }); // 쓰는 곳마다 번갈아 칠할 명암
       syncPolar(); dirty = labelsDirty = true;
     }
     function arrange(a) {
