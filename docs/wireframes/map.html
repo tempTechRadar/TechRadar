@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="nav.css"><!-- 주 메뉴는 상세·알림 시안과 같이 쓴다 -->
   <title>기술 레이더 끝없는 지도 시안 (샘플)</title>
   <style>
     /* 레이더의 느낌(고리, 도는 선, 선이 지나가면 밝아지는 점)은 그대로, 경계만 없앤다. 지도가 화면 전체를 차지하고 위에 띄우는 것은 최소로 둔다.
@@ -55,14 +56,6 @@
     .filter input { width: 18px; height: 18px; accent-color: var(--green); }
     .fname { padding: 0 8px; font: 12px var(--mono); color: var(--ink); }
     .views { display: flex; } .views .tbtn { white-space: nowrap; }
-    /* 주 메뉴(IA 1절): 지도에서 알림·내 기술·기록으로 가는 길. "알림"에 판단 대기 수를 붙인다(IA-10 "위에 판단 대기 숫자") */
-    .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; pointer-events: auto; font: 13px var(--mono); }
-    .nav a, .nav-x { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; color: var(--ink); text-decoration: none; }
-    .nav a[aria-current="page"] { color: var(--green); box-shadow: inset 0 -2px var(--green); }
-    .nav a:hover { color: var(--green); }
-    .nav-x { color: var(--muted); cursor: default; }
-    .nav b { padding: 1px 8px; font-weight: 700; color: var(--bg); background: var(--ink); border-radius: 9px; } /* 판단 대기 배지: 등급 색과 섞이지 않게 흰 바탕 */
-    .nav b:empty { display: none; }
     /* 첫 점검 띠(PRD-F14, SPEC-5.2 "첫 점검: 위험 n · 주의 n"): 처음 한 번, 확인을 누르면 사라진다 */
     .band { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; padding: 0 0 0 12px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .9); border-left: 3px solid var(--ink); pointer-events: auto; }
     .band a { color: var(--green); }
@@ -113,6 +106,14 @@
     .stat { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: 40%; margin: 0; text-align: center; font: 11px/1.6 var(--mono); color: var(--green-dim); text-shadow: 0 0 4px var(--bg); pointer-events: none; }
 
     /* 짧은 알림: 위 단추 줄 바로 아래(아래쪽은 위험 삼각형·범례·옮기기 단추 자리). 같은 글을 화면 읽기 프로그램은 #say로 읽으므로 여기는 눈으로만(aria-hidden) */
+    /* 단축키 도움말(브라우저 기본 dialog: Esc로 닫히고 포커스가 안에 머문다) */
+    .keys { max-width: min(520px, calc(100% - 32px)); padding: 16px 20px; color: var(--ink); background: #0f151d; border: 1px solid var(--green-dim); font: 13px/1.6 var(--mono); }
+    .keys::backdrop { background: rgba(0, 0, 0, .6); }
+    .keys h2 { margin: 0 0 4px; font-size: 16px; color: var(--green); }
+    .keys p { margin: 0 0 8px; color: var(--muted); }
+    .keys dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 12px; }
+    .keys dd { margin: 0; }
+    .keys kbd { padding: 0 6px; font: inherit; color: var(--ink); border: 1px solid var(--muted); border-radius: 4px; }
     .toast { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); z-index: 3; max-width: min(560px, calc(100% - 32px)); margin: 0; padding: 8px 14px; font: 13px/1.5 var(--mono); color: var(--ink); background: rgba(10, 14, 20, .95); border: 1px solid var(--green-dim); pointer-events: none; }
     .tscroll { overflow-x: auto; } /* 좁은 화면에서 표가 페이지를 옆으로 밀지 않게 */
 
@@ -131,12 +132,12 @@
     @media (max-width: 720px) {
       .title .hint { display: none; }
       .search { flex: 1 1 140px; } .search input { width: 100%; }
-      .nav-x { display: none; } /* 좁은 화면: 시안에 없는 메뉴는 빼서 메뉴를 한 줄로 */
       .title:not(.open) #expAll, .title:not(.open) #foldAll { display: none; } /* 좁은 화면: 모두 펼치기·접기는 "도구" 안으로(지도 자리를 남긴다) */
       .stat { left: -9999px; } /* 좁은 화면엔 둘 자리가 없다. 바뀐 알림은 짧은 알림(.toast)으로 보이고, 화면 읽기 프로그램은 그대로 읽는다 */    }
   </style>
 </head>
 <body>
+  <!-- 옛 시안(11-18까지). 첫 화면 지도는 radar.html(design.md 17절, 11-20) -->
   <div class="stage" id="stage">
     <canvas id="cv" tabindex="0" role="application" aria-label="기술 레이더 지도. 점에 마우스를 올리면 간단 카드가, 누르거나 엔터를 치면 상세가 열려요. 점에 붙은 더하기 표시를 누르거나 E 키로 같은 역할 기술을 펼치고 접어요. 끌어서 옮기고, 휠이나 더하기·빼기 키로 확대하고 줄여요. 방향키로 옮기고, 0 키로 전체를 봐요. 점을 고른 뒤 쉬프트와 방향키로 그 점을 옮겨요. 슬래시 키로 기술을 찾고, 대괄호 키로 이전·다음 위험을, J와 K 키로 다음·이전 점을, 쉼표와 마침표 키로 고른 점의 이웃을 오가요. 이스케이프 키로 선택을 풀어요. 같은 내용을 표로도 볼 수 있어요."></canvas>
     <section class="tip" id="tip" aria-label="고른 기술 요약" hidden></section>
@@ -166,6 +167,7 @@
         <button type="button" class="tbtn opt" id="zout" aria-label="축소" aria-keyshortcuts="-">축소 −</button>
         <button type="button" class="tbtn opt" id="home" disabled>옮긴 점 원래 자리로</button>
         <button type="button" class="tbtn opt" id="toTable">표로 보기</button>
+        <button type="button" class="tbtn opt" id="keysBtn" aria-keyshortcuts="Shift+?">단축키 ( ? )</button>
         <div class="search">
           <label class="sr" for="q">기술 이름으로 찾기</label>
           <input id="q" type="search" placeholder="기술 찾기 ( / )" autocomplete="off" aria-controls="hits" aria-keyshortcuts="/">
@@ -202,6 +204,27 @@
     <p class="stat" id="stat" aria-hidden="true"></p>
     <p class="sr" id="say" role="status"></p>
     <p class="toast" id="toast" aria-hidden="true" hidden></p>
+    <dialog class="keys" id="keys" aria-labelledby="keysTitle">
+      <h2 id="keysTitle">단축키</h2>
+      <p>지도에 포커스가 있을 때 써요(/ · Space · ? · 1~3은 어디서나). 입력칸에서는 글자로만 들어가요.</p>
+      <dl>
+        <dt><kbd>/</kbd></dt><dd>기술 찾기</dd>
+        <dt><kbd>J · K</kbd></dt><dd>다음 · 이전 점(위험·주의 먼저)</dd>
+        <dt><kbd>[ · ]</kbd></dt><dd>이전 · 다음 위험·주의</dd>
+        <dt><kbd>, · .</kbd></dt><dd>고른 점의 이전 · 다음 이웃</dd>
+        <dt><kbd>Enter</kbd></dt><dd>고른 점의 상세 열기</dd>
+        <dt><kbd>E</kbd></dt><dd>고른 점 펼치기 · 접기</dd>
+        <dt><kbd>Shift + 방향키</kbd></dt><dd>고른 점 옮기기</dd>
+        <dt><kbd>방향키</kbd></dt><dd>지도 옮기기</dd>
+        <dt><kbd>+ · −</kbd></dt><dd>확대 · 축소</dd>
+        <dt><kbd>0 · F</kbd></dt><dd>전체 보기</dd>
+        <dt><kbd>1 · 2 · 3</kbd></dt><dd>중심 보기 단계</dd>
+        <dt><kbd>Esc</kbd></dt><dd>선택 풀기 · 중심 보기 끝내기</dd>
+        <dt><kbd>Space</kbd></dt><dd>움직임 멈추기 · 켜기</dd>
+        <dt><kbd>?</kbd></dt><dd>이 목록</dd>
+      </dl>
+      <form method="dialog"><button class="tbtn" autofocus>닫기 (Esc)</button></form>
+    </dialog>
     <div class="dock" role="group" aria-label="지도 옮기기와 위험 찾기">
       <div class="risk" id="risk">
         <button type="button" class="tbtn" id="rprev" aria-label="이전 위험·주의 점" aria-keyshortcuts="[">◀</button>

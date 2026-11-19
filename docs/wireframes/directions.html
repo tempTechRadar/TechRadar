@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>디자인 방향 비교판</title>
+  <style>
+    /* 같은 장면(위 줄·요약 띠·지도 한 조각·고른 기술 카드·범례·새 기술 한 줄)을 지금 / A / B로 나란히 그린다. 팀이 함께 보고 고르기 위한 비교판(시안, 샘플). */
+    :root { --sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif; --mono: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px 48px; background: #E9ECF0; color: #18202B; font: 15px/1.6 var(--sans); }
+    header.page { max-width: 1440px; margin: 0 auto 16px; }
+    header.page h1 { margin: 0 0 6px; font-size: 24px; }
+    header.page p { margin: 0 0 6px; color: #3A4555; max-width: 90ch; }
+    header.page .goal { padding: 10px 14px; border-left: 4px solid #18202B; background: #fff; color: #18202B; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 16px; max-width: 1440px; margin: 0 auto; }
+    .col h2 { margin: 0 0 8px; font-size: 17px; }
+    .col h2 small { font-weight: 400; color: #4A5565; }
+    .notes { margin: 10px 0 0; padding-left: 18px; font-size: 14px; color: #2B3442; }
+    .notes li { margin: 2px 0; }
+    .frame { border-radius: 12px; overflow: hidden; border: 1px solid #C9D1DB; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <h1>디자인 방향 비교판</h1>
+    <p class="goal"><b>1차 목적(사용자, 11-19):</b> 날마다 쏟아지는 기술을 <b>분야별로 한눈에, 구조적으로</b> 보여 주고, 새 기술을 알아서 모아 보여 준다. 쓰고 잊어버리는 일을 줄이고, 사용자가 <b>스스로 판단해 내 프로젝트에 쓸지</b> 정하게 돕는다. 보안 확인은 그 과정에서 곁들이는 것.</p>
+    <p>같은 장면을 세 방식으로 그렸어요. "지금"은 보안 등급이 색을 차지하고, A·B는 <b>분야(갈래)와 나의 판단</b>이 먼저 보이고 보안은 작은 표로 내려가요. 이름과 숫자는 샘플이에요.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+  <script>
+    (() => {
+      // ---- 아이콘: 선 굵기 1.75, 24칸에 그린 단순한 선 아이콘(라이브러리 없이). 글자 기호(◀ ▶ ▾ ✕ ★)를 대신한다
+      const I = {
+        danger: '<path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.5"/><path d="M12 17.2h.01"/>',
+        caution: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.2h.01"/>',
+        spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>',
+        bell: '<path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Z"/><path d="M10 19.5a2 2 0 0 0 4 0"/>',
+        search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+        filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+        layers: '<path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 13 9 5 9-5"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
+        fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+        radar: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18.4 5.6"/>',
+        chevron: '<path d="m9 6 6 6-6 6"/>',
+        compare: '<path d="M8 4v16M16 4v16M4 8h4M16 16h4"/>',
+        trend: '<path d="m4 16 5-5 4 4 7-7"/><path d="M15 8h5v5"/>',
+      };
+      const icon = (k, size = 18, color = 'currentColor') => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
+
+      // ---- 장면(샘플). q = 분야(갈래), j = 나의 판단(use 쓰는 중 · cand 적용 후보 · int 관심 · hold 보류 · 없음 = 아직 안 봄), nw = 이번 주 새로, sec = 보안(d 위험, w 주의)
+      // "지금" 칸은 같은 점을 지금 방식(보안 등급 색)으로 그린다: g = 등급, f = 최근 확인
+      const QN = ['코드 작성', '보안 점검', '데이터', '화면 디자인'];
+      const P = [
+        { me: true, x: 0, y: 0 },
+        { name: 'sample-mcp-1', q: 0, j: 'use', sec: 'd', g: 'd', x: 92, y: -70 },
+        { name: 'sample-mcp-3', q: 0, nw: true, g: 'p', f: true, x: 168, y: -26, sel: true },
+        { name: 'sample-skill-5', q: 0, j: 'int', g: 'p', f: true, x: 150, y: -112 },
+        { name: 'sample-skill-1', q: 1, j: 'use', g: 'p', f: true, x: 80, y: 86 },
+        { name: 'sample-mcp-7', q: 1, nw: true, g: 'u', x: 162, y: 112 },
+        { name: 'sample-pkg-2', q: 2, j: 'cand', g: 'p', x: -92, y: 96 },
+        { name: 'sample-mcp-2', q: 2, j: 'use', sec: 'w', g: 'w', x: -150, y: 40 },
+        { name: 'sample-skill-9', q: 2, j: 'hold', sec: 'd', g: 'd', x: -176, y: 120 },
+        { name: 'sample-pkg-1', q: 3, j: 'use', g: 'p', x: -100, y: -70 },
+        { name: 'sample-pkg-4', q: 3, nw: true, g: 'p', f: true, x: -160, y: -118 },
+        { name: 'sample-skill-3', q: 3, g: 'n', x: -40, y: -128 },
+      ];
+      const E = [[1, 2], [1, 3], [4, 5], [6, 7], [7, 8], [9, 10], [9, 11]];
+
+      // ---- 세 방식의 값(토큰). 지금 = 현재 시안 그대로(어두운 바탕 + 초록 하나 + 모든 글자 고정폭 + 보안 등급 색)
+      // A·B: 나의 판단은 먹색·파랑 한 가지와 모양으로(쓰는 중 = 채운 먹색, 적용 후보 = 채운 파랑, 관심 = 파랑 고리, 보류 = 회색 사선, 아직 안 봄 = 작은 회색),
+      // 보안은 빨강(위험)·호박(주의)을 점 옆 작은 표로만. 두 색 묶음이 섞이지 않는다(색약 검사: 빨강·호박·파랑·회색 최악 ΔE 9.6, 정상 16.6)
+      const T = {
+        now: { name: '지금', sub: '보안 등급이 색을 차지, 어두운 바탕 + 초록 + 고정폭',
+          bg: '#0a0e14', surface: 'rgba(10,14,20,.95)', line: '#14261f', ink: '#e6edf3', muted: '#8fa3b0', accent: '#2ed573', onAccent: '#0a0e14',
+          ring: 'rgba(30,143,85,.35)', sweep: 'rgba(46,213,115,.12)', edge: 'rgba(143,163,176,.3)', label: '#2ed573',
+          d: '#f87171', w: '#fbbf24', p: '#5ec8ff', pOld: '#5a7890', u: '#5a7890', font: 'var(--mono)', size: 12, legacy: true },
+        light: { name: 'A · 밝은 지형도', sub: '추천 · 분야와 나의 판단이 먼저, 보안은 작은 표',
+          bg: '#F6F8FA', surface: '#FFFFFF', line: '#DCE2EA', ink: '#18202B', muted: '#566174', faint: '#A7B0BD', accent: '#2563C9', onAccent: '#FFFFFF',
+          zone: ['#EEF3FB', '#F2F5F2', '#F7F3EC', '#F3F1F8'], ring: '#D9DFE7', sweep: 'rgba(37,99,201,.06)', edge: '#C3CCD8', label: '#18202B',
+          d: '#C0262D', w: '#B87600', font: 'var(--sans)', size: 13 },
+        dark: { name: 'B · 어두운 관제', sub: 'A와 같은 규칙, 바탕만 어둡게',
+          bg: '#0F141B', surface: '#161D27', line: '#263142', ink: '#E7ECF2', muted: '#A3AEBD', faint: '#56637A', accent: '#3F86F5', onAccent: '#FFFFFF',
+          zone: ['#131C2A', '#131D1C', '#1B1913', '#18172A'], ring: '#222D3D', sweep: 'rgba(63,134,245,.08)', edge: '#34415A', label: '#E7ECF2',
+          d: '#D94A6A', w: '#B39A2A', font: 'var(--sans)', size: 13 },
+      };
+      const JN = { use: '쓰는 중', cand: '적용 후보', int: '관심', hold: '보류', none: '아직 안 봄' };
+      const GR = { d: '위험', w: '주의', p: '통과', u: '찾지 못함', n: '검사 전' };
+
+      // 판단 표시(점 모양). 같은 함수를 범례에도 쓴다
+      function judgeDot(t, j, x, y, r = 6) {
+        if (j === 'use') return `<circle cx="${x}" cy="${y}" r="${r}" fill="${t.ink}"/>`;
+        if (j === 'cand') return `<circle cx="${x}" cy="${y}" r="${r}" fill="${t.accent}"/>`;
+        if (j === 'int') return `<circle cx="${x}" cy="${y}" r="${r - 0.8}" fill="${t.bg}" stroke="${t.accent}" stroke-width="2"/>`;
+        if (j === 'hold') return `<circle cx="${x}" cy="${y}" r="${r - 0.8}" fill="${t.bg}" stroke="${t.muted}" stroke-width="1.6"/><path d="M${x - r * .6} ${y + r * .6} L${x + r * .6} ${y - r * .6}" stroke="${t.muted}" stroke-width="1.6"/>`;
+        return `<circle cx="${x}" cy="${y}" r="${r * .7}" fill="${t.faint}"/>`;
+      }
+      const secTag = (t, s, x, y) => `<g transform="translate(${x} ${y})"><rect x="-1" y="-1" width="16" height="16" rx="4" fill="${t.bg}"/>${`<g transform="scale(.58)">${I[s === 'd' ? 'danger' : 'caution'].replace(/<(path|circle)/g, `<$1 fill="none" stroke="${t[s]}" stroke-width="2.6" stroke-linecap="round"`)}</g>`}</g>`;
+
+      function mapSvg(t) {
+        const W = 440, H = 320, cx = 196, cy = 160, k = 0.86; // 오른쪽 이름표가 잘리지 않게 조금 왼쪽·작게
+        let g = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="지도 한 조각(샘플)"><rect width="${W}" height="${H}" fill="${t.bg}"/>`;
+        if (!t.legacy) { // 분야(갈래)를 땅처럼 옅게 칠하고 이름을 크게: "어떤 분야에 무엇이 있나"가 먼저 보이게
+          const quad = [[cx, 0, W - cx, cy], [cx, cy, W - cx, H - cy], [0, cy, cx, H - cy], [0, 0, cx, cy]];
+          quad.forEach(([x, y, w, h], q) => { g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${t.zone[q]}"/>`; });
+          const lab = [[W - 12, 22, 'end'], [W - 12, H - 12, 'end'], [12, H - 12, 'start'], [12, 22, 'start']];
+          lab.forEach(([x, y, a], q) => { g += `<text x="${x}" y="${y}" text-anchor="${a}" font-family="${t.font}" font-size="14" font-weight="700" fill="${t.muted}">${QN[q]} <tspan font-weight="400" font-size="12">${P.filter((n) => n.q === q).length}개 · 새로 ${P.filter((n) => n.q === q && n.nw).length}</tspan></text>`; });
+        }
+        for (let r = 60; r < 330; r += 60) g += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${t.ring}" stroke-width="1"/>`;
+        if (t.legacy) g += `<path d="M${cx} ${cy} L${cx + 300 * Math.cos(-0.5)} ${cy + 300 * Math.sin(-0.5)} A300 300 0 0 0 ${cx + 300 * Math.cos(-1.1)} ${cy + 300 * Math.sin(-1.1)} Z" fill="${t.sweep}"/>`;
+        E.forEach(([a, b]) => { g += `<line x1="${cx + P[a].x * k}" y1="${cy + P[a].y}" x2="${cx + P[b].x * k}" y2="${cy + P[b].y}" stroke="${t.edge}" stroke-width="1"/>`; });
+        P.forEach((n) => {
+          const x = cx + n.x * k, y = cy + n.y;
+          if (n.me) { g += t.legacy ? `<circle cx="${x}" cy="${y}" r="3" fill="${t.accent}"/>` : `<g transform="translate(${x - 9} ${y - 9})">${icon('radar', 18, t.muted)}</g><text x="${x}" y="${y + 22}" text-anchor="middle" font-family="${t.font}" font-size="12" fill="${t.muted}">나</text>`; return; }
+          let r = 6;
+          if (t.legacy) { // 지금 방식: 보안 등급 색, 최근 확인 청록·오래됨 청회색
+            r = n.g === 'd' ? 7 : n.g === 'w' ? 6 : 4.5;
+            const c = n.g === 'p' ? (n.f ? t.p : t.pOld) : t[n.g] || t.u;
+            if (n.g === 'd' || n.g === 'w') g += `<circle cx="${x}" cy="${y}" r="${r + 5}" fill="none" stroke="${c}" stroke-opacity=".55"/>`;
+            g += n.g === 'u' || n.g === 'n' ? `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${t.u}" stroke-width="1.6" ${n.g === 'n' ? 'stroke-dasharray="1.5 2.5"' : ''}/>` : `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+          } else {
+            if (n.nw) g += `<circle cx="${x}" cy="${y}" r="${r + 5}" fill="none" stroke="${t.accent}" stroke-width="1" stroke-dasharray="2 2.5"/>`;
+            g += judgeDot(t, n.j, x, y, r);
+            if (n.sec) g += secTag(t, n.sec, x + r - 2, y - r - 12);
+          }
+          if (n.sel) g += `<circle cx="${x}" cy="${y}" r="${r + 11}" fill="none" stroke="${t.ink}" stroke-width="1.5"/>`;
+          const show = t.legacy ? (n.g === 'd' || n.g === 'w' || n.j === 'use') : true;
+          if (!show) return;
+          const lx = x + r + 7, ly = y + 4, halo = `stroke="${t.bg}" stroke-width="4" paint-order="stroke"`;
+          g += `<text x="${lx}" y="${ly}" font-family="${t.font}" font-size="${t.size}" fill="${t.label}" ${halo} ${!t.legacy && !n.j && !n.nw ? `fill-opacity=".7"` : ''}>${n.name}`;
+          if (t.legacy && (n.g === 'd' || n.g === 'w')) g += ` ${GR[n.g]}`;
+          if (!t.legacy && n.nw) g += `<tspan fill="${t.accent}" font-weight="700"> 새로</tspan>`;
+          g += '</text>';
+        });
+        return g + '</svg>';
+      }
+
+      function frame(key) {
+        const t = T[key], L = t.legacy;
+        const btn = (txt, kind, ic) => L
+          ? `<span style="display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px solid ${t.accent};color:${t.accent};font-family:${t.font};font-size:12px">${txt}</span>`
+          : `<span style="display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border-radius:8px;font-weight:600;font-size:14px;${kind === 'primary' ? `background:${t.accent};color:${t.onAccent}` : kind === 'on' ? `border:2px solid ${t.accent};color:${t.accent}` : `border:1px solid ${t.line};color:${t.ink}`}">${ic ? icon(ic, 16) : ''}${txt}</span>`;
+        const navItem = (txt, cur) => `<span style="padding:6px 8px;${cur ? (L ? `color:${t.accent};box-shadow:inset 0 -2px ${t.accent}` : `color:${t.ink};font-weight:700;box-shadow:inset 0 -2px ${t.ink}`) : `color:${t.muted}`}">${txt}</span>`;
+        const legendJ = ['use', 'cand', 'int', 'hold', 'none'].map((j) => `<span style="display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16">${judgeDot(t, j, 8, 8, 6)}</svg>${JN[j]}</span>`).join('');
+        const legend = L
+          ? ['d', 'w', 'p', 'u', 'n'].map((k) => `<span style="display:inline-flex;align-items:center;gap:6px;color:${t.muted}"><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="${k === 'p' ? t.p : t[k] || t.u}"/></svg>${GR[k]}</span>`).join('')
+          : `${legendJ}<span style="display:inline-flex;align-items:center;gap:6px;color:${t.accent};font-weight:700"><svg width="18" height="18"><circle cx="9" cy="9" r="8" fill="none" stroke="${t.accent}" stroke-dasharray="2 2.5"/></svg>새로</span><span style="display:inline-flex;align-items:center;gap:4px;color:${t.muted}">${icon('danger', 15, t.d)}${icon('caution', 15, t.w)}보안 위험·주의(작은 표)</span>`;
+        return `
+        <div class="frame" style="background:${t.bg};color:${t.ink};font-family:${t.font}">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid ${t.line};${L ? '' : `background:${t.surface}`}">
+            ${L ? `<b style="color:${t.accent};font-size:18px">techradar</b>` : `<span style="display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:16px">${icon('radar', 20, t.accent)}TechRadar</span>`}
+            <span style="flex:1"></span>
+            <span style="display:flex;align-items:center;font-size:${L ? 12 : 14}px">${navItem('기술 지도', true)}${navItem('내 기술')}${navItem(`알림 <b style="margin-left:4px;padding:1px 7px;border-radius:9px;background:${t.ink};color:${t.bg}">3</b>`)}</span>
+          </div>
+          ${L ? `<div style="padding:6px 14px;font-size:12px;border-left:3px solid ${t.ink}">첫 점검: 위험 1 · 주의 1 · 알림에서 보기</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 10px;padding:8px 14px;font-size:12px;color:${t.accent}"><span style="border-bottom:1px solid ${t.accent}">도구 ▾</span><span style="border-bottom:1px solid ${t.accent}">갈래 지도</span><span style="border-bottom:1px solid ${t.accent}">기술 찾기 ( / )</span><span style="border-bottom:1px solid ${t.accent}">거르기</span><span style="border-bottom:1px solid ${t.accent}">모두 펼치기 +77</span></div>`
+          : `<div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid ${t.line};font-size:14px">
+              <span style="flex:1;padding:8px 10px;border-radius:8px;background:${t.surface};border:1px solid ${t.line}"><span style="display:flex;align-items:center;gap:6px;color:${t.accent};font-weight:700">${icon('spark', 16, t.accent)}이번 주 새 기술</span><b style="font-size:22px">12</b> <span style="color:${t.muted};font-size:13px">코드 작성 5 · 데이터 4 …</span></span>
+              <span style="flex:1;padding:8px 10px;border-radius:8px;background:${t.surface};border:1px solid ${t.line}"><span style="display:flex;align-items:center;gap:6px;font-weight:700">${icon('bell', 16)}판단 기다림</span><b style="font-size:22px">3</b> <span style="color:${t.muted};font-size:13px">적용 기회 2 · 보안 1</span></span>
+              <span style="flex:1;padding:8px 10px;border-radius:8px;background:${t.surface};border:1px solid ${t.line}"><span style="display:flex;align-items:center;gap:6px;font-weight:700">${icon('layers', 16)}내 기술</span><b style="font-size:22px">8</b> <span style="color:${t.muted};font-size:13px">관심 4 · 후보 1</span></span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid ${t.line};font-size:14px;color:${t.muted}">
+              <span style="display:inline-flex;align-items:center;gap:6px;flex:1;min-height:36px;padding:0 10px;border:1px solid ${t.line};border-radius:8px;background:${t.surface}">${icon('search', 16)}기술 찾기</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid ${t.line};border-radius:8px">${icon('filter', 16)}거르기</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid ${t.line};border-radius:8px">${icon('spark', 16, t.accent)}새로만</span></div>`}
+          <div style="position:relative">
+            ${mapSvg(t)}
+            ${L ? '' : `<div style="position:absolute;right:10px;bottom:34px;display:flex;flex-direction:column;border:1px solid ${t.line};border-radius:8px;background:${t.surface};color:${t.ink}">${['plus', 'minus', 'fit'].map((k) => `<span style="display:grid;place-items:center;width:36px;height:36px">${icon(k, 18)}</span>`).join('')}</div>`}
+          </div>
+          <div style="padding:${L ? '10px 14px' : '14px'};border-top:1px solid ${t.line};${L ? `font-size:13px` : `background:${t.surface}`}">
+            ${L ? `<div style="font-weight:700">● sample-mcp-3 <span>통과</span></div>
+              <div style="font-size:13px">알려진 문제를 찾지 못했어요. 안전하다는 보증은 아니에요</div>
+              <div style="font-size:12px;color:${t.muted}">마지막 확인 2시간 전 · MCP · 코드 작성</div>
+              <div style="display:flex;gap:6px;margin-top:6px">${btn('상세 보기')}${btn('펼치기 +3')}${btn('중심 보기')}</div>`
+            : `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:17px;font-weight:700">sample-mcp-3</span>
+                <span style="padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;color:${t.accent};border:1.5px solid ${t.accent}">이번 주 새로</span>
+                <span style="font-size:13px;color:${t.muted}">MCP · 코드 작성</span></div>
+              <p style="margin:6px 0 2px;font-size:15px">원격 MCP 서버를 프록시로 이어 줘요.</p>
+              <p style="margin:0;font-size:13px;color:${t.muted};display:flex;align-items:center;gap:6px">${icon('trend', 15)}주간 다운로드 3,400 · 별 +120(7일) · 보안: 알려진 문제 없음</p>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;border-radius:8px;border:1px solid ${t.line};font-size:14px">${icon('compare', 18)}<span style="flex:1">내가 쓰는 <b>sample-mcp-1</b>과 같은 역할 <span style="color:${t.d}">(내 것은 보안 위험)</span></span><span style="display:inline-flex;align-items:center;font-weight:600">비교${icon('chevron', 16)}</span></div>
+              <div style="margin-top:10px;font-size:13px;color:${t.muted}">내 판단</div>
+              <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">${btn('관심', 'on')}${btn('적용 후보')}${btn('보류')}${btn('상세 보기', 'primary')}</div>`}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:10px 14px;border-top:1px solid ${t.line};font-size:${L ? 12 : 13}px">${legend}</div>
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid ${t.line};font-size:${L ? 13 : 14}px">
+            ${L ? `<span style="color:${t.d};border:1px solid;padding:0 6px;border-radius:999px;font-size:12px">보안 경고</span>
+              <span style="flex:1"><b>sample-mcp-1</b> 주의 → 위험<br><span style="color:${t.muted};font-size:12px">내 프로젝트 TechRadar · 11월 18일 10:30</span></span>
+              <span style="padding:2px 10px;border-radius:999px;font-size:12px;color:${t.w};border:1px solid">판단 대기</span>`
+            : `${icon('spark', 18, t.accent)}
+              <span style="flex:1"><b>새 기술 3개</b> · 코드 작성 2, 화면 디자인 1<br><span style="color:${t.muted};font-size:13px">sample-mcp-3 · sample-mcp-7 · sample-pkg-4 — 오늘 아침 모음</span></span>
+              <span style="display:inline-flex;align-items:center;font-weight:600">살펴보기${icon('chevron', 16)}</span>`}
+          </div>
+        </div>`;
+      }
+      const NOTES = {
+        now: ['보안 등급이 점 색을 모두 차지해서, 1차 목적인 "어떤 분야에 무엇이 있나·새로 무엇이 나왔나·나는 어떻게 판단했나"가 보이지 않아요', '모든 글자가 12~13px 고정폭이라 한글이 띄엄띄엄하고 작아요', '초록이 브랜드·단추·링크·이름표·선에 다 쓰여(초록만 6가지) 무엇을 누르는지 갈리지 않아요', '최근 확인(청록)과 오래됨(청회색)이 색으로만 갈리고(대비 2.47), 위험·주의는 색약에게 비슷해 보여요', '글자 기호(◀ ▶ ▾ ✕ ★ ●)가 아이콘을 대신하고, 밑줄만 있는 단추가 입력칸처럼 보여요'],
+        light: ['분야(갈래)를 땅처럼 옅게 칠하고 이름·개수·새로 수를 크게: "어디에 무엇이 있나"가 먼저', '점 = 나의 판단: 쓰는 중(먹색) · 적용 후보(파랑) · 관심(파랑 고리) · 보류(사선) · 아직 안 봄(작은 회색), 새 기술은 점선 테두리 + "새로"', '보안은 위험·주의일 때만 점 옆 작은 표(빨강·호박). 판단 색(먹색·파랑)과 섞이지 않아요(색약 검사 최악 ΔE 9.6)', '위에 "이번 주 새 기술 · 판단 기다림 · 내 기술" 요약 = 대시보드. 카드에는 하는 일·인기·같은 역할 비교·내 판단 단추', '본문 14~15px 한글 글꼴, 같은 굵기의 선 아이콘 한 벌, 밝은 방·발표 화면에서 가장 잘 읽혀요'],
+        dark: ['A와 같은 규칙(분야 땅·판단 점·작은 보안 표·요약 띠), 바탕만 어둡게', '레이더 느낌(어두운 바탕·고리)은 남아요', '어두운 곳에서 오래 볼 때 편하지만 발표 화면에서는 A보다 흐리게 보일 수 있어요', '같은 값 체계라 A를 기본, B를 "어두운 모드"로 함께 둘 수 있어요'],
+      };
+      document.getElementById('grid').innerHTML = ['now', 'light', 'dark'].map((k) => `<section class="col"><h2>${T[k].name} <small>— ${T[k].sub}</small></h2>${frame(k)}<ul class="notes">${NOTES[k].map((n) => `<li>${n}</li>`).join('')}</ul></section>`).join('');
+    })();
+  </script>
+</body>
+</html>

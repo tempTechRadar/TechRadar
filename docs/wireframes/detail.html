@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="nav.css"><!-- 주 메뉴는 지도·알림 시안과 같이 쓴다 -->
   <title>기술 상세 시안 (샘플)</title>
   <style>
     /* IA-4 기술 상세의 간단 시안. 지도(map.html)에서 누른 점의 값을 주소로 받아 그린다. 실제 앱에서는 서버에서 읽는다. */
@@ -35,6 +36,16 @@
   </style>
 </head>
 <body>
+  <header class="topbar">
+    <a class="logo" href="map.html">techradar</a>
+    <nav class="nav" aria-label="주 메뉴"><!-- IA 1절. 기술 상세(IA-4)는 내 기술 아래라 "내 기술"이 이 화면의 자리다 -->
+      <a href="map.html">기술 지도</a>
+      <span class="nav-x" title="이 시안에는 아직 없어요">대시보드</span>
+      <span class="nav-x" title="이 시안에는 아직 없어요">내 기술</span>
+      <a href="alerts.html#list">알림 <b id="pendT"></b></a>
+      <span class="nav-x" title="이 시안에는 아직 없어요">기록 찾기</span>
+    </nav>
+  </header>
   <main>
     <button type="button" class="back" id="back">← 지도로 돌아가기</button>
     <p class="sample" role="note">시안이에요. 이름과 숫자는 모두 샘플이고, 지도에서 누른 점의 값을 그대로 보여 줘요.</p>
@@ -45,7 +56,7 @@
         <b id="gradeLab"></b>
         <p id="why"></p>
       </section>
-      <p class="pend" id="pend" hidden>판단 대기 1건이 있어요 · <a href="alerts.html">알림에서 판단하기</a></p>
+      <p class="pend" id="pend" hidden><span id="pendTxt"></span> · <a href="alerts.html#list">알림에서 판단하기</a></p>
       <h2>속성</h2>
       <dl>
         <dt>마지막 확인</dt><dd id="last"></dd>
@@ -65,9 +76,12 @@
     (() => {
       const $ = (id) => document.getElementById(id);
       const COLOR = { d: 'var(--danger)', w: 'var(--warn)', p: 'var(--dim)', u: 'var(--dim)', n: 'var(--dim)' }; // 통과는 최근 확인일 때만 청록(지도와 같게, 아래 fresh)
-      $('back').addEventListener('click', () => { if (history.length > 1) history.back(); else location.href = 'map.html'; });
       let d = null;
       try { d = JSON.parse(new URLSearchParams(location.search).get('d') || 'null'); } catch { d = null; }
+      // 돌아가기는 들어온 곳으로(알림에서 왔으면 알림, 아니면 지도). 주소로 바로 열었으면 그곳의 첫 화면으로
+      const fromAlerts = d?.from === 'alerts';
+      $('back').textContent = fromAlerts ? '← 알림으로 돌아가기' : '← 지도로 돌아가기';
+      $('back').addEventListener('click', () => { if (history.length > 1) history.back(); else location.href = fromAlerts ? 'alerts.html#list' : 'map.html'; });
       if (!d || typeof d.name !== 'string') { $('err').hidden = false; return; }
       const text = (v) => (v == null ? '' : String(v)); // 주소로 받은 값은 글자로만 넣는다(태그로 읽지 않는다)
       document.title = `${text(d.name)} 상세 시안 (샘플)`;
@@ -79,7 +93,9 @@
       $('last').textContent = text(d.last);
       $('chg').textContent = typeof d.chg === 'string' && d.chg ? d.chg : '없음';
       $('hosts').textContent = text(d.hosts) || '모름';
-      $('pend').hidden = d.pending !== true;
+      const pend = Number.isInteger(d.pending) ? d.pending : 0; // 이 기술의 판단 대기 알림 수
+      $('pend').hidden = pend < 1; $('pendTxt').textContent = `판단 대기 ${pend}건이 있어요`;
+      if (Number.isInteger(d.pt) && d.pt > 0) $('pendT').textContent = `판단 대기 ${d.pt}`; // 메뉴 배지(모든 알림의 판단 대기 수)
       $('mine').textContent = d.mine ? '내 프로젝트에서 써요' : '내 기술 아님 · 비교용으로 보여 줘요';
       const nb = Array.isArray(d.nb) ? d.nb.filter((m) => m && typeof m === 'object') : []; // 주소가 망가져도 빈 화면이 되지 않게
       if (!nb.length) $('nb').innerHTML = '<li>이어진 기술이 없어요</li>';
