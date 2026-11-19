@@ -121,7 +121,8 @@ async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<Fi
     return [];
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e);
-    return REPO_FILES.filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
+    // 스킬 폴더도 같은 저장소 안이라 함께 못 읽은 것: 전에 읽은 스킬 줄도 수집 오류로(목록 404를 "스킬 없음"으로 읽지 않게, 불변 2)
+    return [...REPO_FILES, SKILLS_DIR].filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
   }
 }
 
@@ -148,15 +149,16 @@ async function fetchRepoFiles(repo: RepoRef) {
 async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const { files, fileErrors } = await fetchRepoFiles(repo);
   // 스킬 폴더(PRD-F6): 폴더 목록 1번 + 폴더마다 SKILL.md. 폴더가 없으면 읽은 스킬이 없을 뿐이고, 못 읽었으면 수집 오류다.
-  const skills = await readSkills(repo);
+  const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
+  const skills = closed ? { found: [], errors: [], folders: 0 } : await readSkills(repo);
   fileErrors.push(...skills.errors);
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
     inputSummary: repo.url,
     outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}`,
-    countIn: REPO_FILES.length,
-    countOut: files.length,
+    countIn: REPO_FILES.length + skills.folders,
+    countOut: files.length + skills.found.length,
     errorKind: fileErrors[0]?.kind,
     errorMessage: [...new Set(fileErrors.map((f) => f.message))].join("; ") || undefined,
   });

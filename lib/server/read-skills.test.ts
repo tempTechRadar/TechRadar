@@ -45,14 +45,14 @@ test("폴더 이름은 주소에 인코딩해서 읽는다", async (t) => {
   assert.equal(r.found[0]?.name, "my skill");
 });
 
-test("스킬이 30개를 넘으면 앞의 30개만 읽고, 전부가 아니라는 오류를 남긴다(요청도 목록 1 + 30번)", async (t) => {
+test("스킬이 30개를 넘으면 앞의 30개만 읽고, 못 읽은 스킬만 오류로 남긴다(요청도 목록 1 + 30번)", async (t) => {
   const names = Array.from({ length: 31 }, (_, i) => `s${String(i).padStart(2, "0")}`);
   const urls = stub(t, (u) => (u === LIST_URL ? ok(dirs(...names)) : ok("---\nname: x\n---")));
   const r = await readSkills(REPO);
   assert.equal(r.found.length, 30);
   assert.equal(r.folders, 31);
   assert.equal(urls.length, 31);
-  assert.deepEqual(r.errors.map((e) => [e.path, e.kind]), [[".claude/skills", "parse"]]);
+  assert.deepEqual(r.errors.map((e) => [e.path, e.kind]), [[".claude/skills/s30", "parse"]]);
   assert.match(r.errors[0].message, /31개라 앞의 30개만/);
 });
 
