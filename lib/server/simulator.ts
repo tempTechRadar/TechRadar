@@ -17,6 +17,10 @@ export type SimulatorResult = { runId: string; changeId: string; changeCreated: 
 
 // G1(docs/spec.md 10절): npm mcp-remote 0.1.16 미만은 위험. 고친 버전은 0.1.16.
 const G1 = { name: "mcp-remote", version: "0.1.15", causeId: "GHSA-6xpm-ggf7-wc3p", cve: "CVE-2025-6514", fixedVersion: "0.1.16" };
+// 알림 상세가 읽는 칸(쉬운 이유·근거)을 진짜 첫 읽기(first-read.ts)와 같은 모양으로 채운다. 값은 등급 규칙(gradeFromOsv)이 저장된 OSV 응답
+// (lib/domain/fixtures/osv-mcp-remote-0.1.15.json)에 내는 것과 같고, 시험이 둘이 같은지 본다. 빠지면 화면에 "찾지 못함"이 나온다(M0 사람 확인 11-19).
+const G1_REASON = "이 버전(0.1.15)에 심각도 CRITICAL인 알려진 문제가 있어요(GHSA-6xpm-ggf7-wc3p / CVE-2025-6514). 0.1.16 이상으로 올리면 고쳐져요.";
+const G1_EVIDENCE = [{ id: G1.causeId, aliases: [G1.cve], severity: "CRITICAL", fixed: G1.fixedVersion, url: `https://osv.dev/vulnerability/${G1.causeId}` }];
 // 변경 저장용 원인 id. 진짜 첫 등록 읽기(first-read.ts)가 만드는 중복 막기 키와 겹치지 않게 접두어를 붙인다(SPEC-3.5).
 const SIM_CAUSE_ID = `sim:${G1.causeId}`;
 const SOURCE_NAME = "시뮬레이터(가짜 출처)";
@@ -102,7 +106,7 @@ async function saveAndNotify(deps: SimulatorDeps, flow: Flow, tech: TechRef, ids
     tech,
     causeId: SIM_CAUSE_ID,
     prevValue: { grade: "pass" },
-    currValue: { grade: "danger", fixed_version: G1.fixedVersion }, // judgments.ts·to-alert-view.ts가 이 키로 읽는다
+    currValue: { grade: "danger", reason: G1_REASON, fixed_version: G1.fixedVersion, evidence: G1_EVIDENCE }, // first-read.ts와 같은 모양. judgments.ts·to-alert-view.ts가 이 키로 읽는다
     observationId: ids.observationId,
     isSimulated: true,
   });
