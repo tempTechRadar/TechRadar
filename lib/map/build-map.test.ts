@@ -1,0 +1,61 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { buildTechMap, hostOf, labelOf, type MapInput } from "./build-map.ts";
+
+import { NOW, ago, mine, tech } from "./test-fixtures.ts";
+
+const categories = [{ id: "big-data", name: "백엔드·데이터", parentId: null }, { id: "small-db", name: "DB", parentId: "big-data" }, { id: "big-design", name: "디자인", parentId: null }];
+const input = (o: Partial<MapInput>): MapInput => ({ mine: [], techs: [], relations: [], categories, ...o });
+
+test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 것), 확정된 비교군은 한 단계만", () => {
+  const m = buildTechMap(input({
+    mine: [mine("m1", "a"), mine("m2", "a", { projectId: "p2", projectName: "다른 앱", grade: "danger", gradeReason: "취약점" })],
+    techs: [tech("a"), tech("b"), tech("c")],
+    relations: [{ a: "a", b: "b" }, { a: "b", b: "c" }], // b-c는 내 기술과 닿지 않아 두 단계 → 뺌
+  }), NOW);
+  assert.equal(m.mode, "mine");
+  assert.deepEqual(m.nodes.map((n) => n.key), ["tech:a", "tech:b"]);
+  const a = m.nodes[0];
+  assert.deepEqual([a.mine, a.grade, a.gradeReason, a.myTechIds, a.projectNames, a.attrs.grade, a.attrs.project], [true, "danger", "취약점", ["m1", "m2"], ["앱", "다른 앱"], "위험", "여러 프로젝트"]);
+  assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
+});
+
+test("묶기 기준 값: 작은 갈래는 큰 갈래 아래로, 갈래가 없으면 '분류 전', 종류는 한국어", () => {
+  const m = buildTechMap(input({ techs: [tech("a"), tech("b", { categoryId: "big-design", type: "skill", techKey: "skill:x/y/b" }), tech("c", { categoryId: null })] }), NOW);
+  const by = Object.fromEntries(m.nodes.map((n) => [n.name, n.attrs]));
+  assert.deepEqual([by.a.field, by.a.sub, by.a.kind], ["백엔드·데이터", "DB", "MCP"]);
+  assert.deepEqual([by.b.field, by.b.sub, by.b.kind, by.b.host], ["디자인", "분류 전", "스킬", "Claude Code"]);
+  assert.deepEqual([by.c.field, by.c.sub], ["분류 전", "분류 전"]);
+});
+
+test("쓰는 곳은 칸이 있으면 그대로, 비면 기술 키·종류로 추정하고 추정이라고 표시", () => {
+  assert.deepEqual(hostOf("mcp:x", "mcp", ["Cursor"]), { host: "Cursor", guessed: false });
+  assert.deepEqual(hostOf("skill:a/b/c", "skill", null), { host: "Claude Code", guessed: true });
+  assert.deepEqual(hostOf("npm:zod", "sdk", []), { host: "앱 코드", guessed: true });
+  assert.deepEqual(hostOf(null, null, null), { host: "모름", guessed: true });
+});
+
+test("같은 역할이 하나도 없는 내 기술은 외톨이, 이름만 추가한 기술은 분류 전·종류 모름", () => {
+  const m = buildTechMap(input({ mine: [mine("m1", "a"), mine("m2", null, { manualName: "My Tool", grade: "unknown" })], techs: [tech("a")] }), NOW);
+  const manual = m.nodes.find((n) => n.key === "name:my tool")!;
+  assert.deepEqual([manual.lonely, manual.attrs.field, manual.attrs.kind], [true, "분류 전", "모름"]);
+});
+
+test("NEW는 카탈로그에 들어온 지 7일 안, 수집 오류는 '업데이트 n일 전'이 아니라 '수집 오류'(불변 2)", () => {
+  const m = buildTechMap(input({ techs: [tech("a", { createdAt: ago(2) }), tech("b", { createdAt: ago(9), collectErrorKind: "http_5xx" })] }), NOW);
+  assert.deepEqual(m.nodes.map((n) => [n.isNew, n.label]), [[true, "업데이트 3일 전"], [false, "수집 오류"]]);
+  assert.equal(labelOf(null, null, NOW), "업데이트 모름");
+});
+
+test("같은 입력이면 같은 결과(입력 순서가 달라도)", () => {
+  const i = input({ mine: [mine("m1", "a"), mine("m2", "b")], techs: [tech("a"), tech("b"), tech("c")], relations: [{ a: "a", b: "c" }] });
+  assert.deepEqual(buildTechMap(i, NOW), buildTechMap({ ...i, mine: [...i.mine].reverse(), techs: [...i.techs].reverse() }, NOW));
+});
+
+test("내 프로젝트로 묶을 값: 이름이 같은 두 프로젝트는 갈라 보이고, 한 프로젝트만 쓰면 그 이름", () => {
+  const m = buildTechMap(input({
+    mine: [mine("m1", "a", { projectId: "aaaa-1", projectName: "web" }), mine("m2", "b", { projectId: "bbbb-2", projectName: "web" }), mine("m3", "c", { projectId: "cccc-3", projectName: "앱" })],
+    techs: [tech("a"), tech("b"), tech("c")],
+  }), NOW);
+  assert.deepEqual(m.nodes.map((n) => n.attrs.project), ["web (aaaa)", "web (bbbb)", "앱"]);
+});

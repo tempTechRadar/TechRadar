@@ -10,4 +10,5 @@ export async function dismissFirstCheck(formData: FormData): Promise<void> {
   const jar = await cookies();
   jar.set(FIRST_CHECK_COOKIE, addSeenRunId(jar.get(FIRST_CHECK_COOKIE)?.value, runId), FIRST_CHECK_COOKIE_OPTIONS);
   revalidatePath("/dashboard");
+  revalidatePath("/"); // 첫 화면 지도(P-12c)에도 같은 띠가 있다
 }

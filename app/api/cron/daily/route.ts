@@ -3,6 +3,7 @@
 import { SCHEDULE_COLLECTORS } from "@/lib/schedule/collectors";
 import { cronAuthorized } from "@/lib/schedule/cron-auth";
 import { runBatch } from "@/lib/schedule/run-batch";
+import { classifyAfterBatch } from "@/lib/server/classify-store";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 
 export const dynamic = "force-dynamic"; // 캐시된 응답이면 예약 실행이 돌지 않는다(공식 문서)
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
   if (!db) return Response.json({ ok: false, reason: "서비스 키가 없어요" }, { status: 500 });
   try {
     const result = await runBatch({ db, collectors: SCHEDULE_COLLECTORS }, { trigger: "schedule" });
+    if (result.started) await classifyAfterBatch(db, result.runId); // 그날 레지스트리가 넣은 새 기술까지 갈래를 받는다
     return Response.json({ ok: true, ...result });
   } catch (error) {
     // 오류 내용은 실행 기록(run_steps)에 가려서 남았다. 응답에는 내용을 싣지 않는다
