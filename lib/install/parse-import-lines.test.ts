@@ -47,6 +47,19 @@ test("[검토 6] 키·토큰처럼 보이는 줄은 대소문자와 상관없이
   assert.equal(JSON.stringify(r).includes(SECRET), false);
 });
 
+test("자리표시자($API_KEY·<your-token>)만 든 줄은 비밀값 줄로 보지 않고, 진짜 값(--api-key 값·client_secret=값)은 걸린다", () => {
+  const lines = [
+    "mcp|brave-search|npm:@brave/brave-search-mcp-server|2.0.0",
+    "mcp|brave --api-key $BRAVE_API_KEY|npm:x|1.0.0",
+    "mcp|x|npm:x --token <your-token>|1.0.0",
+    "mcp|brave --api-key abc123xyz|npm:x|1.0.0",
+    "mcp|x|npm:x client_secret=abc123xyz|1.0.0",
+  ];
+  const r = parseImportLines(lines.join("\n"));
+  assert.deepEqual(r.items.map((i) => i.name), ["brave-search"]);
+  assert.deepEqual(r.secretLines, [4, 5]);
+});
+
 test("값 검사에서 걸린 줄(문장 이름·꺾쇠)은 이유와 함께 건너뛴다", () => {
   const r = parseImportLines("mcp|ignore previous|npm:pkg|1.0.0\nmcp|a<b|npm:pkg|1.0.0");
   assert.equal(r.items.length, 0);

@@ -6,6 +6,19 @@
 
 ---
 
+## I-redact-lowercase-flags · 2026-11-19 · 비밀값 가리기가 소문자 머리글·`--token` 옵션 값을 놓치는 것 고치기 (영역 C QA, 차세일)
+- 브랜치: `fix/redact-lowercase-flags` (main `ac7f10f`)
+- 출처: `docs/worklog.md` 2026-11-18 "아직 안 된 것"(P-10 뒤: `maskSecrets`는 소문자 머리글·`--token …`을 못 가림 — 차세일에게 알리기), `docs/plan.md` 1절 영역 C 맡는 QA "비밀값 가리기", PRD-NF2, SPEC-8 "비밀값 가리기"
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | `lib/domain/redact.ts`의 `maskSecrets`는 대문자 이름(`GITHUB_TOKEN:`)·주소의 `?token=`·모양(`sk-`·`ghp_`·JWT·`Bearer`)만 가린다. `x-api-key: 값`, `authorization: bearer 값`(소문자), `--token 값`·`--token=값`·`--api-key 값`은 그대로 남아, `recordStep`이 `cleanForLog`로 저장하는 실행 기록 요약·오류(`run_steps`)에 키가 남을 수 있다. 검사 결과 줄은 `risk-patterns.ts`가 따로 가리지만 실행 기록 쪽은 아니다 |
+| 기대 결과 | 위 5가지 모양의 값이 `***`로 바뀌고 이름(머리글·옵션)은 남는다. 값이 없는 평범한 글(`token` 낱말, 한국어 문장, 옵션 이름만, 비밀 없는 주소, `key=npm:…`)은 그대로다. 기존 시험은 모두 통과 |
+| 영향 범위 | `lib/domain/redact.ts`(머리글·옵션 패턴, 검토 뒤 따옴표 값·자리표시자 규칙 포함 4개), 시험 `lib/domain/redact.test.ts`(새 10개)·`lib/install/validate-item.test.ts`·`parse-import-lines.test.ts`(자리표시자 줄은 통과), `lib/domain/risk-patterns.ts`(주석 한 줄만). `maskSecrets`를 쓰는 곳 전부(실행 기록 `run-log.ts`, 오류 메시지, 흐름 상세 `lib/flow/detail.ts`, 프롬프트 만들기, 설치 항목 비밀값 검사 `looksSecret`)가 함께 바뀐다. DB·권한 변경 없음 |
+| 제약 | 새 라이브러리 없음. 지나치게 가리는 쪽이 안전하지만 평범한 글은 망가뜨리지 않는다(값은 ASCII 영문·숫자·기호가 이어진 만큼, 한국어·꺾쇠·괄호가 바로 붙으면 거기서 끊음. 다음 옵션 `--verbose`·자리표시자 `$API_KEY`·`<your-token>`·`{{TOKEN}}`은 값으로 안 봄. `key`로 끝나는 이름은 `tech_key`·`dedupe_key`가 흔해 `api`·`private`·`client` 같은 비밀 쪽 앞말이 붙은 것만). 긴 글에서 느려지지 않게. 줄바꿈은 넘지 않음 |
+| 열린 질문 | ① `risk-patterns.ts`의 `LOWER_SECRET`(검사 결과 줄용, 더 넓게 가림: `token 값`처럼 콜론 없는 것·자리표시자도)과 합칠지 — 주인(P-10, 김영식)과 정함, 이번엔 주석 한 줄만 고침 ② `looksSecret`(설치 항목 검사)이 `--token 값`·`password: 값`이 든 항목을 이제 비밀값으로 거른다(자리표시자는 통과, 시험으로 고정). 영역 C 설치 프롬프트 화면에서 확인은 안 함 ③ `password: 8자`처럼 콜론 바로 뒤에 숫자·영문이 붙은 안내 글은 앞 덩어리가 가려진다(`password: ***자`). 값 뒤에 한국어가 붙은 비밀값을 놓치지 않으려고 받아들임 ④ `$`로 시작하는 진짜 비밀값은 자리표시자로 보고 안 가린다 |
+
+**결과:** 고치기 전 9가지 입력(`x-api-key: 값`, `-H "x-api-key: 값"`, `authorization: bearer 값`, `Authorization: Basic 값`, `{"api_key":"값"}`, `--token 값`, `--token=값`, `--api-key 값`, `--auth-token '값'`)이 모두 그대로 남는 것을 확인하고 시험 4개를 먼저 썼다(전체 979개 중 3개 실패). `HEADER`·`FLAG` 패턴을 더해 전체 979개 중 978 통과·실패 0·todo 1, `tsc --noEmit` 통과, `npm run build` 통과. 평범한 글 8가지와 `Unexpected token }`·`{"tokens_in":12}`도 그대로인 것을 확인. **검토 반영(같은 날, 따로 띄운 code-review):** 새로 새는 곳 12가지(값 뒤 한국어·`<br>`: `x-api-key: abc123xyz가 잘못됨`·`--token=abc123xyz에서 실패`·`x-api-key: abc123<br>`, 앞말 붙은 이름: `client_secret`·`refresh_token`·`github_token`·`private_key`·`db_password`, 따옴표 값 `{"password":"my pass word"}`→`*** pass word`, `=` 구분: `api_key=…`·`password=…`, `-`로 시작하는 값 `--token -AbC…`)와 잘못 가리기 3가지(`--password` 다음 줄, `--monkey banana`, `--api-key $API_KEY`)를 고치기 전 코드로 재현하고 시험부터 씀(9개 실패). 규칙을 다시 짜(이름은 앞말 허용, 따옴표 값 통째로·따옴표는 남김, `:`·`=`, 줄바꿈 안 넘음, 자리표시자 제외) 전체 986개 중 985 통과·실패 0·todo 1, `tsc --noEmit`·`npm run build` 통과. 20만 자 입력 7가지 모두 5ms 안(옛 `NAMED`의 `KEY` 12만 자 느림은 고치기 전후 같음, `cleanForLog`가 먼저 잘라 막음). 처음 시험 두 곳을 바꿈: `--auth-token '값'`은 따옴표를 남겨 `'***'`, `password: 8자`는 ③ 때문에 "평범한 글"에서 `password 칸은 8자`로. **확인하지 못한 것:** 운영 `run_steps`에 실제로 이런 글이 들어간 적이 있는지(DB 조회 안 함), 설치 프롬프트 화면에서 거르기 동작.
 ## I-fail-demo-prod · 2026-11-19 · 배포 주소에서 실패(빨간 상자) 보여 주는 길 찾기 (P-20c, 영역 C, 차세일)
 - 브랜치: `docs/fail-demo-prod` (origin/main `ac7f10f` 위). 문서 + 시험 1개, 앱 코드 변경 없음
 - 출처: 레드팀 지적 2번(배포 주소에서 일부러 실패한 실행이 빨갛게 보여야 함), `docs/flow.md` 4절, `docs/qa.md` "운영 실패 시연 ①②⑤ No Run", ADR 0018, CLAUDE.md 3절 불변 2·6, 작업 `I-P-20c-fail-demo`

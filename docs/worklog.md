@@ -11,6 +11,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-redact-lowercase-flags | 비밀값 가리기 보강(11-18 "아직 안 된 것" 지적): `maskSecrets`가 소문자 머리글(`x-api-key:`·`authorization: bearer`·`Basic`)·JSON 칸(`"api_key":"…"`)·명령 옵션(`--token 값`·`--token=값`·`--api-key 값`) 값을 못 가리던 9가지를 시험으로 먼저 확인(979개 중 3개 실패) → 머리글·옵션 패턴 2개를 더함. 값 없는 평범한 글 8가지는 그대로인 시험도 더함. `npm test` 978 통과·실패 0·todo 1, 타입·빌드 통과. 따로 띄운 검토가 찾은 새는 곳 12가지(값 뒤 한국어, 앞말 붙은 이름, 띄어쓴 따옴표 값, `=`, `-`로 시작하는 값)와 잘못 가리기 3가지(줄바꿈, `--monkey`, `$API_KEY` 자리표시자)를 시험부터 써서(9개 실패) 고침 → 986개 중 985 통과·실패 0·todo 1, 타입·빌드 통과. QA C18 Pass. 실행 기록(`recordStep`→`cleanForLog`)·오류 메시지·설치 항목 검사가 함께 바뀜 | 차세일(Claude) | `fix/redact-lowercase-flags`, `lib/domain/redact.ts`, `docs/qa-c.md` C18, `docs/intent.md` I-redact-lowercase-flags |
 | I-fail-demo-prod | 배포 주소에서 빨간 상자 보여 주는 길 찾기(레드팀 2번): 실패 시연 ①②⑤는 운영에서 설계상 꺼지고 미리보기도 꺼져 있어, 스위치 없이 운영에서 실패 실행을 남기는 후보 7가지를 코드로 추적. 없는·비공개 저장소는 실행 전에 막혀 빨강 없음. **package.json만 깨진 공개 저장소 등록**이 가장 안전(시작·"내 기술 뽑기" 빨강, 변경·알림 없음, 되풀이 가능). 그 모양을 시험 1개로 걸고 설명서 5-3에 누르는 순서, ADR 0024(제안), flow.md·슬라이드 한 줄, qa No Run 1행. 정한 것: 운영 동작은 안 바꿈(코드 동결 직전), 운영 ①만 여는 안은 제안으로만. 아직 안 된 것: 시연 저장소 만들기(사람), 운영에서 눌러 보기 | 차세일(Claude) | `docs/fail-demo-prod`, `docs/관리자-사용설명서.md` 5-3, `docs/adr/0024-배포-주소의-실패-시연은-진짜-입력으로.md`, `lib/server/first-read.test.ts`, `docs/intent.md` I-fail-demo-prod |
 | I-plan-qa-c-sync-1119 | plan·qa-c의 영역 C 낡은 기록 맞추기: P-18 상태(갈래 정하기 P-18c #133·#135 합침, 남은 것은 갈래 목록 시드 — 마이그레이션에 `categories` 시드 없음), P-26 상태(위키 18쪽·`/admin/chat`·정답표 운영 4/5 합침, Q5 원인 #131, 운영 Q5 재질문 No Run), "11-19 점검" 표 1·8번에 저녁 갱신 메모(README #166, 슬라이드 #165, 발표 배포 주소 없음), 5절 숫자 다시 셈(합친 PR 165개: 김영식 99·48, 황재웅 27·79, 차세일 39·22), qa-c 조각 상태 표를 main 기준으로, H13(P-18b)·H14(위키 챗봇) 언급 맞춤. 문서만 | 차세일(Claude) | `docs/plan-qa-c-sync-1119`, `docs/plan.md`, `docs/qa-c.md`, `docs/intent.md` I-plan-qa-c-sync-1119 |
 | I-readme-submit-1119 | README 제출 항목 채우기: 상태 문구(main `3461b20` 사실), 서비스·발표·QA·위키 링크, 팀원 표(이름·GitHub·영역), 대표 PR과 승인한 사람(사람마다 2개), 기록·확인 자료 위치. 제출물 체크리스트 숫자를 다시 셈(ADR 23·서브에이전트 55·커넥터 38·오류 30·intent 136·QA 109/32행·합친 PR 159)과 위키·챗봇·정답표·발표 초안 상태 반영. 발표 자료는 배포 주소에서 404(앱이 `slides/`를 내보내지 않음)라 "확인 전" | 차세일(Claude) | `docs/readme-submit-1119`, `README.md`, `docs/제출물-체크리스트.md`, `docs/intent.md` I-readme-submit-1119 |
@@ -143,7 +144,7 @@
 - [ ] P-2 마이그레이션·P-29 공용 함수 자리 — 김영식
 - [ ] Vercel 환경변수·팀원 권한 확인 — 김영식
 - [ ] P-10: 커밋·푸시·PR(리뷰 1명), P2 규칙은 11-18 사용자가 "가까운 줄"로 정함(→ I-P-10-p2-nearby-lines), 저장소 정보(P-9) 뒤 G5를 "통과"로 바꾸기 — 김영식
-- [ ] P-10 뒤: `redact.ts`의 `maskSecrets`는 소문자 머리글(`x-api-key: …`)·`--token …`을 못 가림. 검사 결과 줄은 따로 가렸지만 실행 기록 쪽은 그대로 — 차세일에게 알리기
+- [x] P-10 뒤: `redact.ts`의 `maskSecrets`는 소문자 머리글(`x-api-key: …`)·`--token …`을 못 가림. 검사 결과 줄은 따로 가렸지만 실행 기록 쪽은 그대로 — 차세일에게 알리기 → 11-19 `maskSecrets`에 소문자 머리글·옵션 패턴을 더해 고침(I-redact-lowercase-flags, QA C18). `risk-patterns.ts`의 따로 가리기와 합칠지는 남음
 - [ ] 점검 반영 PR(`docs/doc-fixes-1118`): 커밋·푸시는 사용자 확인 뒤, 팀원 1명 리뷰. `flow/flow.json`은 주인(차세일)이 확인 — 팀
 - [ ] 점검 Y-9의 P-2 끝 기준(남은 테이블의 남의 줄 시험·시연 계정 시드를 할지, 끝 기준을 고칠지) — 팀이 정함
 - [ ] 이번 범위 밖 점검 항목: Y-1·4·8·10·11·14–16, ⚪ 14개 (D-7·D-8·Y-3은 `fix/P-3-collect-errors`, I-043)
