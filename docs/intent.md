@@ -6,6 +6,22 @@
 
 ---
 
+## I-batch-main-deploy · 2026-11-19 · main 배포를 모아서 한 번에 — Vercel main 자동 배포 끄고 Actions가 코드 병합만 10분 모아 배포 훅 (ADR 0018 개정 2, 김영식)
+- 브랜치: `chore/batch-main-deploy` (main 최신 뒤)
+- 출처: 사용자 "메인 합치기를 모아서 하도록 아예 설정을 만들자", `docs/debug-note.md` 11-19 배포 한도 행, ADR 0018, `CLAUDE.md` 10절
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | #153·#154 병합이 `Deployment rate limited`로 배포되지 않아 고친 코드가 운영에 없다. production 배포 58건(약 16시간) 중 24건이 문서만 바뀐 병합의 취소 배포였고, 코드 병합도 몇 분 간격으로 몰렸다 |
+| 기대 결과 | 문서만 바뀐 병합은 배포를 아예 만들지 않는다. 코드 병합은 10분 동안 다음 병합이 없을 때 한 번만 배포한다. 급하면 손으로 바로 배포할 수 있다 |
+| 영향 범위 | `vercel.json`(`"main": false`, `ignoreCommand` 삭제), 새 `.github/workflows/deploy-main.yml`, `CLAUDE.md` 10절, `docs/운영-점검표.md`, ADR 0018 개정 2. 앱 코드 변경 없음 |
+| 제약 | 배포 훅 주소는 비밀값이라 사람이 Vercel에서 만들고 GitHub 비밀값 `VERCEL_DEPLOY_HOOK_URL`에 넣는다. 없으면 작업이 실패로 표시된다. 새 라이브러리 없음(curl만) |
+| 열린 질문 | ① `deploymentEnabled`에서 main을 끈 상태로 배포 훅이 배포를 만드는지(문서로 확인 못함) → 합친 뒤 첫 실행에서 확인, 안 되면 `"main": false`만 지우고 작업 끄기 ② 저장소가 비공개가 되면 Actions 분이 무료 한도에서 빠진다(기다리는 10분이 매번 든다): 제출 직전이라 영향은 작다고 봄 ③ 이 PR을 합치는 순간부터 main 자동 배포가 꺼지므로 비밀값을 먼저 넣어야 한다 |
+
+**결과:** 설정·작업·문서 작성. 제외 목록 8가지 경우(문서·README·스킬 문서는 안 깨움, wiki·sim·앱 코드·vercel.json·섞인 병합은 깨움)를 스크립트로 확인, `cron-auth` 시험(vercel.json의 crons 읽기) 3개 통과. 작업 파일 YAML은 파서가 없어 눈으로만 확인 → 푸시 뒤 GitHub가 읽는지 확인. **아직 안 된 것:** 배포 훅 만들기·비밀값 넣기(사람), 합친 뒤 첫 실행
+
+---
+
 ## I-prod-smoke-migration-check · 2026-11-19 · 운영에서만 깨지는 일 막기: 합친 뒤 운영 점검표와 precheck 마이그레이션 경고 (김영식)
 - 브랜치: `chore/prod-smoke-migration-check` (main `7539ba9`). 문서·점검 스크립트, 앱 코드·DB 변경 없음
 - 출처: 사용자 "현재 프로젝트에서 계속 발생하는 문제점 / 고칠점" → "다른 세션에 영향없는 방향으로 진행", `docs/debug-note.md` 11-18–11-19 운영 장애, I-migration-before-merge 열린 질문(순서를 검사로 막을지)
