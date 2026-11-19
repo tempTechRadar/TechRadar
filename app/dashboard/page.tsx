@@ -1,5 +1,9 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { buildFirstCheckBand, FIRST_CHECK_COOKIE, parseSeenRunIds } from "@/lib/alerts/first-check-band";
+import { readRecentFirstReads } from "@/lib/server/first-check-queries";
+import { FirstCheckBanner } from "./first-check-banner";
 import { FilterSelect, PERIOD_OPTIONS } from "../alerts/filter-select";
 import { countRecentChanges } from "@/lib/alerts/count-recent-changes";
 import { findReviewDue } from "@/lib/alerts/find-review-due";
@@ -20,10 +24,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const data = await readDashboardData(supabase, user.id).catch((e) => { console.error("대시보드 조회 실패", e); return null; });
+  const seen = parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value);
+  // 띠를 못 읽어도 대시보드는 그대로 보여 준다(띠는 덧붙이는 요약이라 숫자를 단정하지 않고 숨길 뿐, 로그는 남김)
+  const band = await readRecentFirstReads(supabase, user.id).then((runs) => buildFirstCheckBand(runs, seen)).catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; });
 
   return (
     <main className="alerts">
       <h1>대시보드</h1>
+      {band ? <FirstCheckBanner band={band} /> : null}
       {data === null ? <LoadError /> : data.techs.length === 0 && data.alerts.length === 0 ? <Empty /> : <Board data={data} params={params} />}
     </main>
   );
