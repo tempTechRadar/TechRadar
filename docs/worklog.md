@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12d-new-bulk | 지도 NEW 1,000개 고침(다른 세션 알림, 사용자 "진행"): 레지스트리 첫 전체 읽기로 들어온 기술은 NEW가 아님(새 줄에 표시, 옛 줄은 출처 · 시각으로). 지도 · 새 기술 화면 · 적용 기회가 같은 판정. 운영 읽기로 확인(NEW 0). 리뷰 9건 중 8건 고침. 시험 1,166 통과 | 나(진행) · Claude(조사 · 구현 · 확인) · 다른 세션(문제 발견) | `lib/domain/registry.ts` `isBulkFilled`, SPEC-3.2 |
 | I-P-22-model-eol | 모델 지원 종료 알림(PRD-F38, 사용자 "F38 작게"): 공식 쪽 3곳(Anthropic · OpenAI · Google)에서 읽은 종료 표 + 저장소 코드 파일 100개까지 읽어 문자열로 쓴 모델 이름을 찾고 "모델 종료" 알림(종료일 · 대체 · 찾은 파일 · 공지 링크). 리뷰 10건 모두 고침(큰 저장소에서 늘 실패, 모델이 한도에서 먼저 잘림, 목록 · 시험 파일 오탐 등). 실제 저장소 3곳으로 확인. 시험 1,160 통과 | 나(F38 작게) · Claude(조사 · 구현 · 확인) | `lib/domain/model-eol.ts`, `lib/server/read-models.ts`, SPEC-3.3 |
 | I-P-22-project-edit | 프로젝트 고치기 · 보관(PRD-F4 3순위): 이름 · 메모 저장, 보관하면 목록 · 지도 · 숫자 · 설치 프롬프트에서 빠지고 점검 · 새 알림도 멈춤, "보관한 프로젝트"에서 되살리기. 리뷰 10건 중 8건 고침("내 컴퓨터" 칸 보관 막기 등). RLS 칸 제한은 마이그레이션이 필요해 동결 뒤 후보로. 시험 1,146 통과 | 나(진행) · Claude(구현 · 확인) | `lib/domain/project-edit.ts`, `app/projects/actions.ts`, intent 열린 질문 |
 | I-P-22-other-tools | 다른 AI 도구의 MCP 설정 읽기(PRD-F39, P-22 3순위): Cursor · VS Code · Gemini CLI 설정 파일의 서버도 내 기술로, 지도 쓰는 곳은 읽은 파일로. AGENTS.md · GEMINI.md는 지시 글이라 읽지 않음(SPEC-7.1에 이유). 코드 리뷰 10건 모두 고침(같은 별명 두 파일이면 저장이 깨지던 것, 토큰이 기술 이름이 되던 것 등). 시험 1,141 통과 | 나(P-22 고름) · Claude(구현 · 확인) | `lib/domain/manifest.ts`, `lib/domain/tech-key.ts`, `docs/spec.md` 7.1 |
