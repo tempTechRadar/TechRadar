@@ -50,11 +50,12 @@ erDiagram
   profiles ||--o{ audit_logs : "한 일"
   profiles ||--o{ ai_calls : "부른다"
   profiles ||--o{ chat_logs : "묻는다"
-  profiles ||--o| preferences : "3순위"
+  profiles ||--o| user_tastes : "취향(P-23)"
   profiles ||--o{ recommendations : "3순위"
-  technologies ||--o{ usage_notes : "3순위"
-  usage_notes ||--o{ helpful_votes : "3순위"
-  usage_notes ||--o{ reports : "3순위"
+  profiles ||--o{ usage_notes : "쓴다(P-24)"
+  technologies ||--o{ usage_notes : "사용기(P-24)"
+  usage_notes ||--o{ helpful_votes : "도움이 됐어요(P-24)"
+  usage_notes ||--o{ reports : "신고(P-24)"
   sources ||--o{ news_items : "3순위"
 
   profiles {
@@ -367,7 +368,7 @@ UK: (kind, ecosystem, value).
 |---|---|---|---|---|
 | actor_id | uuid | | FK→profiles | 서버가 한 일이면 비움 |
 | actor_role | text | ✔ | | `user` / `admin` / `server` |
-| action | text | ✔ | | `manual_add`, `hide`, `unhide`, `run_now`, `classify`, `confirm_relation`, `role_change`, `hide_note`, `clear_simulator` … |
+| action | text | ✔ | | `manual_add`, `hide`, `unhide`, `run_now`, `classify`, `confirm_relation`, `role_change`, `hide_note`, `unhide_note`, `handle_report`, `clear_simulator` … |
 | target_table · target_id | text | ✔ | | 대상 |
 | reason | text | | | 관리자는 필수(앱에서 막음) |
 
@@ -390,15 +391,50 @@ UK: (kind, ecosystem, value).
 | question · answer | text | ✔ | | 답 800자 안 |
 | wiki_pages | text[] | | | 찾은 쪽 |
 
+### 2.7 3순위로 만든 표 (P-23·P-24, 2026-11-20)
+
+3절 요약에 있던 것 중 실제로 만든 4개. 칸은 운영 DB `information_schema.columns`와 마이그레이션 `202611200900_P-23_user_tastes.sql`·`202611201000_P-24_usage_notes.sql`·`202611201100_P-24_hide_author.sql`에서 옮겼다(7절 3차 대조). 지우기는 네 표 모두 아무도 못 한다(기록 보존).
+
+**user_tastes** — 취향 질문 답(P-23, 처음 계획의 `preferences`). 사람당 한 줄, 질문을 아직 안 봤으면 줄이 없음
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| user_id | uuid | ✔ | PK, FK→profiles(지우면 같이) | 이 사람의 취향 |
+| created_at | timestamptz | ✔ | | 서버 칸(사용자가 못 정함) |
+| build | text | | | 무엇을 만드나: `web` / `automation` / `data` / `docs` / `unsure`(check). 건너뛰면 비움 |
+| tools | text[] | ✔ | | 쓰는 도구: `claude_code` / `cursor` / `codex_other` / `none`만(check), 기본 빈 배열 |
+| interests | text[] | ✔ | | 관심 분야(큰 갈래 이름) 3개까지(check). 맞는 갈래인지는 앱이 검사(갈래 이름은 관리자가 고칠 수 있어 DB에 굳히지 않음) |
+
+**usage_notes** — 사용기(P-24). 등급에 영향 없음, Claude에 넣지 않음, 고치기 없음(숨김만)
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| author_id | uuid | ✔ | FK→profiles | 쓴 사람. **다른 사람은 이 칸을 못 읽음**(칸 권한, "내 글"은 `my_usage_note_ids` 함수) |
+| tech_id | uuid | ✔ | FK→technologies | 대상 기술. 색인(tech_id, created_at 내림차순) |
+| used_for · result · tip | text | ✔ | | 어디에 썼나 · 결과 · 팁. 빈 글자 안 됨, **세 칸 합쳐 500자**(check) |
+| helpful_count | integer | ✔ | | "도움이 됐어요" 수. 서버 칸: `helpful_votes` 트리거만 올림(0 이상) |
+| hidden_at · hidden_by | timestamptz · uuid | | FK→profiles | 관리자가 숨긴 시각·사람. 함께 있거나 함께 없음(check). `hidden_by`는 다른 사람이 못 읽음 |
+
+**helpful_votes** — "도움이 됐어요" 누른 기록(P-24)
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| note_id | uuid | ✔ | PK, FK→usage_notes(지우면 같이) | |
+| user_id | uuid | ✔ | PK, FK→profiles | 누른 사람. 한 사람이 한 글에 한 번(PK), **자기 글·숨긴 글엔 못 누름**(`is_open_note_of_other`) |
+| created_at | timestamptz | ✔ | | (`id` 칸 없음: 두 칸 PK) |
+
+**reports** — 사용기 신고(P-24)
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| note_id | uuid | ✔ | FK→usage_notes(지우면 같이) | UK(note_id, reporter_id): 한 사람이 한 글에 한 번 |
+| reporter_id | uuid | ✔ | FK→profiles | 신고한 사람. 자기 글·숨긴 글은 신고 못 함 |
+| reason | text | ✔ | | 1–200자(check) |
+| handled_by · handled_at | uuid · timestamptz | | FK→profiles | 처리한 관리자·시각. 함께 있거나 함께 없음(check), 처리자는 본인 이름만 |
+| handle_reason | text | | | 처리 이유, 200자까지 |
+
 ## 3. 3순위 테이블 (나중 마이그레이션)
 
 | 테이블 | 칸 (id·created_at 외) | 키·규칙 |
 |---|---|---|
-| **user_tastes** (P-23, 처음 계획의 `preferences`) | user_id(PK, FK), build text, tools text[], interests text[](갈래 이름 3개까지), created_at | 사람당 하나, 관리자 못 봄. 건너뛰기는 빈 값으로 저장, 질문을 아직 안 봤으면 줄이 없음. 열 권한: 쓰는 세 칸만(`supabase/tests/user_tastes_p23.sql`) |
-| **recommendations** | user_id FK, tech_id FK, reason, signals jsonb, reaction(`interested`/`not`/`none`) | UK(user_id, tech_id) |
-| **usage_notes** | author_id FK, tech_id FK, used_for, result, tip(합쳐 500자 안), helpful_count(서버 칸, 투표 트리거가 올림), hidden_at, hidden_by | 등급에 영향 없음, Claude에 넣지 않음. 수정·삭제 없음(숨김만, 관리자). 숨긴 글은 쓴 사람·관리자만 읽음. 다른 사람은 `author_id`·`hidden_by`를 못 읽음(칸 권한, "내 글"은 `my_usage_note_ids` 함수)(P-24) |
-| **helpful_votes** | note_id FK, user_id FK | PK(note_id, user_id), 자기 글엔 못 누름(앱·DB 함수) |
-| **reports** | note_id FK, reporter_id FK, reason, handled_by, handled_at, handle_reason | 관리자 처리 |
+| user_tastes · usage_notes · helpful_votes · reports | → 2.7절(11-20 만듦) | |
+| **recommendations** | user_id FK, tech_id FK, reason, signals jsonb, reaction(`interested`/`not`/`none`) | UK(user_id, tech_id). P-23은 표 없이 화면을 열 때마다 계산해서 아직 만들지 않음 |
 | **news_items** | source_id FK, title, url, hosts text[], tech_key, published_at | UK(url), 공식 출처만 |
 
 ## 4. 접근 규칙 (RLS, 테이블별 한 줄)
@@ -420,7 +456,10 @@ UK: (kind, ecosystem, value).
 | ai_calls | 관리자 읽기. 쓰기는 서버 |
 | chat_logs | 관리자(팀원) 읽기·만들기 |
 | "쓰고 있어요" | 테이블이 아니라 서버 함수. `is_public = true`인 사람의 별명과 수만 돌려줌 |
-| (3순위) | preferences 본인만 / recommendations 본인 / usage_notes 모두 읽기·본인 쓰기 / helpful_votes 본인 줄 / reports 본인 만들기·관리자 처리 / news_items 모두 읽기 |
+| user_tastes | **본인만** 읽기·넣기·고치기(관리자도 못 봄). 쓰는 칸은 `build`·`tools`·`interests`(넣을 때 `user_id`도)만 |
+| usage_notes | 로그인한 사람은 숨기지 않은 글 읽기, 숨긴 글은 쓴 사람·관리자만. 남의 `author_id`·`hidden_by`는 칸 권한으로 못 읽음. 본인 이름으로만 쓰기, 숨기기는 관리자만(본인 이름) |
+| helpful_votes · reports | 본인 줄만 읽기(신고는 관리자도 읽기). 남의 숨기지 않은 글에만 본인 이름으로 넣기. 신고 처리는 관리자만(본인 이름) |
+| (3순위, 안 만듦) | recommendations 본인 / news_items 모두 읽기 |
 
 ## 5. 고른 이유와 접은 방법
 
@@ -480,7 +519,44 @@ UK: (kind, ecosystem, value).
 | tech_relations | 11 | 2 | 켜짐 | ✔ |
 | technologies | 34 | 2 | 켜짐 | ✔ |
 
+**3차 대조(중간): 2026-11-20, Claude** — 동결(11-23 18:00) 전까지 표가 더 바뀔 수 있어 **최종 대조는 동결 직후** 다시 한다(`docs/plan.md` 월 마무리 표)(Supabase 커넥터 `execute_sql`로 `information_schema.columns`·`pg_policies`·`pg_class.relrowsecurity`를 읽고, 이 문서 2절(2.7 포함)의 표·칸 이름과 스크립트로 비교. 작업 `I-prod-check-1120`). P-12a2·P-12c·P-12d·P-23·P-24까지 운영에 적용된 뒤. **팀 확인 대기.**
+
+- 결과: 공개 표 **26개가 erd 2절의 26개와 같고**(DB에만 있는 표 0), 표마다 칸 이름이 **모두 일치**한다(`id`·`created_at`은 0절 공통 규칙이라 뺌). RLS는 26개 모두 켜져 있다. erd에만 있는 표 2개(`recommendations`·`news_items`)는 3절의 아직 안 만든 3순위다.
+- 비교한 것은 표·칸 이름, 칸 수, 정책 수, RLS 켜짐뿐이다. 칸 종류·필수·키와 정책 내용은 2.7절(새 표 4개)만 마이그레이션 파일과 한 줄씩 맞췄다. 나머지는 팀 대조 때 DB 화면으로 본다.
+- 마이그레이션 기록 표(`supabase_migrations`)는 15개. P-14 시드·P-18c·P-23(`user_tastes`)은 SQL 편집기로 적용해 기록 표에 없다(내용은 운영에 모두 있음).
+- **대조한 사람(팀)·날짜:** (비어 있음 — 세 사람이 Supabase 표 화면과 아래 표를 한 줄씩 맞춘 뒤 이름과 날짜를 적는다)
+
+| 표 | 실제 DB 칸 수(id·created_at 포함) | 정책 수 | RLS | 이름·칸 일치 | 비고 |
+|---|---|---|---|---|---|
+| ai_calls | 9 | 1 | 켜짐 | ✔ |  |
+| alerts | 10 | 1 | 켜짐 | ✔ |  |
+| audit_logs | 8 | 1 | 켜짐 | ✔ |  |
+| categories | 5 | 1 | 켜짐 | ✔ |  |
+| changes | 15 | 1 | 켜짐 | ✔ |  |
+| chat_logs | 6 | 2 | 켜짐 | ✔ |  |
+| exports | 8 | 2 | 켜짐 | ✔ |  |
+| grade_views | 5 | 2 | 켜짐 | ✔ |  |
+| helpful_votes | 3 | 2 | 켜짐 | ✔ | 새 표(P-24) |
+| judgments | 10 | 1 | 켜짐 | ✔ |  |
+| my_technologies | 20 | 3 | 켜짐 | ✔ |  |
+| observations | 11 | 1 | 켜짐 | ✔ |  |
+| profiles | 7 | 2 | 켜짐 | ✔ |  |
+| projects | 8 | 3 | 켜짐 | ✔ |  |
+| reports | 8 | 3 | 켜짐 | ✔ | 새 표(P-24) |
+| rule_lists | 9 | 3 | 켜짐 | ✔ |  |
+| run_steps | 17 | 1 | 켜짐 | ✔ |  |
+| runs | 11 | 1 | 켜짐 | ✔ |  |
+| scenarios | 8 | 2 | 켜짐 | ✔ |  |
+| sources | 9 | 1 | 켜짐 | ✔ |  |
+| tech_mark_events | 7 | 1 | 켜짐 | ✔ | 새 표(P-12d) |
+| tech_marks | 5 | 1 | 켜짐 | ✔ | 새 표(P-12d) |
+| tech_relations | 11 | 2 | 켜짐 | ✔ |  |
+| technologies | 33 | 2 | 켜짐 | ✔ | 2차 표의 34는 이번에 33. 칸을 지운 마이그레이션은 없고 erd 칸과 1:1이라 2차 숫자를 잘못 센 것으로 보임(확인하지 못함) |
+| usage_notes | 10 | 3 | 켜짐 | ✔ | 새 표(P-24) |
+| user_tastes | 5 | 3 | 켜짐 | ✔ | 새 표(P-23) |
+
 ## 바뀐 기록
+- 2026-11-20 3차 대조와 P-23·P-24 칸 표(작업 `I-prod-check-1120`, Claude 초안 — 표 주인 황재웅 확인 필요): 3절 요약에 있던 `user_tastes`·`usage_notes`·`helpful_votes`·`reports`를 2.7절 칸 표로 옮김(관계 그림의 `preferences` → `user_tastes`, `profiles ||--o{ usage_notes` 더함, 4절 접근 규칙 세 줄). 운영 DB 표 26개·칸 이름이 erd와 모두 일치(7절). P-23·P-24 마이그레이션 자체는 그 작업에서 했고(`I-P-23-recommend`·`I-P-24-usage-notes`), 이 줄은 erd 반영만
 - 2026-11-20 P-12d-marks(작업 `I-P-12d-marks`): `tech_marks`·`tech_mark_events`와 DB 함수 `set_tech_mark`를 더함(2.5절 끝, 4절, 관계 그림). 알림 없는 판단(ADR 0028). 마이그레이션 `202611201200_P-12d_tech_marks.sql`, 시험 `supabase/tests/tech_marks_p12d.sql`(운영 되돌림 시험 기대값 20개 맞음). **운영 적용: 11-20 09:04 KST**(DB 이름 `p12d_tech_marks`, 보안 점검 새 경고는 `set_tech_mark` security definer 1건 — `save_judgment`와 같은 의도)
 - 2026-11-19 P-12a2(작업 `I-P-12a2-nickname-db`, **운영 적용 전**, 합치기 전에 먼저 적용): 새 칸 없음. `profiles`에 `lower(nickname)` 유니크 인덱스, 별명 규칙 함수 `nickname_clean`·`nickname_problem`(한 곳), 가입 트리거 `handle_new_user`가 그 규칙을 거치고 동시 가입 충돌 때 임시 별명으로 재시도, **별명이 바뀔 때만 도는 `profiles_nickname_guard` 트리거**(직접 PATCH로도 규칙을 못 피함, 맞으면 NFC·공백 정리), 새 함수 `using_now(p_tech_id)`(security definer, 로그인한 사람만 호출, 공개한 사람의 수·별명만, 숨긴 기술·보관 프로젝트·시연 계정 제외). 접근 규칙(4절): 남의 `my_technologies`는 여전히 본인·관리자만 읽고, `using_now`만 수와 별명을 내보낸다
 - 2026-11-19 2차 대조(코드·마이그레이션 변경 없음, 작업 `I-records-sync-1119`): 표 20개·칸 이름이 실제 DB와 모두 일치(7절). 팀 확인 대기

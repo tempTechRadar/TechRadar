@@ -13,7 +13,7 @@ export type MyTech = {
   technologies: { tech_key: string; display_name: string } | null;
 };
 // runs: 이 프로젝트의 읽기 실행들(RLS로 본인의 첫 읽기·다시 읽기만 보임). 마지막 읽기 상태 안내(readStatusNotice)에 쓴다. 빠지면 "읽은 기록 없음"으로 보인다.
-export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; my_technologies: MyTech[]; runs?: ReadRun[] };
+export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; memo?: string | null; my_technologies: MyTech[]; runs?: ReadRun[] };
 
 /** back = 보던 화면(keepView 글). 숨기기·되돌리기 뒤에 같은 화면으로 돌아오게 폼에 싣는다. */
 export function ProjectTechs({ project, filter, back }: { project: ProjectRow; filter: TechFilter; back: string }) {

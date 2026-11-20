@@ -16,6 +16,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
           const q = {
             eq(col: string, val: unknown) { result = result.filter((r) => r[col] === val); return q; },
             is(col: string, val: unknown) { result = result.filter((r) => (r[col] ?? null) === val); return q; },
+            not(col: string, _op: string, _val: unknown) { result = result.filter((r) => (r[col] ?? null) !== null); return q; },
             order() { return q; },
             then: (resolve: (v: unknown) => unknown) =>
               Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: result, error: null }).then(resolve),
@@ -40,6 +41,7 @@ const tables = (): Tables => ({
     { owner_id: "user-a", project_id: "proj-1", hidden_at: null },
     { owner_id: "user-a", project_id: null, hidden_at: null },
     { owner_id: "user-a", project_id: "proj-1", hidden_at: "2026-11-18T00:00:00Z" },
+    { owner_id: "user-a", project_id: "proj-2", hidden_at: null }, // 보관한 프로젝트의 기술: 프로젝트 목록과 같은 기준으로 세지 않는다
     { owner_id: "user-b", project_id: "proj-9", hidden_at: null },
   ],
   projects: [
@@ -49,7 +51,7 @@ const tables = (): Tables => ({
   ],
 });
 
-test("내 알림·숨기지 않은 내 기술·보관하지 않은 내 프로젝트만 읽는다", async () => {
+test("내 알림·숨기지 않은 내 기술·보관하지 않은 내 프로젝트만 읽는다(보관한 프로젝트에 속한 기술도 세지 않는다)", async () => {
   const data = await readDashboardData(fakeDb(tables()), "user-a");
 
   assert.deepEqual(data.alerts.map((a) => a.id), ["a1"]);

@@ -1,3 +1,4 @@
+import { DRAFT_MISSING_TEXT } from "@/lib/alerts/draft-missing-text";
 import type { AlertView } from "@/lib/alerts/to-alert-view";
 
 // 보안 경고 상세의 "대응안 초안" 카드(IA-7, PRD-F15, 와이어프레임 docs/wireframes/alerts.html#detail).
@@ -7,7 +8,7 @@ export function DraftCard({ card }: { card: NonNullable<AlertView["draftCard"]> 
     <article className="card" aria-labelledby="draft-title">
       <h2 id="draft-title">대응안 초안 <span className="badge badge-neutral">Claude가 만든 초안</span></h2>
       {card.state === "missing" ? (
-        <p className="muted">대응안 초안을 만들지 못했어요. 위 근거를 보고 직접 판단해 주세요.</p>
+        <p className="muted">{DRAFT_MISSING_TEXT}</p>
       ) : (
         <>
           <p className="draft-text">{card.text}</p>

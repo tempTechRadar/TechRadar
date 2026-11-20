@@ -1,5 +1,5 @@
 // 저장소 파일 → 내 기술(SPEC-7). 네트워크·DB를 모르는 순수 규칙.
-// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1)를 읽는다. 스킬 폴더(.claude/skills)는 skills.ts(P-9e).
+// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1), 다른 AI 도구의 .cursor/mcp.json(PRD-F39)을 읽는다. 스킬 폴더(.claude/skills)는 skills.ts(P-9e).
 
 import { mcpServerKey, npmKey, pypiKey, type TechRef } from "./tech-key.ts";
 
@@ -54,8 +54,8 @@ export function readPackageJson(text: string): FoundTech[] {
 }
 
 /** .mcp.json → 서버마다 하나(허용 목록 없이 모두). 서버 이름은 별명이라 키로 쓰지 않는다(SPEC-7.3). */
-export function readMcpJson(text: string): FoundTech[] {
-  return readMcpServers(text, "mcpServers", ".mcp.json");
+export function readMcpJson(text: string, sourceFile = ".mcp.json"): FoundTech[] {
+  return readMcpServers(text, "mcpServers", sourceFile);
 }
 
 /** 줄 주석 · 블록 주석 · 끝 쉼표 · BOM을 허용하는 JSON(VS Code · Gemini 설정은 JSONC). 글자를 한 번씩만 훑는다(되돌아가는 정규식 없음) */
