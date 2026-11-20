@@ -132,3 +132,8 @@
 .alerts.alert-detail { max-width: 1200px; }
 .alerts .alert-cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 900px) { .alerts .alert-cols { grid-template-columns: 1fr; } }
+/* 내 프로젝트: 읽은 결과를 파일마다(design.md 18절) */
+.alerts .read-files { margin-top: var(--space-3); }
+.alerts .read-files summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.alerts .read-files ul { margin: 0 0 var(--space-2); padding-left: var(--space-5); }
+.alerts .read-files li { padding: 2px 0; overflow-wrap: anywhere; }

@@ -98,3 +98,22 @@ export function evidenceLinks(raw: unknown): EvidenceLink[] {
     return [{ id: e.id, severity: textOr(e.severity), fixed: textOr(e.fixed), url: url?.startsWith(OSV_URL) ? url : null }];
   });
 }
+
+export type ReadFile = { path: string; count: number; errorKind: string | null };
+/**
+ * 읽은 결과를 파일마다(design.md 18절): 저장소에서 읽은 내 기술 줄을 읽은 파일로 묶는다. 한 줄이라도 수집 오류면 그 파일은 수집 오류
+ * (지난 값을 보여 주는 중, 불변 2). 스킬 폴더(.claude/skills/<이름>)는 폴더 하나로. 직접 추가 · 가져오기 줄은 파일이 없어 뺀다.
+ * 오류가 있는 파일 먼저, 그다음 이름순
+ */
+export function filesOf(techs: { origin: string; source_file: string | null; collect_error_kind: string | null }[]): ReadFile[] {
+  const by = new Map<string, ReadFile>();
+  for (const t of techs) {
+    if (t.origin !== "repo" || !t.source_file) continue;
+    const path = t.source_file.startsWith(".claude/skills/") ? ".claude/skills/" : t.source_file;
+    const f = by.get(path) ?? { path, count: 0, errorKind: null };
+    f.count++;
+    f.errorKind = f.errorKind ?? t.collect_error_kind;
+    by.set(path, f);
+  }
+  return [...by.values()].sort((a, b) => Number(!a.errorKind) - Number(!b.errorKind) || a.path.localeCompare(b.path));
+}

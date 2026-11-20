@@ -1,7 +1,7 @@
 import { RereadButton } from "./reread-button";
 import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
-import { filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
+import { COLLECT_ERROR_TEXT, filesOf, filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import { registerProject } from "./actions";
 import { toggleHidden } from "./tech-actions";
@@ -38,7 +38,26 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
       {notice && <p className="notice notice-error" role="status">{notice}</p>}
       {hiddenCount > 0 && !filter.showHidden && <p className="muted">숨긴 기술 {hiddenCount}개는 목록에서 뺐어요. '숨긴 기술도 보기'를 켜면 되돌릴 수 있어요.</p>}
       {shown.length === 0 ? (emptyText && <p>{emptyText}</p>) : <TechTable techs={shown} back={back} />}
+      {project.kind === "repo" ? <ReadFiles techs={project.my_technologies} partial={!!notice} /> : null}
     </section>
+  );
+}
+
+/** 읽은 결과를 파일마다(design.md 18절). 못 읽은 파일이 있거나 마지막 읽기가 끝까지 되지 않았으면 펼쳐 둔다 */
+function ReadFiles({ techs, partial }: { techs: MyTech[]; partial: boolean }) {
+  const files = filesOf(techs);
+  const bad = files.filter((f) => f.errorKind).length;
+  if (!files.length && !partial) return null;
+  return (
+    <details className="read-files" open={bad > 0 || partial}>
+      <summary>읽은 파일 {files.length}개{bad ? ` · 수집 오류 ${bad}` : ""}</summary>
+      <ul>{files.map((f) => (
+        <li key={f.path}><code>{f.path}</code> · 기술 {f.count}개 · {f.errorKind
+          ? <span className="badge badge-warning">수집 오류: {COLLECT_ERROR_TEXT[f.errorKind] ?? f.errorKind}</span>
+          : "읽음"}{f.errorKind ? <span className="muted"> 지난번에 읽은 값을 보여 줘요(사라진 게 아니에요)</span> : null}</li>
+      ))}</ul>
+      <p className="muted">처음부터 못 읽은 파일(기술이 하나도 없는 파일)은 <Link href="/projects/runs">실행 기록</Link>의 &quot;저장소 받기&quot; 단계에서 볼 수 있어요.</p>
+    </details>
   );
 }
 
