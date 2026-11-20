@@ -124,3 +124,11 @@
 .alerts .pick legend { padding: 0 var(--space-2); font-size: var(--text-sm); color: var(--color-muted); }
 .alerts .pick label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
 .alerts .pick input { width: 20px; height: 20px; }
+
+/* 목록의 빠른 거르기 칩, 상세의 머리 + 2단(design.md 19절, P-12d-screens) */
+.alerts .alert-chips { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); }
+.alerts .alert-chips > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.alerts .reason-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; }
+.alerts.alert-detail { max-width: 1200px; }
+.alerts .alert-cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 900px) { .alerts .alert-cols { grid-template-columns: 1fr; } }
