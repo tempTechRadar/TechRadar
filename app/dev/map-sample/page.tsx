@@ -2,9 +2,8 @@
 // ?mode=catalog 이면 프로젝트가 없는 사람의 지도. 보기 설정은 실제 화면과 같이 주소(g·c·fk·ff·risky·new·mine·p)로.
 import { notFound } from "next/navigation";
 import { buildTechMap, type CatalogTech, type MyTechRow } from "@/lib/map/build-map";
-import { TechMap } from "../../tech-map";
+import { CanvasMap } from "../../tech-map/canvas-map";
 import "../../alerts/alerts.css";
-import "../../tech-map.css";
 
 const NOW = new Date("2026-11-19T09:00:00+09:00");
 const ago = (d: number) => new Date(NOW.getTime() - d * 86_400_000).toISOString();
@@ -42,11 +41,11 @@ export default async function MapSamplePage({ searchParams }: { searchParams: Pr
   if (process.env.NODE_ENV === "production") notFound();
   const params = await searchParams, catalog = params.mode === "catalog";
   const query = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => typeof e[1] === "string" && e[0] !== "mode")).toString();
-  const model = buildTechMap({ mine: catalog ? [] : MINE, techs: TECHS, relations: catalog ? [] : PAIRS.map(([a, b]) => ({ a: id(a), b: id(b) })), categories: CATS }, NOW);
+  const model = buildTechMap({ mine: catalog ? [] : MINE, techs: TECHS, relations: catalog ? [] : PAIRS.map(([a, b]) => ({ a: id(a), b: id(b), quote: "시연용 비교군" })), categories: CATS }, NOW);
   return (
     <main className="alerts map-page">
       <h1 className="sr-only">기술 지도 샘플</h1>
-      <TechMap model={model} projects={[{ id: "p1", name: "시연 저장소" }, { id: "p2", name: "내 컴퓨터(프로젝트 밖)" }]} initialQuery={query} />
+      <CanvasMap model={model} projects={[{ id: "p1", name: "시연 저장소" }, { id: "p2", name: "내 컴퓨터(프로젝트 밖)" }]} initialQuery={query} canSave login={!catalog} />
     </main>
   );
 }

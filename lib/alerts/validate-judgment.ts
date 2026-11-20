@@ -5,14 +5,19 @@ export type JudgmentInput = { decision: string; reason: string; alertKind: Alert
 export type ValidJudgment = { decision: "candidate" | "hold"; reason: string | null; fixedVersion: string | null };
 export type JudgmentCheck = { ok: true; value: ValidJudgment } | { ok: false; message: string };
 
-const MIN_HOLD_REASON = 5;
+export const MIN_HOLD_REASON = 5;
+
+/** 보류 이유 검사. 글자 수는 DB(char_length)처럼 코드 포인트로 센다: 이모지 이유가 여기선 통과하고 DB에서 막히지 않게 */
+export function holdReasonProblem(reason: string): string | null {
+  return [...reason.trim()].length < MIN_HOLD_REASON ? `보류하는 이유를 ${MIN_HOLD_REASON}자 이상 적어 주세요.` : null;
+}
 export const NO_FIXED_VERSION_MESSAGE = "고친 버전이 아직 없어서 적용 후보로 저장할 수 없어요. 보류로 남겨 주세요.";
 
 export function validateJudgment(input: JudgmentInput): JudgmentCheck {
   if (input.decision === "hold") {
-    const reason = input.reason.trim();
-    if (reason.length < MIN_HOLD_REASON) return { ok: false, message: `보류하는 이유를 ${MIN_HOLD_REASON}자 이상 적어 주세요.` };
-    return { ok: true, value: { decision: "hold", reason, fixedVersion: null } };
+    const problem = holdReasonProblem(input.reason);
+    if (problem) return { ok: false, message: problem };
+    return { ok: true, value: { decision: "hold", reason: input.reason.trim(), fixedVersion: null } };
   }
   if (input.decision === "candidate") {
     if (input.alertKind !== "security") return { ok: true, value: { decision: "candidate", reason: null, fixedVersion: null } };
