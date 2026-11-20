@@ -11,8 +11,8 @@ const ID = "11111111-1111-4111-8111-111111111111";
 const PROJECT = "22222222-2222-4222-8222-222222222222";
 const TECH = "33333333-3333-4333-8333-333333333333";
 
-// 메모리 표 + 호출 기록. fail.update로 update를, fail.insert에 표 이름(또는 "table:23505")을 주면 그 insert를 실패시킨다.
-function fakeDb(tables: Record<string, Row[]>, fail: { update?: boolean; insert?: string } = {}) {
+// 메모리 표 + 호출 기록. fail.update로 update를, fail.insert에 표 이름(또는 "table:23505")을 주면 그 insert를, fail.select에 표 이름을 주면 그 표의 읽기를 실패시킨다.
+function fakeDb(tables: Record<string, Row[]>, fail: { update?: boolean; insert?: string; select?: string } = {}) {
   const ops: Op[] = [];
   const db = {
     from(table: string) {
@@ -28,6 +28,7 @@ function fakeDb(tables: Record<string, Row[]>, fail: { update?: boolean; insert?
       q.maybeSingle = q.single = () => ((one = true), q);
       q.then = (res: (v: unknown) => unknown) => {
         ops.push(op);
+        if (op.op === "select" && fail.select === table) return Promise.resolve({ data: null, error: { message: "DB 오류" } }).then(res);
         if (op.op === "insert") {
           const [t, code] = (fail.insert ?? "").split(":");
           const error = t === table ? { message: "DB 오류", code } : null;
@@ -50,7 +51,7 @@ function fakeDb(tables: Record<string, Row[]>, fail: { update?: boolean; insert?
 
 const mine = (extra: Row = {}): Row => ({ id: ID, owner_id: "u1", hidden_at: null, ...extra });
 const ctxOf = (tables: Record<string, Row[]>, fail?: Parameters<typeof fakeDb>[1], withAudit = true) => {
-  const main = fakeDb(tables, fail);
+  const main = fakeDb({ projects: [{ id: PROJECT, owner_id: "u1", archived_at: null }], ...tables }, fail); // 내 활성 프로젝트가 기본으로 있다
   const audit = fakeDb({});
   const ctx: Ctx = { db: main.db, audit: withAudit ? audit.db : null, userId: "u1" };
   return { ctx, ops: main.ops, auditOps: audit.ops, tables };
@@ -179,4 +180,27 @@ test("등급 열람 기록: 이미 열어 본 기술이면 새로 쓰지 않는�
   const others = ctxOf({ grade_views: [{ user_id: "u2", tech_id: TECH }, { user_id: "u1", tech_id: "other" }] });
   await recordGradeView(others.ctx, TECH);
   assert.equal(others.ops.some((o) => o.op === "insert"), true);
+});
+
+test("직접 추가: 보관한 프로젝트에는 못 넣는다(성공처럼 보이는데 어디에도 안 보이는 일을 막는다, 불변 2·4)", async () => {
+  const { ctx, ops, auditOps } = ctxOf({ projects: [{ id: PROJECT, owner_id: "u1", archived_at: "2026-11-01T00:00:00Z" }] });
+  assert.deepEqual(await addTech(ctx, { projectId: PROJECT, techId: TECH, name: "", version: "" }), { ok: false, code: "archived" });
+  assert.equal(ops.filter((o) => o.op === "insert").length, 0, "넣지 않는다");
+  assert.equal(auditOps.length, 0);
+});
+
+test("직접 추가: 남의 프로젝트·없는 프로젝트는 '프로젝트를 고를 수 없어요'이고 넣지 않는다", async () => {
+  for (const projects of [[{ id: PROJECT, owner_id: "u2", archived_at: null }], []]) {
+    const { ctx, ops } = ctxOf({ projects }, undefined);
+    ctx.db = fakeDb({ projects }, undefined).db; // 기본 프로젝트 줄이 끼지 않게 이 표만 쓴다
+    assert.deepEqual(await addTech(ctx, { projectId: PROJECT, techId: TECH, name: "", version: "" }), { ok: false, code: "project" });
+    assert.equal(ops.filter((o) => o.op === "insert").length, 0);
+  }
+});
+
+test("직접 추가: 프로젝트를 읽지 못하면 넣지 않고 실패로 답한다", async (t) => {
+  quiet(t);
+  const { ctx, ops } = ctxOf({}, { select: "projects" });
+  assert.deepEqual(await addTech(ctx, { projectId: PROJECT, techId: TECH, name: "", version: "" }), { ok: false, code: "failed" });
+  assert.equal(ops.filter((o) => o.op === "insert").length, 0);
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evidenceLinks, filterTechs, isUuid, keepView, readStatusNotice, searchTerm } from "./my-tech-view.ts";
+import { evidenceLinks, filterTechs, isUuid, keepView, ownText, readStatusNotice, searchTerm, TECH_ERROR_TEXT } from "./my-tech-view.ts";
 
 const T = (id: string, grade: string, hidden_at: string | null = null) => ({ id, grade, hidden_at });
 
@@ -98,4 +98,12 @@ test("읽기 안내: 마지막 읽기는 서버가 정렬해 주는 순서가 �
   const newFail = run("failed", "2026-11-18T11:30:00Z");
   assert.match(readStatusNotice("repo", [newFail, newOk], NOW)!, /실패/);
   assert.match(readStatusNotice("repo", [newOk, newFail], NOW)!, /실패/);
+});
+
+test("ownText: 자기 키만 문구를 돌려주고, __proto__·constructor·toString 같은 원래 있는 이름과 빈 값은 undefined다(주소의 ?error=__proto__가 화면을 깨지 않게)", () => {
+  const map = { a: "에이", b: "비" };
+  assert.equal(ownText(map, "a"), "에이");
+  for (const key of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf", "c", "", undefined]) assert.equal(ownText(map, key), undefined, String(key));
+  assert.equal(ownText(TECH_ERROR_TEXT, "__proto__"), undefined);
+  assert.ok(ownText(TECH_ERROR_TEXT, "archived"), "보관한 프로젝트에 추가하려 할 때의 문구가 있다");
 });
