@@ -2,7 +2,7 @@
 
 export type ChangeToAlert = {
   id: string;
-  kind: "grade_to_danger" | "first_seen_danger";
+  kind: "grade_to_danger" | "first_seen_danger" | "model_eol";
   techId: string;
   dedupeKey: string;
   isSimulated: boolean;
@@ -21,7 +21,7 @@ export type NewAlert = {
   userId: string;
   changeId: string;
   myTechnologyId: string;
-  kind: "security";
+  kind: "security" | "model_eol";
   dedupeKey: string;
 };
 
@@ -44,7 +44,7 @@ export function decideAlerts({ change, usages, existingAlertKeys }: Input): NewA
       userId: usage.userId,
       changeId: change.id,
       myTechnologyId: usage.myTechnologyId,
-      kind: "security" as const,
+      kind: change.kind === "model_eol" ? ("model_eol" as const) : ("security" as const),
       dedupeKey: `${usage.userId}|${change.dedupeKey}`,
     }))
     .filter((alert) => !existingAlertKeys.has(alert.dedupeKey));

@@ -7,7 +7,7 @@ export type FoundTech = {
   /** null이면 기술 키를 만들 수 없음 = "찾지 못함"(서버 별명만 남긴다) */
   tech: TechRef | null;
   name: string;
-  type: "mcp" | "sdk" | "skill";
+  type: "mcp" | "sdk" | "skill" | "model";
   sourceFile: string;
   /** 스킬만: 원본 저장소를 몰라 내 저장소 것으로 두었다(SPEC-7.3 "출처 모름") */
   unknownOrigin?: boolean;

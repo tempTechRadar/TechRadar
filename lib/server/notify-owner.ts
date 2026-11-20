@@ -15,7 +15,7 @@ export type NotifyContext = { runId: string; ownerId: string };
  */
 export const makeNotifyOwner =
   (createAlerts: typeof createAlertsForChange) =>
-  async (db: SupabaseClient, ctx: NotifyContext, saved: { id: string; techId: string }[]): Promise<void> => {
+  async (db: SupabaseClient, ctx: NotifyContext, saved: { id: string; techId: string; kind?: "model_eol" }[]): Promise<void> => {
     if (saved.length === 0) return;
     const startedAt = Date.now();
     const ids = saved.map((c) => c.id);
@@ -27,7 +27,7 @@ export const makeNotifyOwner =
     let created: number | null;
     try {
       const before = await mineCount();
-      for (const c of saved) await createAlerts(db, { changeId: c.id, techId: c.techId, kind: "security", originRun: { ownerId: ctx.ownerId, runId: ctx.runId } });
+      for (const c of saved) await createAlerts(db, { changeId: c.id, techId: c.techId, kind: c.kind ?? "security", originRun: { ownerId: ctx.ownerId, runId: ctx.runId } });
       const after = await mineCount();
       created = before === null || after === null ? null : Math.max(0, after - before);
     } catch (e) {

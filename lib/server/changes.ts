@@ -4,7 +4,7 @@ import { changeKey } from "../domain/dedupe-key.ts";
 import type { LatestChange } from "../domain/osv-daily.ts";
 
 export type NewChange = {
-  kind: "grade_to_danger" | "first_seen_danger" | "same_role_new";
+  kind: "grade_to_danger" | "first_seen_danger" | "same_role_new" | "model_eol";
   techId: string;
   tech: TechRef;
   causeId: string;

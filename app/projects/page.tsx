@@ -13,6 +13,9 @@ import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-ed
 import { AddTech } from "./add-tech";
 import { ProjectTechs, type ProjectRow } from "./tech-table";
 
+// 등록 · 다시 읽기(서버 액션)가 이 화면에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간. Hobby 최대(2026-11 공식 문서)
+export const maxDuration = 300;
+
 // 프로젝트 등록과 내 기술 목록(IA-2·3, P-3·P-11). 기술을 누르면 기술 상세(IA-4). 내 실행 기록 탭은 ./runs, 설치 프롬프트는 ./install.
 type Query = { error?: string; notice?: string; audit?: string; grade?: string; project?: string; hidden?: string; q?: string };
 

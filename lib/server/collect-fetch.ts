@@ -5,6 +5,8 @@ import { forPackage, type OsvVuln } from "../domain/grade.ts";
 import type { StepRecord } from "./run-log.ts";
 
 const MAX_TEXT = 500_000; // 파일·응답 한도(글자)
+// 헤더 값에 그대로 들어가므로 글자를 좁게 잡는다(줄바꿈·공백이 섞이면 fetch가 그 값을 오류 문구에 그대로 되풀이한다). 고전·세분화·구형 토큰이 모두 맞는다
+export const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,255}$/;
 export const OSV_QUERY_URL = "https://api.osv.dev/v1/query";
 
 export type ErrorKind = NonNullable<StepRecord["errorKind"]>;
@@ -30,8 +32,8 @@ export class RepoNotPublicError extends CollectError {
 const connectionFailure = (url: string, e: unknown) =>
   new CollectError(e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network", `${url}: ${e instanceof Error ? e.message : String(e)}`);
 
-/** 바깥 호출 하나. 404는 null(없음). 그 밖의 실패는 CollectError로 던진다. */
-export async function fetchText(url: string, init?: RequestInit): Promise<string | null> {
+/** 바깥 호출 하나. 404는 null(없음). 그 밖의 실패는 CollectError로 던진다. maxText는 큰 응답(저장소 파일 목록)만 늘린다 */
+export async function fetchText(url: string, init?: RequestInit, maxText = MAX_TEXT): Promise<string | null> {
   let res: Response;
   try {
     res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000), cache: "no-store" });
@@ -50,11 +52,16 @@ export async function fetchText(url: string, init?: RequestInit): Promise<string
   } catch (e) {
     throw connectionFailure(url, e);
   }
-  if (text.length > MAX_TEXT) throw new CollectError("parse", `${url}: 응답이 너무 큼(${text.length}자)`);
+  if (text.length > maxText) throw new CollectError("parse", `${url}: 응답이 너무 큼(${text.length}자)`);
   return text;
 }
 
 export const errorKindOf = (e: unknown): ErrorKind => (e instanceof CollectError ? e.kind : "parse");
+export const messageOf = (e: unknown) => String(e instanceof Error ? e.message : e);
+
+/** 저장소 파일 하나의 raw 주소(기본 가지). 경로는 칸마다 인코딩한다 */
+export const rawFileUrl = (repo: { owner: string; repo: string }, path: string) =>
+  `https://raw.githubusercontent.com/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/HEAD/${path.split("/").map(encodeURIComponent).join("/")}`;
 
 export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string | null): Promise<OsvVuln[]> {
   const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}) });

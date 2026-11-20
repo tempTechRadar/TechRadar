@@ -8,7 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { repoKey, type RepoInfo, type RepoRef } from "../domain/github-repo.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
-import { CollectError, type ErrorKind } from "./collect-fetch.ts";
+import { CollectError, TOKEN_SHAPE, type ErrorKind } from "./collect-fetch.ts";
 import { countKinds } from "./collect-util.ts";
 import { fetchRepoInfo } from "./github-fetch.ts";
 import { markFailed, markTried, readSource, readTargets, saveFound, saveMissing, type Target } from "./github-store.ts";
@@ -17,8 +17,6 @@ import { recordStep } from "./run-log.ts";
 const REQUEST_GAP_MS = 1_000; // SPEC-8: 요청 사이 1초 이상
 // 묶음 시간 예산(240초) 중 GitHub의 몫: 저장소마다 1번·1초 간격이라 한 실행에 60곳 안팎. 넘치는 것은 오래 안 읽은 순서로 다음 실행이 읽는다
 const GITHUB_BUDGET_MS = 60_000;
-// 헤더 값에 그대로 들어가므로 글자를 좁게 잡는다(줄바꿈·공백이 섞이면 fetch가 그 값을 오류 문구에 그대로 되풀이한다). 고전·세분화·구형 토큰이 모두 맞는다
-const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,255}$/;
 // 2차 한도(남용 방지)·정지된 토큰·권한 없는 토큰은 한도 머리글 없이 403만 온다. 저장소 하나만 막힌 403(접근 차단)과 구별되지 않으므로 서로 다른 저장소에서 연달아 2번 나오면 멈춘다
 const FORBIDDEN_IN_ROW_TO_STOP = 2;
 

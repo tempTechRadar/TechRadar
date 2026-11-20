@@ -2,6 +2,7 @@
 import { buildAlertMessage } from "./build-alert-message.ts";
 import type { ComparisonRow } from "./build-comparison.ts";
 import type { AlertKind, AlertStatus } from "./filter-alerts.ts";
+import { EARLIEST_ONLY, PROVIDER_KO, type Provider } from "../domain/model-eol.ts";
 
 /** 적용 기회 알림을 만들 때 저장해 둔 비교표(alerts.comparison). 만든 때의 값이다 */
 export type AlertComparison = { myTechName: string; newTechName: string; confirmedAt: string | null; rows: ComparisonRow[] };
@@ -91,7 +92,8 @@ export function toAlertView(record: AlertRecord): AlertView {
     draftCard: draftCardOf(record),
   };
   if (record.kind === "opportunity" && record.comparison) return opportunityView(base, record.comparison);
-  // 모델 종료의 상세는 3순위. 비교표를 모르는 적용 기회도 이름만 보인다.
+  if (record.kind === "model_eol") return modelEolView(base, record);
+  // 비교표를 모르는 적용 기회는 이름만 보인다.
   if (record.kind !== "security") return { ...base, title: `[${kind.label}] ${change.techName}`, lines: [], reasonLine: null, comparison: null };
   const cause = curr.evidence?.[0];
   const prevGrade = asValue(change.prevValue).grade;
@@ -108,6 +110,30 @@ export function toAlertView(record: AlertRecord): AlertView {
     fixedVersion: curr.fixed_version ?? null,
   });
   return { ...base, title: message.title, lines: message.lines, reasonLine: null, comparison: null };
+}
+
+type EolValue = { model?: string; provider?: Provider; retire_on?: string; replacement?: string; source?: string };
+
+/** 모델 지원 종료(SPEC-3.3): 만들 때 저장한 공식 공지 값(changes.curr_value)으로 그린다. 줄은 "항목: 값" */
+function modelEolView(base: BaseView, record: AlertRecord): AlertView {
+  const v = (record.change.currValue ?? {}) as EolValue;
+  const model = v.model ?? record.change.techName;
+  const provider = v.provider && PROVIDER_KO[v.provider] ? v.provider : null;
+  const day = v.retire_on || NOT_FOUND;
+  return {
+    ...base,
+    title: `[모델 종료] ${model} 지원 종료일 ${day}`,
+    lines: [
+      `모델: ${model}`,
+      `지원 종료일: ${day}${provider && EARLIEST_ONLY.has(provider) ? " (공지에 '가장 이르면 이날'로 적혀 있어요)" : ""}`,
+      `공식 추천 대체: ${v.replacement || NOT_FOUND}`,
+      `내 코드: ${[record.projectName, record.sourceFile].filter(Boolean).join(" · ") || NOT_FOUND}`,
+      `출처: ${provider ? `${PROVIDER_KO[provider]} 지원 종료 공지` : NOT_FOUND}`,
+      `공지 주소: ${v.source || NOT_FOUND}`,
+    ],
+    reasonLine: null,
+    comparison: null,
+  };
 }
 
 // 초안은 보안 경고에만 있다. 출처는 http(s) 주소만 남긴다(링크로 쓰므로).

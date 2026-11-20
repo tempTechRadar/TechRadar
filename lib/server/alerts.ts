@@ -13,7 +13,7 @@ import { logFailure } from "./log-failure.ts";
 export type CreateAlertsInput = {
   changeId: string;
   techId: string;
-  kind: "security" | "opportunity";
+  kind: "security" | "opportunity" | "model_eol";
   onlyDemo?: boolean;
   /**
    * 이 알림 만들기를 부른 읽기 실행. 실행한 사람(ownerId)의 알림 줄에만 run_id로 적는다(남의 줄은 비움: 변경은 공유라 남의 실행에 연결하면 안 됨, 불변 5).
@@ -25,7 +25,8 @@ export type CreateAlertsInput = {
   runId?: string;
 };
 
-const SECURITY_CHANGE_KINDS = ["grade_to_danger", "first_seen_danger"];
+// 알림 종류마다 받는 변경 종류. 모델 지원 종료는 보안 경고와 같은 길(그 기술을 쓰는 사람마다 하나)을 쓴다(SPEC-3.3)
+const CHANGE_KINDS: Record<"security" | "model_eol", string[]> = { security: ["grade_to_danger", "first_seen_danger"], model_eol: ["model_eol"] };
 
 /** 바깥에 기대는 두 가지(Claude 클라이언트 만들기·초안 만들기). 시험에서 바꿔 끼운다 */
 export type AlertDeps = { aiClient: () => AiClient | null; generateDraft: typeof generateDraft };
@@ -84,8 +85,9 @@ async function createAlerts(db: SupabaseClient, input: CreateAlertsInput): Promi
 
 async function createSecurityAlerts(db: SupabaseClient, input: CreateAlertsInput): Promise<{ created: number; people: number }> {
   const change = await readChange(db, input.changeId);
-  if (!SECURITY_CHANGE_KINDS.includes(change.kind)) {
-    throw new Error(`보안 알림은 ${SECURITY_CHANGE_KINDS.join("·")} 변경에만 만든다 (받은 변경 종류: ${change.kind})`);
+  const kind = input.kind === "model_eol" ? "model_eol" : "security";
+  if (!CHANGE_KINDS[kind].includes(change.kind)) {
+    throw new Error(`${kind === "security" ? "보안" : "모델 종료"} 알림은 ${CHANGE_KINDS[kind].join("·")} 변경에만 만든다 (받은 변경 종류: ${change.kind})`);
   }
   const isSimulated = change.is_simulated || input.onlyDemo === true;
   // 알림 키에 버전이 들어간다(SPEC-3.1): 다른 버전을 쓰는 사람은 이 위험의 대상이 아니다. 시연 변경은 시연 계정의 버전이 무엇이든 보여 줘야 해서 보지 않는다.
