@@ -25,7 +25,7 @@ export default async function RecommendPage() {
         <ul className="alert-list">
           {view.items.map((r) => (
             <li key={r.techId}>
-              <Link href={`/projects/tech/${r.techId}`}><strong>{r.name}</strong></Link>
+              <Link href={`/tech/${r.techId}`}><strong>{r.name}</strong></Link>
               {r.oneLiner ? <p>{r.oneLiner}</p> : null}
               <p className="muted">이유: {r.reason}{r.source ? ` · 출처: ${r.source}` : ""}</p>
             </li>

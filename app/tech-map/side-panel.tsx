@@ -48,7 +48,10 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo }: TechProp
         ))}</ul>
       ) : <p className="muted">{n.mine ? "확인된 비교군이 아직 없어요." : "비교군은 내 기술 둘레에만 보여요."}</p>}
       <p className="map-row">
-        {n.mine && n.myTechIds[0] ? <Link className="btn btn-primary" href={`/projects/tech/${n.myTechIds[0]}`}>기술 상세</Link> : null}
+        {/* 지도의 모든 기술에 상세(17절 2차). 내 기술은 내 버전 기준 상세(카탈로그 등급이 내 버전의 위험을 가리지 않게), 나머지는 카탈로그 상세.
+            로그인 전에는 로그인 뒤 그 상세로 돌아온다 */}
+        {n.mine && n.myTechIds[0] ? <Link className="btn btn-primary" href={`/projects/tech/${n.myTechIds[0]}`}>기술 상세</Link>
+          : n.techId ? <Link className="btn btn-primary" href={`/tech/${n.techId}`}>{login ? "기술 상세" : "로그인하고 기술 상세 보기"}</Link> : null}
         {n.repoUrl ? <a className="btn" href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소 열기</a> : null}
       </p>
     </>

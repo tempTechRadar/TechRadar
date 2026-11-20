@@ -61,7 +61,7 @@ export function Kanban({ columns }: { columns: Record<Column, Card[]> }) {
                 {card.note ? <span className="muted">{c === "hold" ? `이유: ${card.note}` : card.note}</span> : null}
                 {card.from === "alert" ? <span className="muted">알림에서 판단함</span> : null}
                 <span className="kb-links">
-                  {card.myTechId ? <Link href={`/projects/tech/${card.myTechId}`}>기술 상세</Link> : null}
+                  {card.myTechId ? <Link href={`/projects/tech/${card.myTechId}`}>기술 상세</Link> : card.techId ? <Link href={`/tech/${card.techId}`}>기술 상세</Link> : null}
                   {card.techId ? <Link href={`/?sel=${encodeURIComponent(`tech:${card.techId}`)}`}>지도에서 보기</Link> : null}
                 </span>
                 {c === "using" ? null : <Move card={card} column={c} />}

@@ -34,9 +34,17 @@ const toMine = (r: Row): MyTechRow => ({
 });
 const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / ID_CHUNK) }, (_, i) => ids.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK));
 
-/** 공개 목록에서 온 기술만(ADR 0029 4·5항): 사라진 기술 · 시뮬레이터 기술 · 누군가의 저장소에서만 생긴 줄을 뺀다. 카탈로그 · 새 기술 · 기술 넣기가 함께 쓴다 */
-export const publicTechs = (db: SupabaseClient, columns: string) =>
-  db.from("technologies").select(columns).neq("status", "gone").eq("is_simulated", false).not("one_liner_source", "is", null);
+/**
+ * 공개 목록에서 온 기술만(ADR 0029 4·5항): 사라진 기술 · 누군가의 저장소에서만 생긴 줄을 빼고, 시뮬레이터 기술은 시연 계정에만.
+ * 이 규칙은 이 두 곳에만 둔다(DB 조건 listedTechs, 이미 읽은 줄 isListed): 카탈로그 · 새 기술 · 기술 넣기 · 추천 · 기술 상세 · 비교군이 함께 쓴다
+ */
+export const listedTechs = (db: SupabaseClient, columns: string, isDemo = false) => {
+  const q = db.from("technologies").select(columns).neq("status", "gone").not("one_liner_source", "is", null);
+  return isDemo ? q : q.eq("is_simulated", false);
+};
+export const isListed = (r: { status?: unknown; one_liner_source?: unknown; is_simulated?: unknown }, isDemo = false) =>
+  r.status !== "gone" && r.one_liner_source != null && (isDemo || r.is_simulated !== true);
+export const publicTechs = (db: SupabaseClient, columns: string) => listedTechs(db, columns);
 
 async function readCategories(db: SupabaseClient): Promise<Category[]> {
   return rowsOrThrow(await db.from("categories").select("id, name, parent_id"), "갈래를 읽지 못함").map((r) => ({ id: r.id, name: r.name, parentId: r.parent_id }));
@@ -48,8 +56,7 @@ async function readCategories(db: SupabaseClient): Promise<Category[]> {
  * 남의 카탈로그·로그인 전 지도에 나오지 않는다(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
 async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<CatalogTech[]> {
-  let q = db.from("technologies").select(READ_COLUMNS).neq("status", "gone").not("one_liner_source", "is", null);
-  if (!isDemo) q = q.eq("is_simulated", false);
+  const q = listedTechs(db, READ_COLUMNS, isDemo);
   // 위험·주의 먼저(grade 글자순: caution < danger < pass < unknown), 그다음 두꺼운 것, 최근에 들어온 것(NEW)
   const res = await q.order("grade").order("depth").order("created_at", { ascending: false }).order("id").limit(CATALOG_LIMIT);
   return rowsOrThrow(res, "모은 기술을 읽지 못함").map(toTech);
