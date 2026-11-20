@@ -31,7 +31,13 @@ test("흐름 그림: 화살표 건수 글자(흰 바탕)·배지(어두운 바�
 
 test("관리자 화면 토큰(admin.css): 본문·흐린 글자·위험·주의·성공 안내가 바탕에서 4.5:1 이상", () => {
   const css = readFileSync(new URL("../../app/admin/admin.css", import.meta.url), "utf8");
-  const token = (name: string) => css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))![1];
+  const shared = readFileSync(new URL("../../app/tokens.css", import.meta.url), "utf8");
+  // 값이 공용 토큰(var(--ink) 등)이면 app/tokens.css에서 찾아 읽는다
+  const token = (name: string): string => {
+    const value = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6}|var\\(--[\\w-]+\\))`))![1];
+    const ref = value.match(/^var\(--([\w-]+)\)$/);
+    return ref ? shared.match(new RegExp(`--${ref[1]}:\\s*(#[0-9a-fA-F]{6})`))![1] : value;
+  };
   const pairs: [string, string, string][] = [
     ["본문", token("color-text"), "#ffffff"],
     ["흐린 글자", token("color-muted"), "#ffffff"],

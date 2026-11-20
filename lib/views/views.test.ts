@@ -2,37 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { galleryCards, type GalleryRow } from "./gallery.ts";
 import { newsBoard, type NewsItem } from "./news.ts";
-import { buildRadar, type RadarAlert, type RadarTech } from "./radar.ts";
 import { usingNow } from "./using-now.ts";
 
 // ── 내 레이더
-const t = (id: string, label = id): RadarTech => ({ id, label, grade: "pass" });
-const al = (id: string, createdAt: string, judgment: RadarAlert["judgment"] = null): RadarAlert => ({ myTechnologyId: id, createdAt, judgment });
 
-test("내 레이더: 판단 없음 → 쓰는 중, 적용 후보 → 적용 후보, 보류 → 보류·중단, 판단 전 알림 → 관심", () => {
-  const r = buildRadar([t("a"), t("b"), t("c"), t("d")], [
-    al("b", "2026-11-17", { decision: "candidate", judgedAt: "2026-11-18" }),
-    al("c", "2026-11-17", { decision: "hold", judgedAt: "2026-11-18" }),
-    al("d", "2026-11-18"),
-  ]);
-  assert.deepEqual([r.using, r.candidate, r.hold, r.watching].map((x) => x.map((e) => e.id)), [["a"], ["b"], ["c"], ["d"]]);
-});
-
-test("내 레이더: 가장 최근 판단을 따르고, 그 뒤에 새 알림이 오면 다시 관심", () => {
-  const twice = buildRadar([t("a")], [al("a", "2026-11-10", { decision: "hold", judgedAt: "2026-11-11" }), al("a", "2026-11-12", { decision: "candidate", judgedAt: "2026-11-13" })]);
-  assert.equal(twice.candidate[0]?.id, "a");
-  const again = buildRadar([t("a")], [al("a", "2026-11-10", { decision: "hold", judgedAt: "2026-11-11" }), al("a", "2026-11-15")]);
-  assert.equal(again.watching[0]?.id, "a");
-});
-
-test("내 레이더: 같은 입력이면 순서와 상관없이 같은 결과(고리 안은 이름순)", () => {
-  const a = buildRadar([t("2", "zod"), t("1", "axios")], []);
-  const b = buildRadar([t("1", "axios"), t("2", "zod")], []);
-  assert.deepEqual(a, b);
-  assert.deepEqual(a.using.map((e) => e.label), ["axios", "zod"]);
-});
-
-// ── 쓰고 있어요
 test("쓰고 있어요: 공개한 사람의 별명과 수만, 숨김(is_public=false)·숨긴 기술은 이름과 수 모두에서 빠진다", () => {
   const rows = [
     { ownerId: "u1", techId: "T", hidden: false },

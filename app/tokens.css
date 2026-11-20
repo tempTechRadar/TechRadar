@@ -1,0 +1,30 @@
+/* TechRadar 공용 토큰(docs/wireframes/tokens.css와 같은 값, I-P-12d-shell). 화면 CSS는 값 대신 이 이름을 쓴다.
+   상태·범주 색은 표시(점·띠·아이콘)에만, 글자색은 --ink 계열. 대비 시험(lib/a11y/contrast.test.ts)이 #rrggbb를 읽으므로 6자리로 쓴다 */
+:root {
+  --ink: #1a1a1a; --ink-2: #444444; --muted: #666666; --faint: #b3b3b3;
+  --line: #d4d4d4; --surface: #ffffff; --sunken: #f3f3f3; --on-ink: #ffffff;
+
+  --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
+
+  --cat-1: #2a78d6; --cat-2: #1baf7a; --cat-3: #6250d6; --cat-4: #008300;
+  --cat-5: #e87ba4; --cat-6: #0b7fa0; --cat-7: #6d7a1f; --cat-8: #b0479e;
+
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --fs-cap: 12px; --fs-sm: 13px; --fs-body: 15px; --fs-h3: 15px; --fs-h2: 18px; --fs-h1: 22px;
+  --lh: 1.55;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 12px; --r-pill: 999px;
+  --shadow-pop: 0 6px 20px rgba(0, 0, 0, .14);
+  --shadow-side: -8px 0 24px rgba(0, 0, 0, .1);
+  --hit: 44px; --hit-sm: 32px;
+  --dur: .26s; --ease: ease;
+  --focus: 2px solid var(--ink);
+}
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
+
+body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background: var(--surface); }
+:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* 칩(알림 거르기 · 지도 요약 · 범례 · 경로): 눌림은 aria-pressed / aria-current로 표시 */
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
+.chip[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }

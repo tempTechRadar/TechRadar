@@ -7,14 +7,17 @@ import { NOW, ago, mine, tech } from "./test-fixtures.ts";
 const categories = [{ id: "big-data", name: "백엔드·데이터", parentId: null }, { id: "small-db", name: "DB", parentId: "big-data" }, { id: "big-design", name: "디자인", parentId: null }];
 const input = (o: Partial<MapInput>): MapInput => ({ mine: [], techs: [], relations: [], categories, ...o });
 
-test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 것), 확정된 비교군은 한 단계만", () => {
+test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 것), 확정된 비교군은 한 단계만 잇고, 모은 기술은 모두 남긴다(ADR 0027)", () => {
   const m = buildTechMap(input({
     mine: [mine("m1", "a"), mine("m2", "a", { projectId: "p2", projectName: "다른 앱", grade: "danger", gradeReason: "취약점" })],
     techs: [tech("a"), tech("b"), tech("c")],
-    relations: [{ a: "a", b: "b" }, { a: "b", b: "c" }], // b-c는 내 기술과 닿지 않아 두 단계 → 뺌
+    relations: [{ a: "a", b: "b", quote: "둘 다 DB 연결" }, { a: "b", b: "c", quote: null }], // b-c는 내 기술과 닿지 않아 두 단계 → 선을 긋지 않음
+    marks: [{ techId: "c", status: "hold", reason: "다음 달에 보기" }],
   }), NOW);
   assert.equal(m.mode, "mine");
-  assert.deepEqual(m.nodes.map((n) => n.key), ["tech:a", "tech:b"]);
+  assert.deepEqual(m.nodes.map((n) => [n.key, n.mine, n.nearMine]), [["tech:a", true, false], ["tech:b", false, true], ["tech:c", false, false]]);
+  assert.deepEqual(m.quotes, { "tech:a|tech:b": "둘 다 DB 연결" });
+  assert.deepEqual(m.nodes[2].mark, { techId: "c", status: "hold", reason: "다음 달에 보기" });
   const a = m.nodes[0];
   assert.deepEqual([a.mine, a.grade, a.gradeReason, a.myTechIds, a.projectNames, a.attrs.grade, a.attrs.project], [true, "danger", "취약점", ["m1", "m2"], ["앱", "다른 앱"], "위험", "여러 프로젝트"]);
   assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
@@ -45,10 +48,12 @@ test("NEW는 카탈로그에 들어온 지 7일 안, 수집 오류는 '업데이
   const m = buildTechMap(input({ techs: [tech("a", { createdAt: ago(2) }), tech("b", { createdAt: ago(9), collectErrorKind: "http_5xx" })] }), NOW);
   assert.deepEqual(m.nodes.map((n) => [n.isNew, n.label]), [[true, "업데이트 3일 전"], [false, "수집 오류"]]);
   assert.equal(labelOf(null, null, NOW), "업데이트 모름");
+  const firstFill = buildTechMap(input({ techs: [tech("a", { createdAt: ago(2) }), tech("b", { createdAt: ago(1) })], newSince: ago(1.5) }), NOW);
+  assert.deepEqual(firstFill.nodes.map((n) => n.isNew), [false, true], "처음 채운 날 들어온 것은 NEW가 아니다");
 });
 
 test("같은 입력이면 같은 결과(입력 순서가 달라도)", () => {
-  const i = input({ mine: [mine("m1", "a"), mine("m2", "b")], techs: [tech("a"), tech("b"), tech("c")], relations: [{ a: "a", b: "c" }] });
+  const i = input({ mine: [mine("m1", "a"), mine("m2", "b")], techs: [tech("a"), tech("b"), tech("c")], relations: [{ a: "a", b: "c", quote: null }] });
   assert.deepEqual(buildTechMap(i, NOW), buildTechMap({ ...i, mine: [...i.mine].reverse(), techs: [...i.techs].reverse() }, NOW));
 });
 

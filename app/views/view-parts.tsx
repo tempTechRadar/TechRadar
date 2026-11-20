@@ -1,6 +1,5 @@
-// 보기 화면 조각(PRD-F34·F36·F37): 갤러리, 내 레이더, 소식판·쓰고 있어요 자리. 값은 lib/views 순수 함수가 만든다.
+// 보기 화면 조각(PRD-F34·F37): 갤러리, 소식판·쓰고 있어요 자리(내 레이더 칸반은 kanban.tsx). 값은 lib/views 순수 함수가 만든다.
 import type { Card } from "@/lib/views/gallery";
-import { RING_KO, RING_ORDER, type RadarEntry, type Ring } from "@/lib/views/radar";
 
 const GRADE_LOOK: Record<string, { bg: string; border: string }> = {
   위험: { bg: "#f7c6c1", border: "#d6453b" },
@@ -25,26 +24,6 @@ export function Gallery({ cards }: { cards: Card[] }) {
         );
       })}
     </ul>
-  );
-}
-
-const RING_COLOR: Record<Ring, string> = { using: "#2e9a5f", candidate: "#2f7fc4", watching: "#e08a00", hold: "#8a857a" };
-
-/** 고리 4개를 글로도 읽히게(색만으로 구분하지 않음): 안쪽부터 쓰는 중 → 적용 후보 → 관심 → 보류·중단 */
-export function Radar({ rings }: { rings: Record<Ring, RadarEntry[]> }) {
-  const total = RING_ORDER.reduce((n, r) => n + rings[r].length, 0);
-  if (total === 0) return <p>아직 내 기술이 없어요.</p>;
-  return (
-    <div style={{ display: "grid", gap: 10 }}>
-      {RING_ORDER.map((r, i) => (
-        <section key={r} aria-label={RING_KO[r]} style={{ borderLeft: `${6 + i * 2}px solid ${RING_COLOR[r]}`, paddingLeft: 12 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>{i + 1}고리 · {RING_KO[r]} ({rings[r].length})</h3>
-          {rings[r].length === 0 ? <p style={{ margin: 0, color: "#5b564c" }}>없음</p> : (
-            <p style={{ margin: 0 }}>{rings[r].map((e) => e.label).join(", ")}</p>
-          )}
-        </section>
-      ))}
-    </div>
   );
 }
 

@@ -34,14 +34,28 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
   const similar = await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
   const scenario = loaded.record.kind === "model_eol" ? undefined
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
+  // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
   return (
-    <main className="alerts">
-      <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
-      <h1>{view.title}</h1>
-      <p>
-        <span className={`badge badge-${view.kindTone}`}>{view.kindLabel}</span>{" "}
-        <span className={`badge badge-${view.statusTone}`}>{view.statusLabel}</span>
-      </p>
+    <main className="alerts alert-detail">
+      <header className="alert-head">
+        <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
+        <h1>{view.title}</h1>
+        <p>
+          <span className={`badge badge-${view.kindTone}`}>{view.kindLabel}</span>{" "}
+          <span className={`badge badge-${view.statusTone}`}>{view.statusLabel}</span>
+        </p>
+        {view.judgmentLine ? (
+          <article className="card" aria-labelledby="judged-title">
+            <h2 id="judged-title">내 판단</h2>
+            <p>{view.judgmentLine}</p>
+            <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요.</p>
+          </article>
+        ) : (
+          <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} />
+        )}
+      </header>
+      <div className="alert-cols">
+      <div className="alert-left">
       {view.lines.length > 0 && (
         <article className="card" aria-labelledby="changed-title">
           <h2 id="changed-title">무엇이 바뀌었나</h2>
@@ -56,16 +70,12 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
       {view.draftCard && <DraftCard card={view.draftCard} />}
       {view.reasonLine && <ReasonCard line={view.reasonLine} />}
       {view.comparison && <ComparisonCard comparison={view.comparison} />}
-      <SimilarCard similar={similar} />
       {scenario !== undefined && <ScenarioCard alertId={loaded.record.id} card={scenario} />}
-      {view.judgmentLine ? (
-        <article className="card" aria-labelledby="judged-title">
-          <h2 id="judged-title">내 판단</h2>
-          <p>{view.judgmentLine}</p>
-        </article>
-      ) : (
-        <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} />
-      )}
+      </div>
+      <aside className="alert-right" aria-label="참고">
+        <SimilarCard similar={similar} />
+      </aside>
+      </div>
     </main>
   );
 }

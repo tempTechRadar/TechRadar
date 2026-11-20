@@ -1,13 +1,13 @@
-/* 관리자 화면 스타일. 토큰은 docs/design.md(알림 화면과 같은 값). .admin 안에서만 적용한다. */
+/* 관리자 화면 스타일. 값은 공용 토큰(app/tokens.css), 상태 안내 글자는 알림 화면과 같은 값. .admin 안에서만 적용한다. */
 .admin {
-  --color-text: #111827; --color-muted: #4b5563; --color-surface-subtle: #f9fafb;
-  --color-border: #e5e7eb; --color-border-strong: #6b7280; --color-primary: #000000; --color-on-primary: #ffffff;
+  --color-text: var(--ink); --color-muted: var(--muted); --color-surface-subtle: var(--sunken);
+  --color-border: var(--line); --color-border-strong: var(--ink-2); --color-primary: var(--ink); --color-on-primary: var(--on-ink);
   --color-danger: #b91c1c; --color-danger-bg: #fef2f2; --color-warning: #b45309; --color-warning-bg: #fffbeb;
   --color-success: #15803d; --color-success-bg: #f0fdf4;
-  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
-  --text-xs: 12px; --text-sm: 14px; --text-md: 16px; --text-lg: 20px; --text-xl: 24px;
-  --radius: 6px;
-  font-family: Geist, system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --space-1: var(--sp-1); --space-2: var(--sp-2); --space-3: var(--sp-3); --space-4: var(--sp-4); --space-5: var(--sp-5);
+  --text-xs: var(--fs-cap); --text-sm: var(--fs-sm); --text-md: var(--fs-body); --text-lg: var(--fs-h2); --text-xl: var(--fs-h1);
+  --radius: var(--r-md);
+  font-family: var(--font);
   color: var(--color-text); max-width: 1200px;
 }
 .admin h1 { font-size: var(--text-xl); margin: var(--space-4) 0 var(--space-2); }
