@@ -20,6 +20,20 @@
 
 ---
 
+## I-P-22-other-tools · 2026-11-20 · 다른 AI 도구의 MCP 설정도 읽기 (김영식)
+- 브랜치: `feat/P-22-other-tools` (`feat/P-12d-read-files` 위, 미푸시 — 사용자 "PR은 몰아서"). P-22(3순위)의 PRD-F39 부분
+- 출처: PRD-F39, SPEC-7.1 · 7.3, ADR 0020(3순위), `docs/plan.md` P-22 행, 사용자 선택 "P-22 다른 도구 설정 파일"(11-20)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 저장소를 읽을 때 Claude Code 설정(`.mcp.json` · `.claude/skills`)과 패키지 파일만 봐서, Cursor · VS Code · Gemini CLI로 쓰는 MCP 서버는 내 기술 목록에 나오지 않는다 |
+| 기대 결과 | `.cursor/mcp.json` · `.vscode/mcp.json`(칸 `servers`) · `.gemini/settings.json`도 `.mcp.json`과 같은 규칙으로 읽어 내 기술로 넣고, 지도의 "쓰는 곳"을 읽은 파일로 정한다(Cursor · VS Code · Gemini CLI, 추정 아님) |
+| 영향 범위 | `lib/domain/manifest.ts`(읽는 파일 · 해석기), 새 시험 `lib/domain/other-tools.test.ts`, 읽는 파일 수가 바뀐 시험 2개(`requirements-txt.test.ts` · `first-read.test.ts`), `lib/map/build-map.ts`(`hostOfSource`) · `lib/server/map-queries.ts`(`source_file` 읽기), `app/projects/page.tsx` 안내 글, `docs/spec.md` 7.1. DB 변화 없음 |
+| 제약 | 같은 서버가 두 파일에 있으면 버전을 아는 쪽, 같으면 앞 파일(`.mcp.json`) 줄이 남는다. `AGENTS.md` · `GEMINI.md`는 지시 글이라 읽지 않는다(SPEC-7.1에 이유). 저장소 한 번 읽을 때 GitHub 요청이 3개 늘어난다(없는 파일은 404로 건너뜀) |
+| 열린 질문 | P-22의 나머지(모델 지원 종료 알림 F38, 연동 서비스 · 개념 노드 F40, 프로젝트 수정 · 보관 F4, 주제 태그 F8)는 된 만큼 |
+
+**결과:** Cursor(`.cursor/mcp.json`) · VS Code(`.vscode/mcp.json`) · Gemini CLI(`.gemini/settings.json`)의 MCP 서버도 내 기술로 읽고, 지도의 쓰는 곳을 읽은 파일로 정함(카탈로그가 정한 값은 그대로, 여러 도구면 "여러 도구"). 코드 리뷰 10건 모두 고침: 같은 별명이 두 파일에 있으면 저장이 통째로 깨지던 것(앞 파일 하나만), 옵션 값 · 토큰이 기술 키 · 공용 카탈로그 이름이 되던 것(패키지 이름 모양만), JSONC 주석 · 끝 쉼표 · BOM, Gemini `httpUrl`, 서버 칸 모양이 다르면 그 파일만 수집 오류, 별명 100자, 해석기에 경로를 넘겨 이름 한 곳, 문서의 중복 규칙을 실제대로, 두 파일 중복 시험. 시험 1,141 통과 · 실패 0, 타입 검사 통과
+
 ## I-P-12d-read-files · 2026-11-20 · 읽은 결과를 파일마다 + 합쳐진 PR에 늦게 올린 커밋 되살리기 (김영식)
 - 브랜치: `feat/P-12d-read-files` (origin/main `b322ade`). P-12d 마지막 조각
 - 출처: `docs/design.md` 18절(읽은 결과: 파일마다 읽음 / 수집 오류, 읽은 파일 접이), IA-3, 불변 2. 사용자 "추천대로진행"(11-20)
