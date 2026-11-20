@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { runSimulatorAction } from "../simulator/actions";
 import { EvalPanel } from "./eval-panel";
 import { armSaveFailureAction, demoCollectErrorAction, demoNoChangeAction, disarmSaveFailureAction } from "./actions";
+import { readFlash } from "@/lib/server/admin-flash";
 
 const btn = { minHeight: 44, padding: "0 16px" } as const;
 const card = { border: "1px solid #e5e7eb", borderRadius: 6, padding: 16, marginBottom: 12 } as const;
@@ -20,12 +21,14 @@ const DEMOS: Demo[] = [
   { no: "④", title: "판단 대기", how: "시뮬레이터로 가짜 취약점 1건을 만들어요(시연 계정이 그 기술을 쓰고 있어야 알림이 가요).", see: "사람 판단 상자가 주황 점선으로 멈춰요. 시연 계정이 판단하면 조치 상자가 켜져요.", action: runSimulatorAction, label: "시뮬레이터 실행", needsSwitch: false },
 ];
 
-export default async function DemoPage({ searchParams }: { searchParams: Promise<{ error?: string; info?: string }> }) {
+export default async function DemoPage({ searchParams }: { searchParams: Promise<{ error?: string; info?: string; sig?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "admin") return <main><h1>실패 시연</h1><p>관리자만 쓸 수 있어요.</p></main>;
   const on = isDemoSwitchEnabled(process.env);
-  const { error, info } = await searchParams;
+  const { error: errorParam, info: infoParam, sig } = await searchParams;
+  const error = readFlash("error", errorParam, sig);
+  const info = readFlash("info", infoParam, sig);
 
   return (
     <main style={{ maxWidth: 880 }}>

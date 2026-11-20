@@ -7,9 +7,10 @@ import { runBatch } from "@/lib/schedule/run-batch";
 import { classifyAfterBatch } from "@/lib/server/classify-store";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { flashQuery } from "@/lib/server/admin-flash";
 
 const PAGE = "/admin/run-now";
-const back = (key: "error" | "info", text: string) => redirect(`${PAGE}?${key}=${encodeURIComponent(maskSecrets(text))}`);
+const back = (key: "error" | "info", text: string) => redirect(`${PAGE}?${flashQuery(key, maskSecrets(text))}`);
 
 export async function runNowAction(): Promise<void> {
   const user = await getCurrentUser();
@@ -22,7 +23,7 @@ export async function runNowAction(): Promise<void> {
     const r = await runBatch({ db, collectors: SCHEDULE_COLLECTORS }, { trigger: "manual", startedBy: user.id });
     if (r.started) await classifyAfterBatch(db, r.runId);
     // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
-    target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.reason))}`;
+    target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?${flashQuery("info", maskSecrets(r.reason))}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }

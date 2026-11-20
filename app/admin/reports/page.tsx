@@ -6,19 +6,22 @@ import { adminGate } from "@/lib/server/admin-gate";
 import { readReports } from "@/lib/server/moderation-edit";
 import { AdminShell } from "../admin-shell";
 import { ReportCard } from "./report-card";
+import { readFlash } from "@/lib/server/admin-flash";
 
 const TITLE = "사용기 신고";
 const LEAD = "사용자가 신고한 사용기예요. 글을 숨기면 쓴 사람 말고는 볼 수 없어요. 숨기기·풀기·처리는 사유를 남겨요(담당자·시각·사유). 쓴 사람과 신고한 사람은 보이지 않아요.";
 const FILTERS: { id: ReportFilter; label: string }[] = [{ id: "pending", label: "처리 전" }, { id: "handled", label: "처리함" }, { id: "all", label: "전체" }];
 
 type Data = NonNullable<Awaited<ReturnType<typeof readReports>>>;
-type Search = { f?: string; error?: string; info?: string };
+type Search = { f?: string; error?: string; info?: string; sig?: string };
 const asFilter = (v: string | undefined): ReportFilter => (v === "handled" || v === "all" ? v : "pending");
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const gate = await adminGate();
   if ("blocked" in gate) return <AdminShell tab="reports" title={TITLE} blocked={gate.blocked} />;
-  const { f, error: actionError, info } = await searchParams;
+  const { f, error: errorParam, info: infoParam, sig } = await searchParams;
+  const actionError = readFlash("error", errorParam, sig);
+  const info = readFlash("info", infoParam, sig);
   const filter = asFilter(f);
   let data: Data | null = null;
   let error: string | null = null;

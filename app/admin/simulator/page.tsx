@@ -3,12 +3,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { clearSimulatedAction, runOpportunityAction, runSimulatorAction } from "./actions";
+import { readFlash } from "@/lib/server/admin-flash";
 
-export default async function SimulatorPage({ searchParams }: { searchParams: Promise<{ error?: string; cleared?: string; info?: string; run?: string }> }) {
+export default async function SimulatorPage({ searchParams }: { searchParams: Promise<{ error?: string; cleared?: string; info?: string; run?: string; sig?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "admin") return <main><h1>시뮬레이터</h1><p>관리자만 쓸 수 있어요.</p></main>;
-  const { error, cleared, info, run } = await searchParams;
+  const { error: errorParam, cleared: clearedParam, info: infoParam, run, sig } = await searchParams;
+  const error = readFlash("error", errorParam, sig);
+  const cleared = readFlash("cleared", clearedParam, sig);
+  const info = readFlash("info", infoParam, sig);
 
   return (
     <main>

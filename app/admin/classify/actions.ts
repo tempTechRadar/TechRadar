@@ -9,6 +9,7 @@ import { saveChange } from "@/lib/server/changes";
 import { addRule, confirmRelation, setCategory, setRuleEnabled, type EditCtx, type EditResult } from "@/lib/server/classify-edit";
 import { notifyRelationConfirmed } from "@/lib/server/relation-opportunity";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { flashQuery } from "@/lib/server/admin-flash";
 
 const PAGE = "/admin/classify";
 const FAIL_TEXT: Record<string, string> = {
@@ -20,7 +21,7 @@ const FAIL_TEXT: Record<string, string> = {
 };
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
-const go = (key: "error" | "info", msg: string): never => redirect(`${PAGE}?${key}=${encodeURIComponent(msg)}`);
+const go = (key: "error" | "info", msg: string): never => redirect(`${PAGE}?${flashQuery(key, msg)}`);
 
 /** 관리자가 아니면 아무것도 하지 않고 돌려보낸다. 관리자면 본인 연결 + 기록용 서버 연결. */
 function ctxOf(gate: AdminGate): EditCtx {

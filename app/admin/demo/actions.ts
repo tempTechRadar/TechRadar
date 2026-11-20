@@ -9,9 +9,10 @@ import { maskSecrets } from "@/lib/domain/redact";
 import { runBatch, type Collector } from "@/lib/schedule/run-batch";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { flashQuery } from "@/lib/server/admin-flash";
 
 const PAGE = "/admin/demo";
-const back = (key: "error" | "info", text: string) => redirect(`${PAGE}?${key}=${encodeURIComponent(maskSecrets(text))}`);
+const back = (key: "error" | "info", text: string) => redirect(`${PAGE}?${flashQuery(key, maskSecrets(text))}`);
 
 async function adminWithSwitch() {
   const user = await getCurrentUser();
@@ -30,7 +31,7 @@ async function runDemoBatch(pick: (db: NonNullable<ReturnType<typeof getServiceS
     // 지금 실행과 같은 묶음·같은 시작 상자(manual). 실패는 묶음이 실제로 기록한다.
     const r = await runBatch({ db, collectors: [pick(db)] }, { trigger: "manual", startedBy: user.id });
     // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
-    target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.reason))}`;
+    target = r.started ? `/admin/flow?run=${r.runId}` : `${PAGE}?${flashQuery("info", maskSecrets(r.reason))}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }

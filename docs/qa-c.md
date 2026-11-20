@@ -88,4 +88,4 @@
 ## 남은 오류
 - ~~C6: 흐름 샘플 ③ 장면이 정정된 flow.md 4절과 다름(Fail, 낮음, C 영역 파일).~~ 11-19 해결: 제목·`notify` 단계는 `bb0209c`에서, 요약 글과 시험은 I-flow-sample-dup-scene에서. C6 Pass.
 - C15: 로컬 `next build`는 못 돌렸고 Vercel 빌드 기록으로 Pass(11-19). 빌드·개발 서버가 "Next.js 16.4.4 보안 취약점, 업그레이드 권장"을 띄움. 업그레이드는 새 의존성 변경이라 팀 결정이 필요하다(아무것도 실행하지 않음).
-- C19: 채점 경계 사례 `E-collect-next-page` 결과 다름(Fail, 낮음). OSV 응답의 `next_page_token`을 보지 않아 첫 쪽만으로 "변화 없음"이 됨(불변 2). `lib/server/collect-fetch.ts` 주인 김영식(A)에게 넘김, 정답은 바꾸지 않음(`docs/debug-note.md` 11-19).
+- C19: 채점 경계 사례 `E-collect-next-page` 결과 다름(Fail, 낮음). OSV 응답의 `next_page_token`을 보지 않아 첫 쪽만으로 "변화 없음"이 됨(불변 2). `lib/server/collect-fetch.ts` 주인 김영식(A)에게 넘김, 정답은 바꾸지 않음(`docs/debug-note.md` 11-19). **11-20 고침**: `fix/P-3-osv-next-page`에서 다음 쪽을 끝까지 읽게 함, 채점 결과 다름 0(`docs/qa.md` OSV 쪽 넘기기 행).

@@ -6,18 +6,21 @@ import { readClassify, type Categorized, type Relation, type Unclassified } from
 import { adminGate } from "@/lib/server/admin-gate";
 import { AdminShell, when } from "../admin-shell";
 import { AddRuleForm, AuditList, ConfirmRelationForm, RULE_KO, SetCategoryForm, ToggleRuleForm } from "./classify-forms";
+import { readFlash } from "@/lib/server/admin-flash";
 
 const TITLE = "분류 확인";
 const LEAD = "지도 분류가 비어 있거나 사람이 확인해야 하는 것들이에요. 갈래 정하기, 같은 역할 확정, 규칙 고치기는 사유를 남겨야 해요.";
 const MADE_BY_KO: Record<string, string> = { seed: "처음 자료", rule: "규칙", ai: "Claude 제안", admin: "관리자" };
 
 type Data = Awaited<ReturnType<typeof readClassify>>;
-type Search = { error?: string; info?: string };
+type Search = { error?: string; info?: string; sig?: string };
 
 export default async function ClassifyPage({ searchParams }: { searchParams: Promise<Search> }) {
   const gate = await adminGate();
   if ("blocked" in gate) return <AdminShell tab="classify" title={TITLE} blocked={gate.blocked} />;
-  const { error: actionError, info } = await searchParams;
+  const { error: errorParam, info: infoParam, sig } = await searchParams;
+  const actionError = readFlash("error", errorParam, sig);
+  const info = readFlash("info", infoParam, sig);
   let data: Data | null = null;
   let error: string | null = null;
   try { data = await readClassify(gate.db); } catch (e) { error = e instanceof Error ? e.message : String(e); }

@@ -7,15 +7,18 @@ import { HIGHLIGHT_AFTER, sourcesToHighlight } from "@/lib/schedule/retry";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { runNowAction } from "./actions";
+import { readFlash } from "@/lib/server/admin-flash";
 
 // "지금 한 번 실행"이 수집기를 직접 돈다(묶음 예산 240초, P-9). 서버 액션은 이 화면의 시간 한도를 따르므로 cron 경로와 같이 Hobby 최대로 둔다.
 export const maxDuration = 300;
 
-export default async function RunNowPage({ searchParams }: { searchParams: Promise<{ error?: string; info?: string }> }) {
+export default async function RunNowPage({ searchParams }: { searchParams: Promise<{ error?: string; info?: string; sig?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.role !== "admin") return <main><h1>지금 한 번 실행</h1><p>관리자만 쓸 수 있어요.</p></main>;
-  const { error, info } = await searchParams;
+  const { error: errorParam, info: infoParam, sig } = await searchParams;
+  const error = readFlash("error", errorParam, sig);
+  const info = readFlash("info", infoParam, sig);
   const sources = SCHEDULE_COLLECTORS.map((c) => c.source);
   const db = await getServerSupabase();
   let highlight: string[] = [];
