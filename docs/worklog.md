@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-data-sources-wiki-chat | 데이터 출처 문서에 "v1 실제 사용" 표(OSV·GitHub·MCP 레지스트리·다운로드의 요청·간격·몫·실패 처리·키)를 코드에서 확인해 더함. 위키 챗봇 정답표 머리글을 현재 상태(11-20 Q5 Pass)로, 재확인 표 끝 행의 서로 어긋난 말을 고침. 이용약관은 확인 못 함 | Claude(김영식 A 요청) | `docs/data-sources.md`, `docs/wiki-chat.md`, `docs/intent.md` |
 | I-P-23-admin-reflect-params | 관리자 화면 5곳(classify·demo·reports·run-now·simulator)이 주소의 `?error=`·`?info=`·`?cleared=` 글을 그대로 보이던 것을(가짜 안내 위조 가능) 서버 동작이 서명한 글만 보이게. 시험 먼저·일부러 망가뜨린 5곳 모두 잡힘(처음 3곳 생존 → 시험 보강)·읽기 전용 검토 반영. `app/` 25개 화면 전수 확인. `npm test` 1223개 중 1222 통과, build 통과. 실제 화면 확인은 배포 뒤 사람 | Claude(김영식 A 요청) | `lib/server/admin-flash.ts`, `app/admin/*/actions.ts`·`page.tsx`, `docs/intent.md` |
 | I-P-3-osv-next-page | OSV가 결과를 쪽으로 나눠 줄 때 첫 쪽만 "없음"으로 읽던 것을 끝까지 읽게(불변 2): `next_page_token`을 따라 `page_token`으로 이어 부르고, 같은 표시 되풀이·10쪽 초과·표시 모양 이상·중간 쪽 실패는 수집 오류로, 쪽 사이 1초. 채점이 전역 fetch를 바꿔 끼워 사례끼리 섞이던 것을 한 번에 하나씩 돌게. 시험 먼저(3개 실패)·일부러 틀리게 9곳 모두 잡힘·읽기 전용 검토 1건 반영. 채점 경계 사례 결과 다름 1→0, `npm test` 1217개 중 1216 통과·실패 0 | Claude(김영식 A 요청) | `lib/server/collect-fetch.ts`, `lib/eval/edge.ts`, `eval/result.*`, `docs/intent.md` |
 | I-demo-real-tech | 시연 계정에 진짜 기술 한 줄(운영 DB 쓰기 2줄)과 시드 운영 적용 재확인: 읽기 쿼리 3개 → 쓰기 문장 → 확인 읽기. 차세일의 시뮬레이터 거절 요청 해결 | 황재웅(실행·승인) / Claude(쿼리·문서) | 운영 `my_technologies` 2줄, `docs/intent.md` |
