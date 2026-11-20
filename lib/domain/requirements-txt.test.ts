@@ -103,8 +103,10 @@ test("허용 목록(SPEC-7.2 PyPI 14개): 이름이 같거나 langchain- 로 시
   for (const name of ["requests", "numpy", "langchainx", "mcp-server-fetch", "openai-whisper", ""]) assert.equal(isAllowedPypi(name), false, name);
 });
 
-test("읽는 파일은 package.json 다음 .mcp.json, requirements.txt 순서(같은 기술은 앞 파일 우선)이고, 파일 이름으로 알맞은 해석기를 고른다", () => {
-  assert.deepEqual([...REPO_FILES], ["package.json", ".mcp.json", "requirements.txt"]);
+test("읽는 파일은 package.json, .mcp.json, requirements.txt, .cursor/mcp.json 순서(같은 기술은 앞 파일 우선)이고, 파일 이름으로 알맞은 해석기를 고른다", () => {
+  assert.deepEqual([...REPO_FILES], ["package.json", ".mcp.json", "requirements.txt", ".cursor/mcp.json"]);
+  const cursor = readRepoFile(".cursor/mcp.json", '{"mcpServers":{"a":{"command":"uvx","args":["mcp-server-fetch"]}}}');
+  assert.deepEqual([cursor[0].tech?.key, cursor[0].sourceFile], ["pypi:mcp-server-fetch", ".cursor/mcp.json"]);
   assert.equal(readRepoFile("requirements.txt", "openai==1.0.0")[0].tech?.key, "pypi:openai");
   assert.equal(readRepoFile("package.json", '{"dependencies":{"mcp-remote":"0.1.15"}}')[0].tech?.key, "npm:mcp-remote");
   assert.equal(readRepoFile(".mcp.json", '{"mcpServers":{"a":{"command":"uvx","args":["mcp-server-fetch"]}}}')[0].tech?.key, "pypi:mcp-server-fetch");

@@ -15,11 +15,12 @@ const list = (text: string) => text.split(",").map((item) => item.trim().replace
 const granted = list(sql.match(/^grant insert \(([^)]+)\) on public\.my_technologies to authenticated;$/m)?.[1] ?? "");
 const allowedOrigins = list(sql.match(/origin in \(([^)]+)\)/)?.[1] ?? "");
 
-// insert에 들어온 행을 기록만 하는 가짜 연결
+// insert에 들어온 행을 기록만 하는 가짜 연결. addTech가 넣기 전에 읽는 "내 프로젝트(보관 안 함)" 조회에는 있다고 답한다.
 function capturing(): { db: SupabaseClient; rows: Record<string, unknown>[] } {
   const rows: Record<string, unknown>[] = [];
   const q = { select: () => q, single: async () => ({ data: { id: "m1" }, error: null }) };
-  const db = { from: () => ({ insert: (row: Record<string, unknown>) => (rows.push(row), q) }) } as unknown as SupabaseClient;
+  const project = { eq: () => project, maybeSingle: async () => ({ data: { id: "p1", archived_at: null }, error: null }) };
+  const db = { from: () => ({ insert: (row: Record<string, unknown>) => (rows.push(row), q), select: () => project }) } as unknown as SupabaseClient;
   return { db, rows };
 }
 

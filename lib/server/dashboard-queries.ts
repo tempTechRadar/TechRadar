@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AlertRecord } from "../alerts/to-alert-view.ts";
 import { maskSecrets } from "../domain/redact.ts";
 import { listMyAlerts } from "./alert-queries.ts";
+import { readArchivedProjectIds } from "./project-edit.ts";
 
 export type DashboardData = {
   alerts: AlertRecord[];
@@ -20,14 +21,15 @@ function rowsOrThrow({ data, error }: DbResult, what: string): Row[] {
 }
 
 export async function readDashboardData(db: SupabaseClient, userId: string): Promise<DashboardData> {
-  const [alerts, techs, projects] = await Promise.all([
+  const [alerts, techs, projects, archivedIds] = await Promise.all([
     listMyAlerts(db, userId),
     db.from("my_technologies").select("project_id").eq("owner_id", userId).is("hidden_at", null),
     db.from("projects").select("id, name").eq("owner_id", userId).is("archived_at", null).order("created_at"),
+    readArchivedProjectIds(db, userId), // 프로젝트 목록과 같은 기준: 보관한 프로젝트에 속한 기술은 세지 않는다
   ]);
   return {
     alerts,
-    techs: rowsOrThrow(techs, "내 기술을 읽지 못함").map((row) => ({ projectId: row.project_id })),
+    techs: rowsOrThrow(techs, "내 기술을 읽지 못함").filter((row) => !archivedIds.has(row.project_id as string)).map((row) => ({ projectId: row.project_id })),
     projects: rowsOrThrow(projects, "프로젝트를 읽지 못함").map((row) => ({ id: row.id, name: row.name })),
   };
 }

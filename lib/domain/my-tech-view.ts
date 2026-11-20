@@ -25,7 +25,11 @@ export const TECH_ERROR_TEXT: Record<string, string> = {
   secret: "비밀값처럼 보여서 저장하지 않았어요. 기술 이름만 써 주세요.",
   version: "버전은 숫자·글자·. + - 만 써서 40자 안으로 써 주세요.",
   project: "프로젝트를 고를 수 없어요.",
+  archived: "보관한 프로젝트에는 추가할 수 없어요. 아래 '보관한 프로젝트'에서 먼저 되살려 주세요.",
 };
+
+/** 주소에서 온 코드로 문구를 꺼낼 때 객체에 원래 있는 이름(__proto__·constructor 같은)이 걸리지 않게 자기 키만 본다. 없으면 undefined. */
+export const ownText = (map: Record<string, string>, key?: string): string | undefined => (key && Object.hasOwn(map, key) ? map[key] : undefined);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isUuid = (v: string) => UUID.test(v);
