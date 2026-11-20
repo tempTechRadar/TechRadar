@@ -367,7 +367,7 @@ UK: (kind, ecosystem, value).
 |---|---|---|---|---|
 | actor_id | uuid | | FK→profiles | 서버가 한 일이면 비움 |
 | actor_role | text | ✔ | | `user` / `admin` / `server` |
-| action | text | ✔ | | `manual_add`, `hide`, `unhide`, `run_now`, `classify`, `confirm_relation`, `role_change`, `hide_note`, `clear_simulator` … |
+| action | text | ✔ | | `manual_add`, `hide`, `unhide`, `run_now`, `classify`, `confirm_relation`, `role_change`, `hide_note`, `unhide_note`, `handle_report`, `clear_simulator` … |
 | target_table · target_id | text | ✔ | | 대상 |
 | reason | text | | | 관리자는 필수(앱에서 막음) |
 
