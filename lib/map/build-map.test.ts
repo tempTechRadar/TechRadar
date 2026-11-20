@@ -48,6 +48,8 @@ test("NEW는 카탈로그에 들어온 지 7일 안, 수집 오류는 '업데이
   const m = buildTechMap(input({ techs: [tech("a", { createdAt: ago(2) }), tech("b", { createdAt: ago(9), collectErrorKind: "http_5xx" })] }), NOW);
   assert.deepEqual(m.nodes.map((n) => [n.isNew, n.label]), [[true, "업데이트 3일 전"], [false, "수집 오류"]]);
   assert.equal(labelOf(null, null, NOW), "업데이트 모름");
+  const firstFill = buildTechMap(input({ techs: [tech("a", { createdAt: ago(2) }), tech("b", { createdAt: ago(1) })], newSince: ago(1.5) }), NOW);
+  assert.deepEqual(firstFill.nodes.map((n) => n.isNew), [false, true], "처음 채운 날 들어온 것은 NEW가 아니다");
 });
 
 test("같은 입력이면 같은 결과(입력 순서가 달라도)", () => {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { readGuestMapInput, readMapInput, TECH_COLUMNS } from "./map-queries.ts";
+import { CATALOG_FIRST_FILL, readGuestMapInput, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
 
 type Row = Record<string, unknown>;
 // 표마다 정해 둔 줄을 돌려주고, 부른 거르기(eq·is·or·in 등)를 표 이름과 함께 적어 두는 가짜 클라이언트.
@@ -12,7 +12,7 @@ function recordingDb(rows: Record<string, Rows>, errors: Record<string, string> 
   const db = {
     from(table: string) {
       const q: Record<string, unknown> = {}, mine: string[] = [];
-      for (const m of ["select", "eq", "is", "neq", "not", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map(String).join(",")})`; calls.push(c); mine.push(c); return q; };
+      for (const m of ["select", "eq", "is", "neq", "not", "gt", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map(String).join(",")})`; calls.push(c); mine.push(c); return q; };
       const data = () => { const r = rows[table] ?? []; return typeof r === "function" ? r(mine) : r; };
       q.then = (resolve: (v: unknown) => unknown) =>
         Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: data(), error: null }).then(resolve);
@@ -106,4 +106,14 @@ test("카탈로그는 공개 목록에서 온 기술만 읽고(남의 비공개 
 test("로그인 전 지도를 못 읽으면 던진다(빈 지도로 보이지 않게, 불변 2)", async () => {
   const { db } = recordingDb({}, { technologies: "boom" });
   await assert.rejects(readGuestMapInput(db));
+});
+
+test("새 기술: 처음 채운 때와 7일 전 중 늦은 때 뒤에 들어온 공개 목록 기술만, 최근 것부터(시뮬레이터·사라진 기술 제외)", async () => {
+  const early = recordingDb({ technologies: [{ id: "t1", display_name: "a", created_at: "2026-11-21T00:00:00Z" }] });
+  const input = await readNewTechs(early.db, "user-a", new Date("2026-11-22T00:00:00Z"));
+  for (const c of [`technologies.gt(created_at,${CATALOG_FIRST_FILL})`, "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "tech_marks.eq(user_id,user-a)"]) assert.ok(early.calls.includes(c), c);
+  assert.equal(input.newSince, CATALOG_FIRST_FILL);
+  const late = recordingDb({});
+  await readNewTechs(late.db, "user-a", new Date("2026-12-20T00:00:00Z"));
+  assert.ok(late.calls.includes("technologies.gt(created_at,2026-12-13T00:00:00.000Z)"));
 });

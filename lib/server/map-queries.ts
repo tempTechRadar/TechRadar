@@ -10,6 +10,9 @@ import { rowsOrThrow, type Row } from "./alert-db.ts";
 export const CATALOG_LIMIT = 1200;
 /** id 목록을 주소에 싣는 읽기는 이만큼씩 나눈다(uuid 36자, 주소가 너무 길면 거절됨) */
 export const ID_CHUNK = 40;
+/** 카탈로그를 처음 채운 때(레지스트리 첫 동기화, 운영 11-19). 이때 들어온 것은 NEW가 아니다.
+ *  shortcut: 고정 시각, 카탈로그를 다시 처음부터 채우면 이 값을 바꾼다 */
+export const CATALOG_FIRST_FILL = "2026-11-20T00:00:00Z";
 /** 지도가 쓰는 기술 칸 = 로그인 전에도 내보내는 공개 칸(ADR 0029). 등급 근거 원문·두께 이유·상태를 정한 주체 같은 내부 칸은 넣지 않는다 */
 export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated";
 
@@ -42,14 +45,31 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<Catalog
   return rowsOrThrow(res, "모은 기술을 읽지 못함").map(toTech);
 }
 
+/** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
+export const NEW_LIMIT = 500;
+/** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
+export async function readNewTechs(db: SupabaseClient, userId: string, now: Date): Promise<MapInput> {
+  const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+  const since = weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL;
+  const [categories, techRes, markRes] = await Promise.all([
+    readCategories(db),
+    db.from("technologies").select(TECH_COLUMNS).neq("status", "gone").eq("is_simulated", false).not("one_liner_source", "is", null)
+      .gt("created_at", since).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
+    db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
+  ]);
+  const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
+  return { mine: [], techs: rowsOrThrow(techRes, "새 기술을 읽지 못함").map(toTech), relations: [], categories, marks, newSince: CATALOG_FIRST_FILL };
+}
+
 /** 로그인 전 지도(ADR 0029): 누구에게나 같은 카탈로그. 서비스 키 클라이언트로 부르되 공용 표(technologies·categories)의 공개 칸만 읽는다 */
 export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
   const [categories, techs] = await Promise.all([readCategories(db), readCatalog(db, false)]);
-  return { mine: [], techs, relations: [], categories };
+  return { mine: [], techs, relations: [], categories, newSince: CATALOG_FIRST_FILL };
 }
 
 /** 시뮬레이터가 넣은 기술·관계(is_simulated)는 시연 계정에만 보인다(SPEC-3.5). 내 기술 자체는 늘 보인다 */
-export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean): Promise<MapInput> {
+/** extraIds: 카탈로그 1,200개 밖이어도 꼭 올릴 기술(주소의 sel=, 내 레이더·새 기술의 "지도에서 보기") */
+export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean, extraIds: string[] = []): Promise<MapInput> {
   const [mineRes, categories, catalog, markRes] = await Promise.all([
     db.from("my_technologies")
       .select("id, tech_id, manual_name, project_id, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
@@ -61,8 +81,6 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
   const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);
   const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
   const ids = [...new Set(mine.map((m) => m.techId).filter((x): x is string => !!x))];
-  if (!ids.length) return { mine, techs: catalog, relations: [], categories, marks };
-
   const relRows = (await Promise.all(chunks(ids).map((c) => {
     let q = db.from("tech_relations").select("tech_a, tech_b, quote").eq("kind", "same_role").eq("status", "confirmed").or(`tech_a.in.(${c.join(",")}),tech_b.in.(${c.join(",")})`);
     if (!isDemo) q = q.eq("is_simulated", false);
@@ -70,11 +88,12 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
   }))).flatMap((res) => rowsOrThrow(res, "같은 역할을 읽지 못함"));
   const relations: Relation[] = [...new Map(relRows.map((r) => [`${r.tech_a}|${r.tech_b}`, { a: r.tech_a as string, b: r.tech_b as string, quote: (r.quote as string | null) ?? null }])).values()];
   const have = new Set(catalog.map((t) => t.id));
-  const missing = [...new Set([...ids, ...relations.flatMap((r) => [r.a, r.b])])].filter((id) => !have.has(id));
+  // 내 기술 · 비교군 · 내가 표시한 기술 · 꼭 올릴 기술은 1,200개 밖이어도 올린다(내 레이더에서 "지도에서 보기"가 늘 열리게)
+  const missing = [...new Set([...ids, ...relations.flatMap((r) => [r.a, r.b]), ...marks.map((m) => m.techId), ...extraIds])].filter((id) => !have.has(id));
   const techRows = (await Promise.all(chunks(missing).map((c) => db.from("technologies").select(TECH_COLUMNS).in("id", c))))
     .flatMap((res) => rowsOrThrow(res, "기술 정보를 읽지 못함"));
   const myIds = new Set(ids);
   // 둘레의 비교군은 쓸 수 있는 대안만: 사라진 기술·(시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 얇은 기술은 남긴다(운영은 두꺼운 기술이 3개뿐이라 빼면 비교군이 거의 사라짐)
   const usable = (r: Row) => myIds.has(r.id) || (r.status !== "gone" && (isDemo || !r.is_simulated));
-  return { mine, techs: [...catalog, ...techRows.filter(usable).map(toTech)], relations, categories, marks };
+  return { mine, techs: [...catalog, ...techRows.filter(usable).map(toTech)], relations, categories, marks, newSince: CATALOG_FIRST_FILL };
 }

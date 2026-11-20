@@ -204,7 +204,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     S, model, phys, revealItem, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, drill, toggle, resetView, select, unselect, goTo, setFocus, measure, attach, dirty, notify,
     /** 주소에 보기 설정이 없으면 이 브라우저가 기억한 마지막 보기(로그인했을 때만). 붙인 뒤 한 번 */
     restoreSaved() {
-      if (opts.initialQuery || !canSave) return;
+      const q = new URLSearchParams(opts.initialQuery); q.delete("sel"); // sel=만 왔으면 보기 설정은 없는 것
+      if (q.toString() || !canSave) return;
       try { const saved = localStorage.getItem(STORE); if (saved) setView(parseView(saved)); } catch { /* 저장소를 못 쓰는 브라우저: 기본 보기 */ }
     },
     subscribe(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; },

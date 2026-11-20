@@ -30,12 +30,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body>
         {/* 메뉴(design.md 13절 1): 왼쪽은 보는 곳, 오른쪽은 내 것. 대시보드·비교는 내 레이더(/views) 위 링크로 간다.
-            로그인 전에는 기술 지도만(나머지는 로그인이 필요). 새 기술(/new)과 기술 넣기 대화상자는 P-12d-screens에서 더한다 */}
+            로그인 전에는 기술 지도만(나머지는 로그인이 필요). "+ 기술 넣기"는 내 프로젝트의 직접 추가로 간다 */}
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
             <Link href="/">기술 지도</Link>
             {user !== null ? (
               <>
+                <Link href="/new">새 기술</Link>
                 <Link href="/views">내 레이더</Link>
                 <Link href="/alerts">알림</Link>
                 <Link href="/history">기록</Link>

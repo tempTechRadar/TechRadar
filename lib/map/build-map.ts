@@ -24,7 +24,8 @@ export type Category = { id: string; name: string; parentId: string | null };
 export type Relation = { a: string; b: string; quote: string | null };
 export type MarkStatus = "interest" | "candidate" | "hold";
 export type Mark = { techId: string; status: MarkStatus; reason: string | null };
-export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[] };
+/** newSince: 이 시각 뒤에 들어온 것만 NEW(카탈로그를 처음 채운 날 들어온 수천 개를 NEW로 치지 않게) */
+export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[]; newSince?: string };
 
 export type MapNode = {
   key: string; name: string; mine: boolean; techId: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
@@ -67,7 +68,11 @@ function categoryNames(categoryId: string | null, cats: Map<string, Category>): 
   return { field: cats.get(c.parentId)?.name ?? UNSORTED, sub: c.name };
 }
 
-function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date): MapNode {
+/** 들어온 지 7일 안이고, 처음 채운 날 뒤에 들어온 것 */
+export const isNewTech = (createdAt: string | null, now: Date, newSince?: string) =>
+  (daysSince(createdAt, now) ?? Infinity) < NEW_DAYS && (!newSince || (!!createdAt && Date.parse(createdAt) > Date.parse(newSince))); // 글자 비교는 +00:00·Z가 섞이면 틀린다
+
+function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date, newSince?: string): MapNode {
   const { host, guessed } = hostOf(t?.techKey ?? null, t?.type ?? null, t?.hosts ?? null);
   const grade = t?.grade ?? "unknown";
   return {
@@ -77,7 +82,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: (daysSince(t?.createdAt ?? null, now) ?? Infinity) < NEW_DAYS, lonely: false, label: "", nearMine: false, mark: null,
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null,
   };
 }
 
@@ -92,7 +97,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
   for (const m of input.mine) {
     const key = m.techId ? `tech:${m.techId}` : `name:${(m.manualName ?? "").trim().toLowerCase()}`;
     const t = m.techId ? techById.get(m.techId) : undefined;
-    const n = out.get(key) ?? { ...baseNode(key, t?.name ?? m.manualName ?? "(이름 없음)", t, cats, now), mine: true, grade: m.grade, gradeReason: m.gradeReason, collectErrorKind: null, lastCheckedOkAt: m.lastCheckedOkAt };
+    const n = out.get(key) ?? { ...baseNode(key, t?.name ?? m.manualName ?? "(이름 없음)", t, cats, now, input.newSince), mine: true, grade: m.grade, gradeReason: m.gradeReason, collectErrorKind: null, lastCheckedOkAt: m.lastCheckedOkAt };
     if (GRADE_RANK[m.grade] > GRADE_RANK[n.grade]) Object.assign(n, { grade: m.grade, gradeReason: m.gradeReason });
     n.collectErrorKind = n.collectErrorKind ?? m.collectErrorKind ?? t?.collectErrorKind ?? null;
     n.myTechIds.push(m.id);
@@ -115,13 +120,13 @@ export function buildTechMap(input: MapInput, now: Date): TechMapModel {
   for (const { a, b, quote } of input.relations) { // 한 단계만: 적어도 한쪽이 내 기술인 비교군
     const ka = `tech:${a}`, kb = `tech:${b}`;
     if (!mine.has(ka) && !mine.has(kb)) continue;
-    for (const [k, id] of [[ka, a], [kb, b]] as const) if (!nodes.has(k) && techById.has(id)) nodes.set(k, baseNode(k, techById.get(id)!.name, techById.get(id), cats, now));
+    for (const [k, id] of [[ka, a], [kb, b]] as const) if (!nodes.has(k) && techById.has(id)) nodes.set(k, baseNode(k, techById.get(id)!.name, techById.get(id), cats, now, input.newSince));
     if (!nodes.has(ka) || !nodes.has(kb)) continue;
     const e: [string, string] = ka < kb ? [ka, kb] : [kb, ka];
     edges.push(e);
     if (quote) quotes[e.join("|")] = quote;
   }
-  for (const t of input.techs) if (!nodes.has(`tech:${t.id}`)) nodes.set(`tech:${t.id}`, baseNode(`tech:${t.id}`, t.name, t, cats, now));
+  for (const t of input.techs) if (!nodes.has(`tech:${t.id}`)) nodes.set(`tech:${t.id}`, baseNode(`tech:${t.id}`, t.name, t, cats, now, input.newSince));
   const marks = new Map((input.marks ?? []).map((m) => [`tech:${m.techId}`, m]));
   const linked = new Set(edges.flat());
   const list = [...nodes.values()];

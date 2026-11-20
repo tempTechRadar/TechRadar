@@ -63,6 +63,12 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
     ro.observe(st); if (hud.current) ro.observe(hud.current);
     measure();
     ctl.restoreSaved();
+    const want = new URLSearchParams(location.search).get("sel"); // 내 레이더·새 기술의 "지도에서 보기"
+    if (want) { // 새로 고침해도 다시 열리지 않게 주소에서 뺀다
+      go(want);
+      const q = new URLSearchParams(location.search); q.delete("sel");
+      history.replaceState(null, "", q.toString() ? `?${q}` : location.pathname);
+    }
     const stopInput = attachInput(cv, st, ctl, { hover, open, close });
     // Esc = 사이드바 닫기. 글을 쓰는 칸(보류 이유·찾기)에서는 그 칸의 Esc가 먼저(쓰던 글이 사라지지 않게)
     const onKey = (e: KeyboardEvent) => {

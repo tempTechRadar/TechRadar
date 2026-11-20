@@ -17,6 +17,8 @@ import GoogleLoginButton from "./login/google-login-button";
 import { CanvasMap } from "./tech-map/canvas-map";
 import "./alerts/alerts.css";
 
+/** 주소의 sel=tech:<uuid>(지도에서 보기)에서 기술 id만. 모양이 다르면 버린다 */
+const selTech = (query: string) => { const m = /^tech:([0-9a-f-]{36})$/i.exec(new URLSearchParams(query).get("sel") ?? ""); return m ? [m[1]] : []; };
 const logged = (what: string) => (e: unknown) => { console.error(what, e instanceof Error ? e.message : e); return null; };
 
 // 로그인 전 지도는 누구에게나 같아 10분 동안 한 번만 읽는다(요청이 몰려도 DB는 그대로, ADR 0029). 실패는 기억하지 않는다(던지면 캐시 안 됨).
@@ -56,7 +58,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const seen = parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value);
   // 지도와 숫자는 따로 읽는다: 하나를 못 읽어도 다른 하나는 보여 주고, 못 읽은 쪽은 "없음"이 아니라 "읽지 못함"으로(불변 2)
   const [input, dash, band] = await Promise.all([
-    readMapInput(db, user.id, user.isDemo).catch(logged("지도 조회 실패")),
+    readMapInput(db, user.id, user.isDemo, selTech(query)).catch(logged("지도 조회 실패")),
     readDashboardData(db, user.id).catch(logged("지도 위 숫자 조회 실패")),
     readRecentFirstReads(db, user.id).then((runs) => buildFirstCheckBand(runs, seen)).catch(logged("첫 점검 띠 조회 실패")),
   ]);
