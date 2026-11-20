@@ -31,6 +31,27 @@ const isPackageSpec = (a: string) => a.length <= 100 && PACKAGE_SPEC.test(a);
  * `.mcp.json` 서버 하나 → 기술 키. 서버 이름은 사용자가 붙인 별명이라 쓰지 않는다.
  * 알 수 없는 실행 방식(직접 만든 스크립트 등)이면 null = "찾지 못함".
  */
+// 값을 받지 않는 켜기/끄기 옵션. 그 밖의 옵션(--key x · --from x 등)은 다음 인자가 값이라 함께 건너뛴다: 토큰 · 주소가 기술 이름이 되지 않게
+const BOOLEAN_FLAGS = new Set(["-y", "--yes", "-q", "--quiet", "--silent", "--no-install", "--prefer-offline", "--offline", "--isolated"]);
+const PACKAGE_FLAGS = new Set(["-p", "--package"]); // npx -p <패키지>: 이 값은 패키지 이름이다
+
+/** 실행 인자에서 위치 인자만(옵션과 그 값은 뺌), 패키지 이름 모양인 것만. -p/--package 값은 맨 앞에 둔다 */
+export function positionalArgs(raw: unknown[]): string[] {
+  const out: string[] = [], pkgs: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const a = raw[i];
+    if (typeof a !== "string") continue;
+    if (a.startsWith("-")) {
+      if (a.includes("=") || BOOLEAN_FLAGS.has(a)) continue; // --x=값 · 켜기 옵션은 그것만
+      if (PACKAGE_FLAGS.has(a) && typeof raw[i + 1] === "string") pkgs.push(raw[i + 1] as string);
+      i++; // 값을 받는 옵션: 다음 인자도 건너뜀
+      continue;
+    }
+    out.push(a);
+  }
+  return [...pkgs, ...out].filter((a) => a === "run" || isPackageSpec(a));
+}
+
 export function mcpServerKey(server: McpServer): TechRef | null {
   const url = server.url ?? server.httpUrl; // Gemini CLI는 스트리밍 HTTP 서버를 httpUrl에 쓴다
   if (url) {
@@ -40,7 +61,7 @@ export function mcpServerKey(server: McpServer): TechRef | null {
       return null;
     }
   }
-  const args = (server.args ?? []).filter((a) => typeof a === "string" && !a.startsWith("-") && (a === "run" || isPackageSpec(a)));
+  const args = positionalArgs(server.args ?? []);
   const cmd = (server.command ?? "").trim();
   if (cmd === "npx" && args[0]) {
     const { name, version } = splitNpmSpec(args[0]);

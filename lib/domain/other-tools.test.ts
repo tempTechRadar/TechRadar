@@ -48,3 +48,13 @@ test("옵션 값(토큰 · git 주소 · ${input:…})은 기술 키가 되지 �
   assert.equal(found[2].name.length, 100);
   assert.ok(!JSON.stringify(found).includes("ghp_SECRET"), "토큰이 기술 이름 · 키에 남지 않는다");
 });
+
+test("옵션 값은 패키지 이름 모양이어도 건너뛴다(--key sk-abc123 realpkg → realpkg), -y 같은 켜기 옵션과 -p 패키지는 그대로", () => {
+  const key = (args: string[], command = "npx") => readRepoFile(".cursor/mcp.json", JSON.stringify({ mcpServers: { a: { command, args } } }))[0].tech?.key ?? null;
+  assert.equal(key(["--key", "sk-abc123", "realpkg"]), "npm:realpkg");
+  assert.equal(key(["-y", "mcp-remote@0.1.16"]), "npm:mcp-remote");
+  assert.equal(key(["--registry=https://r.example.com", "pkg-a"]), "npm:pkg-a");
+  assert.equal(key(["-p", "@scope/tool", "tool-bin"]), "npm:@scope/tool");
+  assert.equal(key(["--token", "ghp-ABC"]), null, "값만 있고 패키지가 없으면 찾지 못함");
+  assert.equal(key(["--from", "git+https://x", "srv"], "uvx"), "pypi:srv");
+});
