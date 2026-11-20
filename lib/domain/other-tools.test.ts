@@ -68,3 +68,9 @@ test("첫 위치 인자만 패키지: --verbose pkg token → pkg(뒤의 token�
   assert.equal(key("npx mcp-remote"), null);
   assert.equal(key(["run", "black"], "pipx"), "pypi:black");
 });
+
+test("모르는 옵션은 값을 받는다고 본다(모르면 막기): --foo secret pkg → pkg, 모르는 켜기 옵션 뒤의 패키지는 찾지 못함(안전한 쪽)", () => {
+  const key = (args: unknown) => readRepoFile(".cursor/mcp.json", JSON.stringify({ mcpServers: { a: { command: "npx", args } } }))[0].tech?.key ?? null;
+  assert.equal(key(["--foo", "secretvalue", "pkg"]), "npm:pkg");
+  assert.equal(key(["--fancy", "pkg"]), null);
+});
