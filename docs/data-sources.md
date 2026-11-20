@@ -59,3 +59,11 @@
 | GeekNews 댓글 | 댓글 RSS 없음 → HTML 크롤링 | — | `ai-train=no` | 예 |
 | Reddit | `.json` 403, OAuth는 사전 승인 필요 | 필요 | 공식 약관을 열지 못함. 수집 못 할 가능성 높음 | 아니오 |
 | HF Discussions / dev.to 댓글 | HF discussions API, `dev.to/api/comments?a_id=` | 불필요 | 호출해 보지 않음 | 아니오 |
+
+## 6. 모델 지원 종료 (PRD-F38, 2026-11-20 추가)
+| 출처 | 읽는 방법 | 키 | 주의 | 확인 |
+|---|---|---|---|---|
+| Anthropic 모델 지원 종료 | `platform.claude.com/docs/en/about-claude/model-deprecations`(docs.claude.com에서 넘어감) | 불필요 | 사람이 읽고 표로 옮김(정기 수집 아님). 옛 모델은 "Deprecation history"에만 있음 | 예(11-20) |
+| OpenAI 지원 종료 | `developers.openai.com/api/docs/deprecations`(platform.openai.com에서 넘어감) | 불필요 | 쪽이 길어 앞부분만 글 그대로 읽힘. 글 그대로 읽은 줄만 옮김 | 예(11-20) |
+| Google Gemini 지원 종료 | `aistudio.google.com/docs/deprecations`(ai.google.dev에서 넘어감) | 불필요 | 날짜는 "가장 이르면 이날" | 예(11-20) |
+| GitHub 트리 + raw | `api.github.com/repos/{o}/{r}/git/trees/HEAD?recursive=1`, `raw.githubusercontent.com` | 선택(서버 토큰) | 토큰 없으면 시간당 60번을 저장소 확인 · 스킬 목록과 나눠 씀. 트리가 크면 GitHub가 잘라 줌(`truncated`) | 예(11-20, 공개 저장소 2곳) |
