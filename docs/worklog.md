@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-demo-real-tech | 시연 계정에 진짜 기술 한 줄(운영 DB 쓰기 2줄)과 시드 운영 적용 재확인: 읽기 쿼리 3개 → 쓰기 문장 → 확인 읽기. 차세일의 시뮬레이터 거절 요청 해결 | 황재웅(실행·승인) / Claude(쿼리·문서) | 운영 `my_technologies` 2줄, `docs/intent.md` |
 | I-P-24b-moderation | P-24 24b 관리자 사용기 신고: 와이어프레임 → 시험 지점 3곳(S1 7·S2 13·S3 5) 먼저 → 구현, 망가뜨려 보기 11곳, 개발용 샘플 화면 | 황재웅 / Claude | `app/admin/reports/`, `lib/admin/report-groups.ts`, `lib/server/moderation-edit.ts`, `docs/wireframes/reports.html` |
 | I-qa-c-1120 | 영역 C QA 결과 기록: H7 매일 06:00 예약 Pass(운영 실행 `bab5e87b`, schedule, 06:07 시작·성공·2,300건), H13 ④ 로컬 Pass(시연 계정으로 `/admin/classify` 막힘). 운영 DB 읽기(`tech_relations` 14줄·`categories` 43줄)로 plan P-14·P-18 낡은 문구 정정. 11-19 "아직 안 된 것"의 06:00 예약 줄은 이것으로 끝남. 이어서 로컬 관리자·시연 계정 QA(H13 ①②, H10 ①②, H9 화면, H11 ⑤ Pass, H13 ③은 후보 0건 No Run)와 운영 QA(4-3 실패 시연 저장소, H14 Q5, H15 키보드·초점, H9 버튼 Pass). 찾은 것: 적용 기회 시뮬레이터가 시연 계정의 가짜 표시 기술 때문에 거절됨(debug-note, 안 고침), 조치 상자는 같은 실행에 실패가 있으면 다시 저장해도 빨강 | 차세일(지시·로그인) · Claude(Chrome 조작·읽기·기록) | `docs/qa-c.md` H7·H9·H10·H11·H13·H14·H15, `docs/qa.md`, `docs/wiki-chat.md`, `docs/plan.md` P-14·P-18·P-26, ADR 0024, `docs/debug-note.md` |
 | I-P-12d-capture | + 기술 넣기 대화상자: 한 줄에 하나 붙여 넣기 → GitHub·npm·PyPI 주소와 설치 명령은 키로, 글은 이름으로 공개 목록 기술에서 찾음, 영상·SNS 링크는 "본 이름을 적어 주세요", 찾은 것마다 지도에서 보기 · 관심, 못 찾으면 직접 추가로. 내 프로젝트: 화면 탭 줄 · 프로젝트 밖 칸 늘 보임 · 다시 읽기 "읽는 중" · 실행 기록 쉬운 말. 코드 리뷰 10건 모두 고침. 시험 1,128 통과 · 실패 0 | 나(진행) · Claude(구현 · 확인) | `app/capture/`, `lib/capture/parse-capture.ts`, `lib/server/capture.ts` |
