@@ -5,18 +5,22 @@ import { markHelpful, readUsageNotes, reportNote, saveUsageNote } from "./usage-
 
 type Err = { message: string; code?: string } | null;
 type Answer = { data: unknown; error: Err };
-type Call = { table: string; op: string; row?: unknown; filters: [string, unknown][] };
+type Call = { table: string; op: string; row?: unknown; columns?: string; filters: [string, unknown][] };
 
-// 가짜 DB: 표마다 정해 둔 답을 주고, 보낸 요청을 남긴다
+// 가짜 DB: 표마다 정해 둔 답을 주고, 보낸 요청을 남긴다. rpc는 "rpc:함수이름" 답을 준다
 function fakeDb(answers: Record<string, Answer>) {
   const calls: Call[] = [];
   const db = {
+    rpc(name: string, args: unknown) {
+      calls.push({ table: `rpc:${name}`, op: "rpc", row: args, filters: [] });
+      return Promise.resolve(answers[`rpc:${name}`] ?? { data: [], error: null });
+    },
     from(table: string) {
       const call: Call = { table, op: "select", filters: [] };
       calls.push(call);
       const builder: Record<string, unknown> = {
         insert: (row: unknown) => ((call.op = "insert"), (call.row = row), builder),
-        select: () => builder,
+        select: (columns?: string) => (call.op === "select" && (call.columns ??= columns), builder), // insert 뒤의 select는 돌려받을 칸이라 적지 않는다
         eq: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
         in: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
         order: () => builder,
@@ -80,18 +84,27 @@ test("신고: 사유를 검사하고 본인 이름으로 한 줄, 같은 글 두
 
 test("목록: 그 기술의 글에 내가 눌렀는지·내 글인지를 붙이고, 읽기 실패는 던진다", async () => {
   const rows = [
-    { id: "n2", author_id: "u2", used_for: "a", result: "b", tip: "c", helpful_count: 3, created_at: "2026-11-20T01:00:00Z" },
-    { id: "n1", author_id: "u1", used_for: "d", result: "e", tip: "f", helpful_count: 0, created_at: "2026-11-19T01:00:00Z" },
+    { id: "n2", used_for: "a", result: "b", tip: "c", helpful_count: 3, created_at: "2026-11-20T01:00:00Z" },
+    { id: "n1", used_for: "d", result: "e", tip: "f", helpful_count: 0, created_at: "2026-11-19T01:00:00Z" },
   ];
-  const { db, calls } = fakeDb({ usage_notes: ok(rows), helpful_votes: ok([{ note_id: "n2" }]), reports: ok([{ note_id: "n1" }]) });
+  // 내 글은 쓴 사람 칸을 읽지 않고 DB 함수가 "이 글들 중 내 것"만 돌려준다(함수는 값만 담은 배열을 돌려준다)
+  const { db, calls } = fakeDb({ usage_notes: ok(rows), "rpc:my_usage_note_ids": ok(["n1"]), helpful_votes: ok([{ note_id: "n2" }]), reports: ok([{ note_id: "n1" }]) });
   const list = await readUsageNotes(db, "t1", "u1");
   assert.deepEqual(list, [
     { id: "n2", usedFor: "a", result: "b", tip: "c", helpfulCount: 3, createdAt: "2026-11-20T01:00:00Z", mine: false, voted: true, reported: false },
     { id: "n1", usedFor: "d", result: "e", tip: "f", helpfulCount: 0, createdAt: "2026-11-19T01:00:00Z", mine: true, voted: false, reported: true },
   ]);
   assert.deepEqual(calls[0].filters, [["tech_id", "t1"]]);
-  assert.equal(JSON.stringify(list).includes("author_id"), false); // 쓴 사람의 id는 화면에 넘기지 않는다
+  assert.equal(JSON.stringify(list).includes("author"), false); // 쓴 사람의 id는 화면에 넘기지 않는다
+  assert.doesNotMatch(calls[0].columns ?? "", /author_id|hidden_by/); // DB에서도 읽지 않는다(그 칸은 읽기 권한이 없다)
+  assert.deepEqual(calls.find((c) => c.table === "rpc:my_usage_note_ids")?.row, { p_ids: ["n2", "n1"] });
   await assert.rejects(readUsageNotes(fakeDb({ usage_notes: fail("500", "boom") }).db, "t1", "u1"), /사용기를 읽지 못함/);
+});
+
+test("내 글 표시를 못 읽으면 내 글이 아닌 것처럼 보이지 않고 읽기 실패로 던진다", async () => {
+  const rows = [{ id: "n1", used_for: "a", result: "b", tip: "c", helpful_count: 0, created_at: "2026-11-19T01:00:00Z" }];
+  const db = fakeDb({ usage_notes: ok(rows), "rpc:my_usage_note_ids": fail("500", "boom") }).db;
+  await assert.rejects(readUsageNotes(db, "t1", "u1"), /내 글 표시를 읽지 못함/);
 });
 
 test("목록이 비면 내가 누른 것·신고한 것은 읽지 않는다", async () => {

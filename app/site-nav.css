@@ -1,5 +1,10 @@
-/* 주 메뉴(모든 화면): 누르는 칸을 최소 44px로 둔다(WCAG 2.2 대상 크기, 터치). 링크 높이가 20px이던 것을 키웠다(I-a11y-tap-targets). */
-.site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-bottom: 16px; }
-.site-nav a, .site-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; font: inherit; }
-.site-nav button { cursor: pointer; }
-.site-nav form { display: flex; gap: 8px; align-items: center; margin: 0; }
+/* 주 메뉴(모든 화면): 누르는 칸을 최소 44px로 둔다(WCAG 2.2 대상 크기, 터치). 링크 높이가 20px이던 것을 키웠다(I-a11y-tap-targets).
+   왼쪽 = 보는 곳, 오른쪽 = 내 것(design.md 13절 1). 좁으면 두 줄로 내려간다 */
+.site-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--line); }
+.site-nav-main, .site-nav-side { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sp-1); }
+.site-nav a, .site-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--sp-2); font: inherit; color: var(--ink); }
+.site-nav-main a { font-weight: 600; text-decoration: none; }
+.site-nav-main a:hover { text-decoration: underline; }
+.site-nav .site-nav-add { border: 0; cursor: pointer; padding: 0 var(--sp-3); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); text-decoration: none; white-space: nowrap; }
+.site-nav button { cursor: pointer; background: none; border: 1px solid var(--line); border-radius: var(--r-md); }
+.site-nav form { display: flex; gap: var(--sp-2); align-items: center; margin: 0; color: var(--muted); }

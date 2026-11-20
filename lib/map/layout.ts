@@ -1,113 +1,127 @@
-// 사용자가 고른 묶기 기준으로 레이더 위 자리를 정하는 순수 함수(같은 입력이면 같은 그림).
-// 가운데 "나" → 고리 1 = 1차 묶음 → 고리 2 = 2차 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비는 들어 있는 기술 수의 제곱근에 비례하고,
-// 하위 묶음은 부모의 부채꼴을 나눠 쓴다(옛 시안 docs/wireframes/map.js의 hostLayout과 같은 방식).
+// 사용자가 고른 묶기 기준으로 레이더 위 제자리(home)를 정하는 순수 함수(같은 입력이면 같은 그림). 시안 docs/wireframes/radar-layout.js와 같은 규칙.
+// 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비 ∝ √(들어 있는 기술 수), 하위 묶음은 부모 부채꼴을 나눈다.
+// 기술이 많으면 바깥 고리를 여러 줄로 쌓는다. 색은 화면이 tokens.css에서 읽도록 토큰 이름으로 준다(테마를 바꾸면 같이 바뀜).
 import { UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
-import { passes, type Dim, type ViewConfig } from "./view-config.ts";
+import { groupOf, passes, type Dim, type ViewConfig } from "./view-config.ts";
 
-/** 범주 8색. 옆 묶음끼리 정상 시력 ΔE ≥ 17.5·색약 ≥ 7.6(둘러 붙는 첫·끝 포함, dataviz 검사기). 빨강·호박은 보안 표시에만 쓰려고 뺐다.
- *  모든 짝을 구별할 수는 없어서(8색은 불가능) 이름표·자리(묶음마다 부채꼴)가 늘 함께 간다 */
-export const PALETTE = ["#2a78d6", "#1baf7a", "#6250d6", "#008300", "#e87ba4", "#0b7fa0", "#6d7a1f", "#b0479e"];
-export const NEUTRAL = "#9aa1ab";
 export const OTHER = "그 밖";
-/** 색 기준이 보안 등급이면 의미가 정해진 색을 쓴다(위험 빨강·주의 호박, 나머지는 회색 계열). 범주 색을 주면 "위험 = 초록"처럼 거꾸로 읽힌다 */
-export const GRADE_COLORS: Record<string, string> = { 위험: "#C0262D", 주의: "#B87600", 통과: "#6f8f76", "찾지 못함": NEUTRAL };
-
-export type GroupNode = { id: string; level: number; dim: Dim; value: string; parent: string | null; x: number; y: number; count: number; mine: number; danger: number; caution: number; color: string | null };
-export type Leaf = { node: MapNode; x: number; y: number; parent: string | null; color: string };
-export type LegendItem = { value: string; count: number; color: string };
-export type MapLayout = { groups: GroupNode[]; leaves: Leaf[]; compareEdges: [string, string][]; radius: number; legend: LegendItem[]; shown: number; total: number };
-
-const SEP = " / "; // 묶음 id 사이 구분. 부모·자식 찾기는 id 글자가 아니라 parent 칸으로 한다
-/** 고리 간격: 1차 묶음 고리 반지름과 단계 사이 거리(화면의 레이더 고리도 같은 값을 쓴다) */
+/** 고리 간격: 1단계 묶음 고리 반지름과 단계 사이 거리(그리기의 고리도 같은 값) */
 export const FIRST_RING = 110, LEVEL_GAP = 95;
-const LEAF_STEP = 34;
-type Span = { parent: string | null; a0: number; a1: number };
-const special = (v: string) => v === UNSORTED || v === OTHER || v === "모름" || v === "내 프로젝트 아님";
+const LEAF_GAP = 15, ROW_GAP = 16;
+const HUB_R = [0, 22, 15, 10]; // 단계마다 크기·모양: 1 육각 · 2 마름모 · 3 네모
+/** 색 기준이 보안 등급이면 뜻이 정해진 색(범주 색을 주면 "위험 = 초록"처럼 거꾸로 읽힌다) */
+export const GRADE_TOKENS: Record<string, string> = { 위험: "--danger", 주의: "--caution", 통과: "--pass", "찾지 못함": "--unknown" };
+const CATEGORY_TOKENS = 8; // --cat-1 … --cat-8 (옆 묶음끼리 색약에도 구별, dataviz 검사기)
+
+type Base = { id: string; parent: string | null; level: number; x: number; y: number; r: number; token: string | null; hollow: boolean };
+export type GroupItem = Base & { type: "g"; dim: Dim; value: string; count: number; mine: number; danger: number; caution: number; err: number };
+export type TechItem = Base & { type: "t"; node: MapNode; token: string };
+export type Item = GroupItem | TechItem;
+export type LegendItem = { value: string; count: number; token: string; rest?: boolean; hollow?: boolean };
+export type MapLayout = {
+  items: Item[]; byId: Map<string, Item>; edges: [string, string][]; legend: LegendItem[];
+  /** 실제로 칠한 기준(들어간 분류로 칠하면 한 색뿐이라 다음 묶기 기준) */ color: Dim;
+  depth: number; leafR: number; radius: number; shown: number; total: number;
+};
+
+const special = (v: string) => v === UNSORTED || v === OTHER || v === "모름" || v === "찾지 못함" || v === "내 프로젝트 아님";
 const byValue = (a: string, b: string) => (special(a) !== special(b) ? (special(a) ? 1 : -1) : a.localeCompare(b, "ko"));
-const polar = (a: number, r: number) => [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)] as const;
+const byName = (a: MapNode, b: MapNode) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.key < b.key ? -1 : 1);
+const polar = (a: number, r: number) => [Math.cos(a) * r, Math.sin(a) * r] as const;
 
-/** 프로젝트가 있는 지도에서는 거르기로 남은 내 기술에 이어진 비교군만 남긴다(한 단계, IA-Q5) */
-function keptNodes(model: TechMapModel, view: ViewConfig): MapNode[] {
-  const pass = model.nodes.filter((n) => passes(n, n.mine ? view.filter : { ...view.filter, project: "" })); // 비교군은 프로젝트가 없다: 이어진 내 기술로 남긴다
-  if (model.mode === "catalog") return pass;
-  // 비교군이 붙는 내 기술은 프로젝트 거르기만 따른다(위험만·종류 같은 거르기는 비교군 자신에게 건다: 위험한 비교군도 보이게)
-  const mine = new Set(model.nodes.filter((n) => n.mine && (!view.filter.project || n.projectIds.includes(view.filter.project))).map((n) => n.key));
-  const near = new Set(model.edges.filter(([a, b]) => mine.has(a) || mine.has(b)).flat());
-  return pass.filter((n) => n.mine || near.has(n.key));
-}
-
-/** 색: 색 기준 값을 많은 순으로 8개까지 색을 주고, 나머지는 "그 밖"(회색), 값이 없으면 "분류 전"(회색) */
-function legendOf(nodes: MapNode[], dim: Dim): { legend: LegendItem[]; colorOf: (v: string) => string } {
+/** 색: 많은 값 8개까지 범주 색, 나머지는 "그 밖"(회색), 분류 전 같은 특별 값은 회색(분류 전은 빈 점) */
+function legendOf(nodes: MapNode[], dim: Dim): { legend: LegendItem[]; tokenOf: (v: string) => string } {
   const counts = new Map<string, number>();
   for (const n of nodes) counts.set(n.attrs[dim], (counts.get(n.attrs[dim]) ?? 0) + 1);
   if (dim === "grade") {
-    const order = Object.keys(GRADE_COLORS).filter((v) => counts.has(v));
-    return { legend: order.map((value) => ({ value, count: counts.get(value)!, color: GRADE_COLORS[value] })), colorOf: (v) => GRADE_COLORS[v] ?? NEUTRAL };
+    const legend = Object.keys(GRADE_TOKENS).filter((v) => counts.has(v)).map((value) => ({ value, count: counts.get(value)!, token: GRADE_TOKENS[value] }));
+    return { legend, tokenOf: (v) => GRADE_TOKENS[v] ?? "--unknown" };
   }
   const ranked = [...counts].filter(([v]) => !special(v)).sort((a, b) => b[1] - a[1] || byValue(a[0], b[0]));
-  const colored = new Map(ranked.slice(0, PALETTE.length).map(([v], i) => [v, PALETTE[i]]));
-  const legend: LegendItem[] = ranked.slice(0, PALETTE.length).map(([value, count]) => ({ value, count, color: colored.get(value)! }));
-  const rest = ranked.slice(PALETTE.length).reduce((s, [, c]) => s + c, 0);
-  if (rest) legend.push({ value: OTHER, count: rest, color: NEUTRAL });
-  for (const [v, c] of counts) if (special(v)) legend.push({ value: v, count: c, color: NEUTRAL });
-  return { legend, colorOf: (v) => colored.get(v) ?? NEUTRAL };
+  const colored = new Map(ranked.slice(0, CATEGORY_TOKENS).map(([v], i) => [v, `--cat-${i + 1}`]));
+  const legend: LegendItem[] = ranked.slice(0, CATEGORY_TOKENS).map(([value, count]) => ({ value, count, token: colored.get(value)! }));
+  const rest = ranked.slice(CATEGORY_TOKENS).reduce((s, [, c]) => s + c, 0);
+  if (rest) legend.push({ value: OTHER, count: rest, token: "--unknown", rest: true });
+  for (const [v, c] of counts) if (special(v)) legend.push({ value: v, count: c, token: "--unknown", hollow: v === UNSORTED });
+  return { legend, tokenOf: (v) => colored.get(v) ?? "--unknown" };
+}
+
+/** 프로젝트 필터: 비교군은 프로젝트가 없으니 그 프로젝트의 내 기술에 이어진 것만 남긴다(한 단계, IA-Q5) */
+function keptNodes(model: TechMapModel, view: ViewConfig): MapNode[] {
+  const project = view.filter.project;
+  if (!project) return model.nodes.filter((n) => passes(n, view));
+  const mineIn = new Set(model.nodes.filter((n) => n.mine && n.projectIds.includes(project)).map((n) => n.key));
+  const near = new Set(model.edges.filter(([a, b]) => mineIn.has(a) || mineIn.has(b)).flat());
+  const noProject = { ...view, filter: { ...view.filter, project: "" } };
+  return model.nodes.filter((n) => (n.nearMine ? near.has(n.key) && passes(n, noProject) : passes(n, view)));
 }
 
 export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
-  const nodes = keptNodes(model, view);
-  const { legend, colorOf } = legendOf(nodes, view.color);
-  const groups: GroupNode[] = [], leaves: Leaf[] = [];
-  const depth = view.group.length, leafR = FIRST_RING + depth * LEVEL_GAP + (depth ? 15 : 30);
+  const kept = keptNodes(model, view);
+  const group = groupOf(view);
+  const color = view.scope.some((s) => s.dim === view.color) ? group[0] ?? "grade" : view.color;
+  const { legend, tokenOf } = legendOf(kept, color);
+  const items: Item[] = [], depth = group.length, leafR = FIRST_RING + depth * LEVEL_GAP + 15;
+  let maxR = leafR;
 
-  function place(list: MapNode[], level: number, { parent, a0, a1 }: Span) {
+  function place(list: MapNode[], level: number, parent: string | null, a0: number, a1: number) {
     if (level > depth) {
-      const sorted = [...list].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.key < b.key ? -1 : 1));
+      const sorted = [...list].sort(byName);
+      const cap = Math.max(1, Math.floor(((a1 - a0) * leafR) / LEAF_GAP)), rows = Math.ceil(sorted.length / cap), per = Math.ceil(sorted.length / rows);
       sorted.forEach((n, i) => {
-        const a = a0 + ((a1 - a0) * (i + 0.5)) / sorted.length, [x, y] = polar(a, leafR + (sorted.length > 3 ? i % 3 : i % 2) * LEAF_STEP); // 이웃한 이름표가 겹치지 않게 반지름을 번갈아
-        leaves.push({ node: n, x, y, parent, color: colorOf(n.attrs[view.color]) });
+        const row = Math.floor(i / per), inRow = Math.min(per, sorted.length - row * per), col = i - row * per;
+        const r = leafR + row * ROW_GAP + (rows === 1 && sorted.length > 1 ? (i % 2) * 18 : 0); // 한 줄이면 번갈아 내밀어 이름표가 덜 겹치게
+        const [x, y] = polar(a0 + ((a1 - a0) * (col + 0.5)) / inRow, r), v = n.attrs[color];
+        maxR = Math.max(maxR, r);
+        items.push({ type: "t", id: n.key, node: n, parent, level, x, y, r: n.mine ? 6 : 4.5, token: tokenOf(v), hollow: v === UNSORTED });
       });
       return;
     }
-    const dim = view.group[level - 1];
-    const buckets = new Map<string, MapNode[]>();
+    const dim = group[level - 1], buckets = new Map<string, MapNode[]>();
     for (const n of list) buckets.set(n.attrs[dim], [...(buckets.get(n.attrs[dim]) ?? []), n]);
-    const keys = [...buckets.keys()].sort(byValue);
-    const weight = (k: string) => Math.max(1, Math.sqrt(buckets.get(k)!.length));
+    const keys = [...buckets.keys()].sort(byValue), weight = (k: string) => Math.max(1, Math.sqrt(buckets.get(k)!.length));
     const total = keys.reduce((s, k) => s + weight(k), 0), pad = level === 1 && keys.length > 1 ? 0.04 : 0;
     let start = a0;
     for (const k of keys) {
-      const span = ((a1 - a0) * weight(k)) / total, inner = buckets.get(k)!, id = `${parent ? parent + SEP : ""}${dim}=${k}`;
+      const span = ((a1 - a0) * weight(k)) / total, inner = buckets.get(k)!, id = `${parent ? parent + " / " : ""}${dim}=${k}`;
       const [x, y] = polar(start + span / 2, FIRST_RING + (level - 1) * LEVEL_GAP);
-      groups.push({
-        id, level, dim, value: k, parent, x, y, count: inner.length, mine: inner.filter((n) => n.mine).length,
-        danger: inner.filter((n) => n.grade === "danger").length, caution: inner.filter((n) => n.grade === "caution").length,
-        color: dim === view.color ? colorOf(k) : null,
+      items.push({
+        type: "g", id, level, dim, value: k, parent, x, y, r: HUB_R[level], count: inner.length,
+        mine: inner.filter((n) => n.mine).length, danger: inner.filter((n) => n.grade === "danger").length,
+        caution: inner.filter((n) => n.grade === "caution").length, err: inner.filter((n) => n.collectErrorKind).length,
+        token: dim === color ? tokenOf(k) : null, hollow: k === UNSORTED,
       });
-      place(inner, level + 1, { parent: id, a0: start + span * pad, a1: start + span * (1 - pad) });
+      place(inner, level + 1, id, start + span * pad, start + span * (1 - pad));
       start += span;
     }
   }
-  place(nodes, 1, { parent: null, a0: -Math.PI / 2, a1: (3 * Math.PI) / 2 });
-  const shownKeys = new Set(nodes.map((n) => n.key));
+  place(kept, 1, null, -Math.PI / 2, (3 * Math.PI) / 2);
+  const byId = new Map(items.map((it) => [it.id, it]));
   return {
-    groups, leaves, legend, shown: nodes.length, total: model.nodes.length,
-    compareEdges: model.edges.filter(([a, b]) => shownKeys.has(a) && shownKeys.has(b)),
-    radius: leafR + 2 * LEAF_STEP + 20,
+    items, byId, legend, color, depth, leafR, radius: maxR + 30, shown: kept.length, total: model.nodes.length,
+    edges: model.edges.filter(([a, b]) => byId.has(a) && byId.has(b)),
   };
 }
 
+export function isUnder(L: MapLayout, it: Item, gid: string): boolean {
+  for (let p = it.parent; p; p = L.byId.get(p)?.parent ?? null) if (p === gid) return true;
+  return false;
+}
+
 /** 올린·고른 것과 이어진 것: 묶음이면 위로 가는 길 + 그 아래 전부, 기술이면 위로 가는 길 + 비교군 */
-export function connected(layout: MapLayout, id: string): Set<string> {
-  const parentOf = new Map<string, string | null>([...layout.groups.map((g) => [g.id, g.parent] as const), ...layout.leaves.map((l) => [l.node.key, l.parent] as const)]);
-  const out = new Set<string>([id]);
-  for (let p = parentOf.get(id) ?? null; p; p = parentOf.get(p) ?? null) out.add(p);
-  const isGroup = layout.groups.some((g) => g.id === id);
-  const under = (p: string | null): boolean => { for (let q = p; q; q = parentOf.get(q) ?? null) if (q === id) return true; return false; };
-  if (isGroup) {
-    for (const g of layout.groups) if (under(g.parent)) out.add(g.id);
-    for (const l of layout.leaves) if (under(l.parent)) out.add(l.node.key);
-  } else {
-    for (const [a, b] of layout.compareEdges) if (a === id || b === id) out.add(a === id ? b : a);
-  }
+export function connected(L: MapLayout, id: string): Set<string> {
+  const out = new Set([id]), it = L.byId.get(id);
+  if (!it) return out;
+  for (let p = it.parent; p; p = L.byId.get(p)?.parent ?? null) out.add(p);
+  if (it.type === "g") { for (const x of L.items) if (isUnder(L, x, id)) out.add(x.id); }
+  else for (const [a, b] of L.edges) { if (a === id) out.add(b); if (b === id) out.add(a); }
   return out;
 }
+
+/** 접은 묶음 아래에 있어 안 보이는 것 */
+export const hiddenOf = (L: MapLayout, collapsed: Set<string>) =>
+  new Set(L.items.filter((it) => [...collapsed].some((g) => isUnder(L, it, g))).map((it) => it.id));
+
+/** 처음 펼침: 기술이 많으면(400 넘게) 맨 안쪽 묶음 단계를 접어 둔다 */
+export const defaultCollapsed = (L: MapLayout) =>
+  new Set(L.shown > 400 ? L.items.filter((it) => it.type === "g" && it.level === L.depth).map((it) => it.id) : []);

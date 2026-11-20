@@ -1,3 +1,4 @@
+import { RereadButton } from "./reread-button";
 import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
 import { filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
@@ -30,7 +31,7 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
           {/* 같은 주소로 등록하면 다시 읽기가 된다(registerAndRead) */}
           <form action={registerProject} style={{ display: "inline", marginLeft: "12px" }}>
             <input type="hidden" name="repoUrl" value={project.repo_url} />
-            <button className="btn" type="submit">다시 읽기</button>
+            <RereadButton />
           </form>
         </div>
       )}

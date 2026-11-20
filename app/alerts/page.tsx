@@ -6,6 +6,7 @@ import { toAlertView } from "@/lib/alerts/to-alert-view";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { chipHref, currentOf } from "@/lib/alerts/alert-chips";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
 import "./alerts.css";
 
@@ -30,12 +31,25 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
 function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAlerts>>; params: Params }) {
   const shown = filterAlerts(records, parseAlertFilter(params, new Date())).map(toAlertView);
   const pending = countPending(records);
+  // 칩의 수는 지금 거르기(종류·프로젝트·기간) 안에서 센다: 누르면 보이는 줄 수와 같게
+  const inScope = filterAlerts(records, parseAlertFilter({ ...params, status: "" }, new Date()));
+  const scopedPending = countPending(inScope);
+  const now = { status: currentOf(params.status, ["pending", "done"]), kind: currentOf(params.kind, ["security", "opportunity"]) };
+  const chip = (key: "status" | "kind", value: string, label: string) => (
+    <Link className="chip" href={chipHref(params, key, value)} aria-current={now[key] === value ? "true" : undefined}>{label}</Link>
+  );
   return (
     <>
+      <p className="muted">내 판단이 필요한 것만 와요. 같은 변경은 알림 하나예요.</p>
       <p className="summary">
         {pending > 0 ? <><strong>{pending}건</strong> 판단 대기 중이에요.</> : <>판단 기다리는 알림이 없어요.</>}
       </p>
-      <form className="filters" aria-label="알림 거르기">
+      <nav className="alert-chips" aria-label="빠른 거르기">
+        <div role="group" aria-label="상태">{chip("status", "pending", `판단 대기 ${scopedPending}`)}{chip("status", "done", `완료 ${inScope.length - scopedPending}`)}{chip("status", "", `상태 전체 ${inScope.length}`)}</div>
+        <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "", "종류 전체")}</div>
+      </nav>
+      {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림) */}
+      <form key={JSON.stringify(params)} className="filters" aria-label="알림 거르기">
         <FilterSelect label="종류" name="kind" value={params.kind} options={KIND_OPTIONS} />
         <FilterSelect label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
         <FilterSelect label="프로젝트" name="project" value={params.project} options={projectOptions(records)} />

@@ -1,0 +1,10 @@
+/* 새 기술(/new). 값은 공용 토큰, .alerts의 단추·배지를 함께 쓴다 */
+.new-page { max-width: 960px; }
+.new-group { margin: var(--sp-5) 0; }
+.new-group h2 { margin: 0 0 var(--sp-2); }
+.new-group ul { list-style: none; margin: 0 0 var(--sp-2); padding: 0; border: 1px solid var(--line); border-radius: var(--r-md); }
+.new-row { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); align-items: center; padding: var(--sp-3) var(--sp-4); }
+.new-row + .new-row { border-top: 1px solid var(--line); }
+.new-main { display: grid; flex: 1 1 280px; min-width: 0; overflow-wrap: anywhere; }
+.new-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.new-group > a { display: inline-flex; align-items: center; min-height: var(--hit); }

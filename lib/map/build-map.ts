@@ -1,5 +1,5 @@
 // 첫 화면 기술 지도(PRD-F23, IA-10)에 올릴 점과 비교군 선을 정하는 순수 함수. 자리는 사용자가 고른 묶기 기준에 따라 화면에서 정한다(layout.ts).
-// 프로젝트가 있으면 내 기술(모든 프로젝트 합침) + 확정된 비교군 한 단계(IA-Q5). 없으면 모은 기술 전체.
+// 늘 모은 기술 전체(ADR 0027) + 프로젝트가 있으면 내 기술(모든 프로젝트 합침)과 확정된 비교군 한 단계(IA-Q5, nearMine).
 
 export type Grade = "pass" | "caution" | "danger" | "unknown";
 export const GRADE_RANK: Record<Grade, number> = { danger: 3, caution: 2, unknown: 1, pass: 0 };
@@ -21,15 +21,21 @@ export type MyTechRow = {
   grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
 };
 export type Category = { id: string; name: string; parentId: string | null };
-export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: { a: string; b: string }[]; categories: Category[] };
+export type Relation = { a: string; b: string; quote: string | null };
+export type MarkStatus = "interest" | "candidate" | "hold";
+export type Mark = { techId: string; status: MarkStatus; reason: string | null };
+/** newSince: 이 시각 뒤에 들어온 것만 NEW(카탈로그를 처음 채운 날 들어온 수천 개를 NEW로 치지 않게) */
+export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[]; newSince?: string };
 
 export type MapNode = {
   key: string; name: string; mine: boolean; techId: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
   attrs: Attrs; hostGuessed: boolean; grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
+  /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
 };
-export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][] };
+/** quotes: 비교군 선마다 왜 비교군인지(관리자가 확인한 근거 한 줄), 키는 `a|b`(작은 키가 앞) */
+export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string> };
 
 const DAY = 86_400_000;
 const NEW_DAYS = 7;
@@ -62,7 +68,11 @@ function categoryNames(categoryId: string | null, cats: Map<string, Category>): 
   return { field: cats.get(c.parentId)?.name ?? UNSORTED, sub: c.name };
 }
 
-function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date): MapNode {
+/** 들어온 지 7일 안이고, 처음 채운 날 뒤에 들어온 것 */
+export const isNewTech = (createdAt: string | null, now: Date, newSince?: string) =>
+  (daysSince(createdAt, now) ?? Infinity) < NEW_DAYS && (!newSince || (!!createdAt && Date.parse(createdAt) > Date.parse(newSince))); // 글자 비교는 +00:00·Z가 섞이면 틀린다
+
+function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date, newSince?: string): MapNode {
   const { host, guessed } = hostOf(t?.techKey ?? null, t?.type ?? null, t?.hosts ?? null);
   const grade = t?.grade ?? "unknown";
   return {
@@ -72,7 +82,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: (daysSince(t?.createdAt ?? null, now) ?? Infinity) < NEW_DAYS, lonely: false, label: "",
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null,
   };
 }
 
@@ -87,7 +97,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
   for (const m of input.mine) {
     const key = m.techId ? `tech:${m.techId}` : `name:${(m.manualName ?? "").trim().toLowerCase()}`;
     const t = m.techId ? techById.get(m.techId) : undefined;
-    const n = out.get(key) ?? { ...baseNode(key, t?.name ?? m.manualName ?? "(이름 없음)", t, cats, now), mine: true, grade: m.grade, gradeReason: m.gradeReason, collectErrorKind: null, lastCheckedOkAt: m.lastCheckedOkAt };
+    const n = out.get(key) ?? { ...baseNode(key, t?.name ?? m.manualName ?? "(이름 없음)", t, cats, now, input.newSince), mine: true, grade: m.grade, gradeReason: m.gradeReason, collectErrorKind: null, lastCheckedOkAt: m.lastCheckedOkAt };
     if (GRADE_RANK[m.grade] > GRADE_RANK[n.grade]) Object.assign(n, { grade: m.grade, gradeReason: m.gradeReason });
     n.collectErrorKind = n.collectErrorKind ?? m.collectErrorKind ?? t?.collectErrorKind ?? null;
     n.myTechIds.push(m.id);
@@ -104,22 +114,26 @@ export function buildTechMap(input: MapInput, now: Date): TechMapModel {
   const cats = new Map(input.categories.map((c) => [c.id, c]));
   const techById = new Map(input.techs.map((t) => [t.id, t]));
   const mine = mergeMine(input, techById, cats, now);
-  const mode = mine.size ? "mine" : "catalog";
   const nodes = new Map(mine);
   const edges: [string, string][] = [];
-  if (mode === "mine") {
-    for (const { a, b } of input.relations) { // 한 단계만: 적어도 한쪽이 내 기술인 비교군
-      const ka = `tech:${a}`, kb = `tech:${b}`;
-      if (!mine.has(ka) && !mine.has(kb)) continue;
-      for (const [k, id] of [[ka, a], [kb, b]] as const) if (!nodes.has(k) && techById.has(id)) nodes.set(k, baseNode(k, techById.get(id)!.name, techById.get(id), cats, now));
-      if (nodes.has(ka) && nodes.has(kb)) edges.push(ka < kb ? [ka, kb] : [kb, ka]);
-    }
-  } else {
-    for (const t of input.techs) nodes.set(`tech:${t.id}`, baseNode(`tech:${t.id}`, t.name, t, cats, now));
+  const quotes: Record<string, string> = {};
+  for (const { a, b, quote } of input.relations) { // 한 단계만: 적어도 한쪽이 내 기술인 비교군
+    const ka = `tech:${a}`, kb = `tech:${b}`;
+    if (!mine.has(ka) && !mine.has(kb)) continue;
+    for (const [k, id] of [[ka, a], [kb, b]] as const) if (!nodes.has(k) && techById.has(id)) nodes.set(k, baseNode(k, techById.get(id)!.name, techById.get(id), cats, now, input.newSince));
+    if (!nodes.has(ka) || !nodes.has(kb)) continue;
+    const e: [string, string] = ka < kb ? [ka, kb] : [kb, ka];
+    edges.push(e);
+    if (quote) quotes[e.join("|")] = quote;
   }
+  for (const t of input.techs) if (!nodes.has(`tech:${t.id}`)) nodes.set(`tech:${t.id}`, baseNode(`tech:${t.id}`, t.name, t, cats, now, input.newSince));
+  const marks = new Map((input.marks ?? []).map((m) => [`tech:${m.techId}`, m]));
   const linked = new Set(edges.flat());
   const list = [...nodes.values()];
-  for (const n of list) { n.lonely = n.mine && !linked.has(n.key); n.label = labelOf(n.collectErrorKind, n.lastActivityAt, now); }
+  for (const n of list) {
+    n.lonely = n.mine && !linked.has(n.key); n.nearMine = !n.mine && linked.has(n.key);
+    n.label = labelOf(n.collectErrorKind, n.lastActivityAt, now); n.mark = marks.get(n.key) ?? null;
+  }
   edges.sort((x, y) => (x.join() < y.join() ? -1 : 1));
-  return { mode, nodes: list.sort(byName), edges };
+  return { mode: mine.size ? "mine" : "catalog", nodes: list.sort(byName), edges, quotes };
 }
