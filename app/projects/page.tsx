@@ -16,6 +16,9 @@ import { ArchivedProjects, type ArchivedProject } from "./archived-projects";
 import { ProjectManage } from "./project-manage";
 import { ProjectTechs, type ProjectRow } from "./tech-table";
 
+// 등록 · 다시 읽기(서버 액션)가 이 화면에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간. Hobby 최대(2026-11 공식 문서)
+export const maxDuration = 300;
+
 // 프로젝트 등록과 내 기술 목록(IA-2·3, P-3·P-11). 기술을 누르면 기술 상세(IA-4). 내 실행 기록 탭은 ./runs, 설치 프롬프트는 ./install.
 type Query = { error?: string; notice?: string; audit?: string; grade?: string; project?: string; hidden?: string; q?: string };
 
@@ -77,7 +80,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </label>
         <button className="btn btn-primary" type="submit">등록하고 읽기</button>
       </form>
-      <p className="muted">package.json, requirements.txt, .mcp.json, .cursor/mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
+      <p className="muted">package.json, requirements.txt, .mcp.json, .claude/skills와 Cursor · VS Code · Gemini CLI의 MCP 설정(.cursor/mcp.json · .vscode/mcp.json · .gemini/settings.json)에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
       {noticeText && <p className="notice notice-empty" role="status">{noticeText}</p>}
       {staleProject && <p className="notice notice-empty" role="status">그 프로젝트는 보관했거나 없어서 보여 줄 수 없어요. <Link href="/projects">전체 보기</Link></p>}

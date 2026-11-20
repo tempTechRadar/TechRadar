@@ -115,3 +115,8 @@ test("그 기술을 쓰는 사람마다 보안 알림 1건, 다른 기술을 쓰
     ],
   );
 });
+
+test("모델 지원 종료 변경은 같은 길로 사람마다 하나, 알림 종류는 model_eol(SPEC-3.3)", () => {
+  const alerts = decideAlerts({ change: { ...change, kind: "model_eol" }, usages: [usage(), usage({ myTechnologyId: "mytech-a2" })], existingAlertKeys: new Set() });
+  assert.deepEqual(alerts.map((a) => [a.kind, a.myTechnologyId]), [["model_eol", "mytech-a1"]]);
+});

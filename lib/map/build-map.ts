@@ -4,6 +4,9 @@
 export type Grade = "pass" | "caution" | "danger" | "unknown";
 export const GRADE_RANK: Record<Grade, number> = { danger: 3, caution: 2, unknown: 1, pass: 0 };
 export const GRADE_KO: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
+/** 개념(작업 방식) 노드는 설치물이 아니라 등급이 없다(ADR 0008 2항): "찾지 못함"으로 보이면 확인에 실패한 것처럼 읽힌다 */
+export const NO_GRADE = "등급 없음";
+export const isConcept = (techKey?: string | null, type?: string | null) => type === "concept" || Boolean(techKey?.startsWith("concept:"));
 export const KIND_KO: Record<string, string> = { mcp: "MCP", skill: "스킬", plugin: "플러그인", sdk: "패키지", model: "모델", service: "연동 서비스", concept: "개념" };
 export const UNSORTED = "분류 전";
 
@@ -17,7 +20,7 @@ export type CatalogTech = {
   collectErrorKind: string | null; signals: Record<string, unknown> | null;
 };
 export type MyTechRow = {
-  id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string;
+  id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string; sourceFile?: string | null;
   grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
 };
 export type Category = { id: string; name: string; parentId: string | null };
@@ -33,6 +36,7 @@ export type MapNode = {
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
+  /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
 };
 /** quotes: 비교군 선마다 왜 비교군인지(관리자가 확인한 근거 한 줄), 키는 `a|b`(작은 키가 앞) */
 export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string> };
@@ -61,6 +65,17 @@ export function hostOf(techKey: string | null, type: string | null, hosts: strin
   return { host, guessed: true };
 }
 
+/** 내 기술은 읽은 파일로 쓰는 곳을 안다(PRD-F39): 추정이 아니다. 모르는 파일 · 직접 추가는 null(카탈로그 추정을 쓴다) */
+export function hostOfSource(sourceFile: string | null | undefined): string | null {
+  if (!sourceFile) return null;
+  if (sourceFile === ".mcp.json" || sourceFile.startsWith(".claude/")) return "Claude Code";
+  if (sourceFile.startsWith(".cursor/")) return "Cursor";
+  if (sourceFile.startsWith(".vscode/")) return "VS Code";
+  if (sourceFile.startsWith(".gemini/")) return "Gemini CLI";
+  if (sourceFile === "package.json" || sourceFile === "requirements.txt") return "앱 코드";
+  return null;
+}
+
 function categoryNames(categoryId: string | null, cats: Map<string, Category>): { field: string; sub: string } {
   const c = categoryId ? cats.get(categoryId) : undefined;
   if (!c) return { field: UNSORTED, sub: UNSORTED };
@@ -77,12 +92,12 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
   const grade = t?.grade ?? "unknown";
   return {
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
-    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: GRADE_KO[grade], project: "내 프로젝트 아님" },
+    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null,
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,
   };
 }
 
@@ -94,6 +109,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
   for (const m of input.mine) idsByName.set(m.projectName, (idsByName.get(m.projectName) ?? new Set()).add(m.projectId));
   const projectLabel = (n: MapNode) => (n.projectIds.length > 1 ? "여러 프로젝트"
     : (idsByName.get(n.projectNames[0])?.size ?? 0) > 1 ? `${n.projectNames[0]} (${n.projectIds[0].slice(0, 4)})` : n.projectNames[0]);
+  const fileHosts = new Map<string, Set<string>>(); // 기술마다 읽은 파일로 안 쓰는 곳
   for (const m of input.mine) {
     const key = m.techId ? `tech:${m.techId}` : `name:${(m.manualName ?? "").trim().toLowerCase()}`;
     const t = m.techId ? techById.get(m.techId) : undefined;
@@ -101,8 +117,15 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
     if (GRADE_RANK[m.grade] > GRADE_RANK[n.grade]) Object.assign(n, { grade: m.grade, gradeReason: m.gradeReason });
     n.collectErrorKind = n.collectErrorKind ?? m.collectErrorKind ?? t?.collectErrorKind ?? null;
     n.myTechIds.push(m.id);
+    // 카탈로그가 쓰는 곳을 정하지 않았을 때만 읽은 파일로 정한다. 다른 도구 파일에서도 쓰면 "여러 도구"
+    const fromFile = hostOfSource(m.sourceFile);
+    if (fromFile && (n.hostGuessed || fileHosts.has(key))) {
+      const seen = fileHosts.get(key) ?? new Set<string>();
+      seen.add(fromFile); fileHosts.set(key, seen);
+      n.attrs = { ...n.attrs, host: seen.size > 1 ? "여러 도구" : fromFile }; n.hostGuessed = false;
+    }
     if (!n.projectIds.includes(m.projectId)) n.projectIds.push(m.projectId), n.projectNames.push(m.projectName);
-    n.attrs = { ...n.attrs, grade: GRADE_KO[n.grade], project: projectLabel(n) };
+    n.attrs = { ...n.attrs, grade: isConcept(null, n.type) ? NO_GRADE : GRADE_KO[n.grade], project: projectLabel(n) };
     out.set(key, n);
   }
   return out;

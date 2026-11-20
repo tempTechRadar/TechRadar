@@ -84,7 +84,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <>
       <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dd>{/^https?:\/\//i.test(value) ? <a href={value} target="_blank" rel="noreferrer">{value}</a> : value}</dd>
     </>
   );
 }

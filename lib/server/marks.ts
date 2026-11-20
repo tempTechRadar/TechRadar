@@ -36,3 +36,14 @@ export async function saveMark(db: SupabaseClient, request: MarkRequest): Promis
   }
   return { ok: true, judgedAlerts: (data as string[] | null) ?? [] };
 }
+
+/** 기술 상세의 판단 줄: 내 표시(본인 것만)와, DB 규칙(set_tech_mark)이 보는 카탈로그 등급. 못 읽으면 던진다(빈 단추로 보이지 않게, 불변 2) */
+export async function readMarkForTech(db: SupabaseClient, userId: string, techId: string): Promise<{ mark: { techId: string; status: MarkStatus; reason: string | null } | null; grade: "pass" | "caution" | "danger" | "unknown" }> {
+  const [m, t] = await Promise.all([
+    db.from("tech_marks").select("status, reason").eq("user_id", userId).eq("tech_id", techId).maybeSingle(),
+    db.from("technologies").select("grade").eq("id", techId).maybeSingle(),
+  ]);
+  if (m.error) throw new Error(`내 판단 표시를 읽지 못함: ${maskSecrets(m.error.message)}`);
+  if (t.error || !t.data) throw new Error(`기술 등급을 읽지 못함: ${maskSecrets(t.error?.message ?? "없음")}`);
+  return { mark: m.data ? { techId, status: m.data.status as MarkStatus, reason: (m.data.reason as string | null) ?? null } : null, grade: t.data.grade };
+}

@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { draftOf, isOfficialOrg, onlyLatest, patchFor, readRegistryPage, registryLink, rowFor, techFromEntry, type ExistingTech, type RegistryEntry } from "./registry.ts";
+import { draftOf, isOfficialOrg, onlyLatest, patchFor, readRegistryPage, registryLink, rowFor, techFromEntry, type ExistingTech, type RegistryEntry, BULK_MARK_SINCE, isBulkFilled, REGISTRY_BASE } from "./registry.ts";
 
 const entry = (over: Partial<RegistryEntry> = {}): RegistryEntry => ({
-  name: "io.github.someone/tool", title: null, description: null, packages: [], repoUrl: null, status: "active", isLatest: true, ...over,
+  name: "io.github.someone/tool", title: null, description: null, packages: [], repoUrl: null, status: "active", isLatest: true, publishedAt: null, ...over,
 });
 const META = (status: string, isLatest = true) => ({ "io.modelcontextprotocol.registry/official": { status, updatedAt: "2026-11-17T00:00:00Z", isLatest } });
 const page = (servers: unknown[], nextCursor?: unknown) => JSON.stringify({ servers, metadata: { nextCursor, count: servers.length } });
@@ -26,7 +26,7 @@ test("readRegistryPage: 서버 이름·제목·설명·패키지·저장소·상
     { server: { name: "a/b", title: "T", description: "D", version: "2.0.0", packages: [{ registryType: "npm", identifier: "@a/b" }, { registryType: 3 }, null], repository: { url: "https://github.com/a/b" }, websiteUrl: "https://a.example" }, _meta: META("deprecated", false) },
   ]);
   const p = readRegistryPage(text)!;
-  assert.deepEqual(p.entries[0], { name: "a/b", title: "T", description: "D", packages: [{ registryType: "npm", identifier: "@a/b" }], repoUrl: "https://github.com/a/b", status: "deprecated", isLatest: false });
+  assert.deepEqual(p.entries[0], { name: "a/b", title: "T", description: "D", packages: [{ registryType: "npm", identifier: "@a/b" }], repoUrl: "https://github.com/a/b", status: "deprecated", isLatest: false, publishedAt: null });
   assert.equal(p.nextCursor, null);
 });
 
@@ -128,7 +128,9 @@ test("rowFor: 새 줄은 얇게(type mcp, 설명이 있으면 출처 링크와 �
   assert.deepEqual(rowFor(draft({ title: "T", description: "설명", repoUrl: "https://github.com/a/b" })), {
     tech_key: "mcp:io.github.someone/tool", display_name: "T", type: "mcp", depth: "thin", thick_reasons: null, status: "active",
     one_liner: "설명", one_liner_source: "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.someone%2Ftool", repo_url: "https://github.com/a/b", is_official: false,
+    signals: { registry_backfill: false },
   });
+  assert.deepEqual(rowFor({ ...draft({}), bulk: true }).signals, { registry_backfill: true }, "대량 채우기면 표시");
   const official = rowFor(draft({ name: "io.github.openai/codex" }, ["io.github.openai"]));
   assert.deepEqual([official.depth, official.thick_reasons, official.is_official, official.one_liner_source], ["thick", ["official"], true, null]); // 설명이 없으면 출처 링크도 없다
 });
@@ -168,4 +170,23 @@ test("patchFor: 공식 조직이면 두껍게 올린다(이미 두꺼우면 이�
   assert.deepEqual(official({ depth: "thick", thick_reasons: ["used"] }), { thick_reasons: ["used", "official"], is_official: true });
   assert.deepEqual(official({ depth: "thick", thick_reasons: ["official"], is_official: true }), {});
   assert.deepEqual(patchFor(ex({ depth: "thick", thick_reasons: ["used"] }), draft()), {}); // 사용자가 쓰는 두꺼운 줄은 그대로
+});
+
+test("onlyLatest: 올라간 시각은 같은 이름의 가장 이른 버전(새 버전을 낸 옛 서버가 새로 나온 것이 되지 않게). 날짜가 아니면 무시", () => {
+  const list = [
+    entry({ name: "a", isLatest: false, publishedAt: "2025-03-01T00:00:00Z" }), entry({ name: "a", isLatest: true, publishedAt: "2026-11-20T00:00:00Z" }),
+    entry({ name: "b", isLatest: true, publishedAt: null }),
+  ];
+  assert.deepEqual(onlyLatest(list).map((e) => [e.name, e.publishedAt]), [["a", "2025-03-01T00:00:00.000Z"], ["b", null]]);
+  const meta = { "io.modelcontextprotocol.registry/official": { status: "active", isLatest: true, publishedAt: "어제" } };
+  assert.equal(readRegistryPage(JSON.stringify({ servers: [{ server: { name: "c/d" }, _meta: meta }] }))!.entries[0].publishedAt, null);
+});
+
+test("isBulkFilled: 표시가 있으면 그대로, 표시 전(BULK_MARK_SINCE 전)의 레지스트리 줄은 대량 채우기, 그 뒤에 레지스트리 설명을 받은 다른 줄은 아님", () => {
+  const reg = `${REGISTRY_BASE}v0.1/servers?search=x`;
+  assert.equal(isBulkFilled({ signals: { registry_backfill: true } }), true);
+  assert.equal(isBulkFilled({ signals: { registry_backfill: false }, one_liner_source: reg, created_at: "2026-11-20T00:00:00Z" }), false);
+  assert.equal(isBulkFilled({ signals: null, one_liner_source: reg, created_at: "2026-11-20T00:00:00Z" }), true);
+  assert.equal(isBulkFilled({ signals: null, one_liner_source: reg, created_at: BULK_MARK_SINCE }), false, "사용자 저장소에서 생기고 나중에 레지스트리 설명을 받은 줄");
+  assert.equal(isBulkFilled({ signals: null, one_liner_source: "https://example.com/x", created_at: "2026-11-20T00:00:00Z" }), false);
 });

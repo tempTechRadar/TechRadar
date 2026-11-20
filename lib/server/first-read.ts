@@ -6,10 +6,13 @@ import { getServiceSupabase } from "./service-supabase.ts";
 import { startRun, recordStep, finishRun, type RunResult, type RunTrigger } from "./run-log.ts";
 import { readLatestChange, saveChange } from "./changes.ts";
 import { notifyOwner } from "./notify-owner.ts";
-import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, queryOsv, type ErrorKind } from "./collect-fetch.ts";
+import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, errorKindOf, fetchText, messageOf, queryOsv, rawFileUrl, type ErrorKind } from "./collect-fetch.ts";
 import { REPO_FILES, readRepoFile, requirementIncludes, type FoundTech } from "../domain/manifest.ts";
 import { SKILLS_DIR } from "../domain/skills.ts";
 import { readSkills } from "./read-skills.ts";
+import { CODE_FILES, readModels } from "./read-models.ts";
+import { eolOfKey } from "../domain/model-eol.ts";
+import { detectConcepts, detectServices } from "../domain/services.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
 
@@ -53,9 +56,16 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   // 목록이 전부가 아닐 수 있다는 안내(soft, requirements.txt의 -r)는 읽은 기술 줄의 잘못이 아니라서 줄에 딱지를 붙이지 않는다.
   for (const f of fileErrors.filter((e) => !e.soft)) {
     // 스킬 폴더 오류는 그 아래 스킬 줄(".claude/skills/<이름>") 모두, 한도로 일부만 읽었으면 그중 이번에 못 읽은 줄만 대상이다
+    // 코드 파일 쪽 오류: 이 프로젝트에서 이번에 다시 보지 못한 줄만(읽은 줄은 덮지 않음). 파일 목록 자체를 못 읽었으면 목록으로 찾는 연동 서비스 · 개념까지,
+    // 목록은 읽었고 코드 파일 일부만 못 봤으면(onlyUnread) 모델 줄만: 서비스 · 개념은 목록과 package.json으로 이미 다시 확인했다
+    const modelIds = f.path === CODE_FILES ? await modelRowIds(db, projectId, f.onlyUnread ? ["model"] : ["model", "service", "concept"]) : null;
+    if (modelIds?.length === 0) continue;
     const q = db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId);
+    const unread = `read_at.is.null,read_at.lt."${readAt}"`;
     const skillRows = () => q.like("source_file", `${SKILLS_DIR}/%`);
-    const r = await (f.path !== SKILLS_DIR ? q.eq("source_file", f.path) : f.onlyUnread ? skillRows().or(`read_at.is.null,read_at.lt."${readAt}"`) : skillRows());
+    let r;
+    if (modelIds) r = await q.in("id", modelIds).or(unread);
+    else r = await (f.path !== SKILLS_DIR ? q.eq("source_file", f.path) : f.onlyUnread ? skillRows().or(unread) : skillRows());
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
   if (dropped.length) {
@@ -76,7 +86,7 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
 
   // 위험이면 변경 저장은 늘 부른다: 같은 키면 이미 있는 변경이 돌아온다(불변 3). 두 번째 사용자는 그 변경에 알림만 새로 생긴다(SPEC-3.1).
   let changesCreated = 0;
-  const saved: { id: string; techId: string }[] = [];
+  const saved: { id: string; techId: string; kind?: "model_eol" }[] = [];
   for (const g of events) {
     // 위험이 이미 이어지는 중이면(정기 OSV 확인이 회차를 올렸을 수 있다) 가장 최근 변경에 알림을 잇는다. 회차를 늘 1로 두면 오래된 변경에 붙고,
     // 다음 정기 확인이 최근 변경에 같은 사람의 알림을 하나 더 만든다.
@@ -96,7 +106,19 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   }
   // 나간 건수 = 들어온 건수: 위험 변경마다 새로 만들었든 이미 있든 이 읽기에서 내가 만난 것으로 센다. 새로 만든 수(changesCreated)를 적으면
   // 다른 사람이 먼저 읽었다는 사실이 내 실행 기록(RLS로 내가 읽음)에 드러난다(불변 5). 새로 만든 수는 돌려주는 값에만 둔다.
-  await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: events.length, countOut: events.length });
+  // 모델 지원 종료(SPEC-3.3): 코드에 쓴 모델이 공식 종료 표에 있으면 변경 하나. 같은 모델 · 같은 종료일은 다시 읽어도 한 번(불변 3)
+  const eol = found.flatMap((f) => { const n = f.tech ? eolOfKey(f.tech.key) : undefined; return n ? [{ f, n }] : []; });
+  for (const { f, n } of eol) {
+    const techId = techIds.get(f.tech!.key)!;
+    const change = await saveChange(db, {
+      kind: "model_eol", techId, tech: f.tech!, causeId: `eol:${n.retireOn}`,
+      currValue: { model: n.model, provider: n.provider, retire_on: n.retireOn, replacement: n.replacement, source: n.source },
+    });
+    if (change.created) changesCreated++;
+    saved.push({ id: change.id, techId, kind: "model_eol" });
+  }
+  const changeCount = events.length + eol.length;
+  await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: changeCount, countOut: changeCount });
   await notifyOwner(db, ctx, saved);
 
   const errors = fileErrors.length + osvErrors;
@@ -121,9 +143,9 @@ async function closedRepoErrors(repo: RepoRef, already: FileError[]): Promise<Fi
     await assertRepoPublic(repo);
     return [];
   } catch (e) {
-    const message = String(e instanceof Error ? e.message : e);
+    const message = messageOf(e);
     // 스킬 폴더도 같은 저장소 안이라 함께 못 읽은 것: 전에 읽은 스킬 줄도 수집 오류로(목록 404를 "스킬 없음"으로 읽지 않게, 불변 2)
-    return [...REPO_FILES, SKILLS_DIR].filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
+    return [...REPO_FILES, SKILLS_DIR, CODE_FILES].filter((path) => !already.some((f) => f.path === path)).map((path) => ({ path, kind: errorKindOf(e), message }));
   }
 }
 
@@ -133,13 +155,13 @@ async function fetchRepoFiles(repo: RepoRef) {
   const fileErrors: FileError[] = [];
   const fetched = await Promise.all(REPO_FILES.map(async (path) => {
     try {
-      return { path, text: await fetchText(`https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/HEAD/${path}`) } as const;
+      return { path, text: await fetchText(rawFileUrl(repo, path)) } as const;
     } catch (e) {
       return { path, failure: e } as const;
     }
   }));
   for (const f of fetched) {
-    if ("failure" in f) fileErrors.push({ path: f.path, kind: errorKindOf(f.failure), message: String(f.failure instanceof Error ? f.failure.message : f.failure) });
+    if ("failure" in f) fileErrors.push({ path: f.path, kind: errorKindOf(f.failure), message: messageOf(f.failure) });
     else if (f.text !== null) files.push({ path: f.path, text: f.text });
   }
   if (files.length === 0 && fileErrors.length < REPO_FILES.length) fileErrors.push(...(await closedRepoErrors(repo, fileErrors)));
@@ -151,15 +173,18 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const { files, fileErrors } = await fetchRepoFiles(repo);
   // 스킬 폴더(PRD-F6): 폴더 목록 1번 + 폴더마다 SKILL.md. 폴더가 없으면 읽은 스킬이 없을 뿐이고, 못 읽었으면 수집 오류다.
   const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
-  const skills = closed ? { found: [], errors: [], folders: 0 } : await readSkills(repo);
-  fileErrors.push(...skills.errors);
+  // 코드 속 지원 종료 모델(PRD-F38)도 같은 저장소의 서로 모르는 읽기라 함께 돈다
+  const [skills, models] = closed
+    ? [{ found: [], errors: [], folders: 0 }, { found: [], errors: [], scanned: 0, treePaths: [] }]
+    : await Promise.all([readSkills(repo), readModels(repo)]);
+  fileErrors.push(...skills.errors, ...models.errors);
   await recordStep(db, runId, {
     stepName: "fetch_repo",
     status: fileErrors.length ? "failed" : "succeeded",
     inputSummary: repo.url,
-    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}`,
-    countIn: REPO_FILES.length + skills.folders,
-    countOut: files.length + skills.found.length,
+    outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}${models.scanned ? ` · 코드 파일 ${models.scanned}개` : ""}`,
+    countIn: REPO_FILES.length + skills.folders + models.scanned,
+    countOut: files.length + skills.found.length + models.scanned,
     errorKind: fileErrors[0]?.kind,
     errorMessage: [...new Set(fileErrors.map((f) => f.message))].join("; ") || undefined,
   });
@@ -185,26 +210,33 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
     const prev = f.tech && best.get(f.tech.key);
     if (f.tech && (!prev || (prev.tech?.version == null && f.tech.version !== null))) best.set(f.tech.key, f);
   }
-  // 기술 키가 없는 서버(별명만)도 같은 별명이면 앞 파일 한 줄만: my_technologies (project_id, manual_name) UK이고, 한 번의 upsert에 같은 줄이 둘이면 DB가 거절해 등록·다시 읽기가 통째로 실패한다
-  const aliases = new Set<string>();
-  const unique = found.filter((f) => {
-    if (f.tech) return best.get(f.tech.key) === f;
-    if (aliases.has(f.name)) return false;
-    aliases.add(f.name);
-    return true;
-  });
+  // 키 없는 줄(별명만)은 (project_id, manual_name) UK라 같은 별명은 앞 파일 하나만: 두 도구 설정에 같은 별명이 있어도 저장이 깨지지 않게
+  const firstByName = new Map<string, FoundTech>();
+  for (const f of found) if (!f.tech && !firstByName.has(f.name)) firstByName.set(f.name, f);
+  const unique = found.filter((f) => (f.tech ? best.get(f.tech.key) === f : firstByName.get(f.name) === f));
+  // 연동 서비스 · 개념(PRD-F40): SDK(package.json · requirements.txt)와 파일 목록으로. 정해 둔 목록에서만 나온다
+  const modelList = [...firstPerKey(models.found), ...detectServices(files, models.treePaths), ...detectConcepts(models.treePaths)];
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
-    countIn: files.length + skills.found.length,
-    countOut: unique.length,
-    outputSummary: unique.map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
+    countIn: files.length + skills.found.length + models.scanned,
+    countOut: unique.length + modelList.length,
+    outputSummary: [...unique, ...modelList].map((f) => f.tech?.key ?? `찾지 못함:${f.name}`).join(", "),
     errorKind: fileErrors.find((f) => f.kind === "parse") && "parse",
     errorMessage: fileErrors.filter((f) => f.kind === "parse").map((f) => f.message).join("; ") || undefined,
   });
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
   // 스킬을 하나라도 읽었으면 해석한 것이 있다(저장소 파일이 없고 스킬만 있는 저장소도 실패가 아니다)
-  return { found: unique.slice(0, MAX_TECHS), dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length };
+  // 모델 · 연동 서비스 · 개념은 OSV를 부르지 않고 정해 둔 목록에서만 나와(수가 정해져 있다) 기술 수 한도 밖에 둔다: 의존성이 많은 저장소에서 먼저 잘리지 않게.
+  // 코드 파일을 하나라도 열었으면 해석한 것이 있다(모델이 없어도)
+  return { found: [...unique.slice(0, MAX_TECHS), ...modelList], dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length + models.scanned };
+}
+
+/** 같은 모델이 여러 파일에 있으면 앞 파일 하나(my_technologies (project_id, tech_id) UK) */
+function firstPerKey(found: FoundTech[]): FoundTech[] {
+  const first = new Map<string, FoundTech>();
+  for (const f of found) if (!first.has(f.tech!.key)) first.set(f.tech!.key, f);
+  return [...first.values()];
 }
 
 /** 포함 경로는 믿을 수 없는 글이라 오류 메시지에 길게 싣지 않는다: 앞 3개, 하나당 80자까지 */
@@ -247,6 +279,13 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
   const byGrade = graded.reduce<Record<string, number>>((m, g) => ({ ...m, [g.result.grade]: (m[g.result.grade] ?? 0) + 1 }), {});
   await recordStep(db, runId, { stepName: "grade", status: "succeeded", countIn: graded.length, countOut: graded.length, branchCounts: byGrade });
   return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length };
+}
+
+/** 이 프로젝트에서 파일 목록 · 코드 파일로 찾는 줄(종류 model · service · concept 중 고른 것) id */
+async function modelRowIds(db: SupabaseClient, projectId: string, types: string[]): Promise<string[]> {
+  const r = await db.from("my_technologies").select("id, technologies!inner(type)").eq("project_id", projectId).in("technologies.type", types);
+  if (r.error) throw new Error(`모델 줄을 읽지 못함: ${r.error.message}`);
+  return (r.data as { id: string }[]).map((row) => row.id);
 }
 
 async function findProject(db: SupabaseClient, ownerId: string, repoUrl: string): Promise<string | null> {

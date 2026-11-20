@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildTechMap, hostOf, labelOf, type MapInput } from "./build-map.ts";
+import { buildTechMap, hostOf, hostOfSource, labelOf, type MapInput } from "./build-map.ts";
 
 import { NOW, ago, mine, tech } from "./test-fixtures.ts";
 
@@ -20,6 +20,7 @@ test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 
   assert.deepEqual(m.nodes[2].mark, { techId: "c", status: "hold", reason: "다음 달에 보기" });
   const a = m.nodes[0];
   assert.deepEqual([a.mine, a.grade, a.gradeReason, a.myTechIds, a.projectNames, a.attrs.grade, a.attrs.project], [true, "danger", "취약점", ["m1", "m2"], ["앱", "다른 앱"], "위험", "여러 프로젝트"]);
+  assert.equal(a.catalogGrade, "pass", "판단 줄은 DB 규칙과 같은 카탈로그 등급을 본다");
   assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
 });
 
@@ -63,4 +64,24 @@ test("내 프로젝트로 묶을 값: 이름이 같은 두 프로젝트는 갈�
     techs: [tech("a"), tech("b"), tech("c")],
   }), NOW);
   assert.deepEqual(m.nodes.map((n) => n.attrs.project), ["web (aaaa)", "web (bbbb)", "앱"]);
+});
+
+test("내 기술의 쓰는 곳은 읽은 파일로 안다(추정 아님, PRD-F39): Cursor · VS Code · Gemini CLI · Claude Code · 앱 코드", () => {
+  assert.deepEqual([".cursor/mcp.json", ".vscode/mcp.json", ".gemini/settings.json", ".mcp.json", ".claude/skills/x", "package.json", null].map(hostOfSource),
+    ["Cursor", "VS Code", "Gemini CLI", "Claude Code", "Claude Code", "앱 코드", null]);
+  const m = buildTechMap(input({ mine: [mine("m1", "a", { sourceFile: ".cursor/mcp.json" })], techs: [tech("a")] }), NOW);
+  assert.deepEqual([m.nodes[0].attrs.host, m.nodes[0].hostGuessed], ["Cursor", false]);
+});
+
+test("쓰는 곳: 카탈로그가 정한 값은 그대로, 정하지 않았으면 읽은 파일로, 다른 도구 파일에서도 쓰면 여러 도구", () => {
+  const set = buildTechMap(input({ mine: [mine("m1", "a", { sourceFile: "package.json" })], techs: [tech("a", { hosts: ["Claude Code"] })] }), NOW);
+  assert.equal(set.nodes[0].attrs.host, "Claude Code", "관리자가 정한 쓰는 곳은 덮어쓰지 않는다");
+  const two = buildTechMap(input({ mine: [mine("m1", "a", { sourceFile: ".cursor/mcp.json" }), mine("m2", "a", { projectId: "p2", sourceFile: ".mcp.json" })], techs: [tech("a")] }), NOW);
+  assert.equal(two.nodes[0].attrs.host, "여러 도구");
+});
+
+test("개념(작업 방식) 노드는 등급 칸이 '등급 없음'이다: 카탈로그 줄 · 내 기술 줄 둘 다(ADR 0008)", () => {
+  const concept = tech("h", { type: "concept", techKey: "concept:harness", grade: "unknown" });
+  const m = buildTechMap(input({ techs: [concept, tech("x", { grade: "unknown" })], mine: [mine("m1", "h", { grade: "unknown" })] }), NOW);
+  assert.deepEqual(m.nodes.map((n) => [n.key, n.attrs.grade]), [["tech:h", "등급 없음"], ["tech:x", "찾지 못함"]]);
 });

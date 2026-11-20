@@ -4,7 +4,7 @@
 import { repoApiUrl } from "../domain/github-repo.ts";
 import type { FoundTech } from "../domain/manifest.ts";
 import { SKILLS_DIR, SKILL_FILE, skillFolderNames, skillFromFolder } from "../domain/skills.ts";
-import { CollectError, errorKindOf, fetchText, type ErrorKind } from "./collect-fetch.ts";
+import { CollectError, errorKindOf, fetchText, messageOf, rawFileUrl, type ErrorKind } from "./collect-fetch.ts";
 
 // shortcut: 읽기 한 번에 스킬 30개까지(폴더마다 SKILL.md 요청 1번, 한꺼번에). 넘는 폴더가 흔해지면 한도와 동시 요청 수를 함께 손본다.
 const MAX_SKILLS = 30;
@@ -13,12 +13,9 @@ const MAX_SKILLS = 30;
 export type SkillError = { path: string; kind: ErrorKind; message: string; onlyUnread?: boolean };
 export type SkillRead = { found: FoundTech[]; errors: SkillError[]; folders: number };
 
-const messageOf = (e: unknown) => String(e instanceof Error ? e.message : e);
 
 export async function readSkills(repo: { owner: string; repo: string }): Promise<SkillRead> {
   const out: SkillRead = { found: [], errors: [], folders: 0 };
-  const o = encodeURIComponent(repo.owner);
-  const r = encodeURIComponent(repo.repo);
   let names: string[];
   try {
     const listing = await fetchText(`${repoApiUrl(repo)}/contents/${SKILLS_DIR}`, { headers: { Accept: "application/vnd.github+json" } });
@@ -35,7 +32,7 @@ export async function readSkills(repo: { owner: string; repo: string }): Promise
   if (names.length > MAX_SKILLS) out.errors.push({ path: SKILLS_DIR, kind: "parse", message: `스킬 폴더가 ${names.length}개라 앞의 ${MAX_SKILLS}개만 읽음`, onlyUnread: true });
   const reads = await Promise.all(names.slice(0, MAX_SKILLS).map(async (name) => {
     try {
-      return { name, md: await fetchText(`https://raw.githubusercontent.com/${o}/${r}/HEAD/${SKILLS_DIR}/${encodeURIComponent(name)}/${SKILL_FILE}`) };
+      return { name, md: await fetchText(rawFileUrl(repo, `${SKILLS_DIR}/${name}/${SKILL_FILE}`)) };
     } catch (e) {
       return { name, failure: e };
     }

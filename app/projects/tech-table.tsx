@@ -1,7 +1,7 @@
 import { RereadButton } from "./reread-button";
 import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
-import { filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
+import { filesOf, filterTechs, GRADE_TONE, gradeText, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import { registerProject } from "./actions";
 import { toggleHidden } from "./tech-actions";
@@ -38,7 +38,26 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
       {notice && <p className="notice notice-error" role="status">{notice}</p>}
       {hiddenCount > 0 && !filter.showHidden && <p className="muted">숨긴 기술 {hiddenCount}개는 목록에서 뺐어요. '숨긴 기술도 보기'를 켜면 되돌릴 수 있어요.</p>}
       {shown.length === 0 ? (emptyText && <p>{emptyText}</p>) : <TechTable techs={shown} back={back} />}
+      {project.kind === "repo" ? <ReadFiles techs={project.my_technologies} notice={notice} /> : null}
     </section>
+  );
+}
+
+/** 읽은 결과를 파일마다(design.md 18절). 확인에 실패한 기술이 있거나 마지막 읽기가 끝까지 되지 않았으면 펼쳐 두고 왜 펼쳤는지 적는다 */
+function ReadFiles({ techs, notice }: { techs: MyTech[]; notice: string | null }) {
+  const files = filesOf(techs);
+  const bad = files.filter((f) => f.errors).length;
+  if (!files.length && !notice) return null;
+  return (
+    <details className="read-files" open={bad > 0 || !!notice}>
+      <summary>기술이 나온 파일 {files.length}개{bad ? ` · 확인에 실패한 기술이 있는 파일 ${bad}개` : ""}{notice ? " · 마지막 읽기가 끝까지 되지 않았어요" : ""}</summary>
+      <ul>{files.map((f) => (
+        <li key={f.path}><code>{f.path}</code> · 기술 {f.count}개{f.errors
+          ? <> · <span className="badge badge-warning">확인 실패 {f.errors}개</span> <span className="muted">지난번 값을 보여 줘요(사라진 게 아니에요). 어느 기술인지는 위 목록의 &quot;수집 오류&quot;</span></>
+          : null}</li>
+      ))}</ul>
+      <p className="muted">숨긴 기술은 세지 않아요. 기술이 하나도 남지 않은 파일과 파일마다 읽었는지는 <Link href="/projects/runs">실행 기록</Link>의 &quot;저장소 받기&quot; 단계에서 볼 수 있어요.</p>
+    </details>
   );
 }
 
@@ -70,7 +89,7 @@ function TechRow({ m, back }: { m: MyTech; back: string }) {
         <span className="source">버전 {m.version ?? "모름"}</span>
       </th>
       <td data-label="등급">
-        <span className={`badge badge-${GRADE_TONE[m.grade]}`}>{GRADE_LABEL[m.grade]}</span>
+        <span className={`badge badge-${GRADE_TONE[m.grade]}`}>{gradeText(m.grade, m.technologies?.tech_key)}</span>
         {m.collect_error_kind && (
           <>
             {" "}

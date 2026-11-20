@@ -17,8 +17,8 @@ const sweepAngle = (S: MapState, now: number) => -Math.PI / 2 + ((now - S.sweepS
 /** 훑는 선: 첫 바퀴는 진하게, 그 뒤 점점 옅어져 사라진다(사용자 11-20). 시작 전은 0 */
 const sweepAlpha = (S: MapState, now: number) => { const t = now - S.sweepStart; return S.still || !(t >= 0) ? 0 : t < PERIOD ? 1 : Math.exp(-(t - PERIOD) / 3.5); };
 const angleOf = (x: number, y: number) => (Math.atan2(y, x) + Math.PI / 2 + TAU) % TAU;
-/** 처음 들어올 때: 훑는 선이 지나간 자리부터 나타난다 */
-const reveal = (S: MapState, it: Item, now: number) => { if (S.still) return 1; const at = S.sweepStart + (angleOf(it.x, it.y) / TAU) * PERIOD; return Math.max(0, Math.min(1, (now - at) / 0.3)); };
+// 점은 처음부터 다 보인다(훑는 선은 꾸밈과 위험·NEW 울림만): 선을 따라 나타나면 다 보이기까지 한 바퀴(4초)가 더 걸려
+// 첫 화면 3초(PRD-NF3)를 넘겨서(11-20 사용자 결정)
 const bumpOf = (age: number) => (age >= 0 && age < 0.3 ? Math.sin((Math.PI * age) / 0.3) : 0); // 0 → 1 → 0, 0.3초
 export const hubRadius = (it: Item, sc: number) => it.r * Math.min(1.4, Math.max(0.7, sc ** 0.5));
 export const dotRadius = (it: Item, sc: number) => Math.max(2.4, it.r * sc ** 0.6);
@@ -47,7 +47,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   c.fillStyle = col("--surface"); c.fillRect(0, 0, W, H);
   const [ox, oy] = toS(0, 0);
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
-  const alphaOf = (it: Item) => reveal(S, it, now) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
+  const alphaOf = (it: Item) => (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
   const F: Frame = { c, S, vis, P, alphaOf, sc, now };
   endless(F, [ox, oy]);
 
@@ -79,7 +79,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   for (const [a, b] of L.edges) {
     if (S.hidden.has(a) || S.hidden.has(b)) continue;
     const A = L.byId.get(a)!, Bi = L.byId.get(b)!, on = !!S.lit && S.lit.has(a) && S.lit.has(b), [x1, y1] = P(A), [x2, y2] = P(Bi);
-    c.globalAlpha = Math.min(reveal(S, A, now), reveal(S, Bi, now)) * (on ? 1 : S.lit ? 0.08 : 0.35);
+    c.globalAlpha = on ? 1 : S.lit ? 0.08 : 0.35;
     c.strokeStyle = on ? col("--ink") : col("--muted"); c.lineWidth = on ? 1.6 : 1;
     c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
     if (on && S.focusId && (a === S.focusId || b === S.focusId)) { c.setLineDash([]); label(c, "비교군", (x1 + x2) / 2, (y1 + y2) / 2 - 6, 11, col("--ink"), "center"); c.setLineDash([4, 4]); }
@@ -173,8 +173,8 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
 }
 
 // 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 확대하면 더. 겹치면 건너뛴다
-function leafLabels({ c, S, vis, P, sc, now }: Frame) {
-  const want = vis.filter((it): it is TechItem => it.type === "t" && reveal(S, it, now) > 0.9 && (it.id === S.focusId || it.id === S.sel
+function leafLabels({ c, S, vis, P, sc }: Frame) {
+  const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
     || (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : sc > 1.6 || it.node.mine || it.node.grade === "danger" || (sc > 1 && it.node.isNew))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : 3);
   want.sort((a, b) => rank(a) - rank(b));

@@ -27,7 +27,7 @@ const readGuestMap = unstable_cache(async () => {
   const db = getServiceSupabase();
   if (!db) throw new Error("서비스 키 설정이 없음");
   return readGuestMapInput(db);
-}, ["guest-map", TECH_COLUMNS], { revalidate: 600 });
+}, ["guest-map", TECH_COLUMNS, "new-bulk-1"], { revalidate: 600 }); // 끝 값은 NEW 판정 규칙 판: 규칙이 바뀌면 올려 옛 캐시를 안 쓴다
 
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean }) {

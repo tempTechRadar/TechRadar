@@ -4,7 +4,7 @@
 // 쪽 읽기가 실패하면 수집 오류로 던지되 읽은 쪽은 저장돼 있고 읽은 자리도 남는다(불변 2·4). 같은 걸 다시 읽어도 아무것도 쓰지 않는다(불변 3).
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { draftOf, onlyLatest, type RegistryPage } from "../domain/registry.ts";
+import { draftOf, onlyLatest, type RegistryEntry, type RegistryPage } from "../domain/registry.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
 import { CollectError } from "./collect-fetch.ts";
 import { fetchRegistryPage, type RegistryQuery } from "./registry-fetch.ts";
@@ -76,7 +76,10 @@ async function readPages(run: Run, deadlineMs: number): Promise<boolean> {
 async function applyPage(run: Run, page: RegistryPage): Promise<void> {
   const { db, runId, orgs, d, tally, pass } = run;
   const latest = onlyLatest(page.entries);
-  const applied = await applyDrafts(db, { runId, sourceId: pass.sourceId, at: new Date(d.now()).toISOString() }, latest.map((e) => draftOf(e, orgs)));
+  // 바뀐 것만 읽는 기준 시각이 없으면 첫 전체 읽기(대량 채우기): 그 읽기를 시작하기 전에 올라와 있던 서버는 NEW가 아니다.
+  // 읽는 동안(한 달쯤) 새로 올라온 서버는 NEW가 될 수 있게 항목마다 올라간 시각으로 가른다. 시각을 모르면 대량 채우기로 본다
+  const bulk = (e: RegistryEntry) => pass.since === null && !(e.publishedAt !== null && Date.parse(e.publishedAt) >= Date.parse(pass.startedAt));
+  const applied = await applyDrafts(db, { runId, sourceId: pass.sourceId, at: new Date(d.now()).toISOString() }, latest.map((e) => ({ ...draftOf(e, orgs), bulk: bulk(e) })));
   tally.pages++;
   tally.latest += latest.length;
   tally.invalid += page.invalid;

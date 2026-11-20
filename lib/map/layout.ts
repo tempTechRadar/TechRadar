@@ -1,7 +1,7 @@
 // 사용자가 고른 묶기 기준으로 레이더 위 제자리(home)를 정하는 순수 함수(같은 입력이면 같은 그림). 시안 docs/wireframes/radar-layout.js와 같은 규칙.
 // 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비 ∝ √(들어 있는 기술 수), 하위 묶음은 부모 부채꼴을 나눈다.
 // 기술이 많으면 바깥 고리를 여러 줄로 쌓는다. 색은 화면이 tokens.css에서 읽도록 토큰 이름으로 준다(테마를 바꾸면 같이 바뀜).
-import { UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
+import { NO_GRADE, UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
 import { groupOf, passes, type Dim, type ViewConfig } from "./view-config.ts";
 
 export const OTHER = "그 밖";
@@ -10,7 +10,7 @@ export const FIRST_RING = 110, LEVEL_GAP = 95;
 const LEAF_GAP = 15, ROW_GAP = 16;
 const HUB_R = [0, 22, 15, 10]; // 단계마다 크기·모양: 1 육각 · 2 마름모 · 3 네모
 /** 색 기준이 보안 등급이면 뜻이 정해진 색(범주 색을 주면 "위험 = 초록"처럼 거꾸로 읽힌다) */
-export const GRADE_TOKENS: Record<string, string> = { 위험: "--danger", 주의: "--caution", 통과: "--pass", "찾지 못함": "--unknown" };
+export const GRADE_TOKENS: Record<string, string> = { 위험: "--danger", 주의: "--caution", 통과: "--pass", "찾지 못함": "--unknown", [NO_GRADE]: "--unknown" };
 const CATEGORY_TOKENS = 8; // --cat-1 … --cat-8 (옆 묶음끼리 색약에도 구별, dataviz 검사기)
 
 type Base = { id: string; parent: string | null; level: number; x: number; y: number; r: number; token: string | null; hollow: boolean };
@@ -24,7 +24,7 @@ export type MapLayout = {
   depth: number; leafR: number; radius: number; shown: number; total: number;
 };
 
-const special = (v: string) => v === UNSORTED || v === OTHER || v === "모름" || v === "찾지 못함" || v === "내 프로젝트 아님";
+const special = (v: string) => v === UNSORTED || v === OTHER || v === "모름" || v === "찾지 못함" || v === NO_GRADE || v === "내 프로젝트 아님";
 const byValue = (a: string, b: string) => (special(a) !== special(b) ? (special(a) ? 1 : -1) : a.localeCompare(b, "ko"));
 const byName = (a: MapNode, b: MapNode) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.key < b.key ? -1 : 1);
 const polar = (a: number, r: number) => [Math.cos(a) * r, Math.sin(a) * r] as const;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evidenceLinks, filterTechs, isUuid, keepView, ownText, readStatusNotice, searchTerm, TECH_ERROR_TEXT } from "./my-tech-view.ts";
+import { evidenceLinks, filesOf, filterTechs, isUuid, keepView, ownText, readStatusNotice, searchTerm, TECH_ERROR_TEXT } from "./my-tech-view.ts";
 
 const T = (id: string, grade: string, hidden_at: string | null = null) => ({ id, grade, hidden_at });
 
@@ -98,6 +98,19 @@ test("읽기 안내: 마지막 읽기는 서버가 정렬해 주는 순서가 �
   const newFail = run("failed", "2026-11-18T11:30:00Z");
   assert.match(readStatusNotice("repo", [newFail, newOk], NOW)!, /실패/);
   assert.match(readStatusNotice("repo", [newOk, newFail], NOW)!, /실패/);
+});
+
+test("읽은 결과를 파일마다: 숨기지 않은 저장소 줄만 파일로 묶어 기술 수와 확인 실패 수, 스킬은 폴더 하나로(실제 모양 .claude/skills/<이름>), 실패 있는 파일 먼저", () => {
+  const row = (source_file: string | null, collect_error_kind: string | null = null, origin = "repo", hidden_at: string | null = null) => ({ origin, source_file, collect_error_kind, hidden_at });
+  assert.deepEqual(filesOf([
+    row("package.json"), row("package.json"), row("package.json", "timeout", "repo", "2026-11-20"),
+    row("requirements.txt", "timeout"), row("requirements.txt"),
+    row(".claude/skills/a"), row(".claude/skills/b"), row(null, null, "manual"), row("x.json", null, "import"),
+  ]), [
+    { path: "requirements.txt", count: 2, errors: 1 },
+    { path: ".claude/skills/", count: 2, errors: 0 },
+    { path: "package.json", count: 2, errors: 0 },
+  ]);
 });
 
 test("ownText: 자기 키만 문구를 돌려주고, __proto__·constructor·toString 같은 원래 있는 이름과 빈 값은 undefined다(주소의 ?error=__proto__가 화면을 깨지 않게)", () => {

@@ -17,6 +17,7 @@ export async function markTech(techId: string, status: MarkStatus | null, reason
   const db = await getServerSupabase();
   if (!db) return { ok: false, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." };
   const result = await saveMark(db, { techId, status, reason });
+  if (result.ok) { revalidatePath("/"); revalidatePath("/views"); }
   if (result.ok && result.judgedAlerts.length) {
     const serviceDb = getServiceSupabase();
     if (serviceDb) for (const alertId of result.judgedAlerts) await recordActionOutcome(serviceDb, alertId, { ok: true });

@@ -23,14 +23,17 @@ const steps = (calls: Call[]) => ops(calls, "run_steps", "insert").map(arg0);
 const updates = (calls: Call[]) => ops(calls, "my_technologies", "update").map(arg0);
 
 /** 실제 DB 대신 "무엇을 읽고 쓰려 했는지"를 모으는 가짜 클라이언트. 물음 한 줄(from…끝)이 Call 하나. */
-function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?: Row } = {}) {
+function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?: Row; modelRows?: Row[]; changeKind?: string } = {}) {
   const calls: Call[] = [];
   let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
   const respond = (c: Call): { data?: unknown; count?: number } => {
     const has = (m: string) => c.chain.some((x) => x.m === m);
+    // 이 프로젝트의 모델 줄(코드 파일 전체 오류 때만 읽는다)
+    if (c.table === "my_technologies" && first(c) === "select" && String(c.chain[0].args[0]).includes("technologies!inner")) return { data: opts.modelRows ?? [] };
     // 위험 경로(알림 만들기)에서만 쓰는 응답. `in`으로 읽는 것은 알림 만들기가 사람들을 모으는 조회다.
     if (c.table === "my_technologies" && first(c) === "select" && has("in")) {
-      return { data: [{ id: "mt1", owner_id: "u1", tech_id: "t-npm:mcp-remote", project_id: "p1", hidden_at: null, created_at: "2026-11-18T00:00:00Z" }] };
+      const techIds = c.chain.find((x) => x.m === "in")?.args[1] as string[];
+      return { data: techIds.map((techId, i) => ({ id: `mt${i + 1}`, owner_id: "u1", tech_id: techId, project_id: "p1", hidden_at: null, created_at: "2026-11-18T00:00:00Z" })) };
     }
     if (c.table === "projects" && first(c) === "select" && has("in")) return { data: [{ id: "p1", archived_at: null }] };
     if (c.table === "alerts" && first(c) === "select") {
@@ -49,7 +52,7 @@ function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?
       case "my_technologies.select": return { data: { grade: "unknown", grade_evidence: null } };
       case "changes.upsert": return { data: opts.changeExists ? [] : [{ id: "c1" }] }; // 이미 있는 변경이면 새 줄이 안 생긴다(중복 막기 키)
       // 가장 최근 변경 조회(limit): 이어지는 위험이 있으면 그 줄, 없으면 비어 있음. 그 밖의 changes 읽기는 방금 만든·이미 있는 변경 한 줄
-      case "changes.select": return has("limit") ? { data: opts.latest ?? null } : { data: { id: "c1", kind: "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
+      case "changes.select": return has("limit") ? { data: opts.latest ?? null } : { data: { id: "c1", kind: opts.changeKind ?? "first_seen_danger", dedupe_key: "k1", is_simulated: false } };
       case "profiles.select": return { data: [{ id: "u1", is_demo: false }] };
       case "alerts.upsert": return (alertsWritten = true), { data: [{ id: "a1" }] };
       default: return {};
@@ -77,6 +80,7 @@ type Web = {
   repo?: Response | Error; // GitHub 저장소 확인(기본: 공개)
   osv?: (name: string) => Response | Error; // OSV(기본: 알려진 문제 없음)
   skills?: Response | Error; // 스킬 폴더 목록(GitHub API, 기본: 폴더 없음 404)
+  tree?: Response | Error; // 코드 파일 목록(GitHub API, 기본: 코드 파일 없음)
 };
 const ok = (body: string) => new Response(body, { status: 200 });
 const status = (n: number) => new Response("", { status: n });
@@ -93,6 +97,7 @@ function stubWeb(t: { mock: { method: (o: object, n: "fetch", f: unknown) => unk
     }
     if (url === "https://api.github.com/repos/o/r") return give(web.repo ?? ok('{"private":false}'));
     if (url === "https://api.github.com/repos/o/r/contents/.claude/skills") return give(web.skills ?? status(404));
+    if (url === "https://api.github.com/repos/o/r/git/trees/HEAD?recursive=1") return give(web.tree ?? ok('{"tree":[]}'));
     if (url === "https://api.osv.dev/v1/query") return give((web.osv ?? (() => ok('{"vulns":[]}')))(JSON.parse(String(init?.body)).package.name));
     throw new Error(`예상하지 못한 호출: ${url}`);
   });
@@ -180,7 +185,7 @@ test("새 등록: 확인도 안 되고 파일도 하나도 안 열리면 '없음
   stubWeb(t, { repo: status(429) });
   const { db, calls } = fakeDb();
   const r = await registerAndRead(USER, REPO, { db });
-  assert.deepEqual([r.status, r.errors], ["failed", 5]); // 읽는 파일 넷(package.json·.mcp.json·requirements.txt·.cursor/mcp.json)과 스킬 폴더가 모두 실패
+  assert.deepEqual([r.status, r.errors], ["failed", 8]); // 읽는 파일 여섯(package.json·.mcp.json·requirements.txt·다른 도구 설정 셋)과 스킬 폴더 · 코드 파일(모델 찾기)이 모두 실패
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.error_kind, "rate_limited");
 });
 
@@ -195,7 +200,7 @@ test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리�
   const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind === "http_status");
   const target = (c: (typeof marks)[number]) => c.chain.find((x) => (x.m === "eq" || x.m === "like") && x.args[0] === "source_file")?.args[1];
   // 스킬 목록 404를 "스킬 없음"으로 읽지 않는다: 저장소가 닫혔으니 전에 읽은 스킬 줄 모두가 대상이고, 목록은 부르지 않는다(불변 2)
-  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".cursor/mcp.json", ".mcp.json", "package.json", "requirements.txt"]);
+  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".cursor/mcp.json", ".gemini/settings.json", ".mcp.json", ".vscode/mcp.json", "package.json", "requirements.txt"]);
   assert.ok(!urls.includes("https://api.github.com/repos/o/r/contents/.claude/skills"));
   assert.ok(updates(calls).every((p) => !("grade" in p)));
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "failed");
@@ -208,7 +213,7 @@ test("다시 읽기: 한 파일은 연결 오류, 나머지는 404여도 저장�
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.equal(r.status, "failed");
-  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "http_status", "http_status", "network"]); // package.json은 연결 오류, 나머지 넷(.mcp.json·requirements.txt·.cursor/mcp.json·스킬 폴더)은 저장소가 닫혔다는 오류
+  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), [...Array(6).fill("http_status"), "network"]); // 파일 다섯 + 스킬 폴더는 404, package.json은 연결 오류
 });
 
 test("저장소는 열리는데 읽는 파일이 다 없으면 오류가 아니다: 기술 0개, 성공", async (t) => {
@@ -566,4 +571,83 @@ test("읽은 저장소 파일·스킬이 하나도 없고 오류뿐이면 실패
   stubWeb(t, { files: { "package.json": new Error("끊김") }, skills: status(500) });
   const r = await registerAndRead(USER, REPO, { db: fakeDb().db });
   assert.deepEqual([r.status, r.errors], ["failed", 2]);
+});
+
+test("다른 AI 도구 설정(PRD-F39): 같은 별명 · 같은 서버가 두 파일에 있어도 한 줄씩만 저장한다(별명 줄 UK가 깨지지 않게)", async (t) => {
+  const same = JSON.stringify({ mcpServers: { "my-db": { command: "node", args: ["server.js"] }, r: { command: "npx", args: ["mcp-remote"] } } });
+  stubWeb(t, { files: { ".mcp.json": same, ".cursor/mcp.json": same } });
+  const { db, calls } = fakeDb();
+  await registerAndRead(USER, REPO, { db });
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
+  assert.deepEqual(rows.map((r) => [r.manual_name ?? r.tech_id ?? null, r.source_file]).filter(([n]) => n === "my-db").length, 1);
+  assert.deepEqual(rows.filter((r) => r.manual_name === "my-db").map((r) => r.source_file), [".mcp.json"], "앞 파일(.mcp.json) 줄이 남는다");
+  assert.equal(rows.filter((r) => !("manual_name" in r)).length, 1, "같은 서버(npm:mcp-remote)도 한 줄");
+});
+
+const AI_TREE = JSON.stringify({ tree: [{ path: "src/ai.ts", type: "blob", size: 60 }, { path: "node_modules/x/index.js", type: "blob", size: 10 }] });
+const AI_CODE = `client.messages.create({ model: "claude-3-opus-20240229", max_tokens: 10 })`;
+
+test("코드 속 지원 종료 모델(PRD-F38): 모델 줄(종류 model)을 남기고 변경 model_eol 하나, 알림은 '모델 종료'로. 초안(Claude)은 부르지 않는다", async (t) => {
+  const urls = stubWeb(t, { files: { "src/ai.ts": AI_CODE }, tree: ok(AI_TREE) });
+  const { db, calls } = fakeDb(false, { changeKind: "model_eol" });
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.equal(r.status, "succeeded");
+  assert.ok(!urls.some((u) => u.includes("node_modules")), "의존성 폴더는 읽지 않는다");
+  const tech = ops(calls, "technologies", "upsert").flatMap((u) => u.chain[0].args[0] as Row[]).find((x) => x.tech_key === "model:claude-3-opus-20240229");
+  assert.equal(tech?.type, "model");
+  const mine = ops(calls, "my_technologies", "upsert").flatMap((u) => u.chain[0].args[0] as Row[]).find((x) => x.tech_id === "t-model:claude-3-opus-20240229");
+  assert.equal(mine?.source_file, "src/ai.ts");
+  const change = ops(calls, "changes", "upsert").map(arg0)[0];
+  assert.deepEqual([change.kind, change.cause_id, (change.curr_value as Row).retire_on, (change.curr_value as Row).replacement], ["model_eol", "eol:2026-01-05", "2026-01-05", "claude-opus-4-8"]);
+  const alert = (ops(calls, "alerts", "upsert")[0].chain[0].args[0] as Row[])[0];
+  assert.deepEqual([alert.kind, alert.my_technology_id], ["model_eol", "mt1"]);
+  assert.ok(!urls.some((u) => u.includes("anthropic.com")), "대응안 초안은 보안 경고에만");
+});
+
+test("코드 파일 목록을 못 읽으면 '모델 없음'이 아니라 수집 오류: 전에 찾은 모델 줄에 오류 딱지, 실행은 일부 성공(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, tree: status(500) });
+  const { db, calls } = fakeDb(true, { modelRows: [{ id: "mt-model" }] });
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.equal(r.status, "partial");
+  const mark = ops(calls, "my_technologies", "update").find((c) => arg0(c).collect_error_kind === "http_status");
+  assert.ok(mark?.chain.some((x) => x.m === "in" && x.args[0] === "id" && (x.args[1] as string[])[0] === "mt-model"), "이 프로젝트의 모델 줄만");
+  assert.equal(ops(calls, "changes", "upsert").length, 0);
+});
+
+test("연동 서비스 · 개념(PRD-F40): SDK와 파일 목록으로 찾아 내 기술로 남기고(공개 목록에는 안 나감), OSV는 부르지 않는다", async (t) => {
+  const pkg = JSON.stringify({ dependencies: { "@supabase/supabase-js": "2.0.0" } });
+  const tree = JSON.stringify({ tree: [{ path: "package.json", type: "blob", size: 10 }, { path: "AGENTS.md", type: "blob", size: 10 }] });
+  const urls = stubWeb(t, { files: { "package.json": pkg }, tree: ok(tree) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.equal(r.status, "succeeded");
+  const rows = ops(calls, "technologies", "upsert").flatMap((u) => u.chain[0].args[0] as Row[]);
+  const service = rows.find((x) => x.tech_key === "service:supabase");
+  assert.deepEqual([service?.type, "one_liner_source" in (service ?? {})], ["service", false], "설명 · 근거는 카탈로그에 쓰지 않는다(공개 목록에 나가지 않게, ADR 0029 4항)");
+  assert.equal(rows.find((x) => x.tech_key === "concept:harness")?.type, "concept");
+  assert.ok(!urls.some((u) => u.includes("osv.dev")), "허용 목록 밖 SDK · 서비스 · 개념은 OSV 대상이 아니다");
+  assert.equal(ops(calls, "changes", "upsert").length, 0);
+});
+
+const typesAsked = (calls: Call[]) => calls.filter((c) => c.table === "my_technologies" && String(c.chain[0].args[0]).includes("technologies!inner"))
+  .map((c) => c.chain.find((x) => x.m === "in" && x.args[0] === "technologies.type")?.args[1]);
+
+test("파일 목록을 못 읽으면 목록으로 찾는 모델 · 연동 서비스 · 개념 줄 중 이번에 다시 보지 못한 것만 수집 오류(package.json으로 다시 찾은 줄은 덮지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, tree: status(500) });
+  const { db, calls } = fakeDb(true, { modelRows: [{ id: "mt-x" }] });
+  await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(typesAsked(calls), [["model", "service", "concept"]]);
+  const mark = ops(calls, "my_technologies", "update").find((c) => c.chain.some((x) => x.m === "in" && x.args[0] === "id"))!;
+  assert.ok(mark.chain.some((x) => x.m === "or" && String(x.args[0]).startsWith("read_at.is.null")), "이번에 다시 읽은 줄은 빼는 조건");
+});
+
+test("목록은 읽었고 코드 파일 일부만 못 봤으면(한도) 모델 줄만: 서비스 · 개념은 목록과 package.json으로 이미 다시 확인했다", async (t) => {
+  const many = JSON.stringify({ tree: Array.from({ length: 105 }, (_, i) => ({ path: `src/f${i}.ts`, type: "blob", size: 1 })) });
+  stubWeb(t, { files: { "package.json": PKG }, tree: ok(many) });
+  const { db, calls } = fakeDb(true, { modelRows: [{ id: "mt-x" }] });
+  await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(typesAsked(calls), [["model"]]);
 });

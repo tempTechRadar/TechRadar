@@ -54,7 +54,7 @@ function fakeDb(tables: Tables, log: Log) {
 const sourceRow = (over: Row = {}): Row => ({ id: "s-reg", name: "mcp_registry", enabled: true, last_synced_at: null, sync_started_at: null, sync_cursor: null, ...over });
 const world = (over: Partial<Tables> = {}): Tables => ({ sources: [sourceRow()], rule_lists: [], technologies: [], observations: [], run_steps: [], ...over });
 const srv = (name: string, over: Partial<RegistryEntry> = {}): RegistryEntry => ({
-  name, title: null, description: null, packages: [], repoUrl: null, status: "active", isLatest: true, ...over,
+  name, title: null, description: null, packages: [], repoUrl: null, status: "active", isLatest: true, publishedAt: null, ...over,
 });
 const pageOf = (entries: RegistryEntry[], nextCursor: string | null = null, invalid = 0): RegistryPage => ({ entries, invalid, nextCursor });
 const tech = (key: string, over: Row = {}): Row => ({
@@ -116,6 +116,7 @@ test("처음 전체 읽기: 최신 서버만 얇은 줄로 저장(키 규칙·�
   assert.deepEqual([source(t).last_synced_at, source(t).sync_started_at, source(t).sync_cursor], [ISO(NOW1), null, null]);
   assert.deepEqual([out.items, steps(t)], [7, ["normalize:7>7", "compare:7>0"]]);
   assert.equal(t.observations.length, 0); // 새 서버의 기록은 기술 줄의 만든 시각이다
+  assert.ok(t.technologies.every((r) => (r.signals as Row).registry_backfill === true), "첫 전체 읽기로 들어온 줄은 대량 채우기 표시(NEW 아님)");
 });
 
 test("다음에는 지난번 시각(조금 앞)부터 바뀐 것만 읽고, 같은 걸 다시 읽어도 아무것도 쓰지 않는다(불변 3). 지난번 시각은 새로 올라간다", async () => {
@@ -130,6 +131,9 @@ test("다음에는 지난번 시각(조금 앞)부터 바뀐 것만 읽고, 같�
   assert.equal(source(t).last_synced_at, ISO(NOW2));
   assert.match(String(t.run_steps.filter((s) => s.step_name === "compare").at(-1)!.output_summary), /새 0개, 고침 0개\(상태 바뀜 0개\), 그대로 2개/);
   assert.equal(out.items, 2);
+  const third = fakes({ start: pageOf([srv("io.x/c", { description: "새 서버" })]) }, NOW2);
+  await run(t, third);
+  assert.equal((byKey(t, "mcp:io.x/c").signals as Row).registry_backfill, false, "전체 읽기가 끝난 뒤 새로 생긴 줄은 NEW가 될 수 있다");
 });
 
 test("사용자가 쓰는 두꺼운 줄은 덮어쓰지 않는다: 비어 있는 설명·링크·저장소만 채우고 두께·이유·종류는 그대로", async () => {
@@ -199,6 +203,7 @@ test("지난번 시각이 있는 채로 읽던 중이면: 같은 시작 시각·
   const f = fakes({ c1: pageOf([srv("io.x/b")]) }, NOW2);
   await run(t, f);
   assert.deepEqual(f.calls, [{ since: "2026-11-18T20:55:00.000Z", cursor: "c1" }]);
+  assert.equal((byKey(t, "mcp:io.x/b").signals as Row).registry_backfill, false, "바뀐 것만 읽기를 이어 읽으면 대량 채우기가 아니다");
   assert.deepEqual([Date.parse(String(source(t).last_synced_at)), source(t).sync_started_at, source(t).sync_cursor], [Date.parse("2026-11-19T20:00:00Z"), null, null]);
 });
 
@@ -213,6 +218,7 @@ test("시간 한도로 멈추면 읽은 자리를 남기고 지난번 시각은 
   const g = fakes({ start: pageOf([srv("io.x/a")], "c1"), c1: pageOf([srv("io.x/b")]) }, NOW2);
   const out2 = await run(t, g);
   assert.deepEqual(g.calls, [{ since: null, cursor: "c1" }]); // 처음 쪽부터 다시 읽지 않는다
+  assert.ok(t.technologies.every((r) => (r.signals as Row).registry_backfill === true), "첫 전체 읽기를 이어 읽은 쪽도 대량 채우기");
   assert.deepEqual([source(t).last_synced_at, source(t).sync_started_at, source(t).sync_cursor, t.technologies.length], [ISO(NOW1), null, null, 2]);
   assert.doesNotMatch(String(out2.summary), /이어 읽음/);
 });
@@ -256,4 +262,11 @@ test("관리자가 출처를 껐으면 아무것도 읽지 않고 이유를 요�
   const out = await run(t, f);
   assert.deepEqual([out.items, f.calls, t.run_steps], [0, [], []]);
   assert.match(String(out.summary), /꺼져/);
+});
+
+test("첫 전체 읽기 중이어도 그 읽기를 시작한 뒤에 올라온 서버는 대량 채우기가 아니다(읽는 한 달 동안 새로 나온 서버가 NEW에서 영영 빠지지 않게)", async () => {
+  const t = world({ sources: [sourceRow({ sync_started_at: "2026-11-19T00:00:00+00:00", sync_cursor: "c1" })] });
+  const f = fakes({ c1: pageOf([srv("io.x/new", { publishedAt: "2026-11-25T00:00:00Z" }), srv("io.x/old", { publishedAt: "2025-01-01T00:00:00Z" }), srv("io.x/unknown")]) }, NOW2);
+  await run(t, f);
+  assert.deepEqual(["io.x/new", "io.x/old", "io.x/unknown"].map((n) => (byKey(t, `mcp:${n}`).signals as Row).registry_backfill), [false, true, true]);
 });

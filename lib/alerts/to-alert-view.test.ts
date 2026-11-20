@@ -115,3 +115,29 @@ test("판단한 날은 한국 시간 '11월 18일 14:00', 판단 전에는 null"
   assert.equal(done.judgedAtLabel, "11월 18일 14:00");
   assert.equal(toAlertView(securityRecord).judgedAtLabel, null);
 });
+
+test("모델 종료 알림(PRD-F38): 종료일 · 공식 추천 대체 · 찾은 파일 · 공지 주소. Google은 '가장 이르면'을 밝힌다", () => {
+  const eol = (provider: string, source: string): AlertRecord => ({
+    ...securityRecord,
+    kind: "model_eol",
+    sourceFile: "src/ai.ts",
+    change: { ...securityRecord.change, kind: "model_eol", techName: "x", prevValue: null,
+      currValue: { model: "gemini-2.0-flash", provider, retire_on: "2026-06-01", replacement: "gemini-3.6-flash", source } },
+  });
+  const view = toAlertView(eol("google", "https://aistudio.google.com/docs/deprecations"));
+  assert.equal(view.kindLabel, "모델 종료");
+  assert.equal(view.title, "[모델 종료] gemini-2.0-flash 지원 종료일 2026-06-01");
+  assert.deepEqual(view.lines, [
+    "모델: gemini-2.0-flash",
+    "지원 종료일: 2026-06-01 (공지에 '가장 이르면 이날'로 적혀 있어요)",
+    "공식 추천 대체: gemini-3.6-flash",
+    "내 코드: TechRadar · src/ai.ts",
+    "출처: Google 지원 종료 공지",
+    "공지 주소: https://aistudio.google.com/docs/deprecations",
+  ]);
+  assert.equal(view.draftCard, null, "초안은 보안 경고에만");
+  assert.equal(view.canCandidate, true);
+  assert.equal(toAlertView(eol("anthropic", "https://platform.claude.com/x")).lines[1], "지원 종료일: 2026-06-01");
+  const broken = toAlertView({ ...eol("google", ""), change: { ...securityRecord.change, kind: "model_eol", techName: "claude-2.1", currValue: null } });
+  assert.deepEqual(broken.lines.slice(0, 3), ["모델: claude-2.1", "지원 종료일: 찾지 못함", "공식 추천 대체: 찾지 못함"]);
+});

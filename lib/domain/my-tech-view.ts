@@ -1,9 +1,13 @@
 // 내 기술 목록(IA-3)·기술 상세(IA-4) 화면이 쓰는 순수 함수와 문구. 주인: 김영식(A).
+import { SKILLS_DIR } from "./skills.ts";
 import type { Grade } from "./grade.ts";
+import { isConcept, NO_GRADE } from "../map/build-map.ts";
+export { isConcept, NO_GRADE };
 
 export const GRADE_LABEL: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
 // 배지 모양(색)은 alerts.css의 badge-* 이름을 따른다. 색만으로 알리지 않도록 글자(GRADE_LABEL)가 항상 함께 나온다.
 export const GRADE_TONE: Record<Grade, string> = { danger: "danger", caution: "warning", pass: "success", unknown: "neutral" };
+export const gradeText = (grade: Grade, techKey?: string | null, type?: string | null) => (isConcept(techKey, type) ? NO_GRADE : GRADE_LABEL[grade]);
 export const ORIGIN_LABEL: Record<string, string> = { repo: "저장소에서 읽음", manual: "직접 추가", import: "내 컴퓨터 목록 가져오기" };
 export const GRADE_OPTIONS: [string, string][] = [["", "전체"], ["danger", "위험"], ["caution", "주의"], ["pass", "통과"], ["unknown", "찾지 못함"]];
 
@@ -37,8 +41,9 @@ export const isUuid = (v: string) => UUID.test(v);
 export type TechFilter = { grade?: string; showHidden?: boolean };
 
 /** 숨긴 기술은 기본으로 빼고, 등급을 고르면 그 등급만 */
-export function filterTechs<T extends { grade: string; hidden_at: string | null }>(techs: T[], f: TechFilter): T[] {
-  return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || t.grade === f.grade));
+export function filterTechs<T extends { grade: string; hidden_at: string | null; technologies?: { tech_key: string } | null }>(techs: T[], f: TechFilter): T[] {
+  // 등급으로 거르면 개념(등급 없음)은 "찾지 못함"에 섞이지 않게 뺀다
+  return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || (t.grade === f.grade && !isConcept(t.technologies?.tech_key))));
 }
 
 export type ReadRun = { status: string; created_at: string };
@@ -101,4 +106,24 @@ export function evidenceLinks(raw: unknown): EvidenceLink[] {
     const url = textOr(e.url);
     return [{ id: e.id, severity: textOr(e.severity), fixed: textOr(e.fixed), url: url?.startsWith(OSV_URL) ? url : null }];
   });
+}
+
+export type ReadFile = { path: string; count: number; errors: number };
+/**
+ * 읽은 결과를 파일마다(design.md 18절): 저장소에서 온 내 기술 줄(숨기지 않은 것)을 읽은 파일로 묶어 기술 수와 "확인에 실패한 기술 수"를 센다.
+ * 파일을 읽었는지 · 못 읽었는지는 말하지 않는다: 수집 오류 칸은 파일을 못 읽었을 때뿐 아니라 그 기술의 보안 확인이 실패했을 때도 채워지고,
+ * 한 기술은 프로젝트에 한 줄이라 마지막에 읽은 파일로만 남기 때문이다(불변 2: 근거 없이 "읽음"이라고 하지 않음).
+ * 스킬 폴더(SKILLS_DIR/<이름>)는 폴더 하나로. 직접 추가 · 가져오기 줄은 파일이 없어 뺀다. 확인 실패가 있는 파일 먼저, 그다음 이름순
+ */
+export function filesOf(techs: { origin: string; source_file: string | null; collect_error_kind: string | null; hidden_at: string | null }[]): ReadFile[] {
+  const by = new Map<string, ReadFile>();
+  for (const t of techs) {
+    if (t.origin !== "repo" || !t.source_file || t.hidden_at) continue;
+    const path = t.source_file.startsWith(`${SKILLS_DIR}/`) ? `${SKILLS_DIR}/` : t.source_file;
+    const f = by.get(path) ?? { path, count: 0, errors: 0 };
+    f.count++;
+    if (t.collect_error_kind) f.errors++;
+    by.set(path, f);
+  }
+  return [...by.values()].sort((a, b) => Number(!a.errors) - Number(!b.errors) || a.path.localeCompare(b.path));
 }
