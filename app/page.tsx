@@ -14,6 +14,7 @@ import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
 import GoogleLoginButton from "./login/google-login-button";
+import type { ReactNode } from "react";
 import { CanvasMap } from "./tech-map/canvas-map";
 import "./alerts/alerts.css";
 
@@ -30,10 +31,10 @@ const readGuestMap = unstable_cache(async () => {
 }, ["guest-map", TECH_COLUMNS, "new-bulk-1"], { revalidate: 600 }); // 끝 값은 NEW 판정 규칙 판: 규칙이 바뀌면 올려 옛 캐시를 안 쓴다
 
 // canSave = 로그인함(보기 기억·판단 남기기)
-function MapBody({ model, projects, query, canSave }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean }) {
-  if (model === null) return <div className="notice" role="alert"><strong>지도를 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/projects">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div>;
-  if (model.nodes.length === 0) return <div className="notice notice-empty"><strong>아직 지도에 올릴 기술이 없어요.</strong>{canSave ? <> <Link href="/projects">내 프로젝트를 등록</Link>하면 저장소에서 읽은 기술이 지도에 와요.</> : " 모은 기술이 들어오면 여기에 보여요."}</div>;
-  return <CanvasMap model={model} projects={projects} initialQuery={query} canSave={canSave} login={canSave} />;
+function MapBody({ model, projects, query, canSave, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; top: ReactNode }) {
+  if (model === null) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice" role="alert"><strong>지도를 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/projects">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div></>;
+  if (model.nodes.length === 0) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice notice-empty"><strong>아직 지도에 올릴 기술이 없어요.</strong>{canSave ? <> <Link href="/projects">내 프로젝트를 등록</Link>하면 저장소에서 읽은 기술이 지도에 와요.</> : " 모은 기술이 들어오면 여기에 보여요."}</div></>;
+  return <CanvasMap model={model} projects={projects} initialQuery={query} canSave={canSave} login={canSave} top={top} />;
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -45,11 +46,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     return (
       <main className="alerts map-page">
         <h1 className="sr-only">기술 지도</h1>
-        <div className="map-top">
-          <span>로그인하면 관심·판단·내 기술 비교가 열려요.</span>
+        <MapBody model={input ? buildTechMap(input, new Date()) : null} projects={[]} query={query} canSave={false} top={<>
+          <span className="map-chip map-chip-note">로그인하면 관심·판단·내 기술 비교가 열려요.</span>
           <GoogleLoginButton next={query ? `/?${query}` : "/"} />{/* 로그인 전 보기는 주소에만 있으니 들고 간다 */}
-        </div>
-        <MapBody model={input ? buildTechMap(input, new Date()) : null} projects={[]} query={query} canSave={false} />
+        </>} />
       </main>
     );
   }
@@ -69,7 +69,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     <main className="alerts map-page">
       <h1 className="sr-only">기술 지도</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
-      <div className="map-top">
+      <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave top={<>
         {summary ? (
           <>
             <Link className="map-chip" href={summary.links.pending}>판단 대기 <strong>{summary.pendingCount}</strong></Link>
@@ -77,8 +77,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           </>
         ) : <span className="notice" role="status">판단 대기·변경 수를 읽지 못했어요. 새로 고치거나 <Link href="/alerts">알림</Link>에서 확인해 주세요.</span>}
         {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/projects">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
-      </div>
-      <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave />
+      </>} />
     </main>
   );
 }

@@ -1,0 +1,6 @@
+/* 관문 "Ready to Catch?": 지도 위를 거의 불투명하게 덮어 뒤의 레이더가 희미하게 비친다(흐림 효과는 저사양 폰에서 무거워 쓰지 않음). 움직임 없음 */
+.ready-gate { position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: var(--sp-4); padding: var(--sp-5); text-align: center; background: color-mix(in srgb, var(--surface) 94%, transparent); cursor: pointer; }
+.ready-title { margin: 0; font-size: clamp(40px, 9vw, 80px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; color: var(--ink); }
+.ready-go { min-height: var(--hit); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font: inherit; font-weight: 700; cursor: pointer; }
+.ready-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.ready-hint { margin: 0; color: var(--muted); font-size: var(--fs-sm); }

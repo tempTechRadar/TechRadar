@@ -13,7 +13,7 @@ const clampK = (k: number) => Math.max(ZMIN, Math.min(ZMAX, k));
 type Cam = { x: number; y: number; k: number };
 
 export type MapState = {
-  W: number; H: number; top: number; right: number; cam: Cam; fly: { from: Cam; to: Cam; t0: number; dur: number } | null; userCam: boolean;
+  W: number; H: number; top: number; right: number; /** 아래쪽에 뜬 범례 · 상태 줄 높이(그 밑에 점을 두지 않는다) */ bottom: number; cam: Cam; fly: { from: Cam; to: Cam; t0: number; dur: number } | null; userCam: boolean;
   L: MapLayout; view: ViewConfig; collapsed: Set<string>; hidden: Set<string>; leaving: Map<string, number>; phys: ReturnType<typeof createPhysics>;
   sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; sweepStart: number; now: number; scopeLabel: string;
   riskRects: { x: number; y: number; list: TechItem[] }[]; hubLabels: { id: string; x: number; y: number; w: number; h: number }[];
@@ -38,10 +38,10 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const L0 = layoutMap(model, view0);
 
   const S: MapState = {
-    W: 0, H: 0, top: 0, right: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: defaultCollapsed(L0), hidden: new Set(),
+    W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: defaultCollapsed(L0), hidden: new Set(),
     leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, sweepStart: Infinity, now: 0, scopeLabel: "",
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
-    base() { return Math.min(this.W, this.H - this.top) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
+    base() { return Math.min(this.W, this.H - this.top - this.bottom) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
   };
   const visible = () => S.L.items.filter((it) => !S.hidden.has(it.id));
   const notify = () => { version++; for (const f of listeners) f(); };
@@ -121,7 +121,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   // ---- 카메라
   function homeCam(): Cam { // 처음 보기: 보이는 것(접힌 묶음 제외)이 꽉 차게, 도구 줄 밑 가운데에
     const vr = Math.max(FIRST_RING, ...visible().map((it) => Math.hypot(it.x, it.y))) + 40, k = clampK(S.L.radius / vr);
-    return { x: 0, y: -S.top / 2 / (k * S.base()), k };
+    return { x: 0, y: -(S.top - S.bottom) / 2 / (k * S.base()), k };
   }
   const toWorld = (sx: number, sy: number): [number, number] => [S.cam.x + (sx - S.W / 2) / S.scale(), S.cam.y + (sy - S.H / 2) / S.scale()];
   const toScreen = (x: number, y: number): [number, number] => [S.W / 2 + (x - S.cam.x) * S.scale(), S.H / 2 + (y - S.cam.y) * S.scale()];
@@ -135,14 +135,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const bs = visible().map((it) => phys.B.get(it.id)).filter((b) => !!b);
     if (!bs.length) return;
     const xs = bs.map((b) => b.x), ys = bs.map((b) => b.y), w = Math.max(80, Math.max(...xs) - Math.min(...xs)), h = Math.max(80, Math.max(...ys) - Math.min(...ys));
-    const k = clampK(Math.min((S.W - S.right - 40) / w, (S.H - S.top - 40) / h) / S.base()), sc = k * S.base();
-    flyTo({ k, x: (Math.max(...xs) + Math.min(...xs)) / 2 + S.right / 2 / sc, y: (Math.max(...ys) + Math.min(...ys)) / 2 - S.top / 2 / sc });
+    const k = clampK(Math.min((S.W - S.right - 40) / w, (S.H - S.top - S.bottom - 40) / h) / S.base()), sc = k * S.base();
+    flyTo({ k, x: (Math.max(...xs) + Math.min(...xs)) / 2 + S.right / 2 / sc, y: (Math.max(...ys) + Math.min(...ys)) / 2 - (S.top - S.bottom) / 2 / sc });
   }
   /** 고른 것이 사이드바·도구 줄 밑에 가려지면 카메라만 옮긴다(지도 크기는 그대로) */
   function revealItem(id: string) {
     const b = phys.B.get(id); if (!b) return;
-    const [x, y] = toScreen(b.x, b.y), sc = S.scale(), cx = (S.W - S.right) / 2, cy = (S.H + S.top) / 2;
-    if (x > 30 && x < S.W - S.right - 30 && y > S.top + 30 && y < S.H - 30) return;
+    const [x, y] = toScreen(b.x, b.y), sc = S.scale(), cx = (S.W - S.right) / 2, cy = (S.H + S.top - S.bottom) / 2;
+    if (x > 30 && x < S.W - S.right - 30 && y > S.top + 30 && y < S.H - S.bottom - 30) return;
     flyTo({ k: S.cam.k, x: b.x - (cx - S.W / 2) / sc, y: b.y - (cy - S.H / 2) / sc });
   }
 
@@ -169,8 +169,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
 
   // ---- 크기·그리기 반복
-  function measure(W: number, H: number, top: number, right: number) {
-    Object.assign(S, { W, H, top, right });
+  function measure(W: number, H: number, top: number, right: number, bottom = 0) {
+    Object.assign(S, { W, H, top, right, bottom });
     const c = ctx?.canvas;
     if (c) { const dpr = window.devicePixelRatio || 1; c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); ctx!.setTransform(dpr, 0, 0, dpr, 0, 0); }
     if (!S.userCam && !S.fly) S.cam = homeCam(); // 손대지 않은 카메라는 화면 크기가 바뀌면 처음 보기로 다시 맞춘다

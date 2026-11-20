@@ -197,15 +197,15 @@ function offscreenRisks({ c, S, vis, P }: Frame) {
   for (const it of vis) {
     if (it.type !== "t" || (it.node.grade !== "danger" && it.node.grade !== "caution")) continue;
     const [x, y] = P(it);
-    if (x >= 0 && y >= S.top && x <= S.W - S.right && y <= S.H) continue;
+    if (x >= 0 && y >= S.top && x <= S.W - S.right && y <= S.H - S.bottom) continue;
     const a = Math.atan2(y - S.H / 2, x - S.W / 2), k = Math.round(a / (Math.PI / 12));
     const g = buckets.get(k) ?? { a: k * (Math.PI / 12), list: [] };
     g.list.push(it); buckets.set(k, g);
   }
   const rects: MapState["riskRects"] = [];
   for (const g of buckets.values()) {
-    const cx = (S.W - S.right) / 2, cy = (S.H + S.top) / 2, dx = Math.cos(g.a), dy = Math.sin(g.a);
-    const tx = Math.abs(dx) > 1e-6 ? (cx - pad) / Math.abs(dx) : Infinity, ty = Math.abs(dy) > 1e-6 ? ((S.H - S.top) / 2 - pad) / Math.abs(dy) : Infinity, d = Math.min(tx, ty);
+    const cx = (S.W - S.right) / 2, cy = (S.H + S.top - S.bottom) / 2, dx = Math.cos(g.a), dy = Math.sin(g.a);
+    const tx = Math.abs(dx) > 1e-6 ? (cx - pad) / Math.abs(dx) : Infinity, ty = Math.abs(dy) > 1e-6 ? ((S.H - S.top - S.bottom) / 2 - pad) / Math.abs(dy) : Infinity, d = Math.min(tx, ty);
     const x = cx + dx * d, y = cy + dy * d, worst = g.list.some((it) => it.node.grade === "danger");
     c.save(); c.translate(x, y); c.rotate(g.a); c.beginPath(); c.moveTo(9, 0); c.lineTo(-6, -7); c.lineTo(-6, 7); c.closePath();
     c.fillStyle = col(worst ? "--danger" : "--caution"); c.fill(); c.restore();

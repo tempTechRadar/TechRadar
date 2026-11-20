@@ -1,7 +1,6 @@
 /* 캔버스 기술 지도(P-12d-canvas-map, 시안 docs/wireframes/radar.html). 값은 공용 토큰(app/tokens.css).
    지도 = 남은 화면 전체. 도구 줄은 지도 위에 뜨고, 사이드바도 지도 위에 덮는다(지도 크기 안 바뀜). 범례·상태·목록은 지도 아래 */
-.alerts.map-page { max-width: none; }
-.map-top { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-2); }
+.map-top { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0; }
 .map-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
 .map-chip strong { font-size: var(--fs-h2); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -50,7 +49,7 @@
 .map-why { font-size: var(--fs-sm); }
 .map-dot { display: inline-block; flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; box-sizing: border-box; }
 .link { min-height: 32px; padding: 0; font: inherit; color: inherit; text-align: left; text-decoration: underline; background: none; border: 0; cursor: pointer; }
-.map-toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 8; margin: 0; display: flex; gap: 8px; align-items: center; }
+.map-toast { justify-self: center; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; } /* 아래 범례 위에 쌓인다(.map-dock 안) */
 .map-toast:not(:empty) { padding: 6px 8px 6px 14px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
 .map-toast .btn { min-height: 32px; }
 
@@ -69,3 +68,32 @@
   .map-side { width: 100%; top: auto; height: 70%; border-left: 0; border-top: 1px solid var(--line); }
 }
 .map-side h2 { padding-right: 52px; }
+
+/* 지도 페이지만 꽉 채움(A안, 11-20 사용자 결정, 시안 radar.html): 바깥 여백 · 테두리 없이 "화면 높이 − 메뉴 바".
+   다른 화면은 같은 메뉴 바 · 같은 토큰 그대로라 일맥은 유지된다. 메뉴 바는 늘 보인다(판단 대기 배지가 가려지지 않게) */
+body:has(.map-page) { padding: 0; min-height: 100dvh; display: flex; flex-direction: column; }
+body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
+.alerts.map-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; }
+.map-page > .notice, .map-page > section, .map-page > div:not(.map-wrap) { margin: var(--sp-2) var(--sp-4) 0; }
+.map-page .map-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.map-page .map-stage { flex: 1; height: auto; min-height: 420px; border: 0; border-radius: 0; }
+.map-page .map-klist { padding: 0 var(--sp-4); }
+.map-top > * { pointer-events: auto; }
+.map-chip-note { cursor: default; background: color-mix(in srgb, var(--surface) 90%, transparent); }
+
+/* 범례 · 상태는 지도 아래쪽에 뜬다(시안의 dock). 좁은 화면에서는 범례를 한 줄로 밀어 보게 해 지도를 덜 가린다 */
+.map-dock { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 3; display: grid; gap: 2px; pointer-events: none; }
+.map-dock > * { pointer-events: auto; justify-self: start; max-width: 100%; }
+.map-dock > .map-toast { justify-self: center; }
+.map-dock .map-legend { margin: 0; }
+.map-dock .map-status { margin: 0; padding: 2px 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.map-stage.open .map-dock { right: 392px; }
+@media (max-width: 640px) {
+  .map-page .map-stage { min-height: 520px; }
+  .map-chip-note { display: none; } /* 좁은 화면에서는 로그인 단추만 남겨 지도를 덜 가린다 */
+  .map-stage.open .map-dock { right: 12px; }
+  .map-dock .map-legend { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+  .map-dock .map-legend > * { flex: none; white-space: nowrap; }
+}
+/* 지도를 못 읽었거나 비었을 때: 위 칩 줄을 지도 위가 아니라 본문에 한 줄로 */
+.map-page > .map-top-flat { margin: var(--sp-2) var(--sp-4) 0; }

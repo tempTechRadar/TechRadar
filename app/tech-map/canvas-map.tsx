@@ -1,7 +1,7 @@
 "use client";
 // 첫 화면 기술 지도(PRD-F23, IA-10, ADR 0026·0027): 캔버스 위 레이더. 시안 docs/wireframes/radar.html을 옮겼다.
 // 상태·카메라·그리기는 controller.ts, 손 조작은 input.ts, 이 파일은 도구 줄·사이드바·카드·키보드 목록 같은 화면 조각만.
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { MarkStatus, TechMapModel } from "@/lib/map/build-map";
 import type { GroupItem, Item, TechItem } from "@/lib/map/layout";
 import { DIM_KO, type ViewConfig } from "@/lib/map/view-config";
@@ -14,15 +14,16 @@ import { markedText } from "./judge";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import "./map.css";
 
-type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean; login: boolean };
+/** top = 지도 위에 뜨는 첫 줄(판단 대기 · 최근 변경 · 로그인 유도 등, 페이지가 정함) */
+type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean; login: boolean; top?: ReactNode };
 type Tip = { id: string; x: number; y: number };
 type Toast = { text: string; undo?: () => void } | null;
 
-export function CanvasMap({ model, projects, initialQuery, canSave, login }: Props) {
+export function CanvasMap({ model, projects, initialQuery, canSave, login, top }: Props) {
   const [ctl] = useState(() => createMapController({ model, projectIds: projects.map((p) => p.id), initialQuery, canSave, login }));
   useSyncExternalStore(ctl.subscribe, ctl.version, ctl.version);
   const S = ctl.S;
-  const stage = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null), hud = useRef<HTMLDivElement>(null), side = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null), hud = useRef<HTMLDivElement>(null), side = useRef<HTMLElement>(null), dock = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip>({ id: "", x: 0, y: 0 });
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState(false);
@@ -51,17 +52,19 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
   function say(text: string, undo?: () => void) { setToast({ text, undo }); }
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 2600); return () => clearTimeout(t); }, [toast]);
 
-  // 크기 재기: 도구 줄 아래부터가 지도, 사이드바가 화면 높이만큼이면 그 폭은 비운다
+  // 범례 · 상태 줄 높이(알림 말풍선은 빼고 잰다: 말풍선이 뜰 때마다 지도가 다시 맞춰지지 않게)
+  const dockHeight = () => { const first = dock.current?.querySelector(".map-legend, .map-status"); return first && stage.current ? stage.current.getBoundingClientRect().bottom - first.getBoundingClientRect().top : 0; };
+  // 크기 재기: 도구 줄 아래부터 범례 · 상태 줄 위까지가 지도, 사이드바가 화면 높이만큼이면 그 폭은 비운다
   useEffect(() => {
     const st = stage.current!, cv = canvas.current!;
     const detach = ctl.attach(cv);
     const measure = () => {
       const top = hud.current ? hud.current.getBoundingClientRect().bottom - st.getBoundingClientRect().top + 6 : 0;
       const sd = side.current?.getBoundingClientRect();
-      ctl.measure(st.clientWidth, st.clientHeight, top, S.sel && sd && sd.height > st.clientHeight * 0.9 ? sd.width : 0);
+      ctl.measure(st.clientWidth, st.clientHeight, top, S.sel && sd && sd.height > st.clientHeight * 0.9 ? sd.width : 0, dockHeight());
     };
     const ro = new ResizeObserver(measure);
-    ro.observe(st); if (hud.current) ro.observe(hud.current);
+    ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);
     measure();
     ctl.restoreSaved();
     const want = new URLSearchParams(location.search).get("sel"); // 내 레이더·새 기술의 "지도에서 보기"
@@ -83,7 +86,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
   }, [ctl]);
   useEffect(() => { // 사이드바가 열리고 닫히면 지도 오른쪽 여백이 바뀐다. 잰 뒤에 고른 것이 사이드바에 가렸는지 본다
     const st = stage.current!, sd = side.current?.getBoundingClientRect();
-    ctl.measure(st.clientWidth, st.clientHeight, S.top, S.sel && sd && sd.height > st.clientHeight * 0.9 ? sd.width : 0);
+    ctl.measure(st.clientWidth, st.clientHeight, S.top, S.sel && sd && sd.height > st.clientHeight * 0.9 ? sd.width : 0, dockHeight());
     if (S.sel) ctl.revealItem(S.sel);
   }, [ctl, S, S.sel]);
 
@@ -140,6 +143,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
       <div ref={stage} className={`map-stage${sel ? " open" : ""}`}>
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
         <div ref={hud} className="map-top-hud">
+          {top ? <div className="map-top">{top}</div> : null}
           <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><SummaryChips nodes={model.nodes} view={S.view} canMine={canMine} onView={setView} /></div>
         </div>
@@ -155,10 +159,13 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
           {sel?.type === "t" ? <TechPanel item={sel} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(sel, s, r)} onGo={go} /> : null}
           {sel?.type === "g" ? <GroupPanel g={sel} members={ctl.groupMembers(sel)} shut={S.collapsed.has(sel.id)} onDrill={() => drill(sel.id)} onToggle={() => ctl.toggle(sel.id)} onGo={go} /> : null}
         </aside>
-        <p className="map-toast" role="status" aria-live="polite">{toast?.text}{toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; setToast(null); u(); }}>되돌리기</button> : null}</p>
+        {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
+        <div ref={dock} className="map-dock">
+          <p className="map-toast" role="status" aria-live="polite">{toast?.text}{toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; setToast(null); u(); }}>되돌리기</button> : null}</p>
+          <Legend L={S.L} view={S.view} onView={setView} />
+          <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
+        </div>
       </div>
-      <Legend L={S.L} view={S.view} onView={setView} />
-      <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
       <KeyboardList L={S.L} collapsed={S.collapsed} onToggle={(id) => ctl.toggle(id)} onOpen={open} onDrill={drill} onFocus={(id) => ctl.setFocus(id)} />
     </div>
   );
