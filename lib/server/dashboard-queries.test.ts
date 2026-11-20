@@ -6,9 +6,6 @@ import { readDashboardData } from "./dashboard-queries.ts";
 type Row = Record<string, unknown>;
 type Tables = Record<string, Row[]>;
 
-// `projects.archived_at`처럼 이어 붙인 표의 칸도 읽는다
-const pick = (r: Row, col: string): unknown => col.split(".").reduce<unknown>((o, k) => (o as Row | null | undefined)?.[k], r);
-
 // 표마다 미리 정한 줄을 돌려주고, 거르기 조건(eq·is)을 지켜 주는 가짜 클라이언트
 function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
   const db = {
@@ -18,7 +15,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}) {
           let result = tables[table] ?? [];
           const q = {
             eq(col: string, val: unknown) { result = result.filter((r) => r[col] === val); return q; },
-            is(col: string, val: unknown) { result = result.filter((r) => (pick(r, col) ?? null) === val); return q; },
+            is(col: string, val: unknown) { result = result.filter((r) => (r[col] ?? null) === val); return q; },
             order() { return q; },
             then: (resolve: (v: unknown) => unknown) =>
               Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: result, error: null }).then(resolve),
@@ -43,7 +40,6 @@ const tables = (): Tables => ({
     { owner_id: "user-a", project_id: "proj-1", hidden_at: null },
     { owner_id: "user-a", project_id: null, hidden_at: null },
     { owner_id: "user-a", project_id: "proj-1", hidden_at: "2026-11-18T00:00:00Z" },
-    { owner_id: "user-a", project_id: "proj-2", hidden_at: null, projects: { archived_at: "2026-11-01T00:00:00Z" } },
     { owner_id: "user-b", project_id: "proj-9", hidden_at: null },
   ],
   projects: [
@@ -53,7 +49,7 @@ const tables = (): Tables => ({
   ],
 });
 
-test("내 알림·숨기지 않은 내 기술(보관한 프로젝트 것 빼고)·보관하지 않은 내 프로젝트만 읽는다", async () => {
+test("내 알림·숨기지 않은 내 기술·보관하지 않은 내 프로젝트만 읽는다", async () => {
   const data = await readDashboardData(fakeDb(tables()), "user-a");
 
   assert.deepEqual(data.alerts.map((a) => a.id), ["a1"]);

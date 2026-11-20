@@ -17,10 +17,9 @@ export default async function InstallPage() {
   if (!db) return <main><h1>설치 프롬프트</h1><p>Supabase 연결 전이에요.</p></main>;
   const techRes = await db
     .from("my_technologies")
-    .select("id, origin, version, grade, grade_reason, grade_evidence, hidden_at, technologies(tech_key, type, repo_url), projects!inner(archived_at)")
+    .select("id, origin, version, grade, grade_reason, grade_evidence, hidden_at, technologies(tech_key, type, repo_url)")
     .eq("owner_id", user.id)
-    .is("hidden_at", null)
-    .is("projects.archived_at", null); // 보관한 프로젝트의 기술은 빼고(PRD-F4)
+    .is("hidden_at", null);
   // 보안 경고에서 "고친 버전으로 올리기(적용 후보)"를 고른 것 → 그 버전으로 고정(ADR 0012, P-8)
   const pinRes = await db.from("judgments").select("fixed_version, alerts(my_technology_id)").eq("judged_by", user.id).eq("decision", "candidate");
   // DB 타입을 생성하기 전이라 다대일도 배열로 추론된다. 실제 응답은 한 줄 객체

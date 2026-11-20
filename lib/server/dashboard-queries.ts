@@ -22,8 +22,7 @@ function rowsOrThrow({ data, error }: DbResult, what: string): Row[] {
 export async function readDashboardData(db: SupabaseClient, userId: string): Promise<DashboardData> {
   const [alerts, techs, projects] = await Promise.all([
     listMyAlerts(db, userId),
-    // 보관한 프로젝트의 기술은 숫자에서 뺀다(PRD-F4, map-queries와 같은 조건)
-    db.from("my_technologies").select("project_id, projects!inner(archived_at)").eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null),
+    db.from("my_technologies").select("project_id").eq("owner_id", userId).is("hidden_at", null),
     db.from("projects").select("id, name").eq("owner_id", userId).is("archived_at", null).order("created_at"),
   ]);
   return {
