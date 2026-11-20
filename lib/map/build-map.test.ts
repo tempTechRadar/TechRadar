@@ -20,6 +20,7 @@ test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 
   assert.deepEqual(m.nodes[2].mark, { techId: "c", status: "hold", reason: "다음 달에 보기" });
   const a = m.nodes[0];
   assert.deepEqual([a.mine, a.grade, a.gradeReason, a.myTechIds, a.projectNames, a.attrs.grade, a.attrs.project], [true, "danger", "취약점", ["m1", "m2"], ["앱", "다른 앱"], "위험", "여러 프로젝트"]);
+  assert.equal(a.catalogGrade, "pass", "판단 줄은 DB 규칙과 같은 카탈로그 등급을 본다");
   assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
 });
 

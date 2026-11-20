@@ -37,7 +37,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo }: TechProp
       <p className="muted">출처: {n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소</a> : "저장소 찾지 못함"} · 쓰는 곳 {n.attrs.host}{n.hostGuessed ? "(추정)" : ""}</p>
       {n.mine ? <p className="muted">내 프로젝트: {n.projectNames.join(", ")}</p> : null}
       <h3>내 판단</h3>
-      <Judge key={`${n.key}:${n.mark?.status ?? "none"}`} techId={n.techId} grade={n.grade} mark={n.mark} login={login} busy={busy} onMark={onMark} />
+      <Judge key={`${n.key}:${n.mark?.status ?? "none"}`} techId={n.techId} grade={n.catalogGrade} mark={n.mark} login={login} busy={busy} onMark={onMark} />
       <h3>비교군 {compare.length}</h3>
       {compare.length ? (
         <ul className="map-near">{compare.map(({ item: ci, node: m, quote }) => (

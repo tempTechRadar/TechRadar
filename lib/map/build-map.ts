@@ -33,6 +33,7 @@ export type MapNode = {
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
+  /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
 };
 /** quotes: 비교군 선마다 왜 비교군인지(관리자가 확인한 근거 한 줄), 키는 `a|b`(작은 키가 앞) */
 export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string> };
@@ -82,7 +83,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null,
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,
   };
 }
 
