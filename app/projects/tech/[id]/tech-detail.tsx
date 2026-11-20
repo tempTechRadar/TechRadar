@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { COLLECT_ERROR_TEXT, evidenceLinks, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import type { MyTechDetail } from "@/lib/server/my-tech";
@@ -10,7 +11,7 @@ const NONE = "확인하지 못함";
 const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 
 // using: 공개한 사람의 수·별명(null = 못 읽음, undefined = 카탈로그에 이어지지 않은 기술이라 해당 없음)
-export function TechDetail({ d, using }: { d: MyTechDetail; using?: UsingNowView | null }) {
+export function TechDetail({ d, using, children }: { d: MyTechDetail; using?: UsingNowView | null; children?: ReactNode }) {
   const info = d.technologies;
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
   const evidence = evidenceLinks(d.grade_evidence);
@@ -80,7 +81,8 @@ export function TechDetail({ d, using }: { d: MyTechDetail; using?: UsingNowView
         )}
       </article>
       {using !== undefined ? <p>{usingNowText(using)}</p> : null}
-      <p className="muted">사용기 · 비교 모드는 사용자가 모이면 열려요.</p>
+      {children}
+      <p className="muted">비교는 위 메뉴의 "비교"에서 할 수 있어요.</p>
     </main>
   );
 }

@@ -3,10 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getMyTechDetail, recordGradeView, type MyTechDetail } from "@/lib/server/my-tech";
+import { readUsageNotes, type UsageNoteView } from "@/lib/server/usage-notes";
 import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "../../../alerts/alerts.css";
 import { TechDetail } from "./tech-detail";
+import { UsageNotes } from "./usage-notes";
 
 // 기술 상세(IA-4, PRD-F10). 열 때마다 등급 이유를 열어 본 기록(grade_views, 주 숫자)을 남긴다.
 export default async function TechDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +34,16 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
     if (r.ok) using = { count: r.count, nicknames: r.nicknames };
     else { console.error(r.error); using = null; }
   }
-  return <TechDetail d={detail} using={using} />;
+  // 사용기(PRD-F35): 카탈로그에 이어진 기술만. 못 읽어도 기술 상세는 그대로 보여 주고 "불러오지 못했어요"로 알린다(없음으로 단정하지 않음, 불변 2)
+  let notes: UsageNoteView[] | null = null;
+  if (detail.technologies) {
+    notes = await readUsageNotes(supabase, detail.technologies.id, user.id).catch((e) => { console.error("사용기 조회 실패", e); return null; });
+  }
+  return (
+    <TechDetail d={detail} using={using}>
+      {detail.technologies ? <UsageNotes techId={detail.technologies.id} pathId={id} notes={notes} /> : null}
+    </TechDetail>
+  );
 }
 
 function LoadError() {
