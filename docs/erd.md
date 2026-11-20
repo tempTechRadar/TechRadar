@@ -39,6 +39,9 @@ erDiagram
   profiles ||--o{ alerts : "받는다"
   my_technologies ||--o{ alerts : "관련"
   alerts ||--o| judgments : "하나"
+  profiles ||--o{ tech_marks : "알림 없는 판단"
+  technologies ||--o{ tech_marks : "대상"
+  tech_marks ||..o{ tech_mark_events : "바뀐 기록(같은 사람+기술)"
   alerts ||--o{ scenarios : "요청"
   profiles ||--o{ judgments : "판단한다"
   profiles ||--o{ exports : "만든다"
@@ -315,6 +318,19 @@ UK: (kind, ecosystem, value).
 
 판단 저장과 `alerts.status = done`은 한 거래(DB 함수 하나)로 한다.
 
+**tech_marks** — 알림 없는 판단(ADR 0028, P-12d). 쓰는 중은 저장소에서 읽은 것이라 여기 없다
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| user_id | uuid | ✔ | PK, FK→profiles | 사람 + 기술이 한 줄 |
+| tech_id | uuid | ✔ | PK, FK→technologies | |
+| status | text | ✔ | | `interest`(관심) / `candidate`(적용 후보) / `hold`(보류) |
+| reason | text | | | 보류면 5자 이상(check), 그 밖에는 비움 |
+| updated_at | timestamptz | ✔ | | |
+
+**tech_mark_events** — 위 표의 바뀐 기록(덧붙이기만, 트리거): `user_id`, `tech_id`, `prev_status`, `new_status`(null = 표시 없음), `reason`, `created_at`.
+
+쓰기는 DB 함수 `set_tech_mark(기술, 상태, 이유)` 하나로만. 적용 후보 · 보류면 그 기술의 본인 판단 대기 알림을 모두 `save_judgment`로 판단하고(고친 버전은 변경에서), 표시와 기록까지 **한 거래**로 남긴다(하나라도 실패하면 모두 그대로, 불변 4). 같은 사람 + 기술 호출은 잠금으로 줄 세워 같은 값이면 기록이 늘지 않는다(불변 3). 위험 등급 기술은 그 기술의 가장 최근 보안 경고를 고친 버전과 함께 적용 후보로 판단했을 때만 적용 후보(ADR 0012). 기록 표는 고치기·지우기·비우기(truncate) 모두 트리거가 막는다. 서버 `lib/server/marks.ts`는 부르기 전 검사와 쉬운 실패 문구만 맡는다.
+
 **scenarios** — 적용 시나리오(참고 자료)
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
@@ -397,6 +413,7 @@ UK: (kind, ecosystem, value).
 | observations · changes | 본인 알림에 이어진 것만 읽기. 관리자 전체 읽기. 쓰기는 서버 |
 | alerts | 본인 읽기. 만들기는 서버. `status`는 판단 저장 함수로만 바뀜 |
 | judgments | **본인 알림에만, 사용자 로그인 토큰으로만 만들기.** 관리자 읽기만. 서비스 키로 쓰는 코드 없음(테스트) |
+| tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
 | exports · grade_views | 본인 읽기·만들기. 관리자 읽기 |
 | audit_logs | 본인 줄 읽기, 관리자 전체 읽기. **고치기·지우기 아무도 못 함** |
@@ -464,6 +481,7 @@ UK: (kind, ecosystem, value).
 | technologies | 34 | 2 | 켜짐 | ✔ |
 
 ## 바뀐 기록
+- 2026-11-20 P-12d-marks(작업 `I-P-12d-marks`): `tech_marks`·`tech_mark_events`와 DB 함수 `set_tech_mark`를 더함(2.5절 끝, 4절, 관계 그림). 알림 없는 판단(ADR 0028). 마이그레이션 `202611201200_P-12d_tech_marks.sql`, 시험 `supabase/tests/tech_marks_p12d.sql`(운영 되돌림 시험 기대값 20개 맞음). **운영 적용: 11-20 09:04 KST**(DB 이름 `p12d_tech_marks`, 보안 점검 새 경고는 `set_tech_mark` security definer 1건 — `save_judgment`와 같은 의도)
 - 2026-11-19 2차 대조(코드·마이그레이션 변경 없음, 작업 `I-records-sync-1119`): 표 20개·칸 이름이 실제 DB와 모두 일치(7절). 팀 확인 대기
 - 2026-11-18 P-30: M1 테이블 7개를 실제 DB에 만듦(7절). 칸은 2절 그대로, 지우기 금지와 확정 칸만 고치기를 더함
 - 2026-11-18 P-3 코드 검토: `my_technologies`에 내 버전 등급 칸(`grade`·`grade_reason`·`grade_evidence`·`grade_rule_version`·`graded_at`·`last_checked_ok_at`). `technologies.grade` 한 칸이면 다른 버전을 쓰는 사람끼리 등급을 덮어써서(사용자 결정 "칸 추가"). 사용자가 고칠 수 있는 칸을 `hidden_at`·`manual_name`·`version`으로 좁힘. 마이그레이션 `202611181600_P-3_my_tech_grade.sql`
