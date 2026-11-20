@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 19. 17시 29분 9초",
+  "when": "2026. 11. 20. 12시 48분 0초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -351,9 +351,9 @@
         "source": "불변 2 · SPEC-3.4 수집 실패 · intent I-P-3-osv-404 열린 질문(next_page_token 무시)",
         "expectedOutcome": "수집 오류",
         "expectedEvent": false,
-        "actualOutcome": "변화 없음",
-        "verdict": "결과 다름",
-        "note": ""
+        "actualOutcome": "수집 오류",
+        "verdict": "맞음",
+        "note": "parse"
       },
       {
         "id": "E-opp-basic",
@@ -568,10 +568,10 @@
     "totals": {
       "cases": 38,
       "hit": 15,
-      "quietOk": 22,
+      "quietOk": 23,
       "miss": 0,
       "falseAlarm": 0,
-      "outcomeWrong": 1,
+      "outcomeWrong": 0,
       "failed": 0
     },
     "byKind": {
@@ -598,10 +598,10 @@
       },
       "수집 실패": {
         "cases": 10,
-        "right": 9,
+        "right": 10,
         "miss": 0,
         "falseAlarm": 0,
-        "outcomeWrong": 1
+        "outcomeWrong": 0
       },
       "거절·보류": {
         "cases": 6,
@@ -622,10 +622,10 @@
   "overall": {
     "cases": 50,
     "hit": 21,
-    "quietOk": 28,
+    "quietOk": 29,
     "miss": 0,
     "falseAlarm": 0,
-    "outcomeWrong": 1,
+    "outcomeWrong": 0,
     "failed": 0
   }
 }

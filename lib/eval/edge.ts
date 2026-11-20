@@ -43,8 +43,17 @@ type ReadResult =
 const failedFetch = (kind: "network" | "timeout"): Error =>
   kind === "timeout" ? Object.assign(new Error("시간 초과"), { name: "TimeoutError" }) : new TypeError("fetch failed");
 
+// 전역 fetch를 잠깐 바꿔 끼우므로 한 번에 하나만 돈다: queryOsv가 쪽을 여러 번 부르는 동안 다른 사례가 fetch를 바꾸거나 되돌리면 응답이 섞인다.
+let replayQueue: Promise<unknown> = Promise.resolve();
+
 /** 진짜 queryOsv를 부르되 fetch 자리에 정해 둔 응답을 넣는다. 끝나면(실패해도) 원래 fetch로 되돌린다. */
-export async function replayQueryOsv(i: Pick<OsvRead, "package" | "ecosystem" | "version">, reply: OsvReply, read: Reader): Promise<OsvVuln[]> {
+export function replayQueryOsv(i: Pick<OsvRead, "package" | "ecosystem" | "version">, reply: OsvReply, read: Reader): Promise<OsvVuln[]> {
+  const run = replayQueue.then(() => replayOnce(i, reply, read));
+  replayQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function replayOnce(i: Pick<OsvRead, "package" | "ecosystem" | "version">, reply: OsvReply, read: Reader): Promise<OsvVuln[]> {
   // 응답 파일은 fetch 밖에서 미리 읽는다: 안에서 읽다 실패하면 queryOsv가 연결 실패(수집 오류)로 바꿔 깨진 정답 파일을 가린다
   const answer = "fixture" in reply ? { status: 200, body: JSON.stringify(read.readJson(reply.fixture)) } : reply;
   const realFetch = globalThis.fetch;
@@ -53,7 +62,7 @@ export async function replayQueryOsv(i: Pick<OsvRead, "package" | "ecosystem" | 
     return new Response(answer.body, { status: answer.status });
   }) as typeof fetch;
   try {
-    return await queryOsv(i.package, i.ecosystem, i.version);
+    return await queryOsv(i.package, i.ecosystem, i.version, 0);
   } finally {
     globalThis.fetch = realFetch;
   }
