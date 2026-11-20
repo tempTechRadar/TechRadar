@@ -31,7 +31,7 @@ export default async function MyRunsPage({ searchParams }: { searchParams: Promi
       <p><Link href="/projects">← 내 프로젝트</Link></p>
       <h1>내 실행 기록</h1>
       <p>내 저장소를 읽은 실행(처음 등록 읽기·다시 읽기)만 보여요. 실제로 실행한 기록대로 칠해지고, 기록이 없는 상자는 회색이에요.</p>
-      {readError ? <p role="alert" style={{ color: "#b3261e" }}>기록을 읽지 못했어요(없는 게 아니라 조회 실패): {readError}</p> : null}
+      {readError ? <p role="alert" style={{ color: "var(--danger)" }}>기록을 읽지 못했어요(없는 게 아니라 조회 실패): {readError}</p> : null}
       {!readError && !picked ? <p>아직 실행 기록이 없어요. 프로젝트를 등록하거나 다시 읽기를 누르면 생겨요.</p> : null}
       <RunView flow={flow} runs={runs} picked={picked} steps={(stepsRes?.data ?? []) as StepDetail[]} node={node} basePath="/projects/runs" />
     </main>
