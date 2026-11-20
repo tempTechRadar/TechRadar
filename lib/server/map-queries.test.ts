@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_FIRST_FILL, readGuestMapInput, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
+import { CATALOG_FIRST_FILL, readGuestMapInput, readListedByIds, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
 import { NOT_BULK_FILTER } from "../domain/registry.ts";
 
 type Row = Record<string, unknown>;
@@ -144,4 +144,20 @@ test("연동 서비스 · 개념은 카탈로그 설명이 없으면 정해 둔 
   const { db } = recordingDb({ technologies: [{ id: "s", tech_key: "service:supabase", one_liner: null }, { id: "n", tech_key: "npm:x", one_liner: null }], categories: [] });
   const input = await readGuestMapInput(db);
   assert.deepEqual(input.techs.map((t) => t.oneLiner), ["공식 MCP 서버(com.supabase/mcp)가 있어 AI 도구와 연결할 수 있어요", null]);
+});
+
+test("로그인 전 새 기술: 내 표시는 읽지 않고(남의 줄을 읽을 일이 없게) 공개 목록 조건은 그대로", async () => {
+  const { db, calls } = recordingDb({});
+  const input = await readNewTechs(db, null, new Date("2026-11-22T00:00:00Z"));
+  assert.ok(!calls.some((c) => c.startsWith("tech_marks.")));
+  for (const c of ["technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)"]) assert.ok(calls.includes(c), c);
+  assert.deepEqual(input.marks, []);
+});
+
+test("로그인 전 지도에 고른 기술 더하기(sel=)도 공개 목록 조건 그대로, 고른 게 없으면 읽지 않는다", async () => {
+  const { db, calls } = recordingDb({ technologies: [{ id: "x", tech_key: "mcp:x", display_name: "x" }] });
+  assert.deepEqual(await readListedByIds(db, []), []);
+  assert.equal(calls.length, 0);
+  assert.deepEqual((await readListedByIds(db, ["x"])).map((t) => t.id), ["x"]);
+  for (const c of ["technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)"]) assert.ok(calls.includes(c), c);
 });

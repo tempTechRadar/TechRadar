@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "../alerts/filter-select";
 import { filterHistory, parseHistoryFilter } from "@/lib/alerts/filter-history";
 import { listTime, toAlertView } from "@/lib/alerts/to-alert-view";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "../alerts/alerts.css";
 
@@ -21,7 +21,7 @@ const MARK_LIMIT = 200;
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return <LoginNeeded title="기록 찾기" why="로그인하면 내가 남긴 판단(관심 · 적용 후보 · 보류)과 이유를 여기에서 다시 찾을 수 있어요." next={backTo("/history", await searchParams)} />;
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const [records, marks] = await Promise.all([

@@ -65,7 +65,8 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<Catalog
 /** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
 export const NEW_LIMIT = 500;
 /** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
-export async function readNewTechs(db: SupabaseClient, userId: string, now: Date): Promise<MapInput> {
+/** userId가 null이면 로그인 전(11-21 사용자 결정: 새 기술도 로그인 없이): 서비스 키로 공개 목록만 읽고 내 표시는 없다(ADR 0029) */
+export async function readNewTechs(db: SupabaseClient, userId: string | null, now: Date): Promise<MapInput> {
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const since = weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL;
   const [categories, techRes, markRes] = await Promise.all([
@@ -73,13 +74,22 @@ export async function readNewTechs(db: SupabaseClient, userId: string, now: Date
     // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다
     publicTechs(db, READ_COLUMNS)
       .gt("created_at", since).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
-    db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
+    userId ? db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId) : Promise.resolve({ data: [], error: null }),
   ]);
   const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
   return { mine: [], techs: rowsOrThrow(techRes, "새 기술을 읽지 못함").map(toTech), relations: [], categories, marks, newSince: CATALOG_FIRST_FILL };
 }
 
 /** 로그인 전 지도(ADR 0029): 누구에게나 같은 카탈로그. 서비스 키 클라이언트로 부르되 공용 표(technologies·categories)의 공개 칸만 읽는다 */
+/** NEW 판정 규칙 판: 로그인 전 지도 · 새 기술 캐시 키에 넣는다. 규칙(isBulkFilled · NOT_BULK_FILTER)이 바뀌면 올려 옛 캐시를 안 쓴다 */
+export const NEW_RULE_VERSION = "new-bulk-1";
+
+/** 로그인 전 지도에 꼭 올릴 기술(새 기술의 "지도에서 보기" sel=): 1,200개 밖이어도 공개 목록 기술이면 */
+export async function readListedByIds(db: SupabaseClient, ids: string[]): Promise<CatalogTech[]> {
+  if (!ids.length) return [];
+  return rowsOrThrow(await listedTechs(db, READ_COLUMNS).in("id", ids), "고른 기술을 읽지 못함").map(toTech);
+}
+
 export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
   const [categories, techs] = await Promise.all([readCategories(db), readCatalog(db, false)]);
   return { mine: [], techs, relations: [], categories, newSince: CATALOG_FIRST_FILL };

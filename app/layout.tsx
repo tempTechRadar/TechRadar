@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { signOut } from "@/app/auth/actions";
+import { AccountMenu } from "@/app/account-menu";
+import { LoginLink } from "@/app/login-link";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
@@ -43,38 +44,23 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body>
         <ReadyGate />{/* 첫 화면 관문: 처음 열 때 한 번만 도는 스크립트(지도가 아니면 "이미 들어옴"만 남김) */}
-        {/* 메뉴(design.md 13절 1): 왼쪽은 보는 곳, 오른쪽은 내 것. 대시보드·비교는 내 레이더(/views) 위 링크로 간다.
-            로그인 전에는 기술 지도만(나머지는 로그인이 필요). "+ 기술 넣기"는 대화상자(못 찾으면 내 프로젝트의 직접 추가로) */}
+        {/* 메뉴(design.md 13절 1, 11-21 사용자 결정 "같은 메뉴 + 계정 묶기"): 로그인 전후 가운데 메뉴는 똑같이 보이고,
+            로그인이 필요한 화면은 누르면 그 자리에서 무엇이 열리는지 + 로그인(LoginNeeded). 왼쪽 로고 = 기술 지도.
+            추천 · 대시보드 · 비교는 내 레이더(/views) 위 링크로, 내 프로젝트 · 설정 · 관리자 · 로그아웃은 계정 펼침 하나로 */}
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
-            <Link href="/">기술 지도</Link>
-            {user !== null ? (
-              <>
-                <Link href="/new">새 기술</Link>
-                <Link href="/recommend">추천</Link>
-                <Link href="/views">내 레이더</Link>
-                <Link href="/alerts" aria-label={pending ? `알림, 판단 대기 ${pending}건` : undefined}>알림{pending ? <span className="nav-badge" aria-hidden="true">{pending}</span> : null}</Link>
-                <Link href="/history">기록</Link>
-              </>
-            ) : null}
+            <Link href="/" className="site-nav-logo" aria-label="TechRadar, 기술 지도">TechRadar</Link>
+            <Link href="/new">새 기술</Link>
+            <Link href="/views">내 레이더</Link>
+            <Link href="/alerts" aria-label={pending ? `알림, 판단 대기 ${pending}건` : undefined}>알림{pending ? <span className="nav-badge" aria-hidden="true">{pending}</span> : null}</Link>
+            <Link href="/history">기록</Link>
           </div>
           <div className="site-nav-side">
-            {user !== null ? (
-              <>
-                <CaptureDialog />
-                <Link href="/projects">내 프로젝트</Link>
-                <Link href="/settings">설정</Link>
-              </>
-            ) : null}
-            {user?.role === "admin" ? <Link href="/admin">관리자</Link> : null}
-            {user ? (
-              <form action={signOut}>
-                <span>{user.nickname ? `${user.nickname}님` : "내 계정"}</span>
-                <button type="submit">로그아웃</button>
-              </form>
-            ) : (
-              <Link href="/login">로그인</Link>
-            )}
+            {/* 로그인 전 "+ 기술 넣기"는 로그인으로(찾기 · 넣기는 내 목록에 쓰는 일이라) */}
+            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">+ 기술 넣기</LoginLink>}
+            {user !== null
+              ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />
+              : <LoginLink className="site-nav-login">로그인</LoginLink>}
           </div>
         </nav>
         {children}

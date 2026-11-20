@@ -9,7 +9,7 @@ import { buildTechMap, type TechMapModel } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { readRecentFirstReads } from "@/lib/server/first-check-queries";
-import { readGuestMapInput, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
+import { NEW_RULE_VERSION, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
@@ -28,7 +28,7 @@ const readGuestMap = unstable_cache(async () => {
   const db = getServiceSupabase();
   if (!db) throw new Error("서비스 키 설정이 없음");
   return readGuestMapInput(db);
-}, ["guest-map", TECH_COLUMNS, "new-bulk-1"], { revalidate: 600 }); // 끝 값은 NEW 판정 규칙 판: 규칙이 바뀌면 올려 옛 캐시를 안 쓴다
+}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION], { revalidate: 600 });
 
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; top: ReactNode }) {
@@ -42,7 +42,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const query = new URLSearchParams(Object.entries(await searchParams).filter((e): e is [string, string] => typeof e[1] === "string")).toString();
   const user = await getCurrentUser();
   if (!user) {
-    const input = await readGuestMap().catch(logged("로그인 전 지도 조회 실패"));
+    const cached = await readGuestMap().catch(logged("로그인 전 지도 조회 실패"));
+    // 새 기술의 "지도에서 보기"(sel=)로 온 기술이 캐시한 1,200개 밖이면 그 하나만 더 읽어 올린다(공개 목록 기술만)
+    const want = selTech(query).filter((id) => cached && !cached.techs.some((t) => t.id === id));
+    const db = want.length ? getServiceSupabase() : null;
+    const extra = db ? await readListedByIds(db, want).catch(logged("고른 기술 조회 실패")) : null;
+    const input = cached && extra?.length ? { ...cached, techs: [...cached.techs, ...extra] } : cached;
     return (
       <main className="alerts map-page">
         <h1 className="sr-only">기술 지도</h1>

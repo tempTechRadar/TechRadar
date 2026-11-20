@@ -1,13 +1,13 @@
 // 내 레이더(ADR 0028 3: 대시보드 IA-5를 이 화면이 맡음) = 위 숫자(내 기술 · 판단 대기 · 판단 완료) + 판단 상태 칸반.
 // 다른 보기(PRD-F36·F37·F34, 3순위): 갤러리 · 소식판 · 쓰고 있어요. 본인 데이터만(RLS + 아래 조건, 불변 5).
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { galleryCards, type GalleryRow } from "@/lib/views/gallery";
 import { isConcept } from "@/lib/map/build-map";
 import { buildKanban, type KanbanInput } from "@/lib/views/kanban";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { Kanban } from "./kanban";
 import { Gallery, NewsPlaceholder, UsingNowPlaceholder } from "./view-parts";
@@ -31,7 +31,7 @@ const one = <T,>(j: T | T[] | null) => (Array.isArray(j) ? j[0] : j) ?? null;
 
 export default async function ViewsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/views");
+  if (!user) return <LoginNeeded title="내 레이더" why="로그인하면 관심 두고, 써 볼 후보로 고르고, 쓰고 있는 기술이 여기에 모여요." next={backTo("/views", await searchParams)} />;
   const db = await getServerSupabase();
   if (!db) return <main className="alerts"><h1>내 레이더</h1><p>Supabase 연결 전이에요.</p></main>;
   const { tab: raw } = await searchParams;
@@ -80,6 +80,7 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
       {readError ? <div className="notice notice-error" role="alert"><strong>목록을 읽지 못했어요.</strong> 없는 게 아니라 조회에 실패했어요. 잠시 뒤 새로 고쳐 주세요.</div> : null}
       <nav aria-label="보기 바꾸기" className="views-tabs">
         {TABS.map(([k, name]) => <Link key={k} href={`/views?tab=${k}`} aria-current={k === tab ? "page" : undefined}>{name}</Link>)}
+        <Link href="/recommend">추천</Link>{/* 메뉴에서 옮겨 옴(11-21, 메뉴 줄이기) */}
         <Link href="/dashboard">대시보드</Link>
         <Link href="/compare">기술 비교</Link>
       </nav>

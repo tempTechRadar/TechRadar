@@ -10,3 +10,19 @@
 .site-nav form { display: flex; gap: var(--sp-2); align-items: center; margin: 0; color: var(--muted); }
 /* 메뉴의 판단 대기 수(design.md 17절). 글자색은 --ink 계열 규칙대로 검은 바탕에 흰 글자 */
 .site-nav .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: var(--fs-cap); line-height: 20px; text-align: center; }
+/* 11-21 메뉴 줄이기: 로고 = 기술 지도, 계정 펼침(내 프로젝트 · 설정 · 관리자 · 로그아웃) */
+.site-nav .site-nav-logo { font-weight: 800; letter-spacing: -0.01em; margin-right: var(--sp-2); }
+.site-nav-account { position: relative; }
+.site-nav-account summary { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 var(--sp-2); cursor: pointer; list-style: none; border-radius: var(--r-md); }
+.site-nav-account summary::-webkit-details-marker { display: none; }
+.site-nav-account[open] summary { background: var(--sunken); }
+.site-nav-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; display: grid; min-width: 160px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.site-nav-menu a, .site-nav-menu button { justify-content: flex-start; width: 100%; text-decoration: none; border: 0; border-radius: var(--r-sm); }
+.site-nav-menu a:hover, .site-nav-menu button:hover, .site-nav-menu a:focus-visible, .site-nav-menu button:focus-visible { background: var(--sunken); }
+.site-nav-menu form { display: block; }
+.site-nav .site-nav-login { text-decoration: underline; }
+.site-nav-name { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* 별명은 30자까지라 길면 줄임 */
+@media (max-width: 640px) {
+  /* 좁으면 오른쪽 묶음이 다음 줄 왼쪽으로 내려온다: 펼침도 왼쪽에 맞춰 화면 밖으로 나가지 않게 */
+  .site-nav-menu { right: auto; left: 0; max-width: calc(100vw - 32px); }
+}
