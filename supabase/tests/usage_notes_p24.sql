@@ -1,6 +1,6 @@
 -- P-24 usage_notes·helpful_votes·reports 권한 시험. rls_m0.sql과 같은 방식: 끝에서 일부러 예외를 내 모두 되돌린다(실제 DB에 아무것도 남지 않음).
 -- 기대: 마지막 ROLLBACK_OK 줄이 파일 끝 주석과 같다. 202611201000과 202611201100(쓴 사람 칸 숨기기) 두 파일을 적용한 뒤에 돌린다. 막힘은 insufficient_privilege·check·unique 위반만 "막힘"으로 센다(다른 오류는 시험을 멈춰 눈에 띄게 한다).
--- 주의: 쓰기만 하고 실행하지 못한 시험이다(이 컴퓨터에 Postgres 없음). 영식이 운영 적용 때 처음 돌린다. 틀린 곳이 있으면 시험 쪽 오류일 수 있으니 출력을 같이 본다.
+-- 실행 기록: 처음 쓸 때는 실행해 보지 못했고(이 컴퓨터에 Postgres 없음), 11-20 영식이 운영에서 적용 전 예행연습과 적용 뒤 재시험으로 돌려 34개 항목이 모두 기대값과 일치했다(docs/intent.md `I-p24-prod-apply`).
 do $$
 declare
   u1 uuid := gen_random_uuid(); u2 uuid := gen_random_uuid(); u3 uuid := gen_random_uuid(); ad uuid := gen_random_uuid();
