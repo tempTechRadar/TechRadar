@@ -10,6 +10,8 @@ export type GalleryRow = {
   collectErrorKind: string | null;
   lastCheckedOkAt: string | null;
   projectName: string;
+  /** 개념(작업 방식)은 등급이 없다 */
+  concept?: boolean;
 };
 export type Card = GalleryRow & { gradeKo: string; note: string };
 
@@ -26,6 +28,6 @@ function noteOf(r: GalleryRow): string {
 export function galleryCards(rows: GalleryRow[], grades: Grade[] = []): Card[] {
   return rows
     .filter((r) => grades.length === 0 || grades.includes(r.grade))
-    .map((r) => ({ ...r, gradeKo: GRADE_KO[r.grade], note: noteOf(r) }))
+    .map((r) => ({ ...r, gradeKo: r.concept ? "등급 없음" : GRADE_KO[r.grade], note: noteOf(r) }))
     .sort((a, b) => GRADE_RANK[a.grade] - GRADE_RANK[b.grade] || a.name.localeCompare(b.name) || a.projectName.localeCompare(b.projectName) || (a.id < b.id ? -1 : 1));
 }

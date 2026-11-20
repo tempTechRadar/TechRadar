@@ -12,6 +12,7 @@ import { SKILLS_DIR } from "../domain/skills.ts";
 import { readSkills } from "./read-skills.ts";
 import { CODE_FILES, readModels } from "./read-models.ts";
 import { eolOfKey } from "../domain/model-eol.ts";
+import { detectConcepts, detectServices } from "../domain/services.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
 
@@ -55,14 +56,15 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   // 목록이 전부가 아닐 수 있다는 안내(soft, requirements.txt의 -r)는 읽은 기술 줄의 잘못이 아니라서 줄에 딱지를 붙이지 않는다.
   for (const f of fileErrors.filter((e) => !e.soft)) {
     // 스킬 폴더 오류는 그 아래 스킬 줄(".claude/skills/<이름>") 모두, 한도로 일부만 읽었으면 그중 이번에 못 읽은 줄만 대상이다
-    // 코드 파일 목록을 못 읽었거나 한도로 일부만 봤다: 이 프로젝트의 모델 줄(어느 코드 파일에서 나왔든)이 대상
-    const modelIds = f.path === CODE_FILES ? await modelRowIds(db, projectId) : null;
+    // 코드 파일 쪽 오류: 이 프로젝트에서 이번에 다시 보지 못한 줄만(읽은 줄은 덮지 않음). 파일 목록 자체를 못 읽었으면 목록으로 찾는 연동 서비스 · 개념까지,
+    // 목록은 읽었고 코드 파일 일부만 못 봤으면(onlyUnread) 모델 줄만: 서비스 · 개념은 목록과 package.json으로 이미 다시 확인했다
+    const modelIds = f.path === CODE_FILES ? await modelRowIds(db, projectId, f.onlyUnread ? ["model"] : ["model", "service", "concept"]) : null;
     if (modelIds?.length === 0) continue;
     const q = db.from("my_technologies").update({ collect_error_kind: f.kind }).eq("project_id", projectId);
     const unread = `read_at.is.null,read_at.lt."${readAt}"`;
     const skillRows = () => q.like("source_file", `${SKILLS_DIR}/%`);
     let r;
-    if (modelIds) r = await (f.onlyUnread ? q.in("id", modelIds).or(unread) : q.in("id", modelIds));
+    if (modelIds) r = await q.in("id", modelIds).or(unread);
     else r = await (f.path !== SKILLS_DIR ? q.eq("source_file", f.path) : f.onlyUnread ? skillRows().or(unread) : skillRows());
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
@@ -173,7 +175,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
   // 코드 속 지원 종료 모델(PRD-F38)도 같은 저장소의 서로 모르는 읽기라 함께 돈다
   const [skills, models] = closed
-    ? [{ found: [], errors: [], folders: 0 }, { found: [], errors: [], scanned: 0 }]
+    ? [{ found: [], errors: [], folders: 0 }, { found: [], errors: [], scanned: 0, treePaths: [] }]
     : await Promise.all([readSkills(repo), readModels(repo)]);
   fileErrors.push(...skills.errors, ...models.errors);
   await recordStep(db, runId, {
@@ -212,7 +214,8 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const firstByName = new Map<string, FoundTech>();
   for (const f of found) if (!f.tech && !firstByName.has(f.name)) firstByName.set(f.name, f);
   const unique = found.filter((f) => (f.tech ? best.get(f.tech.key) === f : firstByName.get(f.name) === f));
-  const modelList = firstPerKey(models.found);
+  // 연동 서비스 · 개념(PRD-F40): SDK(package.json · requirements.txt)와 파일 목록으로. 정해 둔 목록에서만 나온다
+  const modelList = [...firstPerKey(models.found), ...detectServices(files, models.treePaths), ...detectConcepts(models.treePaths)];
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
@@ -224,7 +227,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   });
   // 아무 저장소나 등록할 수 있으니 공용 카탈로그·OSV 호출이 한 번에 커지지 않게 자른다. 잘린 것은 남겨서 보이게
   // 스킬을 하나라도 읽었으면 해석한 것이 있다(저장소 파일이 없고 스킬만 있는 저장소도 실패가 아니다)
-  // 모델은 OSV를 부르지 않고 공식 표에서만 나와(수가 정해져 있다) 기술 수 한도 밖에 둔다: 의존성이 많은 저장소에서 먼저 잘리지 않게.
+  // 모델 · 연동 서비스 · 개념은 OSV를 부르지 않고 정해 둔 목록에서만 나와(수가 정해져 있다) 기술 수 한도 밖에 둔다: 의존성이 많은 저장소에서 먼저 잘리지 않게.
   // 코드 파일을 하나라도 열었으면 해석한 것이 있다(모델이 없어도)
   return { found: [...unique.slice(0, MAX_TECHS), ...modelList], dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length + models.scanned };
 }
@@ -278,9 +281,9 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
   return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length };
 }
 
-/** 이 프로젝트의 모델 줄(종류 model) id */
-async function modelRowIds(db: SupabaseClient, projectId: string): Promise<string[]> {
-  const r = await db.from("my_technologies").select("id, technologies!inner(type)").eq("project_id", projectId).eq("technologies.type", "model");
+/** 이 프로젝트에서 파일 목록 · 코드 파일로 찾는 줄(종류 model · service · concept 중 고른 것) id */
+async function modelRowIds(db: SupabaseClient, projectId: string, types: string[]): Promise<string[]> {
+  const r = await db.from("my_technologies").select("id, technologies!inner(type)").eq("project_id", projectId).in("technologies.type", types);
   if (r.error) throw new Error(`모델 줄을 읽지 못함: ${r.error.message}`);
   return (r.data as { id: string }[]).map((row) => row.id);
 }

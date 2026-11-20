@@ -1,7 +1,7 @@
 import { RereadButton } from "./reread-button";
 import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
-import { filesOf, filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
+import { filesOf, filterTechs, GRADE_TONE, gradeText, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import { editProject, registerProject, setProjectArchived } from "./actions";
 import { MEMO_MAX, NAME_MAX } from "@/lib/domain/project-edit";
@@ -113,7 +113,7 @@ function TechRow({ m, back }: { m: MyTech; back: string }) {
         <span className="source">버전 {m.version ?? "모름"}</span>
       </th>
       <td data-label="등급">
-        <span className={`badge badge-${GRADE_TONE[m.grade]}`}>{GRADE_LABEL[m.grade]}</span>
+        <span className={`badge badge-${GRADE_TONE[m.grade]}`}>{gradeText(m.grade, m.technologies?.tech_key)}</span>
         {m.collect_error_kind && (
           <>
             {" "}

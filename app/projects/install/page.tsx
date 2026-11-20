@@ -7,6 +7,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { ImportScreen } from "./import-screen";
 import { InstallScreen } from "./install-screen";
 
+const NOT_INSTALLABLE = new Set(["model", "service", "concept"]);
 type JudgmentRow = { fixed_version: string | null; alerts: { my_technology_id: string | null } | null };
 
 export default async function InstallPage() {
@@ -23,7 +24,8 @@ export default async function InstallPage() {
   // 보안 경고에서 "고친 버전으로 올리기(적용 후보)"를 고른 것 → 그 버전으로 고정(ADR 0012, P-8)
   const pinRes = await db.from("judgments").select("fixed_version, alerts(my_technology_id)").eq("judged_by", user.id).eq("decision", "candidate");
   // DB 타입을 생성하기 전이라 다대일도 배열로 추론된다. 실제 응답은 한 줄 객체
-  const rows = (techRes.data ?? []) as unknown as MyTechRow[];
+  // 모델 · 연동 서비스 · 개념은 설치하는 것이 아니라서 옮길 목록에 넣지 않는다(PRD-F38 · F40)
+  const rows = ((techRes.data ?? []) as unknown as MyTechRow[]).filter((r) => !NOT_INSTALLABLE.has(r.technologies?.type ?? ""));
   const pins = ((pinRes.data ?? []) as unknown as JudgmentRow[])
     .filter((j) => j.fixed_version && j.alerts?.my_technology_id)
     .map((j) => [j.alerts!.my_technology_id!, j.fixed_version!] as [string, string]);

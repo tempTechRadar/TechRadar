@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { galleryCards, type GalleryRow } from "@/lib/views/gallery";
+import { isConcept } from "@/lib/map/build-map";
 import { buildKanban, type KanbanInput } from "@/lib/views/kanban";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -20,7 +21,7 @@ type TechRef = { display_name: string; grade: Grade } | null;
 
 type MyTech = {
   id: string; tech_id: string | null; version: string | null; grade: Grade; grade_reason: string | null; collect_error_kind: string | null;
-  last_checked_ok_at: string | null; manual_name: string | null; technologies: { display_name: string } | null; projects: { name: string } | null;
+  last_checked_ok_at: string | null; manual_name: string | null; technologies: { display_name: string; tech_key: string } | null; projects: { name: string } | null;
 };
 type MarkRow = { tech_id: string; status: "interest" | "candidate" | "hold"; reason: string | null; updated_at: string; technologies: TechRef };
 type JudgmentRow = { decision: "candidate" | "hold"; reason: string | null; judged_at: string };
@@ -39,7 +40,7 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
   // DB 타입을 생성하기 전이라 다대일도 배열로 추론된다. 실제 응답은 한 줄 객체
   const [techRes, markRes, alertRes, dash] = await Promise.all([
     db.from("my_technologies")
-      .select("id, tech_id, version, grade, grade_reason, collect_error_kind, last_checked_ok_at, manual_name, technologies(display_name), projects!inner(name, archived_at)")
+      .select("id, tech_id, version, grade, grade_reason, collect_error_kind, last_checked_ok_at, manual_name, technologies(display_name, tech_key), projects!inner(name, archived_at)")
       .eq("owner_id", user.id).is("hidden_at", null).is("projects.archived_at", null), // 지도와 같은 범위: 보관한 프로젝트는 뺀다
     db.from("tech_marks").select("tech_id, status, reason, updated_at, technologies(display_name, grade)").eq("user_id", user.id),
     db.from("alerts").select("status, changes(tech_id, technologies(display_name, grade)), judgments(decision, reason, judged_at)").eq("user_id", user.id),
@@ -60,7 +61,7 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
   };
   const rows: GalleryRow[] = techs.map((t) => ({
     id: t.id, name: t.technologies?.display_name ?? t.manual_name ?? "(이름 없음)", version: t.version, grade: t.grade, gradeReason: t.grade_reason,
-    collectErrorKind: t.collect_error_kind, lastCheckedOkAt: t.last_checked_ok_at, projectName: t.projects?.name ?? "",
+    collectErrorKind: t.collect_error_kind, lastCheckedOkAt: t.last_checked_ok_at, projectName: t.projects?.name ?? "", concept: isConcept(t.technologies?.tech_key),
   }));
   // 숫자는 대시보드와 같은 계산(IA-5: 내 기술 수 · 변경 수 · 판단 대기 / 완료, ADR 0028 3)
   const sum = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;

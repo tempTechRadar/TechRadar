@@ -79,3 +79,9 @@ test("쓰는 곳: 카탈로그가 정한 값은 그대로, 정하지 않았으�
   const two = buildTechMap(input({ mine: [mine("m1", "a", { sourceFile: ".cursor/mcp.json" }), mine("m2", "a", { projectId: "p2", sourceFile: ".mcp.json" })], techs: [tech("a")] }), NOW);
   assert.equal(two.nodes[0].attrs.host, "여러 도구");
 });
+
+test("개념(작업 방식) 노드는 등급 칸이 '등급 없음'이다: 카탈로그 줄 · 내 기술 줄 둘 다(ADR 0008)", () => {
+  const concept = tech("h", { type: "concept", techKey: "concept:harness", grade: "unknown" });
+  const m = buildTechMap(input({ techs: [concept, tech("x", { grade: "unknown" })], mine: [mine("m1", "h", { grade: "unknown" })] }), NOW);
+  assert.deepEqual(m.nodes.map((n) => [n.key, n.attrs.grade]), [["tech:h", "등급 없음"], ["tech:x", "찾지 못함"]]);
+});

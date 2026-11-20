@@ -1,10 +1,13 @@
 // 내 기술 목록(IA-3)·기술 상세(IA-4) 화면이 쓰는 순수 함수와 문구. 주인: 김영식(A).
 import { SKILLS_DIR } from "./skills.ts";
 import type { Grade } from "./grade.ts";
+import { isConcept, NO_GRADE } from "../map/build-map.ts";
+export { isConcept, NO_GRADE };
 
 export const GRADE_LABEL: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
 // 배지 모양(색)은 alerts.css의 badge-* 이름을 따른다. 색만으로 알리지 않도록 글자(GRADE_LABEL)가 항상 함께 나온다.
 export const GRADE_TONE: Record<Grade, string> = { danger: "danger", caution: "warning", pass: "success", unknown: "neutral" };
+export const gradeText = (grade: Grade, techKey?: string | null, type?: string | null) => (isConcept(techKey, type) ? NO_GRADE : GRADE_LABEL[grade]);
 export const ORIGIN_LABEL: Record<string, string> = { repo: "저장소에서 읽음", manual: "직접 추가", import: "내 컴퓨터 목록 가져오기" };
 export const GRADE_OPTIONS: [string, string][] = [["", "전체"], ["danger", "위험"], ["caution", "주의"], ["pass", "통과"], ["unknown", "찾지 못함"]];
 
@@ -34,8 +37,9 @@ export const isUuid = (v: string) => UUID.test(v);
 export type TechFilter = { grade?: string; showHidden?: boolean };
 
 /** 숨긴 기술은 기본으로 빼고, 등급을 고르면 그 등급만 */
-export function filterTechs<T extends { grade: string; hidden_at: string | null }>(techs: T[], f: TechFilter): T[] {
-  return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || t.grade === f.grade));
+export function filterTechs<T extends { grade: string; hidden_at: string | null; technologies?: { tech_key: string } | null }>(techs: T[], f: TechFilter): T[] {
+  // 등급으로 거르면 개념(등급 없음)은 "찾지 못함"에 섞이지 않게 뺀다
+  return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || (t.grade === f.grade && !isConcept(t.technologies?.tech_key))));
 }
 
 export type ReadRun = { status: string; created_at: string };

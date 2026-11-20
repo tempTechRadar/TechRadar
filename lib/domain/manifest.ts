@@ -7,7 +7,7 @@ export type FoundTech = {
   /** null이면 기술 키를 만들 수 없음 = "찾지 못함"(서버 별명만 남긴다) */
   tech: TechRef | null;
   name: string;
-  type: "mcp" | "sdk" | "skill" | "model";
+  type: "mcp" | "sdk" | "skill" | "model" | "service" | "concept";
   sourceFile: string;
   /** 스킬만: 원본 저장소를 몰라 내 저장소 것으로 두었다(SPEC-7.3 "출처 모름") */
   unknownOrigin?: boolean;
@@ -133,7 +133,7 @@ function requirementCore(line: string): string {
 }
 
 /** requirements.txt 한 줄 → 이름과 버전. 기술이 아닌 줄(주석·옵션·주소·VCS·로컬 경로)은 null. 버전은 `==`로 딱 하나 고정했을 때만(아니면 null, SPEC-1 "버전을 모르면"). */
-function requirementOf(line: string): { name: string; version: string | null } | null {
+export function requirementOf(line: string): { name: string; version: string | null } | null {
   const s = requirementCore(line);
   if (!s || s.includes("://") || !isAlnum(s[0])) return null; // 주소(`이름 @ 주소`도)·옵션(-)·경로·주석 모양은 기술이 아니다
   let i = 1;

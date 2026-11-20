@@ -1,7 +1,7 @@
 "use client";
 // 지도 위에 덮는 사이드바(시안 radar-side.js): 기술은 설명 · 보안 · 비교군과 그 이유 · 내 판단 바로 남기기, 묶음은 목록 · 이 분류만 보기 · 접기.
 import Link from "next/link";
-import { GRADE_KO, type MapNode, type MarkStatus } from "@/lib/map/build-map";
+import { GRADE_KO, isConcept, type MapNode, type MarkStatus } from "@/lib/map/build-map";
 import type { GroupItem, TechItem } from "@/lib/map/layout";
 import { Judge } from "./judge";
 import { DIM_KO } from "@/lib/map/view-config";
@@ -32,7 +32,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo }: TechProp
       <p className="map-row">{n.isNew ? <span className="tag">NEW</span> : null}{n.mine ? <span className="tag strong">내 기술 · 쓰는 중</span> : null}{n.nearMine ? <span className="tag">내 기술의 비교군</span> : null}</p>
       {n.oneLiner ? <p>{n.oneLiner}</p> : null}
       <p className="muted">{[n.label, n.weeklyDownloads !== null && `주간 내려받기 ${fmt(n.weeklyDownloads)}`, n.stars !== null && `별 ${fmt(n.stars)}`].filter(Boolean).join(" · ")}</p>
-      <p>{SEC_TEXT[n.grade]}{n.gradeReason ? ` ${n.gradeReason}` : ""}</p>
+      <p>{isConcept(null, n.type) ? "작업 방식이라 보안 등급이 없어요." : SEC_TEXT[n.grade]}{n.gradeReason ? ` ${n.gradeReason}` : ""}</p>
       {n.collectErrorKind ? <p className="muted">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <p className="muted">출처: {n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소</a> : "저장소 찾지 못함"} · 쓰는 곳 {n.attrs.host}{n.hostGuessed ? "(추정)" : ""}</p>
       {n.mine ? <p className="muted">내 프로젝트: {n.projectNames.join(", ")}</p> : null}

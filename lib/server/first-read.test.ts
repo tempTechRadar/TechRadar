@@ -28,14 +28,14 @@ function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?
   let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
   const respond = (c: Call): { data?: unknown; count?: number } => {
     const has = (m: string) => c.chain.some((x) => x.m === m);
+    // 이 프로젝트의 모델 줄(코드 파일 전체 오류 때만 읽는다)
+    if (c.table === "my_technologies" && first(c) === "select" && String(c.chain[0].args[0]).includes("technologies!inner")) return { data: opts.modelRows ?? [] };
     // 위험 경로(알림 만들기)에서만 쓰는 응답. `in`으로 읽는 것은 알림 만들기가 사람들을 모으는 조회다.
     if (c.table === "my_technologies" && first(c) === "select" && has("in")) {
       const techIds = c.chain.find((x) => x.m === "in")?.args[1] as string[];
       return { data: techIds.map((techId, i) => ({ id: `mt${i + 1}`, owner_id: "u1", tech_id: techId, project_id: "p1", hidden_at: null, created_at: "2026-11-18T00:00:00Z" })) };
     }
     if (c.table === "projects" && first(c) === "select" && has("in")) return { data: [{ id: "p1", archived_at: null }] };
-    // 이 프로젝트의 모델 줄(코드 파일 전체 오류 때만 읽는다)
-    if (c.table === "my_technologies" && first(c) === "select" && String(c.chain[0].args[0]).includes("technologies!inner")) return { data: opts.modelRows ?? [] };
     if (c.table === "alerts" && first(c) === "select") {
       const countQuery = (c.chain[0].args[1] as { head?: boolean } | undefined)?.head;
       return countQuery ? { count: alertsWritten ? 1 : 0 } : { data: [] };
@@ -534,4 +534,40 @@ test("코드 파일 목록을 못 읽으면 '모델 없음'이 아니라 수집 
   const mark = ops(calls, "my_technologies", "update").find((c) => arg0(c).collect_error_kind === "http_status");
   assert.ok(mark?.chain.some((x) => x.m === "in" && x.args[0] === "id" && (x.args[1] as string[])[0] === "mt-model"), "이 프로젝트의 모델 줄만");
   assert.equal(ops(calls, "changes", "upsert").length, 0);
+});
+
+test("연동 서비스 · 개념(PRD-F40): SDK와 파일 목록으로 찾아 내 기술로 남기고(공개 목록에는 안 나감), OSV는 부르지 않는다", async (t) => {
+  const pkg = JSON.stringify({ dependencies: { "@supabase/supabase-js": "2.0.0" } });
+  const tree = JSON.stringify({ tree: [{ path: "package.json", type: "blob", size: 10 }, { path: "AGENTS.md", type: "blob", size: 10 }] });
+  const urls = stubWeb(t, { files: { "package.json": pkg }, tree: ok(tree) });
+  const { db, calls } = fakeDb();
+  const r = await registerAndRead(USER, REPO, { db });
+
+  assert.equal(r.status, "succeeded");
+  const rows = ops(calls, "technologies", "upsert").flatMap((u) => u.chain[0].args[0] as Row[]);
+  const service = rows.find((x) => x.tech_key === "service:supabase");
+  assert.deepEqual([service?.type, "one_liner_source" in (service ?? {})], ["service", false], "설명 · 근거는 카탈로그에 쓰지 않는다(공개 목록에 나가지 않게, ADR 0029 4항)");
+  assert.equal(rows.find((x) => x.tech_key === "concept:harness")?.type, "concept");
+  assert.ok(!urls.some((u) => u.includes("osv.dev")), "허용 목록 밖 SDK · 서비스 · 개념은 OSV 대상이 아니다");
+  assert.equal(ops(calls, "changes", "upsert").length, 0);
+});
+
+const typesAsked = (calls: Call[]) => calls.filter((c) => c.table === "my_technologies" && String(c.chain[0].args[0]).includes("technologies!inner"))
+  .map((c) => c.chain.find((x) => x.m === "in" && x.args[0] === "technologies.type")?.args[1]);
+
+test("파일 목록을 못 읽으면 목록으로 찾는 모델 · 연동 서비스 · 개념 줄 중 이번에 다시 보지 못한 것만 수집 오류(package.json으로 다시 찾은 줄은 덮지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, tree: status(500) });
+  const { db, calls } = fakeDb(true, { modelRows: [{ id: "mt-x" }] });
+  await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(typesAsked(calls), [["model", "service", "concept"]]);
+  const mark = ops(calls, "my_technologies", "update").find((c) => c.chain.some((x) => x.m === "in" && x.args[0] === "id"))!;
+  assert.ok(mark.chain.some((x) => x.m === "or" && String(x.args[0]).startsWith("read_at.is.null")), "이번에 다시 읽은 줄은 빼는 조건");
+});
+
+test("목록은 읽었고 코드 파일 일부만 못 봤으면(한도) 모델 줄만: 서비스 · 개념은 목록과 package.json으로 이미 다시 확인했다", async (t) => {
+  const many = JSON.stringify({ tree: Array.from({ length: 105 }, (_, i) => ({ path: `src/f${i}.ts`, type: "blob", size: 1 })) });
+  stubWeb(t, { files: { "package.json": PKG }, tree: ok(many) });
+  const { db, calls } = fakeDb(true, { modelRows: [{ id: "mt-x" }] });
+  await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(typesAsked(calls), [["model"]]);
 });

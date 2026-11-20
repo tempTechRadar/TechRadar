@@ -4,6 +4,9 @@
 export type Grade = "pass" | "caution" | "danger" | "unknown";
 export const GRADE_RANK: Record<Grade, number> = { danger: 3, caution: 2, unknown: 1, pass: 0 };
 export const GRADE_KO: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
+/** 개념(작업 방식) 노드는 설치물이 아니라 등급이 없다(ADR 0008 2항): "찾지 못함"으로 보이면 확인에 실패한 것처럼 읽힌다 */
+export const NO_GRADE = "등급 없음";
+export const isConcept = (techKey?: string | null, type?: string | null) => type === "concept" || Boolean(techKey?.startsWith("concept:"));
 export const KIND_KO: Record<string, string> = { mcp: "MCP", skill: "스킬", plugin: "플러그인", sdk: "패키지", model: "모델", service: "연동 서비스", concept: "개념" };
 export const UNSORTED = "분류 전";
 
@@ -89,7 +92,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
   const grade = t?.grade ?? "unknown";
   return {
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
-    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: GRADE_KO[grade], project: "내 프로젝트 아님" },
+    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
@@ -122,7 +125,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
       n.attrs = { ...n.attrs, host: seen.size > 1 ? "여러 도구" : fromFile }; n.hostGuessed = false;
     }
     if (!n.projectIds.includes(m.projectId)) n.projectIds.push(m.projectId), n.projectNames.push(m.projectName);
-    n.attrs = { ...n.attrs, grade: GRADE_KO[n.grade], project: projectLabel(n) };
+    n.attrs = { ...n.attrs, grade: isConcept(null, n.type) ? NO_GRADE : GRADE_KO[n.grade], project: projectLabel(n) };
     out.set(key, n);
   }
   return out;

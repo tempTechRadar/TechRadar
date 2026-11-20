@@ -139,3 +139,9 @@ test("새 기술 화면은 DB에서 대량 채우기분을 빼고 읽는다(최�
   await readNewTechs(db, "user-a", new Date("2026-11-22T00:00:00Z"));
   assert.ok(calls.includes(`technologies.or(${NOT_BULK_FILTER})`));
 });
+
+test("연동 서비스 · 개념은 카탈로그 설명이 없으면 정해 둔 설명을 보인다(카탈로그에는 쓰지 않음)", async () => {
+  const { db } = recordingDb({ technologies: [{ id: "s", tech_key: "service:supabase", one_liner: null }, { id: "n", tech_key: "npm:x", one_liner: null }], categories: [] });
+  const input = await readGuestMapInput(db);
+  assert.deepEqual(input.techs.map((t) => t.oneLiner), ["공식 MCP 서버(com.supabase/mcp)가 있어 AI 도구와 연결할 수 있어요", null]);
+});

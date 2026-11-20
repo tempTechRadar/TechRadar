@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { COLLECT_ERROR_TEXT, evidenceLinks, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL } from "@/lib/domain/my-tech-view";
+import { COLLECT_ERROR_TEXT, evidenceLinks, GRADE_TONE, gradeText, ORIGIN_LABEL } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
 import type { MyTechDetail } from "@/lib/server/my-tech";
 import { usingNowText, type UsingNowView } from "@/lib/views/using-now-text";
+import { fixedNote } from "@/lib/domain/services";
 
 // 기술 상세 본문(IA-4, PRD-F10). 읽기만 하는 화면 조각이라 page.tsx와 개발용 샘플 화면이 같이 쓴다.
 // 틀은 머리 + 2단(design.md 18절): 머리 = 돌아가기 · 이름 · 배지 · 판단 줄(markBar), 왼쪽 = 보안 · 수집 상태와 사용기(children), 오른쪽 = 핵심 정보 · 내 목록 상태 · 쓰고 있어요.
@@ -14,6 +15,7 @@ const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 // using: 공개한 사람의 수·별명(null = 못 읽음, undefined = 카탈로그에 이어지지 않은 기술이라 해당 없음)
 export function TechDetail({ d, using, markBar, children }: { d: MyTechDetail; using?: UsingNowView | null; markBar?: ReactNode; children?: ReactNode }) {
   const info = d.technologies;
+  const note = fixedNote(info?.tech_key); // 연동 서비스 · 개념은 정해 둔 설명(카탈로그에 쓰지 않음)
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
   const evidence = evidenceLinks(d.grade_evidence);
   return (
@@ -25,11 +27,11 @@ export function TechDetail({ d, using, markBar, children }: { d: MyTechDetail; u
         </p>
         <h1>{name}</h1>
         <p>
-          <span className={`badge badge-${GRADE_TONE[d.grade]}`}>{GRADE_LABEL[d.grade]}</span>{" "}
+          <span className={`badge badge-${GRADE_TONE[d.grade]}`}>{gradeText(d.grade, info?.tech_key, info?.type)}</span>{" "}
           {d.collect_error_kind && <span className="badge badge-warning">수집 오류</span>}{" "}
           {d.hidden_at && <span className="badge badge-neutral">직접 숨김</span>}
         </p>
-        {info?.one_liner ? <p>{info.one_liner}</p> : null}
+        {info?.one_liner ? <p>{info.one_liner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
         {markBar}
       </header>
 

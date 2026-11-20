@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogTech, Category, Grade, MapInput, Mark, MyTechRow, Relation } from "../map/build-map.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
+import { fixedNote } from "../domain/services.ts";
 
 /** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 7,800여 개를 다 그리지 않는다, 나머지는 찾기로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
  *  shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
@@ -20,10 +21,10 @@ export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts
 /** NEW를 정하려고 서버에서만 더 읽는 칸. toTech가 버려서 화면 · 캐시로 나가지 않는다(공개 칸은 TECH_COLUMNS 그대로) */
 const READ_COLUMNS = `${TECH_COLUMNS}, one_liner_source`;
 
-// createdAt은 NEW 기준으로만 쓴다. 레지스트리 대량 채우기분은 null(11-20 하루에 3,700여 개가 NEW가 됐던 일)
+// 연동 서비스 · 개념은 카탈로그에 설명을 쓰지 않고 정해 둔 글로(ADR 0029 4항). createdAt은 NEW 기준으로만 쓴다. 레지스트리 대량 채우기분은 null(11-20 하루에 3,700여 개가 NEW가 됐던 일)
 const toTech = (r: Row): CatalogTech => ({
   id: r.id, techKey: r.tech_key, createdAt: isBulkFilled(r) ? null : r.created_at, name: r.display_name, type: r.type, hosts: r.hosts, categoryId: r.category_id, grade: r.grade as Grade, gradeReason: r.grade_reason,
-  oneLiner: r.one_liner, repoUrl: r.repo_url, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
+  oneLiner: r.one_liner ?? fixedNote(r.tech_key)?.text ?? null, repoUrl: r.repo_url, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
   lastCheckedOkAt: r.last_checked_ok_at, collectErrorKind: r.collect_error_kind,
   signals: { stars: r.signals?.stars ?? null, weekly_downloads: r.signals?.weekly_downloads ?? null }, // 수집 오류 문장 같은 나머지는 화면·캐시로 보내지 않는다(ADR 0029)
 });

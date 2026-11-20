@@ -107,7 +107,7 @@ export type TreeEntry = { path: string; type: string; size?: number };
  * GitHub 트리 응답 → 읽을 코드 파일. skip = 다른 단계가 이미 읽는 파일(package.json 등).
  * skipped = 한도 · 크기 때문에 못 보는 코드 파일 수(못 본 곳의 모델 줄은 "사라짐"이 아니라 수집 오류). 모양이 다르면 null(해석 실패)
  */
-export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Set()): { paths: string[]; skipped: number; truncated: boolean } | null {
+export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Set()): { paths: string[]; skipped: number; truncated: boolean; all: string[] } | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(treeJson);
@@ -122,5 +122,7 @@ export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Se
   const rank = (p: string) => (LIKELY.test(p) ? 0 : 1);
   small.sort((a, b) => rank(a.path) - rank(b.path) || a.path.split("/").length - b.path.split("/").length || a.path.localeCompare(b.path));
   const paths = small.slice(0, MAX_CODE_FILES).map((e) => e.path);
-  return { paths, skipped: code.length - paths.length, truncated: (parsed as { truncated?: unknown }).truncated === true };
+  // all = 모든 파일 경로(연동 서비스 · 개념을 설정 파일로 찾을 때 쓴다)
+  const all = (tree as TreeEntry[]).filter((e) => e && e.type === "blob" && typeof e.path === "string" && e.path.length <= 300).map((e) => e.path);
+  return { paths, skipped: code.length - paths.length, truncated: (parsed as { truncated?: unknown }).truncated === true, all };
 }

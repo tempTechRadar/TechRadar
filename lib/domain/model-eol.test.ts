@@ -51,9 +51,9 @@ test("코드 파일 고르기: 의존성 · 빌드 · 잠금 · 시험 · 이미
       { path: ".env.example", type: "blob", size: 10 },
     ],
   };
-  assert.deepEqual(codeFilesOf(JSON.stringify(tree), new Set(["package.json"])), {
-    paths: ["src/lib/ai/client.ts", ".env.example", "app.py", "src/email.ts", "src/deep/x.ts"], skipped: 0, truncated: false,
-  });
+  const r = codeFilesOf(JSON.stringify(tree), new Set(["package.json"]))!;
+  assert.deepEqual([r.paths, r.skipped, r.truncated], [["src/lib/ai/client.ts", ".env.example", "app.py", "src/email.ts", "src/deep/x.ts"], 0, false]);
+  assert.equal(r.all.length, 12, "모든 파일 경로(폴더 빼고)는 연동 서비스 · 개념 찾기용으로 따로 돌려준다");
 });
 
 test("한도보다 많거나 너무 큰 코드 파일은 '못 본 수'로 센다(조용히 빼지 않음). GitHub가 목록을 잘랐으면 알린다. 모양이 다르면 null", () => {
