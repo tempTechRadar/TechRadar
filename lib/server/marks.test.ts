@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NO_FIXED_VERSION_MESSAGE } from "../alerts/validate-judgment.ts";
-import { DANGER_CANDIDATE_MESSAGE, saveMark } from "./marks.ts";
+import { DANGER_CANDIDATE_MESSAGE, readMarkForTech, saveMark } from "./marks.ts";
 
 type Row = Record<string, unknown>;
 
@@ -61,4 +61,31 @@ test("DB가 거절한 이유를 쉬운 말로: 위험 등급 · 고친 버전 �
     assert.equal(result.ok, false);
     if (!result.ok) typeof expected === "string" ? assert.equal(result.message, expected) : assert.match(result.message, expected);
   }
+});
+
+// 표마다 maybeSingle 결과를 정해 주는 가짜 클라이언트(읽기 시험용)
+function readDb(rows: Record<string, { data: unknown; error?: string }>) {
+  const calls: string[] = [];
+  const db = {
+    from(table: string) {
+      const q = {
+        select: () => q,
+        eq: (c: string, v: unknown) => { calls.push(`${table}.eq(${c},${String(v)})`); return q; },
+        maybeSingle: () => Promise.resolve({ data: rows[table]?.data ?? null, error: rows[table]?.error ? { message: rows[table].error } : null }),
+      };
+      return q;
+    },
+  } as unknown as SupabaseClient;
+  return { db, calls };
+}
+
+test("기술 상세 판단 줄: 내 표시는 본인 것만, 등급은 DB 규칙과 같은 카탈로그 등급", async () => {
+  const { db, calls } = readDb({ tech_marks: { data: { status: "hold", reason: "다음 달에 보기" } }, technologies: { data: { grade: "danger" } } });
+  assert.deepEqual(await readMarkForTech(db, "user-a", "t1"), { mark: { techId: "t1", status: "hold", reason: "다음 달에 보기" }, grade: "danger" });
+  assert.ok(calls.includes("tech_marks.eq(user_id,user-a)"));
+});
+
+test("기술 상세 판단 줄: 표시나 등급을 못 읽으면 던진다(빈 단추로 보이지 않게, 불변 2)", async () => {
+  await assert.rejects(readMarkForTech(readDb({ tech_marks: { data: null, error: "denied" }, technologies: { data: { grade: "pass" } } }).db, "u", "t"), /내 판단 표시를 읽지 못함/);
+  await assert.rejects(readMarkForTech(readDb({ technologies: { data: null } }).db, "u", "t"), /기술 등급을 읽지 못함/);
 });

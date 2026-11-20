@@ -132,6 +132,16 @@
 .alerts.alert-detail { max-width: 1200px; }
 .alerts .alert-cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 900px) { .alerts .alert-cols { grid-template-columns: 1fr; } }
+
+/* 기술 상세 머리 + 2단(design.md 18절, P-12d). 좁으면 머리 → 판단 → 핵심 정보 → 본문 순 */
+.alerts.tech-detail { max-width: 1200px; }
+.alerts .td-head { margin-bottom: var(--space-4); }
+.alerts .td-head h1 { margin-bottom: var(--space-1); }
+.alerts .td-judge { padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-subtle); }
+/* 자리는 grid 영역으로만 옮긴다(DOM 순서 = 좁은 화면 순서 = 읽기 · Tab 순서: 핵심 정보 → 본문 → 내 목록 상태) */
+.alerts .td-cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: "left info" "left mine"; gap: var(--space-4); align-items: start; }
+.alerts .td-left { grid-area: left; } .alerts .td-info { grid-area: info; } .alerts .td-mine { grid-area: mine; }
+@media (max-width: 900px) { .alerts .td-cols { grid-template-columns: 1fr; grid-template-areas: "info" "left" "mine"; } }
 /* 내 프로젝트: 읽은 결과를 파일마다(design.md 18절) */
 .alerts .read-files { margin-top: var(--space-3); }
 .alerts .read-files summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; font-weight: 600; }
