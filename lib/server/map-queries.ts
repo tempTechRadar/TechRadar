@@ -28,6 +28,10 @@ const toMine = (r: Row): MyTechRow => ({
 });
 const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / ID_CHUNK) }, (_, i) => ids.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK));
 
+/** 공개 목록에서 온 기술만(ADR 0029 4·5항): 사라진 기술 · 시뮬레이터 기술 · 누군가의 저장소에서만 생긴 줄을 뺀다. 카탈로그 · 새 기술 · 기술 넣기가 함께 쓴다 */
+export const publicTechs = (db: SupabaseClient, columns: string) =>
+  db.from("technologies").select(columns).neq("status", "gone").eq("is_simulated", false).not("one_liner_source", "is", null);
+
 async function readCategories(db: SupabaseClient): Promise<Category[]> {
   return rowsOrThrow(await db.from("categories").select("id, name, parent_id"), "갈래를 읽지 못함").map((r) => ({ id: r.id, name: r.name, parentId: r.parent_id }));
 }
@@ -53,7 +57,7 @@ export async function readNewTechs(db: SupabaseClient, userId: string, now: Date
   const since = weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL;
   const [categories, techRes, markRes] = await Promise.all([
     readCategories(db),
-    db.from("technologies").select(TECH_COLUMNS).neq("status", "gone").eq("is_simulated", false).not("one_liner_source", "is", null)
+    publicTechs(db, TECH_COLUMNS)
       .gt("created_at", since).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
     db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
   ]);

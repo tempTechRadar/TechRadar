@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
 import { GRADE_OPTIONS, keepView, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FilterSelect } from "../alerts/filter-select";
 import "../alerts/alerts.css";
+import "../views/views.css";
 import { registerProject } from "./actions";
 import { AddTech } from "./add-tech";
 import { ProjectTechs, type ProjectRow } from "./tech-table";
@@ -49,6 +52,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   return (
     <main className="alerts">
       <h1>내 프로젝트</h1>
+      <nav className="views-tabs" aria-label="내 프로젝트 화면">
+        <a href="#techs" aria-current="page">내 기술</a>
+        <Link href="/projects/runs">실행 기록</Link>
+        <Link href="/projects/install">설치 프롬프트 · 가져오기</Link>
+        <a href="#add-title">직접 추가</a>
+      </nav>
       <form action={registerProject} className="filters" style={{ alignItems: "end" }}>
         <label>
           공개 GitHub 저장소 주소
@@ -61,6 +70,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       {query.notice && NOTICE_TEXT[query.notice] && <p className="notice notice-empty" role="status">{NOTICE_TEXT[query.notice]}</p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 "누가·언제 바꿨는지" 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
 
+      <div id="techs" />
       {loadError ? (
         <p className="notice notice-error" role="alert">목록을 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
       ) : projects.length === 0 ? (
@@ -79,6 +89,14 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
           {shown.map((p) => <ProjectTechs key={p.id} project={p} filter={filter} back={back} />)}
         </>
       )}
+      {/* "프로젝트 밖(내 컴퓨터)" 칸은 처음부터 보인다(design.md 18절): 저장소 없이 쓰는 도구를 넣는 곳 */}
+      {!loadError && !projects.some((p) => p.kind === "local") && (!query.project) ? (
+        <section className="card" aria-labelledby="p-local">
+          <h2 id="p-local">{LOCAL_PROJECT_NAME}</h2>
+          <p>저장소 없이 내 컴퓨터에서 쓰는 도구를 넣는 곳이에요. 아직 넣은 기술이 없어요.</p>
+          <p><a href="#add-title">직접 추가</a>하거나 <Link href="/projects/install">설치 프롬프트에서 가져오기</Link>로 넣을 수 있어요.</p>
+        </section>
+      ) : null}
       {!loadError && <AddTech projects={projects} q={query.q ?? ""} hits={hits} searchFailed={searchFailed} back={back} carry={carry} />}
     </main>
   );
