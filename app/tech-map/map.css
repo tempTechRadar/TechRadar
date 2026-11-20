@@ -50,9 +50,6 @@
 .map-near li > div { display: grid; }
 .map-why { font-size: var(--fs-sm); }
 .map-dot { display: inline-block; flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; box-sizing: border-box; }
-.map-judge { display: grid; gap: 6px; }
-.map-hold { display: grid; gap: 6px; }
-.map-hold label { display: grid; gap: 4px; }
 .link { min-height: 32px; padding: 0; font: inherit; color: inherit; text-align: left; text-decoration: underline; background: none; border: 0; cursor: pointer; }
 .map-toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 8; margin: 0; display: flex; gap: 8px; align-items: center; }
 .map-toast:not(:empty) { padding: 6px 8px 6px 14px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
@@ -73,4 +70,3 @@
   .map-side { width: 100%; top: auto; height: 70%; border-left: 0; border-top: 1px solid var(--line); }
 }
 .map-side h2 { padding-right: 52px; }
-.map-judge .btn:disabled { color: var(--faint); border-color: var(--line); cursor: not-allowed; }

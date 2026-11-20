@@ -10,6 +10,7 @@ import { Crumbs, Legend, Status, SummaryChips, Toolbar } from "./controls";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
 import { KeyboardList } from "./keyboard-list";
+import { markedText } from "./judge";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import "./map.css";
 
@@ -115,9 +116,8 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login }: Pro
     setBusy(false);
     if (!r.ok) { say(r.message); return; } // 실패하면 표시는 전 상태 그대로(불변 4)
     ctl.setMark(n.key, status ? { techId: n.techId, status, reason: status === "hold" ? reason.trim() : null } : null);
-    const what = status ? { interest: "관심", candidate: "적용 후보", hold: "보류" }[status] : "표시 지움";
-    if (r.judgedAlerts.length) { say(`${what}로 남겼어요. 판단 대기 알림 ${r.judgedAlerts.length}개도 함께 판단했어요(알림 판단은 되돌릴 수 없어요).`); return; }
-    say(status ? `${what}로 남겼어요.` : "표시를 지웠어요.", async () => { // 판단을 실수로 눌렀을 때
+    if (r.judgedAlerts.length) { say(`${markedText(status)} 판단 대기 알림 ${r.judgedAlerts.length}개도 함께 판단했어요(알림 판단은 되돌릴 수 없어요).`); return; }
+    say(markedText(status), async () => { // 판단을 실수로 눌렀을 때
       const back = await markTech(n.techId!, prev?.status ?? null, prev?.reason ?? "").catch(() => null);
       if (!back?.ok) { say(back?.message ?? "되돌리지 못했어요."); return; }
       ctl.setMark(n.key, prev);

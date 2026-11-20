@@ -1,0 +1,6 @@
+/* 내 판단 줄(judge.tsx): 지도 사이드바와 기술 상세가 함께 쓴다. 단추 모양은 .alerts .btn(둘 다 .alerts 안) */
+.map-judge { display: grid; gap: 6px; }
+.map-judge .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.map-judge .btn:disabled { color: var(--faint); border-color: var(--line); cursor: not-allowed; }
+.map-hold { display: grid; gap: 6px; }
+.map-hold label { display: grid; gap: 4px; }
