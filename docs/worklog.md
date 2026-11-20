@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-22-private-urls | 내 컴퓨터·사설 주소의 MCP 서버는 기술로 만들지 않기: 실제 공개 저장소 8곳의 `.cursor/mcp.json`을 읽어 보니 2곳이 `url:localhost:포트`가 되어 모두가 보는 공용 카탈로그·지도에 올라가는 것을 발견. 원격(공개 호스트의 http·https)만 `url:호스트`, localhost·루프백·사설·링크로컬·점 없는 이름·`.local` 등·http(s)가 아닌 주소(빈 키 `url:` 포함)는 별명만 남김. 시험 먼저·변이 27개 모두 잡음(처음 4개를 못 잡아 경계 시험 보강). 운영 DB `url:` 기술 0개 | 나(요청 "1") · Claude(조사·구현·시험) | `feat/P-22-project-archive`, `docs/intent.md` I-P-22-private-urls |
 | I-P-22-project-archive | 프로젝트 수정·보관(PRD-F4 3순위): 내 저장소 프로젝트의 이름·메모 고치기, 보관(2단계 확인)·되살리기, 보관한 프로젝트 목록, 보관한 주소 다시 등록 막기(보관된 채 조용히 다시 읽기만 돌던 빈틈). DB 변경 없음. 시험 먼저·변이 42개 모두 잡음. 읽기 전용 검토가 찾은 중간 3건(대시보드 숫자·설치 프롬프트가 보관분을 셈, 보관한 프로젝트에 직접 추가가 성공처럼 보임)과 `?error=__proto__` 500을 고침 | 나(요청 "추천대로진행") · Claude(구현·시험·검토 반영) | `feat/P-22-project-archive`, `docs/intent.md` I-P-22-project-archive |
 | I-P-22-cursor-mcp | 다른 AI 도구 설정 읽기 첫 조각: `.cursor/mcp.json`을 `.mcp.json`과 같은 규칙으로 읽어 내 기술에 넣음(출처 파일 이름 기록, 같은 기술은 한 줄). 시험 먼저(8개 실패 확인)·일부러 틀리게 고친 9곳을 모두 시험이 잡음. 읽기 전용 검토가 **같은 별명 서버 중복 저장으로 등록이 통째로 실패할 수 있는 높음 1건**을 찾아 재현·수정. 11-19 `#175`가 망가뜨린 `intent.md` 맨 위 안내문 복원. `requirements.txt` 읽기는 이미 있었음을 바로잡음 | 나(요청 "진행") · Claude(구현·시험·검토 반영) | `feat/P-22-cursor-mcp`, `docs/intent.md` I-P-22-cursor-mcp |
 | I-P-24b-moderation | P-24 24b 관리자 사용기 신고: 와이어프레임 → 시험 지점 3곳(S1 7·S2 13·S3 5) 먼저 → 구현, 망가뜨려 보기 11곳, 개발용 샘플 화면 | 황재웅 / Claude | `app/admin/reports/`, `lib/admin/report-groups.ts`, `lib/server/moderation-edit.ts`, `docs/wireframes/reports.html` |
