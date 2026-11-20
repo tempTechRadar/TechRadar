@@ -37,6 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             {user !== null ? (
               <>
                 <Link href="/new">새 기술</Link>
+                <Link href="/recommend">추천</Link>
                 <Link href="/views">내 레이더</Link>
                 <Link href="/alerts">알림</Link>
                 <Link href="/history">기록</Link>
