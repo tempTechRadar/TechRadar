@@ -7,9 +7,15 @@ export type Dim = (typeof DIMS)[number];
 export const DIM_KO: Record<Dim, string> = { field: "하는 일", sub: "세부 갈래", kind: "종류", host: "쓰는 곳", grade: "보안 등급", project: "내 프로젝트" };
 export const MAX_LEVELS = 3;
 
-export type ViewFilter = { kinds: string[]; fields: string[]; risky: boolean; mineOnly: boolean; newOnly: boolean; project: string };
-export type ViewConfig = { group: Dim[]; color: Dim; filter: ViewFilter };
-export const DEFAULT_VIEW: ViewConfig = { group: ["field", "kind"], color: "field", filter: { kinds: [], fields: [], risky: false, mineOnly: false, newOnly: false, project: "" } };
+/** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래 */
+export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; newOnly: boolean; err: boolean; project: string };
+/** scope = "이 분류만 보기"로 들어간 경로(바깥부터). 들어간 기준은 묶기에서 빠진다 */
+export type Scope = { dim: Dim; value: string };
+export type ViewConfig = { group: Dim[]; color: Dim; filter: ViewFilter; scope: Scope[] };
+export const DEFAULT_VIEW: ViewConfig = {
+  group: ["field", "kind"], color: "field", scope: [],
+  filter: { kinds: [], fields: [], subs: [], risky: false, mineOnly: false, newOnly: false, err: false, project: "" },
+};
 
 const isDim = (v: string): v is Dim => (DIMS as readonly string[]).includes(v);
 const values = (raw: string | null) => (raw ? raw.split(",").map((v) => v.trim().slice(0, 60)).filter(Boolean).slice(0, 20) : []);
@@ -19,15 +25,23 @@ export function parseView(query: string | URLSearchParams): ViewConfig {
   const group = [...new Set(values(q.get("g")).filter(isDim))].slice(0, MAX_LEVELS);
   const c = q.get("c") ?? "";
   const g = group.length || q.has("g") ? group : DEFAULT_VIEW.group; // g=(빈 값)은 "묶지 않음"
+  const scope: Scope[] = [];
+  for (const part of (q.get("in") ?? "").split("|").slice(0, 10)) { // in=field:리서치|kind:MCP, 기준마다 한 번, 기준 수(6)보다 깊을 수 없다
+    const i = part.indexOf(":"), dim = part.slice(0, i), value = part.slice(i + 1, i + 61);
+    if (i > 0 && isDim(dim) && value && !scope.some((x) => x.dim === dim)) scope.push({ dim, value });
+  }
   return {
-    group: g,
+    group: g, scope,
     color: isDim(c) ? c : g[0] ?? DEFAULT_VIEW.color,
     filter: {
-      kinds: values(q.get("fk")), fields: values(q.get("ff")),
-      risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", newOnly: q.get("new") === "1", project: (q.get("p") ?? "").slice(0, 60),
+      kinds: values(q.get("fk")), fields: values(q.get("ff")), subs: values(q.get("fs")),
+      risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", newOnly: q.get("new") === "1", err: q.get("err") === "1", project: (q.get("p") ?? "").slice(0, 60),
     },
   };
 }
+
+/** 들어간 분류의 기준은 이미 하나로 정해졌으니 묶기에서 뺀다 */
+export const groupOf = (v: ViewConfig): Dim[] => v.group.filter((d) => !v.scope.some((s) => s.dim === d));
 
 /** 기본값과 다른 것만 주소에 싣는다 */
 export function viewQuery(v: ViewConfig): string {
@@ -36,6 +50,9 @@ export function viewQuery(v: ViewConfig): string {
   if (v.color !== (v.group[0] ?? DEFAULT_VIEW.color)) q.set("c", v.color);
   if (v.filter.kinds.length) q.set("fk", v.filter.kinds.join(","));
   if (v.filter.fields.length) q.set("ff", v.filter.fields.join(","));
+  if (v.filter.subs.length) q.set("fs", v.filter.subs.join(","));
+  if (v.scope.length) q.set("in", v.scope.map((s) => `${s.dim}:${s.value}`).join("|"));
+  if (v.filter.err) q.set("err", "1");
   if (v.filter.risky) q.set("risky", "1");
   if (v.filter.mineOnly) q.set("mine", "1");
   if (v.filter.newOnly) q.set("new", "1");
@@ -43,11 +60,21 @@ export function viewQuery(v: ViewConfig): string {
   return q.toString();
 }
 
-export function passes(n: MapNode, f: ViewFilter): boolean {
+export function passes(n: MapNode, v: ViewConfig): boolean {
+  const f = v.filter;
   return (!f.kinds.length || f.kinds.includes(n.attrs.kind))
     && (!f.fields.length || f.fields.includes(n.attrs.field))
+    && (!f.subs.length || f.subs.includes(n.attrs.sub))
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
-    && (!f.mineOnly || n.mine)
+    && (!f.mineOnly || n.mine || n.nearMine)
     && (!f.newOnly || n.isNew)
-    && (!f.project || n.projectIds.includes(f.project));
+    && (!f.err || !!n.collectErrorKind)
+    && (!f.project || n.projectIds.includes(f.project))
+    && v.scope.every((s) => n.attrs[s.dim] === s.value);
 }
+
+/** 켠 필터 수(도구 줄의 "필터 n") */
+export const filterCount = (v: ViewConfig) => {
+  const f = v.filter;
+  return f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(f.newOnly) + Number(f.err) + Number(!!f.project);
+};

@@ -4,15 +4,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { readGuestMapInput, readMapInput, TECH_COLUMNS } from "./map-queries.ts";
 
 type Row = Record<string, unknown>;
-// 표마다 정해 둔 줄을 돌려주고, 부른 거르기(eq·is·or·in 등)를 표 이름과 함께 적어 두는 가짜 클라이언트
-function recordingDb(rows: Record<string, Row[]>, errors: Record<string, string> = {}) {
+// 표마다 정해 둔 줄을 돌려주고, 부른 거르기(eq·is·or·in 등)를 표 이름과 함께 적어 두는 가짜 클라이언트.
+// 줄 대신 함수를 주면 그 질의에서 부른 거르기를 보고 줄을 고른다(같은 표를 두 번 다르게 읽을 때)
+type Rows = Row[] | ((queryCalls: string[]) => Row[]);
+function recordingDb(rows: Record<string, Rows>, errors: Record<string, string> = {}) {
   const calls: string[] = [];
   const db = {
     from(table: string) {
-      const q: Record<string, unknown> = {};
-      for (const m of ["select", "eq", "is", "neq", "not", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => (calls.push(`${table}.${m}(${args.map(String).join(",")})`), q);
+      const q: Record<string, unknown> = {}, mine: string[] = [];
+      for (const m of ["select", "eq", "is", "neq", "not", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map(String).join(",")})`; calls.push(c); mine.push(c); return q; };
+      const data = () => { const r = rows[table] ?? []; return typeof r === "function" ? r(mine) : r; };
       q.then = (resolve: (v: unknown) => unknown) =>
-        Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: rows[table] ?? [], error: null }).then(resolve);
+        Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: data(), error: null }).then(resolve);
       return q;
     },
   } as unknown as SupabaseClient;
@@ -28,7 +31,7 @@ test("내 기술은 내 것·숨기지 않은 것·보관하지 않은 프로젝
   assert.ok(calls.includes("my_technologies.is(hidden_at,null)"));
   assert.ok(calls.includes("my_technologies.is(projects.archived_at,null)"));
   assert.ok(calls.includes("tech_relations.eq(status,confirmed)"));
-  assert.deepEqual(input.relations, [{ a: "t1", b: "t2" }]);
+  assert.deepEqual(input.relations, [{ a: "t1", b: "t2", quote: null }]);
   assert.deepEqual(input.mine.map((m) => [m.id, m.projectName, m.grade]), [["m1", "앱", "danger"]]);
 });
 
@@ -41,15 +44,16 @@ test("둘레의 비교군은 쓸 수 있는 대안만: 사라진 기술, 시연 
     { id: "t5", display_name: "sim", status: "active", depth: "thick", is_simulated: true },
   ];
   const rels = ["t2", "t3", "t4", "t5"].map((b) => ({ tech_a: "t1", tech_b: b }));
-  const plain = recordingDb({ my_technologies: [myRow], tech_relations: rels, technologies: techs });
+  const byId = (qc: string[]) => (qc.some((c) => c.startsWith("technologies.in")) ? techs : []); // 카탈로그 읽기는 비어 있고, id로 읽을 때만
+  const plain = recordingDb({ my_technologies: [myRow], tech_relations: rels, technologies: byId });
   assert.deepEqual((await readMapInput(plain.db, "user-a", false)).techs.map((t) => t.id), ["t1", "t2", "t4"]);
   assert.ok(plain.calls.includes("tech_relations.eq(is_simulated,false)"));
-  const demo = recordingDb({ my_technologies: [myRow], tech_relations: rels, technologies: techs });
+  const demo = recordingDb({ my_technologies: [myRow], tech_relations: rels, technologies: byId });
   assert.deepEqual((await readMapInput(demo.db, "demo", true)).techs.map((t) => t.id), ["t1", "t2", "t4", "t5"]);
   assert.ok(!demo.calls.some((c) => c.includes("eq(is_simulated")));
 });
 
-test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 않게), 이름만 추가한 기술뿐이면 카탈로그를 읽지 않는다", async () => {
+test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 않게), 이름만 추가한 기술뿐이면 비교군을 읽지 않는다", async () => {
   const many = Array.from({ length: 95 }, (_, i) => ({ ...myRow, id: `m${i}`, tech_id: `t${i}` }));
   const { db, calls } = recordingDb({ my_technologies: many });
   await readMapInput(db, "user-a", false);
@@ -58,14 +62,14 @@ test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 
   const manual = recordingDb({ my_technologies: [{ ...myRow, tech_id: null, manual_name: "내 도구" }] });
   const input = await readMapInput(manual.db, "user-a", false);
   assert.deepEqual([input.mine.length, input.techs.length], [1, 0]);
-  assert.ok(!manual.calls.some((c) => c.includes("order(depth)")));
+  assert.ok(!manual.calls.some((c) => c.startsWith("tech_relations")));
 });
 
-test("내 기술이 없으면 모은 기술을 두꺼운 것 먼저·최근 순으로 읽는다(시뮬레이터·사라진 기술 제외)", async () => {
+test("모은 기술은 위험·주의 먼저, 두꺼운 것, 최근 순으로 최대 1,200개(시뮬레이터·사라진 기술 제외), 내 판단 표시는 내 것만", async () => {
   const { db, calls } = recordingDb({ technologies: [{ id: "t9", display_name: "x" }] });
   const input = await readMapInput(db, "user-a", false);
   assert.deepEqual(input.techs.map((t) => t.id), ["t9"]);
-  for (const c of ["technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(300)"]) assert.ok(calls.includes(c), c);
+  for (const c of ["technologies.order(grade)", "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(1200)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });
 

@@ -2,11 +2,12 @@
 // 로그인 전 지도(readGuestMapInput)만 서비스 키로 읽는다(ADR 0029): 공용 카탈로그의 아래 공개 칸만, 개인 표는 읽지 않는다.
 // 읽기에 실패하면 던진다: 화면이 "아직 없음"과 "읽지 못함"을 다르게 보여 줘야 한다(불변 2와 같은 이유).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CatalogTech, Category, Grade, MapInput, MyTechRow } from "../map/build-map.ts";
+import type { CatalogTech, Category, Grade, MapInput, Mark, MyTechRow, Relation } from "../map/build-map.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 
-/** 프로젝트가 없을 때 갈래별로 보여 줄 모은 기술의 최대 수. shortcut: 고정 개수, 카탈로그가 커지면 갈래 안 순위로 나눠 읽는다 */
-export const CATALOG_LIMIT = 300;
+/** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 7,800여 개를 다 그리지 않는다, 나머지는 찾기로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
+ *  shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
+export const CATALOG_LIMIT = 1200;
 /** id 목록을 주소에 싣는 읽기는 이만큼씩 나눈다(uuid 36자, 주소가 너무 길면 거절됨) */
 export const ID_CHUNK = 40;
 /** 지도가 쓰는 기술 칸 = 로그인 전에도 내보내는 공개 칸(ADR 0029). 등급 근거 원문·두께 이유·상태를 정한 주체 같은 내부 칸은 넣지 않는다 */
@@ -36,7 +37,8 @@ async function readCategories(db: SupabaseClient): Promise<Category[]> {
 async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<CatalogTech[]> {
   let q = db.from("technologies").select(TECH_COLUMNS).neq("status", "gone").not("one_liner_source", "is", null);
   if (!isDemo) q = q.eq("is_simulated", false);
-  const res = await q.order("depth").order("created_at", { ascending: false }).order("id").limit(CATALOG_LIMIT); // depth: thick < thin
+  // 위험·주의 먼저(grade 글자순: caution < danger < pass < unknown), 그다음 두꺼운 것, 최근에 들어온 것(NEW)
+  const res = await q.order("grade").order("depth").order("created_at", { ascending: false }).order("id").limit(CATALOG_LIMIT);
   return rowsOrThrow(res, "모은 기술을 읽지 못함").map(toTech);
 }
 
@@ -48,27 +50,31 @@ export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
 
 /** 시뮬레이터가 넣은 기술·관계(is_simulated)는 시연 계정에만 보인다(SPEC-3.5). 내 기술 자체는 늘 보인다 */
 export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean): Promise<MapInput> {
-  const [mineRes, categories] = await Promise.all([
+  const [mineRes, categories, catalog, markRes] = await Promise.all([
     db.from("my_technologies")
       .select("id, tech_id, manual_name, project_id, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
       .eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).order("created_at").order("id"), // 같은 등급끼리 합칠 때 늘 같은 줄이 앞에
     readCategories(db),
+    readCatalog(db, isDemo), // 로그인 뒤에도 기본은 전체 지도(ADR 0027)
+    db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
   ]);
   const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);
-  if (!mine.length) return { mine, techs: await readCatalog(db, isDemo), relations: [], categories }; // 프로젝트(내 기술)가 없으면 카탈로그
-
+  const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
   const ids = [...new Set(mine.map((m) => m.techId).filter((x): x is string => !!x))];
+  if (!ids.length) return { mine, techs: catalog, relations: [], categories, marks };
+
   const relRows = (await Promise.all(chunks(ids).map((c) => {
-    let q = db.from("tech_relations").select("tech_a, tech_b").eq("kind", "same_role").eq("status", "confirmed").or(`tech_a.in.(${c.join(",")}),tech_b.in.(${c.join(",")})`);
+    let q = db.from("tech_relations").select("tech_a, tech_b, quote").eq("kind", "same_role").eq("status", "confirmed").or(`tech_a.in.(${c.join(",")}),tech_b.in.(${c.join(",")})`);
     if (!isDemo) q = q.eq("is_simulated", false);
     return q;
   }))).flatMap((res) => rowsOrThrow(res, "같은 역할을 읽지 못함"));
-  const relations = [...new Map(relRows.map((r) => [`${r.tech_a}|${r.tech_b}`, { a: r.tech_a as string, b: r.tech_b as string }])).values()];
-  const all = [...new Set([...ids, ...relations.flatMap((r) => [r.a, r.b])])];
-  const techRows = (await Promise.all(chunks(all).map((c) => db.from("technologies").select(TECH_COLUMNS).in("id", c))))
+  const relations: Relation[] = [...new Map(relRows.map((r) => [`${r.tech_a}|${r.tech_b}`, { a: r.tech_a as string, b: r.tech_b as string, quote: (r.quote as string | null) ?? null }])).values()];
+  const have = new Set(catalog.map((t) => t.id));
+  const missing = [...new Set([...ids, ...relations.flatMap((r) => [r.a, r.b])])].filter((id) => !have.has(id));
+  const techRows = (await Promise.all(chunks(missing).map((c) => db.from("technologies").select(TECH_COLUMNS).in("id", c))))
     .flatMap((res) => rowsOrThrow(res, "기술 정보를 읽지 못함"));
   const myIds = new Set(ids);
   // 둘레의 비교군은 쓸 수 있는 대안만: 사라진 기술·(시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 얇은 기술은 남긴다(운영은 두꺼운 기술이 3개뿐이라 빼면 비교군이 거의 사라짐)
   const usable = (r: Row) => myIds.has(r.id) || (r.status !== "gone" && (isDemo || !r.is_simulated));
-  return { mine, techs: techRows.filter(usable).map(toTech), relations, categories };
+  return { mine, techs: [...catalog, ...techRows.filter(usable).map(toTech)], relations, categories, marks };
 }
