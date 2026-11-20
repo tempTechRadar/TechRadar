@@ -10,6 +10,7 @@ export const ADMIN_TABS = [
   { id: "runs", href: "/admin/runs", label: "수집 실행과 오류" },
   { id: "flow", href: "/admin/flow", label: "흐름 화면" },
   { id: "classify", href: "/admin/classify", label: "분류 확인" },
+  { id: "reports", href: "/admin/reports", label: "사용기 신고" },
   { id: "simulator", href: "/admin/simulator", label: "시뮬레이터" },
   { id: "chat", href: "/admin/chat", label: "위키 챗봇" },
 ] as const;
