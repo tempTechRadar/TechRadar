@@ -16,6 +16,7 @@ const ROWS = [
   row("c", "@modelcontextprotocol/inspector", "caution", { version: "0.16.6" }),
   row("d", "mcp-server-time", "pass", { collectErrorKind: "network" }),
   row("e", "demo-skill", "unknown", { version: null, projectName: "내 컴퓨터(프로젝트 밖)" }),
+  row("f", "하네스(에이전트 지시 파일)", "unknown", { version: null, concept: true }), // 개념 카드(등급 없음) 모양 확인용
 ];
 
 export default function ViewsSamplePage() {
@@ -31,7 +32,7 @@ export default function ViewsSamplePage() {
   return (
     <main className="alerts views-page">
       <h1>보기 샘플 (실제 기록 아님)</h1>
-      <p role="note" style={{ background: "#fff1d6", padding: "8px 12px", borderRadius: 8 }}>개발 컴퓨터에서만 보이는 화면이에요. 가짜 내 기술 5개로 그렸어요.</p>
+      <p role="note" className="notice notice-empty">개발 컴퓨터에서만 보이는 화면이에요. 가짜 내 기술 6개로 그렸어요.</p>
       <h2>갤러리</h2>
       <Gallery cards={galleryCards(ROWS)} />
       <h2>내 레이더</h2>

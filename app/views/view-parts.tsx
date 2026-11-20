@@ -1,8 +1,8 @@
 // 보기 화면 조각(PRD-F34·F37): 갤러리, 소식판·쓰고 있어요 자리(내 레이더 칸반은 kanban.tsx). 값은 lib/views 순수 함수가 만든다.
+import { GRADE_TONE } from "@/lib/domain/my-tech-view";
 import type { Card } from "@/lib/views/gallery";
 
-// 색은 공용 토큰과 .alerts의 배지(design.md 16절): 화면마다 색을 따로 박지 않는다
-const GRADE_BADGE: Record<string, string> = { danger: "danger", caution: "warning", pass: "success", unknown: "neutral" };
+// 색은 공용 토큰과 .alerts의 배지(design.md 16절): 화면마다 색을 따로 박지 않는다. 배지 색은 내 기술 표와 같은 대응표(GRADE_TONE)
 
 export function Gallery({ cards }: { cards: Card[] }) {
   if (cards.length === 0) return <p>아직 내 기술이 없어요. 프로젝트를 등록하면 카드가 생겨요.</p>;
@@ -10,7 +10,7 @@ export function Gallery({ cards }: { cards: Card[] }) {
     <ul className="gallery">
       {cards.map((c) => (
         <li key={c.id} className="kb-card" data-grade={c.concept ? "none" : c.grade}>
-          <span className={`badge badge-${c.concept ? "neutral" : GRADE_BADGE[c.grade]}`}>{c.gradeKo}</span>
+          <span className={`badge badge-${GRADE_TONE[c.grade]}`}>{c.gradeKo}</span>
           <h3>{c.name}{c.version ? `@${c.version}` : ""}</h3>
           <p className="muted">{c.projectName}</p>
           {c.note ? <p>{c.note}</p> : null}

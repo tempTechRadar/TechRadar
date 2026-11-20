@@ -9,7 +9,7 @@
   --color-border-strong: var(--ink-2);
   --color-primary: var(--ink);
   --color-on-primary: var(--on-ink);
-  --color-danger: #b91c1c;
+  --color-danger: var(--ink-danger);
   --color-danger-bg: #fef2f2;
   --color-warning: #b45309;
   --color-warning-bg: #fffbeb;

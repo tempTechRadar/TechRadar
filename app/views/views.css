@@ -8,7 +8,7 @@
 .kb-col h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-h2); }
 .kb-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
 .kb-card { display: grid; gap: 4px; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
-.kb-card .badge { justify-self: start; }
+.kb-card .badge { justify-self: start; align-self: start; }
 .kb-links { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-sm); }
 .kb-links a { display: inline-flex; align-items: center; min-height: 32px; }
 .kb-move { display: grid; gap: 6px; font-size: var(--fs-sm); }
@@ -25,3 +25,7 @@
 .gallery .kb-card h3 { margin: 0; font-size: var(--fs-body); overflow-wrap: anywhere; }
 .gallery .kb-card p { margin: 0; }
 .gallery .kb-card .badge { white-space: nowrap; }
+.gallery .kb-card[data-grade="unknown"] { border-color: var(--muted); }
+.gallery .kb-card[data-grade="none"] { border-color: var(--muted); border-style: dashed; } /* 개념: 등급 없음 */
+.views-page .notice h3 { margin-top: 0; }
+.views-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

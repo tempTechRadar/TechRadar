@@ -85,6 +85,8 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
       </nav>
       {readError ? null : (
         <>
+          {/* 화면 읽기에서 제목 단계가 h1 → h3로 건너뛰지 않게 지금 보기 이름을 h2로(눈에는 탭이 보여 줌) */}
+          <h2 className="sr-only">{TABS.find(([k]) => k === tab)?.[1]}</h2>
           {tab === "radar" ? <Kanban columns={buildKanban(kanban)} /> : null}
           {tab === "gallery" ? <Gallery cards={galleryCards(rows)} /> : null}
           {tab === "news" ? <NewsPlaceholder /> : null}
