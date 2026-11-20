@@ -19,12 +19,13 @@ const findNode = (nodes: MapNode[], q: string) => {
   return t ? nodes.find((x) => x.name.toLowerCase() === t) ?? nodes.find((x) => x.name.toLowerCase().includes(t)) : undefined;
 };
 
-type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string };
+/** canSave: 보기 설정을 이 브라우저에 기억할지(로그인했을 때만) */
+type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean };
 type Tip = { id: string; x: number; y: number } | null;
 
-export function TechMap({ model, projects, initialQuery }: Props) {
+export function TechMap({ model, projects, initialQuery, canSave }: Props) {
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
-  const { view, setView } = useMapView(initialQuery, model, projectIds);
+  const { view, setView } = useMapView(initialQuery, model, projectIds, canSave);
   const [hover, setHover] = useState<Tip>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [pan, setPan] = useState(0);

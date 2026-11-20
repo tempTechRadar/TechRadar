@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { readMapInput } from "./map-queries.ts";
+import { readGuestMapInput, readMapInput, TECH_COLUMNS } from "./map-queries.ts";
 
 type Row = Record<string, unknown>;
 // 표마다 정해 둔 줄을 돌려주고, 부른 거르기(eq·is·or·in 등)를 표 이름과 함께 적어 두는 가짜 클라이언트
@@ -10,7 +10,7 @@ function recordingDb(rows: Record<string, Row[]>, errors: Record<string, string>
   const db = {
     from(table: string) {
       const q: Record<string, unknown> = {};
-      for (const m of ["select", "eq", "is", "neq", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => (calls.push(`${table}.${m}(${args.map(String).join(",")})`), q);
+      for (const m of ["select", "eq", "is", "neq", "not", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => (calls.push(`${table}.${m}(${args.map(String).join(",")})`), q);
       q.then = (resolve: (v: unknown) => unknown) =>
         Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: rows[table] ?? [], error: null }).then(resolve);
       return q;
@@ -74,4 +74,32 @@ test("어느 하나라도 읽기에 실패하면 빈 지도로 삼키지 않고 
   await assert.rejects(readMapInput(db, "user-a", false), /같은 역할을 읽지 못함: timeout/);
   const { db: db2 } = recordingDb({}, { my_technologies: "denied" });
   await assert.rejects(readMapInput(db2, "user-a", false), /내 기술을 읽지 못함/);
+});
+
+test("로그인 전 지도는 공용 표(technologies·categories)만, 시뮬레이터·사라진 기술 빼고 읽는다(ADR 0029, 불변 5)", async () => {
+  const { db, calls } = recordingDb({ technologies: [{ id: "t1", display_name: "a" }], categories: [{ id: "c1", name: "검사·보안", parent_id: null }] });
+  const input = await readGuestMapInput(db);
+  assert.deepEqual([...new Set(calls.map((c) => c.split(".")[0]))].sort(), ["categories", "technologies"]);
+  assert.ok(calls.includes("technologies.eq(is_simulated,false)"));
+  assert.ok(calls.includes("technologies.neq(status,gone)"));
+  assert.deepEqual([input.mine, input.relations, input.techs.map((t) => t.id)], [[], [], ["t1"]]);
+});
+
+test("공개 칸은 정해 둔 목록 그대로다: 칸을 더하면 이 시험과 ADR 0029를 함께 고친다(로그인 전에도 나가므로)", () => {
+  assert.deepEqual(TECH_COLUMNS.split(",").map((c) => c.trim()), [
+    "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url",
+    "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated",
+  ]);
+});
+
+test("카탈로그는 공개 목록에서 온 기술만 읽고(남의 비공개 저장소에서 생긴 줄 제외), 신호는 지도가 쓰는 두 값만 남긴다(ADR 0029)", async () => {
+  const { db, calls } = recordingDb({ technologies: [{ id: "t1", display_name: "a", signals: { stars: 5, weekly_downloads: 9, github_error: "403 rate limit" } }], categories: [] });
+  const input = await readGuestMapInput(db);
+  assert.ok(calls.includes("technologies.not(one_liner_source,is,null)"));
+  assert.deepEqual(input.techs[0].signals, { stars: 5, weekly_downloads: 9 });
+});
+
+test("로그인 전 지도를 못 읽으면 던진다(빈 지도로 보이지 않게, 불변 2)", async () => {
+  const { db } = recordingDb({}, { technologies: "boom" });
+  await assert.rejects(readGuestMapInput(db));
 });

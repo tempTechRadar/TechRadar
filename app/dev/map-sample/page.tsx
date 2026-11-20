@@ -46,7 +46,7 @@ export default async function MapSamplePage({ searchParams }: { searchParams: Pr
   return (
     <main className="alerts map-page">
       <h1 className="sr-only">기술 지도 샘플</h1>
-      <TechMap model={model} projects={[{ id: "p1", name: "시연 저장소" }, { id: "p2", name: "내 컴퓨터(프로젝트 밖)" }]} initialQuery={query} />
+      <TechMap model={model} projects={[{ id: "p1", name: "시연 저장소" }, { id: "p2", name: "내 컴퓨터(프로젝트 밖)" }]} initialQuery={query} canSave />
     </main>
   );
 }
