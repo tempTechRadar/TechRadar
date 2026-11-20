@@ -92,7 +92,7 @@ test("로그인 전 지도는 공용 표(technologies·categories)만, 시뮬레
 
 test("공개 칸은 정해 둔 목록 그대로다: 칸을 더하면 이 시험과 ADR 0029를 함께 고친다(로그인 전에도 나가므로)", () => {
   assert.deepEqual(TECH_COLUMNS.split(",").map((c) => c.trim()), [
-    "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url",
+    "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url", "license",
     "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated",
   ]);
 });

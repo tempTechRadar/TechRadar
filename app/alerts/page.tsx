@@ -34,7 +34,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
   // 칩의 수는 지금 거르기(종류·프로젝트·기간) 안에서 센다: 누르면 보이는 줄 수와 같게
   const inScope = filterAlerts(records, parseAlertFilter({ ...params, status: "" }, new Date()));
   const scopedPending = countPending(inScope);
-  const now = { status: currentOf(params.status, ["pending", "done"]), kind: currentOf(params.kind, ["security", "opportunity"]) };
+  const now = { status: currentOf(params.status, ["pending", "done"]), kind: currentOf(params.kind, ["security", "opportunity", "model_eol"]) };
   const chip = (key: "status" | "kind", value: string, label: string) => (
     <Link className="chip" href={chipHref(params, key, value)} aria-current={now[key] === value ? "true" : undefined}>{label}</Link>
   );
@@ -46,7 +46,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
       </p>
       <nav className="alert-chips" aria-label="빠른 거르기">
         <div role="group" aria-label="상태">{chip("status", "pending", `판단 대기 ${scopedPending}`)}{chip("status", "done", `완료 ${inScope.length - scopedPending}`)}{chip("status", "", `상태 전체 ${inScope.length}`)}</div>
-        <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "", "종류 전체")}</div>
+        <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "model_eol", "모델 종료")}{chip("kind", "", "종류 전체")}</div>
       </nav>
       {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림) */}
       <form key={JSON.stringify(params)} className="filters" aria-label="알림 거르기">
@@ -64,7 +64,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
             <li key={a.id}>
               <Link className="alert-row" href={`/alerts/${a.id}`}>
                 <span className={`badge badge-${a.kindTone}`}>{a.kindLabel}</span>
-                <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span></span>
+                <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
                 <span className={`badge badge-${a.statusTone}`}>{a.statusLabel}</span>
                 <time className="alert-time" dateTime={a.createdAt}>{a.createdAtLabel}</time>
               </Link>

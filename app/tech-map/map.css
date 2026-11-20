@@ -43,7 +43,6 @@
 .map-side h3 { margin: 16px 0 6px; font-size: var(--fs-sm); color: var(--muted); }
 .map-close { float: right; }
 .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.map-wrap .tag { display: inline-block; padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); color: var(--ink-2); white-space: nowrap; }
 .map-wrap .tag.strong { border-color: var(--ink); color: var(--ink); font-weight: 700; }
 .map-near { list-style: none; margin: 0; padding: 0; }
 .map-near li { display: flex; gap: 8px; align-items: flex-start; min-height: 36px; padding: 4px 0; border-top: 1px solid var(--line); }

@@ -141,3 +141,13 @@ test("모델 종료 알림(PRD-F38): 종료일 · 공식 추천 대체 · 찾은
   const broken = toAlertView({ ...eol("google", ""), change: { ...securityRecord.change, kind: "model_eol", techName: "claude-2.1", currValue: null } });
   assert.deepEqual(broken.lines.slice(0, 3), ["모델: claude-2.1", "지원 종료일: 찾지 못함", "공식 추천 대체: 찾지 못함"]);
 });
+
+test("행 태그는 하는 일 갈래 · 종류, 판단 단추는 알림 종류에 맞는 말(design.md 19절)", () => {
+  const view = toAlertView({ ...securityRecord, tech: { id: "t", type: "mcp", field: "배포·운영" } });
+  assert.deepEqual(view.tags, ["배포·운영", "MCP"]);
+  assert.equal(view.candidateLabel, "적용 후보로 · 고친 버전 0.1.16");
+  assert.deepEqual(toAlertView(securityRecord).tags, [], "기술 정보가 없으면 태그 없음");
+  const noFix = toAlertView({ ...securityRecord, change: { ...securityRecord.change, currValue: { grade: "danger" } } });
+  assert.equal(noFix.candidateLabel, "적용 후보");
+  assert.equal(toAlertView({ ...securityRecord, kind: "opportunity" }).candidateLabel, "써 볼 후보로");
+});

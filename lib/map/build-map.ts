@@ -15,7 +15,7 @@ export type Attrs = { field: string; sub: string; kind: string; host: string; gr
 
 export type CatalogTech = {
   id: string; techKey: string; name: string; type: string; hosts: string[] | null; categoryId: string | null; createdAt: string | null;
-  grade: Grade; gradeReason: string | null; oneLiner: string | null; repoUrl: string | null;
+  grade: Grade; gradeReason: string | null; oneLiner: string | null; repoUrl: string | null; license?: string | null;
   lastActivityAt: string | null; lastActivityKind: string | null; lastCheckedOkAt: string | null;
   collectErrorKind: string | null; signals: Record<string, unknown> | null;
 };
@@ -33,7 +33,7 @@ export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Rel
 export type MapNode = {
   key: string; name: string; mine: boolean; techId: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
   attrs: Attrs; hostGuessed: boolean; grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
-  oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
+  oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; license: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
   /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
@@ -94,7 +94,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
     attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
-    oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null,
+    oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
     isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,

@@ -116,11 +116,15 @@ export function Crumbs({ view, onView }: { view: ViewConfig; onView: (v: ViewCon
 
 export function SummaryChips({ nodes, view, canMine, onView }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; onView: (v: ViewConfig) => void }) {
   const nw = nodes.filter((x) => x.isNew).length, near = nodes.filter((x) => x.mine || x.nearMine).length;
-  const flip = (k: "newOnly" | "mineOnly") => onView({ ...view, filter: { ...view.filter, [k]: !view.filter[k] } });
+  const flip = (k: "newOnly" | "mineOnly" | "err") => onView({ ...view, filter: { ...view.filter, [k]: !view.filter[k] } });
+  // 띠(design.md 17절 3차): 수집 오류 수. 필터가 켜져 있으면 0이어도 보여서 끌 수 있게
+  // shortcut: "마지막 수집"은 정기 실행 기록(runs)을 읽어야 정확해서 아직 없음. 노드 하나의 확인 시각은 지도 전체가 최신인 것처럼 보이게 한다
+  const errs = nodes.filter((x) => x.collectErrorKind).length;
   return (
     <>
       {canMine ? <button type="button" className="chip" aria-pressed={view.filter.mineOnly} onClick={() => flip("mineOnly")}>내 기술과 비교군 <b>{near}</b></button> : null}
       <button type="button" className="chip" aria-pressed={view.filter.newOnly} onClick={() => flip("newOnly")}>이번 주 NEW <b>{nw}</b></button>
+      {errs > 0 || view.filter.err ? <button type="button" className="chip" aria-pressed={view.filter.err} onClick={() => flip("err")}>수집 오류 <b>{errs}</b></button> : null}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { unstable_rethrow } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
+import { getServerSupabase } from "@/lib/supabase/server";
 import "./tokens.css";
 import "./site-nav.css";
 
@@ -25,8 +26,18 @@ async function menuUser(): Promise<CurrentUser | null | undefined> {
   }
 }
 
+/** 메뉴의 판단 대기 수(design.md 17절). 못 읽으면 null: 배지를 빼고(0으로 보이지 않게, 불변 2) 알림 화면이 따로 읽는다.
+ *  shortcut: 화면 안 이동(링크)에서는 레이아웃이 다시 안 그려져 새로 고칠 때까지 옛 수일 수 있다. 바로 맞춰야 하면 판단 액션이 revalidatePath("/", "layout") */
+async function pendingCount(userId: string): Promise<number | null> {
+  const db = await getServerSupabase();
+  const r = await db?.from("alerts").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "pending");
+  if (!r || r.error || r.count === null) { if (r?.error) console.error("메뉴: 판단 대기 수를 읽지 못함", r.error.message); return null; }
+  return r.count;
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await menuUser();
+  const pending = user ? await pendingCount(user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
   return (
     <html lang="ko">
       <body>
@@ -40,7 +51,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <Link href="/new">새 기술</Link>
                 <Link href="/recommend">추천</Link>
                 <Link href="/views">내 레이더</Link>
-                <Link href="/alerts">알림</Link>
+                <Link href="/alerts" aria-label={pending ? `알림, 판단 대기 ${pending}건` : undefined}>알림{pending ? <span className="nav-badge" aria-hidden="true">{pending}</span> : null}</Link>
                 <Link href="/history">기록</Link>
               </>
             ) : null}

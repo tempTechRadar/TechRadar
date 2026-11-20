@@ -34,7 +34,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo }: TechProp
       <p className="muted">{[n.label, n.weeklyDownloads !== null && `주간 내려받기 ${fmt(n.weeklyDownloads)}`, n.stars !== null && `별 ${fmt(n.stars)}`].filter(Boolean).join(" · ")}</p>
       <p>{isConcept(null, n.type) ? "작업 방식이라 보안 등급이 없어요." : SEC_TEXT[n.grade]}{n.gradeReason ? ` ${n.gradeReason}` : ""}</p>
       {n.collectErrorKind ? <p className="muted">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
-      <p className="muted">출처: {n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소</a> : "저장소 찾지 못함"} · 쓰는 곳 {n.attrs.host}{n.hostGuessed ? "(추정)" : ""}</p>
+      <p className="muted">출처: {n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소</a> : "저장소 찾지 못함"} · 라이선스 {n.license ?? "찾지 못함"} · 쓰는 곳 {n.attrs.host}{n.hostGuessed ? "(추정)" : ""}</p>
       {n.mine ? <p className="muted">내 프로젝트: {n.projectNames.join(", ")}</p> : null}
       <h3>내 판단</h3>
       <Judge key={`${n.key}:${n.mark?.status ?? "none"}`} techId={n.techId} grade={n.catalogGrade} mark={n.mark} login={login} busy={busy} onMark={onMark} />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { toScenarioView } from "@/lib/alerts/to-scenario-view";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -51,7 +51,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
             <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요.</p>
           </article>
         ) : (
-          <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} />
+          <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} candidateLabel={view.candidateLabel} />
         )}
       </header>
       <div className="alert-cols">
@@ -73,10 +73,34 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
       {scenario !== undefined && <ScenarioCard alertId={loaded.record.id} card={scenario} />}
       </div>
       <aside className="alert-right" aria-label="참고">
+        <RelatedCard record={loaded.record} createdAtLabel={view.createdAtLabel} judgedAtLabel={view.judgedAtLabel} judgmentLine={view.judgmentLine} />
         <SimilarCard similar={similar} />
       </aside>
       </div>
     </main>
+  );
+}
+
+/** 오른쪽(design.md 19절): 관련된 내 기술(상세 · 지도에서 보기)과 이 알림의 기록(생김 → 판단) */
+function RelatedCard({ record, createdAtLabel, judgedAtLabel, judgmentLine }: { record: AlertRecord; createdAtLabel: string; judgedAtLabel: string | null; judgmentLine: string | null }) {
+  const where = [record.projectName ?? "프로젝트 밖(내 컴퓨터)", record.sourceFile].filter(Boolean).join(" · ");
+  return (
+    <article className="card" aria-labelledby="related-title">
+      <h2 id="related-title">관련된 내 기술</h2>
+      <p><strong>{record.change.techName}</strong> <span className="muted">{where}</span></p>
+      {record.myTechnologyId || record.tech ? (
+        <p>
+          {record.myTechnologyId ? <Link href={`/projects/tech/${record.myTechnologyId}`}>내 기술 상세</Link> : null}
+          {record.myTechnologyId && record.tech ? " · " : null}
+          {record.tech ? <a href={`/?sel=${encodeURIComponent(`tech:${record.tech.id}`)}`}>지도에서 보기</a> : null}
+        </p>
+      ) : null}
+      <h3>이 알림의 기록</h3>
+      <ol className="muted">
+        <li>{createdAtLabel} 알림이 생겼어요</li>
+        {judgedAtLabel ? <li>{judgedAtLabel} {judgmentLine}</li> : <li>아직 판단하지 않았어요</li>}
+      </ol>
+    </article>
   );
 }
 

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Grade, Mark, MarkStatus } from "@/lib/map/build-map";
+import { appendReason, HOLD_REASON_CHIPS } from "@/lib/alerts/validate-judgment";
 import "./judge.css";
 
 export const MARK_KO: Record<MarkStatus, string> = { interest: "관심", candidate: "적용 후보", hold: "보류" };
@@ -35,6 +36,9 @@ export function Judge({ techId, grade, mark, login, busy, onMark }: Props) {
       {holding ? (
         <form className="map-hold" onSubmit={(e) => { e.preventDefault(); onMark("hold", reason); }}>
           <label>보류하는 이유(5자 이상) <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} required minLength={5} autoFocus /></label>
+          <div className="reason-chips" role="group" aria-label="자주 쓰는 보류 이유">
+            {HOLD_REASON_CHIPS.other.map((r) => <button key={r} type="button" className="chip" onClick={() => setReason((now) => appendReason(now, r))}>{r}</button>)}
+          </div>
           <div className="map-row"><button type="submit" className="btn btn-primary" disabled={busy}>보류로 저장</button><button type="button" className="btn" onClick={() => setHolding(false)}>취소</button></div>
         </form>
       ) : null}
