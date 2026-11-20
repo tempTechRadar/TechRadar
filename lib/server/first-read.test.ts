@@ -180,7 +180,7 @@ test("새 등록: 확인도 안 되고 파일도 하나도 안 열리면 '없음
   stubWeb(t, { repo: status(429) });
   const { db, calls } = fakeDb();
   const r = await registerAndRead(USER, REPO, { db });
-  assert.deepEqual([r.status, r.errors], ["failed", 4]); // 읽는 파일 셋(package.json·.mcp.json·requirements.txt)과 스킬 폴더가 모두 실패
+  assert.deepEqual([r.status, r.errors], ["failed", 5]); // 읽는 파일 넷(package.json·.mcp.json·requirements.txt·.cursor/mcp.json)과 스킬 폴더가 모두 실패
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.error_kind, "rate_limited");
 });
 
@@ -195,7 +195,7 @@ test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리�
   const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind === "http_status");
   const target = (c: (typeof marks)[number]) => c.chain.find((x) => (x.m === "eq" || x.m === "like") && x.args[0] === "source_file")?.args[1];
   // 스킬 목록 404를 "스킬 없음"으로 읽지 않는다: 저장소가 닫혔으니 전에 읽은 스킬 줄 모두가 대상이고, 목록은 부르지 않는다(불변 2)
-  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".mcp.json", "package.json", "requirements.txt"]);
+  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".cursor/mcp.json", ".mcp.json", "package.json", "requirements.txt"]);
   assert.ok(!urls.includes("https://api.github.com/repos/o/r/contents/.claude/skills"));
   assert.ok(updates(calls).every((p) => !("grade" in p)));
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "failed");
@@ -208,7 +208,7 @@ test("다시 읽기: 한 파일은 연결 오류, 나머지는 404여도 저장�
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.equal(r.status, "failed");
-  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "http_status", "network"]);
+  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "http_status", "http_status", "network"]); // package.json은 연결 오류, 나머지 넷(.mcp.json·requirements.txt·.cursor/mcp.json·스킬 폴더)은 저장소가 닫혔다는 오류
 });
 
 test("저장소는 열리는데 읽는 파일이 다 없으면 오류가 아니다: 기술 0개, 성공", async (t) => {
@@ -336,6 +336,86 @@ test("같은 기술이 두 파일에 있으면 버전을 아는 쪽을 남긴다
   assert.equal(r.found, 1);
   const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
   assert.deepEqual(rows.map((row) => [row.tech_id, row.version]), [["t-pypi:fastmcp", "2.0.0"]]);
+});
+
+test(".cursor/mcp.json의 서버도 내 기술로 읽는다: 출처 파일이 .cursor/mcp.json으로 남는다(PRD-F39)", async (t) => {
+  stubWeb(t, { files: { ".cursor/mcp.json": JSON.stringify({ mcpServers: { r: { command: "npx", args: ["-y", "mcp-remote@0.1.15"] } } }) } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.found, r.status, r.errors], [1, "succeeded", 0]);
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
+  assert.deepEqual(rows.map((row) => [row.tech_id, row.version, row.source_file]), [["t-npm:mcp-remote", "0.1.15", ".cursor/mcp.json"]]);
+});
+
+test(".mcp.json과 .cursor/mcp.json에 같은 기술이 있으면 한 줄만: 버전을 아는 쪽을 남기고, 모르는 쪽·같은 쪽은 앞 파일을 남긴다", async (t) => {
+  stubWeb(t, { files: {
+    ".mcp.json": JSON.stringify({ mcpServers: { r: { command: "npx", args: ["-y", "mcp-remote"] }, f: { command: "uvx", args: ["fastmcp"] } } }),
+    ".cursor/mcp.json": JSON.stringify({ mcpServers: { r: { command: "npx", args: ["-y", "mcp-remote@0.1.15"] }, f: { command: "uvx", args: ["fastmcp"] } } }),
+  } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.equal(r.found, 2);
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
+  assert.deepEqual(rows.map((row) => [row.tech_id, row.version, row.source_file]).sort(), [
+    ["t-npm:mcp-remote", "0.1.15", ".cursor/mcp.json"], // 버전을 아는 쪽(.cursor)
+    ["t-pypi:fastmcp", null, ".mcp.json"], // 둘 다 버전을 몰라 앞 파일(.mcp.json)
+  ]);
+});
+
+test(".cursor/mcp.json이 깨져 있으면 그 파일만 수집 오류로 남기고 나머지는 계속한다(없음·성공으로 보이지 않게, 불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG, ".cursor/mcp.json": "{깨진" } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.found, r.status, r.errors], [1, "partial", 1]);
+  const ex = steps(calls).find((s) => s.step_name === "extract_my_tech");
+  assert.equal(ex?.status, "failed");
+  assert.ok(String(ex?.error_message).includes(".cursor/mcp.json"), "어느 파일이 깨졌는지 오류에 적힌다");
+});
+
+test(".cursor/mcp.json을 가져오다 연결이 끊기면 \"파일 없음\"이 아니라 그 파일만 수집 오류다(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG, ".cursor/mcp.json": new TypeError("fetch failed") } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.found, r.status, r.errors], [1, "partial", 1]);
+  assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "failed");
+});
+
+test("같은 별명의 모르는 서버가 .mcp.json과 .cursor/mcp.json에 둘 다 있어도 별명 줄은 한 줄이다(같은 줄을 한 번에 두 번 저장하면 DB가 거절한다): 앞 파일을 남긴다", async (t) => {
+  const mine = JSON.stringify({ mcpServers: { mine: { command: "node", args: ["x.js"] } } });
+  stubWeb(t, { files: { ".mcp.json": mine, ".cursor/mcp.json": mine } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.found, r.status, r.errors], [1, "succeeded", 0]);
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]).filter((row) => "manual_name" in row);
+  assert.deepEqual(rows.map((row) => [row.manual_name, row.source_file]), [["mine", ".mcp.json"]]);
+});
+
+test("다른 별명의 모르는 서버는 두 파일에서 각각 남는다: 별명이 다르면 서로 다른 서버다", async (t) => {
+  const one = JSON.stringify({ mcpServers: { a: { command: "node", args: ["a.js"] } } });
+  const two = JSON.stringify({ mcpServers: { b: { command: "node", args: ["b.js"] } } });
+  stubWeb(t, { files: { ".mcp.json": one, ".cursor/mcp.json": two } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.equal(r.found, 2);
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]).filter((row) => "manual_name" in row);
+  assert.deepEqual(rows.map((row) => [row.manual_name, row.source_file]).sort(), [["a", ".mcp.json"], ["b", ".cursor/mcp.json"]]);
+});
+
+test("다시 읽기에서 .cursor/mcp.json만 깨지면 그 파일에서 읽었던 줄에만 해석 오류 딱지가 붙는다: 다른 파일의 줄은 건드리지 않는다(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG, ".cursor/mcp.json": "{깨진" } });
+  const { db, calls } = fakeDb(true);
+  await registerAndRead(USER, REPO, { db });
+  const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind === "parse");
+  const target = (c: (typeof marks)[number]) => c.chain.find((x) => x.m === "eq" && x.args[0] === "source_file")?.args[1];
+  assert.deepEqual(marks.map(target), [".cursor/mcp.json"]);
+});
+
+test(".cursor/mcp.json의 서버 하나가 비어(null) 있으면 그 파일 전체를 해석 오류로 남긴다: 일부만 읽은 것을 전부 읽은 것처럼 두지 않는다(불변 2)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG, ".cursor/mcp.json": '{"mcpServers":{"x":null}}' } });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.found, r.status, r.errors], [1, "partial", 1]);
+  assert.ok(String(steps(calls).find((s) => s.step_name === "extract_my_tech")?.error_message).includes(".cursor/mcp.json"));
 });
 
 const G1_OSV = readFileSync(new URL("../domain/fixtures/osv-mcp-remote-0.1.15.json", import.meta.url), "utf8");

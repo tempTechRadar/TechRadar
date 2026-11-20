@@ -8,7 +8,7 @@ import { maskSecrets } from "../domain/redact.ts";
 import { looksSecret } from "../install/validate-item.ts";
 
 export type Ctx = { db: SupabaseClient; audit: SupabaseClient | null; userId: string };
-export type FailCode = "not_found" | "failed" | "duplicate" | "no_target" | "name" | "secret" | "version" | "project";
+export type FailCode = "not_found" | "failed" | "duplicate" | "no_target" | "name" | "secret" | "version" | "project" | "archived";
 type Fail = { ok: false; code: FailCode };
 export type ChangeResult = { ok: true; changed: boolean; auditFailed: boolean } | Fail;
 export type AddResult = { ok: true; id: string; auditFailed: boolean } | Fail;
@@ -65,6 +65,11 @@ export async function addTech(ctx: Ctx, input: NewTech): Promise<AddResult> {
   if (!isUuid(input.projectId)) return fail("project");
   const checked = checkNewTech(input);
   if (!checked.ok) return checked;
+  // 보관한 프로젝트에는 넣지 않는다: 넣어도 목록·지도 어디에도 안 보이는데 "추가했어요"가 뜨게 된다(불변 2·4). 내 프로젝트가 아니면 "프로젝트를 고를 수 없어요".
+  const proj = await ctx.db.from("projects").select("id, archived_at").eq("id", input.projectId).eq("owner_id", ctx.userId).maybeSingle();
+  if (proj.error) return fail("failed", proj.error.message);
+  if (!proj.data) return fail("project");
+  if (proj.data.archived_at) return fail("archived");
   const row = { owner_id: ctx.userId, added_by: ctx.userId, project_id: input.projectId, tech_id: input.techId || null, manual_name: checked.name, origin: "manual", version: checked.version };
   const r = await ctx.db.from("my_technologies").insert(row).select("id").single();
   if (r.error || !r.data) return fail(r.error?.code === "23505" ? "duplicate" : "failed", r.error?.message ?? "빈 응답");

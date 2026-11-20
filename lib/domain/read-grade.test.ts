@@ -36,6 +36,31 @@ test(".mcp.json은 서버마다 하나, 모르는 실행은 별명만(찾지 못
   assert.throws(() => readMcpJson("{깨진"));
 });
 
+test(".mcp.json과 같은 모양의 다른 도구 설정도 같은 규칙으로 읽고 출처 파일 이름만 다르다(.cursor/mcp.json, PRD-F39)", () => {
+  const text = JSON.stringify({ mcpServers: {
+    a: { command: "npx", args: ["-y", "mcp-remote@0.1.15", "https://x.example/sse"] },
+    b: { url: "https://mcp.example.com/sse" },
+    c: { command: "node", args: ["./my.js"] },
+  } });
+  const cursor = readMcpJson(text, ".cursor/mcp.json");
+  assert.deepEqual(cursor.map((f) => f.sourceFile), [".cursor/mcp.json", ".cursor/mcp.json", ".cursor/mcp.json"]);
+  assert.deepEqual(cursor.map((f) => f.tech?.key ?? null), ["npm:mcp-remote", "url:mcp.example.com", null]);
+  assert.deepEqual(readMcpJson(text).map((f) => f.sourceFile), [".mcp.json", ".mcp.json", ".mcp.json"], "이름을 안 주면 .mcp.json");
+});
+
+test("url 서버: 원격 주소만 기술이 되고, 내 컴퓨터·사설 주소의 개발 서버는 별명만 남는다(공용 카탈로그에 localhost가 안 올라간다)", () => {
+  const found = readMcpJson(JSON.stringify({ mcpServers: {
+    dev: { url: "http://localhost:3333/mcp" },
+    remote: { url: "https://mcp.vercel.com/mcp" },
+    lan: { url: "http://192.168.0.7:8000/sse" },
+  } }), ".cursor/mcp.json");
+  assert.deepEqual(found.map((f) => [f.tech?.key ?? null, f.name, f.sourceFile]), [
+    [null, "dev", ".cursor/mcp.json"],
+    ["url:mcp.vercel.com", "mcp.vercel.com", ".cursor/mcp.json"],
+    [null, "lan", ".cursor/mcp.json"],
+  ]);
+});
+
 test("GitHub 주소만 받는다", () => {
   assert.deepEqual(parseGithubRepo("https://github.com/Owner/Repo.git"), { owner: "Owner", repo: "Repo", url: "https://github.com/owner/repo" });
   assert.equal(parseGithubRepo("https://gitlab.com/a/b"), null);
