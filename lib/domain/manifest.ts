@@ -1,5 +1,5 @@
 // 저장소 파일 → 내 기술(SPEC-7). 네트워크·DB를 모르는 순수 규칙.
-// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1)를 읽는다. 스킬 폴더(.claude/skills)는 skills.ts(P-9e).
+// package.json·.mcp.json(1-0)과 requirements.txt(PRD-F6, SPEC-7.1), 다른 AI 도구의 .cursor/mcp.json(PRD-F39)을 읽는다. 스킬 폴더(.claude/skills)는 skills.ts(P-9e).
 
 import { mcpServerKey, npmKey, pypiKey, type TechRef } from "./tech-key.ts";
 
@@ -53,8 +53,8 @@ export function readPackageJson(text: string): FoundTech[] {
     .map(([name, spec]) => ({ tech: npmKey(name, exactVersion(spec)), name, type: npmType(name), sourceFile: "package.json" }));
 }
 
-/** .mcp.json → 서버마다 하나(허용 목록 없이 모두). 서버 이름은 별명이라 키로 쓰지 않는다(SPEC-7.3). */
-export function readMcpJson(text: string): FoundTech[] {
+/** .mcp.json → 서버마다 하나(허용 목록 없이 모두). 서버 이름은 별명이라 키로 쓰지 않는다(SPEC-7.3). `mcpServers` 모양이 같은 다른 도구 설정(.cursor/mcp.json)도 출처 파일 이름만 바꿔 같은 규칙으로 읽는다. */
+export function readMcpJson(text: string, sourceFile = ".mcp.json"): FoundTech[] {
   const servers = ((JSON.parse(text) as { mcpServers?: object }).mcpServers ?? {}) as Record<string, Parameters<typeof mcpServerKey>[0]>;
   return Object.entries(servers).map(([alias, server]) => {
     const tech = mcpServerKey(server);
@@ -63,7 +63,7 @@ export function readMcpJson(text: string): FoundTech[] {
       tech: tech && { key: tech.key, version },
       name: tech ? tech.key.slice(tech.key.indexOf(":") + 1) : alias,
       type: "mcp" as const,
-      sourceFile: ".mcp.json",
+      sourceFile,
     };
   });
 }
@@ -136,10 +136,12 @@ export function requirementIncludes(text: string): string[] {
 }
 
 // 읽는 파일과 그 해석기를 한 곳에 둔다. 같은 기술이 두 파일에 있으면 버전을 아는 쪽을, 같으면 앞 파일 쪽을 남긴다(first-read). 그래서 순서가 의미를 가진다.
+// 다른 도구 설정(.cursor/mcp.json)은 맨 뒤: 같은 서버가 .mcp.json에도 있으면 Claude Code 쪽을 남긴다. 파일이 하나 늘 때마다 저장소를 읽는 요청이 하나 는다.
 const READERS: Record<string, (text: string) => FoundTech[]> = {
   "package.json": readPackageJson,
   ".mcp.json": readMcpJson,
   "requirements.txt": readRequirementsTxt,
+  ".cursor/mcp.json": (text) => readMcpJson(text, ".cursor/mcp.json"),
 };
 export const REPO_FILES: readonly string[] = Object.freeze(Object.keys(READERS));
 

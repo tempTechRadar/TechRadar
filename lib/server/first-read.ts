@@ -185,7 +185,14 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
     const prev = f.tech && best.get(f.tech.key);
     if (f.tech && (!prev || (prev.tech?.version == null && f.tech.version !== null))) best.set(f.tech.key, f);
   }
-  const unique = found.filter((f) => !f.tech || best.get(f.tech.key) === f);
+  // 기술 키가 없는 서버(별명만)도 같은 별명이면 앞 파일 한 줄만: my_technologies (project_id, manual_name) UK이고, 한 번의 upsert에 같은 줄이 둘이면 DB가 거절해 등록·다시 읽기가 통째로 실패한다
+  const aliases = new Set<string>();
+  const unique = found.filter((f) => {
+    if (f.tech) return best.get(f.tech.key) === f;
+    if (aliases.has(f.name)) return false;
+    aliases.add(f.name);
+    return true;
+  });
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",
