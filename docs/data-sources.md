@@ -2,6 +2,20 @@
 
 상태: **v1 출처를 골랐다(2026-11-17, ADR 0008):** 1순위 OSV, 공식 MCP 레지스트리, GitHub 저장소 정보(서버 토큰), npm·PyPI 다운로드 수(`api.npmjs.org/downloads/point/last-week/<패키지>`, `pypistats.org/api/packages/<패키지>/recent`, 2026-11-17 키 없이 호출 확인) / 3순위 Hugging Face Hub, Hacker News, Firecrawl로 skills.sh 인기 페이지 1곳(스킬 설치 수. robots.txt: 공개 페이지 허용, `/api/`·`/search`만 막음, 2026-11-17 확인. 이용약관은 확인 전). 간격·한도·실패 처리는 spec에서 출처마다 적는다. 아래는 조사한 후보 목록 전체다.
 
+> **v1에서 실제로 읽는 출처의 간격·한도·실패 처리는 아래 "0. v1 실제 사용"에 있다**(코드 기준, 2026-11-20). 그 아래 1~5절은 조사한 후보 전체이고 그대로 둔다.
+
+## 0. v1 실제 사용 (정기 실행이 부르는 수집기 4개, 코드 기준 2026-11-20)
+정기 실행(`vercel.json` `0 21 * * *` = 한국 06:00, Hobby라 06:00~06:59 사이)과 관리자 "지금 한 번 실행"이 같은 수집기를 순서대로 돈다(`lib/schedule/collectors.ts`). 묶음 전체 시간 예산은 240초(`run-batch.ts` `DEFAULT_BUDGET_MS`)다. 요청 사이 간격은 모두 1초 이상(SPEC-8).
+
+| 순서 | 출처 | 실제 요청 | 간격·몫 | 실패 처리(불변 2: 못 읽은 것을 "없음"·"변화 없음"으로 단정하지 않음) | 키·약관 |
+|---|---|---|---|---|---|
+| 1 | OSV (보안 확인, `collect-osv.ts`) | `POST api.osv.dev/v1/query`(이름·생태계·버전). 결과가 쪽으로 나뉘면 `next_page_token`을 `page_token`으로 이어 받음(최대 10쪽, 쪽 사이 1초, `I-P-3-osv-next-page`) | 기술 사이 1초, 묶음 예산 중 150초 | 404·모양이 다른 응답·본문 읽다 끊김·같은 표시 되풀이·10쪽 초과는 그 기술만 수집 오류(`http_status`·`parse`·`timeout`·`network`), 등급 그대로·알림 없음. 한도 초과(429)가 오면 이번 실행에서 더 부르지 않음 | 키 불필요. 요청 횟수 제한 없음(FAQ 2026-11-18 확인) |
+| 2 | GitHub 저장소 정보 (`collect-github.ts`) | 저장소마다 REST 1번(`api.github.com/repos/<owner>/<repo>`, 서버 토큰) | 저장소 사이 1초, 몫 60초(한 실행에 60곳 안팎). 넘치는 것은 오래 안 읽은 순서로 다음 실행 | 서버 환경변수 `GITHUB_TOKEN`이 없거나 모양이 이상하면 호출하지 않고 수집 오류. 404는 "찾을 수 없음"(없거나 비공개), 한도 초과·연결·모양은 수집 오류 | **서버 토큰 필요**(ADR 0008 4번, 값은 환경변수에만). 이용약관 확인하지 못함 |
+| 3 | 공식 MCP 레지스트리 (`collect-registry.ts`) | `registry.modelcontextprotocol.io/v0.1/servers?limit=100&version=latest&updated_since=<지난번-5분>&cursor=` | 쪽 사이 1초, 몫 60초. 안전장치 500쪽 | 몫을 넘기면 지금까지 읽은 곳까지 저장하고 다음 실행에서 이어 읽음. 500쪽을 읽어도 안 끝나면 `parse` 수집 오류. 못 읽은 쪽을 "서버 없음"으로 보지 않음 | 키 불필요. preview 단계(초기화될 수 있음)라 처음 전체 읽기를 다시 할 수 있음. 약관 확인하지 못함 |
+| 4 | npm·PyPI 다운로드 수 (`collect-downloads.ts`) | npm `api.npmjs.org/downloads/point/last-week/<패키지>`, PyPI `pypistats.org/api/packages/<패키지>/recent` | 기술 사이 1초, 묶음 마감까지 | 404·모양 오류는 그 기술만 수집 오류(`http_status`·`parse`), 0으로 쓰지 않음. 마감이 오면 남은 기술은 다음 실행 | 키 불필요. pypistats는 대량 조회 금지·캐시 필요(2절 메모). 약관 확인하지 못함 |
+
+갈래 분류(`classifyAfterBatch`)는 수집이 아니라 묶음 뒤에 도는 후처리라 이 표에 넣지 않았다. 후보 목록의 나머지 출처(소식·인기 신호·커뮤니티 리뷰, HF·HN·skills.sh 등)는 **v1에서 읽지 않는다**(코드의 `SCHEDULE_COLLECTORS`에 없음, "확인"이 `예`여도 쓰는 것이 아니다).
+
 (처음 상태: 후보 목록. v1에 쓸 출처는 아직 고르지 않았다.) 조사일 2026-11-16, 서브에이전트가 공식 문서와 실제 호출로 확인했다(`docs/agents.md` 참고).
 "확인"이 `아니오`인 칸은 확인하지 못한 것이다. 고른 뒤에는 간격, 한도·약관 확인 결과, 실패 처리를 출처마다 적는다.
 

@@ -8,9 +8,10 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { clearSimulated, runSimulator } from "@/lib/server/simulator";
 import { runOpportunitySimulator } from "@/lib/server/simulator-opportunity";
+import { flashQuery } from "@/lib/server/admin-flash";
 
 const PAGE = "/admin/simulator";
-const back = (key: "error" | "cleared", text: string) => redirect(`${PAGE}?${key}=${encodeURIComponent(maskSecrets(text))}`);
+const back = (key: "error" | "cleared", text: string) => redirect(`${PAGE}?${flashQuery(key, maskSecrets(text))}`);
 
 async function adminAndDb() {
   const user = await getCurrentUser();
@@ -27,7 +28,7 @@ export async function runSimulatorAction(): Promise<void> {
   try {
     const result = await runSimulator({ db, saveChange, createAlertsForChange }, { adminId: user.id });
     // 알림 0건이면 흐름 화면에는 이유를 보여 줄 곳이 없으니 이 화면으로 돌아와 이유를 알린다(숨기지 않기)
-    target = result.alertsCreated > 0 ? `/admin/flow?run=${result.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(result.note))}&run=${result.runId}`;
+    target = result.alertsCreated > 0 ? `/admin/flow?run=${result.runId}` : `${PAGE}?${flashQuery("info", maskSecrets(result.note))}&run=${result.runId}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }
@@ -41,8 +42,8 @@ export async function runOpportunityAction(): Promise<void> {
   try {
     const r = await runOpportunitySimulator({ db, saveChange, createAlertsForChange }, { adminId: user.id });
     // 시작하지 않은 이유도 갈 곳(target)에 담는다: try 안에서 redirect하면 catch가 NEXT_REDIRECT를 잡아 이유가 사라진다
-    target = !r.started ? `${PAGE}?error=${encodeURIComponent(maskSecrets(r.reason))}`
-      : r.alertsCreated > 0 ? `/admin/flow?run=${r.runId}` : `${PAGE}?info=${encodeURIComponent(maskSecrets(r.note))}&run=${r.runId}`;
+    target = !r.started ? `${PAGE}?${flashQuery("error", maskSecrets(r.reason))}`
+      : r.alertsCreated > 0 ? `/admin/flow?run=${r.runId}` : `${PAGE}?${flashQuery("info", maskSecrets(r.note))}&run=${r.runId}`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }

@@ -63,11 +63,11 @@ export const messageOf = (e: unknown) => String(e instanceof Error ? e.message :
 export const rawFileUrl = (repo: { owner: string; repo: string }, path: string) =>
   `https://raw.githubusercontent.com/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/HEAD/${path.split("/").map(encodeURIComponent).join("/")}`;
 
-export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string | null): Promise<OsvVuln[]> {
-  const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}) });
-  const text = await fetchText(OSV_QUERY_URL, { method: "POST", body, headers: { "content-type": "application/json" } });
-  // OSV는 취약점이 없어도 200({})으로 답한다. 404(null)는 주소·서버 문제라 "없음"이 아니라 수집 오류(불변 2).
-  if (text === null) throw new CollectError("http_status", `${OSV_QUERY_URL}: 404`, 404);
+const OSV_PAGE_GAP_MS = 1000;
+const OSV_MAX_PAGES = 10; // 취약점이 아주 많은 패키지도 이 안에 끝난다. 넘으면 다 읽지 못한 것이라 수집 오류
+
+/** OSV 한 쪽을 읽는다: 취약점 목록과 다음 쪽 표시(없거나 빈 문자열이면 마지막 쪽). 모양이 다르면 parse 오류. */
+function readOsvPage(text: string, name: string): { vulns: OsvVuln[]; nextToken: string | null } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -75,14 +75,38 @@ export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version:
     throw new CollectError("parse", "OSV 응답을 해석하지 못함");
   }
   // 객체이고 vulns가 있으면 배열일 때만 "없음"({})·목록으로 읽는다. 그 밖의 모양(`[]`, 숫자, null)을 조용히 "없음"으로 읽지 않는다.
-  const vulns = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as { vulns?: unknown }).vulns : null;
-  if (vulns === null || (vulns !== undefined && !Array.isArray(vulns))) throw new CollectError("parse", "OSV 응답의 모양이 달라 해석하지 못함");
+  const page = typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as { vulns?: unknown; next_page_token?: unknown }) : null;
+  const token = page?.next_page_token;
+  if (page === null || (page.vulns !== undefined && !Array.isArray(page.vulns)) || (token !== undefined && typeof token !== "string")) {
+    throw new CollectError("parse", "OSV 응답의 모양이 달라 해석하지 못함");
+  }
   try {
-    return forPackage((vulns ?? []) as OsvVuln[], name);
+    return { vulns: forPackage((page.vulns ?? []) as OsvVuln[], name), nextToken: token || null };
   } catch {
     // null 항목 같은 이상한 응답이 코드 오류로 터져 그날의 모든 확인을 멈추지 않게: 그 호출만 해석 실패
     throw new CollectError("parse", "OSV 응답의 취약점 항목 모양이 달라 해석하지 못함");
   }
+}
+
+/** 알려진 취약점. 결과가 많아 OSV가 쪽을 나누면(next_page_token) 끝까지 따라가 모은다: 첫 쪽만으로 "없음"이라 하지 않는다(불변 2). */
+export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version: string | null, pageGapMs = OSV_PAGE_GAP_MS): Promise<OsvVuln[]> {
+  const all: OsvVuln[] = [];
+  const seen = new Set<string>();
+  let pageToken: string | null = null;
+  for (let page = 0; page < OSV_MAX_PAGES; page++) {
+    if (page > 0 && pageGapMs > 0) await new Promise((r) => setTimeout(r, pageGapMs)); // 같은 출처 요청 간격 1초 이상(SPEC-8)
+    const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}), ...(pageToken ? { page_token: pageToken } : {}) });
+    const text = await fetchText(OSV_QUERY_URL, { method: "POST", body, headers: { "content-type": "application/json" } });
+    // OSV는 취약점이 없어도 200({})으로 답한다. 404(null)는 주소·서버 문제라 "없음"이 아니라 수집 오류(불변 2).
+    if (text === null) throw new CollectError("http_status", `${OSV_QUERY_URL}: 404`, 404);
+    const { vulns, nextToken } = readOsvPage(text, name);
+    all.push(...vulns);
+    if (nextToken === null) return all;
+    if (seen.has(nextToken)) throw new CollectError("parse", "OSV가 같은 다음 쪽 표시를 되풀이해 다 읽지 못함");
+    seen.add(nextToken);
+    pageToken = nextToken;
+  }
+  throw new CollectError("parse", `OSV 결과가 ${OSV_MAX_PAGES}쪽을 넘어 다 읽지 못함`);
 }
 
 /**

@@ -98,3 +98,74 @@ test("queryOsv: {vulns: []}도 오류가 아니라 알려진 취약점 없음", 
   respond(t, () => new Response('{"vulns":[]}', { status: 200 }));
   assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), []);
 });
+
+// OSV는 결과가 많으면 첫 쪽만 주고 next_page_token을 붙인다. 그 쪽만 전부로 읽으면 취약점을 놓쳐 "변화 없음"이 된다(불변 2).
+const osvPages = (t: { mock: { method: (o: object, n: "fetch", f: unknown) => unknown } }, pages: Record<string, string>) => {
+  const bodies: string[] = [];
+  t.mock.method(globalThis, "fetch", async (_url: string, init: RequestInit) => {
+    bodies.push(String(init.body));
+    const token = (JSON.parse(String(init.body)) as { page_token?: string }).page_token ?? "";
+    return new Response(pages[token], { status: 200 });
+  });
+  return bodies;
+};
+
+test("queryOsv: next_page_token이 있으면 다음 쪽을 page_token으로 불러 모든 쪽의 취약점을 모은다", async (t) => {
+  const bodies = osvPages(t, {
+    "": '{"vulns":[{"id":"A"}],"next_page_token":"p2"}',
+    p2: '{"vulns":[{"id":"B"}],"next_page_token":"p3"}',
+    p3: '{"vulns":[{"id":"C"}]}',
+  });
+  assert.deepEqual((await queryOsv("mcp-remote", "npm", "0.1.15", 0)).map((v) => v.id), ["A", "B", "C"]);
+  assert.equal(bodies.length, 3);
+  assert.ok(!bodies[0].includes("page_token"), "첫 호출에는 page_token이 없다");
+  assert.equal((JSON.parse(bodies[1]) as { page_token: string }).page_token, "p2");
+  assert.equal((JSON.parse(bodies[1]) as { package: { name: string } }).package.name, "mcp-remote", "다음 쪽에도 같은 조회 조건");
+});
+
+test("queryOsv: 같은 다음 쪽 표시가 되풀이되면 바로 수집 오류 parse: 읽은 쪽만으로 '없음'이라 하지 않고 헛되이 더 부르지 않는다", async (t) => {
+  const bodies = osvPages(t, { "": '{"next_page_token":"x"}', x: '{"next_page_token":"x"}' });
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15", 0), (e) => e instanceof CollectError && e.kind === "parse");
+  assert.equal(bodies.length, 2, "첫 쪽 + 같은 표시가 돌아온 쪽까지만");
+});
+
+test("queryOsv: 표시가 매번 새로워도 끝이 없으면 10쪽에서 멈추고 수집 오류 parse, 빈 쪽(표시만 있는 쪽)도 한 쪽으로 센다", async (t) => {
+  let n = 0;
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => (calls++, new Response(`{"next_page_token":"t${n++}"}`, { status: 200 })));
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15", 0), (e) => e instanceof CollectError && e.kind === "parse");
+  assert.equal(calls, 10);
+});
+
+test("queryOsv: 쪽 사이에 간격을 둔다(SPEC-8, 요청 사이 1초 이상) — 첫 쪽 앞에는 두지 않는다", async (t) => {
+  osvPages(t, { "": '{"vulns":[],"next_page_token":"p2"}', p2: '{"vulns":[]}' });
+  const start = Date.now();
+  await queryOsv("mcp-remote", "npm", "0.1.15", 60);
+  const took = Date.now() - start;
+  assert.ok(took >= 55 && took < 400, `쪽 사이 한 번만 쉰다(${took}ms)`);
+});
+
+test("queryOsv: 중간 쪽이 404여도 앞 쪽 결과로 끝내지 않고 수집 오류 http_status", async (t) => {
+  let call = 0;
+  t.mock.method(globalThis, "fetch", async () => new Response(call++ === 0 ? '{"vulns":[{"id":"A"}],"next_page_token":"p2"}' : "", { status: call === 1 ? 200 : 404 }));
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15", 0), (e) => e instanceof CollectError && e.kind === "http_status" && e.httpStatus === 404);
+});
+
+test("queryOsv: 중간 쪽이 실패하면 앞 쪽 결과만 돌려주지 않고 그 오류를 던진다", async (t) => {
+  let call = 0;
+  t.mock.method(globalThis, "fetch", async () => new Response(call++ === 0 ? '{"vulns":[{"id":"A"}],"next_page_token":"p2"}' : "", { status: 500 }));
+  await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15", 0), (e) => e instanceof CollectError && e.kind === "http_status" && e.httpStatus === 500);
+});
+
+test("queryOsv: next_page_token이 빈 문자열이거나 문자열이 아니면 끝난 것으로 보지 않고 수집 오류 parse(모양이 다른 응답)", async (t) => {
+  let body = "";
+  let calls = 0;
+  respond(t, () => (calls++, new Response(body, { status: 200 })));
+  for (body of ['{"vulns":[],"next_page_token":5}', '{"vulns":[],"next_page_token":{}}']) {
+    calls = 0;
+    await assert.rejects(() => queryOsv("mcp-remote", "npm", "0.1.15"), (e) => e instanceof CollectError && e.kind === "parse", body);
+    assert.equal(calls, 1, `${body}: 모양이 다르면 다음 쪽을 부르지 않고 바로 오류`);
+  }
+  body = '{"vulns":[],"next_page_token":""}';
+  assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), [], "빈 문자열은 다음 쪽 없음");
+});

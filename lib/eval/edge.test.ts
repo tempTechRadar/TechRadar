@@ -130,8 +130,8 @@ test("정답 파일 경계 사례: 여섯 종류가 다 있고, 사례마다 출
   assert.ok(edges.every((c) => /^E-/.test(c.id)), "등급 사례(G…)와 id가 섞이지 않게 E-로 시작");
 });
 
-test("지금 경계 사례 전체 채점: 실행 실패 0, 정답과 다른 사례는 알고 있는 것만(debug-note에 적은 것)", async () => {
+test("지금 경계 사례 전체 채점: 실행 실패 0, 정답과 다른 사례 없음", async () => {
   const s = scoreEdges(edges, await Promise.all(edges.map((c) => computeEdgeActual(c, reader))));
   assert.equal(s.totals.failed, 0);
-  assert.deepEqual(s.rows.filter((r) => r.verdict !== "맞음").map((r) => [r.id, r.verdict]), [["E-collect-next-page", "결과 다름"]]);
+  assert.deepEqual(s.rows.filter((r) => r.verdict !== "맞음").map((r) => [r.id, r.verdict]), []);
 });
