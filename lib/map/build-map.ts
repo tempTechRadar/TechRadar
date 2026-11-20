@@ -17,7 +17,7 @@ export type CatalogTech = {
   collectErrorKind: string | null; signals: Record<string, unknown> | null;
 };
 export type MyTechRow = {
-  id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string;
+  id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string; sourceFile?: string | null;
   grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
 };
 export type Category = { id: string; name: string; parentId: string | null };
@@ -62,6 +62,17 @@ export function hostOf(techKey: string | null, type: string | null, hosts: strin
   return { host, guessed: true };
 }
 
+/** 내 기술은 읽은 파일로 쓰는 곳을 안다(PRD-F39): 추정이 아니다. 모르는 파일 · 직접 추가는 null(카탈로그 추정을 쓴다) */
+export function hostOfSource(sourceFile: string | null | undefined): string | null {
+  if (!sourceFile) return null;
+  if (sourceFile === ".mcp.json" || sourceFile.startsWith(".claude/")) return "Claude Code";
+  if (sourceFile.startsWith(".cursor/")) return "Cursor";
+  if (sourceFile.startsWith(".vscode/")) return "VS Code";
+  if (sourceFile.startsWith(".gemini/")) return "Gemini CLI";
+  if (sourceFile === "package.json" || sourceFile === "requirements.txt") return "앱 코드";
+  return null;
+}
+
 function categoryNames(categoryId: string | null, cats: Map<string, Category>): { field: string; sub: string } {
   const c = categoryId ? cats.get(categoryId) : undefined;
   if (!c) return { field: UNSORTED, sub: UNSORTED };
@@ -95,6 +106,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
   for (const m of input.mine) idsByName.set(m.projectName, (idsByName.get(m.projectName) ?? new Set()).add(m.projectId));
   const projectLabel = (n: MapNode) => (n.projectIds.length > 1 ? "여러 프로젝트"
     : (idsByName.get(n.projectNames[0])?.size ?? 0) > 1 ? `${n.projectNames[0]} (${n.projectIds[0].slice(0, 4)})` : n.projectNames[0]);
+  const fileHosts = new Map<string, Set<string>>(); // 기술마다 읽은 파일로 안 쓰는 곳
   for (const m of input.mine) {
     const key = m.techId ? `tech:${m.techId}` : `name:${(m.manualName ?? "").trim().toLowerCase()}`;
     const t = m.techId ? techById.get(m.techId) : undefined;
@@ -102,6 +114,13 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
     if (GRADE_RANK[m.grade] > GRADE_RANK[n.grade]) Object.assign(n, { grade: m.grade, gradeReason: m.gradeReason });
     n.collectErrorKind = n.collectErrorKind ?? m.collectErrorKind ?? t?.collectErrorKind ?? null;
     n.myTechIds.push(m.id);
+    // 카탈로그가 쓰는 곳을 정하지 않았을 때만 읽은 파일로 정한다. 다른 도구 파일에서도 쓰면 "여러 도구"
+    const fromFile = hostOfSource(m.sourceFile);
+    if (fromFile && (n.hostGuessed || fileHosts.has(key))) {
+      const seen = fileHosts.get(key) ?? new Set<string>();
+      seen.add(fromFile); fileHosts.set(key, seen);
+      n.attrs = { ...n.attrs, host: seen.size > 1 ? "여러 도구" : fromFile }; n.hostGuessed = false;
+    }
     if (!n.projectIds.includes(m.projectId)) n.projectIds.push(m.projectId), n.projectNames.push(m.projectName);
     n.attrs = { ...n.attrs, grade: GRADE_KO[n.grade], project: projectLabel(n) };
     out.set(key, n);

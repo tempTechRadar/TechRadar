@@ -55,15 +55,57 @@ export function readPackageJson(text: string): FoundTech[] {
 
 /** .mcp.json → 서버마다 하나(허용 목록 없이 모두). 서버 이름은 별명이라 키로 쓰지 않는다(SPEC-7.3). */
 export function readMcpJson(text: string): FoundTech[] {
-  const servers = ((JSON.parse(text) as { mcpServers?: object }).mcpServers ?? {}) as Record<string, Parameters<typeof mcpServerKey>[0]>;
-  return Object.entries(servers).map(([alias, server]) => {
+  return readMcpServers(text, "mcpServers", ".mcp.json");
+}
+
+/** 줄 주석 · 블록 주석 · 끝 쉼표 · BOM을 허용하는 JSON(VS Code · Gemini 설정은 JSONC). 글자를 한 번씩만 훑는다(되돌아가는 정규식 없음) */
+export function parseJsonc(text: string): unknown {
+  return JSON.parse(dropTrailingCommas(dropComments(text.replace(/^﻿/, ""))));
+}
+/** 문자열 밖의 주석만 뺀다 */
+function dropComments(t: string): string {
+  let out = "", i = 0, inStr = false;
+  while (i < t.length) {
+    const c = t[i], n = t[i + 1];
+    if (inStr) { out += c; if (c === "\\") { out += n ?? ""; i += 2; continue; } if (c === '"') inStr = false; i++; continue; }
+    if (c === '"') { inStr = true; out += c; i++; continue; }
+    if (c === "/" && n === "/") { while (i < t.length && t[i] !== "\n") i++; continue; }
+    if (c === "/" && n === "*") { const end = t.indexOf("*/", i + 2); i = end < 0 ? t.length : end + 2; continue; }
+    out += c; i++;
+  }
+  return out;
+}
+/** 문자열 밖에서 } · ] 바로 앞(빈칸만 사이)의 쉼표를 뺀다(주석을 뺀 뒤에 부른다) */
+function dropTrailingCommas(t: string): string {
+  let out = "", inStr = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (inStr) { out += c; if (c === "\\") { out += t[i + 1] ?? ""; i++; } else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    if (c === ",") { let j = i + 1; while (j < t.length && " \t\r\n".includes(t[j])) j++; if (t[j] === "}" || t[j] === "]") continue; }
+    out += c;
+  }
+  return out;
+}
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const MAX_ALIAS = 100; // 별명은 내 기술 이름 · 실행 기록에 그대로 남으니 길이를 막는다
+
+/** MCP 서버 목록 하나를 읽는다. 도구마다 칸 이름만 다르다(Claude · Cursor · Gemini = mcpServers, VS Code = servers).
+ *  칸이 객체가 아니거나 서버가 객체가 아니면 던진다: 그 파일만 수집 오류(불변 2), 틀린 기술 줄을 만들지 않는다 */
+function readMcpServers(text: string, field: "mcpServers" | "servers", sourceFile: string): FoundTech[] {
+  const doc = parseJsonc(text);
+  if (!isPlainObject(doc)) throw new Error(`${sourceFile}: 설정이 객체가 아니에요`);
+  const servers = doc[field] ?? {};
+  if (!isPlainObject(servers) || !Object.values(servers).every(isPlainObject)) throw new Error(`${sourceFile}: ${field} 칸 모양이 달라요`);
+  return Object.entries(servers as Record<string, Parameters<typeof mcpServerKey>[0]>).map(([alias, server]) => {
     const tech = mcpServerKey(server);
     const version = tech?.key.startsWith("npm:") ? exactVersion(tech.version) : (tech?.version ?? null);
     return {
       tech: tech && { key: tech.key, version },
-      name: tech ? tech.key.slice(tech.key.indexOf(":") + 1) : alias,
+      name: tech ? tech.key.slice(tech.key.indexOf(":") + 1) : alias.slice(0, MAX_ALIAS),
       type: "mcp" as const,
-      sourceFile: ".mcp.json",
+      sourceFile,
     };
   });
 }
@@ -136,17 +178,22 @@ export function requirementIncludes(text: string): string[] {
 }
 
 // 읽는 파일과 그 해석기를 한 곳에 둔다. 같은 기술이 두 파일에 있으면 버전을 아는 쪽을, 같으면 앞 파일 쪽을 남긴다(first-read). 그래서 순서가 의미를 가진다.
-const READERS: Record<string, (text: string) => FoundTech[]> = {
+// 다른 AI 도구의 MCP 설정(PRD-F39)은 Claude 것 뒤에 둔다(같은 서버가 두 파일에 있으면 버전을 아는 쪽, 같으면 앞 파일 = .mcp.json 줄이 남음).
+// AGENTS.md · GEMINI.md는 지시 글이라 기술 목록을 믿을 만하게 뽑을 수 없어 읽지 않는다(I-P-22-other-tools).
+const READERS: Record<string, (text: string, path: string) => FoundTech[]> = {
   "package.json": readPackageJson,
-  ".mcp.json": readMcpJson,
+  ".mcp.json": (text, path) => readMcpServers(text, "mcpServers", path),
   "requirements.txt": readRequirementsTxt,
+  ".cursor/mcp.json": (text, path) => readMcpServers(text, "mcpServers", path),
+  ".vscode/mcp.json": (text, path) => readMcpServers(text, "servers", path),
+  ".gemini/settings.json": (text, path) => readMcpServers(text, "mcpServers", path),
 };
 export const REPO_FILES: readonly string[] = Object.freeze(Object.keys(READERS));
 
 /** 읽은 파일 이름으로 해석기를 고른다. 모르는 파일이면 던진다(호출한 쪽이 그 파일만 해석 실패로 남김). */
 export function readRepoFile(path: string, text: string): FoundTech[] {
   if (!Object.hasOwn(READERS, path)) throw new Error(`읽는 법을 모르는 파일: ${path}`);
-  return READERS[path](text);
+  return READERS[path](text, path);
 }
 
 /** `https://github.com/owner/repo(.git)(/...)` → owner/repo. 다른 모양이면 null(입력 경계에서 거른다). */

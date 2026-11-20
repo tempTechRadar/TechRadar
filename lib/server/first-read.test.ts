@@ -180,7 +180,7 @@ test("새 등록: 확인도 안 되고 파일도 하나도 안 열리면 '없음
   stubWeb(t, { repo: status(429) });
   const { db, calls } = fakeDb();
   const r = await registerAndRead(USER, REPO, { db });
-  assert.deepEqual([r.status, r.errors], ["failed", 4]); // 읽는 파일 셋(package.json·.mcp.json·requirements.txt)과 스킬 폴더가 모두 실패
+  assert.deepEqual([r.status, r.errors], ["failed", 7]); // 읽는 파일 여섯(package.json·.mcp.json·requirements.txt·다른 도구 설정 셋)과 스킬 폴더가 모두 실패
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.error_kind, "rate_limited");
 });
 
@@ -195,7 +195,7 @@ test("다시 읽기: 파일이 하나도 안 열리고 저장소도 안 열리�
   const marks = ops(calls, "my_technologies", "update").filter((c) => arg0(c).collect_error_kind === "http_status");
   const target = (c: (typeof marks)[number]) => c.chain.find((x) => (x.m === "eq" || x.m === "like") && x.args[0] === "source_file")?.args[1];
   // 스킬 목록 404를 "스킬 없음"으로 읽지 않는다: 저장소가 닫혔으니 전에 읽은 스킬 줄 모두가 대상이고, 목록은 부르지 않는다(불변 2)
-  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".mcp.json", "package.json", "requirements.txt"]);
+  assert.deepEqual(marks.map(target).sort(), [".claude/skills/%", ".cursor/mcp.json", ".gemini/settings.json", ".mcp.json", ".vscode/mcp.json", "package.json", "requirements.txt"]);
   assert.ok(!urls.includes("https://api.github.com/repos/o/r/contents/.claude/skills"));
   assert.ok(updates(calls).every((p) => !("grade" in p)));
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "failed");
@@ -208,7 +208,7 @@ test("다시 읽기: 한 파일은 연결 오류, 나머지는 404여도 저장�
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.equal(r.status, "failed");
-  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), ["http_status", "http_status", "http_status", "network"]);
+  assert.deepEqual(updates(calls).map((p) => p.collect_error_kind).sort(), [...Array(6).fill("http_status"), "network"]); // 파일 다섯 + 스킬 폴더는 404, package.json은 연결 오류
 });
 
 test("저장소는 열리는데 읽는 파일이 다 없으면 오류가 아니다: 기술 0개, 성공", async (t) => {
@@ -486,4 +486,15 @@ test("읽은 저장소 파일·스킬이 하나도 없고 오류뿐이면 실패
   stubWeb(t, { files: { "package.json": new Error("끊김") }, skills: status(500) });
   const r = await registerAndRead(USER, REPO, { db: fakeDb().db });
   assert.deepEqual([r.status, r.errors], ["failed", 2]);
+});
+
+test("다른 AI 도구 설정(PRD-F39): 같은 별명 · 같은 서버가 두 파일에 있어도 한 줄씩만 저장한다(별명 줄 UK가 깨지지 않게)", async (t) => {
+  const same = JSON.stringify({ mcpServers: { "my-db": { command: "node", args: ["server.js"] }, r: { command: "npx", args: ["mcp-remote"] } } });
+  stubWeb(t, { files: { ".mcp.json": same, ".cursor/mcp.json": same } });
+  const { db, calls } = fakeDb();
+  await registerAndRead(USER, REPO, { db });
+  const rows = ops(calls, "my_technologies", "upsert").flatMap((c) => c.chain[0].args[0] as Row[]);
+  assert.deepEqual(rows.map((r) => [r.manual_name ?? r.tech_id ?? null, r.source_file]).filter(([n]) => n === "my-db").length, 1);
+  assert.deepEqual(rows.filter((r) => r.manual_name === "my-db").map((r) => r.source_file), [".mcp.json"], "앞 파일(.mcp.json) 줄이 남는다");
+  assert.equal(rows.filter((r) => !("manual_name" in r)).length, 1, "같은 서버(npm:mcp-remote)도 한 줄");
 });

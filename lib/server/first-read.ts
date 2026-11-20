@@ -185,7 +185,10 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
     const prev = f.tech && best.get(f.tech.key);
     if (f.tech && (!prev || (prev.tech?.version == null && f.tech.version !== null))) best.set(f.tech.key, f);
   }
-  const unique = found.filter((f) => !f.tech || best.get(f.tech.key) === f);
+  // 키 없는 줄(별명만)은 (project_id, manual_name) UK라 같은 별명은 앞 파일 하나만: 두 도구 설정에 같은 별명이 있어도 저장이 깨지지 않게
+  const firstByName = new Map<string, FoundTech>();
+  for (const f of found) if (!f.tech && !firstByName.has(f.name)) firstByName.set(f.name, f);
+  const unique = found.filter((f) => (f.tech ? best.get(f.tech.key) === f : firstByName.get(f.name) === f));
   await recordStep(db, runId, {
     stepName: "extract_my_tech",
     status: fileErrors.some((f) => f.kind === "parse") ? "failed" : "succeeded",

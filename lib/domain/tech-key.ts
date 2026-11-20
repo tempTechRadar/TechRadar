@@ -22,21 +22,25 @@ export function splitNpmSpec(spec: string): { name: string; version: string | nu
   return { name: spec.slice(0, at), version: spec.slice(at + 1) || null };
 }
 
-type McpServer = { command?: string; args?: string[]; url?: string };
+type McpServer = { command?: string; args?: string[]; url?: string; httpUrl?: string };
+// npm · PyPI 이름 모양(선택 버전 포함, 길이 100 안). 옵션 값(토큰 · git 주소 · ${input:…})이 기술 키 · 공용 카탈로그 이름이 되지 않게 이 모양만 받는다
+const PACKAGE_SPEC = /^(?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*(?:@[0-9A-Za-z.^~<>=*+-]{1,40})?$/i;
+const isPackageSpec = (a: string) => a.length <= 100 && PACKAGE_SPEC.test(a);
 
 /**
  * `.mcp.json` 서버 하나 → 기술 키. 서버 이름은 사용자가 붙인 별명이라 쓰지 않는다.
  * 알 수 없는 실행 방식(직접 만든 스크립트 등)이면 null = "찾지 못함".
  */
 export function mcpServerKey(server: McpServer): TechRef | null {
-  if (server.url) {
+  const url = server.url ?? server.httpUrl; // Gemini CLI는 스트리밍 HTTP 서버를 httpUrl에 쓴다
+  if (url) {
     try {
-      return { key: `url:${new URL(server.url).host.toLowerCase()}`, version: null };
+      return { key: `url:${new URL(url).host.toLowerCase()}`, version: null };
     } catch {
       return null;
     }
   }
-  const args = (server.args ?? []).filter((a) => !a.startsWith("-"));
+  const args = (server.args ?? []).filter((a) => typeof a === "string" && !a.startsWith("-") && (a === "run" || isPackageSpec(a)));
   const cmd = (server.command ?? "").trim();
   if (cmd === "npx" && args[0]) {
     const { name, version } = splitNpmSpec(args[0]);

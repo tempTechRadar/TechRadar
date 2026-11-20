@@ -23,7 +23,7 @@ const toTech = (r: Row): CatalogTech => ({
   signals: { stars: r.signals?.stars ?? null, weekly_downloads: r.signals?.weekly_downloads ?? null }, // 수집 오류 문장 같은 나머지는 화면·캐시로 보내지 않는다(ADR 0029)
 });
 const toMine = (r: Row): MyTechRow => ({
-  id: r.id, techId: r.tech_id, manualName: r.manual_name, projectId: r.project_id, projectName: r.projects?.name ?? "",
+  id: r.id, techId: r.tech_id, manualName: r.manual_name, projectId: r.project_id, projectName: r.projects?.name ?? "", sourceFile: r.source_file ?? null,
   grade: r.grade as Grade, gradeReason: r.grade_reason, collectErrorKind: r.collect_error_kind, lastCheckedOkAt: r.last_checked_ok_at,
 });
 const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / ID_CHUNK) }, (_, i) => ids.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK));
@@ -76,7 +76,7 @@ export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
 export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean, extraIds: string[] = []): Promise<MapInput> {
   const [mineRes, categories, catalog, markRes] = await Promise.all([
     db.from("my_technologies")
-      .select("id, tech_id, manual_name, project_id, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
+      .select("id, tech_id, manual_name, project_id, source_file, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
       .eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).order("created_at").order("id"), // 같은 등급끼리 합칠 때 늘 같은 줄이 앞에
     readCategories(db),
     readCatalog(db, isDemo), // 로그인 뒤에도 기본은 전체 지도(ADR 0027)
