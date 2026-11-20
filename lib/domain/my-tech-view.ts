@@ -1,4 +1,5 @@
 // 내 기술 목록(IA-3)·기술 상세(IA-4) 화면이 쓰는 순수 함수와 문구. 주인: 김영식(A).
+import { SKILLS_DIR } from "./skills.ts";
 import type { Grade } from "./grade.ts";
 
 export const GRADE_LABEL: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
@@ -99,21 +100,22 @@ export function evidenceLinks(raw: unknown): EvidenceLink[] {
   });
 }
 
-export type ReadFile = { path: string; count: number; errorKind: string | null };
+export type ReadFile = { path: string; count: number; errors: number };
 /**
- * 읽은 결과를 파일마다(design.md 18절): 저장소에서 읽은 내 기술 줄을 읽은 파일로 묶는다. 한 줄이라도 수집 오류면 그 파일은 수집 오류
- * (지난 값을 보여 주는 중, 불변 2). 스킬 폴더(.claude/skills/<이름>)는 폴더 하나로. 직접 추가 · 가져오기 줄은 파일이 없어 뺀다.
- * 오류가 있는 파일 먼저, 그다음 이름순
+ * 읽은 결과를 파일마다(design.md 18절): 저장소에서 온 내 기술 줄(숨기지 않은 것)을 읽은 파일로 묶어 기술 수와 "확인에 실패한 기술 수"를 센다.
+ * 파일을 읽었는지 · 못 읽었는지는 말하지 않는다: 수집 오류 칸은 파일을 못 읽었을 때뿐 아니라 그 기술의 보안 확인이 실패했을 때도 채워지고,
+ * 한 기술은 프로젝트에 한 줄이라 마지막에 읽은 파일로만 남기 때문이다(불변 2: 근거 없이 "읽음"이라고 하지 않음).
+ * 스킬 폴더(SKILLS_DIR/<이름>)는 폴더 하나로. 직접 추가 · 가져오기 줄은 파일이 없어 뺀다. 확인 실패가 있는 파일 먼저, 그다음 이름순
  */
-export function filesOf(techs: { origin: string; source_file: string | null; collect_error_kind: string | null }[]): ReadFile[] {
+export function filesOf(techs: { origin: string; source_file: string | null; collect_error_kind: string | null; hidden_at: string | null }[]): ReadFile[] {
   const by = new Map<string, ReadFile>();
   for (const t of techs) {
-    if (t.origin !== "repo" || !t.source_file) continue;
-    const path = t.source_file.startsWith(".claude/skills/") ? ".claude/skills/" : t.source_file;
-    const f = by.get(path) ?? { path, count: 0, errorKind: null };
+    if (t.origin !== "repo" || !t.source_file || t.hidden_at) continue;
+    const path = t.source_file.startsWith(`${SKILLS_DIR}/`) ? `${SKILLS_DIR}/` : t.source_file;
+    const f = by.get(path) ?? { path, count: 0, errors: 0 };
     f.count++;
-    f.errorKind = f.errorKind ?? t.collect_error_kind;
+    if (t.collect_error_kind) f.errors++;
     by.set(path, f);
   }
-  return [...by.values()].sort((a, b) => Number(!a.errorKind) - Number(!b.errorKind) || a.path.localeCompare(b.path));
+  return [...by.values()].sort((a, b) => Number(!a.errors) - Number(!b.errors) || a.path.localeCompare(b.path));
 }

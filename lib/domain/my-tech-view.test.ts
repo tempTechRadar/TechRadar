@@ -100,14 +100,15 @@ test("읽기 안내: 마지막 읽기는 서버가 정렬해 주는 순서가 �
   assert.match(readStatusNotice("repo", [newOk, newFail], NOW)!, /실패/);
 });
 
-test("읽은 결과를 파일마다: 저장소 줄만 파일로 묶고, 한 줄이라도 수집 오류면 그 파일은 수집 오류, 스킬은 폴더 하나로, 오류 먼저", () => {
-  const row = (source_file: string | null, collect_error_kind: string | null = null, origin = "repo") => ({ origin, source_file, collect_error_kind });
+test("읽은 결과를 파일마다: 숨기지 않은 저장소 줄만 파일로 묶어 기술 수와 확인 실패 수, 스킬은 폴더 하나로(실제 모양 .claude/skills/<이름>), 실패 있는 파일 먼저", () => {
+  const row = (source_file: string | null, collect_error_kind: string | null = null, origin = "repo", hidden_at: string | null = null) => ({ origin, source_file, collect_error_kind, hidden_at });
   assert.deepEqual(filesOf([
-    row("package.json"), row("package.json"), row("requirements.txt", "timeout"), row("requirements.txt"),
-    row(".claude/skills/a/SKILL.md"), row(".claude/skills/b/SKILL.md"), row(null, null, "manual"), row("x.json", null, "import"),
+    row("package.json"), row("package.json"), row("package.json", "timeout", "repo", "2026-11-20"),
+    row("requirements.txt", "timeout"), row("requirements.txt"),
+    row(".claude/skills/a"), row(".claude/skills/b"), row(null, null, "manual"), row("x.json", null, "import"),
   ]), [
-    { path: "requirements.txt", count: 2, errorKind: "timeout" },
-    { path: ".claude/skills/", count: 2, errorKind: null },
-    { path: "package.json", count: 2, errorKind: null },
+    { path: "requirements.txt", count: 2, errors: 1 },
+    { path: ".claude/skills/", count: 2, errors: 0 },
+    { path: "package.json", count: 2, errors: 0 },
   ]);
 });
