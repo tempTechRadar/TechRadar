@@ -2,7 +2,9 @@
 // 채점 칸(PRD-F30): 버튼 → 서버가 정답 사례 G1–G9를 앱 규칙으로 채점 → 결과 표. 실행 기록은 흐름 화면에서 볼 수 있다.
 import Link from "next/link";
 import { useActionState } from "react";
+import { EDGE_KINDS, type EdgeRow, type EdgeScore } from "@/lib/eval/edge-score";
 import { GRADE_KO } from "@/lib/eval/score";
+import type { StoredEdges } from "@/lib/eval/stored-edges";
 import { runEvalAction, type EvalState } from "./eval-actions";
 
 const btn = { minHeight: 44, padding: "0 16px" } as const;
@@ -38,8 +40,69 @@ export function EvalPanel({ style }: { style: React.CSSProperties }) {
               </tbody>
             </table>
           </div>
+          <StoredEdgesView stored={state.stored} />
         </div>
       ) : null}
     </section>
+  );
+}
+
+/** 경계 사례는 방금 채점한 것이 아니라 저장된 결과다: 제목과 시각으로 구분해 보여 준다 */
+function StoredEdgesView({ stored }: { stored: StoredEdges }) {
+  return (
+    <section aria-labelledby="demo-eval-edges" style={{ marginTop: 16 }}>
+      <h3 id="demo-eval-edges" style={{ fontSize: 16, margin: "0 0 4px" }}>사건 종류·경계 사례 (저장된 결과)</h3>
+      {!stored.ok ? <p style={{ color: "#b91c1c", margin: "4px 0" }}>{stored.reason}</p> : <StoredEdgesTables when={stored.when} edges={stored.edges} />}
+    </section>
+  );
+}
+
+function StoredEdgesTables({ when, edges }: { when: string; edges: EdgeScore }) {
+  const t = edges.totals;
+  const wrong = edges.rows.filter((r) => r.verdict !== "맞음");
+  return (
+    <>
+      <p style={{ margin: "4px 0" }}>
+        방금 누른 채점이 아니라 <code>npm run eval</code>이 {when}에 저장한 결과예요(경계 사례는 화면에서 다시 돌리지 않아요). 사례 {t.cases} · 맞게 울림 {t.hit} · 맞게 조용함 {t.quietOk} ·{" "}
+        <b>놓침 {t.miss}</b> · <b>잘못 울림 {t.falseAlarm}</b> · <b>결과 다름 {t.outcomeWrong}</b> · 실행 실패 {t.failed}
+      </p>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: 14 }}>
+          <thead><tr>{["종류", "사례", "맞음", "놓침", "잘못 울림", "결과 다름"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr></thead>
+          <tbody>
+            {EDGE_KINDS.filter((k) => edges.byKind[k]).map((k) => (
+              <tr key={k}>
+                <td style={cell}>{k}</td><td style={cell}>{edges.byKind[k].cases}</td><td style={cell}>{edges.byKind[k].right}</td>
+                <td style={cell}>{edges.byKind[k].miss}</td><td style={cell}>{edges.byKind[k].falseAlarm}</td><td style={cell}>{edges.byKind[k].outcomeWrong}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ margin: "8px 0 4px" }}>{wrong.length === 0 ? "맞음이 아닌 사례는 없어요." : `맞음이 아닌 사례 ${wrong.length}건:`}</p>
+      {wrong.length > 0 ? <EdgeRows rows={wrong} /> : null}
+      <details style={{ marginTop: 8 }}>
+        <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>사례 {edges.rows.length}건 모두 보기</summary>
+        <EdgeRows rows={edges.rows} />
+      </details>
+    </>
+  );
+}
+
+function EdgeRows({ rows }: { rows: EdgeRow[] }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ borderCollapse: "collapse", minWidth: 640, fontSize: 14 }}>
+        <thead><tr>{["사례", "종류", "대상", "출처", "기대 결과", "실제 결과", "판정", "비고"].map((h) => <th key={h} style={cell}>{h}</th>)}</tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td style={cell}>{r.id}</td><td style={cell}>{r.kind}</td><td style={cell}>{r.target}</td><td style={cell}>{r.source}</td>
+              <td style={cell}>{r.expectedOutcome}</td><td style={cell}>{r.actualOutcome}</td><td style={cell}>{r.verdict}</td><td style={cell}>{r.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

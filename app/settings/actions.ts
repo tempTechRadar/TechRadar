@@ -17,6 +17,6 @@ export async function saveSettings(_prev: SettingsState, formData: FormData): Pr
   if (!supabase) return { ...sent, error: "서버의 Supabase 설정이 비어 있어요. 관리자에게 알려 주세요." };
   const result = await saveProfileSettings(supabase, user.id, input);
   if (!result.ok) return { ...sent, error: result.error };
-  if (input.welcome) redirect(input.next); // 가입 직후면 가려던 곳으로
+  if (input.welcome) redirect(`/taste?onboarding=1&next=${encodeURIComponent(input.next)}`); // 가입 직후면 취향 질문(IA-1b, P-23)을 거쳐 가려던 곳으로
   return { nickname: result.nickname, isPublic: result.isPublic, saved: true };
 }

@@ -6,11 +6,33 @@ import { runBatch, type Collector } from "./run-batch.ts";
 type Call = { table: string; op: "insert" | "update"; row: Record<string, unknown>; eq?: [string, unknown] };
 
 // 실제 DB 대신 "무엇을 어디에 쓰려 했는지"만 모으는 가짜 클라이언트
-function fakeDb(opts: { failRunsUpdate?: boolean } = {}) {
+type Running = { id: string; trigger: string; started_at: string };
+type Filter = [string, string, unknown];
+
+function fakeDb(opts: { failRunsUpdate?: boolean; running?: Running[]; failRunningRead?: boolean } = {}) {
   const calls: Call[] = [];
+  const reads: { table: string; filters: Filter[] }[] = [];
   const db = {
     from(table: string) {
       return {
+        // 겹침 확인(도는 실행 찾기): 거름 조건을 모아 두고, 조건에 맞는 줄만 돌려준다
+        select() {
+          const filters: Filter[] = [];
+          reads.push({ table, filters });
+          const rows = () => (opts.running ?? []).filter((r) => filters.every(([op, col, v]) => {
+            const have = (r as Record<string, unknown>)[col] ?? (col === "status" ? "running" : undefined);
+            if (op === "in") return (v as unknown[]).includes(have);
+            return op === "gte" ? String(have) >= String(v) : have === v;
+          }));
+          const chain = {
+            in: (c: string, v: unknown) => (filters.push(["in", c, v]), chain),
+            eq: (c: string, v: unknown) => (filters.push(["eq", c, v]), chain),
+            gte: (c: string, v: unknown) => (filters.push(["gte", c, v]), chain),
+            order: () => chain,
+            limit: () => Promise.resolve(opts.failRunningRead ? { data: null, error: { message: "읽기 거부" } } : { data: rows(), error: null }),
+          };
+          return chain;
+        },
         insert(row: Record<string, unknown>) {
           calls.push({ table, op: "insert", row });
           const done = Promise.resolve({ data: { id: "run-1" }, error: null });
@@ -25,7 +47,7 @@ function fakeDb(opts: { failRunsUpdate?: boolean } = {}) {
       };
     },
   } as unknown as SupabaseClient;
-  return { db, calls };
+  return { db, calls, reads };
 }
 
 const ok = (source: string, items = 1): Collector => ({ source, run: async () => ({ items, summary: `${items}건` }) });
@@ -112,4 +134,60 @@ test("수집기가 비밀값이 든 오류를 던져도 기록에는 가려서 �
   const fake = "ghp_" + "a1B2c3D4e5F6g7H8i9J0";
   await runBatch({ db, collectors: [{ source: "fetch_github", run: async () => { throw new Error(`401 token ${fake}`); } }], now: () => T0 }, { trigger: "manual" });
   assert.equal(JSON.stringify(calls).includes(fake), false);
+});
+
+// 겹쳐 도는 실행 막기(I-run-batch-overlap): 정기 실행과 "지금 한 번 실행"이 같은 수집기를 동시에 돌리면 같은 자료를 두 번 읽고 쓴다
+const minAgo = (m: number) => new Date(T0 - m * 60_000).toISOString();
+
+test("정기·지금 실행이 이미 돌고 있으면 새 실행을 시작하지 않고 이유를 돌려준다(실행 기록·수집 없음)", async () => {
+  for (const trigger of ["schedule", "manual"]) {
+    const { db, calls } = fakeDb({ running: [{ id: "run-0", trigger, started_at: minAgo(5) }] });
+    let ran = false;
+    const r = await runBatch({ db, collectors: [{ source: "fetch_osv", run: async () => ((ran = true), { items: 1 }) }], now: () => T0 }, { trigger: "manual" });
+    assert.equal(r.started, false);
+    assert.match(r.started ? "" : r.reason, /이미 돌고 있어요.*최대 6분/);
+    assert.equal(ran, false);
+    assert.equal(calls.length, 0);
+  }
+});
+
+test("겹침 확인은 정기·지금 실행 가운데 최근 6분 안에 시작해 아직 도는 것만 본다", async () => {
+  const { db, reads } = fakeDb();
+  await runBatch({ db, collectors: [ok("fetch_osv")], now: () => T0 }, { trigger: "schedule" });
+  assert.equal(reads.length, 1);
+  assert.equal(reads[0].table, "runs");
+  assert.deepEqual([...reads[0].filters].sort((a, b) => a[1].localeCompare(b[1])), [
+    ["gte", "started_at", minAgo(6)],
+    ["eq", "status", "running"],
+    ["in", "trigger", ["schedule", "manual"]],
+  ]);
+});
+
+test("6분 넘게 '도는 중'인 줄은 멈춘 실행으로 보고 막지 않는다(함수 한도 300초 + 여유)", async () => {
+  const { db } = fakeDb({ running: [{ id: "run-0", trigger: "schedule", started_at: minAgo(7) }] });
+  const r = await runBatch({ db, collectors: [ok("fetch_osv")], now: () => T0 }, { trigger: "manual" });
+  assert.equal(r.started, true);
+});
+
+test("시뮬레이터·읽기·채점 실행이 도는 중이어도 수집 묶음은 막지 않는다", async () => {
+  for (const trigger of ["simulator", "first_read", "user_reread", "scoring"]) {
+    const { db } = fakeDb({ running: [{ id: "run-0", trigger, started_at: minAgo(1) }] });
+    const r = await runBatch({ db, collectors: [ok("fetch_osv")], now: () => T0 }, { trigger: "schedule" });
+    assert.equal(r.started, true, trigger);
+  }
+});
+
+test("겹침 확인을 읽지 못하면 수집을 멈추지 않고 그대로 실행한다(확인은 보조 장치)", async () => {
+  const { db, calls } = fakeDb({ failRunningRead: true });
+  const errors: unknown[][] = [];
+  const realError = console.error;
+  console.error = (...a: unknown[]) => { errors.push(a); };
+  try {
+    const r = await runBatch({ db, collectors: [ok("fetch_osv")], now: () => T0 }, { trigger: "schedule" });
+    assert.equal(r.started, true);
+    assert.deepEqual(steps(calls), ["fetch_osv:succeeded"]);
+    assert.match(String(errors[0]?.[0]), /겹침 확인/);
+  } finally {
+    console.error = realError;
+  }
 });
