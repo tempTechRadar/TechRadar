@@ -6,6 +6,8 @@ export type RegistryStatus = "active" | "deprecated" | "deleted";
 export type RegistryPackage = { registryType: string; identifier: string };
 export type RegistryEntry = {
   name: string; title: string | null; description: string | null; packages: RegistryPackage[]; repoUrl: string | null; status: RegistryStatus; isLatest: boolean;
+  /** 레지스트리에 이 버전이 올라간 시각(없거나 날짜가 아니면 null). onlyLatest 뒤에는 쪽 안에서 본 가장 이른 버전의 시각 */
+  publishedAt: string | null;
 };
 /** invalid: 모양이 이상해 읽지 못한 항목 수. nextCursor: 다음 쪽(마지막 쪽이면 null) */
 export type RegistryPage = { entries: RegistryEntry[]; invalid: number; nextCursor: string | null };
@@ -40,6 +42,7 @@ function readEntry(raw: unknown): RegistryEntry | null {
   return {
     name, title: str(server.title), description: str(server.description), packages: readPackages(server.packages),
     repoUrl: str(asRecord(server.repository)?.url), status: status as RegistryStatus, isLatest: meta.isLatest,
+    publishedAt: typeof meta.publishedAt === "string" && !Number.isNaN(Date.parse(meta.publishedAt)) ? meta.publishedAt : null,
   };
 }
 
@@ -57,10 +60,20 @@ export function readRegistryPage(text: string): RegistryPage | null {
   return { entries: read.filter((e): e is RegistryEntry => e !== null), invalid: read.filter((e) => e === null).length, nextCursor: str(asRecord(rec.metadata)?.nextCursor) };
 }
 
-/** 서버마다 모든 버전이 나오므로 최신(isLatest)만 남긴다. 같은 이름이 둘이면 먼저 나온 것. */
+/**
+ * 서버마다 모든 버전이 나오므로 최신(isLatest)만 남긴다. 같은 이름이 둘이면 먼저 나온 것.
+ * 올라간 시각은 같은 이름의 가장 이른 버전으로 바꾼다(새 버전을 낸 옛 서버가 "새로 나온 것"이 되지 않게).
+ * shortcut: 한 서버의 버전이 두 쪽에 걸치면 이 쪽에서 본 것 중 가장 이른 시각. 걸친 서버가 NEW로 잘못 보이면 이름별 최소 시각을 따로 모은다
+ */
 export function onlyLatest(entries: RegistryEntry[]): RegistryEntry[] {
+  const first = new Map<string, number>();
+  for (const e of entries) {
+    const t = e.publishedAt === null ? NaN : Date.parse(e.publishedAt);
+    if (!Number.isNaN(t) && !(t >= (first.get(e.name) ?? Infinity))) first.set(e.name, t);
+  }
   const seen = new Set<string>();
-  return entries.filter((e) => e.isLatest && !seen.has(e.name) && seen.add(e.name));
+  return entries.filter((e) => e.isLatest && !seen.has(e.name) && seen.add(e.name))
+    .map((e) => ({ ...e, publishedAt: first.has(e.name) ? new Date(first.get(e.name)!).toISOString() : null }));
 }
 
 const usable = (id: string) => /^\S+$/.test(id);
@@ -107,19 +120,41 @@ export function isOfficialOrg(e: RegistryEntry, namespaces: string[]): boolean {
 }
 
 /** 한 줄 설명의 출처 링크(관문 3: 근거 링크 없는 정보는 저장하지 않는다). */
-export const registryLink = (name: string): string => `https://registry.modelcontextprotocol.io/v0.1/servers?search=${encodeURIComponent(name)}`;
+export const REGISTRY_BASE = "https://registry.modelcontextprotocol.io/";
+export const registryLink = (name: string): string => `${REGISTRY_BASE}v0.1/servers?search=${encodeURIComponent(name)}`;
 
-export type RegistryDraft = TechDraft & { official: boolean; source: string };
+/**
+ * 대량 채우기 표시(signals.registry_backfill)가 생긴 때. 그 전에 레지스트리에서 들어온 줄은 표시가 없어도 모두 대량 채우기였다
+ * (11-20 운영 확인: 공개 목록 11,565개 모두 레지스트리 출처, 첫 전체 읽기는 11-19부터 진행 중이라 이 표시가 배포되기 전까지 들어온 것도 그렇다).
+ * shortcut: 배포가 이 시각보다 늦으면 그 사이 줄은 표시 없이 NEW가 될 수 있다. 그러면 이 값을 배포 시각 뒤로 옮긴다
+ */
+export const BULK_MARK_SINCE = "2026-11-24T00:00:00Z";
+type BulkRow = { created_at?: unknown; one_liner_source?: unknown; signals?: unknown };
+/** 들어온 날이 "새로 나온 날"이 아닌 줄(레지스트리 대량 채우기). 지도 NEW · 새 기술 · 적용 기회의 "등록 뒤에 들어옴"이 함께 쓴다 */
+export function isBulkFilled(r: BulkRow): boolean {
+  const mark = asRecord(r.signals)?.registry_backfill;
+  if (typeof mark === "boolean") return mark;
+  return String(r.one_liner_source ?? "").startsWith(REGISTRY_BASE) && Date.parse(String(r.created_at)) < Date.parse(BULK_MARK_SINCE);
+}
+/** isBulkFilled의 반대를 PostgREST 조건으로(목록을 최근 순으로 잘라 읽을 때 DB에서 거른다) */
+export const NOT_BULK_FILTER =
+  `signals->>registry_backfill.eq.false,and(signals->>registry_backfill.is.null,or(one_liner_source.not.like."${REGISTRY_BASE}*",created_at.gte.${BULK_MARK_SINCE}))`;
+
+export type RegistryDraft = TechDraft & { official: boolean; source: string; bulk?: boolean };
 /** DB에서 읽은 기존 기술 줄 중 합칠 때 보는 칸 */
 export type ExistingTech = { depth: string; status: string; thick_reasons: string[] | null; one_liner: string | null; one_liner_source: string | null; repo_url: string | null; is_official: boolean };
 
 export const draftOf = (e: RegistryEntry, orgs: string[]): RegistryDraft => ({ ...techFromEntry(e), official: isOfficialOrg(e, orgs), source: registryLink(e.name) });
 
-/** 새 기술 줄: 얇게(공식 조직이면 두껍게, ADR 0019). 설명이 없으면 출처 링크도 없다. */
+/**
+ * 새 기술 줄: 얇게(공식 조직이면 두껍게, ADR 0019). 설명이 없으면 출처 링크도 없다.
+ * bulk = 첫 전체 읽기(대량 채우기)에서 그 읽기를 시작하기 전에 이미 올라와 있던 서버: 들어온 날이 "새로 나온 날"이 아니라서 NEW에서 뺀다(isBulkFilled)
+ */
 export function rowFor(d: RegistryDraft) {
   return {
     tech_key: d.techKey, display_name: d.displayName, type: "mcp", depth: d.official ? "thick" : "thin", thick_reasons: d.official ? ["official"] : null,
     status: d.status, one_liner: d.oneLiner, one_liner_source: d.oneLiner ? d.source : null, repo_url: d.repoUrl, is_official: d.official,
+    signals: { registry_backfill: d.bulk === true },
   };
 }
 

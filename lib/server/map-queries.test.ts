@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_FIRST_FILL, readGuestMapInput, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
+import { NOT_BULK_FILTER } from "../domain/registry.ts";
 
 type Row = Record<string, unknown>;
 // 표마다 정해 둔 줄을 돌려주고, 부른 거르기(eq·is·or·in 등)를 표 이름과 함께 적어 두는 가짜 클라이언트.
@@ -116,4 +117,25 @@ test("새 기술: 처음 채운 때와 7일 전 중 늦은 때 뒤에 들어온 
   const late = recordingDb({});
   await readNewTechs(late.db, "user-a", new Date("2026-12-20T00:00:00Z"));
   assert.ok(late.calls.includes("technologies.gt(created_at,2026-12-13T00:00:00.000Z)"));
+});
+
+test("레지스트리 대량 채우기로 들어온 줄은 NEW 기준 시각이 없다(표시가 있거나, 표시 전의 레지스트리 줄). 표시가 false거나 다른 출처면 들어온 시각", async () => {
+  const reg = "https://registry.modelcontextprotocol.io/v0.1/servers?search=x";
+  const at = "2026-11-21T00:00:00Z";
+  const rows = [
+    { id: "bulk", created_at: at, one_liner_source: reg, signals: { registry_backfill: true } },
+    { id: "old", created_at: at, one_liner_source: reg, signals: { stars: 3 } },
+    { id: "after", created_at: at, one_liner_source: reg, signals: { registry_backfill: false } },
+    { id: "other", created_at: at, one_liner_source: "https://example.com/list", signals: null },
+  ];
+  const { db } = recordingDb({ technologies: rows, categories: [] });
+  const input = await readGuestMapInput(db);
+  assert.deepEqual(input.techs.map((t) => [t.id, t.createdAt]), [["bulk", null], ["old", null], ["after", at], ["other", at]]);
+  assert.ok(input.techs.every((t) => !("one_liner_source" in t) && !("registry_backfill" in (t.signals ?? {}))), "판단에 쓴 칸은 화면 · 캐시로 내보내지 않는다(ADR 0029)");
+});
+
+test("새 기술 화면은 DB에서 대량 채우기분을 빼고 읽는다(최근 순으로 잘라 읽으니 읽은 뒤 거르면 자리를 다 차지한다)", async () => {
+  const { db, calls } = recordingDb({});
+  await readNewTechs(db, "user-a", new Date("2026-11-22T00:00:00Z"));
+  assert.ok(calls.includes(`technologies.or(${NOT_BULK_FILTER})`));
 });

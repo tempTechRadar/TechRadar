@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogTech, Category, Grade, MapInput, Mark, MyTechRow, Relation } from "../map/build-map.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
+import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
 
 /** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 7,800여 개를 다 그리지 않는다, 나머지는 찾기로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
  *  shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
@@ -16,8 +17,12 @@ export const CATALOG_FIRST_FILL = "2026-11-20T00:00:00Z";
 /** 지도가 쓰는 기술 칸 = 로그인 전에도 내보내는 공개 칸(ADR 0029). 등급 근거 원문·두께 이유·상태를 정한 주체 같은 내부 칸은 넣지 않는다 */
 export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated";
 
+/** NEW를 정하려고 서버에서만 더 읽는 칸. toTech가 버려서 화면 · 캐시로 나가지 않는다(공개 칸은 TECH_COLUMNS 그대로) */
+const READ_COLUMNS = `${TECH_COLUMNS}, one_liner_source`;
+
+// createdAt은 NEW 기준으로만 쓴다. 레지스트리 대량 채우기분은 null(11-20 하루에 3,700여 개가 NEW가 됐던 일)
 const toTech = (r: Row): CatalogTech => ({
-  id: r.id, techKey: r.tech_key, createdAt: r.created_at, name: r.display_name, type: r.type, hosts: r.hosts, categoryId: r.category_id, grade: r.grade as Grade, gradeReason: r.grade_reason,
+  id: r.id, techKey: r.tech_key, createdAt: isBulkFilled(r) ? null : r.created_at, name: r.display_name, type: r.type, hosts: r.hosts, categoryId: r.category_id, grade: r.grade as Grade, gradeReason: r.grade_reason,
   oneLiner: r.one_liner, repoUrl: r.repo_url, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
   lastCheckedOkAt: r.last_checked_ok_at, collectErrorKind: r.collect_error_kind,
   signals: { stars: r.signals?.stars ?? null, weekly_downloads: r.signals?.weekly_downloads ?? null }, // 수집 오류 문장 같은 나머지는 화면·캐시로 보내지 않는다(ADR 0029)
@@ -42,7 +47,7 @@ async function readCategories(db: SupabaseClient): Promise<Category[]> {
  * 남의 카탈로그·로그인 전 지도에 나오지 않는다(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
 async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<CatalogTech[]> {
-  let q = db.from("technologies").select(TECH_COLUMNS).neq("status", "gone").not("one_liner_source", "is", null);
+  let q = db.from("technologies").select(READ_COLUMNS).neq("status", "gone").not("one_liner_source", "is", null);
   if (!isDemo) q = q.eq("is_simulated", false);
   // 위험·주의 먼저(grade 글자순: caution < danger < pass < unknown), 그다음 두꺼운 것, 최근에 들어온 것(NEW)
   const res = await q.order("grade").order("depth").order("created_at", { ascending: false }).order("id").limit(CATALOG_LIMIT);
@@ -51,14 +56,15 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<Catalog
 
 /** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
 export const NEW_LIMIT = 500;
-/** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
+/** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
 export async function readNewTechs(db: SupabaseClient, userId: string, now: Date): Promise<MapInput> {
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const since = weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL;
   const [categories, techRes, markRes] = await Promise.all([
     readCategories(db),
-    publicTechs(db, TECH_COLUMNS)
-      .gt("created_at", since).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
+    // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다
+    publicTechs(db, READ_COLUMNS)
+      .gt("created_at", since).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
     db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
   ]);
   const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
@@ -94,7 +100,7 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
   const have = new Set(catalog.map((t) => t.id));
   // 내 기술 · 비교군 · 내가 표시한 기술 · 꼭 올릴 기술은 1,200개 밖이어도 올린다(내 레이더에서 "지도에서 보기"가 늘 열리게)
   const missing = [...new Set([...ids, ...relations.flatMap((r) => [r.a, r.b]), ...marks.map((m) => m.techId), ...extraIds])].filter((id) => !have.has(id));
-  const techRows = (await Promise.all(chunks(missing).map((c) => db.from("technologies").select(TECH_COLUMNS).in("id", c))))
+  const techRows = (await Promise.all(chunks(missing).map((c) => db.from("technologies").select(READ_COLUMNS).in("id", c))))
     .flatMap((res) => rowsOrThrow(res, "기술 정보를 읽지 못함"));
   const myIds = new Set(ids);
   // 둘레의 비교군은 쓸 수 있는 대안만: 사라진 기술·(시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 얇은 기술은 남긴다(운영은 두꺼운 기술이 3개뿐이라 빼면 비교군이 거의 사라짐)

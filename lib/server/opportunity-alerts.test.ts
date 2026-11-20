@@ -172,3 +172,14 @@ test("새 기술이 지원 종료(deprecated)면 알림을 만들지 않는다. 
   const columns = selects.filter((s) => s.table === "technologies").map((s) => s.columns).join(",");
   assert.match(columns, /\bstatus\b/);
 });
+
+test("레지스트리 대량 채우기로 들어온 기술은 '내가 등록한 뒤 들어옴'이 아니다: 같은 역할 확정도 등록 전이면 알림 없음", async () => {
+  const tables = (signals: unknown) => {
+    const t = baseTables();
+    t.technologies = [tech("mine", "mcp-mine"), tech("new", "mcp-new", { created_at: "2026-11-18T00:00:00Z", signals })];
+    t.tech_relations[0].confirmed_at = "2026-11-01T00:00:00Z"; // 두 사람 등록(11-05·11-06)보다 앞
+    return t;
+  };
+  assert.equal(await createAlertsForChange(fakeDb(tables({ registry_backfill: true })).db, input), 0);
+  assert.equal(await createAlertsForChange(fakeDb(tables({ registry_backfill: false })).db, input), 2);
+});

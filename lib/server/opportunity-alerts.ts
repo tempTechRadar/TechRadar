@@ -5,6 +5,7 @@ import { buildComparison } from "../alerts/build-comparison.ts";
 import { decideOpportunityAlerts, type OpportunityRelation } from "../alerts/decide-opportunity-alerts.ts";
 import { failure, readChange, readExistingAlertKeys, readUsages, rowsOrThrow, writeAlerts, type Row } from "./alert-db.ts";
 import { toComparable } from "./comparable.ts";
+import { isBulkFilled } from "../domain/registry.ts";
 
 type Input = { changeId: string; techId: string; onlyDemo?: boolean; runId?: string };
 type Result = { created: number; people: number };
@@ -40,7 +41,8 @@ export async function createOpportunityAlerts(db: SupabaseClient, input: Input):
   const usages = (await readUsages(db, [input.techId, ...relatedIds])).map((usage) => ({ ...usage, techKey: techs.get(usage.techId)?.tech_key ?? "" }));
   const alerts = decideOpportunityAlerts({
     change: { id: input.changeId, isSimulated },
-    newTech: { id: input.techId, techKey: newTech.tech_key, grade: newTech.grade, status: newTech.status, createdAt: newTech.created_at },
+    // 대량 채우기로 들어온 줄은 들어온 날이 새로 나온 날이 아니라 "등록 뒤에 들어옴"이 될 수 없다(같은 역할 확정이 등록 뒤면 그대로 알린다)
+    newTech: { id: input.techId, techKey: newTech.tech_key, grade: newTech.grade, status: newTech.status, createdAt: isBulkFilled(newTech) ? new Date(0).toISOString() : newTech.created_at },
     relations,
     usages,
     existingAlertKeys: await readExistingAlertKeys(db, input.changeId),
