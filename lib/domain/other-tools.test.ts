@@ -58,3 +58,13 @@ test("옵션 값은 패키지 이름 모양이어도 건너뛴다(--key sk-abc12
   assert.equal(key(["--token", "ghp-ABC"]), null, "값만 있고 패키지가 없으면 찾지 못함");
   assert.equal(key(["--from", "git+https://x", "srv"], "uvx"), "pypi:srv");
 });
+
+test("첫 위치 인자만 패키지: --verbose pkg token → pkg(뒤의 token은 서버 인자), -- 에서 멈춤, 비밀값 모양은 기술 이름이 안 됨, args가 배열이 아니면 찾지 못함", () => {
+  const key = (args: unknown, command = "npx") => readRepoFile(".cursor/mcp.json", JSON.stringify({ mcpServers: { a: { command, args } } }))[0].tech?.key ?? null;
+  assert.equal(key(["--verbose", "pkg", "token-abc"]), "npm:pkg");
+  assert.equal(key(["--", "pkg"]), null);
+  assert.equal(key(["sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]), null);
+  assert.equal(key({ length: 1e9 }), null);
+  assert.equal(key("npx mcp-remote"), null);
+  assert.equal(key(["run", "black"], "pipx"), "pypi:black");
+});

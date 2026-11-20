@@ -1,4 +1,5 @@
 // 기술 키 만드는 규칙(SPEC-7.3). DB·네트워크를 모르는 순수 규칙이라 어디서든 부를 수 있다.
+import { maskSecrets } from "./redact.ts";
 
 export type TechRef = { key: string; version: string | null };
 
@@ -31,25 +32,33 @@ const isPackageSpec = (a: string) => a.length <= 100 && PACKAGE_SPEC.test(a);
  * `.mcp.json` 서버 하나 → 기술 키. 서버 이름은 사용자가 붙인 별명이라 쓰지 않는다.
  * 알 수 없는 실행 방식(직접 만든 스크립트 등)이면 null = "찾지 못함".
  */
-// 값을 받지 않는 켜기/끄기 옵션. 그 밖의 옵션(--key x · --from x 등)은 다음 인자가 값이라 함께 건너뛴다: 토큰 · 주소가 기술 이름이 되지 않게
-const BOOLEAN_FLAGS = new Set(["-y", "--yes", "-q", "--quiet", "--silent", "--no-install", "--prefer-offline", "--offline", "--isolated"]);
+// 값을 받는 옵션(다음 인자가 값). 그 밖의 옵션(-y · --verbose 등)은 켜기/끄기로 본다
+const VALUE_FLAGS = new Set(["--from", "--with", "--python", "-p", "--package", "--registry", "--cache", "--userconfig", "--index-url", "--extra-index-url",
+  "--key", "--api-key", "--token", "--auth", "--header", "--env", "-e", "--config", "-c"]);
 const PACKAGE_FLAGS = new Set(["-p", "--package"]); // npx -p <패키지>: 이 값은 패키지 이름이다
+const MAX_ARGS = 100;
 
-/** 실행 인자에서 위치 인자만(옵션과 그 값은 뺌), 패키지 이름 모양인 것만. -p/--package 값은 맨 앞에 둔다 */
-export function positionalArgs(raw: unknown[]): string[] {
-  const out: string[] = [], pkgs: string[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const a = raw[i];
+/**
+ * 실행 인자 → 패키지 이름 후보(앞에서부터). 첫 위치 인자가 패키지이고 그 뒤는 서버에 넘기는 인자라 보지 않는다(토큰 · 주소가 섞여 있다).
+ * `--`에서 멈춘다. 값을 받는 옵션은 그 값까지 건너뛰고(-p/--package 값은 패키지), 비밀값처럼 보이는 글은 기술 이름이 되지 않는다.
+ * pipx는 `run <패키지>`라 "run" 다음 하나까지 본다. 믿을 수 없는 입력이라 배열이 아니면 빈 목록, 100개까지만.
+ */
+export function positionalArgs(raw: unknown): string[] {
+  const list = Array.isArray(raw) ? raw.slice(0, MAX_ARGS) : [];
+  const out: string[] = [];
+  for (let i = 0; i < list.length && out.length < 2; i++) {
+    const a = list[i];
     if (typeof a !== "string") continue;
+    if (a === "--") break;
     if (a.startsWith("-")) {
-      if (a.includes("=") || BOOLEAN_FLAGS.has(a)) continue; // --x=값 · 켜기 옵션은 그것만
-      if (PACKAGE_FLAGS.has(a) && typeof raw[i + 1] === "string") pkgs.push(raw[i + 1] as string);
-      i++; // 값을 받는 옵션: 다음 인자도 건너뜀
+      if (a.includes("=")) continue;
+      if (VALUE_FLAGS.has(a)) { const v = list[i + 1]; if (PACKAGE_FLAGS.has(a) && typeof v === "string") out.push(v); i++; }
       continue;
     }
     out.push(a);
+    if (a !== "run") break; // 패키지를 찾았으면 그 뒤는 서버 인자
   }
-  return [...pkgs, ...out].filter((a) => a === "run" || isPackageSpec(a));
+  return out.filter((a) => (a === "run" || isPackageSpec(a)) && maskSecrets(a) === a);
 }
 
 export function mcpServerKey(server: McpServer): TechRef | null {
@@ -61,7 +70,7 @@ export function mcpServerKey(server: McpServer): TechRef | null {
       return null;
     }
   }
-  const args = positionalArgs(server.args ?? []);
+  const args = positionalArgs(server.args);
   const cmd = (server.command ?? "").trim();
   if (cmd === "npx" && args[0]) {
     const { name, version } = splitNpmSpec(args[0]);
