@@ -25,6 +25,15 @@ test("글은 글자 그대로 그린다: HTML로 해석하는 코드가 없다",
   assert.deepEqual(FILES.filter((f) => /dangerouslySetInnerHTML|innerHTML|marked|markdown/i.test(text(f))), []);
 });
 
+test("쓴 사람·숨긴 사람 칸은 읽기 권한 목록에 없다 (익명 표시를 DB에서도 지킨다)", () => {
+  const sql = text("supabase/migrations/202611201100_P-24_hide_author.sql");
+  assert.match(sql, /revoke select on public\.usage_notes from authenticated/);
+  const granted = /grant select \(([^)]*)\) on public\.usage_notes to authenticated/.exec(sql)?.[1] ?? "";
+  assert.notEqual(granted, "");
+  assert.doesNotMatch(granted, /author_id|hidden_by/);
+  assert.match(granted, /\bhidden_at\b/); // 숨김 여부는 화면이 알아야 하므로 남는다
+});
+
 test("서버 동작은 로그인 확인 없이 쓰지 않는다", () => {
   assert.match(text("app/projects/tech/[id]/usage-actions.ts"), /getCurrentUser\(\)[\s\S]*if \(!user\)/);
 });
