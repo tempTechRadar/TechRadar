@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { Grade } from "@/lib/domain/grade";
 import { filesOf, filterTechs, GRADE_LABEL, GRADE_TONE, ORIGIN_LABEL, readStatusNotice, type ReadRun, type TechFilter } from "@/lib/domain/my-tech-view";
 import { koreanTime } from "@/lib/flow/run-list";
-import { registerProject } from "./actions";
+import { editProject, registerProject, setProjectArchived } from "./actions";
+import { MEMO_MAX, NAME_MAX } from "@/lib/domain/project-edit";
 import { toggleHidden } from "./tech-actions";
 
 // 프로젝트별 내 기술 표(IA-3). 등급은 내 버전 기준(my_technologies), 카탈로그(technologies) 등급이 아니다(erd 2.2).
@@ -13,7 +14,7 @@ export type MyTech = {
   technologies: { tech_key: string; display_name: string } | null;
 };
 // runs: 이 프로젝트의 읽기 실행들(RLS로 본인의 첫 읽기·다시 읽기만 보임). 마지막 읽기 상태 안내(readStatusNotice)에 쓴다. 빠지면 "읽은 기록 없음"으로 보인다.
-export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; my_technologies: MyTech[]; runs?: ReadRun[] };
+export type ProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url: string | null; memo?: string | null; my_technologies: MyTech[]; runs?: ReadRun[] };
 
 /** back = 보던 화면(keepView 글). 숨기기·되돌리기 뒤에 같은 화면으로 돌아오게 폼에 싣는다. */
 export function ProjectTechs({ project, filter, back }: { project: ProjectRow; filter: TechFilter; back: string }) {
@@ -25,6 +26,7 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
   return (
     <section className="card" aria-labelledby={`p-${project.id}`}>
       <h2 id={`p-${project.id}`}>{project.name}</h2>
+      {project.memo ? <p className="muted">{project.memo}</p> : null}
       {project.repo_url && (
         <div className="muted">
           {project.repo_url}
@@ -39,7 +41,29 @@ export function ProjectTechs({ project, filter, back }: { project: ProjectRow; f
       {hiddenCount > 0 && !filter.showHidden && <p className="muted">숨긴 기술 {hiddenCount}개는 목록에서 뺐어요. '숨긴 기술도 보기'를 켜면 되돌릴 수 있어요.</p>}
       {shown.length === 0 ? (emptyText && <p>{emptyText}</p>) : <TechTable techs={shown} back={back} />}
       {project.kind === "repo" ? <ReadFiles techs={project.my_technologies} notice={notice} /> : null}
+      {project.kind === "repo" ? <ProjectEditor project={project} /> : null}
     </section>
+  );
+}
+
+/** 프로젝트 고치기 · 보관(PRD-F4 3순위). 저장소 프로젝트만: "내 컴퓨터" 칸을 보관하면 그 뒤 넣는 기술이 보이지 않는 곳에 쌓인다 */
+function ProjectEditor({ project }: { project: ProjectRow }) {
+  return (
+    <details className="project-edit">
+      <summary>프로젝트 고치기 · 보관</summary>
+      <form action={editProject} className="settings-form">
+        <input type="hidden" name="projectId" value={project.id} />
+        <label>이름 <input name="name" defaultValue={project.name} required maxLength={NAME_MAX} /></label>
+        <label>메모 <span className="muted">({MEMO_MAX}자까지)</span> <textarea name="memo" defaultValue={project.memo ?? ""} rows={2} maxLength={MEMO_MAX} /></label>
+        <button type="submit" className="btn">저장</button>
+      </form>
+      <form action={setProjectArchived}>
+        <input type="hidden" name="projectId" value={project.id} />
+        <input type="hidden" name="archive" value="1" />
+        <p className="muted">보관하면 이 프로젝트와 기술이 목록 · 지도 · 숫자에서 빠지고, 정기 점검 · 새 알림도 멈춰요. 기록은 지우지 않고, 언제든 되살릴 수 있어요.</p>
+        <button type="submit" className="btn">보관하기</button>
+      </form>
+    </details>
   );
 }
 

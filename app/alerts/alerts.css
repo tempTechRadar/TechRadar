@@ -147,3 +147,7 @@
 .alerts .read-files summary { min-height: var(--hit); display: list-item; padding-top: 10px; cursor: pointer; font-weight: 600; } /* list-item: 펼침 세모가 보이게 */
 .alerts .read-files ul { margin: 0 0 var(--space-2); padding-left: var(--space-5); }
 .alerts .read-files li { padding: 2px 0; overflow-wrap: anywhere; }
+/* 내 프로젝트: 프로젝트 고치기 · 보관(PRD-F4) */
+.alerts .project-edit { margin-top: var(--space-3); }
+.alerts .project-edit summary { min-height: var(--hit); display: list-item; padding-top: 10px; cursor: pointer; color: var(--color-muted); }
+.alerts .project-edit .settings-form { margin: var(--space-2) 0; }
