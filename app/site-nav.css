@@ -21,8 +21,40 @@
 .site-nav-menu a:hover, .site-nav-menu button:hover, .site-nav-menu a:focus-visible, .site-nav-menu button:focus-visible { background: var(--sunken); }
 .site-nav-menu form { display: block; }
 .site-nav .site-nav-login { text-decoration: underline; }
-.site-nav-name { max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* 별명은 30자까지라 길면 줄임 */
+.site-nav-name { max-width: 14em; margin: 0; padding: 6px var(--sp-2) 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; border-bottom: 1px solid var(--line); } /* 별명은 30자까지라 길면 줄임 */
+/* 지금 보는 화면(aria-current): 밑줄 막대 + 굵게. 색만으로 알리지 않는다 */
+.site-nav-main a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--ink); }
+.site-nav-main a.site-nav-logo[aria-current="page"] { box-shadow: none; }
+/* 종 알림 · 아바타(11-21): 44px 원형 단추 안에 그림. 배지는 종 오른쪽 위에 겹침 */
+.site-nav .nav-icon, .nav-pop > summary { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; border-radius: var(--r-pill); cursor: pointer; list-style: none; color: var(--ink); }
+.nav-pop { position: relative; }
+.nav-pop > summary::-webkit-details-marker { display: none; }
+.nav-pop[open] > summary, .site-nav .nav-icon:hover, .nav-pop > summary:hover { background: var(--sunken); }
+.nav-pop > summary .nav-badge { position: absolute; top: 4px; right: 0; margin: 0; min-width: 18px; padding: 0 5px; line-height: 18px; font-size: 11px; }
+.nav-avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-weight: 700; font-size: var(--fs-sm); }
+.site-nav-account summary { padding: 0 6px; border-radius: var(--r-pill); }
+.nav-alerts { width: min(340px, calc(100vw - 32px)); padding: var(--sp-2); }
+.nav-alerts p { margin: 0; padding: 4px var(--sp-2); }
+.nav-alerts .nav-alerts-head { font-weight: 700; }
+.nav-alerts ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.nav-alerts li a { align-items: flex-start; gap: var(--sp-2); padding: 6px var(--sp-2); min-height: 44px; line-height: 1.4; }
+.nav-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--ink-danger); }
+.nav-dot.done { background: var(--line); }
+.site-nav-menu .nav-alerts-all { justify-content: center; font-weight: 600; border-top: 1px solid var(--line); border-radius: 0; }
+/* 휴대폰 아래 탭 바(11-21): 641px 이상은 숨김 */
+.tab-bar { display: none; }
 @media (max-width: 640px) {
-  /* 좁으면 오른쪽 묶음이 다음 줄 왼쪽으로 내려온다: 펼침도 왼쪽에 맞춰 화면 밖으로 나가지 않게 */
-  .site-nav-menu { right: auto; left: 0; max-width: calc(100vw - 32px); }
+  .site-nav-main a:not(.site-nav-logo) { display: none; } /* 보는 곳 메뉴는 아래 탭 바로 */
+  /* 탭 바는 화면 맨 아래 고정, 본문은 그 높이(57px)만큼 아래를 비운다. 꽉 채운 지도는 그만큼 짧아진다(위쪽 여백 0 · 높이 계산은 map.css 규칙보다 우선) */
+  body { padding-bottom: calc(var(--sp-5) + 57px + env(safe-area-inset-bottom)); }
+  html body:has(.map-page) { padding-bottom: calc(57px + env(safe-area-inset-bottom)); min-height: calc(100dvh - 57px - env(safe-area-inset-bottom)); }
+  .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); }
+  .tab-bar a { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 56px; font-size: var(--fs-cap); color: var(--muted); text-decoration: none; }
+  .tab-bar a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 3px 0 var(--ink); }
+}
+@media (max-width: 640px) {
+  /* 좁으면 오른쪽 묶음이 다음 줄로 내려갈 수 있다: 펼침을 단추가 아니라 메뉴 바 오른쪽 끝에 맞춰 화면 밖으로 나가지 않게 */
+  .site-nav { position: relative; }
+  .nav-pop, .site-nav-account { position: static; }
+  .site-nav-menu { max-width: calc(100vw - 32px); }
 }

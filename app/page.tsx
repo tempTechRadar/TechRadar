@@ -16,6 +16,8 @@ import { FirstCheckBanner } from "./dashboard/first-check-banner";
 import GoogleLoginButton from "./login/google-login-button";
 import type { ReactNode } from "react";
 import { CanvasMap } from "./tech-map/canvas-map";
+import { StartChecklist } from "./tech-map/start-checklist";
+import { startSteps } from "@/lib/onboarding/start-steps";
 import "./alerts/alerts.css";
 
 /** 주소의 sel=tech:<uuid>(지도에서 보기)에서 기술 id만. 모양이 다르면 버린다 */
@@ -62,13 +64,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const db = (await getServerSupabase())!; // 로그인한 사람이 있으면 연결 설정도 있다(getCurrentUser가 같은 설정으로 읽음)
   const seen = parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value);
   // 지도와 숫자는 따로 읽는다: 하나를 못 읽어도 다른 하나는 보여 주고, 못 읽은 쪽은 "없음"이 아니라 "읽지 못함"으로(불변 2)
-  const [input, dash, band] = await Promise.all([
+  const [input, dash, firstReads] = await Promise.all([
     readMapInput(db, user.id, user.isDemo, selTech(query)).catch(logged("지도 조회 실패")),
     readDashboardData(db, user.id).catch(logged("지도 위 숫자 조회 실패")),
-    readRecentFirstReads(db, user.id).then((runs) => buildFirstCheckBand(runs, seen)).catch(logged("첫 점검 띠 조회 실패")),
+    readRecentFirstReads(db, user.id).catch(logged("첫 점검 띠 조회 실패")),
   ]);
+  const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
   const model = input ? buildTechMap(input, new Date()) : null;
   const summary = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;
+  const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 
   return (
     <main className="alerts map-page">
@@ -81,6 +85,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <Link className="map-chip" href={summary.links.changes}>최근 변경 <strong>{summary.changeCount}</strong></Link>
           </>
         ) : <span className="notice" role="status">판단 대기·변경 수를 읽지 못했어요. 새로 고치거나 <Link href="/alerts">알림</Link>에서 확인해 주세요.</span>}
+        {start ? <StartChecklist steps={start} who={user.id} /> : null}
         {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/projects">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
       </>} />
     </main>

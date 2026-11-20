@@ -97,3 +97,12 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 }
 /* 지도를 못 읽었거나 비었을 때: 위 칩 줄을 지도 위가 아니라 본문에 한 줄로 */
 .map-page > .map-top-flat { margin: var(--sp-2) var(--sp-4) 0; }
+
+/* 지도 위 "시작하기 n/3"(11-21): 칩처럼 접혀 있다가 펼치면 할 일 3개 */
+.map-start { position: relative; }
+.map-start > summary { list-style: none; }
+.map-start > summary::-webkit-details-marker { display: none; }
+.map-start-body { position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; min-width: 220px; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.map-start ol { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; }
+.map-start li { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--hit); }
+.map-start li.done { color: var(--muted); text-decoration: line-through; }

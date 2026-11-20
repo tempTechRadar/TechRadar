@@ -29,3 +29,8 @@
 .gallery .kb-card[data-grade="none"] { border-color: var(--muted); border-style: dashed; } /* 개념: 등급 없음 */
 .views-page .notice h3 { margin-top: 0; }
 .views-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 옮긴 뒤 알림 + 되돌리기(11-21): 화면 아래 가운데. 휴대폰은 아래 탭 바 위로 */
+.kb-toast { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
+.kb-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
+@media (max-width: 640px) { .kb-toast { bottom: calc(64px + env(safe-area-inset-bottom)); } }

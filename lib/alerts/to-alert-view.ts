@@ -77,7 +77,7 @@ export const listTime = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul
 
 const asValue = (raw: unknown): Value => (raw && typeof raw === "object" ? (raw as Value) : {});
 
-const KIND_LABEL: Record<AlertKind, { label: string; tone: "danger" | "neutral" }> = {
+export const KIND_LABEL: Record<AlertKind, { label: string; tone: "danger" | "neutral" }> = {
   security: { label: "보안 경고", tone: "danger" },
   opportunity: { label: "적용 기회", tone: "neutral" },
   model_eol: { label: "모델 종료", tone: "neutral" },

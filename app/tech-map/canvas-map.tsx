@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactN
 import type { MarkStatus, TechMapModel } from "@/lib/map/build-map";
 import type { GroupItem, Item, TechItem } from "@/lib/map/layout";
 import { DIM_KO, type ViewConfig } from "@/lib/map/view-config";
-import { markTech } from "./actions";
+import { saveMarkWithToast, ToastLine, useToast } from "../undo-toast";
 import { Crumbs, Legend, Status, SummaryChips, Toolbar } from "./controls";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
@@ -17,7 +17,6 @@ import "./map.css";
 /** top = 지도 위에 뜨는 첫 줄(판단 대기 · 최근 변경 · 로그인 유도 등, 페이지가 정함) */
 type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean; login: boolean; top?: ReactNode };
 type Tip = { id: string; x: number; y: number };
-type Toast = { text: string; undo?: () => void } | null;
 
 export function CanvasMap({ model, projects, initialQuery, canSave, login, top }: Props) {
   const [ctl] = useState(() => createMapController({ model, projectIds: projects.map((p) => p.id), initialQuery, canSave, login }));
@@ -25,7 +24,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   const S = ctl.S;
   const stage = useRef<HTMLDivElement>(null), canvas = useRef<HTMLCanvasElement>(null), hud = useRef<HTMLDivElement>(null), side = useRef<HTMLElement>(null), dock = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip>({ id: "", x: 0, y: 0 });
-  const [toast, setToast] = useState<Toast>(null);
+  const { toast, say, clear: clearToast } = useToast();
   const [busy, setBusy] = useState(false);
   const lastFocus = useRef<Element | null>(null);
   // 묶음 카드의 "이 분류만 보기"로 포인터가 옮겨 가는 동안(0.3초) 카드를 남긴다
@@ -49,8 +48,6 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
     ctl.unselect();
     if (lastFocus.current instanceof HTMLElement && document.contains(lastFocus.current)) lastFocus.current.focus({ preventScroll: true });
   }
-  function say(text: string, undo?: () => void) { setToast({ text, undo }); }
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 2600); return () => clearTimeout(t); }, [toast]);
 
   // 범례 · 상태 줄 높이(알림 말풍선은 빼고 잰다: 말풍선이 뜰 때마다 지도가 다시 맞춰지지 않게)
   const dockHeight = () => { const first = dock.current?.querySelector(".map-legend, .map-status"); return first && stage.current ? stage.current.getBoundingClientRect().bottom - first.getBoundingClientRect().top : 0; };
@@ -115,17 +112,9 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
     const n = item.node, prev = n.mark;
     if (!n.techId) return;
     setBusy(true);
-    const r = await markTech(n.techId, status, reason).catch(() => ({ ok: false as const, message: "저장하지 못했어요. 다시 시도해 주세요." }));
+    await saveMarkWithToast({ techId: n.techId, status, reason, prev, text: markedText(status), say,
+      onSaved: (restored) => ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null) });
     setBusy(false);
-    if (!r.ok) { say(r.message); return; } // 실패하면 표시는 전 상태 그대로(불변 4)
-    ctl.setMark(n.key, status ? { techId: n.techId, status, reason: status === "hold" ? reason.trim() : null } : null);
-    if (r.judgedAlerts.length) { say(`${markedText(status)} 판단 대기 알림 ${r.judgedAlerts.length}개도 함께 판단했어요(알림 판단은 되돌릴 수 없어요).`); return; }
-    say(markedText(status), async () => { // 판단을 실수로 눌렀을 때
-      const back = await markTech(n.techId!, prev?.status ?? null, prev?.reason ?? "").catch(() => null);
-      if (!back?.ok) { say(back?.message ?? "되돌리지 못했어요."); return; }
-      ctl.setMark(n.key, prev);
-      say(back.judgedAlerts.length ? `되돌렸어요. 그사이 온 판단 대기 알림 ${back.judgedAlerts.length}개도 함께 판단됐어요.` : "되돌렸어요.");
-    });
   }
 
   const sel = S.sel ? S.L.byId.get(S.sel) : undefined;
@@ -161,7 +150,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
         <div ref={dock} className="map-dock">
-          <p className="map-toast" role="status" aria-live="polite">{toast?.text}{toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; setToast(null); u(); }}>되돌리기</button> : null}</p>
+          <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>

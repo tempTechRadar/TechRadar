@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { AccountMenu } from "@/app/account-menu";
 import { LoginLink } from "@/app/login-link";
+import { AlertBell } from "@/app/nav/alert-bell";
+import { NavLink } from "@/app/nav/nav-link";
+import { TabBar } from "@/app/nav/tab-bar";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
@@ -44,26 +46,27 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body>
         <ReadyGate />{/* 첫 화면 관문: 처음 열 때 한 번만 도는 스크립트(지도가 아니면 "이미 들어옴"만 남김) */}
-        {/* 메뉴(design.md 13절 1, 11-21 사용자 결정 "같은 메뉴 + 계정 묶기"): 로그인 전후 가운데 메뉴는 똑같이 보이고,
+        {/* 메뉴(design.md 13절 1, 11-21 사용자 결정 "같은 메뉴 + 계정 묶기" → "종 알림 · 아바타 · 지금 화면 표시"): 로그인 전후 가운데 메뉴는 똑같이 보이고,
             로그인이 필요한 화면은 누르면 그 자리에서 무엇이 열리는지 + 로그인(LoginNeeded). 왼쪽 로고 = 기술 지도.
-            추천 · 대시보드 · 비교는 내 레이더(/views) 위 링크로, 내 프로젝트 · 설정 · 관리자 · 로그아웃은 계정 펼침 하나로 */}
+            알림은 글자 메뉴에서 빼 오른쪽 종으로(배지 = 판단 대기), 내 프로젝트 · 설정 · 관리자 · 로그아웃은 아바타 펼침 하나로 */}
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
-            <Link href="/" className="site-nav-logo" aria-label="TechRadar, 기술 지도">TechRadar</Link>
-            <Link href="/new">새 기술</Link>
-            <Link href="/views">내 레이더</Link>
-            <Link href="/alerts" aria-label={pending ? `알림, 판단 대기 ${pending}건` : undefined}>알림{pending ? <span className="nav-badge" aria-hidden="true">{pending}</span> : null}</Link>
-            <Link href="/history">기록</Link>
+            <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
+            <NavLink href="/new">새 기술</NavLink>
+            <NavLink href="/views">내 레이더</NavLink>
+            <NavLink href="/history">기록</NavLink>
           </div>
           <div className="site-nav-side">
-            {/* 로그인 전 "+ 기술 넣기"는 로그인으로(찾기 · 넣기는 내 목록에 쓰는 일이라) */}
-            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">+ 기술 넣기</LoginLink>}
+            {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}
+            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">찾기 · 넣기</LoginLink>}
+            <AlertBell pending={pending} login={user !== null} />
             {user !== null
               ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />
               : <LoginLink className="site-nav-login">로그인</LoginLink>}
           </div>
         </nav>
         {children}
+        <TabBar />
       </body>
     </html>
   );
