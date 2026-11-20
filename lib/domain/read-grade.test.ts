@@ -36,6 +36,18 @@ test(".mcp.json은 서버마다 하나, 모르는 실행은 별명만(찾지 못
   assert.throws(() => readMcpJson("{깨진"));
 });
 
+test(".mcp.json과 같은 모양의 다른 도구 설정도 같은 규칙으로 읽고 출처 파일 이름만 다르다(.cursor/mcp.json, PRD-F39)", () => {
+  const text = JSON.stringify({ mcpServers: {
+    a: { command: "npx", args: ["-y", "mcp-remote@0.1.15", "https://x.example/sse"] },
+    b: { url: "https://mcp.example.com/sse" },
+    c: { command: "node", args: ["./my.js"] },
+  } });
+  const cursor = readMcpJson(text, ".cursor/mcp.json");
+  assert.deepEqual(cursor.map((f) => f.sourceFile), [".cursor/mcp.json", ".cursor/mcp.json", ".cursor/mcp.json"]);
+  assert.deepEqual(cursor.map((f) => f.tech?.key ?? null), ["npm:mcp-remote", "url:mcp.example.com", null]);
+  assert.deepEqual(readMcpJson(text).map((f) => f.sourceFile), [".mcp.json", ".mcp.json", ".mcp.json"], "이름을 안 주면 .mcp.json");
+});
+
 test("GitHub 주소만 받는다", () => {
   assert.deepEqual(parseGithubRepo("https://github.com/Owner/Repo.git"), { owner: "Owner", repo: "Repo", url: "https://github.com/owner/repo" });
   assert.equal(parseGithubRepo("https://gitlab.com/a/b"), null);

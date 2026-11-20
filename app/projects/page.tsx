@@ -56,7 +56,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         </label>
         <button className="btn btn-primary" type="submit">등록하고 읽기</button>
       </form>
-      <p className="muted">package.json, requirements.txt, .mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
+      <p className="muted">package.json, requirements.txt, .mcp.json, .cursor/mcp.json에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
       {query.notice && NOTICE_TEXT[query.notice] && <p className="notice notice-empty" role="status">{NOTICE_TEXT[query.notice]}</p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 "누가·언제 바꿨는지" 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
