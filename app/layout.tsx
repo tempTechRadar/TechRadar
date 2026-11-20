@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
+import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
 import "./tokens.css";
 import "./site-nav.css";
@@ -30,7 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ko">
       <body>
         {/* 메뉴(design.md 13절 1): 왼쪽은 보는 곳, 오른쪽은 내 것. 대시보드·비교는 내 레이더(/views) 위 링크로 간다.
-            로그인 전에는 기술 지도만(나머지는 로그인이 필요). "+ 기술 넣기"는 내 프로젝트의 직접 추가로 간다 */}
+            로그인 전에는 기술 지도만(나머지는 로그인이 필요). "+ 기술 넣기"는 대화상자(못 찾으면 내 프로젝트의 직접 추가로) */}
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
             <Link href="/">기술 지도</Link>
@@ -47,7 +48,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <div className="site-nav-side">
             {user !== null ? (
               <>
-                <Link href="/projects#add-title" className="site-nav-add">+ 기술 넣기</Link>
+                <CaptureDialog />
                 <Link href="/projects">내 프로젝트</Link>
                 <Link href="/settings">설정</Link>
               </>
