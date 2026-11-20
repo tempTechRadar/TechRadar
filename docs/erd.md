@@ -380,7 +380,7 @@ UK: (kind, ecosystem, value).
 |---|---|---|
 | **user_tastes** (P-23, 처음 계획의 `preferences`) | user_id(PK, FK), build text, tools text[], interests text[](갈래 이름 3개까지), created_at | 사람당 하나, 관리자 못 봄. 건너뛰기는 빈 값으로 저장, 질문을 아직 안 봤으면 줄이 없음. 열 권한: 쓰는 세 칸만(`supabase/tests/user_tastes_p23.sql`) |
 | **recommendations** | user_id FK, tech_id FK, reason, signals jsonb, reaction(`interested`/`not`/`none`) | UK(user_id, tech_id) |
-| **usage_notes** | author_id FK, tech_id FK, used_for, result, tip(합쳐 500자 안), helpful_count(서버 칸, 투표 트리거가 올림), hidden_at, hidden_by | 등급에 영향 없음, Claude에 넣지 않음. 수정·삭제 없음(숨김만, 관리자). 숨긴 글은 쓴 사람·관리자만 읽음(P-24) |
+| **usage_notes** | author_id FK, tech_id FK, used_for, result, tip(합쳐 500자 안), helpful_count(서버 칸, 투표 트리거가 올림), hidden_at, hidden_by | 등급에 영향 없음, Claude에 넣지 않음. 수정·삭제 없음(숨김만, 관리자). 숨긴 글은 쓴 사람·관리자만 읽음. 다른 사람은 `author_id`·`hidden_by`를 못 읽음(칸 권한, "내 글"은 `my_usage_note_ids` 함수)(P-24) |
 | **helpful_votes** | note_id FK, user_id FK | PK(note_id, user_id), 자기 글엔 못 누름(앱·DB 함수) |
 | **reports** | note_id FK, reporter_id FK, reason, handled_by, handled_at, handle_reason | 관리자 처리 |
 | **news_items** | source_id FK, title, url, hosts text[], tech_key, published_at | UK(url), 공식 출처만 |

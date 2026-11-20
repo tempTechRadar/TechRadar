@@ -43,17 +43,21 @@ export async function reportNote(db: SupabaseClient, userId: string, noteId: str
 
 /** 그 기술의 사용기(숨긴 글은 RLS가 이미 뺀다). 쓴 사람의 id·별명은 화면에 넘기지 않는다. 읽지 못하면 던진다("없음"과 다르게 보이도록) */
 export async function readUsageNotes(db: SupabaseClient, techId: string, viewerId: string): Promise<UsageNoteView[]> {
-  const notes = rowsOrThrow(await db.from("usage_notes").select("id, author_id, used_for, result, tip, helpful_count, created_at").eq("tech_id", techId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "사용기를 읽지 못함");
+  // 쓴 사람 칸(author_id)과 숨긴 사람 칸(hidden_by)은 읽기 권한이 없다(익명 표시). "내 글"은 DB 함수가 이 글들 중 내 것만 돌려준다
+  const notes = rowsOrThrow(await db.from("usage_notes").select("id, used_for, result, tip, helpful_count, created_at").eq("tech_id", techId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "사용기를 읽지 못함");
   if (notes.length === 0) return [];
   const ids = notes.map((n) => n.id as string);
-  const [votes, reports] = await Promise.all([
+  const [mine, votes, reports] = await Promise.all([
+    db.rpc("my_usage_note_ids", { p_ids: ids }),
     db.from("helpful_votes").select("note_id").eq("user_id", viewerId).in("note_id", ids),
     db.from("reports").select("note_id").eq("reporter_id", viewerId).in("note_id", ids),
   ]);
+  if (mine.error || !mine.data) throw new Error(`내 글 표시를 읽지 못함: ${maskSecrets(mine.error?.message ?? "빈 응답")}`);
+  const mineIds = new Set((mine.data as unknown[]).map((x) => (typeof x === "string" ? x : String(Object.values(x as object)[0])))); // setof uuid는 값 배열(또는 한 칸 객체)로 온다
   const voted = new Set(rowsOrThrow(votes, "누른 기록을 읽지 못함").map((r) => r.note_id as string));
   const reported = new Set(rowsOrThrow(reports, "신고 기록을 읽지 못함").map((r) => r.note_id as string));
   return notes.map((n) => ({
     id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count, createdAt: n.created_at,
-    mine: n.author_id === viewerId, voted: voted.has(n.id), reported: reported.has(n.id),
+    mine: mineIds.has(n.id), voted: voted.has(n.id), reported: reported.has(n.id),
   }));
 }
