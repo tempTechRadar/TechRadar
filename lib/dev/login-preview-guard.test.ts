@@ -33,3 +33,13 @@ test("저장하는 서버 액션은 모두 DB · 서비스 키를 부르기 전�
   }
   assert.ok(checked >= 15, `저장 액션 ${checked}개를 봤다`);
 });
+
+// 화면도 같다: 미리보기 계정으로 DB를 부르면 Supabase 설정이 없는 개발 컴퓨터에서 화면이 깨졌다(/projects, I-P-12d-ui-sweep)
+test("내 데이터를 읽는 화면은 DB 클라이언트를 만들기 전에 미리보기 계정을 거른다", () => {
+  for (const f of ["app/page.tsx", "app/views/page.tsx", "app/projects/page.tsx", "app/new/page.tsx"]) {
+    const s = readFileSync(f, "utf8");
+    const guard = s.indexOf("isPreviewUser(user)"), db = s.indexOf("getServerSupabase()");
+    assert.ok(guard > 0, `${f}: 미리보기 거르기가 있다`);
+    assert.ok(guard < db, `${f}: DB보다 거르기가 먼저`);
+  }
+});
