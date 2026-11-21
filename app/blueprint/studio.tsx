@@ -62,7 +62,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
   const flow = useReactFlow();
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread } = useStudioGraph(who);
   const [tags, setTags] = useState(tags0);
-  const narrow = useNarrow(), [listOn, setListOn] = useState(false), listMode = narrow || listOn;
+  // 넓은 화면: 캔버스(목록 모드 단추로 바꿈). 좁은 화면: 목록으로 고치기가 기본, "그림으로 보기"는 확대 · 이동만 되는 읽기 전용 캔버스
+  const narrow = useNarrow(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
+  const listMode = narrow ? !phoneView : listOn, readOnly = narrow && phoneView;
   const [step, setStep] = useState<Step>(add ? 2 : 1);
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
@@ -106,7 +108,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)) },
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)) },
   }));
   const edges: FlowEdge[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
@@ -174,7 +176,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
         <button type="button" className="btn" onClick={() => { const next = autoLayout(g); apply(next, next === g ? "고리가 있으면 자동 정렬을 할 수 없어요." : "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: 200 })); }}>자동 정렬</button>
         <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: 200 })}>보기 초기화</button>
-        {narrow ? null : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
+        {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
+          : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
       </div>
       {unread ? <p className="notice studio-note" role="status">지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요.</p> : null}
       {step === 1 ? (
@@ -189,11 +192,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
           <div className="studio-canvas" role="region" aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
-              deleteKeyCode="Delete" selectionOnDrag panOnDrag={[1, 2]} panActivationKeyCode="Space" minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }}
-              proOptions={{ hideAttribution: true }}>
+              deleteKeyCode={readOnly ? null : "Delete"} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly}
+              minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
-              <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />
+              {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>
           </div>
         )}

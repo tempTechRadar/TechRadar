@@ -9,7 +9,7 @@ import { TECH_DRAG, type Picked, type Step } from "./studio-types";
 import { TechChip } from "./tech-chip";
 
 export type StageData = {
-  stage: Stage; order: number | null; step: Step; picked: Picked; info: Map<string, PoolTech>;
+  stage: Stage; order: number | null; step: Step; picked: Picked; info: Map<string, PoolTech>; /** 휴대폰 "그림으로 보기": 칩 고르기 · 빼기 없음 */ readOnly?: boolean;
   onPick: (p: Picked) => void; onDropTech: (stageId: string, techId: string) => void; onRemoveTech: (stageId: string, techId: string) => void;
 };
 export type StageNodeType = Node<StageData, "stage">;
@@ -34,8 +34,8 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           {stage.techs.map((t) => (
             <TechChip key={t.id} tech={t} info={data.info.get(t.id)}
               picked={picked?.kind === "tech" && picked.stageId === stage.id && picked.techId === t.id}
-              onPick={() => data.onPick({ kind: "tech", stageId: stage.id, techId: t.id })}
-              onRemove={step === 2 ? () => data.onRemoveTech(stage.id, t.id) : undefined} />
+              onPick={data.readOnly ? undefined : () => data.onPick({ kind: "tech", stageId: stage.id, techId: t.id })}
+              onRemove={step === 2 && !data.readOnly ? () => data.onRemoveTech(stage.id, t.id) : undefined} />
           ))}
         </div>
       ) : <p className="sn-empty">{step === 2 ? "아래에서 기술을 끌어 놓아요" : "아직 기술 없음"}</p>}
