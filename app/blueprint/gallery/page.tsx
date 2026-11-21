@@ -33,6 +33,7 @@ function Card({ t, admin }: { t: PublicTemplate; admin: boolean }) {
       {techs.length ? <p className="gl-techs"><span className="sr-only">기술: </span>{techs.slice(0, 8).join(" · ")}{techs.length > 8 ? ` 외 ${techs.length - 8}개` : ""}</p> : null}
       <div className="gl-actions">
         <Link className="chip" href={`/blueprint?template=${t.id}`} aria-label={`${t.name} 템플릿으로 시작`}>이 템플릿으로 시작</Link>
+        <Link className="chip" href={`/blueprint/gallery/${t.id}`} aria-label={`${t.name} 자세히 보기와 사용기`}>자세히 · 사용기</Link>
         {admin ? <HideButton id={t.id} name={t.name} /> : null}
       </div>
     </li>
