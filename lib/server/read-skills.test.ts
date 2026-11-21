@@ -21,7 +21,7 @@ const ok = (body: string) => new Response(body, { status: 200 });
 
 test("폴더 목록이 404면 스킬이 없을 뿐: 오류 없음, 요청은 목록 1번", async (t) => {
   const urls = stub(t, () => new Response("", { status: 404 }));
-  assert.deepEqual(await readSkills(REPO), { found: [], errors: [], folders: 0 });
+  assert.deepEqual(await readSkills(REPO), { found: [], errors: [], folders: 0, texts: new Map() });
   assert.deepEqual(urls, [LIST_URL]);
 });
 

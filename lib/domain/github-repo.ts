@@ -22,9 +22,12 @@ const hasDotSegment = (ref: RepoRef) => [ref.owner, ref.repo].some((s) => s === 
 /** 같은 저장소의 다른 표기(대소문자)를 하나로 보는 키. 묶기와 "찾은 저장소" 비교에 쓴다. */
 export const repoKey = (ref: RepoRef): string => `${ref.owner}/${ref.repo}`.toLowerCase();
 
-/** `github:<소유자>/<저장소>` 키가 먼저, 없으면 repo_url(GitHub 주소). GitHub 저장소가 아니거나 주소에 쓸 수 없는 이름이면 null. 끝의 `.git`은 주소 쪽(`parseGithubRepo`)과 같게 뗀다. */
+/**
+ * `github:<소유자>/<저장소>` 키가 먼저, 그다음 `skill:<소유자>/<저장소>/<이름>` 키(스킬은 읽은 저장소가 키에 들어 있다, tech-key.ts), 없으면 repo_url(GitHub 주소).
+ * GitHub 저장소가 아니거나 주소에 쓸 수 없는 이름이면 null. 끝의 `.git`은 주소 쪽(`parseGithubRepo`)과 같게 뗀다.
+ */
 export function repoRefOf(t: { tech_key: string; repo_url: string | null }): RepoRef | null {
-  const key = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?$/i.exec(t.tech_key);
+  const key = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?$/i.exec(t.tech_key) ?? /^skill:([\w.-]+)\/([\w.-]+?)(?:\.git)?\/.+$/i.exec(t.tech_key);
   const url = key || !t.repo_url ? null : parseGithubRepo(t.repo_url);
   const ref = key ? { owner: key[1], repo: key[2] } : url ? { owner: url.owner, repo: url.repo } : null;
   return ref && !hasDotSegment(ref) ? ref : null;
