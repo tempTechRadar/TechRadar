@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
+import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, outside, putProblem } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
 import { TechChip } from "./tech-chip";
 import "./list-mode.css";
@@ -53,7 +53,7 @@ function AddStage({ graph, apply, say }: PanelProps) {
   );
 }
 
-function StageCard({ graph, apply, pool, picked, onPick, say, s, canFrom }: PanelProps & { s: Stage; canFrom: Stage[] }) {
+function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marking, s, canFrom }: PanelProps & { s: Stage; canFrom: Stage[] }) {
   const [from, setFrom] = useState("");
   const [tech, setTech] = useState("");
   const [name, setName] = useState(s.name);
@@ -111,7 +111,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, s, canFrom }: Pane
         <p><b>기술 {s.techs.length}</b></p>
         {s.techs.length ? <ul className="lm-chips">{s.techs.map((t) => (
           <li key={t.id}><TechChip tech={t} info={pool.find((x) => x.id === t.id)} picked={picked?.kind === "tech" && picked.techId === t.id && chosenStage}
-            onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })} onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); stay(); }} /></li>
+            onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })} onCandidate={outside(pool, t.id) ? () => onCandidate(t.id, t.name) : undefined} busy={marking === t.id} onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); stay(); }} /></li>
         ))}</ul> : null}
         {canPut.length ? (
           <div className="lm-row">

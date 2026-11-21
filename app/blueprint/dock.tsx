@@ -163,11 +163,11 @@ function TechCard({ t, use, tags, stage, placed = false, added = false, gated = 
   );
 }
 
-function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
+function HistTab({ graph, history, apply, onName, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
   if (history === null) return <p className="notice notice-error" role="alert">내 이력을 읽지 못했어요. 확정한 게 없다는 뜻이 아니에요. 판 만들기는 그대로 쓸 수 있어요.</p>;
   if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. ③ 결과물에서 확정하면 여기에 쌓여요.</p>;
   // 확인 창 대신 되돌리기(studio가 50단계 쌓음): 지금 판이 있으면 알림에서 되돌릴 수 있다고 말한다
-  const load = (h: BlueprintRecord) => apply(fromV1(toBoard(h.board)), `"${h.name}"을(를) 불러왔어요.${graph.stages.length ? " 전 판은 되돌리기로 돌아와요." : ""}`);
+  const load = (h: BlueprintRecord) => { apply(fromV1(toBoard(h.board)), `"${h.name}"을(를) 불러왔어요.${graph.stages.length ? " 전 판은 되돌리기로 돌아와요." : ""}`); onName(h.name); };
   const names = new Map(history.flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => [t.id, t.name] as const))));
   const top = [...usage].sort((a, b) => b[1].n - a[1].n).slice(0, 15);
   return (

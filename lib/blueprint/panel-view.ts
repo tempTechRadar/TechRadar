@@ -2,6 +2,7 @@
 // 그래프를 바꾸는 것은 graph.ts 편집 함수이고, 여기는 무엇을 보일지 · 왜 못 바꾸는지만 정한다.
 import { STAGE_NAME_MAX, cleanName } from "./board.ts";
 import { LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
+import { contentKey } from "./draft.ts";
 import { fitsStage } from "./knowledge.ts";
 import type { TechUsage } from "./stored.ts";
 
@@ -17,6 +18,9 @@ export function filterPool<T extends PoolLike>(pool: T[], f: PoolFilter): T[] {
   const used = (t: T) => f.usage.get(t.id)?.n ?? 0;
   return pool.filter(fits).sort((a, b) => Number(b.id === f.add) - Number(a.id === f.add) || used(b) - used(a) || b.projects - a.projects || a.name.localeCompare(b.name));
 }
+
+/** 서랍 후보(내 기술 · 적용 후보 · 이력)에 없는 기술 = 관문 밖: 점선 후보 칩 + "적용 후보로 고르기"(남아 있으면 확정이 막힘, 사용자 결정 "고르기 칩으로") */
+export const outside = (pool: { id: string }[], techId: string): boolean => !pool.some((x) => x.id === techId);
 
 /** 거르기에 고를 내 태그: 서랍 후보에 붙은 것만, 이름순 */
 export const poolTags = (pool: { id: string }[], tags: Record<string, string[]> | null): string[] =>
@@ -64,9 +68,9 @@ export const newStageSpot = (g: Graph): Pos => {
 
 // 템플릿 저장 id: 탭이 닫혔다 열려도(단계를 바꾸면 탭이 바뀜) 같은 내용이면 같은 id라 모듈에 둔다. 새로 고치면 비지만 그때는 DB 함수가 같은 id만 "exists"로 본다
 const savedIds = new Map<string, string>();
-/** 같은 내용(종류 · 이름 · 단계 id · 이름 · 기술 + 연결선, 위치는 뺌)이면 같은 id(불변 3: 두 번 저장해도 한 줄). 다른 내용을 거쳐 돌아와도 같다 */
+/** 같은 내용(종류 · 이름 + 확정과 같은 contentKey: 단계 · 기술 · 연결선 · 나란히 순서, 위치는 뺌)이면 같은 id(불변 3: 두 번 저장해도 한 줄). 다른 내용을 거쳐 돌아와도 같다 */
 export function templateSaveId(kind: TemplateKind, name: string, g: Graph, make: () => string = () => crypto.randomUUID()): string {
-  const key = JSON.stringify([kind, name.trim(), g.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]), g.edges]);
+  const key = contentKey([kind, name.trim()], g);
   if (!savedIds.has(key)) savedIds.set(key, make());
   return savedIds.get(key)!;
 }
