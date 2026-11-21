@@ -8,7 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { repoKey, type RepoInfo, type RepoRef } from "../domain/github-repo.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
-import { CollectError, TOKEN_SHAPE, type ErrorKind } from "./collect-fetch.ts";
+import { CollectError, readToken, type ErrorKind } from "./collect-fetch.ts";
 import { countKinds } from "./collect-util.ts";
 import { fetchRepoInfo } from "./github-fetch.ts";
 import { markFailed, markTried, readSource, readTargets, saveFound, saveMissing, type Target } from "./github-store.ts";
@@ -31,18 +31,10 @@ export function githubCollector(deps: Partial<Deps> = {}): Collector {
   return { source: "fetch_github", run: (ctx) => collectGithub(ctx, d) };
 }
 
-/** 토큰이 없거나 모양이 이상하면 호출 없이 수집 오류. 값은 문구에 넣지 않는다. */
-function readToken(d: Deps): string {
-  const token = d.token()?.trim();
-  if (!token) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN이 없어 GitHub를 부르지 않았어요(Vercel·.env에 넣어야 함)");
-  if (!TOKEN_SHAPE.test(token)) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN의 모양이 이상해 GitHub를 부르지 않았어요(공백·줄바꿈·따옴표가 섞였는지 확인, 값은 기록하지 않음)");
-  return token;
-}
-
 async function collectGithub(ctx: CollectorContext, d: Deps): Promise<{ items: number; summary: string }> {
   const source = await readSource(ctx.db);
   if (!source.enabled) return { items: 0, summary: "GitHub 출처가 꺼져 있어요(관리자 설정)" };
-  const token = readToken(d);
+  const token = readToken(d.token());
   const run: Run = { db: ctx.db, runId: ctx.runId, sourceId: source.id, token, d, tally: { read: 0, missing: 0, changed: 0, failed: [], skipped: 0, requests: 0, blocked: false, forbiddenInRow: 0 } };
   const groups = groupByRepo(await readTargets(ctx.db));
   try {
@@ -124,7 +116,8 @@ const deadSource = (failed: Failure[]) => new CollectError(failed[0].kind, `GitH
 
 /**
  * 수집 상자 줄은 runBatch가 남긴다. 여기서는 그 뒤 단계(normalize·compare)와, 일부만 실패했을 때의 collect_error만 남긴다.
- * compare의 나가는 건수는 0이다: 저장소 정보는 등급 계산으로 넘어가지 않아 다른 수집기(OSV)의 compare→grade 숫자에 섞이면 안 된다.
+ * compare의 나가는 건수는 0이다: 이 실행은 등급을 매기지 않아 다른 수집기(OSV)의 compare→grade 숫자에 섞이면 안 된다.
+ * (저장소 정보는 다음 OSV 확인·처음 읽기가 통과·주의를 정할 때 읽는다: grade.ts, 이 실행의 흐름 화살표에는 나오지 않는다.)
  */
 async function recordSteps({ db, runId, tally: t }: Run, withDetail: boolean): Promise<void> {
   if (t.read > 0) {

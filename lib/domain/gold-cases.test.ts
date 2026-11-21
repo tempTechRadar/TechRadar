@@ -28,7 +28,7 @@ const g5 = (JSON.parse(readFileSync(new URL("./fixtures/osv-g5-latest.json", imp
 }).results;
 
 // 2026-11-18 조회 기록이라 그 뒤 새로 생긴 취약점은 잡지 못한다. 구현 때 다시 조회하는 건 SPEC-10의 약속(채점 때 확인).
-test("G5: 네 패키지의 최신 버전은 OSV에 알려진 문제 0건 → 지금은 저장소 정보 확인 전이라 OSV만으로는 찾지 못함", () => {
+test("G5: 네 패키지의 최신 버전은 OSV에 알려진 문제 0건 → 저장소 정보 확인이 없으면 OSV만으로는 찾지 못함", () => {
   assert.equal(g5.length, 4);
   for (const { name, version, vulns } of g5) {
     const r = gradeFromOsv(version, forPackage(vulns, name));
@@ -36,7 +36,18 @@ test("G5: 네 패키지의 최신 버전은 OSV에 알려진 문제 0건 → 지
   }
 });
 
-test.todo("G5 기대 등급 '통과': 저장소 정보(P-9)를 확인하는 코드가 합쳐지면 위 시험을 통과로 바꾼다");
+// 저장소 값은 2026-11-21에 GitHub에서 읽어 저장한 것, 지금(now)은 읽은 시각으로 고정(SPEC-1 통과 조건)
+const g5Repos = JSON.parse(readFileSync(new URL("./fixtures/repo-g5-latest.json", import.meta.url), "utf8")) as {
+  readAt: string; repos: { package: string; repo: string; license: string; pushedAt: string; archived: boolean }[];
+};
+
+test("G5 기대 등급 '통과': 저장소 정보를 확인했으면(읽은 시각 기준 푸시 90일 안·active) 같은 OSV 0건이 통과", () => {
+  for (const { name, version, vulns } of g5) {
+    const repo = g5Repos.repos.find((x) => x.package === name)!;
+    const r = gradeFromOsv(version, forPackage(vulns, name), { status: "active", activityAt: repo.pushedAt, checkedAt: g5Repos.readAt, missedCount: 0, repoName: repo.repo.toLowerCase(), license: repo.license, nowMs: Date.parse(g5Repos.readAt) });
+    assert.equal(r.grade, "pass", name);
+  }
+});
 
 const SKILLS = new URL("../../sim/skills/", import.meta.url);
 

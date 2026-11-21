@@ -24,6 +24,14 @@ test("repoRefOf: GitHub 저장소가 아니거나 주소에 쓸 수 없는 이�
   for (const tech_key of ["github:o", "github:o/..", "github:../r", "github:o/r/extra", "github:o r/x"]) assert.equal(repoRefOf({ tech_key, repo_url: null }), null, tech_key);
 });
 
+test("repoRefOf: skill:<소유자>/<저장소>/<이름> 키는 앞의 두 칸이 읽은 저장소(tech-key.ts). repo_url이 없어도 읽는다", () => {
+  assert.deepEqual(repoRefOf({ tech_key: "skill:temptechradar/techradar/abbs-log", repo_url: null }), { owner: "temptechradar", repo: "techradar" });
+  assert.deepEqual(repoRefOf({ tech_key: "skill:o/r/a/b", repo_url: null }), { owner: "o", repo: "r" }); // 이름에 /가 있어도 저장소는 앞 두 칸
+  assert.deepEqual(repoRefOf({ tech_key: "skill:o/r.git/s", repo_url: null }), { owner: "o", repo: "r" }); // github: 키와 같게 끝의 .git을 뗀다
+  assert.deepEqual(repoRefOf({ tech_key: "skill:o/my.git.js/s", repo_url: null }), { owner: "o", repo: "my.git.js" }); // 이름 중간의 .git은 그대로
+  for (const tech_key of ["skill:o/r", "skill:o/r/", "skill:../r/s", "skill:o/../s", "skill:o r/x/s"]) assert.equal(repoRefOf({ tech_key, repo_url: null }), null, tech_key);
+});
+
 test("repoRefOf: github: 키 끝의 .git은 주소 쪽과 같게 뗀다(같은 저장소의 두 표기가 갈라지지 않게). repoKey는 대소문자를 합친다", () => {
   assert.deepEqual(repoRefOf({ tech_key: "github:o/r.git", repo_url: null }), { owner: "o", repo: "r" });
   assert.deepEqual(repoRefOf({ tech_key: "github:o/r.git", repo_url: null }), repoRefOf({ tech_key: "npm:x", repo_url: "https://github.com/o/r.git" }));

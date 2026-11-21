@@ -441,7 +441,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 
 ### 2.7 3순위로 만든 표 (P-23·P-24, 2026-11-20)
 
-3절 요약에 있던 것 중 실제로 만든 4개. 칸은 운영 DB `information_schema.columns`와 마이그레이션 `202611200900_P-23_user_tastes.sql`·`202611201000_P-24_usage_notes.sql`·`202611201100_P-24_hide_author.sql`에서 옮겼다(7절 3차 대조). 지우기는 네 표 모두 아무도 못 한다(기록 보존).
+3절 요약에 있던 것 중 실제로 만든 4개. 칸은 운영 DB `information_schema.columns`와 마이그레이션 `202611200900_P-23_user_tastes.sql`·`202611201000_P-24_usage_notes.sql`·`202611201100_P-24_hide_author.sql`에서 옮겼다(7절 3차 대조). 지우기는 네 표 모두 아무도 못 한다(기록 보존). `id`·`created_at`은 0절 공통 규칙이라 칸 표에 적지 않는다. `user_tastes`·`helpful_votes`는 `id`가 없고 다른 칸이 기본 키라 `created_at`을 따로 적었다(그래서 `usage_notes`·`reports`에만 `created_at` 줄이 없음). 표 주인(황재웅)이 마이그레이션과 대조해 칸 이름·칸 수·정책 수·규칙이 맞다고 확인함(11-20)
 
 **user_tastes** — 취향 질문 답(P-23, 처음 계획의 `preferences`). 사람당 한 줄, 질문을 아직 안 봤으면 줄이 없음
 | 칸 | 종류 | 필수 | 키 | 설명 |
@@ -628,4 +628,5 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 - 2026-11-19 P-18c 마이그레이션(`202611191500_P-18c_category_admin.sql`, 작업 `I-P-18c-category`): `technologies.category_set_by`·`category_set_at` 칸 추가(함께 있거나 함께 없음), 관리자만 갈래 세 칸을 본인 이름·작은 갈래로 바꾸는 정책 `technologies_admin_set_category`와 열 권한. `category_score`·`category_rank`(P-21 서버 칸)는 열지 않음. 갈래 목록 시드는 없음(데이터설계 DQ2, 팀 결정). **운영 적용 전에 김영식 님께 다시 알림**(운영 categories 0줄).
 - 2026-11-21 P-12d-blueprint(작업 `I-P-12d-blueprint`): `blueprints`와 DB 함수 `confirm_blueprint`를 더함(2.5절, 4절 권한, 관계 그림). 코드 리뷰 뒤 직접 넣기 권한을 빼고 함수로만 쓰게 바꿈(검사를 건너뛰지 못하게). 마이그레이션 `202611211000_P-12d_blueprints.sql`, 시험 `supabase/tests/blueprints_p12d.sql`(운영 되돌림 시험 기대값 19개 맞음). **운영 적용: 11-21 09:37 KST**(DB 이름 `p12d_blueprints`, 보안 점검 새 경고는 `confirm_blueprint` security definer 1건 — `set_tech_mark`와 같은 의도)
 - 2026-11-21 P-12d-my-tech-tags(작업 `I-P-12d-my-tech-tags`, 마이그레이션 `202611211400_P-12d_my_tech_tags.sql`, Maestro가 전한 사용자 결정 "지금 만들기"): `my_tech_tags` 표를 더함(2절, 4절 권한, 관계 그림). 칸 단위 권한으로 넣는 칸을 `tech_id`·`tag`로 좁힘(11-21 권한 점검 의심 3에서 배운 것). 운영 적용은 사용자 승인 뒤.
+- 2026-11-21 P-21a 마이그레이션 파일 이름을 `202611211200_P-21a_github_search_source.sql` → `202611211210_P-21a_github_search_source.sql`로 바꿈(map-demo의 `202611211200_P-12d_starter_set.sql`과 번호가 겹침, 작업 `I-P-21-criteria`). 내용은 같다: `sources`에 `github_search`(방법 api, 우선순위 3) 한 줄(`on conflict do nothing`). 운영에는 사용자 승인으로 대시보드 SQL 편집기에서 직접 적용했고(2026-11-21 13:28 KST, `sources` 9 → 10줄) 그 방식은 `schema_migrations`에 기록을 남기지 않아 운영 기록에는 이 줄이 없다(표·칸 변경 없음).
 - 2026-11-21 P-12e M1 · M2(작업 `I-P-12e-blueprint-db` · `I-P-12e-blueprint-templates`, 마이그레이션 `202611221000_P-12e_blueprint_graph.sql` · `202611221100_P-12e_blueprint_templates.sql`): `blueprints`에 graph · template_id, 새 표 `blueprint_templates`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 템플릿 기술은 관문에 더하지 않음(사용자 결정 "고르기 칩"). **운영 적용: 11-21**(DB 이름 `p12e_blueprint_graph` `20261121133714`, `p12e_blueprint_templates` `20261121135023`), 권한 시험 40 · 19 · 37항목 모두 기대값. M3(템플릿 사용기 표)는 만들면 더함.

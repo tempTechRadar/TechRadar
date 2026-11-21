@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 20. 12시 48분 0초",
+  "when": "2026. 11. 21. 19시 26분 28초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -51,8 +51,8 @@
       "target": "@modelcontextprotocol/inspector 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -62,8 +62,8 @@
       "target": "@modelcontextprotocol/server-filesystem 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -73,8 +73,8 @@
       "target": "mcp-remote 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -84,8 +84,8 @@
       "target": "mcp 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -141,7 +141,7 @@
     "quietOk": 6,
     "miss": 0,
     "falseAlarm": 0,
-    "gradeOk": 8,
+    "gradeOk": 12,
     "failed": 0
   },
   "edges": {
@@ -444,6 +444,61 @@
         "note": ""
       },
       {
+        "id": "E-opp-stars-below",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수가 알려져 있고 99(하한 100 미만)",
+        "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+        "expectedOutcome": "알림 0",
+        "expectedEvent": false,
+        "actualOutcome": "알림 0",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-stars-at-min",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수가 알려져 있고 정확히 100(하한)",
+        "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u1)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-stars-unknown",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2)",
+        "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u1)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-flagged",
+        "kind": "적용 기회",
+        "target": "별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보",
+        "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+        "expectedOutcome": "알림 0",
+        "expectedEvent": false,
+        "actualOutcome": "알림 0",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-sim-low-stars",
+        "kind": "적용 기회",
+        "target": "시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만)",
+        "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u-demo)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u-demo)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
         "id": "E-twice-danger",
         "kind": "두 번 입력",
         "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",
@@ -563,12 +618,23 @@
         "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "적용 후보나 보류 중에서 골라 주세요."
+      },
+      {
+        "id": "E-judge-save-failed",
+        "kind": "조치·저장 실패",
+        "target": "적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패",
+        "source": "불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc)",
+        "expectedOutcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
+        "expectedEvent": false,
+        "actualOutcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
+        "verdict": "맞음",
+        "note": "저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요."
       }
     ],
     "totals": {
-      "cases": 38,
-      "hit": 15,
-      "quietOk": 23,
+      "cases": 44,
+      "hit": 18,
+      "quietOk": 26,
       "miss": 0,
       "falseAlarm": 0,
       "outcomeWrong": 0,
@@ -583,8 +649,8 @@
         "outcomeWrong": 0
       },
       "적용 기회": {
-        "cases": 8,
-        "right": 8,
+        "cases": 13,
+        "right": 13,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
@@ -616,13 +682,20 @@
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
+      },
+      "조치·저장 실패": {
+        "cases": 1,
+        "right": 1,
+        "miss": 0,
+        "falseAlarm": 0,
+        "outcomeWrong": 0
       }
     }
   },
   "overall": {
-    "cases": 50,
-    "hit": 21,
-    "quietOk": 29,
+    "cases": 56,
+    "hit": 24,
+    "quietOk": 32,
     "miss": 0,
     "falseAlarm": 0,
     "outcomeWrong": 0,
