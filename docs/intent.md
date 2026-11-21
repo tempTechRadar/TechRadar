@@ -6,6 +6,26 @@
 
 ---
 
+## I-P-12f-template-notes · 2026-11-22 · 템플릿 열기 화면 + "이 조합 써봤어요" 사용기(PRD-F48 화면) (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12f-template-notes`(통합 `feat/P-12e-blueprint-studio` 4d448ca 위, 로컬, 미푸시 — FrontLead가 합침)
+- 출처: Maestro 배정(P-12f 조각 G 화면). 서버 · 액션 · DB(M3 · M6 운영 적용)는 DevAssi2. PRD-F48, 불변 2 · 4 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 템플릿 사용기 서버 · 액션 · DB는 있는데 화면이 없어 "이 조합 써봤어요"를 읽고 쓸 곳이 없다 |
+| 기대 결과 | /blueprint/gallery/[id]: 템플릿(이름 · 틀/조합 · 단계 순서 · 기술 · 이 템플릿으로 시작) + 사용기 도움 순 위 3개 · 모두 보기 · 도움이 됐어요 · 신고 · 쓰기. 갤러리 카드에 "자세히 · 사용기". 손님은 읽기만 |
+| 영향 범위 | 새 `app/blueprint/gallery/[id]/{page,note-parts}.tsx`, `app/blueprint/gallery/page.tsx`(칩 하나), `lib/blueprint/note-view.ts`, `lib/server/template-notes.ts`(손님 경로 · 숨긴 글 · 도움 순 · canNoteTemplate) |
+| 제약 | actions.ts는 안 건드림(DevAssi2). 쓰기 자격의 진짜 막기는 DB insert 정책. 로컬 커밋만 |
+| 열린 질문 | 사용기 한 줄 마크업이 기술 사용기 화면과 겹침(공용 조각으로 합치기) |
+
+**결정 · 이유:**
+- 손님도 읽는다: M6가 anon에 안전한 칸 · 열린 템플릿 · 숨김 아님을 열었고 사용자 결정("공개 템플릿에 쓰는 글"). 손님은 내 글 · 누른 기록을 묻지 않는다(anon엔 그 권한이 없어서) — readTemplateNotes viewerId null.
+- 숨긴 글은 누구에게나 뺀다: RLS는 관리자 · 쓴 사람에게 숨긴 글도 줘서 사람마다 목록 · 개수가 달라졌다.
+- 쓰기 칸은 can_note_template(insert 정책과 같은 함수)로 보일지 정한다: 다 쓰고 나서야 거절되지 않게. 못 읽으면 칸을 보이고 DB가 막는다.
+
+**결과:** 됨(로컬 커밋 08a85b2 · 0c6e6ab · 938c22d · 6288b36 · 555fba5 · 960ad13). 시험 1,662개 모두 통과, `tsc` · `next build --webpack` 통과. code-review 10건 중 9건 반영(마크업 공용화는 열린 질문). curl: 없는 id → 404, DB 없음 → "템플릿을 불러오지 못했어요".
+**확인하지 못함:** 실제 템플릿 · 사용기 화면(내 worktree엔 .env가 없음 — 비밀 값을 옮기지 않음, .env 있는 곳에서 FrontLead 확인 필요), 실제 쓰기 · 도움 · 신고 동작, 화면 읽기 프로그램.
+
 ## I-P-12f-app-structure · 2026-11-22 · 앱 구조 개편 FrontLead 몫: ① 메뉴 · 주소 ② 첫 화면 = 준비 ③ 판단 칩 · 요즘 뜨는 칩 ④ 화면 일관성 (FrontLead 세션, 김영식)
 - 브랜치: 통합 `feat/P-12e-blueprint-studio`(P-12e와 한 PR, 로컬 커밋, 미푸시)
 - 출처: 사용자 승인 계획 P-12f(앱 구조 개편) 1 · 2 · 3 · 10, Maestro 배정. IA-1 · IA-5, PRD-NF5(글자 대비), 불변 2 · 4 · 5

@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12f-template-notes | 템플릿 열기 화면 /blueprint/gallery/[id] + "이 조합 써봤어요" 사용기(PRD-F48): 도움 순 위 3개 · 모두 보기 · 도움이 됐어요 · 신고 · 쓰기(확정해 본 사람만, can_note_template), 손님은 읽기만, 숨긴 글 빼기. 시험 1,662 통과 · 빌드 통과, 리뷰 9건 반영 | DevAssi1 세션(Claude), 김영식 | `feat/P-12f-template-notes` 로컬 커밋 → FrontLead |
 | I-P-12f-app-structure | 앱 구조 개편 FrontLead 몫 ④ 화면 일관성: 공용 페이지 틀(.page) · 상태 색 토큰(화면마다 적던 색 모음) · 공용 대화상자(브라우저 확인 창 2곳 → 대화상자, 초점 복귀 고침) · 공용 토스트 3.5초 · 막힌 단추 한 벌 · 빈 상태 점선 · 저장 안내 초록 · "불러오지 못했어요" 통일 · 뼈대 4화면 · 로그인 전 내 프로젝트 · 설정 그 자리 안내 · 실행 기록 오류 원문 숨김. 팀원 브랜치 합침(DevAssi2 83c90be · ea21c7b, DataCollector precheck 번호 겹침 검사) | FrontLead(Claude) 구현 · 합침, QA 확인, 김영식(계획 승인) | 통합 `feat/P-12e-blueprint-studio` 로컬(미푸시), 시험 1,661, QA Pass |
 | I-P-12e-template-notes | 템플릿 사용기 · 도움이 됐어요 · 신고(M3): P-24 본뜸, 쓴 사람 칸 처음부터 숨김, 열린 템플릿 · 써 본 사람만 · 한 사람 한 글 · 작가 · 시연 제외. 서버 · 액션, 권한 시험 41항목(미실행), 리뷰 9건 중 6건 반영 | 나(승인 예정) · Claude DevAssi2(구현 · 검토 반영) | `supabase/migrations/202611221200_P-12e_template_notes.sql` · `lib/server/template-notes.ts` |
 | I-P-12f-guest | 로그인 전 이용: 청사진 손님 모드(손님 초안 · 로그인 뒤 가져오기 · 카탈로그 찾기 · 저장은 로그인 안내), 갤러리 · 카탈로그 상세 공개, M6(손님은 열린 템플릿 · 숨기지 않은 사용기의 안전한 칸만) + 권한 시험 31항목(미실행). 내 태그 자동 제안(suggestTags + 체크 목록). 보안 검토 지적(손님 "쓰고 있어요") 반영 | 나(승인 예정) · Claude DevAssi2(구현) | `feat/P-12f-guest` · `supabase/migrations/202611221310_P-12f_public_gallery_anon.sql` · `lib/domain/tag-suggest.ts` |
