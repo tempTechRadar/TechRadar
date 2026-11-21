@@ -72,11 +72,21 @@ test("소식 읽기: 한 출처를 못 읽어도 나머지는 보여 주고, 못
   assert.deepEqual(r.failed.sort(), ["내 기술의 새 취약점", "바깥 소식"]);
 });
 
-test("소식 읽기: 서비스 연결이 없으면 요즘 뜨는 기술만 못 읽은 것으로 알린다", async () => {
+test("소식 읽기: 서비스 연결이 없으면 기술 표를 읽는 두 출처(새 공식 · 요즘 뜨는)를 못 읽은 것으로 알린다", async () => {
   const t = fakeDb(tables());
   const r = await readNewsFeed({ db: t.db, serviceDb: null, userId: null, nowMs: NOW });
-  assert.deepEqual(ids(r), ["news:n1", "official:off"]);
-  assert.deepEqual(r.failed, ["요즘 뜨는 기술"]);
+  assert.deepEqual(ids(r), ["news:n1"]);
+  assert.deepEqual(r.failed.sort(), ["새 공식 스킬 · 플러그인", "요즘 뜨는 기술"]);
+});
+
+test("소식 읽기: 손님(anon) 연결은 기술 표를 못 읽는다(ADR 0029) — 기술 표는 서비스 연결로만 읽고, 손님 연결은 공개 소식 표만 읽는다", async () => {
+  const guest = fakeDb(tables(), ["technologies", "observations"]); // 손님 연결: 기술 · 관찰 표 권한 없음
+  const service = fakeDb(tables());
+  const r = await readNewsFeed({ db: guest.db, serviceDb: service.db, userId: null, nowMs: NOW });
+  assert.deepEqual(ids(r), ["news:n1", "official:off", "trending:hot"]);
+  assert.deepEqual(r.failed, []);
+  assert.ok(!guest.reads.includes("technologies") && !guest.reads.includes("observations"), "손님 연결로 기술 · 관찰 표를 읽지 않는다");
+  assert.deepEqual([...new Set(guest.reads)], ["news_items"]);
 });
 
 test("소식 읽기: 출처 링크가 없어 뺀 항목은 건수로 알리고, 고른 도구로 거를 수 있다", async () => {
