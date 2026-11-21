@@ -51,7 +51,7 @@ test("관리자 화면 토큰(admin.css): 본문·흐린 글자·위험·주의�
   assert.deepEqual(bad, []);
 });
 
-test("영역 C 화면의 글자색(style color)이 흰 바탕과 가장 옅은 회색 바탕(#f6f5f1)에서 4.5:1 이상", () => {
+test("영역 C 화면의 글자색(style color)이 흰 바탕 · 옅은 회색 바탕(#f6f5f1 · 설치 화면 --sunken)에서 4.5:1 이상", () => {
   const root = fileURLToPath(new URL("../..", import.meta.url));
   const walk = (dir: string): string[] => readdirSync(join(root, dir)).flatMap((n) => {
     const rel = `${dir}/${n}`;
@@ -60,10 +60,15 @@ test("영역 C 화면의 글자색(style color)이 흰 바탕과 가장 옅은 �
   const files = ["app/admin", "app/projects/runs", "app/projects/install"].flatMap(walk);
   // 글자색은 공용 토큰(var(--ink-danger) 등)이면 app/tokens.css의 값으로 읽는다(P-12f ④: 화면에 색을 직접 적지 않음)
   const shared = readFileSync(join(root, "app/tokens.css"), "utf8");
-  const hex = (v: string) => v.startsWith("#") ? v : shared.match(new RegExp(`--${v.slice(6, -1)}:\\s*(#[0-9a-fA-F]{6})`))![1];
+  const hex = (v: string) => {
+    if (v.startsWith("#")) return v;
+    const m = shared.match(new RegExp(`--${v.slice(6, -1)}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(m, `${v}는 app/tokens.css에 없는 토큰이에요(화면 글자색은 공용 토큰으로)`);
+    return m[1];
+  };
   const colors = new Map<string, string>();
   for (const f of files) for (const m of readFileSync(join(root, f), "utf8").matchAll(/[^-]color:\s*"(#[0-9a-fA-F]{6}|var\(--[\w-]+\))"/g)) colors.set(hex(m[1]), f);
   assert.ok(colors.size >= 2, `${colors.size}가지`); // 읽는 식이 깨지지 않았는지만(토큰으로 모아 가짓수가 줄었다)
-  const bad = [...colors].flatMap(([c, f]) => ["#ffffff", "#f6f5f1"].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
+  const bad = [...colors].flatMap(([c, f]) => ["#ffffff", "#f6f5f1", hex("var(--sunken)")].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
   assert.deepEqual(bad, []);
 });
