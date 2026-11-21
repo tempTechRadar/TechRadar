@@ -19,8 +19,8 @@ export const MAX_NEW_PER_RUN = 30; // 한 실행에 새로 만드는 얇은 줄(
 type Deps = { fetchHits: (keyword: string, nowMs: number) => Promise<{ hits: HnHit[]; invalid: number }>; sleep: (ms: number) => Promise<void>; now: () => number };
 type Failure = { key: string; kind: ErrorKind; message: string };
 type Picked = { target: StoryTarget; hit: HnHit };
-type Tally = { stories: number; dropped: number; repos: number; packages: number; changed: number; created: number; overCap: number; unregistered: number; nameMismatch: number; taken: number; failed: Failure[]; skipped: number; readKeywords: number };
-type Run = { db: SupabaseClient; saved: Saved; t: Tally; done: Set<string> };
+type Tally = { stories: number; dropped: number; repos: number; packages: number; changed: number; created: number; overCap: number; unregistered: number; nameMismatch: number; taken: number; notSaved: number; failed: Failure[]; skipped: number; readKeywords: number };
+type Run = { db: SupabaseClient; saved: Saved; t: Tally; done: Set<string>; now: () => number; deadlineMs: number };
 
 export function hnCollector(deps: Partial<Deps> = {}): Collector {
   const d: Deps = { fetchHits: fetchHnHits, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: Date.now, ...deps };
@@ -30,11 +30,12 @@ export function hnCollector(deps: Partial<Deps> = {}): Collector {
 async function collectHn(ctx: CollectorContext, d: Deps): Promise<{ items: number; summary: string }> {
   const source = await readSource(ctx.db);
   if (!source.enabled) return { items: 0, summary: "Hacker News 출처가 꺼져 있어요(관리자 설정)" };
-  const t: Tally = { stories: 0, dropped: 0, repos: 0, packages: 0, changed: 0, created: 0, overCap: 0, unregistered: 0, nameMismatch: 0, taken: 0, failed: [], skipped: 0, readKeywords: 0 };
-  const hits = await readKeywords(d, t, Math.min(ctx.deadlineMs, d.now() + HN_BUDGET_MS));
+  const t: Tally = { stories: 0, dropped: 0, repos: 0, packages: 0, changed: 0, created: 0, overCap: 0, unregistered: 0, nameMismatch: 0, taken: 0, notSaved: 0, failed: [], skipped: 0, readKeywords: 0 };
+  const deadlineMs = Math.min(ctx.deadlineMs, d.now() + HN_BUDGET_MS);
+  const hits = await readKeywords(d, t, deadlineMs);
   if (t.readKeywords === 0) throw nothingRead(t); // 하나도 못 읽었으면 "글 0개"가 아니라 수집 오류(불변 2)
   const picked = pick(hits, t);
-  const run: Run = { db: ctx.db, saved: { sourceId: source.id, runId: ctx.runId, at: new Date(d.now()).toISOString() }, t, done: new Set() };
+  const run: Run = { db: ctx.db, saved: { sourceId: source.id, runId: ctx.runId, at: new Date(d.now()).toISOString() }, t, done: new Set(), now: d.now, deadlineMs };
   try {
     if (picked.length) await saveAll(run, picked);
   } catch (e) {
@@ -93,7 +94,12 @@ function pick(hits: HnHit[], t: Tally): Picked[] {
  */
 async function saveAll(run: Run, picked: Picked[]): Promise<void> {
   const catalog: Catalog = await readCatalog(run.db);
-  for (const p of [...picked].sort((x, y) => y.hit.points - x.hit.points)) {
+  const order = [...picked].sort((x, y) => y.hit.points - x.hit.points);
+  for (const [i, p] of order.entries()) {
+    if (run.now() >= run.deadlineMs) {
+      run.t.notSaved += order.length - i; // 멱등이라 다음 실행이 이어 간다(점수 높은 글부터 저장해 둠)
+      return;
+    }
     const known = catalog.get(targetKey(p.target)) ?? [];
     for (const id of known) await saveOnce(run, id, p);
     if (known.length) continue;
@@ -105,7 +111,7 @@ async function saveAll(run: Run, picked: Picked[]): Promise<void> {
 async function saveOnce(run: Run, id: string, p: Picked): Promise<void> {
   if (run.done.has(id)) return;
   run.done.add(id);
-  if (await saveSignal(run.db, run.saved, id, signalOf(p.hit, run.saved.at))) run.t.changed++;
+  if (await saveSignal(run.db, { saved: run.saved, techId: id, signal: signalOf(p.hit, run.saved.at) })) run.t.changed++;
 }
 
 async function maybeCreate(run: Run, target: Extract<StoryTarget, { kind: "github" }>, p: Picked): Promise<void> {
@@ -139,6 +145,7 @@ function summarize(t: Tally): string {
   if (t.overCap) parts.push(`새 줄 상한 ${MAX_NEW_PER_RUN}개에 닿아 ${t.overCap}개는 다음 실행으로`);
   if (t.unregistered) parts.push(`미등록 패키지 ${t.unregistered}개`);
   if (t.nameMismatch) parts.push(`이름에 mcp·skill이 없어 안 만든 저장소 ${t.nameMismatch}개`);
+  if (t.notSaved) parts.push(`시간 한도로 대상 ${t.notSaved}개는 다음 실행으로`);
   if (t.taken) parts.push(`같은 키가 이미 있어 건너뛴 저장소 ${t.taken}개`);
   if (t.failed.length) parts.push(`수집 오류 키워드 ${t.failed.length}개`);
   if (t.skipped) parts.push(`시간 한도·한도 초과로 키워드 ${t.skipped}개는 다음 실행으로`);

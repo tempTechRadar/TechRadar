@@ -24,6 +24,14 @@ export async function readSource(db: SupabaseClient): Promise<{ id: string; enab
 const add = (m: Catalog, key: string, id: string) => m.set(key, [...(m.get(key) ?? []), id]);
 
 /**
+ * 저장소 하나에는 줄 하나만: `github:` 키 줄이 있으면 그것, 없으면 id가 가장 작은 줄(id 순으로 읽어 먼저 온 줄). 별 후보(github-search-store)와 같은 규칙.
+ * shortcut: 같은 저장소를 가리키는 나머지 줄(모노레포의 패키지들)에는 HN 신호가 붙지 않는다. 패키지마다 필요해지면 묶음 쓰기로 바꾼다
+ */
+function pickRepoRow(m: Catalog, key: string, r: TechRow): void {
+  if (!m.has(key) || r.tech_key.toLowerCase() === key) m.set(key, [r.id]);
+}
+
+/**
  * 저장소·패키지로 찾을 수 있는 진짜 기술을 쪽으로 나눠 읽어 저장소·패키지 키로 찾는 표를 만든다(PostgREST는 한 번에 1000줄까지).
  * 저장소는 `github:` 키나 repo_url(대소문자·.git·끝 / 무시)로, 패키지는 `npm:` 키로 찾는다. 가짜(is_simulated) 줄은 건드리지 않는다.
  * shortcut: 매 실행 찾을 수 있는 줄 전체(11-21 운영 5천여 줄, 1000줄씩 6번)를 읽는다. 수만 줄이 되면 글이 가리키는 대상만 DB에서 찾는다
@@ -35,7 +43,7 @@ export async function readCatalog(db: SupabaseClient): Promise<Catalog> {
     if (error) throw new Error(`기술 목록을 읽지 못함: ${error.message}`);
     for (const r of (data ?? []) as TechRow[]) {
       const ref = repoRefOf(r);
-      if (ref) add(m, `github:${repoKey(ref)}`, r.id);
+      if (ref) pickRepoRow(m, `github:${repoKey(ref)}`, r);
       if (r.tech_key.startsWith("npm:")) add(m, r.tech_key.toLowerCase(), r.id);
     }
     if ((data?.length ?? 0) < PAGE) return m;
@@ -69,7 +77,7 @@ async function insertObservation(db: SupabaseClient, s: Saved, { techId, prev, c
  * 신호는 쓰기 직전에 다시 읽어 합친다(다른 수집기가 쓴 신호를 덮어쓰지 않게).
  * shortcut: 읽기와 쓰기 사이에 잠금은 없다(downloads-store.ts와 같음). 같은 순간 겹쳐 도는 실행이 있으면 드물게 한쪽 신호를 덮는다. 겹치면 DB 함수로
  */
-export async function saveSignal(db: SupabaseClient, s: Saved, techId: string, signal: HnSignal): Promise<boolean> {
+export async function saveSignal(db: SupabaseClient, { saved: s, techId, signal }: { saved: Saved; techId: string; signal: HnSignal }): Promise<boolean> {
   const before = await readSignals(db, techId);
   if (sameSignal(before.hn, signal)) return false;
   const prevHn = asSignals(before.hn);
