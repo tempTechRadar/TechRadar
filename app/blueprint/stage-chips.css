@@ -1,0 +1,3 @@
+/* 단계 칩 줄의 "자세히"(후보 칩 옆): 누르는 칸 --hit-sm, 밑줄 글자 단추 */
+.chip-more { min-height: var(--hit-sm); margin-left: 4px; padding: 0 4px; border: 0; background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); text-decoration: underline; cursor: pointer; }
+.chip-more:focus-visible { outline: var(--focus); outline-offset: 2px; }

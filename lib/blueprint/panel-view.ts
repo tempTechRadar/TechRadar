@@ -19,9 +19,6 @@ export function filterPool<T extends PoolLike>(pool: T[], f: PoolFilter): T[] {
   return pool.filter(fits).sort((a, b) => Number(b.id === f.add) - Number(a.id === f.add) || used(b) - used(a) || b.projects - a.projects || a.name.localeCompare(b.name));
 }
 
-/** 서랍 후보(내 기술 · 적용 후보 · 이력)에 없는 기술 = 관문 밖: 점선 후보 칩 + "적용 후보로 고르기"(남아 있으면 확정이 막힘, 사용자 결정 "고르기 칩으로") */
-export const outside = (pool: { id: string }[], techId: string): boolean => !pool.some((x) => x.id === techId);
-
 /** 거르기에 고를 내 태그: 서랍 후보에 붙은 것만, 이름순 */
 export const poolTags = (pool: { id: string }[], tags: Record<string, string[]> | null): string[] =>
   [...new Set(pool.flatMap((t) => tags?.[t.id] ?? []))].sort((a, b) => a.localeCompare(b));
@@ -66,10 +63,19 @@ export const newStageSpot = (g: Graph): Pos => {
   return right ? { x: right.x + 280, y: right.y } : { x: 0, y: 0 };
 };
 
+/** UUID v4. crypto.randomUUID는 https · localhost에서만 있어 http(휴대폰으로 PC 주소)에서는 getRandomValues로 만든다(use-studio-save.ts와 같은 방법) */
+export function uuid(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 // 템플릿 저장 id: 탭이 닫혔다 열려도(단계를 바꾸면 탭이 바뀜) 같은 내용이면 같은 id라 모듈에 둔다. 새로 고치면 비지만 그때는 DB 함수가 같은 id만 "exists"로 본다
 const savedIds = new Map<string, string>();
 /** 같은 내용(종류 · 이름 + 확정과 같은 contentKey: 단계 · 기술 · 연결선 · 나란히 순서, 위치는 뺌)이면 같은 id(불변 3: 두 번 저장해도 한 줄). 다른 내용을 거쳐 돌아와도 같다 */
-export function templateSaveId(kind: TemplateKind, name: string, g: Graph, make: () => string = () => crypto.randomUUID()): string {
+export function templateSaveId(kind: TemplateKind, name: string, g: Graph, make: () => string = uuid): string {
   const key = contentKey([kind, name.trim()], g);
   if (!savedIds.has(key)) savedIds.set(key, make());
   return savedIds.get(key)!;

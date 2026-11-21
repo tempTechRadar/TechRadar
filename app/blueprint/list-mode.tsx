@@ -6,9 +6,9 @@ import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, outside, putProblem } from "@/lib/blueprint/panel-view";
+import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
-import { TechChip } from "./tech-chip";
+import { StageChips } from "./stage-chips";
 import "./list-mode.css";
 
 export function ListMode(p: PanelProps) {
@@ -109,10 +109,9 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
       </div>
       <div className="lm-part">
         <p><b>기술 {s.techs.length}</b></p>
-        {s.techs.length ? <ul className="lm-chips">{s.techs.map((t) => (
-          <li key={t.id}><TechChip tech={t} info={pool.find((x) => x.id === t.id)} picked={picked?.kind === "tech" && picked.techId === t.id && chosenStage}
-            onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })} onCandidate={outside(pool, t.id) ? () => onCandidate(t.id, t.name) : undefined} busy={marking === t.id} onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); stay(); }} /></li>
-        ))}</ul> : null}
+        {s.techs.length ? <StageChips className="lm-chips" techs={s.techs} pool={pool} marking={marking} pickedTech={picked?.kind === "tech" && chosenStage ? picked.techId : null}
+          onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); stay(); }}
+          onCandidate={(t) => { onCandidate(t.id, t.name); stay(); }} /> : null}{/* 고르는 동안 단추가 막혀 초점이 떨어지지 않게 카드 이름으로 */}
         {canPut.length ? (
           <div className="lm-row">
             <label>기술 넣기 <select value={tech} onChange={(e) => setTech(e.target.value)}>
