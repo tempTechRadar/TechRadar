@@ -38,11 +38,23 @@ begin
   exception when raise_exception then msg := msg || 'simulated=' || case when sqlerrm like '공개 목록에 없는 기술 1개: sim-one' then 'blocked' else sqlerrm end || ';'; end;
   b := public.set_template_public(fr, true); msg := msg || 'frame=' || b || '(true);';
   b := public.set_template_public(bad, false); msg := msg || 'unpublish_ok=' || b || '(false);';
+  -- 공개한 뒤 기술이 목록 밖이 되면(사라짐) 남에게 갤러리 · 열기에서 빠진다, 작가 본인은 계속 연다
+  execute 'reset role';
+  update public.technologies set status = 'gone' where id = tL;
+  perform set_config('request.jwt.claims', '{}', true);
+  execute 'set local role anon';
+  select count(*) into r from public.public_blueprint_templates() t where t.id = ok_c; msg := msg || 'later_gone_gallery=' || r || '(0);';
+  select count(*) into r from public.blueprint_template_for_use(ok_c); msg := msg || 'later_gone_open=' || r || '(0);';
+  select count(*) into r from public.public_blueprint_templates() t where t.id = fr; msg := msg || 'frame_gallery=' || r || '(1);';
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', u1, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into r from public.blueprint_template_for_use(ok_c); msg := msg || 'author_opens=' || r || '(1);';
   select count(*) into r from public.blueprint_templates where id = bad and is_public; msg := msg || 'bad_public=' || r || '(0);';
   begin perform public.template_unlisted_techs('{}'::jsonb); msg := msg || 'call_helper=OPEN;';
   exception when insufficient_privilege then msg := msg || 'call_helper=blocked;'; end;
   execute 'reset role';
 
   raise exception 'ROLLBACK_OK %', msg;
-  -- 기대: gone=blocked;listed=true(true);unlisted=blocked;simulated=blocked;frame=true(true);unpublish_ok=false(false);bad_public=0(0);call_helper=blocked;
+  -- 기대: gone=blocked;listed=true(true);unlisted=blocked;simulated=blocked;frame=true(true);unpublish_ok=false(false);later_gone_gallery=0(0);later_gone_open=0(0);frame_gallery=1(1);author_opens=1(1);bad_public=0(0);call_helper=blocked;
 end $$;
