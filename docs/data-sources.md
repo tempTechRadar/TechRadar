@@ -81,3 +81,19 @@
 | OpenAI 지원 종료 | `developers.openai.com/api/docs/deprecations`(platform.openai.com에서 넘어감) | 불필요 | 쪽이 길어 앞부분만 글 그대로 읽힘. 글 그대로 읽은 줄만 옮김 | 예(11-20) |
 | Google Gemini 지원 종료 | `aistudio.google.com/docs/deprecations`(ai.google.dev에서 넘어감) | 불필요 | 날짜는 "가장 이르면 이날" | 예(11-20) |
 | GitHub 트리 + raw | `api.github.com/repos/{o}/{r}/git/trees/HEAD?recursive=1`, `raw.githubusercontent.com` | 선택(서버 토큰) | 토큰 없으면 시간당 60번을 저장소 확인 · 스킬 목록과 나눠 씀. 트리가 크면 GitHub가 잘라 줌(`truncated`) | 예(11-20, 공개 저장소 2곳) |
+
+## 소식 피드 후보와 약관 (P-12f 바깥 소식 수집기, 확인 2026-11-21)
+
+조건: 하루 1번, 피드끼리 1초 간격, 제목 · 링크 · 날짜 · 짧은 요약만 저장하고 원문 링크를 단다. AI 학습에 쓰지 않는다. 판정은 약관 문구를 읽은 결과이고 법률 의견이 아니다. 피드 응답(HTTP)과 robots.txt는 DocsChecker가 직접 확인, 약관 문구는 서브에이전트 2개(web-fetch)가 읽음(agents.md).
+
+| 피드 | 응답 | robots.txt | 약관 근거(짧은 인용) | 판정 |
+|---|---|---|---|---|
+| GitHub Releases Atom (`github.com/OWNER/REPO/releases.atom`, 예: anthropics/claude-code, modelcontextprotocol/servers · registry) | 200 | **`User-agent: *` → `Disallow: /*.atom$`** | robots.txt 차단 | **안 씀.** 대신 이미 쓰는 GitHub REST `GET /repos/{owner}/{repo}/releases`(공개 릴리스는 누구나, AUP §7 "Scraping does not refer to the collection of information through our API.") — 허용으로 보임 |
+| GitHub Changelog `https://github.blog/changelog/feed/` | 200 rss | 차단 없음 | 사이트가 "Copy RSS feed URL"을 직접 둠. AUP §6 복제 금지 문구는 있으나 공개 구독 피드라 금지로 보기 어려움. github.blog 전용 약관은 **확인하지 못함** | 허용으로 보임(요약은 짧게, 원문 링크) |
+| Google AI 블로그 `https://blog.google/technology/ai/rss/` | 200 xml | `/search`만 막음 | Google ToS: 자동 접근 금지는 "in violation of the machine-readable instructions"(robots.txt)일 때. AI 학습 금지. 블로그 전용 약관 **확인하지 못함** | 허용으로 보임 |
+| Google Developers 블로그 `https://developers.googleblog.com/feeds/posts/default` | 200 rss | Disallow 없음 | 위와 같은 Google ToS | 허용으로 보임 |
+| OpenAI 뉴스 `https://openai.com/news/rss.xml` | 200 xml | 관련 차단 없음 | Terms of Use: "Automatically or programmatically extract data or Output" 금지, Services에 웹사이트 포함 | **금지 조항 있음 → 안 씀** |
+| Cursor 변경 기록 `https://cursor.com/changelog/rss.xml` | 200 rss | 관련 차단 없음 | ToS 1.5 (viii) "harvest, scrape, or extract data from the Service", 웹사이트 포함 | **금지 조항 있음 → 안 씀** |
+| Anthropic 뉴스 RSS | `/news/rss.xml` · `/rss.xml` 모두 404 | — | 공식 RSS를 찾지 못함 | **확인하지 못함 → 안 씀.** Claude Code 소식은 GitHub REST releases로 |
+
+쓸 수 있는 것: GitHub REST releases(카탈로그 공식 저장소), github.blog changelog, Google AI · Developers 블로그. 확인하지 못한 것: 블로그별 전용 약관 페이지, GitHub API 숫자 한도 페이지(0절의 5,000/시 기준을 따름).
