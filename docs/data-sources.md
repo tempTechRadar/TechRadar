@@ -14,7 +14,15 @@
 | 3 | 공식 MCP 레지스트리 (`collect-registry.ts`) | `registry.modelcontextprotocol.io/v0.1/servers?limit=100&version=latest&updated_since=<지난번-5분>&cursor=` | 쪽 사이 1초, 몫 60초. 안전장치 500쪽 | 몫을 넘기면 지금까지 읽은 곳까지 저장하고 다음 실행에서 이어 읽음. 500쪽을 읽어도 안 끝나면 `parse` 수집 오류. 못 읽은 쪽을 "서버 없음"으로 보지 않음 | 키 불필요. preview 단계(초기화될 수 있음)라 처음 전체 읽기를 다시 할 수 있음. 약관 확인하지 못함 |
 | 4 | npm·PyPI 다운로드 수 (`collect-downloads.ts`) | npm `api.npmjs.org/downloads/point/last-week/<패키지>`, PyPI `pypistats.org/api/packages/<패키지>/recent` | 기술 사이 1초, 묶음 마감까지 | 404·모양 오류는 그 기술만 수집 오류(`http_status`·`parse`), 0으로 쓰지 않음. 마감이 오면 남은 기술은 다음 실행 | 키 불필요. pypistats는 대량 조회 금지·캐시 필요(2절 메모). 약관 확인하지 못함 |
 
-갈래 분류(`classifyAfterBatch`)는 수집이 아니라 묶음 뒤에 도는 후처리라 이 표에 넣지 않았다. 후보 목록의 나머지 출처(소식·인기 신호·커뮤니티 리뷰, HF·HN·skills.sh 등)는 **v1에서 읽지 않는다**(코드의 `SCHEDULE_COLLECTORS`에 없음, "확인"이 `예`여도 쓰는 것이 아니다).
+갈래 분류(`classifyAfterBatch`)는 수집이 아니라 묶음 뒤에 도는 후처리라 이 표에 넣지 않았다. 후보 목록의 나머지 출처(소식·인기 신호·커뮤니티 리뷰, HF·HN·skills.sh 등)는 **v1에서 읽지 않는다**(코드의 `SCHEDULE_COLLECTORS`에 없음, "확인"이 `예`여도 쓰는 것이 아니다). **11-21에 둘을 더하기로 정했다(ADR 0030): 아래 표. 합쳐지기 전이라 위 "실제 사용" 표에는 아직 넣지 않았고, 합쳐진 뒤 코드 기준으로 옮긴다.**
+
+### 0-1. 11-21 추가 예정 (ADR 0030, 구현 전 · 합쳐진 뒤 확인)
+| 출처 | 실제 요청 | 간격·몫 | 실패 처리(불변 2) | 키·약관 |
+|---|---|---|---|---|
+| GitHub 주제 태그 검색 (`collect-github-search.ts`, 흐름 상자 `fetch_stars`, 출처 줄 `github_search`) | `GET api.github.com/search/repositories?q=topic:<태그>+stars:>=1000&sort=stars&order=desc&per_page=100`(태그 4개, 결과가 1,000건을 넘으면 별 구간으로 쪼갬). 결과 한 건에 별·포크·푸시·생성일·소유자 종류·라이선스·보관·설명이 같이 옴 | 요청 사이 1초(검색 한도: 토큰 30회/분), 몫 20초 안팎(약 8번 호출) | `GITHUB_TOKEN` 없음·모양 이상은 호출 없이 수집 오류. 403·429·422·모양이 다른 응답은 수집 오류(후보 없음으로 단정하지 않음). 한도에 닿으면 이번 실행에서 더 부르지 않음 | 서버 토큰(저장소 정보 수집기와 같은 값, 값은 환경변수에만). 이용약관 확인하지 못함 |
+| Hacker News (`collect-hn.ts`, 흐름 상자 `fetch_popularity`를 켜서 소스 `["hn"]`, 출처 줄 `hn`) | `GET hn.algolia.com/api/v1/search_by_date?tags=story&query=<키워드>&numericFilters=created_at_i><이전 읽은 시각>`(키워드 `mcp`·`model context protocol`·`claude code`·`agent skills`) | 요청 사이 1초, 몫 20초 안팎. 한도: IP당 시간당 10,000회(2절 기록) | 429·모양이 다른 응답은 수집 오류. 글의 주소가 GitHub 저장소·npm 패키지가 아니면 버림(근거 없는 글은 저장하지 않음) | 키 불필요. 이용약관 확인하지 못함 |
+
+별 후보의 관문·점수·의심 규칙과 숫자(풀 별 ≥ 1,000, 두껍게 상한 100·누적 150)는 `docs/데이터설계.md` 8절 "별 후보". GeekNews(`news.hada.io/rss/news`, robots: 요약·링크 표시는 되고 학습용 수집은 금지)·Hugging Face·skills.sh·블로그 RSS는 제출 뒤(P-21 본 계산)로 둔다.
 
 (처음 상태: 후보 목록. v1에 쓸 출처는 아직 고르지 않았다.) 조사일 2026-11-16, 서브에이전트가 공식 문서와 실제 호출로 확인했다(`docs/agents.md` 참고).
 "확인"이 `아니오`인 칸은 확인하지 못한 것이다. 고른 뒤에는 간격, 한도·약관 확인 결과, 실패 처리를 출처마다 적는다.
