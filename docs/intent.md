@@ -14,7 +14,7 @@
 |---|---|
 | 문제 | 두껍게 들어오는 경로가 공식 조직·사용 중뿐이라 지도에 "한번 볼 만한" 기술이 안 들어온다. 별을 쓰되 가짜 별·오래된 저장소 유리함을 걸러야 한다(ADR 0030) |
 | 기대 결과 | 태그 4개(`mcp-server`·`mcp`·`agent-skills`·`claude-skills`) 별 1,000 이상 검색 → 관문(보관·포크·12개월) → 의심 표시(`new_spike`·`clone_cluster`)는 NEW 후보(얇게) → 태그 안 백분위 점수(규모 30·성장 25·포크 15·활동 15·신뢰 15) 상위 100곳을 `stars` 이유로 두껍게. 같은 저장소 줄이 있으면 합침, 누적 상한 150, 별 수가 바뀐 것만 수집 자료(`stars`, 출처 줄 `github_search`) |
-| 영향 범위 | 새 파일 `lib/domain/star-candidates.ts`, `lib/server/github-search-fetch.ts`·`github-search-store.ts`·`collect-github-search.ts`와 시험 3개, 마이그레이션 `202611211200_P-21a_github_search_source.sql`(sources 한 줄). `collect-github.ts`는 `readToken`에 export만. 수집기 등록(`collectors.ts`)·흐름 상자(`flow.json`)는 합칠 때 요청한 세션이 한다 |
+| 영향 범위 | 새 파일 `lib/domain/star-candidates.ts`, `lib/server/github-search-fetch.ts`·`github-search-store.ts`·`collect-github-search.ts`와 시험 3개, 마이그레이션 `202611211210_P-21a_github_search_source.sql`(sources 한 줄). `collect-github.ts`는 `readToken`에 export만. 수집기 등록(`collectors.ts`)·흐름 상자(`flow.json`)는 합칠 때 요청한 세션이 한다 |
 | 제약 | 숫자는 모두 팀 추정. 검색이 하나라도 실패하면 아무것도 저장하지 않고 수집 오류(일부 태그만 읽고 매기지 않음), 시간 몫(20초)이 다하면 거기까지 읽은 것으로 매긴다. 운영 DB에는 마이그레이션을 적용하지 않음 |
 | 열린 질문 | ① `mcp` 태그에 앱(n8n·dify·open-webui·gemini-cli 등)이 섞여 종류가 `mcp`로 잘못 추정된다 ② `repo_url`이 빈 패키지 줄(예: `npm:@upstash/context7-mcp`)은 저장소로 못 맞춰 `github:` 새 줄이 따로 생긴다 ③ 별 1,000 이상 풀에는 생성 30일 미만이 26곳이라 모두 NEW 후보로 보인다 ④ 검색 18번이 시간 몫 20초를 넘을 수 있다(태그를 돌아가며 읽어 `mcp` 뒤쪽이 밀림) |
 
