@@ -15,6 +15,7 @@ import { eolOfKey } from "../domain/model-eol.ts";
 import { detectConcepts, detectServices } from "../domain/services.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
+import { readRepoFacts } from "./osv-store.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
@@ -250,13 +251,16 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
   const osvFailures: { kind: ErrorKind; message: string; httpStatus?: number }[] = [];
   const osvTargets = found.filter((f) => f.tech?.key.startsWith("npm:") || f.tech?.key.startsWith("pypi:"));
+  // 다시 읽을 때 정기 확인이 매긴 "통과"가 "찾지 못함"으로 되돌아가지 않게 같은 저장소 확인 값을 쓴다
+  const repoFacts = await readRepoFacts(db, osvTargets.map((f) => techIds.get(f.tech!.key)!));
   for (const [i, f] of osvTargets.entries()) {
     if (i > 0) await sleep(1000); // SPEC-8 요청 사이 1초
     const techId = techIds.get(f.tech!.key)!;
     const target = { projectId, techId, version: f.tech!.version };
     const [eco, name] = f.tech!.key.startsWith("npm:") ? (["npm", f.tech!.key.slice(4)] as const) : (["PyPI", f.tech!.key.slice(5)] as const);
     try {
-      const result = gradeFromOsv(f.tech!.version, await queryOsv(name, eco, f.tech!.version));
+      const facts = repoFacts.get(techId);
+      const result = gradeFromOsv(f.tech!.version, await queryOsv(name, eco, f.tech!.version), facts && { ...facts, nowMs: Date.now() });
       await applyGrade(db, runId, target, result);
       graded.push({ f, techId, result });
     } catch (e) {

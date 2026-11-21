@@ -1,9 +1,9 @@
 // 정기 OSV 재확인의 순수 규칙(P-9d, SPEC-3.1·8): (기술, 버전)으로 묶기, 이전 상태, 위험이 이어지는 중인지와 회차. DB·네트워크는 lib/server.
-import type { Grade, GradeResult } from "./grade.ts";
+import type { Grade, GradeResult, RepoFacts } from "./grade.ts";
 
 export type OsvEcosystem = "npm" | "PyPI";
-/** 내 기술 한 줄(한 사람의 한 프로젝트) 중 OSV 확인에 필요한 값 */
-export type MyTechRow = { techId: string; techKey: string; version: string | null; grade: Grade; gradedAt: string | null; evidence: unknown; checkedAt: string | null };
+/** 내 기술 한 줄(한 사람의 한 프로젝트) 중 OSV 확인에 필요한 값. repo는 기술(카탈로그)의 값이라 같은 기술의 줄마다 같다 */
+export type MyTechRow = { techId: string; techKey: string; version: string | null; grade: Grade; gradedAt: string | null; evidence: unknown; checkedAt: string | null; repo: RepoFacts };
 export type OsvTarget = {
   techId: string;
   techKey: string;
@@ -18,6 +18,8 @@ export type OsvTarget = {
   lastNonDangerAt: string | null;
   /** 가장 오래된 확인 시각(한 줄이라도 안 본 적이 있으면 ""): 오래 안 본 것부터 읽는 순서 */
   checkedAt: string;
+  /** 통과 판단에 쓰는 저장소 확인 값(P-9가 남긴 것) */
+  repo: RepoFacts;
 };
 /** 같은 (기술, 버전, 원인)의 가장 큰 회차의 변경 */
 export type LatestChange = { id: string; round: number; createdAt: string };
@@ -52,6 +54,7 @@ function toTarget(rows: MyTechRow[], names: { ecosystem: OsvEcosystem; name: str
     prevEvidenceIds: evidenceIds(basis?.evidence),
     lastNonDangerAt: latestGraded(rows.filter((r) => r.grade !== "danger"))?.gradedAt ?? null,
     checkedAt: rows.map((r) => r.checkedAt ?? "").sort(byCode)[0],
+    repo: first.repo,
   };
 }
 

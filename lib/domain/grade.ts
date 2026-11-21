@@ -34,6 +34,21 @@ export type GradeResult = {
   fixedVersion: string | null;
 };
 
+/** 저장소 정보 확인(P-9)이 technologies에 남긴 값. 통과는 이 값이 신선할 때만 준다(SPEC-1). */
+export type RepoFacts = { status: string; activityAt: string | null; checkedAt: string | null; missedCount: number };
+export type RepoCheck = RepoFacts & { nowMs: number };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// 7일·90일은 팀 추정(spec 1절 "최근 3개월"). 확인 시각도 보는 이유: 수집이 멈춰 낡은 푸시 시각이 "최근"으로 남아 있어도 거짓 통과가 되지 않게(불변 2)
+const CHECK_MAX_AGE_MS = 7 * DAY_MS;
+const ACTIVITY_MAX_AGE_MS = 90 * DAY_MS;
+
+// 못 찾음(missedCount>0)이 한 번이라도 쌓였거나 상태가 active가 아니면 신선하지 않다. 날짜가 깨져 NaN이면 비교가 거짓이라 신선하지 않다.
+function repoIsFresh(r: RepoCheck): boolean {
+  if (r.status !== "active" || r.missedCount > 0 || !r.checkedAt || !r.activityAt) return false;
+  return r.nowMs - Date.parse(r.checkedAt) <= CHECK_MAX_AGE_MS && r.nowMs - Date.parse(r.activityAt) <= ACTIVITY_MAX_AGE_MS;
+}
+
 const HIGH = new Set(["HIGH", "CRITICAL"]);
 
 // 심각도 글자가 없는 항목은 위험으로 올리지 않되 버리지도 않는다(주의).
@@ -95,9 +110,9 @@ const named = (e: Evidence) => [e.id, ...e.aliases.filter((a) => a.startsWith("C
 /**
  * version이 있으면 OSV는 그 버전에 해당하는 취약점만 준다 → HIGH·CRITICAL이 하나라도 있으면 위험.
  * version이 없으면(범위·미지정) 그 패키지의 모든 취약점 → 아직 안 고친 HIGH·CRITICAL만 위험, 고친 것뿐이면 주의.
- * 취약점이 없어도 저장소 정보(P-9) 확인 전에는 "통과"를 주지 않는다(SPEC-1 통과 조건).
+ * 취약점이 없어도 저장소 정보(P-9)가 신선하게 확인되기 전에는 "통과"를 주지 않는다(SPEC-1 통과 조건). repo를 안 주면 늘 확인 전이다.
  */
-export function gradeFromOsv(version: string | null, vulns: OsvVuln[]): GradeResult {
+export function gradeFromOsv(version: string | null, vulns: OsvVuln[], repo?: RepoCheck): GradeResult {
   const evidence = vulns.map(toEvidence).sort((a, b) => a.id.localeCompare(b.id));
   const high = evidence.filter((e) => HIGH.has(e.severity));
   const dangerous = version ? high : high.filter((e) => e.fixed === null);
@@ -120,5 +135,8 @@ export function gradeFromOsv(version: string | null, vulns: OsvVuln[]): GradeRes
   if (evidence.length > 0) {
     return { grade: "caution", reason: `덜 심각한 알려진 문제가 ${evidence.length}건 있어요(${named(evidence[0])}).`, evidence, causeId: null, fixedVersion: null };
   }
-  return { grade: "unknown", reason: "알려진 취약점은 없어요. 저장소 정보는 아직 확인하지 않았어요.", evidence, causeId: null, fixedVersion: null };
+  if (repo && repoIsFresh(repo)) {
+    return { grade: "pass", reason: "알려진 취약점이 없고, 저장소가 최근 3개월 안에 고쳐지고 있어요.", evidence, causeId: null, fixedVersion: null };
+  }
+  return { grade: "unknown", reason: "알려진 취약점은 없어요. 저장소 정보는 아직 확인하지 않았거나 오래됐어요.", evidence, causeId: null, fixedVersion: null };
 }

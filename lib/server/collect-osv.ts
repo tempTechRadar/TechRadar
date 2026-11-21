@@ -69,9 +69,9 @@ async function checkEach(run: Run, targets: OsvTarget[], deadlineMs: number): Pr
 }
 
 /** 외부 응답을 등급으로 읽다 나는 오류는 그 기술의 해석 실패(parse)다. 한 기술의 이상한 응답이 매일 모든 확인을 멈추게 두지 않는다. */
-function gradeOf(t: OsvTarget, vulns: OsvVuln[]): GradeResult {
+function gradeOf(t: OsvTarget, vulns: OsvVuln[], nowMs: number): GradeResult {
   try {
-    return gradeFromOsv(t.version, vulns);
+    return gradeFromOsv(t.version, vulns, { ...t.repo, nowMs });
   } catch (e) {
     throw new CollectError("parse", `${t.techKey}: OSV 응답을 등급으로 읽지 못함: ${e instanceof Error ? e.message : String(e)}`);
   }
@@ -83,7 +83,7 @@ async function checkOne(run: Run, t: OsvTarget): Promise<void> {
   if (tally.requests++ > 0) await d.sleep(REQUEST_GAP_MS);
   let result: GradeResult;
   try {
-    result = gradeOf(t, await d.queryOsv(t.name, t.ecosystem, t.version));
+    result = gradeOf(t, await d.queryOsv(t.name, t.ecosystem, t.version), d.now());
   } catch (e) {
     if (!(e instanceof CollectError)) throw e;
     tally.failed.push({ key: `${t.techKey}@${t.version ?? "?"}`, kind: e.kind, message: e.message });

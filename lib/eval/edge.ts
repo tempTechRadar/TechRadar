@@ -68,9 +68,11 @@ async function replayOnce(i: Pick<OsvRead, "package" | "ecosystem" | "version">,
   }
 }
 
+// 경계 사례는 변경 감지만 본다. 저장소 확인은 비워 둬 취약점 0건은 늘 "찾지 못함"이다(통과 채점은 G5)
 const targetOf = (i: OsvRead, prev: Prev): OsvTarget => ({
   techId: i.techKey, techKey: i.techKey, version: i.version, ecosystem: i.ecosystem, name: i.package,
   prevGrade: prev.grade, prevEvidence: null, prevEvidenceIds: prev.evidenceIds, lastNonDangerAt: prev.lastNonDangerAt, checkedAt: "",
+  repo: { status: "active", activityAt: null, checkedAt: null, missedCount: 0 },
 });
 
 /** ② 수집기 gradeOf와 같다: 등급으로 읽다 터지면 그 기술의 해석 실패 */
