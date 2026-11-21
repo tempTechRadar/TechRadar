@@ -61,7 +61,7 @@ test("점검 사실: 개념은 등급 · 저장소가 없어 아무 사실도 �
   assert.deepEqual(run(graphOf([["개발", [1]]]), [concept]), []);
 });
 
-test("점검 사실: 오래된 릴리스 · 변경(365일 경계 · 미래 · 읽을 수 없는 시각 · 없음은 말하지 않음)", () => {
+test("점검 사실: 오래된 릴리스 · 변경(365일 경계), 활동 날짜를 모르면 '확인하지 못했어요'", () => {
   const one = (over: Partial<CheckTech>) => run(graphOf([["개발", [1]]]), [tech(1, over)]);
   assert.deepEqual(one({ lastActivityAt: daysAgo(STALE_DAYS - 1) }), []);
   const old = one({ lastActivityAt: daysAgo(STALE_DAYS), lastActivityKind: "release" });
@@ -70,9 +70,15 @@ test("점검 사실: 오래된 릴리스 · 변경(365일 경계 · 미래 · �
   assert.equal(old[0].severity, "warn");
   assert.equal(old[0].source.label, "저장소 활동 기록");
   assert.match(one({ lastActivityAt: daysAgo(400), lastActivityKind: "commit" })[0].text, /마지막 변경이 13개월 전/);
-  assert.deepEqual(one({ lastActivityAt: daysAgo(-30) }), [], "미래 시각");
-  assert.deepEqual(one({ lastActivityAt: "어제쯤" }), [], "읽을 수 없는 시각");
-  assert.deepEqual(one({ lastActivityAt: null }), [], "활동을 못 읽은 것은 오래됐다고 단정하지 않는다");
+  assert.deepEqual(one({ lastActivityAt: daysAgo(0) }), [], "오늘 활동은 말할 것 없음");
+  for (const [label, lastActivityAt] of [["비어 있음", null], ["읽을 수 없는 시각", "어제쯤"], ["미래 시각", daysAgo(-30)]] as const) {
+    const f = one({ lastActivityAt });
+    assert.deepEqual(kinds(f), ["unread"], label);
+    assert.equal(f[0].severity, "info", label);
+    assert.match(f[0].text, /"기술1"의 마지막 활동 날짜를 확인하지 못했어요/, label);
+    assert.deepEqual(f[0].source, { label: "저장소 활동 기록", url: "https://github.com/acme/t1" }, label);
+  }
+  assert.deepEqual(kinds(one({ lastActivityAt: null, collectErrorKind: "network" })), ["collect_error"], "수집 오류가 있으면 그 사실 하나만(날짜 얘기는 따로 안 함)");
 });
 
 test("점검 사실: 겹치는 기능은 확정된 같은 역할만 — 같은 단계 · 다른 단계 · 순서 뒤집힌 중복 · 그래프에 없는 짝", () => {

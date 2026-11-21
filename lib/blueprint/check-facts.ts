@@ -53,11 +53,17 @@ function techFacts(stage: Stage, name: string, id: string, tech: CheckTech | und
   return out;
 }
 
-/** 수집 오류가 있으면 활동 시각도 믿을 수 없어서 말하지 않는다(위 호출이 else로 막음). 미래 시각 · 읽을 수 없는 시각도 말하지 않는다 */
+/**
+ * 수집 오류가 있으면 활동 시각도 믿을 수 없어서 말하지 않는다(위 호출이 else로 막음).
+ * 오류는 없는데 시각이 비었거나 읽을 수 없거나 미래면 "문제 없음"으로 읽히지 않게 "확인하지 못했어요"를 남긴다(불변 2).
+ */
 function staleFact(base: Pick<Fact, "stageIds" | "techIds">, tech: CheckTech, now: Date): Fact[] {
   const at = tech.lastActivityAt ? Date.parse(tech.lastActivityAt) : NaN;
   const days = Math.floor((now.getTime() - at) / DAY_MS);
-  if (!Number.isFinite(days) || days < STALE_DAYS) return [];
+  if (!Number.isFinite(days) || days < 0) {
+    return [{ ...base, kind: "unread", severity: "info", text: `"${tech.name}"의 마지막 활동 날짜를 확인하지 못했어요.`, source: { label: SRC.activity, url: tech.link } }];
+  }
+  if (days < STALE_DAYS) return [];
   const what = tech.lastActivityKind === "release" ? "릴리스가" : "변경이";
   return [{ ...base, kind: "stale", severity: "warn", text: `"${tech.name}"은(는) 마지막 ${what} ${Math.floor(days / 30)}개월 전이에요(${day(tech.lastActivityAt!)}).`, source: { label: SRC.activity, url: tech.link } }];
 }
