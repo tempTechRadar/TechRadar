@@ -7,7 +7,6 @@ import { readPublicTemplates, type PublicTemplate } from "@/lib/server/blueprint
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { HideButton } from "./hide-button";
-import "../../alerts/alerts.css";
 import "./gallery.css";
 
 export const metadata = { title: "템플릿 갤러리 · TechRadar" };
@@ -47,7 +46,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
   const list = !db ? (preview ? [] : null)
     : await readPublicTemplates(db, kind).catch((e) => { console.error("템플릿 갤러리 조회 실패", e instanceof Error ? e.message : e); return null; });
   return (
-    <main className="alerts gl-page">
+    <main className="page gl-page">
       <h1>템플릿 갤러리</h1>
       <p className="muted">다른 사람이 공개한 청사진이에요. 보이는 사람 정보는 별명뿐이에요. 내 템플릿은 청사진 화면의 템플릿 탭에서 공개할 수 있어요.</p>
       <nav aria-label="템플릿 종류" className="gl-filters">

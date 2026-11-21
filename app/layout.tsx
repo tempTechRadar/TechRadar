@@ -14,6 +14,7 @@ import { SAMPLE_RECENT } from "@/lib/dev/preview-data";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "./tokens.css";
+import "./page.css"; // 공용 페이지 틀: 화면마다 다시 불러오지 않는다(P-12f ④)
 import "./site-nav.css";
 
 export const metadata: Metadata = {

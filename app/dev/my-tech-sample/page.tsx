@@ -5,7 +5,6 @@ import type { MyTechDetail } from "@/lib/server/my-tech";
 import { AddTech } from "../../projects/add-tech";
 import { ProjectTechs, type ProjectRow } from "../../projects/tech-table";
 import { TechDetail } from "../../projects/tech/[id]/tech-detail";
-import "../../alerts/alerts.css";
 
 const NOW = "2026-11-18T05:00:00Z";
 const tech = (tech_key: string, display_name: string) => ({ tech_key, display_name });
@@ -47,7 +46,7 @@ export default async function MyTechSamplePage({ searchParams }: { searchParams:
   const { view, hidden } = await searchParams;
   if (view === "detail") return <TechDetail d={DETAIL} />;
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>내 기술 목록 샘플 (실제 기록 아님)</h1>
       <p className="notice notice-empty" role="note">개발 컴퓨터에서만 보이는 화면이에요. <a href="?view=detail">기술 상세 샘플</a> · <a href="?hidden=1">숨긴 기술도 보기</a></p>
       {PROJECTS.map((p) => <ProjectTechs key={p.id} project={p} filter={{ showHidden: hidden === "1" }} back="" />)}

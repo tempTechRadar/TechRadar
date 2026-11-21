@@ -1,4 +1,4 @@
-/* 보드(칸반)와 보기 탭. 값은 공용 토큰(app/tokens.css), .alerts의 단추·숫자 카드를 함께 쓴다 */
+/* 보드(칸반)와 보기 탭. 값은 공용 토큰(app/tokens.css), .page의 단추·숫자 카드를 함께 쓴다 */
 .views-page { max-width: 1200px; }
 .views-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
 .views-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; }

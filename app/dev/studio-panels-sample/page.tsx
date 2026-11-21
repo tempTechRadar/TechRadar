@@ -3,13 +3,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SAMPLE_BLUEPRINT, SAMPLE_TAGS } from "@/lib/dev/preview-data";
 import { PanelsSample } from "./panels-sample";
-import "../../alerts/alerts.css";
 import "../../blueprint/studio.css"; // 기술 칩(tech-chip) 모양
 
 export default function StudioPanelsSamplePage() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>청사진 패널 샘플 (실제 기록 아님)</h1>
       <p role="note" className="notice notice-empty">개발 컴퓨터에서만 보이는 화면이에요. 캔버스 자리는 비워 두고 패널 셋만 붙였어요. 사용기 · 내 태그 저장은 로그인해야 읽혀요.</p>
       <Suspense><PanelsSample {...SAMPLE_BLUEPRINT} tags={SAMPLE_TAGS} /></Suspense>

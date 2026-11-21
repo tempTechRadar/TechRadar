@@ -10,7 +10,6 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FilterSelect } from "../alerts/filter-select";
-import "../alerts/alerts.css";
 import "../views/views.css";
 import { registerProject } from "./actions";
 import { AddTech } from "./add-tech";
@@ -37,7 +36,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const query = await searchParams;
   if (isPreviewUser(user)) return <PreviewOnly title="내 프로젝트" />; // 미리보기(개발용)는 DB를 부르지 않는다. 프로젝트 샘플은 없어서 안내만
   const supabase = await getServerSupabase();
-  if (!supabase) return <main className="alerts"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;
+  if (!supabase) return <main className="page"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;
   const { data, error: loadError } = await supabase
     .from("projects")
     .select("id, name, kind, repo_url, memo, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name)), runs!runs_project_id_fkey(status, created_at)")
@@ -69,7 +68,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const staleProject = Boolean(query.project) && !projects.some((p) => p.id === query.project);
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>내 프로젝트</h1>
       <nav className="views-tabs" aria-label="내 프로젝트 화면">
         <a href="#techs" aria-current="page">내 기술</a>

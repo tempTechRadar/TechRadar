@@ -18,7 +18,7 @@ export function CatalogTechView({ d, markBar, usingText, notes, guest = false }:
   const t = d.tech;
   const note = t.oneLiner ? null : fixedNote(t.techKey);
   return (
-    <main className="alerts tech-detail">
+    <main className="page tech-detail">
       <header className="td-head">
         <p className="muted"><a href={`/?sel=${encodeURIComponent(`tech:${t.id}`)}`}>← 지도에서 보기</a></p>
         <h1>{t.name}</h1>

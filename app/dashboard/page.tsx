@@ -22,7 +22,6 @@ import { ReviewCard, WeekCard } from "./extra-cards";
 import { NewsTab } from "./news-tab";
 import { Applied, Pending, Repos, RecommendCard } from "./overview";
 import { StatusTabs } from "./status-tabs";
-import "../alerts/alerts.css";
 
 // 현황(P-12f ④, 옛 대시보드 IA-5 · PRD-F22, 주소 /dashboard 유지) = 탭 개요 | 일지(/history) | 소식(?tab=news).
 // 개요 = 안내서 필수 숫자 4칸(누르면 같은 조건의 목록) → 내 레포 현황 → 적용한 기술 → 판단 대기 → 이번 주 · 보류 회고 → 추천. 숫자는 모든 프로젝트 합계.
@@ -55,7 +54,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 }
 
 function Shell({ now, children }: { now: "overview" | "news"; children: React.ReactNode }) {
-  return <main className="alerts"><h1>현황</h1><StatusTabs now={now} />{children}</main>;
+  return <main className="page"><h1>현황</h1><StatusTabs now={now} />{children}</main>;
 }
 
 /** 로그인 전: 소식만(공개 값: 바깥 소식 · 뜨는 기술 · 새 공식, 내 취약점은 빠짐). 내 레포 · 알림은 로그인 안내 */

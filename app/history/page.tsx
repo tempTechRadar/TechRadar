@@ -9,7 +9,6 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { StatusTabs } from "../dashboard/status-tabs";
-import "../alerts/alerts.css";
 
 // 일지(IA-9, PRD-F20 · 11-21 화면 개편 B → P-12f ④ 현황의 탭): 판단 대기 알림 → 알림 · 판단을 시간순 한 흐름 + 찾기. 숫자 4칸은 현황 개요에만.
 // 흐름의 "알림"은 내 기술의 변경이 알림으로 온 것(대시보드 "최근 변경"과 같은 기준), "판단"은 알림 판단과 지도에서 남긴 판단(관심 · 적용 후보 · 보류).
@@ -41,7 +40,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const events = (marks.data ?? []) as unknown as MarkEvent[];
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>현황</h1>
       <StatusTabs now="journal" />
       <Pending records={records} />

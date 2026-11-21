@@ -13,7 +13,6 @@ import { readTopUsageNotes } from "@/lib/server/usage-notes";
 import { usingNowText } from "@/lib/views/using-now-text";
 import { MarkBar } from "../../projects/tech/[id]/mark-bar";
 import { CatalogTechView } from "./catalog-tech-view";
-import "../../alerts/alerts.css";
 
 // 카탈로그 기술 상세(design.md 17절 2차 "지도의 모든 기술에 상세가 열림", IA-4). 머리 + 2단은 내 기술 상세와 같은 틀.
 // 내 기술이면 프로젝트 줄의 상세(버전 · 내 등급 · 사용기)로 가는 길을 함께 보인다.
@@ -52,7 +51,7 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
 
 function LoadError({ id }: { id: string }) {
   return (
-    <main className="alerts">
+    <main className="page">
       <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요(조회 실패). 없는 게 아니에요. <Link href={`/tech/${id}`}>다시 불러오기</Link></p>
     </main>
   );

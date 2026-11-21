@@ -8,7 +8,6 @@ import { getMyTechDetail, recordGradeView, type MyTechDetail } from "@/lib/serve
 import { readUsageNotes, type UsageNoteView } from "@/lib/server/usage-notes";
 import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
-import "../../../alerts/alerts.css";
 import { readMarkForTech } from "@/lib/server/marks";
 import { MarkBar } from "./mark-bar";
 import { TechDetail } from "./tech-detail";
@@ -61,7 +60,7 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
 
 function LoadError() {
   return (
-    <main className="alerts">
+    <main className="page">
       <p className="muted"><Link href="/projects">← 내 프로젝트로</Link></p>
       <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
     </main>

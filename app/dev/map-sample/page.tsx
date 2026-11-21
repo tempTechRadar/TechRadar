@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { buildTechMap } from "@/lib/map/build-map";
 import { SAMPLE_NOW, SAMPLE_PROJECTS, sampleMapInput } from "@/lib/dev/preview-data";
 import { CanvasMap } from "../../tech-map/canvas-map";
-import "../../alerts/alerts.css";
 
 export default async function MapSamplePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (process.env.NODE_ENV === "production") notFound();
@@ -12,7 +11,7 @@ export default async function MapSamplePage({ searchParams }: { searchParams: Pr
   const query = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => typeof e[1] === "string" && e[0] !== "mode")).toString();
   const model = buildTechMap(sampleMapInput(catalog), SAMPLE_NOW);
   return (
-    <main className="alerts map-page">
+    <main className="page map-page">
       <h1 className="sr-only">기술 지도 샘플</h1>
       <CanvasMap model={model} projects={SAMPLE_PROJECTS} initialQuery={query} canSave login={!catalog} />
     </main>

@@ -10,7 +10,6 @@ import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { chipHref, currentOf } from "@/lib/alerts/alert-chips";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
-import "./alerts.css";
 
 // 알림 목록(IA-6, PRD-F14). 판단 버튼은 P-8, 대응안 초안은 P-13에서 상세에 붙인다.
 type Params = { kind?: string; status?: string; period?: string; project?: string };
@@ -23,7 +22,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
     : await listMyAlerts((await getServerSupabase())!, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>알림</h1>
       {records === null ? <LoadError /> : records.length === 0 ? <Empty /> : <List records={records} params={params} />}
     </main>

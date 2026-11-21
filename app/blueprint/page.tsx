@@ -12,7 +12,6 @@ import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
 import { readTemplateForUse } from "@/lib/server/blueprint-templates";
 import { Studio } from "./studio";
 import { GUEST } from "./use-studio-graph";
-import "../alerts/alerts.css";
 import "./blueprint.css";
 
 export const metadata = { title: "청사진 · TechRadar" };
@@ -28,7 +27,7 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
     const anon = want ? await getServerSupabase() : null; // 손님 토큰: blueprint_template_for_use가 열린 템플릿만 준다(M6)
     const tpl = anon && want ? await readTemplateForUse(anon, want, true).catch(log("손님 템플릿 조회 실패")) : null;
     return (
-      <main className="alerts bp-page">
+      <main className="page bp-page">
         <h1 className="sr-only">청사진</h1>
         <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={GUEST} guest pool={[]} history={[]} projects={[]} tags={{}} add={null}
           template={tpl} templateMissing={!!want && !tpl} /></Suspense>
@@ -45,7 +44,7 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
   ]) : [null, null, null, null];
   const data = page && allowed ? { ...page, pool: page.pool.filter((t) => allowed.has(t.id)) } : page;
   return (
-    <main className="alerts bp-page">
+    <main className="page bp-page">
       <h1 className="sr-only">청사진</h1>
       {/* 하단 패널이 주소의 add=를 읽어(useSearchParams) Suspense로 감싼다 */}
       {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null}

@@ -19,7 +19,7 @@ export function TechDetail({ d, using, markBar, children }: { d: MyTechDetail; u
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
   const evidence = evidenceLinks(d.grade_evidence);
   return (
-    <main className="alerts tech-detail">
+    <main className="page tech-detail">
       <header className="td-head">
         <p className="muted">
           <Link href="/projects">← 내 프로젝트로</Link>

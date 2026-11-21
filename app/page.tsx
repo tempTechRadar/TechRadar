@@ -22,7 +22,6 @@ import { StartChecklist } from "./tech-map/start-checklist";
 import { startSteps } from "@/lib/onboarding/start-steps";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_DASHBOARD, SAMPLE_FIRST_READS, sampleMapInput } from "@/lib/dev/preview-data";
-import "./alerts/alerts.css";
 
 /** 주소의 sel=tech:<uuid>(지도에서 보기)에서 기술 id만. 모양이 다르면 버린다 */
 const selTech = (query: string) => { const m = /^tech:([0-9a-f-]{36})$/i.exec(new URLSearchParams(query).get("sel") ?? ""); return m ? [m[1]] : []; };
@@ -66,7 +65,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     const extra = db ? await readListedByIds(db, want).catch(logged("고른 기술 조회 실패")) : null;
     const input = cached && extra?.length ? { ...cached, techs: [...cached.techs, ...extra] } : cached;
     return (
-      <main className="alerts map-page">
+      <main className="page map-page">
         <h1 className="sr-only">기술 지도</h1>
         <MapBody model={input ? capNew(buildTechMap({ ...input, trending: hot }, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
           <span className="map-chip map-chip-note">로그인하면 관심·판단·내 기술 비교가 열려요.</span>
@@ -92,7 +91,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 
   return (
-    <main className="alerts map-page">
+    <main className="page map-page">
       <h1 className="sr-only">기술 지도</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>

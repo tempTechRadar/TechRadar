@@ -15,7 +15,6 @@ import { JudgmentForm } from "./judgment-form";
 import { ComparisonCard, ReasonCard } from "./opportunity-cards";
 import { ScenarioCard } from "./scenario-card";
 import { SimilarCard } from "./similar-card";
-import "../alerts.css";
 
 // 알림 상세(IA-7, PRD-F15). 적용 기회는 이유와 비교표(P-14), 대응안 초안(P-13), 적용 시나리오(P-15, IA-8).
 // 적용 시나리오 만들기는 Claude를 부르는 서버 액션이라 시간이 걸린다(Vercel 함수 한도를 늘림).
@@ -41,7 +40,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
   return (
-    <main className="alerts alert-detail">
+    <main className="page alert-detail">
       <header className="alert-head">
         <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
         <h1>{view.title}</h1>
@@ -122,7 +121,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function LoadError({ id }: { id: string }) {
   return (
-    <main className="alerts">
+    <main className="page">
       <div className="notice notice-error" role="alert">
         <strong>알림을 불러오지 못했어요.</strong> 알림이 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요. <Link href={`/alerts/${id}`}>다시 불러오기</Link>
       </div>

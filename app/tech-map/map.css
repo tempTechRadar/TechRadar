@@ -75,7 +75,7 @@ body:has(.map-page) .site-nav .site-nav-add { display: none; }
 /* 11-21 사용자: 지도 화면은 스크롤 없이 지도만(높이 = 화면, 넘치는 것은 지도 안에서 끌어 다님) */
 body:has(.map-page) { padding: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
 body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
-.alerts.map-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; }
+.page.map-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; }
 .map-page > .notice, .map-page > section, .map-page > div:not(.map-wrap) { margin: var(--sp-2) var(--sp-4) 0; }
 .map-page .map-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .map-page .map-stage { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; }

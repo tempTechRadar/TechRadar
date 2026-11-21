@@ -7,7 +7,6 @@ import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
-import "../alerts/alerts.css";
 
 // 설정(IA-19, PRD-F34·F1): 별명과 "쓰고 있어요"에 내 별명 보이기(기본 켜짐). 가입 직후(임시 별명)에는 별명을 먼저 정하게 한다(IA-1).
 type Params = { welcome?: string; next?: string };
@@ -23,7 +22,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const welcome = isTempNickname(user.nickname, user.id); // 임시 별명일 때만(주소의 welcome 값은 믿지 않는다)
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>설정</h1>
       {welcome ? (
         <div className="notice notice-empty">
