@@ -201,7 +201,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
   const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
-    onName: setName, onCandidate: (tid, tn) => void markCandidate(tid, tn), marking };
+    onCandidate: (tid, tn) => void markCandidate(tid, tn), marking };
 
   return (
     <div className="studio" data-step={step} onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
