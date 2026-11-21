@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { MyTechRow } from "@/lib/install/from-my-tech";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readArchivedProjectIds } from "@/lib/server/project-edit";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -14,6 +16,7 @@ type JudgmentRow = { fixed_version: string | null; alerts: { my_technology_id: s
 export default async function InstallPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="설치 프롬프트" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const db = await getServerSupabase();
   if (!db) return <main><h1>설치 프롬프트</h1><p>Supabase 연결 전이에요.</p></main>;
   const techRes = await db

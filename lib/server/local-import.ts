@@ -50,6 +50,10 @@ export async function localProjectId(db: SupabaseClient, userId: string): Promis
   return made.data.id as string;
 }
 
+/** 폼 · 지도에서 고른 넣을 곳: "local"이면 프로젝트 밖 칸(처음 쓸 때 만듦), 아니면 받은 id 그대로(주인 확인은 addTech가) */
+export const resolveProjectId = (db: SupabaseClient, userId: string, raw: string): Promise<string> =>
+  raw === "local" ? localProjectId(db, userId) : Promise.resolve(raw);
+
 async function lookups(db: SupabaseClient, items: InstallItem[], projectId: string) {
   const keys = [...new Set(items.map(techKeyOf).filter((k): k is string => k !== null))];
   const techs = keys.length ? await db.from("technologies").select("id, tech_key").in("tech_key", keys) : { data: [], error: null };

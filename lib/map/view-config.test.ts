@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_VIEW, filterCount, groupOf, parseView, viewQuery } from "./view-config.ts";
+import { DEFAULT_VIEW, filterCount, groupOf, parseView, passes, viewQuery, type ViewConfig } from "./view-config.ts";
 
 test("주소 → 보기 설정 → 주소가 같다(기본값은 주소에 싣지 않음)", () => {
   assert.deepEqual(parseView(""), DEFAULT_VIEW);
@@ -31,4 +31,52 @@ test("이 분류만 보기(in=): 기준마다 한 번, 모르는 기준은 버�
   assert.deepEqual(parseView(viewQuery(v)), v);
   assert.deepEqual(groupOf(v), []);
   assert.equal(filterCount(v), 3);
+});
+
+test("기본 보기는 종류가 둘 이상일 때만 종류 먼저, 하나뿐이면 하는 일 먼저(주소로 고른 묶기는 그대로)", async () => {
+  const { defaultFor, withDefault } = await import("./view-config.ts");
+  assert.deepEqual([defaultFor(3).group, defaultFor(3).color], [["kind", "field"], "kind"]);
+  assert.deepEqual([defaultFor(1).group, defaultFor(1).color], [["field", "kind"], "field"]);
+  assert.deepEqual(withDefault(parseView(""), "", 1).group, ["field", "kind"]);
+  assert.deepEqual(withDefault(parseView("g=host"), "g=host", 1).group, ["host"]);
+  assert.equal(withDefault(parseView("c=grade"), "c=grade", 1).color, "grade");
+  assert.equal(withDefault(parseView("c=nope"), "c=nope", 1).color, "field", "잘못된 c는 없는 것으로");
+  // 종류 하나인 지도에서 일부러 종류 먼저를 고르면 주소에 남고, 되살리면 그대로
+  const picked = { ...defaultFor(1), group: ["kind", "field"] as ViewConfig["group"], color: "kind" as ViewConfig["color"] };
+  const saved = viewQuery(picked, defaultFor(1));
+  assert.deepEqual(withDefault(parseView(saved), saved, 1).group, ["kind", "field"]);
+  assert.equal(viewQuery(defaultFor(1), defaultFor(1)), "", "기본 그대로면 싣지 않음");
+});
+
+test("기간 칩: 들어온 지 하루 · 7일 · 30일 안만, 처음 채운 날 것(addedDays 없음)은 어느 기간에도 안 듦. 옛 주소 new=1은 이번 주", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, ago, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], newSince: ago(60), techs: [
+    tech("d", { createdAt: ago(0.5) }), tech("w", { createdAt: ago(3) }), tech("m", { createdAt: ago(20) }), tech("old", { createdAt: ago(90) }), tech("bulk", { createdAt: null }),
+  ] }, NOW);
+  const shown = (t: string) => m.nodes.filter((n) => passes(n, parseView(`t=${t}`))).map((n) => n.name).sort();
+  assert.deepEqual([shown("day"), shown("week"), shown("month")], [["d"], ["d", "w"], ["d", "m", "w"]]);
+  assert.equal(parseView("new=1").filter.period, "week");
+  assert.equal(parseView("t=year").filter.period, "");
+  assert.equal(viewQuery(parseView("t=month&mk=1")), "t=month&mk=1");
+  assert.equal(filterCount(parseView("t=day&mk=1")), 2);
+});
+
+test("11-21에 바꾼 이름: 저장된 보기 · 주소의 옛 값(패키지 · 모름 · 분류 전)은 새 값으로 읽는다", () => {
+  const v = parseView(`fk=${encodeURIComponent("패키지,모름,개발 도구")}&ff=${encodeURIComponent("분류 전")}&fs=${encodeURIComponent("분류 전")}`);
+  assert.deepEqual([v.filter.kinds, v.filter.fields, v.filter.subs], [["개발 도구", "직접 넣은 것"], ["아직 분류 안 됨"], ["아직 분류 안 됨"]]);
+});
+
+test("내 태그 거르기: tg=를 여러 번(쉼표가 든 태그도), 하나라도 붙으면 보임, 대소문자는 같게. 태그 못 읽으면 모델에 표시", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a"), tech("b"), tech("c")],
+    tags: { [tech("a").id]: ["React"], [tech("b").id]: ["회사, 팀"] } }, NOW);
+  const v = parseView(`tg=react&tg=${encodeURIComponent("회사, 팀")}`);
+  assert.deepEqual(v.filter.tags, ["react", "회사, 팀"]);
+  assert.deepEqual(m.nodes.filter((n) => passes(n, v)).map((n) => n.name).sort(), ["a", "b"]);
+  assert.deepEqual(parseView(viewQuery(v)).filter.tags, v.filter.tags);
+  assert.equal(filterCount(v), 2);
+  assert.equal(m.tagsFailed, false);
+  assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")], tags: null }, NOW).tagsFailed, true);
 });

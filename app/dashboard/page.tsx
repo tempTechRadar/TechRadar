@@ -10,6 +10,8 @@ import { findReviewDue } from "@/lib/alerts/find-review-due";
 import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { ReviewCard, WeekCard } from "./extra-cards";
@@ -21,6 +23,7 @@ type Params = { status?: string; period?: string; project?: string };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="대시보드" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const data = await readDashboardData(supabase, user.id).catch((e) => { console.error("대시보드 조회 실패", e); return null; });

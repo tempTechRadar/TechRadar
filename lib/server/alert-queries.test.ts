@@ -62,6 +62,8 @@ test("내 알림만 최신순으로 읽어 화면용 줄(AlertRecord)로 바꾼�
       projectId: "proj-1",
       projectName: "TechRadar",
       sourceFile: "package.json",
+      myTechnologyId: null,
+      tech: null,
       change: {
         kind: "grade_to_danger",
         techName: "mcp-remote",
@@ -151,4 +153,16 @@ test("변경에 저장된 대응안 초안(글과 출처)도 읽는다. 비었�
   assert.deepEqual(a.change.draft, { text: "고친 버전으로 올리세요", sources: ["https://osv.dev/CVE-1"] });
   assert.equal(b.change.draft, null);
   assert.deepEqual(c.change.draft, { text: "초안", sources: [] });
+});
+
+test("변경의 기술에서 행 태그용 하는 일 갈래(세부 갈래면 그 위)와 종류, 지도 · 상세 링크용 id를 읽는다", async () => {
+  const row = alertRow("a1", "user-a", "2026-11-18T01:30:00Z");
+  row.my_technology_id = "mt-1";
+  (row.changes as Row).technologies = { id: "t-1", display_name: "mcp-remote", type: "mcp", categories: { name: "서버·인프라", parent: { name: "배포·운영" } } };
+  const [r] = await listMyAlerts(fakeDb([row]).db, "user-a");
+  assert.deepEqual([r.myTechnologyId, r.tech], ["mt-1", { id: "t-1", type: "mcp", field: "배포·운영" }]);
+  const top = alertRow("a1", "user-a", "2026-11-18T01:30:00Z");
+  (top.changes as Row).technologies = { id: "t-2", display_name: "x", type: "skill", categories: { name: "검사·보안", parent: null } };
+  assert.deepEqual((await listMyAlerts(fakeDb([top]).db, "user-a"))[0].tech, { id: "t-2", type: "skill", field: "검사·보안" });
+  assert.equal((await listMyAlerts(fakeDb([alertRow("a1", "user-a", "2026-11-18T01:30:00Z")]).db, "user-a"))[0].tech, null, "기술 id를 못 읽으면 태그 · 링크 없음");
 });

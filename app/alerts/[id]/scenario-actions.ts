@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { createAnthropicClient } from "@/lib/server/anthropic-client";
 import { generateScenario } from "@/lib/server/scenario";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
@@ -17,6 +18,7 @@ const UNAVAILABLE = "지금은 적용 시나리오를 만들 수 없어요. 잠�
  * 판단·알림 상태는 건드리지 않는다. 서비스 키는 결과·호출 기록 쓰기와 카탈로그 읽기에만 쓴다(내 알림 읽기·요청 줄은 사용자 클라이언트).
  */
 export async function requestScenario(_previous: ScenarioState, formData: FormData): Promise<ScenarioState> {
+  if (await isLoginPreview()) return { message: PREVIEW_NO_SAVE, tone: "info" }; // 미리보기(개발용): Claude도 부르지 않는다
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const alertId = String(formData.get("alertId") ?? "");

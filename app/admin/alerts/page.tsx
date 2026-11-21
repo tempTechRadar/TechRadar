@@ -1,6 +1,7 @@
 // 알림과 처리 현황(IA-14, PRD-F27): 모든 회원의 알림, 판단 상태, 처리한 사람과 시각. 거르기만 하고 판단 버튼은 없다(불변 1, ADR 0016). 관리자만.
 import { periodStart, pickOne } from "@/lib/admin/admin-filter";
 import { alertCounts, filterAlerts, type AdminAlert } from "@/lib/admin/admin-summaries";
+import { KIND_LABEL } from "@/lib/alerts/to-alert-view";
 import { readAlerts } from "@/lib/server/admin-queries";
 import { adminGate } from "@/lib/server/admin-gate";
 import { AdminShell, FilterForm, PERIOD_OPTIONS, Select, when } from "../admin-shell";
@@ -10,7 +11,6 @@ const TITLE = "알림과 처리 현황";
 const LEAD = "모든 회원의 알림과 판단 상태예요. 이 화면에서는 보기만 해요: 판단은 알림을 받은 본인만 할 수 있어요.";
 const STATUSES = ["pending", "done"] as const;
 const KINDS = ["security", "opportunity", "model_eol"] as const;
-const KIND_KO: Record<string, string> = { security: "보안 경고", opportunity: "적용 기회", model_eol: "모델 지원 종료" };
 const DECISION_KO: Record<string, string> = { candidate: "적용 후보", hold: "보류" };
 
 export default async function AdminAlertsPage({ searchParams }: { searchParams: Search }) {
@@ -35,7 +35,7 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
       </ul>
       <FilterForm>
         <Select name="status" label="상태" value={f.status ?? ""} options={[{ value: "", label: "모든 상태" }, { value: "pending", label: "판단 대기" }, { value: "done", label: "처리됨" }]} />
-        <Select name="kind" label="종류" value={f.kind ?? ""} options={[{ value: "", label: "모든 종류" }, ...KINDS.map((k) => ({ value: k, label: KIND_KO[k] }))]} />
+        <Select name="kind" label="종류" value={f.kind ?? ""} options={[{ value: "", label: "모든 종류" }, ...KINDS.map((k) => ({ value: k, label: KIND_LABEL[k].label }))]} />
         <Select name="period" label="기간" value={f.from ? String(sp.period) : ""} options={PERIOD_OPTIONS} />
       </FilterForm>
       <p className="muted">{rows.length}건</p>
@@ -48,7 +48,7 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
                 <tr key={a.id}>
                   <td>{when(a.createdAt)}</td>
                   <td>{a.member}</td>
-                  <td><span className={`badge ${a.kind === "security" ? "danger" : "neutral"}`}>{KIND_KO[a.kind] ?? a.kind}</span></td>
+                  <td><span className={`badge ${a.kind === "security" ? "danger" : "neutral"}`}>{KIND_LABEL[a.kind as keyof typeof KIND_LABEL]?.label ?? a.kind}</span></td>
                   <td>{a.techName} {a.isSimulated ? <span className="badge warning">가짜</span> : null}</td>
                   <td>{a.status === "pending" ? <span className="badge warning">판단 대기</span> : <span className="badge success">처리됨</span>}</td>
                   <td>{a.judgment ? DECISION_KO[a.judgment.decision] ?? a.judgment.decision : "—"}</td>
