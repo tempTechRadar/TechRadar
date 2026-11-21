@@ -2,6 +2,7 @@
 // 보안은 기호로(위험 = 빨간 고리 + 처음 10초 맥박, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
 import { FIRST_RING, LEVEL_GAP, type Item, type TechItem } from "@/lib/map/layout";
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
+import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
 import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge } from "@/lib/map/motion";
 
@@ -18,6 +19,11 @@ type Frame = { c: Ctx; S: MapState; vis: Item[]; P: (it: Item) => Pt; alphaOf: (
 const bumpOf = (age: number) => (age >= 0 && age < 0.3 ? Math.sin((Math.PI * age) / 0.3) : 0); // 0 → 1 → 0, 0.3초
 export const hubRadius = (it: Item, sc: number) => it.r * Math.min(1.4, Math.max(0.7, sc ** 0.5));
 export const dotRadius = (it: Item, sc: number) => Math.max(2.4, it.r * sc ** 0.6);
+/** 배율 단계(네이버 지도처럼 가까이 갈수록 자세히, 11-21 사용자). k = 지도 전체가 화면에 맞을 때 1.
+ *  멀리(far 아래) 1단계 묶음과 수 · 처음 보기 2단계 이름과 점 · 가까이(names~) 모든 기술 이름 · 아주 가까이(detail~) 한국어 한 줄과 인기 · 보안 */
+const TIER = { far: 0.8, names: 2, detail: 4 };
+/** at 앞뒤 20%에서 0 → 1로 스며든다(단계가 툭 바뀌지 않게) */
+const ramp = (k: number, at: number) => Math.max(0, Math.min(1, (k - at * 0.8) / (at * 0.4)));
 
 function hubPath(c: Ctx, x: number, y: number, r: number, level: number) {
   c.beginPath();
@@ -145,10 +151,11 @@ function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
 function drawTechs({ c, S, vis, P, alphaOf, sc, now }: Frame, sa: number) {
   for (const it of vis) {
     if (it.type !== "t") continue;
-    const a = alphaOf(it); if (a <= 0.01) continue;
+    const n = it.node, keep = n.mine || n.grade === "danger" || it.id === S.sel || it.id === S.focusId;
+    const a = alphaOf(it) * (keep ? 1 : 0.35 + 0.65 * ramp(S.cam.k, TIER.far)); if (a <= 0.01) continue; // 멀리서는 점이 옅어지고 묶음이 앞에
     const [x, y] = P(it);
     if (x < -40 || y < -40 || x > S.W + 40 || y > S.H + 40) continue;
-    const n = it.node, b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9));
+    const b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9));
     const g = grow(S, now, it), rp = dotRadius(it, sc) * (it.id === S.focusId ? 1.3 : 1) * (0.35 + 0.65 * g); // 작게 떠올라 제 크기로
     if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
@@ -165,7 +172,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now }: Frame, sa: number) {
     if (n.mine) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.stroke(); }
     if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
-    if (n.isNew && (sc > 0.8 || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
+    if (n.isNew && (S.cam.k >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
     if (it.id === S.sel) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 6, 0, TAU); c.stroke(); }
     const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 모든 점은 옅게 빛나고, 위험 · NEW는 한 번 울림
     if (age < GLOW) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
@@ -183,7 +190,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
   const jobs: { it: Item & { type: "g" }; x: number; y: number; r: number; a: number; shut: boolean; must: boolean }[] = [];
   for (const it of vis) {
     if (it.type !== "g") continue;
-    const a = alphaOf(it); if (a <= 0.01) continue;
+    const a = alphaOf(it) * (it.level === 1 || it.id === S.sel ? 1 : 0.4 + 0.6 * ramp(S.cam.k, TIER.far)); if (a <= 0.01) continue;
     const [x, y] = P(it), b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9)), r = hubRadius(it, sc) * (1 + 0.2 * k) * (it.id === S.focusId ? 1.12 : 1) * (0.35 + 0.65 * grow(S, now, it));
     const shut = S.collapsed.has(it.id), filled = !!it.token && !it.hollow;
     c.globalAlpha = a;
@@ -200,7 +207,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
     c.strokeStyle = col("--ink"); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
     S.handles.push({ id: it.id, x: hx, y: hy });
     const lit = !!S.lit && S.lit.has(it.id) && (S.lit.size < 80 || it.level < 3);
-    if (it.level <= 2 || lit || sc > 2) jobs.push({ it, x, y, r, a, shut, must: it.level === 1 || lit });
+    if (it.level === 1 || lit || (it.level === 2 && S.cam.k >= TIER.far) || S.cam.k >= TIER.names) jobs.push({ it, x, y, r, a, shut, must: it.level === 1 || lit });
   }
   // 이름표는 바깥 방향에. 1단계는 늘, 2단계 이하는 다른 이름표와 겹치지 않을 때만
   jobs.sort((p, q) => Number(q.must) - Number(p.must) || p.it.level - q.it.level);
@@ -219,24 +226,34 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
   c.globalAlpha = 1;
 }
 
-// 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 확대하면 더. 겹치면 건너뛴다
+// 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 가까이 가면 모든 이름(names), 더 가까이 가면 한국어 한 줄 · 인기 · 보안(detail). 겹치면 건너뛴다
 function leafLabels({ c, S, vis, P, sc, now }: Frame) {
   const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
+  const k = S.cam.k, names = ramp(k, TIER.names), det = ramp(k, TIER.detail);
+  const onScreen = (it: Item) => { const [x, y] = P(it); return x > -20 && y > S.top - 20 && x < S.W - S.right + 20 && y < S.H + 20; };
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
-    || (!quiet && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : sc > 1.6 || it.node.mine || it.node.grade === "danger" || (sc > 1 && it.node.isNew)))));
-  const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : 3);
+    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || it.node.mine || it.node.grade === "danger" || (k >= TIER.far && it.node.isNew)))));
+  const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
   const boxes: number[][] = [];
-  c.font = `12px ${col("--font")}`;
   for (const it of want.slice(0, 160)) {
-    const [x, y] = P(it), w = c.measureText(it.node.name).width;
-    const box = x > S.W / 2 - 1 ? [x + 9, y - 8, w, 16] : [x - 9 - w, y - 8, w, 16];
+    const [x, y] = P(it), [what, facts] = det > 0 ? describeKo(it.node) : ["", ""];
+    c.font = `12px ${col("--font")}`;
+    const w = Math.max(c.measureText(it.node.name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
+    const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
+    const off = dotRadius(it, sc) + 5; // 가까이 가면 점이 커지니 점 가장자리에서 띄운다
+    const right = x > S.W / 2 - 1 ? x + off + w < S.W - S.right - 4 : x - off - w < 4; // 바깥쪽에, 화면 끝에 잘리면 안쪽으로
+    const box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
     if (boxes.some((o) => box[0] < o[0] + o[2] && o[0] < box[0] + box[2] && box[1] < o[1] + o[3] && o[1] < box[1] + box[3])) continue;
     boxes.push(box);
-    const a = Math.min(1, grow(S, now, it) * 1.6); // 펼치기 전(0)이면 이름표도 없음
+    const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
     if (a < 0.3) continue;
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
     label(c, it.node.name, box[0], y, 12, col("--ink"));
+    if (!what) continue;
+    c.globalAlpha *= det;
+    label(c, what, box[0], y + 14, 11, col("--ink-2"));
+    if (facts) label(c, facts, box[0], y + 27, 10, col("--muted"));
   }
   c.globalAlpha = 1;
 }
