@@ -61,7 +61,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
-  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); }, say);
+  // 실패 문구는 확정 창이 열려 있으면 창 안에만, 창을 닫은 뒤 왔으면 알림으로(같은 말을 두 번 보이지 않게)
+  const confirmOpen = useRef(false);
+  confirmOpen.current = confirming;
+  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); },
+    (m) => { if (!confirmOpen.current) say(m); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
   // "이 템플릿으로 시작": 초안을 읽은 뒤 한 번 펼친다(되돌리기 한 칸 = 전에 만들던 판). 새로 고쳐도 다시 펼치지 않게 주소에서 뺀다
