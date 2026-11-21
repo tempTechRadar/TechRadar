@@ -19,6 +19,8 @@ export type PanelProps = {
   onTags: (techId: string, tags: string[]) => void;
   history: BlueprintRecord[] | null; say: Say;
   /** 이 화면에서 방금 확정한 청사진 id(AI 점검 탭이 씀). 아직 확정 안 했으면 null */ confirmedId: string | null;
+  /** 청사진 이름 바꾸기(이력 불러오기가 이름도 함께) */ onName: (name: string) => void;
+  /** 관문 밖 기술을 적용 후보로 고르기(markTech) · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

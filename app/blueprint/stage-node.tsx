@@ -24,7 +24,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       onDragOver={(e) => { if (!accepts(e.dataTransfer.types)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { setOver(false); const id = e.dataTransfer.getData(TECH_DRAG); if (!id) return; e.preventDefault(); data.onDropTech(stage.id, id); }}>
-      <Handle type="target" position={Position.Left} className="sn-handle" aria-label={`${stage.name}로 들어오는 선`} />
+      <Handle type="target" position={Position.Left} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}로 들어오는 선`} />
       <header className="sn-head">
         <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : data.order + 1}</span>
         <b className="sn-name">{stage.name}</b>
@@ -41,7 +41,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           ))}
         </div>
       ) : <p className="sn-empty">{step === 2 ? "아래에서 기술을 끌어 놓아요" : "아직 기술 없음"}</p>}
-      <Handle type="source" position={Position.Right} className="sn-handle" aria-label={`${stage.name}에서 나가는 선`} />
+      <Handle type="source" position={Position.Right} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}에서 나가는 선`} />
     </div>
   );
 }

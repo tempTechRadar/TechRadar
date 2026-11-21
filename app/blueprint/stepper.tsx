@@ -31,7 +31,7 @@ export function StepResult({ name, board, problems, onConfirm, say }: {
 }) {
   const [kind, setKind] = useState<ExportKind>("prompt");
   const text = board ? exportText(kind, name, board) : "";
-  const copy = () => navigator.clipboard.writeText(text).then(() => say("복사했어요. Claude Code에 붙여 넣어 쓰세요."), () => say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
+  const copy = () => (navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("보안 연결이 아니면 클립보드가 없음"))).then(() => say("복사했어요. Claude Code에 붙여 넣어 쓰세요."), () => say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
   return (
     <section className="st-result" aria-labelledby="st-result-h">
       <h2 id="st-result-h" className="sr-only">결과물</h2>

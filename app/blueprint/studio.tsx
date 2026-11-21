@@ -8,9 +8,10 @@ import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReact
 import "@xyflow/react/dist/style.css";
 import {
   addStage, applyTemplate, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
-  type ConnectProblem, type Graph, type Pos, type TemplateKind,
+  type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { recommendAt } from "@/lib/blueprint/knowledge";
+import { addStageProblem, CONNECT_KO, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
 import type { BlueprintPage } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
@@ -27,10 +28,6 @@ import { useConfirm } from "./use-studio-save";
 import "./studio.css";
 
 const nodeTypes = { stage: StageNode };
-const CONNECT_KO: Record<ConnectProblem, string> = {
-  self: "자기 자신과는 이을 수 없어요.", missing: "없는 단계예요.", exists: "이미 이어져 있어요.",
-  cycle: "이으면 순서가 돌고 돌아(고리) 이을 수 없어요.", limit: `연결은 ${LIMITS.edges}개까지예요.`,
-};
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함 */
 type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean };
@@ -62,7 +59,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
-  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); });
+  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); }, say);
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
   // "이 템플릿으로 시작": 초안을 읽은 뒤 한 번 펼친다(되돌리기 한 칸 = 전에 만들던 판). 새로 고쳐도 다시 펼치지 않게 주소에서 뺀다
@@ -93,18 +90,21 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
     if (!t || !s) return say("서랍에 있는 기술만 넣을 수 있어요(내 기술 · 적용 후보 · 이력).");
-    if (t.grade === "danger") return say("위험 등급 기술은 청사진에 넣지 않아요.");
-    if (s.techs.some((x) => x.id === techId)) return say(`${s.name}에 이미 있어요.`);
-    if (s.techs.length >= LIMITS.techs) return say(`한 단계에 기술은 ${LIMITS.techs}개까지예요.`);
+    const why = putProblem(s, t);
+    if (why) return say(why);
     apply(putTech(g, stageId, { id: t.id, name: t.name }), `${s.name}에 ${t.name} 붙였어요.`);
   }
-  /** 새 단계: 고른 단계가 있으면 그 오른쪽에 두고 선으로 잇는다, 없으면 가장 오른쪽 단계 옆 */
+  const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
+  /** 새 단계: 고른 단계가 있으면 그 오른쪽 빈자리(아래로 내려가며 찾음)에 두고 선으로 잇는다, 없으면 맨 오른쪽 단계 옆 */
   function addNamed(nm: string) {
-    const base = picked ? stageOf(picked.stageId) : [...g.stages].sort((a, b) => b.x - a.x)[0];
-    const s = createStage(nm, (base?.x ?? 0) + (base ? LAYOUT.x : 0), base?.y ?? 0);
+    const why = addStageProblem(g, nm);
+    if (why) return say(why);
+    let at = base ? { x: base.x + LAYOUT.x, y: base.y } : newStageSpot(g);
+    const taken = (p: Pos) => g.stages.some((o) => Math.abs(o.x - p.x) < LAYOUT.x / 2 && Math.abs(o.y - p.y) < LAYOUT.y / 2);
+    for (let i = 0; base && taken(at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
+    const s = createStage(nm, at.x, at.y);
     let next = addStage(g, s);
-    if (next === g) return say(`단계 이름은 1~20자, 단계는 ${LIMITS.stages}개까지예요.`);
-    if (picked && base) next = connect(next, base.id, s.id);
+    if (base) next = connect(next, base.id, s.id);
     apply(next, `"${s.name}" 단계를 더했어요.`);
     setNewName(""); setPicked({ kind: "stage", stageId: s.id }); setSel(new Set([s.id]));
   }
@@ -126,18 +126,21 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
   function onNodesChange(changes: NodeChange<StageNodeType>[]) {
-    let nextSel: Set<string> | null = null, nextDims: typeof dims | null = null, moved = drag, ended = false;
+    let nextSel: Set<string> | null = null, nextDims: typeof dims | null = null, moved = drag, ended = false, dragging = false;
     const raw = new Map<string, Pos>();
     for (const c of changes) {
       if (c.type === "select") { nextSel ??= new Set(sel); if (c.selected) nextSel.add(c.id); else nextSel.delete(c.id); }
       if (c.type === "dimensions" && c.dimensions) (nextDims ??= new Map(dims)).set(c.id, c.dimensions);
       if (c.type === "position") {
         if (c.position) raw.set(c.id, c.position);
+        if (c.dragging) dragging = true;
         if (c.dragging === false) ended = true;
       }
     }
     if (nextDims) setDims(nextDims);
-    if (raw.size) moved = new Map([...(moved ?? []), ...assist.during(g, raw)]); // 격자 · 보조선에 붙인 위치
+    // 마우스로 끌 때만 격자 · 보조선에 붙인다(화살표 키 5px 이동이 보조선에 다시 붙어 제자리로 돌아오지 않게)
+    const placed = dragging ? assist.during(g, raw) : new Map([...raw].map(([id, p]) => [id, { x: Math.round(p.x), y: Math.round(p.y) }]));
+    if (raw.size) moved = new Map([...(moved ?? []), ...placed]);
     if (nextSel) {
       setSel(nextSel);
       const one = nextSel.size === 1 ? [...nextSel][0] : null;
@@ -166,12 +169,20 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
+  /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
+  function onCanvasKey(e: React.KeyboardEvent) {
+    if (readOnly || (e.key !== "Delete" && e.key !== "Backspace") || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (!sel.size && !selEdges.size) return;
+    e.preventDefault();
+    onDelete({ nodes: [...sel].map((id) => ({ id })), edges: edges.filter((x) => selEdges.has(x.id)) });
+  }
   // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
   const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
-  const problems = [...limitProblems(g), ...(outside.size ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
+  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
-  const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId };
+  const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
+    onName: setName, onCandidate: (tid, tn) => void markCandidate(tid, tn), marking };
 
   return (
     <div className="studio" data-step={step} onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -182,25 +193,26 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <span className="studio-grow" />
         <button type="button" className="btn" disabled={!canUndo} onClick={undo}>되돌리기</button>
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
-        <button type="button" className="btn" onClick={() => { const next = autoLayout(g); apply(next, next === g ? "고리가 있으면 자동 정렬을 할 수 없어요." : "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: 200 })); }}>자동 정렬</button>
+        <button type="button" className="btn" onClick={() => { const next = autoLayout(g); if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요."); apply(next, "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: 200 })); }}>자동 정렬</button>
         <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: 200 })}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
       </div>
-      {unread ? <p className="notice studio-note" role="status">지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요.</p> : null}
+      {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
+        : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
       {step === 1 ? (
         <form className="studio-add" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}>
           <label>새 단계 <input value={newName} maxLength={20} placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} /></label>
-          <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>{picked ? "고른 단계 다음에 더하기" : "단계 더하기"}</button>
+          <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>{base ? "고른 단계 다음에 더하기" : "단계 더하기"}</button>
           {hints.map((h) => <button key={h} type="button" className="chip" onClick={() => addNamed(h)}>+ {h}</button>)}
         </form>
       ) : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
-          <div className="studio-canvas" role="region" aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
+          <div className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-              onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
-              deleteKeyCode={readOnly ? null : "Delete"} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
+              onDelete={onDelete} onPaneClick={unpick} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly}
               minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />

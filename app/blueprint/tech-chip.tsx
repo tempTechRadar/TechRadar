@@ -17,20 +17,19 @@ export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandi
   const grade = info?.grade ?? "unknown", type = info?.type ?? "";
   const label = `${tech.name}${type ? `, ${TYPE_KO[type] ?? type}` : ""}, ${onCandidate ? "아직 판단 안 함" : GRADE_KO[grade]}`;
   const stop = (f?: () => void) => (e: MouseEvent) => { e.stopPropagation(); f?.(); }; // 노드 고르기 · 끌기와 겹치지 않게
+  const body = <><span className="tc-icon" aria-hidden="true">{TYPE_GLYPH[type] ?? "·"}</span><span className="tc-name" aria-hidden="true">{tech.name}</span><i className="tc-dot" aria-hidden="true" /></>;
   if (onCandidate) return (
     <span className="tc tc-out">
       <span className="tc-name" title={label}>{tech.name}</span>
-      <button type="button" className="tc-pick nodrag" disabled={busy} title="판단 대기 알림이 있으면 그 알림도 함께 판단돼요" onClick={stop(onCandidate)}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button>
+      <button type="button" className="tc-pick nodrag" disabled={busy} aria-label={`${tech.name} 적용 후보로 고르기`} title="판단 대기 알림이 있으면 그 알림도 함께 판단돼요" onClick={stop(onCandidate)}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button>
       {onRemove ? <button type="button" className="tc-x nodrag" aria-label={`${tech.name} 빼기`} onClick={stop(onRemove)}>✕</button> : null}
     </span>
   );
   return (
     <span className="tc" data-grade={grade} data-picked={picked ? "" : undefined}>
-      <button type="button" className="tc-main nodrag" aria-label={label} aria-pressed={onPick ? picked : undefined} title={label} onClick={stop(onPick)}>
-        <span className="tc-icon" aria-hidden="true">{TYPE_GLYPH[type] ?? "·"}</span>
-        <span className="tc-name">{tech.name}</span>
-        <i className="tc-dot" aria-hidden="true" />
-      </button>
+      {/* 고를 수 없는 곳(하단 패널 카드 · 읽기 전용 보기)에서는 단추가 아닌 글자로: 아무 일도 안 하는 단추에 Tab이 멈추지 않게 */}
+      {onPick ? <button type="button" className="tc-main nodrag" aria-label={label} aria-pressed={picked} title={label} onClick={stop(onPick)}>{body}</button>
+        : <span className="tc-main" role="img" aria-label={label} title={label}>{body}</span>}
       {onRemove ? <button type="button" className="tc-x nodrag" aria-label={`${tech.name} 빼기`} onClick={stop(onRemove)}>✕</button> : null}
     </span>
   );
