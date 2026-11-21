@@ -2,13 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SearchPage, SearchRepo } from "../domain/star-candidates.ts";
+import type { RepoInfo } from "../domain/github-repo.ts";
 import { CollectError } from "./collect-fetch.ts";
+import { githubCollector } from "./collect-github.ts";
 import { githubSearchCollector } from "./collect-github-search.ts";
 import type { SearchQuery } from "./github-search-fetch.ts";
 
 type Row = Record<string, unknown>;
 type Tables = { sources: Row[]; technologies: Row[]; observations: Row[]; run_steps: Row[] };
-type Log = { failObservations?: boolean };
+type Log = { failObservations?: boolean; updates?: number };
 const NOW = Date.parse("2026-11-21T00:00:00Z");
 const DAY = 24 * 60 * 60 * 1000;
 const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
@@ -16,8 +18,8 @@ const clone = <T>(v: T): T => structuredClone(v);
 const TOKEN = "ghp_TESTTOKENTESTTOKENTESTTOKEN0123456789";
 
 // 표를 실제로 들고 있는 가짜 클라이언트(eq·or·order·range, 줄 하나 읽기, 고치기, 넣고 돌려받기). or는 코드가 저장소로 다시 거르므로 그대로 둔다
+let ids = 0; // 실행마다 새 클라이언트를 만들어도 id가 겹치지 않게 파일 전체에서 하나로 센다
 function fakeDb(tables: Tables, log: Log = {}) {
-  let ids = 0;
   return {
     from(table: keyof Tables) {
       const rows = tables[table];
@@ -31,15 +33,17 @@ function fakeDb(tables: Tables, log: Log = {}) {
         range: (a: number, b: number) => ((window = [a, b]), q),
         single: () => Promise.resolve(found.length === 1 ? { data: clone(found[0]), error: null } : { data: null, error: { message: `줄 ${found.length}개` } }),
         then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve({ data: clone(window ? found.slice(window[0], window[1] + 1) : found), error: null }).then(res, rej),
-        insert(row: Row) {
+        insert(input: Row | Row[]) {
           const failed = table === "observations" && log.failObservations;
-          const added = failed ? null : { id: `${table}-${++ids}`, ...clone(row) };
-          if (added) rows.push(added);
+          const list = failed ? [] : (Array.isArray(input) ? input : [input]).map((r) => ({ id: `${table}-${++ids}`, ...clone(r) }));
+          rows.push(...list);
+          const added = list[0] ?? null;
           const result = { error: failed ? { message: "수집 자료 저장 실패" } : null };
           return { ...Promise.resolve(result), then: (res: (v: unknown) => unknown) => Promise.resolve(result).then(res), select: () => ({ single: () => Promise.resolve({ data: clone(added), error: null }) }) };
         },
         update: (patch: Row) => ({
           eq: (c: string, v: unknown) => {
+            log.updates = (log.updates ?? 0) + 1;
             rows.filter((r) => r[c] === v).forEach((r) => Object.assign(r, clone(patch)));
             return Promise.resolve({ error: null });
           },
@@ -59,7 +63,8 @@ const repo = (name: string, over: Partial<SearchRepo> = {}): SearchRepo => {
 };
 const world = (technologies: Row[] = [], enabled = true): Tables => ({ sources: [{ id: "s-gs", name: "github_search", enabled }], technologies, observations: [], run_steps: [] });
 const tech = (key: string, over: Row = {}): Row => ({
-  id: `T-${key}`, tech_key: key, repo_url: null, depth: "thin", thick_reasons: null, one_liner: null, one_liner_source: null, signals: null, is_simulated: false, ...over,
+  id: `T-${key}`, tech_key: key, repo_url: null, depth: "thin", thick_reasons: null, one_liner: null, one_liner_source: null, signals: null, is_simulated: false,
+  status: "active", status_by: null, missed_count: 0, license: null, last_activity_at: null, last_activity_kind: null, last_checked_ok_at: null, ...over,
 });
 const byKey = (t: Tables, key: string) => t.technologies.find((r) => r.tech_key === key);
 const sig = (r: Row | undefined) => (r?.signals ?? {}) as Record<string, unknown>;
@@ -194,4 +199,60 @@ test("쪽 넘김: 100건이 꽉 차면 다음 쪽, 1,000건을 넘으면 본 것
   const slow = fakes({}, { page: pageOf, now: () => (clock += 3000) });
   const out = await run(world(), slow, {}, NOW + 10_000);
   assert.match(out.summary!, /시간 몫으로 다 못 읽은 태그: /);
+});
+
+const starsObs = (t: Tables) => t.observations.filter((o) => o.metric === "stars").length;
+
+test("별 수의 주인은 하나: 저장소 정보 수집기(fetch_github)가 읽은 줄에는 별을 쓰지 않아, 두 수집기가 번갈아 돌아도 stars 수집 자료가 늘지 않는다(불변 3)", async () => {
+  const row = tech("github:a/one", { repo_url: "https://github.com/a/one" });
+  const t = world([row]);
+  t.sources.push({ id: "s-gh", name: "github", enabled: true });
+  const info: RepoInfo = { fullName: "a/one", isPrivate: false, archived: false, pushedAt: ago(2), stars: 2100, license: "MIT" };
+  const gh = () => githubCollector({ fetchRepo: async () => info, token: () => TOKEN, sleep: async () => {}, now: () => NOW }).run({ db: fakeDb(t), runId: "run-gh", deadlineMs: Number.MAX_SAFE_INTEGER });
+  await run(t, fakes({ mcp: [repo("a/one", { stars: 2000 })] })); // 아직 안 읽은 줄: 별 2000을 쓰고 처음 읽음 1개
+  await gh(); // 저장소 API가 2100으로 이어받음
+  const after = starsObs(t);
+  for (let i = 0; i < 3; i++) {
+    await run(t, fakes({ mcp: [repo("a/one", { stars: 2000 })] }));
+    await gh();
+  }
+  assert.equal(starsObs(t), after);
+  assert.equal(sig(row).stars, 2100);
+  assert.equal(typeof sig(row).candidate_score, "number", "점수·의심 표시는 계속 갱신");
+});
+
+test("지난 의심 표시를 지운다: new_spike였던 줄이 30일 뒤 관문을 통과했는데 100위 밖이어도 candidate_flags가 []로 바뀐다(두께는 안 올림)", async () => {
+  const t = world();
+  await run(t, fakes({ mcp: [repo("young/tool", { createdAt: ago(3), stars: 1000 })] }));
+  const spike = byKey(t, "github:young/tool")!;
+  assert.deepEqual([spike.depth, sig(spike).candidate_flags], ["thin", ["new_spike"]]);
+  const later = NOW + 40 * DAY;
+  const bigger = Array.from({ length: 100 }, (_, i) => repo(`big/r${i}`, { stars: 50_000 + i, forks: 5000 }));
+  await run(t, fakes({ mcp: [...bigger, repo("young/tool", { createdAt: ago(3), stars: 1000 })] }, { now: () => later }));
+  assert.deepEqual([spike.depth, sig(spike).candidate_flags, typeof sig(spike).candidate_score], ["thin", [], "number"]);
+  assert.equal(t.technologies.length, 101, "100위 밖은 새 줄을 만들지 않는다");
+});
+
+test("시간 몫이 시작 전에 이미 지났으면 0곳 성공이 아니라 수집 오류(불변 2)", async () => {
+  const f = fakes({ mcp: [repo("a/b")] });
+  await assert.rejects(run(world(), f, {}, NOW - 1), (e: unknown) => e instanceof CollectError && e.kind === "timeout");
+  assert.equal(f.calls.length, 0);
+});
+
+test("저장 도중 던져도 거기까지의 normalize·compare 단계는 남기고 원래 오류를 던진다", async () => {
+  const t = world();
+  await assert.rejects(run(t, fakes({ mcp: [repo("a/one")] }), { failObservations: true }), /수집 자료를 저장하지 못함/);
+  assert.deepEqual(t.run_steps.map((s) => s.step_name), ["normalize", "compare"]);
+});
+
+test("쓸 내용이 지금 줄과 같으면 쓰지 않는다. 묶음 시간이 다하면 저장을 멈추고 요약에 적는다(다음 실행이 이어 감)", async () => {
+  const t = world();
+  const input = () => fakes({ mcp: [repo("a/one"), repo("b/two"), repo("c/three")] });
+  await run(t, input());
+  const log: Log = {};
+  await run(t, input(), log);
+  assert.equal(log.updates ?? 0, 0);
+  let clock = NOW;
+  const out = await run(world(), fakes({ mcp: [repo("a/one"), repo("b/two"), repo("c/three")] }, { now: () => (clock += 1000) }), {}, NOW + 3500);
+  assert.match(out.summary!, /시간이 모자라 \d+곳은 다 저장 못 함/);
 });

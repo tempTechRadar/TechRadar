@@ -18,7 +18,8 @@ export type SearchPage = { total: number; incomplete: boolean; items: SearchRepo
 /** 읽은 태그와 공식 레지스트리 줄과 합쳐지는지(DB를 본 쪽이 채움)를 붙인 후보 */
 export type Candidate = SearchRepo & { tags: SearchTag[]; inRegistry: boolean };
 export type Scored = Candidate & { key: string; score: number };
-export type Plan = { top: Scored[]; suspects: (Candidate & { key: string; flags: Flag[] })[]; gated: number };
+/** rest: 상위·의심이 아닌 나머지(관문 탈락 포함). 전에 붙인 의심 표시·점수를 현재 값으로 맞추는 데 쓴다(score는 관문 탈락이면 null) */
+export type Plan = { top: Scored[]; suspects: (Candidate & { key: string; flags: Flag[] })[]; rest: (Candidate & { key: string; score: number | null })[]; gated: number };
 
 const DAY = 24 * 60 * 60 * 1000;
 const STALE_AFTER_MS = 365 * DAY; // 마지막 푸시 12개월
@@ -76,7 +77,10 @@ const ageDays = (iso: string, nowMs: number) => (nowMs - Date.parse(iso)) / DAY;
 export const passesGate = (r: SearchRepo, nowMs: number): boolean =>
   !r.archived && !r.fork && r.pushedAt !== null && nowMs - Date.parse(r.pushedAt) <= STALE_AFTER_MS;
 
-/** 의심 표시. 같은 이름 묶음은 읽은 후보 전체(태그 상관없이)에서 본다. 표시는 "확인 필요"이지 증명이 아니다 */
+/**
+ * 의심 표시. 관문(보관·포크·12개월)을 통과한 저장소끼리만 본다: 버려진 저장소가 정상 기술을 복제본으로 끌어들이지 않게.
+ * 같은 이름 묶음에서 생성일이 가장 이른 것은 원본으로 보고 표시하지 않는다(남이 같은 이름으로 만들어도 원본의 알림은 막히지 않게). 표시는 "확인 필요"이지 증명이 아니다
+ */
 export function flagsOf(all: SearchRepo[], nowMs: number): Map<string, Flag[]> {
   const byName = new Map<string, SearchRepo[]>();
   for (const r of all) byName.set(r.repo.toLowerCase(), [...(byName.get(r.repo.toLowerCase()) ?? []), r]);
@@ -84,11 +88,14 @@ export function flagsOf(all: SearchRepo[], nowMs: number): Map<string, Flag[]> {
   for (const r of all) {
     const out: Flag[] = [];
     if (ageDays(r.createdAt, nowMs) < SPIKE_AGE_DAYS && r.stars >= SPIKE_STARS) out.push("new_spike");
-    if (isCloneCluster(byName.get(r.repo.toLowerCase())!)) out.push("clone_cluster");
+    const group = byName.get(r.repo.toLowerCase())!;
+    if (isCloneCluster(group) && oldest(group) !== r) out.push("clone_cluster");
     flags.set(candidateKey(r), out);
   }
   return flags;
 }
+
+const oldest = (group: SearchRepo[]) => group.reduce((a, b) => (Date.parse(b.createdAt) < Date.parse(a.createdAt) ? b : a));
 
 function isCloneCluster(group: SearchRepo[]): boolean {
   if (new Set(group.map((r) => r.owner.toLowerCase())).size < 2) return false;
@@ -137,20 +144,23 @@ export const pickTop = (scored: Scored[], cap = TOP_CAP): Scored[] =>
 
 /** 관문에서 떨어진 것(보관·포크·12개월)은 버리고, 의심이 붙은 것은 NEW 후보(얇게)로 따로, 나머지를 태그 안 점수로 매겨 상위를 고른다 */
 export function planCandidates(all: Candidate[], nowMs: number): Plan {
-  const flags = flagsOf(all, nowMs);
   const open = all.filter((c) => passesGate(c, nowMs));
+  const flags = flagsOf(open, nowMs);
   const suspects = open.filter((c) => flags.get(candidateKey(c))!.length > 0).map((c) => ({ ...c, key: candidateKey(c), flags: flags.get(candidateKey(c))! }));
   const eligible = open.filter((c) => flags.get(candidateKey(c))!.length === 0);
   const scores = scoreByTag(eligible, nowMs);
-  return { top: pickTop(eligible.map((c) => ({ ...c, key: candidateKey(c), score: scores.get(candidateKey(c))! }))), suspects, gated: all.length - open.length };
+  const top = pickTop(eligible.map((c) => ({ ...c, key: candidateKey(c), score: scores.get(candidateKey(c))! })));
+  const picked = new Set([...top, ...suspects].map((c) => c.key));
+  const rest = all.filter((c) => !picked.has(candidateKey(c))).map((c) => ({ ...c, key: candidateKey(c), score: scores.get(candidateKey(c)) ?? null }));
+  return { top, suspects, rest, gated: all.length - open.length };
 }
 
 /** 종류 임시 추정: mcp 태그가 하나라도 있으면 mcp(여러 태그면 mcp 먼저), 아니면 skill */
 export const typeOf = (tags: SearchTag[]): "mcp" | "skill" => (tags.some((t) => t === "mcp-server" || t === "mcp") ? "mcp" : "skill");
 
-/** 한 줄 설명: 공백을 한 칸으로, 200자에서 자름, 비면 null */
+/** 한 줄 설명: 공백을 한 칸으로, 200자(코드 포인트)에서 자름, 비면 null. 이모지(대리쌍)를 반으로 자르면 Postgres가 그 글을 거부한다 */
 export function oneLinerOf(description: string | null): string | null {
-  const s = (description ?? "").replace(/\s+/g, " ").trim();
-  if (s === "") return null;
-  return s.length > MAX_ONE_LINER ? `${s.slice(0, MAX_ONE_LINER - 1)}…` : s;
+  const chars = Array.from((description ?? "").replace(/\s+/g, " ").trim());
+  if (chars.length === 0) return null;
+  return chars.length > MAX_ONE_LINER ? `${chars.slice(0, MAX_ONE_LINER - 1).join("")}…` : chars.join("");
 }

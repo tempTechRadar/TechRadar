@@ -8,7 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { repoKey, type RepoInfo, type RepoRef } from "../domain/github-repo.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
-import { CollectError, TOKEN_SHAPE, type ErrorKind } from "./collect-fetch.ts";
+import { CollectError, readToken, type ErrorKind } from "./collect-fetch.ts";
 import { countKinds } from "./collect-util.ts";
 import { fetchRepoInfo } from "./github-fetch.ts";
 import { markFailed, markTried, readSource, readTargets, saveFound, saveMissing, type Target } from "./github-store.ts";
@@ -31,18 +31,10 @@ export function githubCollector(deps: Partial<Deps> = {}): Collector {
   return { source: "fetch_github", run: (ctx) => collectGithub(ctx, d) };
 }
 
-/** 토큰이 없거나 모양이 이상하면 호출 없이 수집 오류. 값은 문구에 넣지 않는다. */
-export function readToken(d: Deps): string {
-  const token = d.token()?.trim();
-  if (!token) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN이 없어 GitHub를 부르지 않았어요(Vercel·.env에 넣어야 함)");
-  if (!TOKEN_SHAPE.test(token)) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN의 모양이 이상해 GitHub를 부르지 않았어요(공백·줄바꿈·따옴표가 섞였는지 확인, 값은 기록하지 않음)");
-  return token;
-}
-
 async function collectGithub(ctx: CollectorContext, d: Deps): Promise<{ items: number; summary: string }> {
   const source = await readSource(ctx.db);
   if (!source.enabled) return { items: 0, summary: "GitHub 출처가 꺼져 있어요(관리자 설정)" };
-  const token = readToken(d);
+  const token = readToken(d.token());
   const run: Run = { db: ctx.db, runId: ctx.runId, sourceId: source.id, token, d, tally: { read: 0, missing: 0, changed: 0, failed: [], skipped: 0, requests: 0, blocked: false, forbiddenInRow: 0 } };
   const groups = groupByRepo(await readTargets(ctx.db));
   try {
