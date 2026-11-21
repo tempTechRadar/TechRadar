@@ -23,8 +23,8 @@ const ok = (over: Record<string, unknown> = {}) => JSON.stringify({ total_count:
 
 test("검색 주소: 태그·별 하한(또는 구간)·별 순·100건씩, 토큰은 머리글에만", async () => {
   assert.equal(searchUrl({ tag: "mcp-server", upper: null, page: 2 }), "https://api.github.com/search/repositories?q=topic%3Amcp-server%20stars%3A%3E%3D1000&sort=stars&order=desc&per_page=100&page=2");
-  assert.match(searchUrl({ tag: "mcp", upper: 4321, page: 1 }), /stars%3A1000\.\.4321&/);
-  const seen = await withFetch(200, ok(), async () => void (await fetchSearchPage({ tag: "mcp", upper: null, page: 1 }, TOKEN)));
+  assert.match(searchUrl({ tag: "mcp-server", upper: 4321, page: 1 }), /stars%3A1000\.\.4321&/);
+  const seen = await withFetch(200, ok(), async () => void (await fetchSearchPage({ tag: "mcp-server", upper: null, page: 1 }, TOKEN)));
   assert.equal(seen[0].auth, `Bearer ${TOKEN}`);
   assert.ok(!seen[0].url.includes(TOKEN));
 });
@@ -36,15 +36,15 @@ test("실제 크기의 응답(100건, 건당 7KB 안팎 = 70만 자 넘게)을 '
   });
   const body = ok({ total_count: 100, items: Array.from({ length: 100 }, (_, i) => one(i)) });
   assert.ok(body.length > 650_000, `본문 ${body.length}자`);
-  await withFetch(200, body, async () => assert.equal((await fetchSearchPage({ tag: "mcp", upper: null, page: 1 }, TOKEN)).items.length, 100));
+  await withFetch(200, body, async () => assert.equal((await fetchSearchPage({ tag: "mcp-server", upper: null, page: 1 }, TOKEN)).items.length, 100));
 });
 
 test("GitHub가 결과가 다 안 나왔다고 한 쪽(incomplete_results)은 던지지 않고 incomplete로 돌려준다(다시 읽기는 수집기가)", async () => {
-  await withFetch(200, ok({ incomplete_results: true }), async () => assert.equal((await fetchSearchPage({ tag: "mcp", upper: null, page: 1 }, TOKEN)).incomplete, true));
+  await withFetch(200, ok({ incomplete_results: true }), async () => assert.equal((await fetchSearchPage({ tag: "mcp-server", upper: null, page: 1 }, TOKEN)).incomplete, true));
 });
 
 test("후보 없음으로 단정하지 않는다: 모양 이상·404·422·한도 초과는 수집 오류", async () => {
-  const q = { tag: "mcp" as const, upper: null, page: 1 };
+  const q = { tag: "mcp-server" as const, upper: null, page: 1 };
   const cases: [number, string, string, Record<string, string>?][] = [
     [200, "{}", "parse"], [404, "", "http_status"], [422, "{}", "http_status"], [403, "{}", "rate_limited", { "x-ratelimit-remaining": "0" }], [429, "{}", "rate_limited"],
   ];

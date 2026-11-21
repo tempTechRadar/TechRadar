@@ -16,7 +16,7 @@ const repo = (name: string, over: Partial<SearchRepo> = {}): SearchRepo => {
     archived: false, fork: false, license: "MIT", ownerType: "User", ...over,
   };
 };
-const cand = (name: string, over: Partial<Candidate> = {}): Candidate => ({ ...repo(name), tags: ["mcp"], inRegistry: false, known: false, ...over });
+const cand = (name: string, over: Partial<Candidate> = {}): Candidate => ({ ...repo(name), tags: ["mcp-server"], ...over });
 const item = (over: Record<string, unknown> = {}) => ({
   full_name: "Acme/Tool", html_url: "https://github.com/Acme/Tool", description: "a tool", stargazers_count: 1500, forks_count: 30,
   pushed_at: ago(2), created_at: ago(300), archived: false, fork: false, license: { spdx_id: "MIT" }, owner: { login: "Acme", type: "Organization" }, topics: ["mcp"], ...over,
@@ -54,30 +54,19 @@ test("new_spike 경계: 생성 30일 미만이고 별 500 이상일 때만", () 
   assert.deepEqual(flags(30, 500), []);
 });
 
-test("clone_cluster 경계: 같은 이름(대소문자 무시)·다른 소유자 2곳 이상·별 차이가 최대의 5% 이하. ① 알려진 원본은 빠지고 복제본만 표시", () => {
-  // 첫 번째가 알려진 원본(레지스트리·사용자 줄이 있음), 두 번째가 모르는 저장소
+test("clone_cluster 경계: 같은 이름(대소문자 무시)·다른 소유자 2곳 이상·별 차이가 최대의 5% 이하면 묶음 구성원 모두 표시(원본 예외 없음)", () => {
   const pair = (a: number, b: number, owners = ["x", "y"], names = ["tool", "Tool"]) =>
-    flagsOf([repo(`${owners[0]}/${names[0]}`, { stars: a, createdAt: ago(400) }), repo(`${owners[1]}/${names[1]}`, { stars: b, createdAt: ago(60) })].map((r, i) => ({ ...r, known: i === 0 })), NOW);
-  assert.deepEqual([...pair(1000, 950).values()], [[], ["clone_cluster"]]);
-  assert.deepEqual([...pair(950, 1000).values()], [[], ["clone_cluster"]], "별이 더 많아도 모르는 쪽이 복제본");
+    flagsOf([repo(`${owners[0]}/${names[0]}`, { stars: a, createdAt: ago(400) }), repo(`${owners[1]}/${names[1]}`, { stars: b, createdAt: ago(60) })], NOW);
+  assert.deepEqual([...pair(1000, 950).values()], [["clone_cluster"], ["clone_cluster"]]);
+  assert.deepEqual([...pair(950, 1000).values()], [["clone_cluster"], ["clone_cluster"]]);
   assert.deepEqual([...pair(1000, 949).values()], [[], []]);
   assert.deepEqual([...pair(1000, 1000, ["x", "X"]).values()], [[]], "같은 소유자(대소문자만 다름)는 묶음이 아님");
   assert.deepEqual([...pair(1000, 1000, ["x", "y"], ["tool", "other"]).values()], [[], []]);
 });
 
-test("clone_cluster ② 알려진 저장소가 없으면 묶음 전체를 표시한다(생성일만으로 원본을 정하지 않음, 관리자 확인)", () => {
-  const flags = flagsOf([repo("a/t", { createdAt: ago(50) }), repo("b/t", { createdAt: ago(500) }), repo("c/t", { createdAt: ago(40) })], NOW);
+test("clone_cluster는 생성일로 원본을 고르지 않는다: 가장 먼저 만든 저장소(이름을 바꾼 옛 저장소일 수 있음)도 함께 표시", () => {
+  const flags = flagsOf([repo("a/t", { createdAt: ago(50) }), repo("b/t", { createdAt: ago(3000) }), repo("c/t", { createdAt: ago(40) })], NOW);
   assert.deepEqual([...flags.values()], [["clone_cluster"], ["clone_cluster"], ["clone_cluster"]]);
-});
-
-test("clone_cluster ③ 생성일이 더 이른 모르는 저장소(이름을 바꾼 옛 저장소)가 알려진 원본을 끌어내리지 못한다", () => {
-  const flags = flagsOf([{ ...repo("real/tool", { createdAt: ago(300) }), known: true }, { ...repo("renamed/tool", { createdAt: ago(3000) }), known: false }], NOW);
-  assert.deepEqual([...flags.entries()], [["github:real/tool", []], ["github:renamed/tool", ["clone_cluster"]]]);
-});
-
-test("clone_cluster ⑤ 둘 다 알려진 저장소면 그중 생성일이 이른 하나만 빠진다", () => {
-  const flags = flagsOf([{ ...repo("late/tool", { createdAt: ago(100) }), known: true }, { ...repo("early/tool", { createdAt: ago(800) }), known: true }, repo("x/tool", { createdAt: ago(2000) })], NOW);
-  assert.deepEqual([...flags.entries()], [["github:late/tool", ["clone_cluster"]], ["github:early/tool", []], ["github:x/tool", ["clone_cluster"]]]);
 });
 
 test("clone_cluster는 관문을 통과한 저장소끼리만 묶는다: 보관·포크·오래된 같은 이름은 정상 기술을 복제본으로 만들지 않는다", () => {
@@ -85,8 +74,14 @@ test("clone_cluster는 관문을 통과한 저장소끼리만 묶는다: 보관�
     const plan = planCandidates([cand("orig/tool", { createdAt: ago(60) }), cand("other/tool", { createdAt: ago(900), ...over })], NOW);
     assert.deepEqual(plan.suspects, [], JSON.stringify(over));
   }
-  const plan = planCandidates([cand("orig/tool", { createdAt: ago(900), known: true }), cand("copy/tool", { createdAt: ago(60) })], NOW);
-  assert.deepEqual([plan.top.map((t) => t.key), plan.suspects.map((s) => [s.key, s.flags])], [["github:orig/tool"], [["github:copy/tool", ["clone_cluster"]]]]);
+  const plan = planCandidates([cand("orig/tool", { createdAt: ago(900) }), cand("copy/tool", { createdAt: ago(60) })], NOW);
+  assert.deepEqual([plan.top.map((t) => t.key), plan.suspects.map((s) => [s.key, s.flags])], [[], [["github:orig/tool", ["clone_cluster"]], ["github:copy/tool", ["clone_cluster"]]]]);
+});
+
+test("신뢰 점수는 조직 소유·라이선스 있음 두 가지(0~2)", () => {
+  const s = scoreByTag([cand("org/lic", { ownerType: "Organization" }), cand("usr/lic"), cand("usr/none", { license: null })], NOW);
+  assert.ok(s.get("github:org/lic")! > s.get("github:usr/lic")!);
+  assert.ok(s.get("github:usr/lic")! > s.get("github:usr/none")!);
 });
 
 test("백분위: 같은 값은 같은 자리, 하나뿐이면 중립 0.5", () => {
@@ -103,7 +98,7 @@ test("혼자 남은 태그의 저장소가 모든 항목 만점(100)을 받아 �
 });
 
 test("점수는 같은 태그 안 백분위에 가중치: 모든 항목이 가장 높으면 100, 가장 낮으면 0. 성장의 나이 하한은 30일", () => {
-  const nowRepo = { pushedAt: ago(1), ownerType: "Organization", license: "MIT", inRegistry: true };
+  const nowRepo = { pushedAt: ago(1), ownerType: "Organization", license: "MIT" };
   const best = cand("a/top", { stars: 9000, forks: 900, createdAt: ago(100), ...nowRepo });
   const worst = cand("b/low", { stars: 1000, forks: 1, createdAt: ago(1000), pushedAt: ago(300), ownerType: "User", license: null });
   const s = scoreByTag([best, worst], NOW);
@@ -115,10 +110,10 @@ test("점수는 같은 태그 안 백분위에 가중치: 모든 항목이 가�
 });
 
 test("점수는 태그마다 따로 매기고 여러 태그에 나온 후보는 가장 높은 점수", () => {
-  const multi = cand("m/both", { tags: ["mcp", "agent-skills"], stars: 3000 });
+  const multi = cand("m/both", { tags: ["mcp-server", "agent-skills"], stars: 3000 });
   const s = scoreByTag([multi, cand("x/big", { stars: 50_000, forks: 5000 }), cand("y/small", { tags: ["agent-skills"], stars: 1000, forks: 1 })], NOW);
   // mcp 안에서는 x/big에 져서 15, agent-skills 안에서는 y/small을 이겨 85
-  assert.equal(scoreByTag([{ ...multi, tags: ["mcp"] }, cand("x/big", { stars: 50_000, forks: 5000 })], NOW).get("github:m/both"), 15);
+  assert.equal(scoreByTag([{ ...multi, tags: ["mcp-server"] }, cand("x/big", { stars: 50_000, forks: 5000 })], NOW).get("github:m/both"), 15);
   assert.equal(s.get("github:m/both"), 85);
 });
 
@@ -143,13 +138,13 @@ test("나머지(rest): 상위 100 밖이어도 점수를 갖고 돌아온다(전
 });
 
 test("종류 추정·키·한 줄 설명", () => {
-  assert.equal(typeOf(["agent-skills", "mcp"]), "mcp");
+  assert.equal(typeOf(["agent-skills", "mcp-server"]), "mcp");
   assert.equal(typeOf(["claude-skills"]), "skill");
   assert.equal(candidateKey({ owner: "Acme", repo: "Tool" }), "github:acme/tool");
   assert.equal(oneLinerOf("  a \n b  "), "a b");
   assert.equal(oneLinerOf("   "), null);
   assert.equal(oneLinerOf("x".repeat(300))!.length, 200);
-  assert.equal(oneLinerOf("a\u0000b\u202ec\u200d"), "a b c", "NUL·양방향 제어·제로폭은 지운다(clean-text.ts)");
+  assert.equal(oneLinerOf("a\u0000b\u202ec\u200b"), "a b c", "NUL·양방향 제어·제로폭은 지운다(clean-text.ts)");
   assert.equal(oneLinerOf("\u0000\u200b"), null);
 });
 
