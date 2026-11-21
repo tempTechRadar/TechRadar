@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12d-official-badge · 2026-11-21 · 사이드 패널 "공식" 배지를 데이터부터 잇기 (김영식)
+- 브랜치: `feat/P-12d-official-badge`(`feat/P-12d-map-demo` 6360b4d 위, 로컬, 미푸시)
+- 출처: 다른 세션(radar-motion-default-view)이 넘김, 사용자 승인 범위 "사이드 패널 배지 정리". I-P-12d-side-panel 열린 질문 3, ADR 0019 · 0029 · 0031
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 운영 카탈로그에 `is_official`(레지스트리 공식 조직 · 입문 세트 공식 스킬 · 플러그인)이 있는데 지도가 읽지 않아 사이드 패널에 "공식" 배지를 못 단다 |
+| 기대 결과 | 공식 기술의 사이드 패널 머리에 "공식" 배지 |
+| 영향 범위 | `lib/server/map-queries.ts`(TECH_COLUMNS · toTech), `lib/map/build-map.ts`(CatalogTech.official · MapNode.official), `app/tech-map/side-panel.tsx`, `lib/dev/preview-data.ts`, 시험 2개, ADR 0030 10항 |
+| 제약 | TECH_COLUMNS는 로그인 전 공개 칸(ADR 0029) — 공개 사실만. draw · canvas-map · controller · controls · view-config는 넘긴 세션 몫 |
+| 열린 질문 | 없음 |
+
+**결과:** 됨(로컬 커밋). 공개 칸에 `is_official`, `true`일 때만 공식(빈 칸 · 다른 값은 아님). 3017 포트(운영 DB를 읽는 빌드본)에서 지도 500개 중 공식 16개를 확인했고, code-review 플러그인 사이드 패널에 "공식" 배지가 보이는 것을 스크린샷으로 봄. 미리보기 샘플은 `@supabase/mcp-server`를 공식으로. 시험 1,327(통과 1,326 · 실패 0 · todo 1), 타입 검사 · `next build --webpack` 통과. 코드 리뷰(low) 지적 0건(첫 번은 main 대비 diff를 봐서 작업 트리만 다시 검토시킴)
+
 ## I-P-12d-side-panel · 2026-11-21 · 지도 사이드 패널: 미끄러져 들어오기 + 구역이 또렷한 구조 (김영식)
 - 브랜치: `feat/P-12d-side-panel`(`feat/P-12d-map-demo` edd002e 위, 로컬, 미푸시)
 - 출처: 사용자 "전부 추천대로 진행"(11-21) — 다른 세션(radar-motion-default-view)이 넘김. PRD-F23 · IA-10 · ADR 0026, 불변 2
