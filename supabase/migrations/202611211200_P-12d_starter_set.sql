@@ -72,3 +72,7 @@ on conflict (tech_key) do update set
   license = coalesce(public.technologies.license, excluded.license),
   -- 있던 표시가 이긴다(오른쪽이 이김): 이번 주 사용자 저장소로 들어온 줄의 registry_backfill=false(NEW)를 덮지 않는다. 객체가 아니면(jsonb null 등) 새로
   signals = excluded.signals || case when jsonb_typeof(public.technologies.signals) = 'object' then public.technologies.signals else '{}'::jsonb end;
+
+-- 11-21 사용자 결정: concept:harness 이름을 공식 용어에 맞게(공식 용어집에서 harness = Claude Code 자체). 키는 그대로.
+-- 코드가 처음 만든 이름 그대로일 때만 바꾼다(관리자가 고친 이름은 두기). lib/domain/services.ts CONCEPTS의 이름도 같이 바꿈
+update public.technologies set display_name = '지침 파일(CLAUDE.md · AGENTS.md)' where tech_key = 'concept:harness' and display_name = '하네스(에이전트 지시 파일)';

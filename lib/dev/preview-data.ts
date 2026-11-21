@@ -34,7 +34,7 @@ const TECHS = [
   t("storybook-mcp", "컴포넌트", "mcp"), t("design-tokens", "컴포넌트", "sdk", { createdAt: ago(3) }), t("a11y-skill", "프론트엔드", "skill", { grade: "unknown", gradeReason: "근거를 찾지 못했어요" }),
   t("secret-scan", "코드 검사", "mcp", { collectErrorKind: "http_5xx", lastCheckedOkAt: ago(3) }), t("code-review", "코드 검사", "skill"), t("osv-mcp", "검사·보안", "mcp"),
   t("vercel-mcp", "배포", "mcp"), t("github-actions-mcp", "배포·운영", "mcp", { grade: "caution", gradeReason: "토큰 권한이 넓어요" }),
-  t("grill-with-docs", "하네스", "skill"), t("하네스(에이전트 지시 파일)", "하네스", "concept", { techKey: "concept:harness", grade: "unknown", gradeReason: null }), t("loop-runner", "AI 작업 방식", "skill", { createdAt: ago(4) }), t("context7", null, "mcp"), t("odd-tool", null, "mcp"),
+  t("grill-with-docs", "하네스", "skill"), t("지침 파일(CLAUDE.md · AGENTS.md)", "하네스", "concept", { techKey: "concept:harness", grade: "unknown", gradeReason: null }), t("loop-runner", "AI 작업 방식", "skill", { createdAt: ago(4) }), t("context7", null, "mcp"), t("odd-tool", null, "mcp"),
 ];
 const tech = (name: string) => TECHS.find((x) => x.name === name)!;
 export const SAMPLE_PROJECTS = [{ id: "p1", name: "시연 저장소" }, { id: "p2", name: "내 컴퓨터(프로젝트 밖)" }];
@@ -44,7 +44,7 @@ const mine = (n: number, name: string | null, projectId: string, o: Partial<MyTe
 };
 const MINE = [mine(1, "mcp-remote", "p1"), mine(2, "@supabase/mcp-server", "p1"), mine(3, "storybook-mcp", "p1"), mine(4, "secret-scan", "p2"), mine(5, "firecrawl-mcp", "p1"),
   mine(6, "doc-coauthoring", "p2"), mine(7, "vercel-mcp", "p1"), mine(8, "grill-with-docs", "p2"), mine(9, null, "p2", { manualName: "my-local-tool", grade: "unknown" }),
-  mine(10, "하네스(에이전트 지시 파일)", "p1", { sourceFile: "CLAUDE.md" })];
+  mine(10, "지침 파일(CLAUDE.md · AGENTS.md)", "p1", { sourceFile: "CLAUDE.md" })];
 const PAIRS: [string, string][] = [["mcp-remote", "mcp-proxy-lite"], ["@supabase/mcp-server", "postgres-mcp"], ["@supabase/mcp-server", "csv-reader"], ["storybook-mcp", "design-tokens"], ["storybook-mcp", "a11y-skill"],
   ["secret-scan", "code-review"], ["secret-scan", "osv-mcp"], ["firecrawl-mcp", "deep-research"], ["firecrawl-mcp", "arxiv-mcp"], ["doc-coauthoring", "notion-mcp"], ["vercel-mcp", "github-actions-mcp"], ["grill-with-docs", "loop-runner"]];
 

@@ -1,6 +1,6 @@
 # 입문 세트 (카탈로그 후보 45개)
 
-> **상태: 초안, 사용자 승인 전.** 운영 DB에는 넣지 않았다. 작업 `I-P-12d-starter-set`(2026-11-21).
+> **상태: 운영 적용 완료(2026-11-21 12:1x KST, 사용자 승인).** 되돌림 시험 기대값 9개 맞음 · 흔적 0 → `apply_migration`(`p12d_starter_set`) → 공개 목록 15,701 → 15,746(+45), 갈래 빈 줄 0, NEW로 보이는 줄 0. concept:harness 이름은 사용자 결정으로 "지침 파일(CLAUDE.md · AGENTS.md)"로 바꿈(마이그레이션 끝 한 줄). 열린 질문 결정: Gemini CLI 뺌, 앱(Cursor 등)은 동결 뒤. 작업 `I-P-12d-starter-set`(2026-11-21).
 > 왜: 기본 지도를 교육생 · 나 같은 사용자에게 맞게(스킬 · 개념 · 새 개발 도구) 보이려 해도, 운영 공개 목록이 MCP뿐이다(다른 세션의 운영 읽기, 11-21: mcp 공개 15,701 · skill 공개 0/전체 9 · concept 0/1). 사용자 결정 "자동 + 입문 세트"(ADR 0030 6~8항).
 > 넣는 방법: 시드 마이그레이션 초안 `supabase/migrations/202611211200_P-12d_starter_set.sql` + 되돌림 시험 `supabase/tests/starter_set_p12d.sql` + 파일 검사 시험 `lib/server/starter-set-migration.test.ts`.
 
