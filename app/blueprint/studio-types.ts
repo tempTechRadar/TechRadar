@@ -21,6 +21,7 @@ export type PanelProps = {
   history: BlueprintRecord[] | null; say: Say;
   /** 이 화면에서 방금 확정한 청사진 id(AI 점검 탭이 씀). 아직 확정 안 했으면 null */ confirmedId: string | null;
   /** 관문 밖 기술을 적용 후보로 고르기(markTech) · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
+  /** 로그인 전(P-12f 손님): 서랍 = 카탈로그 찾기(찾은 것을 onFound로 서랍에 더함), 이력 · 템플릿 · AI 점검은 로그인 안내 */ guest?: boolean; onFound?: (techs: PoolTech[]) => void;
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

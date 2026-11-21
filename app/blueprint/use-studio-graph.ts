@@ -5,7 +5,7 @@
 // shortcut: 같은 계정으로 탭 두 개를 열면 나중에 고친 탭의 초안이 저장된다(storage 이벤트로 맞추지 않음). 여러 탭 편집이 흔해지면 storage 이벤트로 알린다
 import { useCallback, useEffect, useState } from "react";
 import { fromNames } from "@/lib/blueprint/board";
-import { readDraft } from "@/lib/blueprint/draft";
+import { guestOffer, readDraft, type Saved } from "@/lib/blueprint/draft";
 import { fromV1, type Graph } from "@/lib/blueprint/graph";
 import { TEMPLATES } from "@/lib/blueprint/knowledge";
 
@@ -16,7 +16,10 @@ type Hist = { past: Snap[]; now: Snap; future: Snap[] };
 /** unread: 지난 v2 초안을 읽지 못함. kept = 따로 보관함(false면 보관도 못 해 원본을 덮지 않고 둔다) */
 export type Unread = { kept: boolean } | null;
 
+/** 로그인 전(P-12f 손님 모드)의 who. 그 초안은 blueprint-draft-v2:guest에 두고, 로그인하면 한 번 가져올지 묻는다 */
+export const GUEST = "guest";
 const key = (who: string) => `blueprint-draft-v2:${who}`;
+const blank = () => fromV1(fromNames(TEMPLATES[0].cols));
 /** 읽지 못한 v2 초안은 덮어쓰기 전에 이 키로 옮겨 둔다(초안이 말없이 사라지지 않게, 불변 4 취지) */
 const unreadKey = (who: string) => `blueprint-draft-v2-unread:${who}`;
 
@@ -34,10 +37,12 @@ const step = (to: Snap, from: Snap, renamed: boolean): Snap => (renamed ? to : {
 export function useStudioGraph(who: string) {
   const [h, setH] = useState<Hist | null>(null);
   const [unread, setUnread] = useState<Unread>(null);
+  const [guest, setGuest] = useState<Saved | null>(null); // 로그인한 사람에게 가져올지 물을 손님 초안
   useEffect(() => {
     const r = load(who);
-    setH({ past: [], now: { graph: r.saved?.graph ?? fromV1(fromNames(TEMPLATES[0].cols)), name: r.saved?.name ?? "내 청사진", renamed: false }, future: [] });
+    setH({ past: [], now: { graph: r.saved?.graph ?? blank(), name: r.saved?.name ?? "내 청사진", renamed: false }, future: [] });
     setUnread(r.unread);
+    if (who !== GUEST) try { setGuest(guestOffer(localStorage.getItem(key(GUEST)), blank())); } catch { /* 저장소를 못 쓰면 물을 것도 없다 */ }
   }, [who]);
   useEffect(() => {
     // 보관하지 못한 초안은 사람이 고치기 전까지 덮지 않는다(처음 연 새 판으로 말없이 지우지 않게)
@@ -62,5 +67,11 @@ export function useStudioGraph(who: string) {
   }), []);
   /** 이름 칸에 친 글: 되돌리기 칸을 만들지 않는다 */
   const setName = useCallback((name: string) => setH((x) => (x ? { ...x, now: { ...x.now, name } } : x)), []);
-  return { graph: h?.now.graph ?? null, push, undo, redo, canUndo: !!h?.past.length, canRedo: !!h?.future.length, name: h?.now.name ?? "내 청사진", setName, unread };
+  /** 손님 초안: take = 되돌리기 한 칸으로 가져오기(전 판은 되돌리기로), 어느 쪽이든 손님 칸은 비워 다시 묻지 않는다 */
+  const answerGuest = useCallback((take: boolean) => {
+    if (take && guest) push(guest.graph, guest.name);
+    try { localStorage.removeItem(key(GUEST)); } catch { /* 못 지우면 다음에 또 묻는다 */ }
+    setGuest(null);
+  }, [guest, push]);
+  return { graph: h?.now.graph ?? null, push, undo, redo, canUndo: !!h?.past.length, canRedo: !!h?.future.length, name: h?.now.name ?? "내 청사진", setName, unread, guestDraft: guest, answerGuest };
 }

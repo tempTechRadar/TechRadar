@@ -22,3 +22,9 @@ export function readDraft(v2: string | null, v1: string | null): { saved: Saved 
 /** 같은 내용이면 같은 글자. 위치는 빼되, 나란히 순서(이력 · 내보내기에 나오는 y → x 순서)는 넣는다 */
 export const contentKey = (head: unknown[], g: Graph): string =>
   JSON.stringify([...head, g.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]).sort(), g.edges.map((e) => `${e.from}>${e.to}`).sort(), toBoardView(g)?.map((c) => c.map((s) => s.id)) ?? null]);
+
+/** 손님 초안(blueprint-draft-v2:guest)을 로그인한 사람에게 가져오자고 물을 것인가(P-12f): 읽을 수 있고 처음 판(blank)에서 고친 것만. 아니면 null */
+export function guestOffer(raw: string | null, blank: Graph): Saved | null {
+  const s = readDraft(raw, null).saved, b = parseDraft(blank); // 읽은 초안은 parseDraft로 다듬어져 있어 처음 판도 같은 모양으로 견준다
+  return s && JSON.stringify(s.graph) !== JSON.stringify(b.ok ? b.graph : blank) ? s : null;
+}
