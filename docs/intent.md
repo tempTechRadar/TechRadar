@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12f-news · 2026-11-22 · 앱 구조 개편 조각 ⑥ 소식 · ⑦ 요즘 뜨는 기술 · ⑧ 관리자 규칙 분류 (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12f-news`(origin/main = #203 병합본 d614af5에서). 통합 브랜치(FrontLead)로 merge
+- 출처: P-12f 계획(Maestro 전달, 사용자 승인) 6 · 7 · 8절, DocsChecker의 약관 확인(data-sources.md "소식 피드 후보와 약관"), ADR 0033 · 0038, 불변 2 · 3 · 5 · 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 소식판이 자리만 있고 자료가 없다. 지도에 "요즘 뜨는" 칩의 데이터가 없다. 카탈로그 분류는 매일 실행 뒤에만 돌아 관리자가 지금 채울 수 없다 |
+| 기대 결과 | ⑥ 바깥 소식 수집기(약관 확인한 공식 피드 4곳) + M7 `news_items` + 이미 모은 사건 소식(내 취약점 · 뜨는 기술 · 새 공식 스킬/플러그인) · ⑦ `readTrending` · ⑧ `/admin/classify` "규칙으로 한 번에 분류"(audit_logs) |
+| 영향 범위 | `lib/domain/{news-feeds,news-parse,trending}.ts`, `lib/server/{collect-news,news-store,news-feed,trending,classify-edit,classify-store}.ts`, `lib/views/{news,news-events}.ts`, `lib/schedule/collectors.ts`, `flow/flow.json`(차세일 님 파일 — 상자 `fetch_news` 하나 더함, 리뷰 요청), `app/admin/classify/*`, `supabase/migrations/202611221700_P-12f_news_items.sql` + 시험 SQL |
+| 제약 | 피드는 약관 확인한 것만(하루 1번 · 1초 간격 · 제목/링크/날짜/짧은 요약 · AI 학습 금지). 정기 실행 240초를 나눠 쓴다(소식 몫 15초). M7 운영 적용은 사용자 승인(병합 전). AI 분류는 컷 1순위라 안 함 |
+| 열린 질문 | 뜨는 기술 숫자(별 +30/7일 · HN 30점 · 상한 500)는 팀 추정(첫 실행 뒤 고침). "내 기술의 새 버전"은 데이터가 없어 못 만듦(레지스트리 수집기가 버전 변화를 기록하지 않음, 운영 observations에 version 지표 0). "모델 지원 종료"도 사건이 아직 없음. 소식 수집기를 병합 뒤 M7 전에 켜면 `fetch_news`가 "출처 news를 찾지 못함"으로 실패하므로 M7을 먼저 적용해야 함 |
+
+**결과:** 코드는 됨(로컬 커밋 7개, 미푸시). 시험 1,551(통과 1,551 · 실패 0, main 1,505 + 46), 타입 검사 통과. **M7은 아직 운영에 적용하지 않았다**(되돌림 시험도 아직 — 사용자 승인 대기). **확정하지 못한 것:** 실제 피드 응답으로 파서를 돌려 본 것(시험은 만든 예시 글), 화면(소식 탭 틀은 DevAssi1), 정기 실행 240초 안에 드는지(운영 첫 실행 뒤 확인), 뜨는 기술의 실제 개수
+
 ## I-P-10-skill-scan · 2026-11-21 · 스킬 위험 패턴 검사를 운영 첫 읽기에 연결 (DevAssi2 세션, 김영식)
 - 브랜치: `fix/P-10-skill-scan` (#203 `feat/P-21-popularity-v1` 8913f7a 위: grade.ts·first-read.ts 변경과 겹쳐서)
 - 출처: 사용자 결정 11-21(Maestro 전달), SPEC-2 v1·SPEC-1 위험 ②·주의 ⑤, PRD-F6, 정답 사례 G6–G9, 불변 2·3
