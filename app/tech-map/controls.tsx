@@ -11,12 +11,8 @@ type ListKey = "kinds" | "fields" | "subs";
 const LIST_DIM: Record<ListKey, Dim> = { kinds: "kind", fields: "field", subs: "sub" };
 const sortKo = (a: string, b: string) => a.localeCompare(b, "ko");
 
-type Motion = "sweep" | "ripple" | "off";
-const MOTION_KO: [Motion, string][] = [["sweep", "도는 선"], ["ripple", "퍼지는 파동"], ["off", "끄기"]];
-
-export function Toolbar({ nodes, view, projects, canMine, login, motion, onView, onReset, onFind, onGo }: {
+export function Toolbar({ nodes, view, projects, canMine, login, onView, onReset, onFind, onGo }: {
   nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean; login: boolean;
-  motion: { value: Motion; still: boolean; set: (m: Motion) => void };
   onView: (v: ViewConfig) => void; onReset: () => void; onGo: (key: string) => void; onFind: (q: string) => FindHit[];
 }) {
   const [open, setOpen] = useState<"" | "view" | "filter">("");
@@ -50,12 +46,6 @@ export function Toolbar({ nodes, view, projects, canMine, login, motion, onView,
                   {DIMS.filter((d) => !view.group.slice(0, i).includes(d) && (d !== "project" || canMine)).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
                 </select></label>
               ))}
-            </fieldset>
-            <fieldset><legend>움직임</legend>
-              <label>레이더 <select value={motion.still ? "off" : motion.value} disabled={motion.still} onChange={(e) => motion.set(e.target.value as Motion)}>
-                {MOTION_KO.map(([v, k]) => <option key={v} value={v}>{k}</option>)}
-              </select></label>
-              {motion.still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
             </fieldset>
             <fieldset><legend>색</legend>
               <label>색 기준 <select value={view.color} onChange={(e) => onView({ ...view, color: e.target.value as Dim })}>

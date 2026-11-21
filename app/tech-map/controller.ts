@@ -6,7 +6,7 @@ import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, 
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
 import { draw, PULSE_SEC } from "./draw";
-import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
+import { DEFAULT_TUNE, GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, retune, REVEAL, SLOWDOWN, SWEEP_DELAY, TUNES, type Tune } from "@/lib/map/motion";
 
 const STORE = "techradar.mapView";
 const ZMIN = 0.05, ZMAX = 12; // 넓게: 끝없는 판처럼(사용자 11-20)
@@ -16,7 +16,7 @@ type Cam = { x: number; y: number; k: number };
 export type MapState = {
   W: number; H: number; top: number; right: number; /** 아래쪽에 뜬 범례 · 상태 줄 높이(그 밑에 점을 두지 않는다) */ bottom: number; cam: Cam; fly: { from: Cam; to: Cam; t0: number; dur: number } | null; userCam: boolean;
   L: MapLayout; view: ViewConfig; collapsed: Set<string>; hidden: Set<string>; leaving: Map<string, number>; phys: ReturnType<typeof createPhysics>;
-  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; motion: Motion; introAt: number; sweepStart: number; now: number; scopeLabel: string;
+  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; motion: Motion; tune: Tune; shift: number; introAt: number; sweepStart: number; now: number; scopeLabel: string;
   riskRects: { x: number; y: number; list: TechItem[] }[]; hubLabels: { id: string; x: number; y: number; w: number; h: number }[];
   handles: { id: string; x: number; y: number }[]; homeArrow: { x: number; y: number } | null; scale: () => number; base: () => number;
   /** 찾아간 기술 · 펼친 묶음 자리에 한 번 퍼지는 물결(t = 시작 시각, 카메라가 도착할 때) */ ping: { id: string; t: number } | null;
@@ -28,6 +28,10 @@ const MOTION_KEY = "techradar-map-motion";
 /** 레이더 움직임 고르기는 이 브라우저에만 기억(편의). 서버 그림 중이거나 저장소를 못 쓰면 기본(도는 선) */
 function savedMotion(): Motion {
   try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "ripple" || v === "off" ? v : "sweep"; } catch { return "sweep"; }
+}
+const TUNE_KEY = "techradar-map-tune";
+function savedTune(): Tune {
+  try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(TUNE_KEY); return TUNES.find((t) => t === v) ?? DEFAULT_TUNE; } catch { return DEFAULT_TUNE; }
 }
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
@@ -50,7 +54,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null,
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), tune: savedTune(), shift: 0, introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null,
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
     base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
@@ -268,7 +272,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");
-    const onMotion = () => { S.still = !!motion?.matches; dirty(); };
+    const onMotion = () => { S.still = !!motion?.matches; dirty(); notify(); }; // notify: ⚙ 창의 "기기 설정으로 꺼져 있어요"도 바로
     motion?.addEventListener("change", onMotion);
     raf = requestAnimationFrame(frame);
     return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); ctx = null; };
@@ -276,8 +280,10 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   rebuild(null);
   return {
-    /** 레이더 움직임 바꾸기(보기 메뉴). 펼침은 처음 한 번뿐이라 다시 켜도 옅은 움직임부터 */
+    /** 레이더 움직임 바꾸기(오른쪽 아래 ⚙). 펼침은 처음 한 번뿐이라 다시 켜도 옅은 움직임부터 */
     setMotion(m: Motion) { S.motion = m; try { localStorage.setItem(MOTION_KEY, m); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
+    /** 분위기(속도 · 여운) 바꾸기. 도는 선은 지금 자리에서 새 속도로 이어 돈다 */
+    setTune(t: Tune) { S.shift = retune(S, S.now, t); S.tune = t; try { localStorage.setItem(TUNE_KEY, t); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
     finishIntro,
     S, model, phys, revealItem, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, drill, toggle, resetView, select, unselect, goTo, setFocus, measure, attach, dirty, notify,
     /** 주소에 보기 설정이 없으면 이 브라우저가 기억한 마지막 보기(로그인했을 때만). 붙인 뒤 한 번 */

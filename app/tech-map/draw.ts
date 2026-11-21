@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge } from "@/lib/map/motion";
+import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 export const PULSE_SEC = 10;
@@ -125,19 +125,18 @@ function ringRadii(S: MapState, sc: number, farWorld: number): number[] {
   return rs;
 }
 
-/** 퍼지는 파동(시안처럼 얇은 고리 하나): 펼침 동안 가운데 → 지도 끝, 그 뒤 몇 초마다 화면 끝까지 번지며 옅어진다 */
+/** 퍼지는 파동(시안처럼 얇은 고리 하나): 펼침 동안 가운데 → 지도 끝, 그 뒤 몇 초마다 화면 끝까지 번지며 옅어진다. 배경이라 얇고 옅게(11-21 사용자 "잔잔한 파동") */
 function ripple({ c, S, sc, now }: Frame, o: Pt, sa: number) {
   const { r, fade } = rippleR(S, now, farOf(S, o) / sc);
   if (r <= 0) return;
-  c.strokeStyle = col("--ink"); c.lineWidth = 1.5; c.globalAlpha = 0.35 * sa * fade;
+  c.strokeStyle = col("--ink"); c.lineWidth = 1; c.globalAlpha = 0.22 * sa * fade;
   c.beginPath(); c.arc(o[0], o[1], r * sc, 0, TAU); c.stroke();
   c.globalAlpha = 1;
 }
 
-/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 TRAIL 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛 */
-const TRAIL = 1.2; // 라디안(약 70도)
+/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 잔광 각도(분위기) 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛 */
 function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
-  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink");
+  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink"), TRAIL = TUNE[S.tune].trail;
   if ("createConicGradient" in c && !introducing(S, now)) { // 잔광은 처음 연출이 끝난 뒤(고리가 다 퍼진 뒤, 시안처럼)
     const f = TRAIL / TAU, g = c.createConicGradient(ang - TRAIL, ox, oy), a = 0.35 * sa;
     g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(f * 0.6, `rgba(26,26,26,${(a * 0.25).toFixed(3)})`); g.addColorStop(f, `rgba(26,26,26,${a.toFixed(3)})`); g.addColorStop(Math.min(1, f + 0.001), "rgba(0,0,0,0)");
