@@ -19,7 +19,6 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-opts { display: grid; gap: 6px; margin: 10px 0; }
 .bp-dialog .bp-opt { justify-content: space-between; gap: var(--sp-2); text-align: left; min-height: 48px; padding: 6px var(--sp-3); }
 .bp-rec { flex: none; font-size: var(--fs-cap); border: 1px solid var(--ink-2); border-radius: 4px; padding: 0 6px; }
-.bp-out { width: 100%; box-sizing: border-box; margin: 8px 0; font: 13px/1.5 ui-monospace, Consolas, monospace; padding: 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); }
 .bp-field { display: grid; gap: 4px; margin: var(--sp-3) 0; font-weight: 600; }
 .bp-field select { min-height: var(--hit); font: inherit; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); }
 

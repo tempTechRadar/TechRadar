@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { contentKey, readDraft } from "./draft.ts";
-import type { Graph } from "./graph.ts";
+import { fromNames } from "./board.ts";
+import { fromV1, layers, type Graph } from "./graph.ts";
+import { buildFromAnswers } from "./knowledge.ts";
 
 const chain = (n: number): Graph => ({ v: 2, stages: Array.from({ length: n }, (_, i) => ({ id: `q${i}`, name: `단계${i}`, x: i * 320, y: 0, techs: [] })), edges: Array.from({ length: n - 1 }, (_, i) => ({ from: `q${i}`, to: `q${i + 1}` })) });
 
@@ -25,4 +27,12 @@ test("같은 확정: 위치만 옮기면 같은 키, 나란히 순서 · 기술 
   assert.notEqual(contentKey(["이름", null], swapped), k);
   assert.notEqual(contentKey(["이름", null], { ...g, stages: g.stages.map((s) => (s.id === "b" ? { ...s, techs: [{ id: "t", name: "x" }] } : s)) }), k);
   assert.notEqual(contentKey(["다른 이름", null], g), k);
+});
+
+test("질문으로 틀 만들기: 답 → 열 · 행 판 → 그래프에서 단계 깊이가 열 번호와 같다(나란히는 같은 깊이)", () => {
+  const cols = buildFromAnswers({ what: "web", team: "team", design: "yes", data: "yes", test: "full", ship: "yes" });
+  const g = fromV1(fromNames(cols)), lay = layers(g);
+  assert.ok(lay.ok);
+  const depthOf = (name: string) => lay.depth.get(g.stages.find((s) => s.name === name)!.id);
+  cols.forEach((col, i) => col.forEach((name) => assert.equal(depthOf(name), i, name)));
 });

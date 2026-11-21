@@ -7,15 +7,16 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  addStage, applyTemplate, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
+  addStage, applyTemplate, autoLayout, connect, fromV1, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
+import { fromNames } from "@/lib/blueprint/board";
 import { recommendAt } from "@/lib/blueprint/knowledge";
 import { addStageProblem, CONNECT_KO, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
 import type { BlueprintPage } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
-import { ConfirmDialog } from "./dialogs";
+import { ConfirmDialog, InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { Inspector } from "./inspector";
@@ -51,10 +52,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [step, setStep] = useState<Step>(add ? 2 : 1);
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
+  // shortcut: 끄는 동안의 위치를 이 컴포넌트 상태에 둬서 포인터가 움직일 때마다 패널까지 다시 그린다. 단계가 수십 개를 넘어 끌기가 버벅이면 캔버스 자식으로 내리거나 패널을 memo한다
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState("");
-  const [confirming, setConfirming] = useState(false), [marking, setMarking] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
@@ -168,6 +170,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : "선을 지웠어요.");
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
+  /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정 "① 단계 구축에 다시 잇기"). 지금 판이 있으면 바꾸기 전에 묻고, 되돌리기 한 칸이면 전 판 */
+  function makeFromAnswers(cols: string[][]) {
+    if (g.stages.length && !window.confirm("지금 판을 질문 답으로 만든 틀로 바꿀까요? 되돌리기로 지금 판에 돌아올 수 있어요.")) return;
+    setAsking(false); unpick(); setTemplateId(null);
+    apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
+  }
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
@@ -205,6 +213,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
           <label>새 단계 <input value={newName} maxLength={20} placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} /></label>
           <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>{base ? "고른 단계 다음에 더하기" : "단계 더하기"}</button>
           {hints.map((h) => <button key={h} type="button" className="chip" onClick={() => addNamed(h)}>+ {h}</button>)}
+          <button type="button" className="btn" onClick={() => setAsking(true)}>질문으로 틀 만들기</button>
         </form>
       ) : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
@@ -226,6 +235,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={() => { done.reset(); setConfirming(true); }} /> : null}
       <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
+      {asking ? <InterviewDialog onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
     </div>

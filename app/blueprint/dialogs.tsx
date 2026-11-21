@@ -1,11 +1,9 @@
 "use client";
-// 블루프린트 대화상자: 템플릿 · 인터뷰로 만들기(한 번에 한 질문, 첫 보기가 추천) · 내보내기(글만, AI 호출 없음) · 이 조합으로 확정(프로젝트 고르기).
+// 청사진 대화상자: 질문으로 틀 만들기(한 번에 한 질문, 첫 보기가 추천) · 이 조합으로 확정(프로젝트 고르기). 템플릿은 하단 패널 템플릿 탭, 내보내기는 ③ 결과물 미리보기
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Board } from "@/lib/blueprint/board";
-import { exportText, type ExportKind } from "@/lib/blueprint/export-text";
-import { buildFromAnswers, QUESTIONS, TEMPLATES } from "@/lib/blueprint/knowledge";
+import { buildFromAnswers, QUESTIONS } from "@/lib/blueprint/knowledge";
 
-export type DialogKind = "tpl" | "iv" | "export" | "confirm";
 const flow = (cols: string[][]) => cols.map((c) => c.join(" + ")).join(" → ");
 
 /** 모달 껍데기: 그린 직후 showModal(초점 가두기 · Esc 닫기는 브라우저가) → 추천 보기(data-autofocus)로 초점, focusKey가 바뀌면(인터뷰 다음 질문) 다시.
@@ -23,19 +21,6 @@ function Modal({ title, onClose, focusKey, children }: { title: string; onClose:
       <div className="bp-dialog-head"><h2 id="bp-dialog-title">{title}</h2><button type="button" className="btn bp-sm" onClick={() => ref.current?.close()} aria-label="닫기">✕</button></div>
       {children}
     </dialog>
-  );
-}
-
-export function TemplateDialog({ onPick, onClose }: { onPick: (cols: string[][], name: string) => void; onClose: () => void }) {
-  return (
-    <Modal title="템플릿으로 시작" onClose={onClose}>
-      <p className="muted">지금 판 대신 이 순서로 바꿔요. 바꾼 뒤 "되돌리기"로 전 판을 되살릴 수 있어요.</p>
-      <div className="bp-opts">{TEMPLATES.map((t, i) => (
-        <button key={t.name} type="button" className="btn bp-opt" data-autofocus={i === 0 ? "" : undefined} onClick={() => onPick(t.cols, t.name)}>
-          <span><b>{t.name}</b><br /><span className="muted">{t.desc}: {flow(t.cols)}</span></span>{i === 0 ? <span className="bp-rec">초보자 추천</span> : null}
-        </button>
-      ))}</div>
-    </Modal>
   );
 }
 
@@ -65,21 +50,6 @@ export function InterviewDialog({ onMake, onClose }: { onMake: (cols: string[][]
         </button>
       ))}</div>
       {step ? <button type="button" className="btn" onClick={() => setStep(step - 1)}>이전 질문</button> : null}
-    </Modal>
-  );
-}
-
-const KINDS: [ExportKind, string][] = [["prompt", "프롬프트"], ["md", "CLAUDE.md 글"], ["meta", "다듬기용 메타프롬프트"]];
-export function ExportDialog({ name, board, onClose, say }: { name: string; board: Board; onClose: () => void; say: (m: string) => void }) {
-  const [kind, setKind] = useState<ExportKind>("prompt");
-  const text = exportText(kind, name, board);
-  const copy = () => navigator.clipboard?.writeText(text).then(() => say("복사했어요."), () => say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
-  return (
-    <Modal title="내보내기" onClose={onClose}>
-      <div className="bp-row" role="group" aria-label="내보낼 모양">{KINDS.map(([k, n]) => <button key={k} type="button" className="btn bp-sm" aria-pressed={kind === k} data-autofocus={k === "prompt" ? "" : undefined} onClick={() => setKind(k)}>{n}</button>)}</div>
-      <p className="muted">{kind === "meta" ? "이 글을 내 Claude에 붙여 넣으면 청사진을 한 번 더 다듬어 줘요. 앱은 AI를 부르지 않아요." : "글만 만들어요. 설치하거나 내 저장소를 바꾸지 않아요."}</p>
-      <textarea className="bp-out" readOnly value={text} aria-label="내보낼 글" rows={12} />
-      <div className="bp-row"><button type="button" className="btn btn-primary" onClick={copy}>복사</button></div>
     </Modal>
   );
 }
