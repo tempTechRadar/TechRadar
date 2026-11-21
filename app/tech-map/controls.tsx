@@ -113,7 +113,7 @@ export function Crumbs({ view, onView }: { view: ViewConfig; onView: (v: ViewCon
 
 /** 늘 보이는 빠른 칩(11-21 사용자: 필터를 보기 창 밖으로): 들어온 때(오늘 · 이번 주 · 이번 달) · 위험·주의 · 내 관심 · 내 기술과 비교군 · 수집 오류.
  *  다시 누르면 꺼진다. 수는 들어간 분류와 상관없이 지도 전체에서 센다 */
-export function QuickChips({ nodes, view, canMine, login, onView }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; login: boolean; onView: (v: ViewConfig) => void }) {
+export function QuickChips({ nodes, view, canMine, login, onView, onReplay }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; login: boolean; onView: (v: ViewConfig) => void; onReplay: () => void }) {
   const f = view.filter, set = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
   const count = (fn: (x: MapNode) => boolean) => nodes.filter(fn).length;
   // shortcut: "마지막 수집"은 정기 실행 기록(runs)을 읽어야 정확해서 아직 없음. 노드 하나의 확인 시각은 지도 전체가 최신인 것처럼 보이게 한다
@@ -127,6 +127,7 @@ export function QuickChips({ nodes, view, canMine, login, onView }: { nodes: Map
           </button>
         ))}
       </span>
+      {count((x) => x.addedDays !== null && x.addedDays < 7) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
       <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
       {login ? <button type="button" className="chip" aria-pressed={f.interest} onClick={() => set({ interest: !f.interest })}>내 관심 <b>{count((x) => x.mark?.status === "interest")}</b></button> : null}
       {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>내 기술과 비교군 <b>{count((x) => x.mine || x.nearMine)}</b></button> : null}

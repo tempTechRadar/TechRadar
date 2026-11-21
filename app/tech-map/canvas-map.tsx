@@ -91,6 +91,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   }, [ctl, S, S.sel]);
 
   const setView = (v: ViewConfig) => { clearTip(); ctl.setView(v); };
+  const replay = () => { clearTip(); if (S.sel) close(); const n = ctl.replayArrivals(); say(n ? `이번 주에 들어온 ${n}개예요. 이번 주 칩을 다시 누르면 전체로 돌아가요.` : "이번 주에 새로 들어온 기술이 없어요."); };
   const go = (key: string) => {
     if (!S.sel) lastFocus.current = document.activeElement; // 고르기 전에: 닫을 때 초점을 돌려놓을 곳
     const msg = ctl.goTo(key); if (msg) say(msg); if (S.sel === key) open(key);
@@ -143,7 +144,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
           {top ? <div className="map-top">{top}</div> : null}
           <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} motion={{ value: S.motion, still: S.still, set: (m) => ctl.setMotion(m) }} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} login={login} canMine={canMine} say={say} />
-          <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} onView={setView} /></div>
+          <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} onView={setView} onReplay={replay} /></div>
         </div>
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
           onEnter={() => { overCard.current = true; clearTimeout(tipTimer.current); }} onLeave={() => { overCard.current = false; hover("", 0, 0); }}

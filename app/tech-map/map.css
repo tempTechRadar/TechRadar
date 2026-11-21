@@ -118,3 +118,5 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-seg .chip { border-radius: 0; margin-left: -1px; }
 .map-seg .chip:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
 .map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }
+.map-replay { border-style: dashed; }
+.map-replay:hover { border-style: solid; border-color: var(--ink); }
