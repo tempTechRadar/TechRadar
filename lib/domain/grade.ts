@@ -45,10 +45,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const CHECK_MAX_AGE_MS = 7 * DAY_MS;
 const ACTIVITY_MAX_AGE_MS = 90 * DAY_MS;
 
-// 못 찾음(missedCount>0)이 한 번이라도 쌓였거나 상태가 active가 아니면 신선하지 않다. 날짜가 깨져 NaN이면 비교가 거짓이라 신선하지 않다.
+// 지금 안쪽이어야 신선하다: 미래 날짜(시계 어긋남)·깨진 날짜(NaN)는 비교가 거짓이라 신선하지 않다.
+const withinAge = (nowMs: number, iso: string, maxMs: number) => {
+  const age = nowMs - Date.parse(iso);
+  return age >= 0 && age <= maxMs;
+};
+
+// 못 찾음(missedCount>0)이 한 번이라도 쌓였거나 상태가 active가 아니면 신선하지 않다.
 function repoIsFresh(r: RepoCheck): boolean {
   if (r.status !== "active" || r.missedCount > 0 || !r.checkedAt || !r.activityAt || !r.repoName) return false;
-  return r.nowMs - Date.parse(r.checkedAt) <= CHECK_MAX_AGE_MS && r.nowMs - Date.parse(r.activityAt) <= ACTIVITY_MAX_AGE_MS;
+  return withinAge(r.nowMs, r.checkedAt, CHECK_MAX_AGE_MS) && withinAge(r.nowMs, r.activityAt, ACTIVITY_MAX_AGE_MS);
 }
 
 const HIGH = new Set(["HIGH", "CRITICAL"]);

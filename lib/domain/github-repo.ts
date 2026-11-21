@@ -27,7 +27,7 @@ export const repoKey = (ref: RepoRef): string => `${ref.owner}/${ref.repo}`.toLo
  * GitHub 저장소가 아니거나 주소에 쓸 수 없는 이름이면 null. 끝의 `.git`은 주소 쪽(`parseGithubRepo`)과 같게 뗀다.
  */
 export function repoRefOf(t: { tech_key: string; repo_url: string | null }): RepoRef | null {
-  const key = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?$/i.exec(t.tech_key) ?? /^skill:([\w.-]+)\/([\w.-]+)\/.+$/i.exec(t.tech_key);
+  const key = /^github:([\w.-]+)\/([\w.-]+?)(?:\.git)?$/i.exec(t.tech_key) ?? /^skill:([\w.-]+)\/([\w.-]+?)(?:\.git)?\/.+$/i.exec(t.tech_key);
   const url = key || !t.repo_url ? null : parseGithubRepo(t.repo_url);
   const ref = key ? { owner: key[1], repo: key[2] } : url ? { owner: url.owner, repo: url.repo } : null;
   return ref && !hasDotSegment(ref) ? ref : null;

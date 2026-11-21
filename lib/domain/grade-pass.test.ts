@@ -47,6 +47,12 @@ test("상태가 active가 아니거나 못 찾음이 쌓였으면 통과가 아�
   assert.equal(gradeFromOsv("1", [], repo({ missedCount: 1 })).grade, "unknown");
 });
 
+test("미래 날짜(시계 어긋남)는 신선하지 않다: 확인 시각도 푸시 시각도 지금보다 뒤면 통과가 아니다", () => {
+  assert.equal(gradeFromOsv("1", [], repo({ checkedAt: ago(-1) })).grade, "unknown");
+  assert.equal(gradeFromOsv("1", [], repo({ activityAt: ago(-1) })).grade, "unknown");
+  assert.equal(gradeFromOsv("1", [], repo({ checkedAt: ago(0) })).grade, "pass"); // 지금과 같은 시각은 통과
+});
+
 test("저장소를 읽은 적이 없거나(null) 날짜가 깨졌으면 통과가 아니다", () => {
   assert.equal(gradeFromOsv("1", [], repo({ checkedAt: null })).grade, "unknown");
   assert.equal(gradeFromOsv("1", [], repo({ activityAt: null })).grade, "unknown");
