@@ -11,7 +11,7 @@ const NOW = Date.parse("2026-11-21T06:00:00Z");
 const clone = <T>(v: T): T => structuredClone(v);
 
 // 표를 실제로 들고 있는 가짜 클라이언트(collect-downloads.test.ts와 같은 모양 + upsert). writes는 technologies 쓰기 횟수
-function fakeDb(tables: Tables, fail: { observation?: boolean } = {}) {
+function fakeDb(tables: Tables, fail: { observation?: boolean; steps?: boolean } = {}) {
   const stats = { writes: 0 };
   const db = {
     from(table: keyof Tables) {
@@ -28,6 +28,7 @@ function fakeDb(tables: Tables, fail: { observation?: boolean } = {}) {
         then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => Promise.resolve({ data: clone(page ? found.slice(page[0], page[1] + 1) : found), error: null }).then(res, rej),
         insert(row: Row) {
           if (table === "observations" && fail.observation) return Promise.resolve({ error: { message: "쓰기 거부" } });
+          if (table === "run_steps" && fail.steps) return Promise.resolve({ error: { message: "단계 기록 거부" } });
           rows.push(row);
           return Promise.resolve({ error: null });
         },
@@ -119,7 +120,7 @@ test("처음 읽음: 알려진 기술에 신호, 이름 맞는 모르는 저장�
   assert.equal(hnOf(t, "npm")?.story_url, "https://news.ycombinator.com/item?id=2");
   assert.equal(t.technologies.find((x) => x.id === "sim")!.signals, null);
   const made = t.technologies.filter((x) => String(x.id).startsWith("new-"));
-  assert.deepEqual(made.map((x) => [x.tech_key, x.type, x.depth, x.repo_url, x.one_liner]), [["github:acme/gateway-mcp", "mcp", "thin", "https://github.com/acme/gateway-mcp", null]]);
+  assert.deepEqual(made.map((x) => [x.tech_key, x.display_name, x.type, x.depth, x.repo_url, x.one_liner]), [["github:acme/gateway-mcp", "acme/gateway-mcp", "mcp", "thin", "https://github.com/acme/gateway-mcp", null]]);
   assert.deepEqual({ ...(made[0].signals as Row), hn: undefined }, { registry_backfill: true, hn: undefined });
   assert.equal(t.observations.length, 3); // reg·npm·새 줄. 가짜 줄의 저장소는 같은 키가 이미 있어 새로 만들지도 않는다(upsert가 건너뜀)
   assert.ok(t.observations.every((o) => o.metric === "hn_points" && o.source_id === "s-hn" && o.run_id === "run-1"));
@@ -239,4 +240,19 @@ test("저장 중 시간 한도를 넘으면 멈추고 요약에 남긴다(다음
   const r = await hnCollector(deps).run({ db, runId: "run-1", deadlineMs: Number.MAX_SAFE_INTEGER });
   assert.equal(t.observations.length, 0);
   assert.match(r.summary ?? "", /시간 한도로 대상 2개는 다음 실행으로/);
+});
+
+test("저장 실패 뒤 단계 기록까지 실패해도 원래 오류를 던지고, 단계 기록 실패는 로그에 남긴다(삼키지 않음)", async () => {
+  const t = world([tech("a", "npm:mcp-remote")]);
+  const { db } = fakeDb(t, { observation: true, steps: true });
+  const f = fakes({ mcp: [story("1", "MCP remote", "https://npmjs.com/package/mcp-remote")] });
+  const logged: string[] = [];
+  const real = console.error;
+  console.error = (...args: unknown[]) => void logged.push(args.join(" "));
+  try {
+    await assert.rejects(hnCollector(f.deps).run({ db, runId: "run-1", deadlineMs: Number.MAX_SAFE_INTEGER }), /수집 자료를 저장하지 못함/);
+  } finally {
+    console.error = real;
+  }
+  assert.ok(logged.some((l) => l.includes("HN 저장 실패 뒤 단계 기록도 실패")), logged.join(" | "));
 });

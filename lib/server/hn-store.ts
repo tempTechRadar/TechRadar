@@ -75,6 +75,7 @@ async function insertObservation(db: SupabaseClient, s: Saved, { techId, prev, c
  * signals.hn을 쓴다. 바뀌었으면 true(같은 글·점수·댓글이면 쓰지 않음).
  * 신호를 먼저 쓰고 수집 자료를 남긴다. 수집 자료를 못 남기면 신호를 원래대로 되돌린다(downloads-store.ts saveReading과 같은 순서, 불변 3·4).
  * 신호는 쓰기 직전에 다시 읽어 합친다(다른 수집기가 쓴 신호를 덮어쓰지 않게).
+ * signals.hn은 "최근 7일 안에서 가장 점수 높은 글"이고, 7일 밖으로 나가도 지우지 않는다: 낡았는지는 seen_at으로 판단한다(점수에 쓰기 전에 만료 정책을 정할 것).
  * shortcut: 읽기와 쓰기 사이에 잠금은 없다(downloads-store.ts와 같음). 같은 순간 겹쳐 도는 실행이 있으면 드물게 한쪽 신호를 덮는다. 겹치면 DB 함수로
  */
 export async function saveSignal(db: SupabaseClient, { saved: s, techId, signal }: { saved: Saved; techId: string; signal: HnSignal }): Promise<boolean> {
@@ -101,7 +102,7 @@ export async function saveSignal(db: SupabaseClient, { saved: s, techId, signal 
 export async function createThin(db: SupabaseClient, target: Extract<StoryTarget, { kind: "github" }>, type: "mcp" | "skill"): Promise<string | null> {
   const key = targetKey(target);
   const row = {
-    tech_key: key, display_name: target.repo, type, depth: "thin", status: "active", one_liner: null, one_liner_source: null,
+    tech_key: key, display_name: `${target.owner}/${target.repo}`, type, depth: "thin", status: "active", one_liner: null, one_liner_source: null,
     repo_url: `https://github.com/${target.owner}/${target.repo}`, is_official: false, signals: { registry_backfill: true },
   };
   const { data, error } = await db.from("technologies").upsert(row, { onConflict: "tech_key", ignoreDuplicates: true }).select("id");
