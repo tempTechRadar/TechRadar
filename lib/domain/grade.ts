@@ -37,7 +37,8 @@ export type GradeResult = {
 /** 저장소 정보 확인(P-9)이 technologies에 남긴 값. 통과는 이 값이 신선할 때만 준다(SPEC-1). */
 // repoName: P-9가 실제로 읽은 저장소(signals.github_found_repo, 소문자 owner/repo). 이름이 없으면 어느 저장소의 확인인지 모르므로 통과가 아니다.
 // shortcut: 패키지와 그 저장소가 같은 것인지는 검증하지 않는다(레지스트리·스킬 키가 알려 준 연결을 믿는다). 이유에 저장소 이름을 보여 사람이 알아보게 한다. 검증하려면 저장소의 package.json 이름을 맞춰 본다.
-export type RepoFacts = { status: string; activityAt: string | null; checkedAt: string | null; missedCount: number; repoName: string | null };
+// status·license: 수집기들이 technologies에 남긴 값(license는 none·other·SPDX 이름, 읽은 적 없으면 null). 주의 조건(중단·사라짐·쉼·라이선스 없음)에 쓴다.
+export type RepoFacts = { status: string; activityAt: string | null; checkedAt: string | null; missedCount: number; repoName: string | null; license: string | null };
 export type RepoCheck = RepoFacts & { nowMs: number };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,11 +46,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const CHECK_MAX_AGE_MS = 7 * DAY_MS;
 const ACTIVITY_MAX_AGE_MS = 90 * DAY_MS;
 
-// 지금 안쪽이어야 신선하다: 미래 날짜(시계 어긋남)·깨진 날짜(NaN)는 비교가 거짓이라 신선하지 않다.
+// 시계 어긋남(GitHub 서버·수집 서버·이 서버)은 몇 분까지 봐준다. 그보다 앞선 미래 날짜·깨진 날짜(NaN)는 신선하지 않다.
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
 const withinAge = (nowMs: number, iso: string, maxMs: number) => {
   const age = nowMs - Date.parse(iso);
-  return age >= 0 && age <= maxMs;
+  return age >= -CLOCK_SKEW_MS && age <= maxMs;
 };
+
+// 주의 조건 ②③④(SPEC-1): 출처에서 중단·사라짐, 12개월 넘게 쉼(dormant), 라이선스 없음. 취약점이 없어도 통과가 아니다.
+function repoConcern(r: RepoCheck): string | null {
+  if (r.status === "deprecated") return "저장소가 중단됐어요(보관됨·지원 종료).";
+  if (r.status === "gone") return "저장소가 출처에서 사라졌어요.";
+  if (r.status === "dormant") return "저장소에 1년 넘게 새 푸시가 없어요.";
+  if (r.license === "none") return "저장소에 라이선스가 없어요.";
+  return null;
+}
 
 // 못 찾음(missedCount>0)이 한 번이라도 쌓였거나 상태가 active가 아니면 신선하지 않다.
 function repoIsFresh(r: RepoCheck): boolean {
@@ -143,8 +154,10 @@ export function gradeFromOsv(version: string | null, vulns: OsvVuln[], repo?: Re
   if (evidence.length > 0) {
     return { grade: "caution", reason: `덜 심각한 알려진 문제가 ${evidence.length}건 있어요(${named(evidence[0])}).`, evidence, causeId: null, fixedVersion: null };
   }
+  const concern = repo && repoConcern(repo);
+  if (concern) return { grade: "caution", reason: `알려진 취약점은 없지만 ${concern}`, evidence, causeId: null, fixedVersion: null };
   if (repo && repoIsFresh(repo)) {
     return { grade: "pass", reason: `알려진 취약점이 없고, 저장소(${repo.repoName})가 최근 3개월 안에 고쳐지고 있어요.`, evidence, causeId: null, fixedVersion: null };
   }
-  return { grade: "unknown", reason: "알려진 취약점은 없어요. 저장소 정보는 아직 확인하지 않았거나 오래됐어요.", evidence, causeId: null, fixedVersion: null };
+  return { grade: "unknown", reason: "알려진 취약점은 없어요. 저장소 정보가 없거나 낡았거나, 최근 3개월 안에 푸시가 없어요.", evidence, causeId: null, fixedVersion: null };
 }

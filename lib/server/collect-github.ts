@@ -124,7 +124,8 @@ const deadSource = (failed: Failure[]) => new CollectError(failed[0].kind, `GitH
 
 /**
  * 수집 상자 줄은 runBatch가 남긴다. 여기서는 그 뒤 단계(normalize·compare)와, 일부만 실패했을 때의 collect_error만 남긴다.
- * compare의 나가는 건수는 0이다: 저장소 정보는 등급 계산으로 넘어가지 않아 다른 수집기(OSV)의 compare→grade 숫자에 섞이면 안 된다.
+ * compare의 나가는 건수는 0이다: 이 실행은 등급을 매기지 않아 다른 수집기(OSV)의 compare→grade 숫자에 섞이면 안 된다.
+ * (저장소 정보는 다음 OSV 확인·처음 읽기가 통과·주의를 정할 때 읽는다: grade.ts, 이 실행의 흐름 화살표에는 나오지 않는다.)
  */
 async function recordSteps({ db, runId, tally: t }: Run, withDetail: boolean): Promise<void> {
   if (t.read > 0) {
