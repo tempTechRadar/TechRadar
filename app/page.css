@@ -1,5 +1,5 @@
 /* 알림 화면 스타일. 값은 공용 토큰(app/tokens.css)을 가리키고, 모양은 docs/wireframes/alerts.html과 같다. .page 안에서만 적용한다.
-   상태 안내 글자·옅은 바탕은 글자로 읽혀야 해서(4.5:1) 공용 상태 색 대신 여기 값을 둔다 */
+   상태 안내 글자 · 옅은 바탕은 글자로 읽혀야 해서(4.5:1) 공용 상태 색(표시용) 대신 tokens.css의 --ink-* · --bg-*를 쓴다 */
 .page {
   --color-text: var(--ink);
   --color-muted: var(--muted);
@@ -10,11 +10,11 @@
   --color-primary: var(--ink);
   --color-on-primary: var(--on-ink);
   --color-danger: var(--ink-danger);
-  --color-danger-bg: #fef2f2;
-  --color-warning: #b45309;
-  --color-warning-bg: #fffbeb;
-  --color-success: #15803d;
-  --color-success-bg: #f0fdf4;
+  --color-danger-bg: var(--bg-danger);
+  --color-warning: var(--ink-caution);
+  --color-warning-bg: var(--bg-caution);
+  --color-success: var(--ink-pass);
+  --color-success-bg: var(--bg-pass);
 
   --space-1: var(--sp-1);
   --space-2: var(--sp-2);
@@ -72,7 +72,7 @@
 .page .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font: inherit; font-size: var(--text-sm); font-weight: 600; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); cursor: pointer; }
 .page .btn-primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 .page .notice { border: 1px solid; border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); }
-.page .notice-empty { border-color: var(--color-border-strong); background: var(--color-surface-subtle); }
+.page .notice-empty { border-style: dashed; border-color: var(--color-border-strong); background: var(--color-surface-subtle); } /* 빈 상태는 점선(오류 · 안내와 한눈에 다르게, P-12f ④) */
 .page .first-check { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); border-color: var(--color-border-strong); background: var(--color-surface-subtle); }
 .page .first-check form { margin-left: auto; }
 .page .settings-form { display: grid; gap: var(--space-3); max-width: 32rem; margin-bottom: var(--space-4); }
@@ -80,6 +80,7 @@
 .page .settings-form label.check { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
 .page .settings-form input[type="checkbox"] { width: 20px; height: 20px; }
 .page .settings-form input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+.page .notice-ok { border-color: var(--color-success); background: var(--color-success-bg); color: var(--color-success); } /* 저장 · 남김 같은 성공 안내(빈 상태 점선과 나눔) */
 .page .notice-error { border-color: var(--color-danger); background: var(--color-danger-bg); color: var(--color-danger); }
 
 @media (max-width: 640px) {

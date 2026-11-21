@@ -139,7 +139,7 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage, guest, onFound 
 
 /** 내 태그로 거르기. 태그를 못 읽었으면 고르지 못하게 하고 이유를 말한다(없는 것과 다르게, 불변 2) */
 function TagPick({ tags, options, value, onChange }: { tags: Record<string, string[]> | null; options: string[]; value: string | null; onChange: (t: string | null) => void }) {
-  if (tags === null) return <span className="muted">내 태그를 읽지 못했어요</span>;
+  if (tags === null) return <span className="muted">내 태그를 불러오지 못했어요</span>;
   if (!options.length) return null;
   return (
     <select aria-label="내 태그로 거르기" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
@@ -170,7 +170,7 @@ function TechCard({ t, use, tags, stage, placed = false, added = false, gated = 
 }
 
 function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
-  if (history === null) return <p className="notice notice-error" role="alert">내 이력을 읽지 못했어요. 확정한 게 없다는 뜻이 아니에요. 판 만들기는 그대로 쓸 수 있어요.</p>;
+  if (history === null) return <p className="notice notice-error" role="alert">내 이력을 불러오지 못했어요. 확정한 게 없다는 뜻이 아니에요. 판 만들기는 그대로 쓸 수 있어요.</p>;
   if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. ③ 결과물에서 확정하면 여기에 쌓여요.</p>;
   // 확인 창 대신 되돌리기(studio가 50단계 쌓음): 지금 판이 있으면 알림에서 되돌릴 수 있다고 말한다
   // 판과 이름을 한 되돌리기 칸에(apply의 name): 되돌리면 이름도 돌아가고, 시작 템플릿 표시도 studio가 지운다

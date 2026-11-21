@@ -19,7 +19,7 @@ export function EvalPanel({ style }: { style: React.CSSProperties }) {
       <form action={action}>
         <button type="submit" style={btn} disabled={pending}>{pending ? "채점 중…" : "채점 실행"}</button>
       </form>
-      {state && !state.ok ? <p role="alert" style={{ color: "#b91c1c" }}>{state.message}</p> : null}
+      {state && !state.ok ? <p role="alert" style={{ color: "var(--ink-danger)" }}>{state.message}</p> : null}
       {state && state.ok ? (
         <div role="status">
           <p style={{ margin: "8px 0 4px" }}>
@@ -52,7 +52,7 @@ function StoredEdgesView({ stored }: { stored: StoredEdges }) {
   return (
     <section aria-labelledby="demo-eval-edges" style={{ marginTop: 16 }}>
       <h3 id="demo-eval-edges" style={{ fontSize: 16, margin: "0 0 4px" }}>사건 종류·경계 사례 (저장된 결과)</h3>
-      {!stored.ok ? <p style={{ color: "#b91c1c", margin: "4px 0" }}>{stored.reason}</p> : <StoredEdgesTables when={stored.when} edges={stored.edges} />}
+      {!stored.ok ? <p style={{ color: "var(--ink-danger)", margin: "4px 0" }}>{stored.reason}</p> : <StoredEdgesTables when={stored.when} edges={stored.edges} />}
     </section>
   );
 }

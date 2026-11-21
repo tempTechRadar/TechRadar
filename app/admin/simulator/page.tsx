@@ -23,7 +23,7 @@ export default async function SimulatorPage({ searchParams }: { searchParams: Pr
         <li>알림은 시연 계정에만 가요. 그 계정이 이 기술을 쓰지 않으면 알림은 0건이고, 결과 화면에 이유가 나와요.</li>
         <li>같은 버튼을 또 눌러도 변경은 1건 그대로예요.</li>
       </ul>
-      {error ? <p role="alert" style={{ color: "#b3261e" }}>{error}</p> : null}
+      {error ? <p role="alert" style={{ color: "var(--ink-danger)" }}>{error}</p> : null}
       {cleared ? <p role="status">{cleared}</p> : null}
       {info ? <p role="status">{info}{run ? <> <Link href={`/admin/flow?run=${encodeURIComponent(run)}`}>방금 실행 보기</Link></> : null}</p> : null}
       <form action={runSimulatorAction} style={{ marginBottom: 16 }}>

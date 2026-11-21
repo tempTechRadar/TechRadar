@@ -7,6 +7,9 @@
   --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
   /* 글자로 읽는 오류 빨강(상태 색은 표시에만): 흰 바탕 6.5:1 */
   --ink-danger: #b91c1c;
+  /* 글자로 읽는 상태 색과 연한 바탕(P-12f ④: 화면마다 박던 값을 모음). 바탕 위 글자도 4.5:1 이상 */
+  --ink-caution: #b45309; --ink-pass: #15803d;
+  --bg-danger: #fef2f2; --bg-caution: #fffbeb; --bg-pass: #f0fdf4;
 
   --cat-1: #2a78d6; --cat-2: #1baf7a; --cat-3: #6250d6; --cat-4: #008300;
   --cat-5: #e87ba4; --cat-6: #0b7fa0; --cat-7: #6d7a1f; --cat-8: #b0479e;

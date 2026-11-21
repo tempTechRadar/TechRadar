@@ -58,9 +58,12 @@ test("영역 C 화면의 글자색(style color)이 흰 바탕과 가장 옅은 �
     return statSync(join(root, rel)).isDirectory() ? walk(rel) : rel.endsWith(".tsx") ? [rel] : [];
   });
   const files = ["app/admin", "app/projects/runs", "app/projects/install"].flatMap(walk);
+  // 글자색은 공용 토큰(var(--ink-danger) 등)이면 app/tokens.css의 값으로 읽는다(P-12f ④: 화면에 색을 직접 적지 않음)
+  const shared = readFileSync(join(root, "app/tokens.css"), "utf8");
+  const hex = (v: string) => v.startsWith("#") ? v : shared.match(new RegExp(`--${v.slice(6, -1)}:\\s*(#[0-9a-fA-F]{6})`))![1];
   const colors = new Map<string, string>();
-  for (const f of files) for (const m of readFileSync(join(root, f), "utf8").matchAll(/[^-]color:\s*"(#[0-9a-fA-F]{6})"/g)) colors.set(m[1], f);
-  assert.ok(colors.size >= 3, `${colors.size}가지`);
+  for (const f of files) for (const m of readFileSync(join(root, f), "utf8").matchAll(/[^-]color:\s*"(#[0-9a-fA-F]{6}|var\(--[\w-]+\))"/g)) colors.set(hex(m[1]), f);
+  assert.ok(colors.size >= 2, `${colors.size}가지`); // 읽는 식이 깨지지 않았는지만(토큰으로 모아 가짓수가 줄었다)
   const bad = [...colors].flatMap(([c, f]) => ["#ffffff", "#f6f5f1"].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
   assert.deepEqual(bad, []);
 });

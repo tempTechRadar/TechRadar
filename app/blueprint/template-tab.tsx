@@ -25,7 +25,7 @@ export function TemplateTab({ graph, step, say }: PanelProps) {
   const [lists, setLists] = useState<TemplateLists | { message: string } | undefined>(undefined); // undefined = 읽는 중
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const reload = useCallback(() => templatesAction().then(setLists, () => setLists({ message: "템플릿을 읽지 못했어요. 잠시 뒤 다시 시도해 주세요." })), []);
+  const reload = useCallback(() => templatesAction().then(setLists, () => setLists({ message: "템플릿을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." })), []);
   useEffect(() => { void reload(); }, [reload]);
 
   async function save() {
@@ -79,7 +79,7 @@ function Lists({ lists, kind, busy, onShare }: { lists: TemplateLists; kind: Tem
     <div className="dock-cols">
       <section aria-labelledby="tpl-mine">
         <h3 id="tpl-mine" className="dock-h">내 {KIND_KO[kind]} {mine ? <span className="muted">{mine.length}</span> : null}</h3>
-        {mine === null ? <p className="notice notice-error" role="alert">내 템플릿을 읽지 못했어요. 없다는 뜻이 아니에요.</p>
+        {mine === null ? <p className="notice notice-error" role="alert">내 템플릿을 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : mine.length ? <ul className="dock-techs">{mine.map((t) => (
             <li key={t.id} className="dock-tech">
               <span><b>{t.name}</b><span className="muted"> · {t.hidden ? "관리자가 숨김" : t.isPublic ? "공개" : "나만 봄"}</span></span>
@@ -95,7 +95,7 @@ function Lists({ lists, kind, busy, onShare }: { lists: TemplateLists; kind: Tem
       </section>
       <section aria-labelledby="tpl-open">
         <h3 id="tpl-open" className="dock-h">공개 {KIND_KO[kind]} {open ? <span className="muted">{open.length}</span> : null}</h3>
-        {open === null ? <p className="notice notice-error" role="alert">공개 템플릿을 읽지 못했어요. 없다는 뜻이 아니에요.</p>
+        {open === null ? <p className="notice notice-error" role="alert">공개 템플릿을 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : open.length ? <ul className="dock-techs">{open.map((t) => (
             <li key={t.id} className="dock-tech">
               <span><b>{t.name}</b><span className="muted"> · {t.authorNickname} · {t.uses}명이 씀</span></span>

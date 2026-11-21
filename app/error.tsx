@@ -8,7 +8,7 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
   return (
     <main className="page">
       <h1>화면을 열지 못했어요</h1>
-      <div className="notice notice-error" role="alert"><strong>이 화면을 읽지 못했어요.</strong> 내용이 없다는 뜻이 아니에요. 잠시 뒤 다시 시도해 주세요.</div>
+      <div className="notice notice-error" role="alert"><strong>이 화면을 불러오지 못했어요.</strong> 내용이 없다는 뜻이 아니에요. 잠시 뒤 다시 시도해 주세요.</div>
       <p className="actions"><button type="button" className="btn btn-primary" onClick={() => retry()}>다시 시도</button><Link className="btn" href="/">기술 지도로 가기</Link></p>
     </main>
   );

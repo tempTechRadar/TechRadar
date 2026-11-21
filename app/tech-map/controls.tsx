@@ -83,7 +83,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
               ) : null}
             </fieldset>
             {login ? <fieldset><legend>내 태그</legend>
-              {tagsFailed ? <p className="muted">내 태그를 읽지 못했어요(없다는 뜻이 아니에요).</p>
+              {tagsFailed ? <p className="muted">내 태그를 불러오지 못했어요(없다는 뜻이 아니에요).</p>
                 : tags.length ? tags.map((t) => <label key={t} className="check"><input type="checkbox" checked={tagOn(t)} onChange={() => toggleTag(t)} /> {t} <span className="muted">{count((x) => x.tags.some(same(t)))}</span></label>)
                 : <p className="muted">기술을 눌러 내 태그를 붙이면 여기서 거를 수 있어요.</p>}
             </fieldset> : null}

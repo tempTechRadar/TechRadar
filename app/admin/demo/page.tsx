@@ -35,17 +35,17 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
       <p><Link href="/admin/flow">흐름 화면</Link> · <Link href="/admin/simulator">시뮬레이터</Link></p>
       <h1>실패 시연</h1>
       <p>발표에서 성공·일부러 실패·지난 기록 찾기를 보여 주는 버튼이에요. 모두 실제 실행 기록을 남기고, 흐름 화면은 그 기록대로만 칠해져요. 만든 자료에는 가짜 표시가 붙고 시뮬레이터 지우기로 지워져요.</p>
-      <p role="status" style={{ padding: "8px 12px", borderRadius: 6, background: on ? "#f0fdf4" : "#fffbeb", color: on ? "#15803d" : "#b45309" }}>
+      <p role="status" style={{ padding: "8px 12px", borderRadius: 6, background: on ? "var(--bg-pass)" : "var(--bg-caution)", color: on ? "var(--ink-pass)" : "var(--ink-caution)" }}>
         시연 스위치: {on ? "켜짐(개발·시연 환경)" : "꺼짐 — 운영 배포이거나 ENABLE_FAIL_DEMO가 true가 아니에요. ①②⑤는 눌러도 아무 일도 없어요."}
       </p>
-      {error ? <p role="alert" style={{ color: "#b91c1c" }}>{error}</p> : null}
+      {error ? <p role="alert" style={{ color: "var(--ink-danger)" }}>{error}</p> : null}
       {info ? <p role="status">{info}</p> : null}
 
       {DEMOS.map((d) => (
         <section key={d.no} style={card} aria-labelledby={`demo-${d.no}`}>
           <h2 id={`demo-${d.no}`} style={{ fontSize: 20, margin: "0 0 4px" }}>{d.no} {d.title}</h2>
           <p style={{ margin: "4px 0" }}>{d.how}</p>
-          <p style={{ margin: "4px 0", color: "#4b5563" }}>보이는 것: {d.see}</p>
+          <p style={{ margin: "4px 0", color: "var(--muted)" }}>보이는 것: {d.see}</p>
           <form action={d.action}>
             <button type="submit" style={btn} disabled={d.needsSwitch && !on}>{d.label}</button>
           </form>
@@ -55,7 +55,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
       <section style={card} aria-labelledby="demo-5">
         <h2 id="demo-5" style={{ fontSize: 20, margin: "0 0 4px" }}>⑤ 저장 실패</h2>
         <p style={{ margin: "4px 0" }}>켜면 <b>이 브라우저</b>에서 <b>시연 계정</b>의 다음 판단 저장 1번이 실패해요(10분 뒤 저절로 꺼짐). 관리자도 자기 알림은 판단할 수 있지만 남의 알림은 판단할 수 없어요(ADR 0016). 시연 알림은 시연 계정 것이니, 켠 뒤 같은 브라우저에서 시연 계정으로 로그인해 알림을 판단하세요.</p>
-        <p style={{ margin: "4px 0", color: "#4b5563" }}>보이는 것: "저장하지 못했어요" 안내, 알림은 판단 대기 그대로, 흐름 화면의 조치 상자 빨강(조치 기록 연결 뒤).</p>
+        <p style={{ margin: "4px 0", color: "var(--muted)" }}>보이는 것: "저장하지 못했어요" 안내, 알림은 판단 대기 그대로, 흐름 화면의 조치 상자 빨강(조치 기록 연결 뒤).</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <form action={armSaveFailureAction}><button type="submit" style={btn} disabled={!on}>다음 저장 1번 실패시키기</button></form>
           <form action={disarmSaveFailureAction}><button type="submit" style={btn} disabled={!on}>끄기</button></form>

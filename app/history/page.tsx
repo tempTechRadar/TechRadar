@@ -58,7 +58,7 @@ function Pending({ records }: { records: AlertRecord[] | null }) {
   return (
     <section aria-labelledby="pending-title">
       <h2 id="pending-title">판단 대기 {records ? <span className="muted">{pending.length}</span> : null}</h2>
-      {records === null ? <p className="notice notice-error" role="alert"><strong>판단 대기 알림을 읽지 못했어요.</strong> 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
+      {records === null ? <p className="notice notice-error" role="alert"><strong>판단 대기 알림을 불러오지 못했어요.</strong> 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
         : pending.length === 0 ? <p className="muted">판단을 기다리는 알림이 없어요.</p>
         : <ul className="alert-list">{pending.map((r) => <AlertRow key={r.id} record={r} />)}</ul>}
     </section>

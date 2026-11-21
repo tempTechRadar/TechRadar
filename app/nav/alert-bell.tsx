@@ -36,7 +36,7 @@ export function AlertBell({ pending: first, login }: { pending: number | null; l
       <div className="site-nav-menu nav-alerts">
         <p className="nav-alerts-head">알림{pending ? ` · 판단 대기 ${pending}` : ""}</p>
         {items === undefined ? <p className="muted">읽는 중…</p>
-          : items === null ? <p className="muted">알림을 읽지 못했어요. 알림이 없다는 뜻이 아니에요.</p>
+          : items === null ? <p className="muted">알림을 불러오지 못했어요. 알림이 없다는 뜻이 아니에요.</p>
           : items.length === 0 ? <p className="muted">아직 알림이 없어요.</p>
           : <ul>{items.map((a) => (
               <li key={a.id}><Link href={`/alerts/${a.id}`} onClick={shut}>

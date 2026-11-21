@@ -14,7 +14,7 @@ export function Repos({ repos }: { repos: RepoCard[] | null }) {
   return (
     <section aria-labelledby="repos-title">
       <h2 id="repos-title">내 레포 현황</h2>
-      {repos === null ? <p className="notice notice-error" role="alert"><strong>내 프로젝트를 읽지 못했어요.</strong> 없다는 뜻이 아니에요. <Link href="/dashboard">다시 불러오기</Link></p>
+      {repos === null ? <p className="notice notice-error" role="alert"><strong>내 프로젝트를 불러오지 못했어요.</strong> 없다는 뜻이 아니에요. <Link href="/dashboard">다시 불러오기</Link></p>
         : repos.length === 0 ? <p className="notice notice-empty"><strong>아직 등록한 프로젝트가 없어요.</strong> <Link href="/projects">내 프로젝트</Link>에서 저장소를 등록하면 여기에 모여요.</p>
         : <ul className="status-repos">{repos.map((r) => (
           <li key={r.id}>
@@ -34,7 +34,7 @@ export function Applied({ techs, failed }: { techs: AppliedTech[]; failed: boole
   return (
     <section aria-labelledby="applied-title">
       <h2 id="applied-title">적용한 기술 <span className="muted">{techs.length}</span></h2>
-      {tagsFailed ? <p className="notice notice-error" role="alert">내 태그를 읽지 못했어요. 태그가 없다는 뜻이 아니에요.</p> : null}
+      {tagsFailed ? <p className="notice notice-error" role="alert">내 태그를 불러오지 못했어요. 태그가 없다는 뜻이 아니에요.</p> : null}
       {techs.length === 0 ? <p className="muted">저장소에서 읽은 기술이 아직 없어요.</p> : (
         <ul className="status-techs">{techs.slice(0, TECH_LIMIT).map((t) => (
           <li key={t.key}>

@@ -7,7 +7,7 @@ import { addTagAction, removeTagAction, techTagsAction } from "./tag-actions";
 
 const byKo = (a: string, b: string) => a.localeCompare(b, "ko");
 const SAVE_FAIL = "저장하지 못했어요. 연결을 확인하고 다시 눌러 주세요.";
-const LIST_FAIL = "내 태그 목록을 읽지 못했어요. 직접 써서 붙일 수는 있어요.";
+const LIST_FAIL = "내 태그 목록을 불러오지 못했어요. 직접 써서 붙일 수는 있어요.";
 
 /** 기술이 바뀌면 부르는 쪽이 key를 바꿔 새로 그린다. facts가 있으면 "자동 제안"(P-12f 8): 규칙으로 고른 후보를 체크 목록으로, 고른 것만 붙인다 */
 export function TagEditor({ techId, tags, login, onChange, facts }: { techId: string | null; tags: string[]; login: boolean; onChange: (tags: string[]) => void; facts?: TagFacts }) {

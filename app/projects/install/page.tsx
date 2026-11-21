@@ -42,7 +42,7 @@ export default async function InstallPage() {
     <main>
       <p><Link href="/projects">← 내 프로젝트</Link></p>
       <h1>설치 프롬프트 · 내 컴퓨터 목록 가져오기</h1>
-      {readError ? <p role="alert" style={{ color: "#b3261e" }}>내 기술 목록을 읽지 못했어요(없는 게 아니라 조회 실패). 잠시 뒤 새로 고쳐 주세요.</p> : null}
+      {readError ? <p role="alert" style={{ color: "var(--ink-danger)" }}>내 기술 목록을 불러오지 못했어요(없는 게 아니라 조회 실패). 잠시 뒤 새로 고쳐 주세요.</p> : null}
       <InstallScreen rows={rows} pins={pins} />
       <ImportScreen />
     </main>
