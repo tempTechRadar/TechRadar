@@ -393,7 +393,7 @@ UK: (kind, ecosystem, value).
 
 ### 2.7 3순위로 만든 표 (P-23·P-24, 2026-11-20)
 
-3절 요약에 있던 것 중 실제로 만든 4개. 칸은 운영 DB `information_schema.columns`와 마이그레이션 `202611200900_P-23_user_tastes.sql`·`202611201000_P-24_usage_notes.sql`·`202611201100_P-24_hide_author.sql`에서 옮겼다(7절 3차 대조). 지우기는 네 표 모두 아무도 못 한다(기록 보존).
+3절 요약에 있던 것 중 실제로 만든 4개. 칸은 운영 DB `information_schema.columns`와 마이그레이션 `202611200900_P-23_user_tastes.sql`·`202611201000_P-24_usage_notes.sql`·`202611201100_P-24_hide_author.sql`에서 옮겼다(7절 3차 대조). 지우기는 네 표 모두 아무도 못 한다(기록 보존). `id`·`created_at`은 0절 공통 규칙이라 칸 표에 적지 않는다. `user_tastes`·`helpful_votes`는 `id`가 없고 다른 칸이 기본 키라 `created_at`을 따로 적었다(그래서 `usage_notes`·`reports`에만 `created_at` 줄이 없음). 표 주인(황재웅)이 마이그레이션과 대조해 칸 이름·칸 수·정책 수·규칙이 맞다고 확인함(11-20)
 
 **user_tastes** — 취향 질문 답(P-23, 처음 계획의 `preferences`). 사람당 한 줄, 질문을 아직 안 봤으면 줄이 없음
 | 칸 | 종류 | 필수 | 키 | 설명 |
