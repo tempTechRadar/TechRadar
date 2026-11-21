@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
 import { GRADE_OPTIONS, keepView, ownText, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
+import { PreviewOnly } from "@/app/dev/preview-only";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
@@ -34,8 +35,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const query = await searchParams;
-  // 미리보기(개발용) 가짜 계정은 DB를 부르지 않는다(지도 · 내 레이더와 같은 방식). 프로젝트 샘플은 없어서 안내만
-  if (isPreviewUser(user)) return <main className="alerts"><h1>내 프로젝트</h1><p className="notice notice-empty" role="status">미리보기에서는 실제 프로젝트를 읽지 않아요. 지도 · 알림 · 내 레이더에서 샘플을 볼 수 있어요.</p></main>;
+  if (isPreviewUser(user)) return <PreviewOnly title="내 프로젝트" />; // 미리보기(개발용)는 DB를 부르지 않는다. 프로젝트 샘플은 없어서 안내만
   const supabase = await getServerSupabase();
   if (!supabase) return <main className="alerts"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;
   const { data, error: loadError } = await supabase

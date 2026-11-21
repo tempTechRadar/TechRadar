@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { getCatalogTechDetail, type CatalogTechDetail } from "@/lib/server/catalog-tech";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readMarkForTech } from "@/lib/server/marks";
 import { readUsingNow } from "@/lib/server/using-now";
@@ -19,6 +21,7 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
   if (!isUuid(id)) notFound();
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/tech/${id}`)}`); // 로그인 뒤 이 상세로 돌아온다
+  if (isPreviewUser(user)) return <PreviewOnly title="기술 상세" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const db = (await getServerSupabase())!;
   let d: CatalogTechDetail | null;
   try {

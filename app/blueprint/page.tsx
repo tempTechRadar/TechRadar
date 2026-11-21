@@ -15,8 +15,9 @@ export const metadata = { title: "블루프린트 · TechRadar" };
 export default async function BlueprintPage() {
   const user = await getCurrentUser();
   if (!user) return <LoginNeeded title="블루프린트" why="로그인하면 단계마다 쓸 기술을 골라 내 개발 설계도를 만들고, 확정한 조합을 내 이력으로 쌓을 수 있어요." next="/blueprint" />;
-  const db = await getServerSupabase();
-  const data = isPreviewUser(user) ? SAMPLE_BLUEPRINT /* 미리보기(개발용) */ : db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
+  const preview = isPreviewUser(user); // 미리보기(개발용)는 DB 없이 샘플로
+  const db = preview ? null : await getServerSupabase();
+  const data = preview ? SAMPLE_BLUEPRINT : db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
   return (
     <main className="alerts bp-page">
       <h1 className="sr-only">블루프린트</h1>
