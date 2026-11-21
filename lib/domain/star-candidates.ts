@@ -27,7 +27,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const STALE_AFTER_MS = 365 * DAY; // 마지막 푸시 12개월
 const SPIKE_AGE_DAYS = 30; // 생성 30일 미만인데
 const SPIKE_STARS = 500; // 별이 이만큼이면 new_spike
-const CLONE_GAP_PCT = 5; // 같은 이름 다른 소유자들의 별 차이(최대 대비)가 이 % 이하면 clone_cluster
+const CLONE_GAP_PCT = 5; // 같은 이름·다른 소유자 짝의 별 차이(큰 쪽 대비)가 이 % 이하면 둘 다 clone_cluster
 const MIN_AGE_DAYS = 30; // 성장(별÷나이)의 나이 하한: 갓 만든 저장소가 성장 점수를 독차지하지 않게
 // 가중치는 한 곳에(합 100). 신뢰는 조직 소유 · 라이선스 있음의 개수(0~2)
 export const WEIGHTS = { stars: 30, growth: 25, forks: 15, activity: 15, trust: 15 } as const;
@@ -84,7 +84,7 @@ export const isSpike = (r: SearchRepo, nowMs: number): boolean => ageDays(r.crea
 
 /**
  * 의심 표시. 관문(보관·포크·12개월)을 통과한 저장소끼리만 본다: 버려진 저장소가 정상 기술을 복제본으로 끌어들이지 않게.
- * 복제본 묶음은 구성원 모두를 표시한다(원본 예외 없음): 원본을 믿을 만하게 가려낼 근거가 없고, 틀리면 막는 쪽이 안전하다.
+ * 별이 5% 이내인 짝이 있는 구성원을 모두 표시한다(원본 예외 없음): 원본을 믿을 만하게 가려낼 근거가 없고, 틀리면 막는 쪽이 안전하다.
  * 진짜 원본도 표시되면 얇게 남고 그 기술의 알림만 막힌다(한계). 표시는 "확인 필요"이지 증명이 아니다
  */
 export function flagsOf(all: SearchRepo[], nowMs: number): Map<string, Flag[]> {
@@ -94,17 +94,20 @@ export function flagsOf(all: SearchRepo[], nowMs: number): Map<string, Flag[]> {
   for (const r of all) {
     const out: Flag[] = [];
     if (isSpike(r, nowMs)) out.push("new_spike");
-    if (isCloneCluster(byName.get(r.repo.toLowerCase())!)) out.push("clone_cluster");
+    if (hasCloneTwin(r, byName.get(r.repo.toLowerCase())!)) out.push("clone_cluster");
     flags.set(candidateKey(r), out);
   }
   return flags;
 }
 
-function isCloneCluster(group: SearchRepo[]): boolean {
-  if (new Set(group.map((r) => r.owner.toLowerCase())).size < 2) return false;
-  const stars = group.map((r) => r.stars);
-  const max = Math.max(...stars);
-  return (max - Math.min(...stars)) * 100 <= max * CLONE_GAP_PCT; // 정수로 비교해 경계(정확히 5%)가 소수 오차로 흔들리지 않게
+/**
+ * 같은 이름 묶음에서 다른 소유자의 구성원 중 별이 5% 이내(두 별 중 큰 쪽 기준)인 짝이 하나라도 있는가. 짝마다 비교한다:
+ * 묶음 전체의 (최대 − 최소)로 재면 별 많은 원본 하나 때문에 서로 똑같은 복제본들이 표시 없이 통과한다
+ */
+function hasCloneTwin(r: SearchRepo, group: SearchRepo[]): boolean {
+  const owner = r.owner.toLowerCase();
+  // 정수로 비교해 경계(정확히 5%)가 소수 오차로 흔들리지 않게
+  return group.some((o) => o.owner.toLowerCase() !== owner && Math.abs(o.stars - r.stars) * 100 <= Math.max(o.stars, r.stars) * CLONE_GAP_PCT);
 }
 
 /** 값마다 백분위(0~1). 같은 값은 같은 자리(가운데 순위). 하나뿐이면 비교할 상대가 없어 중립 0.5(혼자 남은 태그의 저장소가 모든 항목 만점을 받지 않게) */

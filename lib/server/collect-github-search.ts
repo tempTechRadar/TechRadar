@@ -14,7 +14,7 @@ import { countStarRows, readExisting, readSource, saveEntry, STARS_CAP, type Ent
 import { logFailure } from "./log-failure.ts";
 import { recordStep } from "./run-log.ts";
 
-const REQUEST_GAP_MS = 1_000; // 검색 한도(토큰 30회/분)보다 넉넉하게 요청 사이 1초
+const REQUEST_GAP_MS = 2_000; // 검색 한도는 토큰 30회/분 = 2초에 1번. 요청 사이 2초
 // 묶음 시간 예산(240초) 중 별 후보의 몫: 검색 40초(18쪽 안팎 × 1초 간격 + 응답 지연), 저장까지 합쳐 90초
 const SEARCH_BUDGET_MS = 40_000;
 const COLLECT_BUDGET_MS = 90_000;

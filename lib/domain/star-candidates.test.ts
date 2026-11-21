@@ -69,6 +69,14 @@ test("clone_cluster는 생성일로 원본을 고르지 않는다: 가장 먼저
   assert.deepEqual([...flags.values()], [["clone_cluster"], ["clone_cluster"], ["clone_cluster"]]);
 });
 
+test("clone_cluster는 짝마다 비교한다: 별 많은 원본 하나가 서로 똑같은 복제본들을 가려 주지 못하고, 원본은 짝이 없으면 표시되지 않는다", () => {
+  const of = (stars: number[]) => [...flagsOf(stars.map((n, i) => repo(`o${i}/tool`, { stars: n })), NOW).values()];
+  assert.deepEqual(of([30_000, 1000, 990]), [[], ["clone_cluster"], ["clone_cluster"]], "별 부풀리기 사례: 복제본 둘만");
+  assert.deepEqual(of([1000, 980, 960]), [["clone_cluster"], ["clone_cluster"], ["clone_cluster"]], "셋 다 5% 이내");
+  assert.deepEqual(of([1000, 2000, 4000]), [[], [], []], "모두 5% 밖");
+  assert.deepEqual(of([1000, 960, 920]), [["clone_cluster"], ["clone_cluster"], ["clone_cluster"]], "끝끼리는 5% 밖이어도 가운데와 짝이면 표시");
+});
+
 test("clone_cluster는 관문을 통과한 저장소끼리만 묶는다: 보관·포크·오래된 같은 이름은 정상 기술을 복제본으로 만들지 않는다", () => {
   for (const over of [{ archived: true }, { fork: true }, { pushedAt: ago(400) }]) {
     const plan = planCandidates([cand("orig/tool", { createdAt: ago(60) }), cand("other/tool", { createdAt: ago(900), ...over })], NOW);

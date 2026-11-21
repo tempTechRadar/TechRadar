@@ -25,6 +25,17 @@ test("아랍 글자 표시(U+061C)와 태그 문자(U+E0000–E007F)를 지운�
   assert.equal(cleanText("a\u061cb\u{e0001}c\u{e007f}d", 20), "a b c d");
 });
 
+test("소프트 하이픈·U+180E·주석 표시(U+FFF9–FFFB)·변이 선택자 보충(U+E0100–E01EF)을 지우고, 이모지 변이 선택자 U+FE0F는 남긴다", () => {
+  assert.equal(cleanText("x\u00ad\u180e\ufff9\ufffb\u{e0100}\u{e01ef}y", 20), "x y");
+  assert.equal(cleanText("\u2764\ufe0f 좋아요", 20), "\u2764\ufe0f 좋아요");
+});
+
+test("자른 끝에 매달린 ZWJ는 뗀다(이모지 시퀀스를 자를 때)", () => {
+  assert.equal(cleanText("ab\u{1f469}\u200d\u{1f4bb}", 4), "ab\u{1f469}");
+  assert.equal(cleanText("ab\u{1f469}\u200d\u{1f4bb}x", 5, true), "ab\u{1f469}…");
+  assert.equal(cleanText("ab\u{1f469}\u200d\u{1f4bb}", 5), "ab\u{1f469}\u200d\u{1f4bb}", "자르지 않으면 그대로");
+});
+
 test("짝 없는 대리 문자는 U+FFFD로 바꾼다(Postgres가 거부하지 않게)", () => {
   const out = cleanText("\ud800abc", 20);
   assert.ok(out.isWellFormed());
