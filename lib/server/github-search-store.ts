@@ -3,30 +3,33 @@
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import { isDeepStrictEqual } from "node:util";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { repoKey, repoRefOf, type RepoRef } from "../domain/github-repo.ts";
-import { oneLinerOf, typeOf, type Candidate, type Flag } from "../domain/star-candidates.ts";
+import { repoKey, repoRefOf } from "../domain/github-repo.ts";
+import { isSpike, oneLinerOf, passesGate, typeOf, type Candidate, type Flag } from "../domain/star-candidates.ts";
 
 export const SOURCE_NAME = "github_search";
 export const STARS_REASON = "stars";
 export const STARS_CAP = 150; // 별 이유로 두꺼워진 줄 누적 상한(ADR 0030, 팀 추정). 나가는 완충은 첫 수집 뒤
 export type Existing = {
-  id: string; tech_key: string; repo_url: string | null; depth: string; thick_reasons: string[] | null; one_liner: string | null; one_liner_source: string | null; signals: unknown; is_simulated: boolean; is_official: boolean;
+  id: string; tech_key: string; repo_url: string | null; depth: string; thick_reasons: string[] | null; one_liner: string | null; one_liner_source: string | null; signals: unknown; is_simulated: boolean;
 };
 /**
  * 저장할 후보 하나. top: 상위에 들어 두껍게 올릴 것. suspect: 의심 붙은 NEW 후보(얇게, score는 null).
  * refresh: 상위·의심 밖의 나머지. 전에 우리가 표시한 줄만 점수·의심 표시를 지금 값으로 맞춘다(지난 new_spike가 영영 남아 알림을 막지 않게)
  */
 export type Entry = { c: Candidate; key: string; score: number | null; flags: Flag[]; mode: "top" | "suspect" | "refresh" };
-/** partial: 이번 실행이 태그·쪽을 다 못 읽음. 그러면 있는 줄의 의심 표시는 지우지 않고(새로 붙이기만) 점수도 바꾸지 않는다(새 줄에만 씀) */
+/**
+ * partial: 이번 실행이 태그·쪽을 다 못 읽음. 읽은 쪽만으로는 복제본 짝을 못 봤을 수 있고 두께는 올리기만이라 되돌릴 수 없어서,
+ * 새 줄을 만들지 않고 두껍게 올리지 않는다. 있는 줄은 별 수·비어 있는 점수·의심 표시만 맞춘다(partialView)
+ */
 export type SaveCtx = { db: SupabaseClient; runId: string; sourceId: string; at: string; existing: Map<string, Existing>; starRows: number; partial: boolean };
-/** same: 쓸 내용이 지금 줄과 같아 쓰지 않음 */
-export type Saved = { outcome: "created" | "merged" | "refreshed" | "capped" | "same"; observed: boolean };
+/** same: 쓸 내용이 지금 줄과 같아 쓰지 않음. held: 다 못 읽은 실행이라 새 줄을 만들지 않음(다음 실행이 만든다) */
+export type Saved = { outcome: "created" | "merged" | "refreshed" | "capped" | "same" | "held"; observed: boolean };
 type Write = { row: Existing; patch: Patch; stars: number | null };
 type Patch = Record<string, unknown>;
 type Signals = Record<string, unknown>;
 
 const PAGE = 1000;
-const COLUMNS = "id, tech_key, repo_url, depth, thick_reasons, one_liner, one_liner_source, signals, is_simulated, is_official";
+const COLUMNS = "id, tech_key, repo_url, depth, thick_reasons, one_liner, one_liner_source, signals, is_simulated";
 const asSignals = (v: unknown): Signals => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Signals) : {});
 
 export async function readSource(db: SupabaseClient): Promise<{ id: string; enabled: boolean }> {
@@ -35,15 +38,9 @@ export async function readSource(db: SupabaseClient): Promise<{ id: string; enab
   return { id: data.id as string, enabled: Boolean(data.enabled) }; // 관리자가 끈 출처는 읽지 않는다(IA-15)
 }
 
-/**
- * byRepo: 저장소 키 → 합칠 줄 하나. known: 저장소 주인이 증명한 줄이 있는 저장소(vouches). 복제본 원본 판정과 신뢰 점수(레지스트리)에 쓴다.
- * repo_url은 게시자·사용자가 적는 값이라 검증되지 않는다: 그것만으로 알려진 것으로 치면 공격자가 자기 복제본 주소로 항목을 올려 원본이 된다.
- */
-export type ExistingRows = { byRepo: Map<string, Existing>; known: Set<string> };
-
-/** 저장소가 있는 진짜 기술 줄을 저장소 키로 모은다(쪽으로 나눠 모두: PostgREST는 한 번에 1000줄까지). 시뮬레이터 줄은 건드리지 않는다. */
-export async function readExisting(db: SupabaseClient): Promise<ExistingRows> {
-  const rows: ExistingRows = { byRepo: new Map(), known: new Set() };
+/** 저장소가 있는 진짜 기술 줄을 저장소 키 → 합칠 줄 하나로 모은다(쪽으로 나눠 모두: PostgREST는 한 번에 1000줄까지). 시뮬레이터 줄은 건드리지 않는다. */
+export async function readExisting(db: SupabaseClient): Promise<Map<string, Existing>> {
+  const rows = new Map<string, Existing>();
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db.from("technologies").select(COLUMNS).or("repo_url.not.is.null,tech_key.like.github:*").order("id").range(from, from + PAGE - 1);
     if (error) throw new Error(`기술 목록을 읽지 못함: ${error.message}`);
@@ -53,21 +50,11 @@ export async function readExisting(db: SupabaseClient): Promise<ExistingRows> {
 }
 
 // shortcut: 같은 저장소를 가리키는 줄이 여럿이면(모노레포의 패키지들) github: 키 줄, 없으면 먼저 읽은 줄 하나에만 별 신호를 붙인다. 패키지마다 붙여야 하면 묶음으로 바꾼다
-function addRow(rows: ExistingRows, row: Existing): void {
+function addRow(rows: Map<string, Existing>, row: Existing): void {
   const ref = row.is_simulated ? null : repoRefOf(row);
   if (!ref) return;
   const key = repoKey(ref);
-  if (vouches(row, ref)) rows.known.add(key);
-  if (!rows.byRepo.has(key) || row.tech_key.toLowerCase() === `github:${key}`) rows.byRepo.set(key, row);
-}
-
-/**
- * 저장소 주인이 증명한 줄: 공식 조직 줄(is_official, 이름공간이 검증됨)이거나, 레지스트리 이름공간 `io.github.<소유자>`가 저장소 소유자와 같은 줄.
- * MCP 레지스트리는 io.github.<소유자> 이름공간을 그 GitHub 계정 인증으로만 내준다. npm:·pypi:·skill: 줄과 다른 이름공간(com.xxx 등)은 증거가 아니다.
- */
-function vouches(row: Existing, ref: RepoRef): boolean {
-  const namespace = /^mcp:io\.github\.([^/]+)\//i.exec(row.tech_key)?.[1];
-  return row.is_official === true || namespace?.toLowerCase() === ref.owner.toLowerCase();
+  if (!rows.has(key) || row.tech_key.toLowerCase() === `github:${key}`) rows.set(key, row);
 }
 
 export const countStarRows = (existing: Map<string, Existing>): number => [...existing.values()].filter((r) => (r.thick_reasons ?? []).includes(STARS_REASON)).length;
@@ -96,8 +83,8 @@ function fillPatch(row: Existing, c: Candidate): Patch {
 
 async function mergeInto(s: SaveCtx, e: Entry, row: Existing): Promise<Saved> {
   const reasons = row.thick_reasons ?? [];
-  const { flags, score } = s.partial ? keepOld(row, e) : e;
-  const raise = e.mode === "top" && flags.length === 0 && !reasons.includes(STARS_REASON);
+  const { flags, score } = s.partial ? partialView(s, row, e) : e;
+  const raise = !s.partial && e.mode === "top" && flags.length === 0 && !reasons.includes(STARS_REASON);
   const capped = raise && s.starRows >= STARS_CAP;
   const stars = githubOwnsStars(row) ? null : e.c.stars;
   const signals = { ...asSignals(row.signals), ...(stars === null ? {} : { stars }), candidate_score: score, candidate_flags: flags };
@@ -109,22 +96,31 @@ async function mergeInto(s: SaveCtx, e: Entry, row: Existing): Promise<Saved> {
   return { outcome: capped ? "capped" : "merged", observed };
 }
 
-/** 다 못 읽은 실행: 지난 의심 표시에 이번 표시를 더하기만 하고, 이미 있는 점수는 그대로 둔다(짝을 못 읽어 표시가 지워지거나 점수가 실행마다 흔들리지 않게) */
-function keepOld(row: Existing, e: Entry): { flags: Flag[]; score: number | null } {
+/**
+ * 다 못 읽은 실행에서 있는 줄에 쓸 의심 표시·점수. clone_cluster는 짝을 못 읽었을 수 있어 지난 표시를 지우지 않고(더하기만),
+ * new_spike는 그 저장소 자신의 값(관문·생성일·별)으로 다시 계산한다(얼어붙어 60일 된 저장소에 표시가 남지 않게). 점수는 비어 있을 때만 채운다(실행마다 흔들리지 않게)
+ */
+function partialView(s: SaveCtx, row: Existing, e: Entry): { flags: Flag[]; score: number | null } {
   const sig = asSignals(row.signals);
-  const old = Array.isArray(sig.candidate_flags) ? (sig.candidate_flags as Flag[]) : [];
-  return { flags: [...new Set([...old, ...e.flags])], score: typeof sig.candidate_score === "number" ? sig.candidate_score : e.score };
+  const old = Array.isArray(sig.candidate_flags) ? (sig.candidate_flags as unknown[]) : [];
+  const nowMs = Date.parse(s.at);
+  const spike = passesGate(e.c, nowMs) && isSpike(e.c, nowMs);
+  const clone = old.includes("clone_cluster") || e.flags.includes("clone_cluster");
+  const flags: Flag[] = [...(spike ? (["new_spike"] as const) : []), ...(clone ? (["clone_cluster"] as const) : [])];
+  return { flags, score: typeof sig.candidate_score === "number" ? sig.candidate_score : e.score };
 }
 
-/** 나머지: 점수·의심 표시만 지금 값으로. 두께·설명·별 수는 건드리지 않는다 */
+/** 나머지: 점수·의심 표시만 지금 값으로(다 못 읽은 실행이면 partialView). 두께·설명·별 수는 건드리지 않는다 */
 async function refresh(s: SaveCtx, e: Entry, row: Existing): Promise<Saved> {
-  const patch: Patch = { signals: { ...asSignals(row.signals), candidate_score: e.score, candidate_flags: e.flags } };
+  const { flags, score } = s.partial ? partialView(s, row, e) : e;
+  const patch: Patch = { signals: { ...asSignals(row.signals), candidate_score: score, candidate_flags: flags } };
   if (unchanged(row, patch)) return SAME;
   await writeAndObserve(s, { row, patch, stars: null });
   return { outcome: "refreshed", observed: false };
 }
 
 async function insertNew(s: SaveCtx, e: Entry): Promise<Saved> {
+  if (s.partial) return { outcome: "held", observed: false };
   const thick = e.mode === "top";
   if (thick && s.starRows >= STARS_CAP) return { outcome: "capped", observed: false };
   const oneLiner = oneLinerOf(e.c.description);

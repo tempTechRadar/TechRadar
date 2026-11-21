@@ -4,7 +4,8 @@
 import { cleanText } from "./clean-text.ts";
 import { repoKey, repoRefOf } from "./github-repo.ts";
 
-export const SEARCH_TAGS = ["mcp-server", "mcp", "agent-skills", "claude-skills"] as const;
+// `mcp`는 일반 앱이 섞이고 검색 호출의 절반을 써서 뺐다(11-21). `claude-code`도 같은 이유로 안 읽는다(ADR 0030)
+export const SEARCH_TAGS = ["mcp-server", "agent-skills", "claude-skills"] as const;
 export type SearchTag = (typeof SEARCH_TAGS)[number];
 export const MIN_STARS = 1_000;
 export const TOP_CAP = 100;
@@ -16,8 +17,8 @@ export type SearchRepo = {
   pushedAt: string | null; createdAt: string; archived: boolean; fork: boolean; license: string | null; ownerType: string;
 };
 export type SearchPage = { total: number; incomplete: boolean; items: SearchRepo[] };
-/** 읽은 태그와, DB를 본 쪽이 채우는 두 가지: 공식 레지스트리 줄과 합쳐지는지, 알려진 저장소인지(레지스트리·사용자 줄이 이미 있음. 우리가 만든 github: 줄은 아님) */
-export type Candidate = SearchRepo & { tags: SearchTag[]; inRegistry: boolean; known: boolean };
+/** 읽은 태그를 붙인 후보 */
+export type Candidate = SearchRepo & { tags: SearchTag[] };
 export type Scored = Candidate & { key: string; score: number };
 /** rest: 상위·의심이 아닌 나머지(관문 탈락 포함). 전에 붙인 의심 표시·점수를 현재 값으로 맞추는 데 쓴다(score는 관문 탈락이면 null) */
 export type Plan = { top: Scored[]; suspects: (Candidate & { key: string; flags: Flag[] })[]; rest: (Candidate & { key: string; score: number | null })[]; gated: number };
@@ -28,7 +29,7 @@ const SPIKE_AGE_DAYS = 30; // 생성 30일 미만인데
 const SPIKE_STARS = 500; // 별이 이만큼이면 new_spike
 const CLONE_GAP_PCT = 5; // 같은 이름 다른 소유자들의 별 차이(최대 대비)가 이 % 이하면 clone_cluster
 const MIN_AGE_DAYS = 30; // 성장(별÷나이)의 나이 하한: 갓 만든 저장소가 성장 점수를 독차지하지 않게
-// 가중치는 한 곳에(합 100). 신뢰는 조직 소유 · 라이선스 있음 · 공식 레지스트리 줄과 합쳐짐의 개수
+// 가중치는 한 곳에(합 100). 신뢰는 조직 소유 · 라이선스 있음의 개수(0~2)
 export const WEIGHTS = { stars: 30, growth: 25, forks: 15, activity: 15, trust: 15 } as const;
 const MAX_ONE_LINER = 200;
 
@@ -78,30 +79,25 @@ const ageDays = (iso: string, nowMs: number) => (nowMs - Date.parse(iso)) / DAY;
 export const passesGate = (r: SearchRepo, nowMs: number): boolean =>
   !r.archived && !r.fork && r.pushedAt !== null && nowMs - Date.parse(r.pushedAt) <= STALE_AFTER_MS;
 
+/** new_spike: 그 저장소 자신의 생성일·별만으로 정한다(다른 저장소를 다 못 읽은 실행에서도 바르게 다시 계산할 수 있게) */
+export const isSpike = (r: SearchRepo, nowMs: number): boolean => ageDays(r.createdAt, nowMs) < SPIKE_AGE_DAYS && r.stars >= SPIKE_STARS;
+
 /**
  * 의심 표시. 관문(보관·포크·12개월)을 통과한 저장소끼리만 본다: 버려진 저장소가 정상 기술을 복제본으로 끌어들이지 않게.
- * 같은 이름 묶음에 알려진 저장소가 있으면 그중 생성일이 가장 이른 하나만 원본으로 보고 빼고, 없으면 묶음 전체를 표시해 관리자가 본다.
- * 생성일만으로 원본을 정하지 않는다: 오래된 저장소의 이름을 바꾸면 생성일은 옛날 그대로라 복제본이 원본 행세를 할 수 있다. 표시는 "확인 필요"이지 증명이 아니다
+ * 복제본 묶음은 구성원 모두를 표시한다(원본 예외 없음): 원본을 믿을 만하게 가려낼 근거가 없고, 틀리면 막는 쪽이 안전하다.
+ * 진짜 원본도 표시되면 얇게 남고 그 기술의 알림만 막힌다(한계). 표시는 "확인 필요"이지 증명이 아니다
  */
-export function flagsOf(all: (SearchRepo & { known?: boolean })[], nowMs: number): Map<string, Flag[]> {
-  const byName = new Map<string, (SearchRepo & { known?: boolean })[]>();
+export function flagsOf(all: SearchRepo[], nowMs: number): Map<string, Flag[]> {
+  const byName = new Map<string, SearchRepo[]>();
   for (const r of all) byName.set(r.repo.toLowerCase(), [...(byName.get(r.repo.toLowerCase()) ?? []), r]);
   const flags = new Map<string, Flag[]>();
   for (const r of all) {
     const out: Flag[] = [];
-    if (ageDays(r.createdAt, nowMs) < SPIKE_AGE_DAYS && r.stars >= SPIKE_STARS) out.push("new_spike");
-    const group = byName.get(r.repo.toLowerCase())!;
-    if (isCloneCluster(group) && originOf(group) !== r) out.push("clone_cluster");
+    if (isSpike(r, nowMs)) out.push("new_spike");
+    if (isCloneCluster(byName.get(r.repo.toLowerCase())!)) out.push("clone_cluster");
     flags.set(candidateKey(r), out);
   }
   return flags;
-}
-
-const oldest = <T extends SearchRepo>(group: T[]) => group.reduce((a, b) => (Date.parse(b.createdAt) < Date.parse(a.createdAt) ? b : a));
-/** 원본으로 볼 하나: 알려진 저장소 중 생성일이 가장 이른 것. 알려진 것이 없으면 null(묶음 전체가 표시됨) */
-function originOf<T extends SearchRepo & { known?: boolean }>(group: T[]): T | null {
-  const known = group.filter((r) => r.known === true);
-  return known.length > 0 ? oldest(known) : null;
 }
 
 function isCloneCluster(group: SearchRepo[]): boolean {
@@ -121,7 +117,7 @@ export function percentiles(values: number[]): number[] {
   });
 }
 
-const trustOf = (c: Candidate) => Number(c.ownerType === "Organization") + Number(c.license !== null) + Number(c.inRegistry);
+const trustOf = (c: Candidate) => Number(c.ownerType === "Organization") + Number(c.license !== null);
 const metricsOf = (c: Candidate, nowMs: number) => ({
   stars: c.stars, growth: c.stars / Math.max(ageDays(c.createdAt, nowMs), MIN_AGE_DAYS), forks: c.forks, activity: Date.parse(c.pushedAt!), trust: trustOf(c),
 });
@@ -162,8 +158,8 @@ export function planCandidates(all: Candidate[], nowMs: number): Plan {
   return { top, suspects, rest, gated: all.length - open.length };
 }
 
-/** 종류 임시 추정: mcp 태그가 하나라도 있으면 mcp(여러 태그면 mcp 먼저), 아니면 skill */
-export const typeOf = (tags: SearchTag[]): "mcp" | "skill" => (tags.some((t) => t === "mcp-server" || t === "mcp") ? "mcp" : "skill");
+/** 종류 임시 추정: mcp-server 태그가 있으면 mcp(여러 태그면 mcp 먼저), 아니면 skill */
+export const typeOf = (tags: SearchTag[]): "mcp" | "skill" => (tags.includes("mcp-server") ? "mcp" : "skill");
 
 /** 한 줄 설명: 저장소 설명도 믿지 않는 입력이라 위험한 글자를 지우고 200 코드 포인트에서 자름(clean-text.ts), 비면 null */
 export function oneLinerOf(description: string | null): string | null {
