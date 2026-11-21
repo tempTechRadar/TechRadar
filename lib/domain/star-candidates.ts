@@ -1,10 +1,10 @@
-// 별 후보의 순수 규칙(P-21a, ADR 0030, 데이터설계 8절 "별 후보"): 검색 응답 읽기, 관문, 의심 표시, 태그 안 점수, 상위 고르기. 바깥 호출·DB는 lib/server.
+// 별 후보의 순수 규칙(P-21a, ADR 0033, 데이터설계 8절 "별 후보"): 검색 응답 읽기, 관문, 의심 표시, 태그 안 점수, 상위 고르기. 바깥 호출·DB는 lib/server.
 // 별은 "한번 볼 만하다"는 신호일 뿐이라 관문 → 의심 거르기 → 점수 순으로 쓴다. 숫자는 모두 팀 추정(첫 수집 뒤 세어 고친다).
 // 응답 모양이 다르면 0건이 아니라 null: 못 읽은 것을 "후보 없음"으로 단정하지 않는다(불변 2).
 import { cleanText } from "./clean-text.ts";
 import { repoKey, repoRefOf } from "./github-repo.ts";
 
-// `mcp`는 일반 앱이 섞이고 검색 호출의 절반을 써서 뺐다(11-21). `claude-code`도 같은 이유로 안 읽는다(ADR 0030)
+// `mcp`는 일반 앱이 섞이고 검색 호출의 절반을 써서 뺐다(11-21). `claude-code`도 같은 이유로 안 읽는다(ADR 0033)
 export const SEARCH_TAGS = ["mcp-server", "agent-skills", "claude-skills"] as const;
 export type SearchTag = (typeof SEARCH_TAGS)[number];
 export const MIN_STARS = 1_000;

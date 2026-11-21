@@ -1,4 +1,4 @@
-// Hacker News 화제 신호의 순수 규칙(P-21b, ADR 0030 2번, 데이터설계 8절 관문 1). 주인: 김영식 A.
+// Hacker News 화제 신호의 순수 규칙(P-21b, ADR 0033 2번, 데이터설계 8절 관문 1). 주인: 김영식 A.
 // 글은 GitHub 저장소나 npm 패키지로 이어질 때만 쓴다(근거 없는 글은 저장하지 않음). 글의 제목·주소는 믿지 않는 입력이라 여기서 거른다.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import { cleanText } from "./clean-text.ts";
@@ -63,7 +63,7 @@ const KEYWORD = /(?<![\p{L}\p{N}])(mcp|model\s+context\s+protocol|claude\s+code|
 /** 제목에 키워드가 낱말로 있나. 붙어 쓴 "mcpserver"는 아니고 "MCP-server"는 맞다. */
 export const matchesKeyword = (title: string): boolean => KEYWORD.test(title);
 
-/** 모르는 저장소를 얇게 들일 종류. 저장소 이름에 mcp·skill이 있을 때만(ADR 0030 2번 "이름에 맞을 때만"), 아니면 null */
+/** 모르는 저장소를 얇게 들일 종류. 저장소 이름에 mcp·skill이 있을 때만(ADR 0033 2번 "이름에 맞을 때만"), 아니면 null */
 export function typeGuess(repo: string): "mcp" | "skill" | null {
   const name = repo.toLowerCase();
   if (name.includes("mcp")) return "mcp";

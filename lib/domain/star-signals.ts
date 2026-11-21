@@ -1,4 +1,4 @@
-// technologies.signals에서 별 수·의심 표시를 읽는다(SPEC-3.2 조건 4, ADR 0030). DB를 모르는 순수 함수.
+// technologies.signals에서 별 수·의심 표시를 읽는다(SPEC-3.2 조건 4, ADR 0033). DB를 모르는 순수 함수.
 // signals는 수집기마다 다른 키를 덧붙이는 JSON이라 모양을 믿지 않는다: 못 읽은 값은 "모름"(null)이지 "낮음"이 아니다(불변 2).
 const record = (v: unknown): Record<string, unknown> | null => (typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
 

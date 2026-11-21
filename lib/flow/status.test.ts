@@ -12,7 +12,7 @@ test("실행이 없으면 아무것도 칠하지 않는다(꺼 둔 상자가 없
   const { states, activeStart, boldEdges } = colorize(flow, null, []);
   assert.equal(activeStart, null);
   assert.equal(boldEdges.size, 0);
-  assert.ok(Object.values(states).every((s) => s === "off")); // fetch_popularity는 11-21(ADR 0030)에 HN으로 켜서 지금 flow.json에는 꺼 둔 상자가 없다
+  assert.ok(Object.values(states).every((s) => s === "off")); // fetch_popularity는 11-21(ADR 0033)에 HN으로 켜서 지금 flow.json에는 꺼 둔 상자가 없다
 });
 
 test("누른 시작 상자만 켜지고 그 시작의 길이 굵어진다", () => {

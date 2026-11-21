@@ -95,7 +95,7 @@ export async function saveSignal(db: SupabaseClient, { saved: s, techId, signal 
 }
 
 /**
- * 모르는 저장소를 얇게 새로 만든다(ADR 0030 2번). 설명이 없으니 출처 링크도 없다. 들어온 날이 "새로 나온 날"이 아니라 NEW에서 뺀다(registry_backfill, isBulkFilled).
+ * 모르는 저장소를 얇게 새로 만든다(ADR 0033 2번). 설명이 없으니 출처 링크도 없다. 들어온 날이 "새로 나온 날"이 아니라 NEW에서 뺀다(registry_backfill, isBulkFilled).
  * 줄을 먼저 만들고 signals.hn은 saveSignal로 쓴다: 수집 자료를 못 남기면 hn 없는 줄만 남아 다음 실행이 알려진 기술로 다시 쓴다.
  * 이미 같은 키가 있으면(그 사이 다른 수집기가 만듦) 만들지 않고 null.
  */

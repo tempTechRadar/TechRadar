@@ -1,4 +1,4 @@
-// GitHub 주제 태그 검색 어댑터(P-21a, ADR 0030, data-sources 0-1). 실패는 오류 종류로 나눠 던진다. 주인: 김영식 A.
+// GitHub 주제 태그 검색 어댑터(P-21a, ADR 0033, data-sources 0-1). 실패는 오류 종류로 나눠 던진다. 주인: 김영식 A.
 // 토큰은 요청 머리글에만 쓰고 주소·오류 문구에 넣지 않는다(비밀값은 서버 환경변수에만, PRD-NF2).
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import { MIN_STARS, readSearchPage, type SearchPage, type SearchTag } from "../domain/star-candidates.ts";

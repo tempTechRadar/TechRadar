@@ -1,4 +1,4 @@
-// technologies.signals에서 별 수와 의심 표시를 읽는 규칙(SPEC-3.2 조건 4, ADR 0030). 못 읽은 값은 "낮다"로 단정하지 않는다(불변 2).
+// technologies.signals에서 별 수와 의심 표시를 읽는 규칙(SPEC-3.2 조건 4, ADR 0033). 못 읽은 값은 "낮다"로 단정하지 않는다(불변 2).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isFlaggedSignals, starsOfSignals } from "./star-signals.ts";

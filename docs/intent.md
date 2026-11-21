@@ -22,11 +22,11 @@
 
 ## I-P-21a-star-candidates · 2026-11-21 · 별 후보 수집기: GitHub 주제 태그 검색 → 관문·의심 거르기·태그 안 점수로 상위 100곳 (영역 A, 김영식)
 - 브랜치: `feat/P-21a-star-candidates` (`docs/P-21-criteria` 758eb18 위). 다른 세션(add-star-candidate-scoring)의 요청으로 구현만, 푸시·PR·운영 DB 쓰기 없음
-- 출처: ADR 0030, 데이터설계 8절 "별 후보" 1~7, data-sources 0-1, plan P-21a, PRD-F8, 불변 2·3·4·5
+- 출처: ADR 0033, 데이터설계 8절 "별 후보" 1~7, data-sources 0-1, plan P-21a, PRD-F8, 불변 2·3·4·5
 
 | 칸 | 내용 |
 |---|---|
-| 문제 | 두껍게 들어오는 경로가 공식 조직·사용 중뿐이라 지도에 "한번 볼 만한" 기술이 안 들어온다. 별을 쓰되 가짜 별·오래된 저장소 유리함을 걸러야 한다(ADR 0030) |
+| 문제 | 두껍게 들어오는 경로가 공식 조직·사용 중뿐이라 지도에 "한번 볼 만한" 기술이 안 들어온다. 별을 쓰되 가짜 별·오래된 저장소 유리함을 걸러야 한다(ADR 0033) |
 | 기대 결과 | 태그 4개(`mcp-server`·`mcp`·`agent-skills`·`claude-skills`) 별 1,000 이상 검색 → 관문(보관·포크·12개월) → 의심 표시(`new_spike`·`clone_cluster`)는 NEW 후보(얇게) → 태그 안 백분위 점수(규모 30·성장 25·포크 15·활동 15·신뢰 15) 상위 100곳을 `stars` 이유로 두껍게. 같은 저장소 줄이 있으면 합침, 누적 상한 150, 별 수가 바뀐 것만 수집 자료(`stars`, 출처 줄 `github_search`) |
 | 영향 범위 | 새 파일 `lib/domain/star-candidates.ts`, `lib/server/github-search-fetch.ts`·`github-search-store.ts`·`collect-github-search.ts`와 시험 3개, 마이그레이션 `202611211210_P-21a_github_search_source.sql`(sources 한 줄). `collect-github.ts`는 `readToken`에 export만. 수집기 등록(`collectors.ts`)·흐름 상자(`flow.json`)는 합칠 때 요청한 세션이 한다 |
 | 제약 | 숫자는 모두 팀 추정. 검색이 하나라도 실패하면 아무것도 저장하지 않고 수집 오류(일부 태그만 읽고 매기지 않음), 시간 몫(20초)이 다하면 거기까지 읽은 것으로 매긴다. 운영 DB에는 마이그레이션을 적용하지 않음 |
@@ -39,7 +39,7 @@
 **결과(4차 검토 반영):** clone_cluster를 짝마다 비교(다른 소유자와 별 5% 이내 짝이 있으면 표시, 별 많은 원본 하나가 복제본들을 가려 주지 못함), cleanText에 소프트 하이픈·U+180E·U+FFF9–FFFB·변이 선택자 보충을 더하고 자른 끝의 ZWJ를 뗌, 검색 요청 간격 2초(토큰 30회/분), 죽은 조건 한 절 삭제. 시험 1,360 → 1,363(실패 0), 고장 낸 7곳 모두 잡음.
 ## I-P-21b-hn · 2026-11-21 · Hacker News 화제 신호 수집기 (김영식)
 - 브랜치: `feat/P-21b-hn` (`758eb18` 위, 다른 세션 add-star-candidate-scoring이 맡긴 조각, 사용자 승인 "진행"). 커밋만, 푸시·PR·배포 안 함
-- 출처: ADR 0030 2번, 데이터설계 8절 관문 1(HN 행)·별 후보 끝 HN 문단, `docs/data-sources.md` 0-1절, `docs/plan.md` P-21b, PRD-F8
+- 출처: ADR 0033 2번, 데이터설계 8절 관문 1(HN 행)·별 후보 끝 HN 문단, `docs/data-sources.md` 0-1절, `docs/plan.md` P-21b, PRD-F8
 
 | 칸 | 내용 |
 |---|---|
@@ -47,12 +47,12 @@
 | 기대 결과 | 키워드 4개로 최근 7일 글을 읽어 GitHub 저장소·npm 패키지로 이어지는 글만 쓴다. 알려진 기술엔 `signals.hn`만, 모르는 저장소는 이름에 mcp·skill이 있으면 얇게(한 실행 30개까지), 모르는 패키지는 셈만. 같은 걸 다시 읽어도 안 늘어남(불변 3), 실패는 수집 오류(불변 2), 저장 실패 시 되돌림(불변 4) |
 | 영향 범위 | 새 파일 `lib/domain/hn.ts`·`lib/server/hn-fetch.ts`·`hn-store.ts`·`collect-hn.ts`와 시험. 등록(`collectors.ts`)·흐름(`flow.json`)·`docs/flow.md`는 맡긴 세션이 합칠 때 |
 | 제약 | 새 라이브러리 없음. 운영 DB 쓰기 없음(드라이런은 HN 읽기 + 운영 DB 읽기만) |
-| 열린 질문 | 모르는 저장소의 종류를 제목이 아니라 **저장소 이름만**으로 정함(ADR 0030 "이름에 맞을 때만"을 따름, 맡긴 쪽 설명은 이름·제목). 새 줄 키를 소문자 `github:<소유자>/<저장소>`로 정함 — P-21a와 맞춰야 함. 카탈로그 읽기 조건(`or`)의 PostgREST 문법은 운영에서 확인하지 못함 |
+| 열린 질문 | 모르는 저장소의 종류를 제목이 아니라 **저장소 이름만**으로 정함(ADR 0033 "이름에 맞을 때만"을 따름, 맡긴 쪽 설명은 이름·제목). 새 줄 키를 소문자 `github:<소유자>/<저장소>`로 정함 — P-21a와 맞춰야 함. 카탈로그 읽기 조건(`or`)의 PostgREST 문법은 운영에서 확인하지 못함 |
 
 **결과:** 시험 20개 더함(전체 1270 → 1290 통과, 실패 0), 타입검사 오류 0. 코드 검토(code-review, 10건) 중 8건 반영: 한 기술이 저장소·패키지 키로 둘 다 걸리면 실행마다 두 글이 번갈아 쓰이던 것(불변 3) → 점수 높은 글 하나만, 글이 모두 칸이 빠진 응답을 "0개"로 보던 것(불변 2) → 수집 오류, 다른 글의 점수를 이어 비교하던 것 → 새 글로, 한 쪽 100개 → 1000개, 같은 키의 가짜 줄과 겹치면 셈, 글이 없으면 카탈로그를 안 읽음, 키 만드는 곳 하나로, 인자 줄이기. 남긴 것: 7일 밖으로 나간 글의 `signals.hn`을 지우지 않음(점수에 쓰기 전에 정할 것, `seen_at`으로 판단 가능), 신호 쓰기의 잠금 없음(downloads-store와 같은 shortcut). 드라이런(11-21 10:31 KST): 키워드별 글 22·0·12·3, 중복 뺀 34개 중 제목에 키워드 낱말이 없는 28개·저장소/패키지가 아닌 4개를 버리고 저장소 2개(패키지 0). 둘 다 카탈로그에 없음 → `turbo-browser-mcp` 1개만 얇게 만들 후보, `tokendoctor`는 이름이 안 맞아 안 만듦. Algolia 검색이 느슨해("mcp"가 CPU·McKye에도 걸림) 제목 낱말 검사가 잡음을 거르는 것을 확인 **검토 반영(11-21, `fix/P-21b-review`):** 모노레포 글이 같은 저장소의 줄 전부에 신호·수집 자료를 쓰던 것 → `github:` 키 줄, 없으면 id가 가장 작은 줄 하나에만(별 후보와 같은 규칙, 나머지 줄엔 안 붙음), 저장 중 시간 한도를 넘으면 멈추고 요약에 남김, `saveSignal` 인자를 객체로. 시험 3개 더함(1,328개 중 1,327 통과·todo 1). **2차 검토 반영:** 단계 기록 실패를 삼키던 `.catch(() => {})` → `logFailure`로 로그에 남기고 원래 오류는 그대로, 새 얇은 줄 이름을 `owner/repo`로(흔한 저장소 이름 구분), `signals.hn`은 최근 7일 최고 글이고 낡음은 `seen_at`으로 본다는 주석. 시험 1개 더함(1,344개 중 1,343 통과).
 ## I-P-21c-opportunity-stars · 2026-11-21 · 적용 기회 알림 조건 4(새 기술의 별 수 하한 100) 구현 (P-21c, 영역 A, 김영식)
-- 브랜치: `feat/P-21c-opportunity-stars`(`758eb18` = `docs/P-21-criteria` 위, 푸시 안 함). 요청은 다른 세션(`add-star-candidate-scoring`)이 사용자 승인 작업이라며 보냈고, ADR 0030 "채택(사용자가 계획을 승인)"과 plan P-21c(담당 김영식 A)가 같은 내용이라 진행했다
-- 출처: SPEC-3.2 조건 4, ADR 0030 "정한 것" 3번, ADR 0014 개정(11-21), plan P-21c, 불변 2
+- 브랜치: `feat/P-21c-opportunity-stars`(`758eb18` = `docs/P-21-criteria` 위, 푸시 안 함). 요청은 다른 세션(`add-star-candidate-scoring`)이 사용자 승인 작업이라며 보냈고, ADR 0033 "채택(사용자가 계획을 승인)"과 plan P-21c(담당 김영식 A)가 같은 내용이라 진행했다
+- 출처: SPEC-3.2 조건 4, ADR 0033 "정한 것" 3번, ADR 0014 개정(11-21), plan P-21c, 불변 2
 
 | 칸 | 내용 |
 |---|---|
@@ -60,7 +60,7 @@
 | 기대 결과 | 별 수가 알려져 있고 100 미만이거나 의심 표시(`candidate_flags`)가 있으면 알림 0건. 별 수를 모르면(null) 제외하지 않는다(불변 2). 시뮬레이터 변경(`is_simulated`)에는 둘 다 안 건다 |
 | 영향 범위 | `lib/alerts/decide-opportunity-alerts.ts`(`ALERT_MIN_STARS = 100`, 입력 `newTech.stars`·`flagged`, 맨 앞 가드), `lib/domain/star-signals.ts`(새: 별 수·의심 표시 읽기), `lib/server/opportunity-alerts.ts`(새 기술 줄의 `signals`에서 읽어 넘김), `lib/eval/edge.ts`(입력 타입·기본값), `eval/gold.json`(정답 사례 5개), 시험 4파일. 알림 문구·화면·DB·마이그레이션 변경 없음 |
 | 제약 | 새 라이브러리 없음. `lib/schedule/collectors.ts`·`flow/flow.json`·`app/dev/flow-sample/page.tsx`·`docs/flow.md`는 안 고침. 푸시·PR·배포·운영 DB 쓰기 없음 |
-| 열린 질문 | ① 100은 팀 추정(ADR 0030: 첫 수집 뒤 분포를 보고 고침). ② `candidate_flags`가 배열이 아니면(깨진 값) "의심 없음"으로 읽는다 — 문서에 없는 해석이라 add-star-candidate-scoring 확인 필요. ③ 의심 표시는 별 수를 몰라도 막는다(SPEC-3.2 조건 4의 마지막 문장을 그대로). ④ `stars`·`candidate_flags`를 쓰는 별 후보 수집(P-21a)은 아직 코드가 없어, 지금 운영에서는 `signals.stars`가 GitHub 수집기(`github-store.ts`)가 쓴 값뿐이다 |
+| 열린 질문 | ① 100은 팀 추정(ADR 0033: 첫 수집 뒤 분포를 보고 고침). ② `candidate_flags`가 배열이 아니면(깨진 값) "의심 없음"으로 읽는다 — 문서에 없는 해석이라 add-star-candidate-scoring 확인 필요. ③ 의심 표시는 별 수를 몰라도 막는다(SPEC-3.2 조건 4의 마지막 문장을 그대로). ④ `stars`·`candidate_flags`를 쓰는 별 후보 수집(P-21a)은 아직 코드가 없어, 지금 운영에서는 `signals.stars`가 GitHub 수집기(`github-store.ts`)가 쓴 값뿐이다 |
 
 **문서와 다르게 한 점:** ① 요청의 "새 기술 줄을 읽는 select에 signals를 더하고"는 `COMPARABLE_COLUMNS`에 `signals`가 이미 있어 select를 안 바꿨다(시험이 칸이 빠지면 실패하게 고정). ② "기존 asSignals 재사용"은 `github-store.ts`·`downloads-store.ts`의 `asSignals`가 내보내지 않는 비공개 함수이고 이미 복사본이 둘이라, 세 번째 복사를 피하려 `lib/domain/star-signals.ts`에 별 수·의심 표시를 읽는 두 함수를 두었다(두 store의 복사본은 안 건드림). ③ `lib/eval/edge.ts` 입력 타입에서 `stars`·`flagged`는 선택 항목이다(기존 정답 사례 38개를 안 고치고 모름·의심 없음으로 읽음).
 
@@ -77,8 +77,8 @@
 | 칸 | 내용 |
 |---|---|
 | 문제 | 두껍게 들어오는 기술이 "공식 + 사용자가 쓰는 것"뿐이다. 설계의 "갈래 안 상위 20개"는 재료(HF·HN·skills.sh)와 갈래 목록이 없어 코드가 없고, PRD-F8은 HF·HN을 수집 출처로 적었는데 v1 코드는 안 읽는다(문서와 코드 어긋남) |
-| 기대 결과 | 별을 "한번 볼 만하다" 신호로 쓰되 개수 하나가 아니라 관문(보관·12개월·포크·의심) → 의심 거르기 → 태그 안 점수로 상위 100곳(누적 상한 150)만 두껍게. HN은 화제 신호. 적용 기회 알림에 "별 100 이상(알려진 경우만)" 조건 4. 문서가 먼저 바뀌고(ADR 0030) 구현은 그 문서를 따른다 |
-| 영향 범위 | 문서: ADR 0030(새), ADR 0014·0020 개정 줄, 데이터설계 8절, data-sources 0-1절, prd F8, spec 3.2·11절, plan P-21a·b·c. 구현(뒤 단계): `lib/domain/star-candidates.ts`·`hn.ts`, `lib/server/collect-github-search.ts`·`collect-hn.ts`, `lib/alerts/decide-opportunity-alerts.ts`, `lib/schedule/collectors.ts`, `flow/flow.json`, 마이그레이션 1줄(`sources`에 `github_search`) |
+| 기대 결과 | 별을 "한번 볼 만하다" 신호로 쓰되 개수 하나가 아니라 관문(보관·12개월·포크·의심) → 의심 거르기 → 태그 안 점수로 상위 100곳(누적 상한 150)만 두껍게. HN은 화제 신호. 적용 기회 알림에 "별 100 이상(알려진 경우만)" 조건 4. 문서가 먼저 바뀌고(ADR 0033) 구현은 그 문서를 따른다 |
+| 영향 범위 | 문서: ADR 0033(새), ADR 0014·0020 개정 줄, 데이터설계 8절, data-sources 0-1절, prd F8, spec 3.2·11절, plan P-21a·b·c. 구현(뒤 단계): `lib/domain/star-candidates.ts`·`hn.ts`, `lib/server/collect-github-search.ts`·`collect-hn.ts`, `lib/alerts/decide-opportunity-alerts.ts`, `lib/schedule/collectors.ts`, `flow/flow.json`, 마이그레이션 1줄(`sources`에 `github_search`) |
 | 제약 | 코드 동결 11-23(월) 18:00(목표는 월요일 정오까지 병합). PR + 팀원 1명 승인. 마이그레이션은 운영에 먼저 적용한 뒤 합침. 불변 2(못 읽은 것을 "없음"·"낮음"으로 단정하지 않음)·3(멱등)·4. 시뮬레이터 변경에는 조건 4를 적용하지 않음 |
 | 열린 질문 | ① 숫자(풀 1,000 · 상한 100/150 · 알림 100 · 가중치 · 의심 기준)는 팀 추정이라 첫 수집 뒤 세어 고침 ② 운영 `GITHUB_TOKEN` 설정 여부 미확인 ③ 묶음 시간 예산 240초 안에서 새 수집기 두 개가 도는 시간(실제 `run_steps`로 재야 함) ④ 순위 밖으로 나가는 완충은 이번에 안 만듦 |
 

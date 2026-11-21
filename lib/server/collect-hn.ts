@@ -1,4 +1,4 @@
-// Hacker News 화제 신호 수집기(P-21b, ADR 0030 2번, 데이터설계 8절 관문 1, 흐름 상자 fetch_popularity). 주인: 김영식 A.
+// Hacker News 화제 신호 수집기(P-21b, ADR 0033 2번, 데이터설계 8절 관문 1, 흐름 상자 fetch_popularity). 주인: 김영식 A.
 // 키워드마다 최근 7일 글을 읽어, GitHub 저장소·npm 패키지로 이어지는 글만 쓴다. 알려진 기술에는 signals.hn만 붙이고(점수·두껍게에는 아직 안 씀),
 // 모르는 저장소는 이름에 mcp·skill이 있을 때만 얇게 만든다(한 실행 최대 30개). 모르는 npm 패키지는 만들지 않고 센다.
 // 일부 키워드만 실패하면 읽은 것은 쓰고 collect_error 줄에 센다. 모두 실패하면 던져서 runBatch가 수집 오류로 기록한다(불변 2). 저장 규칙은 hn-store.ts.
@@ -15,7 +15,7 @@ import { recordStep } from "./run-log.ts";
 
 const REQUEST_GAP_MS = 1_000; // SPEC-8: 요청 사이 1초 이상
 const HN_BUDGET_MS = 20_000; // 묶음 시간 예산(240초) 중 HN의 몫: 4번 읽기 + 저장
-export const MAX_NEW_PER_RUN = 30; // 한 실행에 새로 만드는 얇은 줄(팀 추정, ADR 0030)
+export const MAX_NEW_PER_RUN = 30; // 한 실행에 새로 만드는 얇은 줄(팀 추정, ADR 0033)
 
 type Deps = { fetchHits: (keyword: string, nowMs: number) => Promise<{ hits: HnHit[]; invalid: number }>; sleep: (ms: number) => Promise<void>; now: () => number };
 type Failure = { key: string; kind: ErrorKind; message: string };

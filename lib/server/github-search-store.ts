@@ -1,4 +1,4 @@
-// 별 후보 수집기의 DB 읽기·쓰기(P-21a, ADR 0030, 데이터설계 8절 "별 후보" 5~7). 주인: 김영식 A. 수집기(collect-github-search.ts)는 순서·기록을 맡고, 저장 규칙은 여기에 둔다.
+// 별 후보 수집기의 DB 읽기·쓰기(P-21a, ADR 0033, 데이터설계 8절 "별 후보" 5~7). 주인: 김영식 A. 수집기(collect-github-search.ts)는 순서·기록을 맡고, 저장 규칙은 여기에 둔다.
 // 같은 저장소(repo_url·github: 키)를 가진 줄이 있으면 새 줄 대신 그 줄을 두껍게·신호만 갱신한다(같은 기술이 여러 줄이 되지 않게). 사용자·레지스트리가 쓴 값은 덮어쓰지 않는다.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import { isDeepStrictEqual } from "node:util";
@@ -8,7 +8,7 @@ import { isSpike, oneLinerOf, passesGate, typeOf, type Candidate, type Flag } fr
 
 export const SOURCE_NAME = "github_search";
 export const STARS_REASON = "stars";
-export const STARS_CAP = 150; // 별 이유로 두꺼워진 줄 누적 상한(ADR 0030, 팀 추정). 나가는 완충은 첫 수집 뒤
+export const STARS_CAP = 150; // 별 이유로 두꺼워진 줄 누적 상한(ADR 0033, 팀 추정). 나가는 완충은 첫 수집 뒤
 export type Existing = {
   id: string; tech_key: string; repo_url: string | null; depth: string; thick_reasons: string[] | null; one_liner: string | null; one_liner_source: string | null; signals: unknown; is_simulated: boolean;
 };

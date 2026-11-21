@@ -184,7 +184,7 @@ test("레지스트리 대량 채우기로 들어온 기술은 '내가 등록한 
   assert.equal(await createAlertsForChange(fakeDb(tables({ registry_backfill: false })).db, input), 2);
 });
 
-// SPEC-3.2 조건 4(ADR 0030): 새 기술 줄의 signals에서 별 수와 의심 표시를 읽어 규칙에 넘긴다
+// SPEC-3.2 조건 4(ADR 0033): 새 기술 줄의 signals에서 별 수와 의심 표시를 읽어 규칙에 넘긴다
 const withNewSignals = (signals: unknown, mutate: (t: Tables) => void = () => {}): Tables => {
   const tables = baseTables();
   tables.technologies[1] = tech("new", "mcp-new", { created_at: "2026-11-18T00:00:00Z", signals });

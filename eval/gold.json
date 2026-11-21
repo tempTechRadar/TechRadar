@@ -1183,7 +1183,7 @@
       "id": "E-opp-stars-below",
       "kind": "적용 기회",
       "target": "새 기술의 별 수가 알려져 있고 99(하한 100 미만)",
-      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
       "input": {
         "type": "opportunity",
         "times": 1,
@@ -1228,7 +1228,7 @@
       "id": "E-opp-stars-at-min",
       "kind": "적용 기회",
       "target": "새 기술의 별 수가 알려져 있고 정확히 100(하한)",
-      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
       "input": {
         "type": "opportunity",
         "times": 1,
@@ -1273,7 +1273,7 @@
       "id": "E-opp-stars-unknown",
       "kind": "적용 기회",
       "target": "새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2)",
-      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
       "input": {
         "type": "opportunity",
         "times": 1,
@@ -1318,7 +1318,7 @@
       "id": "E-opp-flagged",
       "kind": "적용 기회",
       "target": "별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보",
-      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
       "input": {
         "type": "opportunity",
         "times": 1,
@@ -1364,7 +1364,7 @@
       "id": "E-opp-sim-low-stars",
       "kind": "적용 기회",
       "target": "시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만)",
-      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
       "input": {
         "type": "opportunity",
         "times": 1,
