@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Fragment } from "react";
-import { redirect } from "next/navigation";
 import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
 import { GRADE_OPTIONS, keepView, ownText, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
@@ -15,7 +14,8 @@ import { registerProject } from "./actions";
 import { AddTech } from "./add-tech";
 import { ArchivedProjects, type ArchivedProject } from "./archived-projects";
 import { ProjectManage } from "./project-manage";
-import { ProjectTechs, type ProjectRow } from "./tech-table";
+import { ProjectTechs, type ProjectRow } from "./tech-table";import { backTo, LoginNeeded } from "../login/login-needed";
+
 
 // 등록 · 다시 읽기(서버 액션)가 이 화면에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간. Hobby 최대(2026-11 공식 문서)
 export const maxDuration = 300;
@@ -32,8 +32,9 @@ const URL_ERROR_TEXT: Record<string, string> = {
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<Query> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
   const query = await searchParams;
+  // 로그인 전: 다른 화면처럼 그 자리 안내(보내기 대신) — 읽는 동안 뼈대(loading.tsx)를 두어도 이동이 200으로 나가지 않게(P-12f ④)
+  if (!user) return <LoginNeeded title="내 프로젝트" why="로그인하면 GitHub 저장소나 내 컴퓨터의 AI 코딩 도구를 등록하고, 읽은 기술을 지도와 현황에서 볼 수 있어요." next={backTo("/projects", query)} />;
   if (isPreviewUser(user)) return <PreviewOnly title="내 프로젝트" />; // 미리보기(개발용)는 DB를 부르지 않는다. 프로젝트 샘플은 없어서 안내만
   const supabase = await getServerSupabase();
   if (!supabase) return <main className="page"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;

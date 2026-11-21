@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { isTempNickname } from "@/lib/domain/nickname";
 import { PreviewOnly } from "@/app/dev/preview-only";
@@ -7,13 +6,14 @@ import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
+import { backTo, LoginNeeded } from "../login/login-needed";
 
 // 설정(IA-19, PRD-F34·F1): 별명과 "쓰고 있어요"에 내 별명 보이기(기본 켜짐). 가입 직후(임시 별명)에는 별명을 먼저 정하게 한다(IA-1).
 type Params = { welcome?: string; next?: string };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/settings");
+  if (!user) return <LoginNeeded title="설정" why="로그인하면 별명과 '쓰고 있어요'에 내 별명을 보일지 바꿀 수 있어요." next={backTo("/settings", await searchParams)} />;
   if (isPreviewUser(user)) return <PreviewOnly title="설정" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
