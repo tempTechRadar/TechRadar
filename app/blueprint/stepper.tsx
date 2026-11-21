@@ -1,6 +1,6 @@
 "use client";
 // 스텝퍼(P-12e, 게임식 흐름): ① 단계 구축 → ② 스킬 붙이기 → ③ 결과물. 같은 화면에서 모드만 바뀐다(되돌아가도 판은 그대로).
-// ③ 결과물: 확정 조건 어긋남(limitProblems) · 내보내기 실시간 미리보기(exportText) · 확정. 점검 받기 · 템플릿 저장은 서버 조각(F · I)이 오면 연다.
+// ③ 결과물: 확정 조건 어긋남(limitProblems) · 내보내기 실시간 미리보기(exportText) · 확정. 점검 받기는 확정 뒤 하단 패널의 AI 점검 탭에서.
 import { useState } from "react";
 import { exportText, type ExportKind } from "@/lib/blueprint/export-text";
 import type { Board } from "@/lib/blueprint/board";
@@ -42,7 +42,6 @@ export function StepResult({ name, board, problems, onConfirm, say }: {
         <label>내보내기 <select value={kind} onChange={(e) => setKind(e.target.value as ExportKind)}>{KINDS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
         <button type="button" className="btn" disabled={!board} onClick={() => void copy()}>복사</button>
         <span className="st-grow" />
-        <button type="button" className="btn" disabled title="AI 점검은 곧 열려요">점검 받기(준비 중)</button>
         <button type="button" className="btn btn-primary" disabled={!board || problems.length > 0} onClick={onConfirm}>이 조합으로 확정</button>
       </div>
       {board ? <pre className="st-preview" aria-label="내보내기 미리보기" tabIndex={0}>{text}</pre> : <p className="muted">선이 고리로 이어져 순서를 정할 수 없어요. 고리를 끊으면 미리보기가 나와요.</p>}

@@ -12,9 +12,6 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-page .btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .bp-page .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-
-  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 24px 24px; background-position: -1px -1px; }
-
 .bp-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
 .bp-dialog::backdrop { background: rgba(0, 0, 0, .35); }
 .bp-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 6px; }
