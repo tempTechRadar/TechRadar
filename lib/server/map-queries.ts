@@ -6,7 +6,8 @@ import type { CatalogTech, Category, Grade, MapInput, Mark, MarkStatus, MyTechRo
 import { NEW_QUOTA } from "../map/view-config.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
-import { fixedNote } from "../domain/services.ts";import { buildKanban } from "../views/kanban.ts";
+import { fixedNote } from "../domain/services.ts";
+import { buildKanban } from "../views/kanban.ts";
 
 
 /** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 1만 5천여 개를 다 그리지 않는다, 나머지는 지도 찾기 칸으로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
@@ -91,23 +92,6 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]
   const rows = [...pick(risky), ...pick(starter), ...pick(fresh), ...pick(dev)];
   if (rows.length < CATALOG_LIMIT) rows.push(...pick(await ranked(listed()).limit(CATALOG_LIMIT))); // 개발 분야로 다 못 채웠을 때만(보통은 안 읽음)
   return rows.slice(0, CATALOG_LIMIT).map(toTech);
-}
-
-/** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
-export const NEW_LIMIT = 500;
-/** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
-/** userId가 null이면 로그인 전(11-21 사용자 결정: 새 기술도 로그인 없이): 서비스 키로 공개 목록만 읽고 내 표시는 없다(ADR 0029) */
-export async function readNewTechs(db: SupabaseClient, userId: string | null, now: Date): Promise<MapInput> {
-  const since = sinceDays(now, 7);
-  const [categories, techRes, markRes] = await Promise.all([
-    readCategories(db),
-    // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다
-    publicTechs(db, READ_COLUMNS)
-      .gt("created_at", since).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
-    userId ? db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId) : Promise.resolve({ data: [], error: null }),
-  ]);
-  const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
-  return { mine: [], techs: rowsOrThrow(techRes, "새 기술을 읽지 못함").map(toTech), relations: [], categories, marks, newSince: CATALOG_FIRST_FILL };
 }
 
 /** 로그인 전 지도(ADR 0029): 누구에게나 같은 카탈로그. 서비스 키 클라이언트로 부르되 공용 표(technologies·categories)의 공개 칸만 읽는다 */
