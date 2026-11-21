@@ -38,13 +38,13 @@ test("G5: 네 패키지의 최신 버전은 OSV에 알려진 문제 0건 → 저
 
 // 저장소 값은 2026-11-21에 GitHub에서 읽어 저장한 것, 지금(now)은 읽은 시각으로 고정(SPEC-1 통과 조건)
 const g5Repos = JSON.parse(readFileSync(new URL("./fixtures/repo-g5-latest.json", import.meta.url), "utf8")) as {
-  readAt: string; repos: { package: string; pushedAt: string; archived: boolean }[];
+  readAt: string; repos: { package: string; repo: string; pushedAt: string; archived: boolean }[];
 };
 
 test("G5 기대 등급 '통과': 저장소 정보를 확인했으면(읽은 시각 기준 푸시 90일 안·active) 같은 OSV 0건이 통과", () => {
   for (const { name, version, vulns } of g5) {
     const repo = g5Repos.repos.find((x) => x.package === name)!;
-    const r = gradeFromOsv(version, forPackage(vulns, name), { status: "active", activityAt: repo.pushedAt, checkedAt: g5Repos.readAt, missedCount: 0, nowMs: Date.parse(g5Repos.readAt) });
+    const r = gradeFromOsv(version, forPackage(vulns, name), { status: "active", activityAt: repo.pushedAt, checkedAt: g5Repos.readAt, missedCount: 0, repoName: repo.repo.toLowerCase(), nowMs: Date.parse(g5Repos.readAt) });
     assert.equal(r.grade, "pass", name);
   }
 });

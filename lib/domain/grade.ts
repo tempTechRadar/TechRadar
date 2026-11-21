@@ -35,7 +35,9 @@ export type GradeResult = {
 };
 
 /** 저장소 정보 확인(P-9)이 technologies에 남긴 값. 통과는 이 값이 신선할 때만 준다(SPEC-1). */
-export type RepoFacts = { status: string; activityAt: string | null; checkedAt: string | null; missedCount: number };
+// repoName: P-9가 실제로 읽은 저장소(signals.github_found_repo, 소문자 owner/repo). 이름이 없으면 어느 저장소의 확인인지 모르므로 통과가 아니다.
+// shortcut: 패키지와 그 저장소가 같은 것인지는 검증하지 않는다(레지스트리·스킬 키가 알려 준 연결을 믿는다). 이유에 저장소 이름을 보여 사람이 알아보게 한다. 검증하려면 저장소의 package.json 이름을 맞춰 본다.
+export type RepoFacts = { status: string; activityAt: string | null; checkedAt: string | null; missedCount: number; repoName: string | null };
 export type RepoCheck = RepoFacts & { nowMs: number };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,7 +47,7 @@ const ACTIVITY_MAX_AGE_MS = 90 * DAY_MS;
 
 // 못 찾음(missedCount>0)이 한 번이라도 쌓였거나 상태가 active가 아니면 신선하지 않다. 날짜가 깨져 NaN이면 비교가 거짓이라 신선하지 않다.
 function repoIsFresh(r: RepoCheck): boolean {
-  if (r.status !== "active" || r.missedCount > 0 || !r.checkedAt || !r.activityAt) return false;
+  if (r.status !== "active" || r.missedCount > 0 || !r.checkedAt || !r.activityAt || !r.repoName) return false;
   return r.nowMs - Date.parse(r.checkedAt) <= CHECK_MAX_AGE_MS && r.nowMs - Date.parse(r.activityAt) <= ACTIVITY_MAX_AGE_MS;
 }
 
@@ -136,7 +138,7 @@ export function gradeFromOsv(version: string | null, vulns: OsvVuln[], repo?: Re
     return { grade: "caution", reason: `덜 심각한 알려진 문제가 ${evidence.length}건 있어요(${named(evidence[0])}).`, evidence, causeId: null, fixedVersion: null };
   }
   if (repo && repoIsFresh(repo)) {
-    return { grade: "pass", reason: "알려진 취약점이 없고, 저장소가 최근 3개월 안에 고쳐지고 있어요.", evidence, causeId: null, fixedVersion: null };
+    return { grade: "pass", reason: `알려진 취약점이 없고, 저장소(${repo.repoName})가 최근 3개월 안에 고쳐지고 있어요.`, evidence, causeId: null, fixedVersion: null };
   }
   return { grade: "unknown", reason: "알려진 취약점은 없어요. 저장소 정보는 아직 확인하지 않았거나 오래됐어요.", evidence, causeId: null, fixedVersion: null };
 }

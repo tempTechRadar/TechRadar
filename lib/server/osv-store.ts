@@ -7,17 +7,21 @@ import type { ErrorKind } from "./collect-fetch.ts";
 
 const PAGE = 500;
 // 통과 판단에 쓰는 저장소 확인 값은 기술(technologies)에 있다(P-9 github-store가 씀)
-const REPO_COLUMNS = "status, last_activity_at, last_checked_ok_at, missed_count";
+const REPO_COLUMNS = "status, last_activity_at, last_checked_ok_at, missed_count, signals";
 // 두꺼운 진짜 기술의 줄 중 숨기지 않았고 보관하지 않은 프로젝트의 것만(쓰는 사람이 없는 위험은 알림 대상이 없다)
 const SELECT =`id, tech_id, version, grade, graded_at, grade_evidence, last_checked_ok_at, technologies!inner(tech_key, ${REPO_COLUMNS}), projects!inner(archived_at)`;
 
-type RepoCols = { status: string; last_activity_at: string | null; last_checked_ok_at: string | null; missed_count: number };
+type RepoCols = { status: string; last_activity_at: string | null; last_checked_ok_at: string | null; missed_count: number; signals: unknown };
 type TechCols = RepoCols & { tech_key: string };
 type Raw = {
   tech_id: string; version: string | null; grade: MyTechRow["grade"]; graded_at: string | null; grade_evidence: unknown; last_checked_ok_at: string | null;
   technologies: TechCols | TechCols[];
 };
-const factsOf = (t: RepoCols): RepoFacts => ({ status: t.status, activityAt: t.last_activity_at, checkedAt: t.last_checked_ok_at, missedCount: t.missed_count });
+const foundRepoOf = (signals: unknown): string | null => {
+  const name = (signals as { github_found_repo?: unknown } | null)?.github_found_repo;
+  return typeof name === "string" && name !== "" ? name : null;
+};
+const factsOf = (t: RepoCols): RepoFacts => ({ status: t.status, activityAt: t.last_activity_at, checkedAt: t.last_checked_ok_at, missedCount: t.missed_count, repoName: foundRepoOf(t.signals) });
 const techOf = (r: Raw) => (Array.isArray(r.technologies) ? r.technologies[0] : r.technologies);
 const toRow = (r: Raw): MyTechRow => ({
   techId: r.tech_id, techKey: techOf(r).tech_key, version: r.version, grade: r.grade, gradedAt: r.graded_at, evidence: r.grade_evidence, checkedAt: r.last_checked_ok_at, repo: factsOf(techOf(r)),

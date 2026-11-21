@@ -6,14 +6,20 @@ import { gradeFromOsv, type OsvVuln, type RepoCheck } from "./grade.ts";
 const NOW = Date.parse("2026-11-21T00:00:00Z");
 const DAY = 24 * 60 * 60 * 1000;
 const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
-const repo = (over: Partial<RepoCheck> = {}): RepoCheck => ({ status: "active", activityAt: ago(3), checkedAt: ago(1), missedCount: 0, nowMs: NOW, ...over });
+const repo = (over: Partial<RepoCheck> = {}): RepoCheck => ({ status: "active", activityAt: ago(3), checkedAt: ago(1), missedCount: 0, repoName: "acme/tool", nowMs: NOW, ...over });
 const vuln = (severity: string): OsvVuln => ({ id: "GHSA-test", database_specific: { severity } });
 
 test("취약점 0건이고 저장소 확인이 신선하면 통과, 버전을 몰라도 같다", () => {
   const r = gradeFromOsv("1.0.0", [], repo());
   assert.deepEqual([r.grade, r.evidence.length, r.causeId], ["pass", 0, null]);
   assert.match(r.reason, /최근 3개월/);
+  assert.match(r.reason, /acme\/tool/); // 어느 저장소를 근거로 했는지 보인다: 패키지와 저장소가 같은지는 사람이 알아본다
   assert.equal(gradeFromOsv(null, [], repo()).grade, "pass");
+});
+
+test("P-9가 어느 저장소를 읽었는지 모르면(이름 없음) 통과가 아니다: 근거 저장소를 밝힐 수 없는 통과는 주지 않는다", () => {
+  assert.equal(gradeFromOsv("1", [], repo({ repoName: null })).grade, "unknown");
+  assert.equal(gradeFromOsv("1", [], repo({ repoName: "" })).grade, "unknown");
 });
 
 test("저장소 정보를 안 주면 늘 찾지 못함: 통과는 저장소 확인이 있어야만(OSV만으로는 안 준다)", () => {

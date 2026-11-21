@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { GradeResult } from "./grade.ts";
 import { causeIdsOf, evidenceIds, groupTargets, isChanged, planDanger, type LatestChange, type MyTechRow } from "./osv-daily.ts";
 
-const repo = { status: "active", activityAt: "2026-11-18T00:00:00Z", checkedAt: "2026-11-20T00:00:00Z", missedCount: 0 };
+const repo = { status: "active", activityAt: "2026-11-18T00:00:00Z", checkedAt: "2026-11-20T00:00:00Z", missedCount: 0, repoName: "acme/tool" };
 const row = (over: Partial<MyTechRow> = {}): MyTechRow => ({ techId: "t1", techKey: "npm:zod", version: "1.0.0", grade: "unknown", gradedAt: null, evidence: null, checkedAt: null, repo, ...over });
 
 test("groupTargets: 같은 기술·같은 버전은 사람이 여럿이어도 한 번만 묻는다. 버전이 다르거나 버전을 모르면 따로", () => {
@@ -12,7 +12,7 @@ test("groupTargets: 같은 기술·같은 버전은 사람이 여럿이어도 �
 });
 
 test("groupTargets: 저장소 확인 값은 기술의 것이라 묶은 대상에 그대로 실린다", () => {
-  const stale = { status: "active", activityAt: null, checkedAt: null, missedCount: 0 };
+  const stale = { status: "active", activityAt: null, checkedAt: null, missedCount: 0, repoName: null };
   assert.deepEqual(groupTargets([row(), row()])[0].repo, repo);
   assert.deepEqual(groupTargets([row({ repo: stale })])[0].repo, stale);
 });

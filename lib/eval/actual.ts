@@ -26,13 +26,13 @@ function osvResult(c: GoldCase, read: Reader): Omit<Actual, "id"> {
   return { grade: r.grade, event: r.grade === "danger", causeId: r.causeId };
 }
 
-type RepoFixture = { readAt: string; repos: { package: string; pushedAt: string | null; archived: boolean }[] };
+type RepoFixture = { readAt: string; repos: { package: string; repo: string; pushedAt: string | null; archived: boolean }[] };
 
 /** 저장된 저장소 확인 값 → 통과 판단 입력. 지금(now)은 읽은 시각으로 고정해 날짜가 지나도 같은 결과가 나온다. */
 function repoCheckOf(f: RepoFixture, pkg: string): RepoCheck {
   const found = f.repos.find((x) => x.package === pkg);
   if (!found) throw new Error(`저장소 확인 값에 ${pkg}가 없음`);
-  return { status: found.archived ? "deprecated" : "active", activityAt: found.pushedAt, checkedAt: f.readAt, missedCount: 0, nowMs: Date.parse(f.readAt) };
+  return { status: found.archived ? "deprecated" : "active", activityAt: found.pushedAt, checkedAt: f.readAt, missedCount: 0, repoName: found.repo.toLowerCase(), nowMs: Date.parse(f.readAt) };
 }
 
 function skillResult(c: GoldCase, read: Reader): Omit<Actual, "id"> {

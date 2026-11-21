@@ -126,7 +126,7 @@ test("OSV가 실패하면 그 기술만 수집 오류: 등급은 그대로, 변�
 
 test("다시 읽을 때도 저장소 확인이 신선하면 통과를 매긴다: 정기 확인이 매긴 통과가 '찾지 못함'으로 되돌아가지 않는다(SPEC-1)", async (t) => {
   stubWeb(t, { files: { "package.json": PKG } });
-  const fresh = { status: "active", last_activity_at: new Date().toISOString(), last_checked_ok_at: new Date().toISOString(), missed_count: 0 };
+  const fresh = { status: "active", last_activity_at: new Date().toISOString(), last_checked_ok_at: new Date().toISOString(), missed_count: 0, signals: { github_found_repo: "acme/tool" } };
   const { db, calls } = fakeDb(false, { repoCols: fresh });
   await registerAndRead(USER, REPO, { db });
   const grades = updates(calls).filter((p) => "grade" in p).map((p) => p.grade);
