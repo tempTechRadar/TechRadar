@@ -42,6 +42,8 @@ erDiagram
   profiles ||--o{ tech_marks : "알림 없는 판단"
   technologies ||--o{ tech_marks : "대상"
   tech_marks ||..o{ tech_mark_events : "바뀐 기록(같은 사람+기술)"
+  profiles ||--o{ my_tech_tags : "내 태그"
+  technologies ||--o{ my_tech_tags : "붙인 기술"
   profiles ||--o{ blueprints : "확정한 블루프린트"
   projects |o--o{ blueprints : "어느 프로젝트에(없어도 됨)"
   alerts ||--o{ scenarios : "요청"
@@ -334,6 +336,17 @@ UK: (kind, ecosystem, value).
 
 쓰기는 DB 함수 `set_tech_mark(기술, 상태, 이유)` 하나로만. 적용 후보 · 보류면 그 기술의 본인 판단 대기 알림을 모두 `save_judgment`로 판단하고(고친 버전은 변경에서), 표시와 기록까지 **한 거래**로 남긴다(하나라도 실패하면 모두 그대로, 불변 4). 같은 사람 + 기술 호출은 잠금으로 줄 세워 같은 값이면 기록이 늘지 않는다(불변 3). 위험 등급 기술은 그 기술의 가장 최근 보안 경고를 고친 버전과 함께 적용 후보로 판단했을 때만 적용 후보(ADR 0012). 기록 표는 고치기·지우기·비우기(truncate) 모두 트리거가 막는다. 서버 `lib/server/marks.ts`는 부르기 전 검사와 쉬운 실패 문구만 맡는다.
 
+**my_tech_tags** — 내 태그(P-12d-my-tech-tags). 사용자가 기술에 직접 붙이는 자기만의 태그. 공개하지 않음(ADR 0009)
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| id | uuid | ✔ | PK | |
+| user_id | uuid | ✔ | FK→profiles(지우면 같이) | 기본값 `auth.uid()`. 사용자는 이 칸을 넣을 수 없음(칸 권한) |
+| tech_id | uuid | ✔ | FK→technologies | 붙인 기술 |
+| tag | text | ✔ | | 1~30자, 앞뒤 빈칸·제어 문자(C0·DEL·C1) 없음(check). 유일 색인 (user_id, tech_id, lower(tag)) — 같은 기술에 대소문자만 다른 같은 태그는 한 줄(불변 3) |
+| created_at | timestamptz | ✔ | | 서버 칸(사용자가 못 정함) |
+
+고치기는 없다(떼고 다시 붙임). 한도(기술당 10개, 종류 50개, 합 1,000개)는 넣기 전 트리거 `my_tech_tags_limits`가 사람마다 잠금을 걸고 지킨다(동시 요청·직접 호출도). 서버 `lib/server/my-tech-tags.ts`도 같은 값으로 먼저 보고 쉬운 말로 알린다. 비밀값 모양 거르기는 서버만(본인만 읽는 줄).
+
 **blueprints** — 확정한 블루프린트(design.md 14절 ⑤, P-12d-blueprint). 만드는 중인 판은 브라우저에만, "이 조합으로 확정"한 것만 여기. 내 이력(확정 목록 · 기술별 쓴 횟수)은 이 표를 읽어 화면이 센다
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
@@ -465,6 +478,7 @@ UK: (kind, ecosystem, value).
 | judgments | **본인 알림에만, 사용자 로그인 토큰으로만 만들기.** 관리자 읽기만. 서비스 키로 쓰는 코드 없음(테스트) |
 | tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
 | blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint`로만(고른 프로젝트도 본인 것만), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
+| my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
 | exports · grade_views | 본인 읽기·만들기. 관리자 읽기 |
 | audit_logs | 본인 줄 읽기, 관리자 전체 읽기. **고치기·지우기 아무도 못 함** |
@@ -590,3 +604,4 @@ UK: (kind, ecosystem, value).
 - 2026-11-18 P-9c 코드 검토 반영 마이그레이션(`202611190901_P-9c_thicken_on_use.sql`, 작업 `I-P-9c-registry`): ① `my_technologies` insert 뒤 트리거(`thicken_used_tech`, security definer, 실행 권한은 닫음): 얇은 기술을 누군가 내 기술로 두면 `depth='thick'`, `thick_reasons`에 `used`를 더한다(첫 읽기·직접 추가·가져오기 모두, 사용자 연결은 `technologies`를 못 고치므로). ② `official_org` 값을 낱말(modelcontextprotocol·anthropics·openai)에서 이름공간 전체(`io.github.modelcontextprotocol`·`io.github.anthropics`·`io.github.openai`)로 바꿈. 실제 DB 적용은 사용자 승인 뒤.
 - 2026-11-19 P-18c 마이그레이션(`202611191500_P-18c_category_admin.sql`, 작업 `I-P-18c-category`): `technologies.category_set_by`·`category_set_at` 칸 추가(함께 있거나 함께 없음), 관리자만 갈래 세 칸을 본인 이름·작은 갈래로 바꾸는 정책 `technologies_admin_set_category`와 열 권한. `category_score`·`category_rank`(P-21 서버 칸)는 열지 않음. 갈래 목록 시드는 없음(데이터설계 DQ2, 팀 결정). **운영 적용 전에 김영식 님께 다시 알림**(운영 categories 0줄).
 - 2026-11-21 P-12d-blueprint(작업 `I-P-12d-blueprint`): `blueprints`와 DB 함수 `confirm_blueprint`를 더함(2.5절, 4절 권한, 관계 그림). 코드 리뷰 뒤 직접 넣기 권한을 빼고 함수로만 쓰게 바꿈(검사를 건너뛰지 못하게). 마이그레이션 `202611211000_P-12d_blueprints.sql`, 시험 `supabase/tests/blueprints_p12d.sql`(운영 되돌림 시험 기대값 19개 맞음). **운영 적용: 11-21 09:37 KST**(DB 이름 `p12d_blueprints`, 보안 점검 새 경고는 `confirm_blueprint` security definer 1건 — `set_tech_mark`와 같은 의도)
+- 2026-11-21 P-12d-my-tech-tags(작업 `I-P-12d-my-tech-tags`, 마이그레이션 `202611211400_P-12d_my_tech_tags.sql`, Maestro가 전한 사용자 결정 "지금 만들기"): `my_tech_tags` 표를 더함(2절, 4절 권한, 관계 그림). 칸 단위 권한으로 넣는 칸을 `tech_id`·`tag`로 좁힘(11-21 권한 점검 의심 3에서 배운 것). 운영 적용은 사용자 승인 뒤.
