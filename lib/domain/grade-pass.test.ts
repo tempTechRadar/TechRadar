@@ -6,7 +6,7 @@ import { gradeFromOsv, type OsvVuln, type RepoCheck } from "./grade.ts";
 const NOW = Date.parse("2026-11-21T00:00:00Z");
 const DAY = 24 * 60 * 60 * 1000;
 const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
-const repo = (over: Partial<RepoCheck> = {}): RepoCheck => ({ status: "active", activityAt: ago(3), checkedAt: ago(1), missedCount: 0, repoName: "acme/tool", nowMs: NOW, ...over });
+const repo = (over: Partial<RepoCheck> = {}): RepoCheck => ({ status: "active", activityAt: ago(3), checkedAt: ago(1), missedCount: 0, repoName: "acme/tool", license: "MIT", nowMs: NOW, ...over });
 const vuln = (severity: string): OsvVuln => ({ id: "GHSA-test", database_specific: { severity } });
 
 test("취약점 0건이고 저장소 확인이 신선하면 통과, 버전을 몰라도 같다", () => {
@@ -42,15 +42,34 @@ test("수집이 멈춰 확인 시각이 낡았으면, 푸시 시각이 최근처
   assert.equal(gradeFromOsv("1", [], repo({ checkedAt: ago(30), activityAt: ago(31) })).grade, "unknown");
 });
 
-test("상태가 active가 아니거나 못 찾음이 쌓였으면 통과가 아니다(중단·사라짐·쉬는 중·한 번 404)", () => {
-  for (const status of ["dormant", "deprecated", "gone"]) assert.equal(gradeFromOsv("1", [], repo({ status })).grade, "unknown", status);
+test("주의 조건(SPEC-1 ②③④): 중단·사라짐·1년 넘게 쉼·라이선스 없음이면 취약점이 없어도 통과가 아니라 주의, 이유에 까닭이 보인다", () => {
+  const cases: [Partial<RepoCheck>, RegExp][] = [
+    [{ status: "deprecated" }, /중단/],
+    [{ status: "gone" }, /사라졌/],
+    [{ status: "dormant" }, /1년 넘게/],
+    [{ license: "none" }, /라이선스가 없/],
+  ];
+  for (const [over, why] of cases) {
+    const r = gradeFromOsv("1", [], repo(over));
+    assert.deepEqual([r.grade, why.test(r.reason)], ["caution", true], JSON.stringify(over));
+  }
+  // 라이선스를 알아보지 못한 other·알려진 이름·읽은 적 없음(null)은 라이선스 없음이 아니다
+  for (const license of ["other", "MIT", null]) assert.equal(gradeFromOsv("1", [], repo({ license })).grade, license === null ? "pass" : "pass", String(license));
+});
+
+test("취약점이 있으면 그것이 먼저다: 저장소가 중단돼도 위험은 위험", () => {
+  assert.equal(gradeFromOsv("1", [vuln("HIGH")], repo({ status: "deprecated" })).grade, "danger");
+});
+
+test("못 찾음이 쌓였으면 통과가 아니다(한 번 404), 주의도 아니다: 사라짐으로 확정되기 전까지는 찾지 못함", () => {
   assert.equal(gradeFromOsv("1", [], repo({ missedCount: 1 })).grade, "unknown");
 });
 
-test("미래 날짜(시계 어긋남)는 신선하지 않다: 확인 시각도 푸시 시각도 지금보다 뒤면 통과가 아니다", () => {
+test("미래 날짜는 신선하지 않다: 하루 뒤면 통과가 아니고, 몇 분 시계 어긋남은 봐준다", () => {
   assert.equal(gradeFromOsv("1", [], repo({ checkedAt: ago(-1) })).grade, "unknown");
   assert.equal(gradeFromOsv("1", [], repo({ activityAt: ago(-1) })).grade, "unknown");
   assert.equal(gradeFromOsv("1", [], repo({ checkedAt: ago(0) })).grade, "pass"); // 지금과 같은 시각은 통과
+  assert.equal(gradeFromOsv("1", [], repo({ activityAt: ago(-1 / 24 / 60) })).grade, "pass"); // 1분 뒤: GitHub·서버 시계 어긋남
 });
 
 test("저장소를 읽은 적이 없거나(null) 날짜가 깨졌으면 통과가 아니다", () => {

@@ -74,10 +74,10 @@ async function replayOnce(i: Pick<OsvRead, "package" | "ecosystem" | "version">,
 const targetOf = (i: OsvRead, prev: Prev): OsvTarget => ({
   techId: i.techKey, techKey: i.techKey, version: i.version, ecosystem: i.ecosystem, name: i.package,
   prevGrade: prev.grade, prevEvidence: null, prevEvidenceIds: prev.evidenceIds, lastNonDangerAt: prev.lastNonDangerAt, checkedAt: "",
-  repo: { status: "active", activityAt: null, checkedAt: null, missedCount: 0, repoName: null },
+  repo: { status: "active", activityAt: null, checkedAt: null, missedCount: 0, repoName: null, license: null },
 });
 
-/** ② 수집기 gradeOf와 같다: 등급으로 읽다 터지면 그 기술의 해석 실패 */
+/** ② 수집기 gradeOf와 같다(단, 저장소 확인 없이 변경 감지만 본다): 등급으로 읽다 터지면 그 기술의 해석 실패 */
 function gradeOf(version: string | null, vulns: OsvVuln[]): GradeResult {
   try {
     return gradeFromOsv(version, vulns);

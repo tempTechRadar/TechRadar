@@ -126,21 +126,28 @@ test("OSV가 실패하면 그 기술만 수집 오류: 등급은 그대로, 변�
 
 test("다시 읽을 때도 저장소 확인이 신선하면 통과를 매긴다: 정기 확인이 매긴 통과가 '찾지 못함'으로 되돌아가지 않는다(SPEC-1)", async (t) => {
   stubWeb(t, { files: { "package.json": PKG } });
-  const fresh = { status: "active", last_activity_at: new Date().toISOString(), last_checked_ok_at: new Date().toISOString(), missed_count: 0, signals: { github_found_repo: "acme/tool" } };
+  const fresh = { status: "active", last_activity_at: new Date().toISOString(), last_checked_ok_at: new Date().toISOString(), missed_count: 0, license: "MIT", signals: { github_found_repo: "acme/tool" } };
   const { db, calls } = fakeDb(false, { repoCols: fresh });
   await registerAndRead(USER, REPO, { db });
   const grades = updates(calls).filter((p) => "grade" in p).map((p) => p.grade);
   assert.ok(grades.length > 0 && grades.every((g) => g === "pass"), String(grades));
 });
 
-test("저장소 확인 값을 못 읽어도 처음 읽기는 멈추지 않는다: 찾지 못함으로 매기고 이유를 grade 단계 기록에 남긴다(통과로 단정하지 않음, 불변 2)", async (t) => {
+test("저장소 확인 값을 못 읽어도 처음 읽기는 멈추지 않는다: 통과인지 모르는 '찾지 못함'은 있던 등급을 덮지 않고(불변 4) 이유를 grade 단계 기록에 남긴다", async (t) => {
   stubWeb(t, { files: { "package.json": PKG } });
   const { db, calls } = fakeDb(false, { repoColsError: true });
   const r = await registerAndRead(USER, REPO, { db });
   assert.notEqual(r.status, "failed");
-  const grades = updates(calls).filter((p) => "grade" in p).map((p) => p.grade);
-  assert.ok(grades.length > 0 && grades.every((g) => g === "unknown"), String(grades));
+  assert.equal(updates(calls).filter((p) => "grade" in p).length, 0, "등급 칸을 쓰지 않는다(예전 통과가 사라지지 않음)");
   assert.match(String(steps(calls).find((s) => s.step_name === "grade")?.error_message), /저장소 확인 값을 읽지 못해/);
+});
+
+test("저장소 확인 값을 못 읽어도 위험은 확인 값과 무관해 그대로 저장한다(OSV 위험 결과를 잃지 않음)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, osv: () => ok(G1_OSV) });
+  const { db, calls } = fakeDb(false, { repoColsError: true });
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual([r.danger, r.changesCreated], [1, 1]);
+  assert.ok(updates(calls).some((p) => p.grade === "danger"));
 });
 
 test("저장소 확인 값이 없으면(읽은 적 없는 기술) 취약점이 없어도 찾지 못함: 통과는 처음 읽기에서도 확인이 있어야 한다", async (t) => {

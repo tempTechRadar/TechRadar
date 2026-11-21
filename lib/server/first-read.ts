@@ -246,20 +246,22 @@ function includedPaths(paths: string[]): string {
   return paths.length > 3 ? `${shown} 외 ${paths.length - 3}개` : shown;
 }
 
+/** 통과 판단에 쓰는 저장소 확인 값. 못 읽어도 처음 읽기는 멈추지 않는다(OSV 위험 결과를 저장해야 함): 이유만 돌려주고 단계 기록에 남긴다. */
+async function readFactsSafely(db: SupabaseClient, techIds: string[]): Promise<{ facts: Map<string, RepoFacts>; error?: string }> {
+  try {
+    return { facts: await readRepoFacts(db, techIds) };
+  } catch (e) {
+    return { facts: new Map(), error: `저장소 확인 값을 읽지 못해 통과 여부를 정하지 못했어요(찾지 못함이면 있던 등급을 그대로 둠): ${messageOf(e)}` };
+  }
+}
+
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
 async function gradeAll(db: SupabaseClient, runId: string, projectId: string, found: FoundTech[], techIds: Map<string, string>) {
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
   const osvFailures: { kind: ErrorKind; message: string; httpStatus?: number }[] = [];
   const osvTargets = found.filter((f) => f.tech?.key.startsWith("npm:") || f.tech?.key.startsWith("pypi:"));
-  // 다시 읽을 때 정기 확인이 매긴 "통과"가 "찾지 못함"으로 되돌아가지 않게 같은 저장소 확인 값을 쓴다.
-  // 이 값을 못 읽어도 처음 읽기 전체(OSV 위험 결과 저장)를 멈추지 않는다: 값 없이 "찾지 못함"으로 매기고 이유를 단계 기록에 남긴다(통과로 단정하지 않음, 불변 2)
-  let repoFacts = new Map<string, RepoFacts>();
-  let repoFactsError: string | undefined;
-  try {
-    repoFacts = await readRepoFacts(db, osvTargets.map((f) => techIds.get(f.tech!.key)!));
-  } catch (e) {
-    repoFactsError = `저장소 확인 값을 읽지 못해 이번에는 통과를 매기지 못했어요(찾지 못함으로 둠): ${messageOf(e)}`;
-  }
+  // 다시 읽을 때 정기 확인이 매긴 "통과"가 "찾지 못함"으로 되돌아가지 않게 같은 저장소 확인 값을 쓴다
+  const { facts: repoFacts, error: repoFactsError } = await readFactsSafely(db, osvTargets.map((f) => techIds.get(f.tech!.key)!));
   for (const [i, f] of osvTargets.entries()) {
     if (i > 0) await sleep(1000); // SPEC-8 요청 사이 1초
     const techId = techIds.get(f.tech!.key)!;
@@ -268,6 +270,8 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
     try {
       const facts = repoFacts.get(techId);
       const result = gradeFromOsv(f.tech!.version, await queryOsv(name, eco, f.tech!.version), facts && { ...facts, nowMs: Date.now() });
+      // 확인 값을 못 읽었는데 "찾지 못함"이면 통과였을 수도 있다: 있던 등급을 덮지 않는다(불변 4). 위험·주의는 확인 값과 무관해 그대로 저장한다
+      if (repoFactsError && result.grade === "unknown") continue;
       await applyGrade(db, runId, target, result);
       graded.push({ f, techId, result });
     } catch (e) {

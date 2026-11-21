@@ -1,10 +1,10 @@
 {
   "readAt": "2026-11-21T08:26:00Z",
-  "note": "G5 네 패키지의 저장소를 GitHub API(gh api repos/<저장소>)로 읽은 값: pushed_at·archived (2026-11-21 잰 것). 통과 채점은 지금을 readAt으로 고정해 날짜가 지나도 같은 결과가 나온다. mcp-remote는 geelen/mcp-remote로 물었더니 API가 punkpeye/mcp-remote로 알려 줬다(이전).",
+  "note": "G5 네 패키지의 저장소를 GitHub API(gh api repos/<저장소>)로 읽은 값: pushed_at·archived·license (2026-11-21 잰 것, license는 앱의 규칙대로 NOASSERTION→other). 통과 채점은 지금을 readAt으로 고정해 날짜가 지나도 같은 결과가 나온다. mcp-remote는 geelen/mcp-remote로 물었더니 API가 punkpeye/mcp-remote로 알려 줬다(이전).",
   "repos": [
-    { "package": "@modelcontextprotocol/inspector", "repo": "modelcontextprotocol/inspector", "pushedAt": "2026-11-18T21:28:06Z", "archived": false },
-    { "package": "@modelcontextprotocol/server-filesystem", "repo": "modelcontextprotocol/servers", "pushedAt": "2026-11-19T16:41:29Z", "archived": false },
-    { "package": "mcp-remote", "repo": "geelen/mcp-remote", "pushedAt": "2026-11-19T00:16:29Z", "archived": false },
-    { "package": "mcp", "repo": "modelcontextprotocol/python-sdk", "pushedAt": "2026-11-17T09:38:48Z", "archived": false }
+    { "package": "@modelcontextprotocol/inspector", "repo": "modelcontextprotocol/inspector", "license": "other", "pushedAt": "2026-11-18T21:28:06Z", "archived": false },
+    { "package": "@modelcontextprotocol/server-filesystem", "repo": "modelcontextprotocol/servers", "license": "other", "pushedAt": "2026-11-19T16:41:29Z", "archived": false },
+    { "package": "mcp-remote", "repo": "geelen/mcp-remote", "license": "MIT", "pushedAt": "2026-11-19T00:16:29Z", "archived": false },
+    { "package": "mcp", "repo": "modelcontextprotocol/python-sdk", "license": "MIT", "pushedAt": "2026-11-17T09:38:48Z", "archived": false }
   ]
 }
