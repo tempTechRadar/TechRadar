@@ -32,7 +32,7 @@ const toMine = (r: Row): MyTechRow => ({
   id: r.id, techId: r.tech_id, manualName: r.manual_name, projectId: r.project_id, projectName: r.projects?.name ?? "", sourceFile: r.source_file ?? null,
   grade: r.grade as Grade, gradeReason: r.grade_reason, collectErrorKind: r.collect_error_kind, lastCheckedOkAt: r.last_checked_ok_at,
 });
-const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / ID_CHUNK) }, (_, i) => ids.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK));
+export const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / ID_CHUNK) }, (_, i) => ids.slice(i * ID_CHUNK, (i + 1) * ID_CHUNK));
 
 /**
  * 공개 목록에서 온 기술만(ADR 0029 4·5항): 사라진 기술 · 누군가의 저장소에서만 생긴 줄을 빼고, 시뮬레이터 기술은 시연 계정에만.
@@ -46,7 +46,7 @@ export const isListed = (r: { status?: unknown; one_liner_source?: unknown; is_s
   r.status !== "gone" && r.one_liner_source != null && (isDemo || r.is_simulated !== true);
 export const publicTechs = (db: SupabaseClient, columns: string) => listedTechs(db, columns);
 
-async function readCategories(db: SupabaseClient): Promise<Category[]> {
+export async function readCategories(db: SupabaseClient): Promise<Category[]> {
   return rowsOrThrow(await db.from("categories").select("id, name, parent_id"), "갈래를 읽지 못함").map((r) => ({ id: r.id, name: r.name, parentId: r.parent_id }));
 }
 

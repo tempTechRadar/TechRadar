@@ -3,7 +3,6 @@
 .map-top { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0; }
 .map-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
 .map-chip strong { font-size: var(--fs-h2); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .map-stage { position: relative; height: max(520px, calc(100dvh - 210px)); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--surface); }
 .map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; }

@@ -76,7 +76,7 @@ export function hostOfSource(sourceFile: string | null | undefined): string | nu
   return null;
 }
 
-function categoryNames(categoryId: string | null, cats: Map<string, Category>): { field: string; sub: string } {
+export function categoryNames(categoryId: string | null, cats: Map<string, Category>): { field: string; sub: string } {
   const c = categoryId ? cats.get(categoryId) : undefined;
   if (!c) return { field: UNSORTED, sub: UNSORTED };
   if (!c.parentId) return { field: c.name, sub: UNSORTED }; // 큰 갈래만 정해진 기술

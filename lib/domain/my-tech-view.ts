@@ -36,7 +36,8 @@ export const TECH_ERROR_TEXT: Record<string, string> = {
 export const ownText = (map: Record<string, string>, key?: string): string | undefined => (key && Object.hasOwn(map, key) ? map[key] : undefined);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const isUuid = (v: string) => UUID.test(v);
+/** uuid 모양인지(주소 값 · 화면에서 온 값 검사 공용) */
+export const isUuid = (v: unknown): v is string => typeof v === "string" && UUID.test(v);
 
 export type TechFilter = { grade?: string; showHidden?: boolean };
 

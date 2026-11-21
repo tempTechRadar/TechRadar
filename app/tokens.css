@@ -25,6 +25,8 @@
 @media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
 
 body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background: var(--surface); }
+/* 화면 읽기 프로그램만 읽는 글(모든 화면 공용: 지도 css에만 있어 다른 화면에서 글이 그대로 보이던 것) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: var(--focus); outline-offset: 2px; }
 /* 칩(알림 거르기 · 지도 요약 · 범례 · 경로): 눌림은 aria-pressed / aria-current로 표시 */
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
