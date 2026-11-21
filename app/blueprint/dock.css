@@ -1,7 +1,8 @@
 /* 청사진 스튜디오 하단 패널(P-12e 조각 K). 값은 공용 토큰(app/tokens.css). 누르는 칸은 --hit-sm 이상, 상태는 색만이 아니라 글자로 */
 .dock { position: relative; display: grid; grid-template-rows: auto auto 1fr; min-height: 0; background: var(--surface); border-top: 1px solid var(--line); }
-.dock-resize { height: 10px; margin-top: -5px; cursor: ns-resize; touch-action: none; }
-.dock-resize::before { content: ""; display: block; width: 44px; height: 4px; margin: 3px auto 0; border-radius: var(--r-pill); background: var(--muted); } /* --faint는 흰 바탕에서 2.1:1이라 손잡이로 안 보임 */
+/* 끌기 칸은 24px(WCAG 2.5.8 누르는 칸), 보이는 손잡이는 가운데 4px 막대 그대로. 위(캔버스 쪽)로만 12px 겹친다 — 아래 탭 단추를 덮지 않게 */
+.dock-resize { position: relative; z-index: 1; height: 24px; margin-top: -12px; cursor: ns-resize; touch-action: none; }
+.dock-resize::before { content: ""; display: block; width: 44px; height: 4px; margin: 10px auto 0; border-radius: var(--r-pill); background: var(--muted); } /* --faint는 흰 바탕에서 2.1:1이라 손잡이로 안 보임 */
 .dock-resize:hover::before, .dock-resize:focus-visible::before { background: var(--ink); }
 .dock-resize:focus-visible { outline: var(--focus); outline-offset: -2px; }
 .dock-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px; padding: 4px 12px; border-bottom: 1px solid var(--line); }
