@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 20. 12시 48분 0초",
+  "when": "2026. 11. 21. 10시 28분 53초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -444,6 +444,61 @@
         "note": ""
       },
       {
+        "id": "E-opp-stars-below",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수가 알려져 있고 99(하한 100 미만)",
+        "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+        "expectedOutcome": "알림 0",
+        "expectedEvent": false,
+        "actualOutcome": "알림 0",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-stars-at-min",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수가 알려져 있고 정확히 100(하한)",
+        "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u1)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-stars-unknown",
+        "kind": "적용 기회",
+        "target": "새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2)",
+        "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u1)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u1)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-flagged",
+        "kind": "적용 기회",
+        "target": "별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보",
+        "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+        "expectedOutcome": "알림 0",
+        "expectedEvent": false,
+        "actualOutcome": "알림 0",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
+        "id": "E-opp-sim-low-stars",
+        "kind": "적용 기회",
+        "target": "시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만)",
+        "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+        "expectedOutcome": "알림 1(u-demo)",
+        "expectedEvent": true,
+        "actualOutcome": "알림 1(u-demo)",
+        "verdict": "맞음",
+        "note": ""
+      },
+      {
         "id": "E-twice-danger",
         "kind": "두 번 입력",
         "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",
@@ -566,9 +621,9 @@
       }
     ],
     "totals": {
-      "cases": 38,
-      "hit": 15,
-      "quietOk": 23,
+      "cases": 43,
+      "hit": 18,
+      "quietOk": 25,
       "miss": 0,
       "falseAlarm": 0,
       "outcomeWrong": 0,
@@ -583,8 +638,8 @@
         "outcomeWrong": 0
       },
       "적용 기회": {
-        "cases": 8,
-        "right": 8,
+        "cases": 13,
+        "right": 13,
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
@@ -620,9 +675,9 @@
     }
   },
   "overall": {
-    "cases": 50,
-    "hit": 21,
-    "quietOk": 29,
+    "cases": 55,
+    "hit": 24,
+    "quietOk": 31,
     "miss": 0,
     "falseAlarm": 0,
     "outcomeWrong": 0,

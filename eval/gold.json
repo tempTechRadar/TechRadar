@@ -1176,6 +1176,243 @@
       }
     },
     {
+      "id": "E-opp-stars-below",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수가 알려져 있고 99(하한 100 미만)",
+      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 99
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-stars-at-min",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수가 알려져 있고 정확히 100(하한)",
+      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 100
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-stars-unknown",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2)",
+      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": null
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-flagged",
+      "kind": "적용 기회",
+      "target": "별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보",
+      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 5000,
+          "flagged": true
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-sim-low-stars",
+      "kind": "적용 기회",
+      "target": "시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만)",
+      "source": "SPEC-3.2 조건 4 · ADR 0030 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": true
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 3,
+          "flagged": true
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          },
+          {
+            "userId": "u-demo",
+            "myTechnologyId": "m-demo",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": true,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u-demo)",
+        "event": true
+      }
+    },
+    {
       "id": "E-twice-danger",
       "kind": "두 번 입력",
       "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",

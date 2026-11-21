@@ -32,6 +32,25 @@
 | 열린 질문 | 모르는 저장소의 종류를 제목이 아니라 **저장소 이름만**으로 정함(ADR 0030 "이름에 맞을 때만"을 따름, 맡긴 쪽 설명은 이름·제목). 새 줄 키를 소문자 `github:<소유자>/<저장소>`로 정함 — P-21a와 맞춰야 함. 카탈로그 읽기 조건(`or`)의 PostgREST 문법은 운영에서 확인하지 못함 |
 
 **결과:** 시험 20개 더함(전체 1270 → 1290 통과, 실패 0), 타입검사 오류 0. 코드 검토(code-review, 10건) 중 8건 반영: 한 기술이 저장소·패키지 키로 둘 다 걸리면 실행마다 두 글이 번갈아 쓰이던 것(불변 3) → 점수 높은 글 하나만, 글이 모두 칸이 빠진 응답을 "0개"로 보던 것(불변 2) → 수집 오류, 다른 글의 점수를 이어 비교하던 것 → 새 글로, 한 쪽 100개 → 1000개, 같은 키의 가짜 줄과 겹치면 셈, 글이 없으면 카탈로그를 안 읽음, 키 만드는 곳 하나로, 인자 줄이기. 남긴 것: 7일 밖으로 나간 글의 `signals.hn`을 지우지 않음(점수에 쓰기 전에 정할 것, `seen_at`으로 판단 가능), 신호 쓰기의 잠금 없음(downloads-store와 같은 shortcut). 드라이런(11-21 10:31 KST): 키워드별 글 22·0·12·3, 중복 뺀 34개 중 제목에 키워드 낱말이 없는 28개·저장소/패키지가 아닌 4개를 버리고 저장소 2개(패키지 0). 둘 다 카탈로그에 없음 → `turbo-browser-mcp` 1개만 얇게 만들 후보, `tokendoctor`는 이름이 안 맞아 안 만듦. Algolia 검색이 느슨해("mcp"가 CPU·McKye에도 걸림) 제목 낱말 검사가 잡음을 거르는 것을 확인
+## I-P-21c-opportunity-stars · 2026-11-21 · 적용 기회 알림 조건 4(새 기술의 별 수 하한 100) 구현 (P-21c, 영역 A, 김영식)
+- 브랜치: `feat/P-21c-opportunity-stars`(`758eb18` = `docs/P-21-criteria` 위, 푸시 안 함). 요청은 다른 세션(`add-star-candidate-scoring`)이 사용자 승인 작업이라며 보냈고, ADR 0030 "채택(사용자가 계획을 승인)"과 plan P-21c(담당 김영식 A)가 같은 내용이라 진행했다
+- 출처: SPEC-3.2 조건 4, ADR 0030 "정한 것" 3번, ADR 0014 개정(11-21), plan P-21c, 불변 2
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 적용 기회 알림(`decideOpportunityAlerts`)은 새 기술의 별 수를 보지 않는다. 곧 별 후보(P-21a)가 들어오면 별이 적거나 의심 표시가 붙은 기술도 "새 기술"이 될 수 있다. ADR 0014가 이 조건을 미룬 이유는 시뮬레이터의 가짜 기술에 별 정보가 없어서였다 |
+| 기대 결과 | 별 수가 알려져 있고 100 미만이거나 의심 표시(`candidate_flags`)가 있으면 알림 0건. 별 수를 모르면(null) 제외하지 않는다(불변 2). 시뮬레이터 변경(`is_simulated`)에는 둘 다 안 건다 |
+| 영향 범위 | `lib/alerts/decide-opportunity-alerts.ts`(`ALERT_MIN_STARS = 100`, 입력 `newTech.stars`·`flagged`, 맨 앞 가드), `lib/domain/star-signals.ts`(새: 별 수·의심 표시 읽기), `lib/server/opportunity-alerts.ts`(새 기술 줄의 `signals`에서 읽어 넘김), `lib/eval/edge.ts`(입력 타입·기본값), `eval/gold.json`(정답 사례 5개), 시험 4파일. 알림 문구·화면·DB·마이그레이션 변경 없음 |
+| 제약 | 새 라이브러리 없음. `lib/schedule/collectors.ts`·`flow/flow.json`·`app/dev/flow-sample/page.tsx`·`docs/flow.md`는 안 고침. 푸시·PR·배포·운영 DB 쓰기 없음 |
+| 열린 질문 | ① 100은 팀 추정(ADR 0030: 첫 수집 뒤 분포를 보고 고침). ② `candidate_flags`가 배열이 아니면(깨진 값) "의심 없음"으로 읽는다 — 문서에 없는 해석이라 add-star-candidate-scoring 확인 필요. ③ 의심 표시는 별 수를 몰라도 막는다(SPEC-3.2 조건 4의 마지막 문장을 그대로). ④ `stars`·`candidate_flags`를 쓰는 별 후보 수집(P-21a)은 아직 코드가 없어, 지금 운영에서는 `signals.stars`가 GitHub 수집기(`github-store.ts`)가 쓴 값뿐이다 |
+
+**문서와 다르게 한 점:** ① 요청의 "새 기술 줄을 읽는 select에 signals를 더하고"는 `COMPARABLE_COLUMNS`에 `signals`가 이미 있어 select를 안 바꿨다(시험이 칸이 빠지면 실패하게 고정). ② "기존 asSignals 재사용"은 `github-store.ts`·`downloads-store.ts`의 `asSignals`가 내보내지 않는 비공개 함수이고 이미 복사본이 둘이라, 세 번째 복사를 피하려 `lib/domain/star-signals.ts`에 별 수·의심 표시를 읽는 두 함수를 두었다(두 store의 복사본은 안 건드림). ③ `lib/eval/edge.ts` 입력 타입에서 `stars`·`flagged`는 선택 항목이다(기존 정답 사례 38개를 안 고치고 모름·의심 없음으로 읽음).
+
+**조사(코드는 안 고침):** `createOpportunityAlerts`를 부르는 길은 `createAlertsForChange`(`lib/server/alerts.ts`, `kind: "opportunity"`) 하나이고, 그 호출자는 둘이다. ① `notifyRelationConfirmed`(`relation-opportunity.ts`): 관리자가 `/admin/classify`에서 같은 역할을 확정한 직후(`app/admin/classify/actions.ts`), 짝의 양쪽을 각각 "새 기술"로 보고 `same_role_new` 변경을 저장해 알림을 요청한다. ② `runOpportunitySimulator`(`simulator-opportunity.ts`): 시뮬레이터 두 번째 시나리오(가짜, `is_simulated`). 레지스트리·OSV·GitHub·다운로드 수집기는 `same_role_new` 변경도 적용 기회 알림도 만들지 않는다(OSV 수집기는 보안 알림만). `tech_relations`를 `confirmed`로 만드는 코드는 관리자 확정(`classify-edit.ts` `confirmRelation`)과 시뮬레이터의 시드뿐이다(SQL 시드 마이그레이션은 알림을 부르지 않음). **결론:** P-21a·P-21b가 새로 만든 `technologies` 줄은 들어오는 것만으로는 알림을 만들 수 없다. 관리자가 그 기술을 누군가의 "내 기술"과 같은 역할로 확정할 때만 시작되고, 막는 조건은 확정(조건 1)·등록 뒤(2)·위험 아님(3)·이번 별 하한과 의심 표시(4)다. 확정까지 간 별 후보는 별 1,000 이상 풀이라 하한 100은 통과하고 의심 표시가 붙은 것만 막힌다.
+
+**결과:** `npm test` **1271 → 1282**개(통과 1270 → 1281, 실패 0, todo 1 그대로, 새 시험 11개: 별 수·의심 표시 읽기 2, 규칙 5, 서버 연결 4), `npm run typecheck` 통과, `npm run eval` 경계 사례 **38 → 43**(새 5개: 99·100·모름·의심 표시·시뮬레이터 낮은 별) 놓침 0·잘못 울림 0·결과 다름 0·실행 실패 0, 기존 사례 38개 그대로 맞음. 일부러 틀리게 한 12곳(하한 비교·숫자·모르면 막기·시뮬레이터 적용·의심 표시 무시·서버가 값을 안 넘김 둘·문자열/음수/0 별 수·빈 배열 의심)을 시험이 모두 잡음. 로컬 커밋 2개(코드·시험 feat, 기록 docs).
+
+---
 
 ## I-P-21-criteria · 2026-11-21 · 수집 기준 개선 문서 먼저 — 별 후보·Hacker News·알림 조건 4 (영역 A, 김영식)
 - 브랜치: `docs/P-21-criteria`(문서 초안) → 구현과 함께 합칠 때 `feat/P-21-popularity-v1`(P-21a 별 후보 · P-21b HN · P-21c 알림 조건 4는 각자 worktree)
