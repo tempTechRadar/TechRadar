@@ -6,13 +6,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { removeStage, removeTech, renameStage, type Graph } from "@/lib/blueprint/graph";
-import { nameProblem, neighbors, outside } from "@/lib/blueprint/panel-view";
+import { nameProblem, neighbors } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { SideNotes } from "../tech-map/side-notes";
 import { TagEditor } from "../tech-map/tag-editor";
 import type { PanelProps } from "./studio-types";
-import { TechChip } from "./tech-chip";
+import { StageChips } from "./stage-chips";
 import "../tech-map/side-panel.css";
 import "./inspector.css";
 
@@ -21,6 +21,8 @@ const SEC_TEXT: Record<PoolTech["grade"], string> = {
   danger: "✕ 보안 위험: 알려진 취약점이 있어요.", caution: "! 보안 주의: 확인할 점이 있어요.",
   pass: "✓ 알려진 취약점이 없어요.", unknown: "? 보안 정보를 찾지 못했어요(위험하지 않다는 뜻이 아니에요).",
 };
+/** 지운 · 뺀 · 고르는 중인 단추가 사라지거나 막혀도 초점이 문서 맨 위로 떨어지지 않게 패널로 */
+const focusPanel = () => document.querySelector<HTMLElement>(".insp")?.focus();
 const Card = ({ title, children }: { title: ReactNode; children: ReactNode }) => <section className="side-card"><h3>{title}</h3>{children}</section>;
 
 export function Inspector(p: PanelProps) {
@@ -57,11 +59,9 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
       <Card title={`붙은 기술 ${s.techs.length}`}>
-        {s.techs.length ? <ul className="insp-chips">{s.techs.map((t) => (
-          <li key={t.id}><TechChip tech={t} info={pool.find((x) => x.id === t.id)} onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })}
-            onCandidate={outside(pool, t.id) ? () => onCandidate(t.id, t.name) : undefined} busy={marking === t.id}
-            onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); document.querySelector<HTMLElement>(".insp")?.focus(); }} /></li>
-        ))}</ul> : <p className="muted">아직 없어요. 하단 패널 기술 탭에서 넣어요.</p>}
+        {s.techs.length ? <StageChips className="insp-chips" techs={s.techs} pool={pool} marking={marking} pickedTech={null}
+          onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); focusPanel(); }}
+          onCandidate={(t) => { onCandidate(t.id, t.name); focusPanel(); }} /> : <p className="muted">아직 없어요. 하단 패널 기술 탭에서 넣어요.</p>}
       </Card>
       <p className="insp-row insp-actions">
         <button type="button" className="btn insp-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
