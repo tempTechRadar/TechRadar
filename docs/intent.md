@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12e-graph · 2026-11-21 · 청사진 스튜디오 조각 A · H · I: 그래프 함수 · 점검 사실 · AI 점검 서버 (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12e-graph`(origin/feat/P-12d-alerts-history 21dbfdb에서) → FrontLead의 통합 브랜치 `feat/P-12e-blueprint-studio`로 merge
+- 출처: P-12e 계획(Maestro 전달, 사용자 승인) A · H · I, ADR 0035(DocsChecker), 불변 1 · 2 · 3 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 청사진이 열 · 행 격자(`Stage[][]`)라 자유 캔버스 · 연결선 순서 · 템플릿 · 확정 뒤 AI 점검을 만들 수 없다 |
+| 기대 결과 | A: `lib/blueprint/graph.ts`(저장 모양 v2, 순서 = 연결선, 순수 함수) · H: `check-facts.ts`(코드가 판단하는 점검 사실, 출처 포함) · I: M4 마이그레이션 + 점검 프롬프트 · 서버 · 서버 액션 · 탭 내용 |
+| 영향 범위 | `lib/blueprint/{graph,check-facts}.ts`, `lib/ai/{build-check-prompt,decide-ai-call}.ts`, `lib/server/blueprint-check.ts`, `app/blueprint/check-{actions.ts,panel.tsx,panel.css}`, `supabase/migrations/202611221300_P-12e_blueprint_checks.sql` + `supabase/tests/blueprint_checks_p12e.sql` |
+| 제약 | graph.ts는 xyflow를 모른다. M4 운영 적용은 사용자 승인 뒤(이번에는 "롤백 시험만"). 푸시는 FrontLead가 월 14:00 · 18:00에 모은다. 컷 라인 3번이면 AI 호출을 빼고 check-facts만 보여 준다 |
+| 열린 질문 | 점검 답의 steps · risks를 "제안 · 주의할 점"으로 재사용한 모양이 화면에서 읽기 좋은지, 오래됨 기준 365일(팀 추정), 서비스 전체 200번은 호출 뒤 기록하는 거친 예산이라 동시 요청에 약간 넘을 수 있음 |
+
+**결과:** 됨(로컬 커밋 10개, 미푸시). 시험 1,407(통과 1,406 · 실패 0 · todo 1, 기존 1,356 + 51), 타입 검사 통과. M4는 운영에서 **롤백 시험만** 돌려 기대값 17개가 모두 맞았고 흔적 0을 읽어서 확인했다(적용 안 함). 정한 것: 단계 id는 ASCII 1~64자(DB 정렬과 같게, DevAssi2 제안) · 한도(깊이 12 · 같은 깊이 4)는 확정 조건이라 편집 중에는 개수 · 고리만 막음 · 읽지 못한 것(정보 없음 · 등급 못 찾음 · 수집 오류 · 활동 날짜 모름)은 "확인하지 못했어요" · 같은 확정본을 같은 재료로 다시 누르면 이전 결과를 재사용(한도 안 씀) · 보안 검토 지적(다른 청사진으로 동시에 눌러 한도 통과)은 "넣은 뒤 다시 세기"로 막음. **확인하지 못한 것:** 화면(브라우저), `next build`, 점검 서버를 실제 Claude로 한 번도 안 돌림(시험은 가짜 클라이언트), 적용 뒤 RLS 재확인
+
 ## I-P-12d-screen-revamp · 2026-11-21 · 화면 개편: 지도 | 보드 | 일지 · 내 태그 UI · 사이드 패널 정리 · 보기 단추 고정 · 발견 날짜 (김영식)
 - 브랜치: `feat/P-12d-map-demo` → #202(`feat/P-12d-alerts-history`). 메뉴 · 일지 · 보드는 개발보조1 `feat/P-12d-board-journal`, 내 태그 DB · 서버는 개발보조2 `feat/P-12d-my-tech-tags`를 합침
 - 출처: 사용자 결정(11-21 밤, Maestro 전달) A~G, 컨셉 "지도에서 고르고, 청사진으로 옮긴다". PRD-F23 · IA-10 · 안내서 공통 필수(대시보드 · 내 프로젝트 · 기록과 찾기), 불변 1 · 4 · 5
