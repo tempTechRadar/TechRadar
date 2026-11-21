@@ -40,7 +40,7 @@ export class RepoNotPublicError extends CollectError {
 const connectionFailure = (url: string, e: unknown) =>
   new CollectError(e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network", `${url}: ${e instanceof Error ? e.message : String(e)}`);
 
-/** 바깥 호출 하나. 404는 null(없음). 그 밖의 실패는 CollectError로 던진다. maxText는 큰 응답(저장소 파일 목록)만 늘린다 */
+/** 바깥 호출 하나. 404는 null(없음). 그 밖의 실패는 CollectError로 던진다. maxText는 큰 응답(저장소 파일 목록·OSV 조회)만 늘린다 */
 export async function fetchText(url: string, init?: RequestInit, maxText = MAX_TEXT): Promise<string | null> {
   let res: Response;
   try {
@@ -72,6 +72,8 @@ export const rawFileUrl = (repo: { owner: string; repo: string }, path: string) 
   `https://raw.githubusercontent.com/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/HEAD/${path.split("/").map(encodeURIComponent).join("/")}`;
 
 const OSV_PAGE_GAP_MS = 1000;
+// 옛 버전·버전 없는 조회는 취약점 전문이 한 쪽에 다 와서 크다(litellm 버전 없이 약 70만 자). 기본 한도로는 취약점이 많을수록 매번 수집 오류가 된다
+const OSV_MAX_TEXT = 8_000_000;
 const OSV_MAX_PAGES = 10; // 취약점이 아주 많은 패키지도 이 안에 끝난다. 넘으면 다 읽지 못한 것이라 수집 오류
 
 /** OSV 한 쪽을 읽는다: 취약점 목록과 다음 쪽 표시(없거나 빈 문자열이면 마지막 쪽). 모양이 다르면 parse 오류. */
@@ -104,7 +106,7 @@ export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version:
   for (let page = 0; page < OSV_MAX_PAGES; page++) {
     if (page > 0 && pageGapMs > 0) await new Promise((r) => setTimeout(r, pageGapMs)); // 같은 출처 요청 간격 1초 이상(SPEC-8)
     const body = JSON.stringify({ package: { name, ecosystem }, ...(version ? { version } : {}), ...(pageToken ? { page_token: pageToken } : {}) });
-    const text = await fetchText(OSV_QUERY_URL, { method: "POST", body, headers: { "content-type": "application/json" } });
+    const text = await fetchText(OSV_QUERY_URL, { method: "POST", body, headers: { "content-type": "application/json" } }, OSV_MAX_TEXT);
     // OSV는 취약점이 없어도 200({})으로 답한다. 404(null)는 주소·서버 문제라 "없음"이 아니라 수집 오류(불변 2).
     if (text === null) throw new CollectError("http_status", `${OSV_QUERY_URL}: 404`, 404);
     const { vulns, nextToken } = readOsvPage(text, name);
