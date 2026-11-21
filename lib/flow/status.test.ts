@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { colorize } from "./status.ts";
+import { colorize, pathFrom } from "./status.ts";
 import type { Flow, RunRow, StepRow } from "./types.ts";
 
 const flow = JSON.parse(readFileSync("flow/flow.json", "utf8")) as Flow;
@@ -50,4 +50,16 @@ test("실패한 실행의 시작 상자는 빨강, 판단 대기 뒤 조치가 �
   const done = colorize(flow, run("simulator"), [step("human_judgment", "succeeded"), step("action_record", "succeeded")]);
   assert.equal(done.states.human_judgment, "ok");
   assert.equal(done.states.action_record, "ok");
+});
+
+test("시작 상자를 고르면 그 시작에서 갈 수 있는 상자·화살표만 길이 된다(flow.json 연결 기준), 다른 시작의 길은 섞이지 않는다", () => {
+  const sim = pathFrom(flow, "start_simulator");
+  assert.ok(sim.nodes.has("start_simulator"));
+  assert.ok([...sim.edges].every((k) => sim.nodes.has(k.split(">")[0]) && sim.nodes.has(k.split(">")[1])), "길의 화살표 양끝은 길의 상자");
+  const starts = flow.nodes.filter((n) => n.type === "start" && n.id !== "start_simulator").map((n) => n.id);
+  assert.ok(starts.length > 0 && starts.every((id) => !sim.nodes.has(id)), "다른 시작 상자는 길에 없다");
+  const sched = pathFrom(flow, "start_schedule");
+  assert.ok(sched.edges.has("start_schedule>fetch_osv"));
+  assert.ok(!sched.nodes.has("fetch_repo"), "예약 길에 내 저장소 읽기는 없다");
+  assert.notDeepEqual([...sim.edges].sort(), [...sched.edges].sort());
 });

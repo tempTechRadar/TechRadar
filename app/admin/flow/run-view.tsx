@@ -69,7 +69,7 @@ export function RunView({ flow, runs, picked, steps, node, basePath }: Props) {
   return (
     <>
       <Legend />
-      <p style={{ fontSize: 14, color: "#5b564c" }}>상자를 누르면 설정과 이 실행의 기록(들어온 것·나간 것·호출·오류)이 아래에 나와요. 화살표 위 숫자는 넘어간 건수예요.</p>
+      <p style={{ fontSize: 14, color: "#5b564c" }}>상자를 누르면 설정과 이 실행의 기록(들어온 것·나간 것·호출·오류)이 아래에 나와요. 화살표 위 숫자는 넘어간 건수예요. 시작 상자(예약·지금 실행·시뮬레이터 등)를 누르면 그 시작에서 갈 수 있는 길이 파란 점선으로 보이고, 다시 누르면 풀려요.</p>
       <FlowDiagram flow={flow} colored={colored} edgeLabels={edgeLabels(flow, steps)}
         nodeHref={(id) => href(basePath, picked?.id, id)} selected={selectedNode?.id} />
       {selectedNode ? <DetailPanel detail={nodeDetail(selectedNode, steps)} /> : null}

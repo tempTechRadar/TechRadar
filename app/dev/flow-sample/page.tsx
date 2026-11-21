@@ -71,7 +71,7 @@ export default async function FlowSamplePage({ searchParams }: { searchParams: P
       </nav>
       <Legend />
       <FlowDiagram flow={flow} colored={colorize(flow, s.run, s.steps)} edgeLabels={edgeLabels(flow, s.steps)}
-        nodeHref={(id) => `/dev/flow-sample?scene=${i + 1}&node=${id}`} selected={picked?.id} />
+        nodeHref={(id) => `/dev/flow-sample?scene=${i + 1}&node=${id ?? ""}`} selected={picked?.id} />
       {picked ? <DetailPanel detail={nodeDetail(picked, s.steps)} /> : null}
     </main>
   );
