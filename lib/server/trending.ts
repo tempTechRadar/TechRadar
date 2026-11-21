@@ -8,7 +8,7 @@ import { DEFAULT_TREND_LIMIT, MIN_STAR_GAIN, TREND_DAYS, starGainOf, trendingTec
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { chunks, listedTechs } from "./map-queries.ts";
 
-const COLUMNS = "id, display_name, grade, signals";
+const COLUMNS = "id, display_name, grade, signals, repo_url";
 const GRADES: Grade[] = ["pass", "caution", "danger", "unknown"];
 // shortcut: 지난 7일 별 변화 줄을 5,000개까지만 읽는다(11-21 운영은 두꺼운 줄 수백 개 × 하루 한 번이라 훨씬 적다). 넘치면 이 상한을 올리거나 쪽으로 나눠 읽는다
 const OBSERVATION_LIMIT = 5000;
@@ -34,6 +34,7 @@ function toInput(r: Row, gains: Map<string, number>): TrendInput | null {
   return {
     id: r.id, name: r.display_name, grade: GRADES.find((g) => g === r.grade) ?? "unknown",
     stars: starsOfSignals(r.signals), starsGain: gains.get(r.id) ?? 0, hn: hnOf(r.signals), flagged: isFlaggedSignals(r.signals),
+    link: typeof r.repo_url === "string" ? r.repo_url : null,
   };
 }
 
