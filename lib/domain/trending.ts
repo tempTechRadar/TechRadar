@@ -12,9 +12,10 @@ const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 24 * 60 * 60 * 1000;
 
 export type HnSeen = { points: number; comments: number; title: string; url: string; seenAt: string };
-export type TrendInput = { id: string; name: string; grade: Grade; stars: number | null; starsGain: number; hn: HnSeen | null; flagged: boolean };
+export type TrendInput = { id: string; name: string; grade: Grade; stars: number | null; starsGain: number; hn: HnSeen | null; flagged: boolean; link?: string | null };
 export type TrendReason = { kind: "stars"; gain: number; stars: number | null } | { kind: "hn"; points: number; comments: number; title: string; url: string };
-export type Trending = { id: string; name: string; score: number; reasons: TrendReason[] };
+/** link = 저장소 주소(https만, 출처 링크로 씀). 없으면 null */
+export type Trending = { id: string; name: string; score: number; reasons: TrendReason[]; link: string | null };
 
 /** 별 수 관찰 하나: prev가 없으면 "처음 읽음"이라 늘었다고 보지 않는다 */
 export type StarObservation = { observedAt: string; prev: number | null; curr: number };
@@ -47,7 +48,7 @@ export function trendingTechs(items: TrendInput[], nowMs: number, limit = DEFAUL
     if (fresh(t.hn, nowMs)) reasons.push({ kind: "hn", points: t.hn.points, comments: t.hn.comments, title: t.hn.title, url: t.hn.url });
     if (reasons.length === 0) continue;
     const score = Math.round((part(t.starsGain >= MIN_STAR_GAIN ? t.starsGain : 0) + part(reasons.some((r) => r.kind === "hn") ? t.hn!.points : 0)) * 10) / 10;
-    out.push({ id: t.id, name: t.name, score, reasons });
+    out.push({ id: t.id, name: t.name, score, reasons, link: t.link?.startsWith("https://") ? t.link : null });
   }
   const byName = (a: Trending, b: Trending) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1);
   return out.sort((a, b) => b.score - a.score || byName(a, b)).slice(0, Math.max(0, limit));
