@@ -64,5 +64,9 @@
 .tc[data-grade="danger"] .tc-dot { background: var(--danger); }
 .tc[data-grade="caution"] .tc-dot { background: var(--caution); }
 .tc[data-grade="pass"] .tc-dot { background: var(--pass); }
+/* 후보 칩: 관문 밖 기술(남의 조합에서 옴). 점선 · 옅게, 고르기 단추를 붙여 판단을 사람이 하게 */
+.tc.tc-out { gap: 4px; padding-left: 8px; border-style: dashed; border-color: var(--ink-2); background: var(--sunken); color: var(--ink-2); font-size: var(--fs-sm); }
+.tc-pick { min-height: 28px; padding: 0 8px; border: 1px solid var(--ink); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-cap); color: var(--ink); cursor: pointer; }
+.tc-pick:disabled { opacity: .6; cursor: progress; }
 .tc-x { min-width: 24px; min-height: 28px; padding: 0 6px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
 

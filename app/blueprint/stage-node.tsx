@@ -11,6 +11,7 @@ import { TechChip } from "./tech-chip";
 export type StageData = {
   stage: Stage; order: number | null; step: Step; picked: Picked; info: Map<string, PoolTech>; /** 휴대폰 "그림으로 보기": 칩 고르기 · 빼기 없음 */ readOnly?: boolean;
   onPick: (p: Picked) => void; onDropTech: (stageId: string, techId: string) => void; onRemoveTech: (stageId: string, techId: string) => void;
+  /** 관문 밖 기술(info에 없음)을 적용 후보로 고르기 · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
 };
 export type StageNodeType = Node<StageData, "stage">;
 
@@ -35,7 +36,8 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
             <TechChip key={t.id} tech={t} info={data.info.get(t.id)}
               picked={picked?.kind === "tech" && picked.stageId === stage.id && picked.techId === t.id}
               onPick={data.readOnly ? undefined : () => data.onPick({ kind: "tech", stageId: stage.id, techId: t.id })}
-              onRemove={step === 2 && !data.readOnly ? () => data.onRemoveTech(stage.id, t.id) : undefined} />
+              onCandidate={data.info.has(t.id) || data.readOnly ? undefined : () => data.onCandidate(t.id, t.name)} busy={data.marking === t.id}
+              onRemove={(step === 2 || !data.info.has(t.id)) && !data.readOnly ? () => data.onRemoveTech(stage.id, t.id) : undefined} />
           ))}
         </div>
       ) : <p className="sn-empty">{step === 2 ? "아래에서 기술을 끌어 놓아요" : "아직 기술 없음"}</p>}

@@ -3,17 +3,17 @@
 // 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기) · 스페이스(손 모드)만, 나머지는 단추(사용자 결정).
 // 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  addStage, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
-  type ConnectProblem, type Graph, type Pos,
+  addStage, applyTemplate, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
+  type ConnectProblem, type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { recommendAt } from "@/lib/blueprint/knowledge";
 import type { BlueprintPage } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
-import { confirmGraphAction } from "./actions";
+import { markTech } from "../tech-map/actions";
 import { ConfirmDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
@@ -23,6 +23,7 @@ import { StageNode, type StageNodeType } from "./stage-node";
 import { Stepper, StepResult } from "./stepper";
 import type { PanelProps, Picked, Step } from "./studio-types";
 import { useStudioGraph } from "./use-studio-graph";
+import { useConfirm } from "./use-studio-save";
 import "./studio.css";
 
 const nodeTypes = { stage: StageNode };
@@ -31,7 +32,9 @@ const CONNECT_KO: Record<ConnectProblem, string> = {
   cycle: "이으면 순서가 돌고 돌아(고리) 이을 수 없어요.", limit: `연결은 ${LIMITS.edges}개까지예요.`,
 };
 
-type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null };
+/** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함 */
+type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean };
+type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
 const onNarrow = (f: () => void) => { const m = matchMedia(NARROW); m.addEventListener("change", f); return () => m.removeEventListener("change", f); };
@@ -40,24 +43,7 @@ export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
-/** 확정 id는 내용(이름 · 프로젝트 · 판)마다 하나: 같은 내용을 다시 눌러도 한 줄(불변 3). 실패하면 판은 그대로(불변 4) */
-function useConfirm(onDone: (id: string) => void) {
-  const last = useRef({ key: "", id: "" });
-  const [busy, setBusy] = useState(false), [error, setError] = useState("");
-  const confirm = async (name: string, projectId: string | null, graph: Graph) => {
-    // 같은 내용 = 단계(id · 이름 · 기술) + 연결선. 위치만 옮긴 것은 같은 확정으로 본다
-    const key = JSON.stringify([name, projectId, graph.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]), graph.edges]);
-    if (key !== last.current.key) last.current = { key, id: crypto.randomUUID() };
-    setBusy(true); setError("");
-    // 검사 · 관문(내 기술 · 적용 후보 · 내 이력) · 이름 다시 읽기는 DB 함수 confirm_blueprint_v2가 한다
-    const r = await confirmGraphAction({ id: last.current.id, name, projectId, graph }).catch(() => ({ ok: false as const, message: "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요." }));
-    setBusy(false);
-    if (r.ok) onDone(last.current.id); else setError(r.message);
-  };
-  return { confirm, busy, error, reset: () => setError("") };
-}
-
-function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) {
+function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread } = useStudioGraph(who);
@@ -71,7 +57,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState("");
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
@@ -79,12 +65,31 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
   const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
+  // "이 템플릿으로 시작": 초안을 읽은 뒤 한 번 펼친다(되돌리기 한 칸 = 전에 만들던 판). 새로 고쳐도 다시 펼치지 않게 주소에서 뺀다
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const started = useRef(false);
+  useEffect(() => {
+    if (!graph || started.current) return;
+    started.current = true;
+    if (template) {
+      push(applyTemplate(template.graph, template.kind)); setName(template.name); setTemplateId(template.id);
+      say(`"${template.name}" ${template.kind === "frame" ? "틀" : "조합"}로 시작했어요. 되돌리기를 누르면 전에 만들던 판으로 돌아가요.`);
+    } else if (templateMissing) say("템플릿을 열지 못했어요. 지워졌거나 비공개로 바뀌었을 수 있어요.");
+    if (template || templateMissing) { const q = new URLSearchParams(location.search); q.delete("template"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
+  }, [graph, template, templateMissing, push, setName, say]);
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
   const apply = (next: Graph, message?: string) => { if (next === g) return; push(next); if (message) say(message); else clear(); };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
 
+  /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
+  async function markCandidate(techId: string, techName: string) {
+    setMarking(techId);
+    const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
+    setMarking(null);
+    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); router.refresh(); } else say(r.message);
+  }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
     if (!t || !s) return say("서랍에 있는 기술만 넣을 수 있어요(내 기술 · 적용 후보 · 이력).");
@@ -108,7 +113,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)) },
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
+      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking },
   }));
   const edges: FlowEdge[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
@@ -160,7 +166,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
-  const problems = limitProblems(g);
+  // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
+  const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
+  const problems = [...limitProblems(g), ...(outside.size ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
   const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId };
@@ -207,7 +215,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) 
       <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
-        onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g)} onClose={() => setConfirming(false)} /> : null}
+        onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
     </div>
   );
 }
