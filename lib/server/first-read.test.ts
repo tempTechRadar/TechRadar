@@ -615,7 +615,7 @@ test("스킬에 글로 검사할 수 없는 실행 파일이 있으면 그 줄�
   assert.equal(byName("fetch_repo")[0][0], "succeeded");
   assert.equal(byName("grade").length, 1, "등급 단계는 한 줄");
   assert.equal(byName("grade")[0][0], "failed");
-  assert.match(byName("grade")[0][1], /글로 검사할 수 없는 파일 1개/);
+  assert.match(byName("grade")[0][1], /검사하지 못한 항목 1개/);
 });
 
 test("스킬 하나의 SKILL.md를 못 읽으면 그 스킬만 수집 오류, 다른 스킬은 계속", async (t) => {

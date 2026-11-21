@@ -107,7 +107,7 @@ export type TreeEntry = { path: string; type: string; size?: number; mode?: stri
  * GitHub 트리 응답 → 읽을 코드 파일. skip = 다른 단계가 이미 읽는 파일(package.json 등).
  * skipped = 한도 · 크기 때문에 못 보는 코드 파일 수(못 본 곳의 모델 줄은 "사라짐"이 아니라 수집 오류). 모양이 다르면 null(해석 실패)
  */
-export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Set()): { paths: string[]; skipped: number; truncated: boolean; all: string[]; links: string[] } | null {
+export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Set()): { paths: string[]; skipped: number; truncated: boolean; all: string[]; unseen: string[] } | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(treeJson);
@@ -124,7 +124,9 @@ export function codeFilesOf(treeJson: string, skip: ReadonlySet<string> = new Se
   const paths = small.slice(0, MAX_CODE_FILES).map((e) => e.path);
   // all = 모든 파일 경로(연동 서비스 · 개념을 설정 파일로 찾을 때 쓴다)
   const all = (tree as TreeEntry[]).filter((e) => e && e.type === "blob" && typeof e.path === "string" && e.path.length <= 300).map((e) => e.path);
-  // links = 심볼릭 링크(mode 120000): raw로 받으면 대상 경로 글자만 와서 내용을 검사할 수 없다(스킬 검사가 "못 본 파일"로 센다)
-  const links = (tree as TreeEntry[]).filter((e) => e && e.type === "blob" && e.mode === "120000" && typeof e.path === "string").map((e) => e.path);
-  return { paths, skipped: code.length - paths.length, truncated: (parsed as { truncated?: unknown }).truncated === true, all, links };
+  // unseen = 목록에는 있지만 raw로 내용을 볼 수 없는 것: 심볼릭 링크(mode 120000, 대상 경로 글자만 옴) · 서브모듈(commit) · all에서 빠진 300자 넘는 경로.
+  // 스킬 검사가 "못 본 파일"로 센다(그 스킬을 통과로 두지 않게)
+  const unseen = (tree as TreeEntry[]).filter((e) => e && typeof e.path === "string"
+    && ((e.type === "blob" && (e.mode === "120000" || e.path.length > 300)) || e.type === "commit")).map((e) => e.path);
+  return { paths, skipped: code.length - paths.length, truncated: (parsed as { truncated?: unknown }).truncated === true, all, unseen };
 }
