@@ -103,7 +103,7 @@ test("로그인 전 지도는 공용 표(technologies·categories)만, 시뮬레
 test("공개 칸은 정해 둔 목록 그대로다: 칸을 더하면 이 시험과 ADR 0029를 함께 고친다(로그인 전에도 나가므로)", () => {
   assert.deepEqual(TECH_COLUMNS.split(",").map((c) => c.trim()), [
     "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url", "license",
-    "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated",
+    "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated", "is_official",
   ]);
 });
 
@@ -112,6 +112,12 @@ test("카탈로그는 공개 목록에서 온 기술만 읽고(남의 비공개 
   const input = await readGuestMapInput(db);
   assert.ok(calls.includes("technologies.not(one_liner_source,is,null)"));
   assert.deepEqual(input.techs[0].signals, { stars: 5, weekly_downloads: 9 });
+});
+
+test("공식 표시는 DB 칸이 true일 때만 true다(빈 칸 · 다른 값은 공식 아님)", async () => {
+  const { db } = recordingDb({ technologies: [{ id: "t1", display_name: "a", is_official: true }, { id: "t2", display_name: "b", is_official: null }, { id: "t3", display_name: "c" }], categories: [] });
+  const input = await readGuestMapInput(db);
+  assert.deepEqual(input.techs.map((x) => [x.id, x.official]), [["t1", true], ["t2", false], ["t3", false]]);
 });
 
 test("로그인 전 지도를 못 읽으면 던진다(빈 지도로 보이지 않게, 불변 2)", async () => {
