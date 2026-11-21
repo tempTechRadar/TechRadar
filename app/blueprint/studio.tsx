@@ -4,7 +4,7 @@
 // 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type NodeChange } from "@xyflow/react";
+import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
   addStage, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, moveStages, putTech, removeStage, removeTech, toBoardView,
@@ -125,6 +125,13 @@ function StudioInner({ who, pool, projects, add }: Props) {
     if (next) setSelEdges(next);
   }
   const onConnect = (c: Connection) => { const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target)); };
+  /** 못 잇는 곳에 놓았을 때(isValidConnection이 막아 onConnect가 안 불림) 이유를 알린다. 들어오는 점에서 끌었으면 방향을 뒤집어 본다 */
+  const onConnectEnd = (_: unknown, st: FinalConnectionState) => {
+    if (st.isValid !== false || !st.fromNode || !st.toNode) return;
+    const [from, to] = st.fromHandle?.type === "target" ? [st.toNode.id, st.fromNode.id] : [st.fromNode.id, st.toNode.id];
+    const p = connectProblem(g, from, to);
+    if (p) say(CONNECT_KO[p]);
+  };
   function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: FlowEdge[] }) {
     let next = g;
     for (const e of es) next = disconnect(next, e.source, e.target);
@@ -156,7 +163,7 @@ function StudioInner({ who, pool, projects, add }: Props) {
       ) : null}
       <div className="studio-canvas" role="region" aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onConnect={onConnect} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
+          onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
           deleteKeyCode="Delete" selectionOnDrag panOnDrag={[1, 2]} panActivationKeyCode="Space" minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }}
           proOptions={{ hideAttribution: true }}>
           <Background gap={16} size={1} />
