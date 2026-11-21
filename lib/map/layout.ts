@@ -1,5 +1,5 @@
 // 사용자가 고른 묶기 기준으로 레이더 위 제자리(home)를 정하는 순수 함수(같은 입력이면 같은 그림). 시안 docs/wireframes/radar-layout.js와 같은 규칙.
-// 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비 ∝ √(들어 있는 기술 수), 하위 묶음은 부모 부채꼴을 나눈다.
+// 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비 ∝ √(들어 있는 기술 수)(첫 고리가 종류면 ∜, ADR 0030 9항 — 시안은 √만), 하위 묶음은 부모 부채꼴을 나눈다.
 // 기술이 많으면 바깥 고리를 여러 줄로 쌓는다. 색은 화면이 tokens.css에서 읽도록 토큰 이름으로 준다(테마를 바꾸면 같이 바뀜).
 import { NO_GRADE, UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
 import { groupOf, passes, type Dim, type ViewConfig } from "./view-config.ts";
@@ -17,7 +17,7 @@ export const GRADE_TOKENS: Record<string, string> = { 위험: "--danger", 주의
 const CATEGORY_TOKENS = 8; // --cat-1 … --cat-8 (옆 묶음끼리 색약에도 구별, dataviz 검사기)
 
 type Base = { id: string; parent: string | null; level: number; x: number; y: number; r: number; token: string | null; hollow: boolean };
-export type GroupItem = Base & { type: "g"; dim: Dim; value: string; count: number; mine: number; danger: number; caution: number; err: number; /** 차지한 부채꼴 각도(처음 접기 판단) */ span: number };
+export type GroupItem = Base & { type: "g"; dim: Dim; value: string; count: number; mine: number; danger: number; caution: number; err: number; /** 맨 안쪽 묶음이면 그 기술들이 쌓인 줄 수(처음 접기 판단), 아니면 0 */ rows: number };
 export type TechItem = Base & { type: "t"; node: MapNode; token: string };
 export type Item = GroupItem | TechItem;
 export type LegendItem = { value: string; count: number; token: string; rest?: boolean; hollow?: boolean };
@@ -64,13 +64,14 @@ export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
   const group = groupOf(view);
   const color = view.scope.some((s) => s.dim === view.color) ? group[0] ?? "grade" : view.color;
   const { legend, tokenOf } = legendOf(kept, color);
-  const items: Item[] = [], depth = group.length, leafR = FIRST_RING + depth * LEVEL_GAP + 15;
+  const items: Item[] = [], depth = group.length, leafR = FIRST_RING + depth * LEVEL_GAP + 15, rowsOf = new Map<string, number>();
   let maxR = leafR;
 
   function place(list: MapNode[], level: number, parent: string | null, a0: number, a1: number) {
     if (level > depth) {
       const sorted = [...list].sort(byName);
       const cap = Math.max(1, Math.floor(((a1 - a0) * leafR) / LEAF_GAP)), rows = Math.ceil(sorted.length / cap), per = Math.ceil(sorted.length / rows);
+      if (parent) rowsOf.set(parent, rows); // 처음 접기는 실제로 쌓인 줄 수로(같은 식을 두 곳에 두지 않게)
       sorted.forEach((n, i) => {
         const row = Math.floor(i / per), inRow = Math.min(per, sorted.length - row * per), col = i - row * per;
         const slot = (a1 - a0) / inRow;
@@ -85,14 +86,14 @@ export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
     for (const n of list) buckets.set(n.attrs[dim], [...(buckets.get(n.attrs[dim]) ?? []), n]);
     // 부채꼴 너비 ∝ √(기술 수). 첫 고리가 종류면 ∜(네제곱근)로 거의 고르게(11-21 사용자 "고르게": MCP 455개에 입문 세트 개념 · 스킬 · 도구가 좁게 몰리지 않게.
     // 완전히 같게 하면 MCP 칸이 좁아 그 안 묶음 이름이 겹치고 점이 바깥으로 길게 쌓여서, MCP 약 40% · 나머지 약 15%씩)
-    const keys = [...buckets.keys()].sort(byValue), weight = (k: string) => Math.max(1, buckets.get(k)!.length ** (level === 1 && dim === "kind" ? 0.25 : 0.5));
+    const keys = [...buckets.keys()].sort(byValue), weight = (k: string) => { const r = Math.sqrt(buckets.get(k)!.length); return Math.max(1, level === 1 && dim === "kind" ? Math.sqrt(r) : r); }; // Math.sqrt: 서버 · 브라우저가 늘 같은 값(** 0.5는 엔진마다 끝자리가 다를 수 있음)
     const total = keys.reduce((s, k) => s + weight(k), 0), pad = level === 1 && keys.length > 1 ? 0.04 : 0;
     let start = a0;
     for (const k of keys) {
       const span = ((a1 - a0) * weight(k)) / total, inner = buckets.get(k)!, id = `${parent ? parent + " / " : ""}${dim}=${k}`;
       const [x, y] = polar(start + span / 2, FIRST_RING + (level - 1) * LEVEL_GAP);
       items.push({
-        type: "g", id, level, dim, value: k, parent, x, y, r: HUB_R[level], count: inner.length, span: span * (1 - 2 * pad),
+        type: "g", id, level, dim, value: k, parent, x, y, r: HUB_R[level], count: inner.length, rows: 0,
         mine: inner.filter((n) => n.mine).length, danger: inner.filter((n) => n.grade === "danger").length,
         caution: inner.filter((n) => n.grade === "caution").length, err: inner.filter((n) => n.collectErrorKind).length,
         token: dim === color ? tokenOf(k) : null, hollow: k === UNSORTED,
@@ -102,6 +103,7 @@ export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
     }
   }
   place(kept, 1, null, -Math.PI / 2, (3 * Math.PI) / 2);
+  for (const it of items) if (it.type === "g") it.rows = rowsOf.get(it.id) ?? 0;
   const byId = new Map(items.map((it) => [it.id, it]));
   return {
     items, byId, legend, color, depth, leafR, radius: maxR + 30, shown: kept.length, total: model.nodes.length,
@@ -124,17 +126,22 @@ export function connected(L: MapLayout, id: string): Set<string> {
   return out;
 }
 
-/** 접은 묶음 아래에 있어 안 보이는 것 */
-export const hiddenOf = (L: MapLayout, collapsed: Set<string>) =>
-  new Set(L.items.filter((it) => [...collapsed].some((g) => isUnder(L, it, g))).map((it) => it.id));
+/** 접은 묶음 아래에 있어 안 보이는 것(점마다 조상을 따라 올라가며 접힌 묶음인지 본다) */
+export function hiddenOf(L: MapLayout, collapsed: Set<string>): Set<string> {
+  const out = new Set<string>();
+  if (!collapsed.size) return out;
+  for (const it of L.items) for (let p = it.parent; p; p = L.byId.get(p)?.parent ?? null) if (collapsed.has(p)) { out.add(it.id); break; }
+  return out;
+}
 
-/** 처음 펼침: 기술이 아주 많으면(700 넘게) 맨 안쪽 묶음을 모두 접어 둔다. 그보다 적으면 제 부채꼴에 MAX_ROWS줄 안에 못 들어가는 묶음만 접는다 —
- *  좁은 칸(종류 먼저일 때 MCP 안의 갈래들)에 점이 바깥으로 길게 쌓이지 않고, 넉넉한 칸(입문 세트 등)은 하나하나 보이게.
- *  모든 묶음이 못 들어가면 접지 않는다(점이 하나도 안 보이면 처음 떠오르는 움직임이 없다) */
+/** 처음 펼침: 맨 안쪽 묶음 중 제 칸에 MAX_ROWS줄 넘게 쌓이는 것만 접는다 — 좁은 칸(종류 먼저일 때 MCP 안의 갈래들)에 점이 바깥으로 길게
+ *  쌓이지 않고, 넉넉한 칸(입문 세트 등)은 하나하나 보이게. 내 기술 · 위험이 든 묶음은 접지 않는다(지도가 보여 줘야 할 점).
+ *  모든 묶음이 넘치면: 700개 넘게면 모두 접고(그대로 펼치면 너무 깊음), 그보다 적으면 하나도 안 접는다(점이 보이게) */
 export const COLLAPSE_OVER = 700, MAX_ROWS = 6;
 export function defaultCollapsed(L: MapLayout): Set<string> {
   const inner = L.items.filter((it): it is GroupItem => it.type === "g" && it.level === L.depth);
-  if (L.shown > COLLAPSE_OVER) return new Set(inner.map((g) => g.id));
-  const tooDeep = inner.filter((g) => g.count > Math.max(1, Math.floor((g.span * L.leafR) / LEAF_GAP)) * MAX_ROWS);
-  return new Set(tooDeep.length < inner.length ? tooDeep.map((g) => g.id) : []);
+  const keepOpen = (g: GroupItem) => g.mine > 0 || g.danger > 0;
+  const tooDeep = inner.filter((g) => g.rows > MAX_ROWS && !keepOpen(g));
+  if (tooDeep.length < inner.length) return new Set(tooDeep.map((g) => g.id));
+  return new Set(L.shown > COLLAPSE_OVER ? inner.filter((g) => !keepOpen(g)).map((g) => g.id) : []);
 }

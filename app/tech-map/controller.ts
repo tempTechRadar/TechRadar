@@ -48,7 +48,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const L0 = layoutMap(model, view0);
 
   const S: MapState = {
-    W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: defaultCollapsed(L0), hidden: new Set(),
+    W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
     leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "",
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
@@ -65,9 +65,18 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
 
   // ---- 배치
-  function rebuild(from: ((it: Item) => [number, number] | null) | null, collapsedIds: string[] | null) {
+  /** 사람이 직접 펼치거나 접은 묶음(true = 펼침). 처음 접기는 판이 바뀔 때마다(필터 · 되살린 보기) 새로 정하고, 이것만 그 위에 남긴다 */
+  const manual = new Map<string, boolean>();
+  /** 접힌 묶음: 처음 접기(분류만 보기 안에서는 없음 — 고른 것을 다 보이게) + 사람이 바꾼 것 */
+  function collapsedFor(L: MapLayout): Set<string> {
+    const auto = S.view.scope.length ? new Set<string>() : defaultCollapsed(L);
+    const out = new Set<string>();
+    for (const it of L.items) if (it.type === "g" && (manual.has(it.id) ? !manual.get(it.id) : auto.has(it.id))) out.add(it.id);
+    return out;
+  }
+  function rebuild(from: ((it: Item) => [number, number] | null) | null) {
     S.L = layoutMap(model, S.view);
-    S.collapsed = collapsedIds ? new Set(collapsedIds.filter((id) => S.L.byId.has(id))) : defaultCollapsed(S.L);
+    S.collapsed = collapsedFor(S.L);
     S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear();
     if (S.sel && !S.L.byId.has(S.sel)) S.sel = "";
     const vis = visible();
@@ -84,7 +93,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const scoped = JSON.stringify(next.scope) !== JSON.stringify(S.view.scope); // 되살린 보기는 새 배열이라 값으로 비교
     const regroup = next.group.join() !== S.view.group.join() || scoped;
     S.view = usable(next, model, projectIds);
-    rebuild(() => from, regroup ? null : [...S.collapsed]);
+    if (regroup) manual.clear(); // 묶기가 바뀌면 묶음 id가 달라져 손댄 기억은 뜻이 없다
+    rebuild(() => from);
     if (scoped) flyTo(homeCam(), false);
     saveView(); dirty(); notify();
   }
@@ -104,6 +114,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const g = S.L.byId.get(id), b = phys.B.get(id);
     if (!g || g.type !== "g" || !b) return;
     const dx = b.x - g.x, dy = b.y - g.y;
+    manual.set(id, S.collapsed.has(id)); // 지금 접혀 있으면 펼치는 것
     if (S.collapsed.has(id)) {
       S.collapsed.delete(id);
       clearTimeout(closing.get(id)); closing.delete(id);
@@ -126,7 +137,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function resetView() {
     S.sel = "";
     S.view = usable(defaultFor(kindCount), model, projectIds);
-    rebuild((it) => { const p = it.parent ? phys.B.get(it.parent) : null; return p ? [p.x, p.y] : [0, 0]; }, null);
+    manual.clear();
+    rebuild((it) => { const p = it.parent ? phys.B.get(it.parent) : null; return p ? [p.x, p.y] : [0, 0]; });
     flyTo(homeCam(), false); saveView(); dirty(); notify();
   }
 
@@ -232,7 +244,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); ctx = null; };
   }
 
-  rebuild(null, [...S.collapsed]);
+  rebuild(null);
   return {
     /** 레이더 움직임 바꾸기(보기 메뉴). 펼침은 처음 한 번뿐이라 다시 켜도 옅은 움직임부터 */
     setMotion(m: Motion) { S.motion = m; try { localStorage.setItem(MOTION_KEY, m); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },

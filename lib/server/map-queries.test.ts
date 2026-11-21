@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_FIRST_FILL, readGuestMapInput, readListedByIds, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
+import { CATALOG_FIRST_FILL, readGuestMapInput, readListedByIds, readMapInput, readNewTechs, STARTER_MAX, TECH_COLUMNS } from "./map-queries.ts";
 import { NOT_BULK_FILTER } from "../domain/registry.ts";
 
 type Row = Record<string, unknown>;
@@ -79,7 +79,7 @@ test("모은 기술은 위험 → 주의 → 입문 세트 → 이번 주 새 �
   assert.deepEqual(input.techs.map((t) => t.id), ["risk", "start1", "new1", "dev", "life1"]);
   assert.ok(calls.includes("technologies.or(type.in.(skill,plugin,concept),category_id.in.(fe,fe-ui))"), "개발 갈래와 그 아래 세부 갈래");
   // 입문 세트 질의 하나만 보고: 공개 목록 조건 + 몫(서비스 키로 읽는 로그인 전 지도에 비공개 줄이 나가지 않게, 불변 5)
-  for (const c of ["technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.limit(80)"]) assert.ok(starterCalls.includes(c), `입문 세트 질의: ${c}`);
+  for (const c of ["technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", `technologies.limit(${STARTER_MAX})`]) assert.ok(starterCalls.includes(c), `입문 세트 질의: ${c}`);
   for (const c of ['technologies.order(grade,{"ascending":false})', 'technologies.order(signals->stars,{"ascending":false,"nullsFirst":false})', "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });

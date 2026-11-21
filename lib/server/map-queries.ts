@@ -56,7 +56,7 @@ const DEV_FIELDS = ["프론트엔드", "백엔드·데이터", "검사·보안",
 const DEV_TYPES = ["skill", "plugin", "concept"]; // 개발 도구(sdk)는 입문 세트 몫으로 늘 들어간다(여기 넣으면 저장소에서 생긴 sdk 줄 전체가 개발 분야가 됨)
 /** 늘 넣는 몫: 위험 · 주의(시연 계정의 시뮬레이터 위험 등, 이것만으로 지도가 차지 않게), 입문 세트(signals.starter_set, 별이 없어 별 순에 밀리므로),
  *  이번 주 새 기술(NEW 표시 15개를 고를 몫) */
-export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)이 줄 수를 막는다
+export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)은 그 시드 파일의 줄 수만 막는다(다른 마이그레이션 · 관리자가 starter_set을 켜면 따로 세어 볼 것)
 const RISKY_MAX = 100, NEW_QUOTA = 60;
 /** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
 export const PICK_RULE = "dev-first-4";

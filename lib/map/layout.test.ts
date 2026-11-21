@@ -93,7 +93,7 @@ test("기술이 많으면 바깥을 여러 줄로 쌓고, 700개를 넘으면 �
   assert.deepEqual([...shut].map((id) => l.byId.get(id)!.level), [2]);
   assert.equal(hiddenOf(l, shut).size, 750);
   const fewer = layoutMap(buildTechMap({ ...catalog, techs: Array.from({ length: 500 }, (_, i) => tech(`t${String(i).padStart(3, "0")}`, { categoryId: "db" })) }, NOW), DEFAULT_VIEW);
-  assert.equal(defaultCollapsed(fewer).size, 0, "묶음이 모두 크면 접지 않음(점이 보이게)");
+  assert.equal(defaultCollapsed(fewer).size, 0, "한 묶음이 제 칸 6줄 안에 들어가면 안 접음");
   // 좁은 칸에 깊게 쌓일 묶음만 접는다: 큰 갈래 하나 + 작은 갈래 여럿이면 큰 것만
   const cats2 = [...categories, ...Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, name: `갈래${i}`, parentId: null }))];
   const mixed = layoutMap(buildTechMap({ ...catalog, categories: cats2, techs: [
@@ -114,13 +114,33 @@ test("색 기준이 보안 등급이면 위험 = 위험 토큰, 통과 = 통과 
   assert.deepEqual(l.legend.map((x) => [x.value, x.token]), [["위험", "--danger"], ["통과", "--pass"]]);
 });
 
-test("첫 고리가 종류면 거의 고른 너비(네제곱근): 개수가 20배 넘게 달라도 √일 때(83%)보다 훨씬 고르게(70% 아래)", () => {
-  const m = buildTechMap({ ...catalog, techs: [
+/** 첫 묶음(정렬 맨 앞)의 부채꼴 몫: 위(-π/2)에서 시작해 그 묶음 가운데까지의 각도 × 2 */
+const firstShare = (l: MapLayout, level: number) => {
+  const g = groups(l).filter((x) => x.level === level)[0];
+  const a = (((Math.atan2(g.y, g.x) + Math.PI / 2) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  return (2 * a) / (2 * Math.PI);
+};
+test("첫 고리가 종류면 ∜로 거의 고른 너비, 그 밖(첫 고리가 하는 일 · 둘째 고리)은 √ 그대로", () => {
+  const techs = [
     ...Array.from({ length: 90 }, (_, i) => tech(`m${i}`, { categoryId: "db" })),
-    ...Array.from({ length: 4 }, (_, i) => tech(`s${i}`, { categoryId: "db", type: "skill", techKey: `skill:o/r/s${i}` })),
-  ] }, NOW);
-  const l = layoutMap(m, parseView("g=kind,field&c=kind"));
-  const spans = groups(l).filter((g) => g.level === 1).map((g) => g.span).sort((a, b) => b - a);
-  assert.equal(spans.length, 2);
-  assert.ok(spans[0] / (spans[0] + spans[1]) < 0.7, `큰 쪽 비율 ${spans[0] / (spans[0] + spans[1])}`);
+    ...Array.from({ length: 4 }, (_, i) => tech(`s${i}`, { categoryId: "ui", type: "skill", techKey: `skill:o/r/s${i}` })),
+  ];
+  const m = buildTechMap({ ...catalog, techs }, NOW);
+  const kindFirst = firstShare(layoutMap(m, parseView("g=kind,field&c=kind")), 1); // 한글 정렬로 스킬(4)이 먼저, MCP 90
+  assert.ok(Math.abs(kindFirst - Math.sqrt(Math.sqrt(4)) / (Math.sqrt(Math.sqrt(90)) + Math.sqrt(Math.sqrt(4)))) < 0.02, `종류 먼저 ${kindFirst}`);
+  const fieldFirst = firstShare(layoutMap(m, FIELD_VIEW), 1); // 디자인(4)이 먼저, 백엔드·데이터 90
+  assert.ok(Math.abs(fieldFirst - Math.sqrt(4) / (Math.sqrt(90) + Math.sqrt(4))) < 0.02, `하는 일 먼저 ${fieldFirst}`);
+});
+
+test("처음 접기: 모두 넘치면 700개 아래는 안 접고 넘으면 다 접는다, 내 기술 · 위험이 든 묶음은 늘 펼침", () => {
+  const cats8 = [...categories, ...Array.from({ length: 8 }, (_, i) => ({ id: `k${i}`, name: `갈래${i}`, parentId: null }))];
+  const many = (per: number) => Array.from({ length: 8 * per }, (_, i) => tech(`t${String(i).padStart(4, "0")}`, { categoryId: `k${i % 8}` }));
+  const under = layoutMap(buildTechMap({ ...catalog, categories: cats8, techs: many(80) }, NOW), FIELD_VIEW); // 640개, 칸마다 넘침
+  assert.ok(groups(under).filter((g) => g.level === under.depth).every((g) => g.rows > 6), "시험 준비: 모두 넘침");
+  assert.equal(defaultCollapsed(under).size, 0, "700개 아래면 하나도 안 접음");
+  const over = layoutMap(buildTechMap({ ...catalog, categories: cats8, techs: many(100) }, NOW), FIELD_VIEW); // 800개
+  assert.equal(defaultCollapsed(over).size, 8, "넘으면 모두 접음");
+  const risky = many(100).map((t, i) => (i === 0 ? { ...t, grade: "danger" as const } : t));
+  const withRisk = layoutMap(buildTechMap({ ...catalog, categories: cats8, techs: risky }, NOW), FIELD_VIEW);
+  assert.equal(defaultCollapsed(withRisk).size, 7, "위험이 든 묶음은 펼친 채로");
 });
