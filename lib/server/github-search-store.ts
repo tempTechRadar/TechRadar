@@ -84,7 +84,7 @@ function fillPatch(row: Existing, c: Candidate): Patch {
 async function mergeInto(s: SaveCtx, e: Entry, row: Existing): Promise<Saved> {
   const reasons = row.thick_reasons ?? [];
   const { flags, score } = s.partial ? partialView(s, row, e) : e;
-  const raise = !s.partial && e.mode === "top" && flags.length === 0 && !reasons.includes(STARS_REASON);
+  const raise = !s.partial && e.mode === "top" && !reasons.includes(STARS_REASON);
   const capped = raise && s.starRows >= STARS_CAP;
   const stars = githubOwnsStars(row) ? null : e.c.stars;
   const signals = { ...asSignals(row.signals), ...(stars === null ? {} : { stars }), candidate_score: score, candidate_flags: flags };

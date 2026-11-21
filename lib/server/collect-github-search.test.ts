@@ -128,7 +128,7 @@ test("새 줄: 상위는 github: 키(소문자)로 두껍게(이유 stars), 의�
     "agent-skills": [repo("sk/Skill", { description: null })],
   });
   const out = await run(t, f);
-  assert.deepEqual(f.sleeps, [1000, 1000]);
+  assert.deepEqual(f.sleeps, [2000, 2000]);
   const tool = byKey(t, "github:acme/tool")!;
   assert.deepEqual([tool.depth, tool.thick_reasons, tool.type, tool.display_name, tool.repo_url, tool.one_liner, tool.one_liner_source],
     ["thick", ["stars"], "mcp", "Acme/Tool", "https://github.com/Acme/Tool", "Tool 설명", "https://github.com/Acme/Tool"]);
@@ -355,16 +355,16 @@ test("기다린 뒤마다 마감을 다시 본다: 다시 읽기 전에 마감�
   const t = world();
   await run(t, f);
   assert.deepEqual(f.calls.map((c) => c.tag), ["mcp-server", "agent-skills"]);
-  assert.deepEqual(f.sleeps, [1000], "마감이 지나 다시 읽기 전 1초도 기다리지 않음");
+  assert.deepEqual(f.sleeps, [2000], "마감이 지나 다시 읽기 전 1초도 기다리지 않음");
   assert.match(String(t.run_steps.find((s) => s.step_name === "collect_error")!.output_summary), /agent-skills\(결과가 다 안 나옴\), claude-skills\(시간 몫 소진\)/);
 });
 
-test("요청 사이 1초를 기다린 뒤 마감이 지났으면 그 쪽을 부르지 않는다", async () => {
+test("요청 사이 2초를 기다린 뒤 마감이 지났으면 그 쪽을 부르지 않는다", async () => {
   let clock = NOW;
   const f = fakes({}, {
     now: () => clock,
     page: (q) => {
-      if (q.tag === "agent-skills") clock += 38_500; // 앞서 기다린 1초를 더해도 검색 몫(40초) 안이지만, 다음 쪽 전에 1초를 기다리면 넘는다
+      if (q.tag === "agent-skills") clock += 36_500; // 앞서 기다린 2초를 더해도 검색 몫(40초) 안이지만, 다음 쪽 전에 2초를 기다리면 넘는다
       return { total: 1, incomplete: false, items: [repo(`o/${q.tag}`)] };
     },
   });
