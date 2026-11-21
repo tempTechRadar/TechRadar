@@ -3,7 +3,7 @@
 import { LABEL_H, labelWidth, placeLabel, type Rect } from "@/lib/flow/edge-label";
 import { BOX, layoutFlow } from "@/lib/flow/layout";
 import { FLOW_INK, LOOK } from "@/lib/flow/look";
-import type { Colored, NodeState } from "@/lib/flow/status";
+import { pathFrom, type Colored, type NodeState } from "@/lib/flow/status";
 import { flowTextAlt } from "@/lib/flow/text-alt";
 import type { Flow } from "@/lib/flow/types";
 
@@ -43,8 +43,9 @@ type DiagramProps = {
   colored: Colored;
   /** 화살표("from>to") 위에 쓸 건수(lib/flow/counts). 없으면 숫자를 쓰지 않는다 */
   edgeLabels?: Map<string, string>;
-  /** 상자를 누르면 갈 주소(상세 보기). 없으면 누를 수 없다 */
-  nodeHref?: (id: string) => string;
+  /** 상자를 누르면 갈 주소(상세 보기). id가 없으면 아무것도 안 고른 주소. 없으면 누를 수 없다 */
+  nodeHref?: (id: string | undefined) => string;
+  /** 고른 상자. 시작 상자면 그 시작에서 갈 수 있는 길(flow.json 연결)을 파란 점선으로 따로 보인다 */
   selected?: string;
 };
 
@@ -76,8 +77,25 @@ function FlowText({ flow, colored, edgeLabels }: { flow: Flow; colored: Colored;
   );
 }
 
+/** 길 보기를 글로: 설계도에서 갈 수 있는 길이라 실행 기록과 따로 적는다 */
+function PathText({ flow, start, edges }: { flow: Flow; start: string; edges: Set<string> }) {
+  const name = (id: string) => flow.nodes.find((n) => n.id === id)?.name ?? id;
+  return (
+    <div style={{ fontSize: 14, margin: "8px 0" }}>
+      <p style={{ margin: 0 }}><strong>{start}</strong>에서 갈 수 있는 길을 파란 점선으로 보여요(설계도 기준, 이번 실행의 기록이 아니에요). 이 시작 상자를 다시 누르면 길 보기가 풀려요.</p>
+      <details>
+        <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>길의 화살표 {edges.size}개 글로 보기</summary>
+        <ul>{[...edges].map((k) => { const [a, b] = k.split(">"); return <li key={k}>{name(a)} → {name(b)}</li>; })}</ul>
+      </details>
+    </div>
+  );
+}
+
 export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: DiagramProps) {
   const layout = layoutFlow(flow);
+  const pathStart = flow.nodes.find((n) => n.id === selected && n.type === "start");
+  // 길은 설계도(flow.json)이지 실행 기록이 아니다: 실행의 굵은 선·색과 섞이지 않게 파란 점선으로 따로 그린다(불변 6)
+  const path = pathStart ? pathFrom(flow, pathStart.id) : null;
   const { nodes, edges, width, height } = layout;
   // 링크를 품으면 role="img"로 두면 안 된다(안의 링크가 읽히지 않음). 누를 수 있으면 묶음(group)으로 둔다.
   const svgRole = nodeHref ? { role: "group", "aria-label": "흐름 그림: 상자를 누르면 상세가 열려요" } : { role: "img", "aria-label": "흐름 그림(아래 '그림을 글로 보기'에 같은 내용)" };
@@ -90,6 +108,9 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="#8a857a" />
           </marker>
+          <marker id="arrow-path" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill={FLOW_INK.focus} />
+          </marker>
           <marker id="arrow-bold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="#2c2a26" />
           </marker>
@@ -97,10 +118,11 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
         {edges.map((e) => {
           const key = `${e.from}>${e.to}`;
           const bold = colored.boldEdges.has(key);
+          const onPath = path?.edges.has(key);
           const count = edgeLabels?.get(key);
           return (
-            <path key={key} d={e.d} fill="none" stroke={bold ? "#2c2a26" : "#c9c4b8"} strokeWidth={bold ? 2.6 : 1.2}
-              markerEnd={`url(#${bold ? "arrow-bold" : "arrow"})`}>
+            <path key={key} d={e.d} fill="none" stroke={onPath ? FLOW_INK.focus : bold ? "#2c2a26" : "#c9c4b8"} strokeWidth={onPath || bold ? 2.6 : 1.2}
+              strokeDasharray={onPath ? "7 4" : undefined} markerEnd={`url(#${onPath ? "arrow-path" : bold ? "arrow-bold" : "arrow"})`}>
               <title>{`${e.from} → ${e.to}: ${e.when}${count ? ` · ${count}` : ""}`}</title>
             </path>
           );
@@ -111,6 +133,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
           const isStart = n.id === colored.activeStart;
           const box = (
             <g key={n.id} transform={`translate(${n.x} ${n.y})`}>
+              {path?.nodes.has(n.id) && <rect x={-5} y={-5} width={BOX.w + 10} height={BOX.h + 10} rx={14} fill="none" stroke={FLOW_INK.focus} strokeWidth={2} strokeDasharray="7 4" aria-hidden="true" />}
               <title>{`${n.name} (${n.id}) · ${look.label}`}</title>
               <rect width={BOX.w} height={BOX.h} rx={n.type === "branch" ? 28 : 10} fill={look.fill} stroke={n.id === selected ? "#1f4fbf" : look.stroke}
                 strokeWidth={isStart || n.id === selected ? 4 : 2} strokeDasharray={n.id === selected ? undefined : look.dash} />
@@ -127,7 +150,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
             </g>
           );
           return nodeHref ? (
-            <a key={n.id} className="flow-node" href={nodeHref(n.id)} aria-label={`${n.name}: ${look.label}${n.id === selected ? " (보는 중)" : ""}. 상세 보기`} aria-current={n.id === selected ? "true" : undefined}>{box}</a>
+            <a key={n.id} className="flow-node" href={nodeHref(n.id === selected ? undefined : n.id)} aria-label={`${n.name}: ${look.label}${n.id === selected ? " (보는 중)" : ""}. ${n.id === selected ? (n.type === "start" ? "다시 누르면 길 보기와 상세를 닫아요" : "다시 누르면 상세를 닫아요") : n.type === "start" ? "이 시작에서 갈 수 있는 길과 상세 보기" : "상세 보기"}`} aria-current={n.id === selected ? "true" : undefined}>{box}</a>
           ) : box;
         })}
         {edgeLabels && edges.filter((e) => edgeLabels.has(`${e.from}>${e.to}`)).map((e) => (
@@ -135,6 +158,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
         ))}
       </svg>
     </div>
+    {pathStart && path && <PathText flow={flow} start={pathStart.name} edges={path.edges} />}
     <FlowText flow={flow} colored={colored} edgeLabels={edgeLabels} />
     </>
   );

@@ -3,5 +3,6 @@
 .ready-title { margin: 0; font-size: clamp(40px, 9vw, 80px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; color: var(--ink); }
 .ready-go { min-height: var(--hit); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font: inherit; font-weight: 700; cursor: pointer; }
 .ready-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.ready-go:disabled { background: var(--sunken); color: var(--ink-2); cursor: progress; } /* 지도를 준비하는 동안(P-12f 덮개 = 로딩) */
 .ready-hint { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
 .ready-gate::backdrop { background: transparent; } /* <dialog> 기본 어둡게 덮기는 끔: 관문 자체가 화면을 덮는다 */

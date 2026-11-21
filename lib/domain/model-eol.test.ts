@@ -71,3 +71,11 @@ test(`한 파일에 서로 다른 종료 모델이 ${LIST_FILE_MODELS}개 넘으
   const more = [...MODEL_EOL.keys()].slice(0, LIST_FILE_MODELS + 1);
   assert.deepEqual(findEolModels(more.map((n) => `"${n}"`).join(",")), []);
 });
+
+test("파일 목록의 unseen: 심볼릭 링크(mode 120000)·서브모듈(commit)·300자 넘는 경로는 내용을 볼 수 없는 항목으로 따로", () => {
+  const long = `a/${"d/".repeat(150)}x.sh`;
+  const json = JSON.stringify({ tree: [
+    { path: "a/run.sh", type: "blob", mode: "120000" }, { path: "a/vendor", type: "commit" }, { path: long, type: "blob" }, { path: "a/ok.sh", type: "blob", mode: "100644" },
+  ] });
+  assert.deepEqual(codeFilesOf(json)?.unseen, ["a/run.sh", "a/vendor", long]);
+});

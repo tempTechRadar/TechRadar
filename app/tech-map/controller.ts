@@ -7,6 +7,10 @@ import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
 import { draw, PULSE_SEC } from "./draw";
 import { DEFAULT_TUNE, GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, retune, REVEAL, SLOWDOWN, SWEEP_DELAY, TUNES, type Tune } from "@/lib/map/motion";
+import { introWaits, type GateState } from "@/lib/map/ready-gate";
+
+declare global { interface Window { __techradarGate?: GateState } } // 첫 화면 덮개 스크립트(ready-gate.tsx)가 남김
+
 
 const STORE = "techradar.mapView";
 const ZMIN = 0.05, ZMAX = 12; // 넓게: 끝없는 판처럼(사용자 11-20)
@@ -37,7 +41,7 @@ function savedTune(): Tune {
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, marks: login ? v.filter.marks : [], tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -257,7 +261,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function frame(ms: number) {
     raf = requestAnimationFrame(frame); // 한 장이 실패해도 다음 장은 그린다
     const now = ms / 1000, dt = Math.min(0.05, now - last || 0.016); last = now; S.now = now; tick++;
-    if (S.introAt === Infinity) startIntro(now);
+    // 첫 화면 덮개가 떠 있으면 닫을 때까지 첫 연출을 미룬다(덮개 뒤에서 혼자 끝나지 않게, lib/map/ready-gate.ts introWaits)
+    if (S.introAt === Infinity && !introWaits(window.__techradarGate, moving(S))) startIntro(now);
     let anim = false;
     if (S.fly) {
       const p = Math.min(1, Math.max(0, (now - S.fly.t0) / S.fly.dur)), e = p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2, { from, to } = S.fly;
@@ -302,7 +307,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     setMark(key: string, mark: MapNode["mark"]) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
       n.mark = mark;
-      if (S.view.filter.interest) setView({ ...S.view }); else notify(); // "내 관심"으로 거르는 중이면 관심을 풀자마자 지도에서도 빠지게
+      if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },
     /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */
     setTags(key: string, tags: string[]) {
