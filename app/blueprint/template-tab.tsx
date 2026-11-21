@@ -25,6 +25,7 @@ export function TemplateTab({ graph, step, say }: PanelProps) {
   const [lists, setLists] = useState<TemplateLists | { message: string } | undefined>(undefined); // undefined = 읽는 중
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [shareError, setShareError] = useState<{ id: string; message: string } | null>(null); // 공개 거절은 고칠 기술 이름이 들어 있어 토스트(3.5초) 대신 그 단추 옆에 남긴다
   const reload = useCallback(() => templatesAction().then(setLists, () => setLists({ message: "템플릿을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." })), []);
   useEffect(() => { void reload(); }, [reload]);
 
@@ -40,10 +41,10 @@ export function TemplateTab({ graph, step, say }: PanelProps) {
     void reload();
   }
   async function share(t: MyTemplate) {
-    setBusy(true);
+    setBusy(true); setShareError(null);
     const r = await setTemplatePublicAction(t.id, !t.isPublic).catch(() => ({ ok: false as const, message: FAILED }));
     setBusy(false);
-    if (!r.ok) { say(r.message); return; }
+    if (!r.ok) { setShareError({ id: t.id, message: r.message }); return; }
     say(t.isPublic ? `"${t.name}"을(를) 비공개로 돌렸어요.` : `"${t.name}"을(를) 공개했어요. 갤러리에 별명과 함께 보여요.`);
     void reload();
   }
@@ -64,7 +65,7 @@ export function TemplateTab({ graph, step, say }: PanelProps) {
       <p className="muted">&quot;이 템플릿으로 시작&quot;을 누르면 화면을 새로 열어 펼쳐요. 지금 판은 되돌리기 한 번으로 돌아와요.</p>
       {lists === undefined ? <p className="muted" role="status">템플릿을 읽는 중…</p>
         : "message" in lists ? <p className="notice notice-error" role="alert">{lists.message}</p>
-        : <Lists lists={lists} kind={kind} busy={busy} onShare={(t) => void share(t)} />}
+        : <Lists lists={lists} kind={kind} busy={busy} shareError={shareError} onShare={(t) => void share(t)} />}
     </>
   );
 }
@@ -72,7 +73,7 @@ export function TemplateTab({ graph, step, say }: PanelProps) {
 /** 템플릿으로 새로 열기(같은 화면 안 이동이 아니라 주소를 새로 열어야 studio가 펼침). 지금 판은 되돌리기 한 칸 */
 const Start = ({ t }: { t: MyTemplate | PublicTemplate }) => <a className="btn dock-sm" href={`/blueprint?template=${t.id}`}>이 템플릿으로 시작</a>;
 
-function Lists({ lists, kind, busy, onShare }: { lists: TemplateLists; kind: TemplateKind; busy: boolean; onShare: (t: MyTemplate) => void }) {
+function Lists({ lists, kind, busy, shareError, onShare }: { lists: TemplateLists; kind: TemplateKind; busy: boolean; shareError: { id: string; message: string } | null; onShare: (t: MyTemplate) => void }) {
   const mine = lists.mine?.filter((t) => t.kind === kind) ?? null;
   const open = lists.open[kind];
   return (
@@ -90,6 +91,7 @@ function Lists({ lists, kind, busy, onShare }: { lists: TemplateLists; kind: Tem
                 {t.hidden && !t.isPublic ? <span className="muted">관리자가 숨겨서 공개할 수 없어요</span>
                   : <button type="button" className="btn dock-sm" aria-disabled={busy} onClick={() => { if (!busy) onShare(t); }}>{t.isPublic ? "비공개로" : "공개하기"}</button>}
               </span>
+              {shareError?.id === t.id ? <p className="notice notice-error" role="alert">{shareError.message}</p> : null}
             </li>
           ))}</ul> : <p className="muted">아직 저장한 {KIND_KO[kind]}이 없어요. 위에서 지금 판을 저장해 보세요.</p>}
       </section>
