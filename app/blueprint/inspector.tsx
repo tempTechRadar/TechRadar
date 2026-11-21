@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { removeStage, removeTech, renameStage, type Graph } from "@/lib/blueprint/graph";
-import { nameProblem, neighbors } from "@/lib/blueprint/panel-view";
+import { nameProblem, neighbors, outside } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { SideNotes } from "../tech-map/side-notes";
@@ -34,7 +34,7 @@ export function Inspector(p: PanelProps) {
   );
 }
 
-function StageInfo({ graph, apply, onPick, pool, say, stageId }: PanelProps & { stageId: string }) {
+function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
   const names = (list: Graph["stages"]) => (list.length ? list.map((x) => x.name).join(", ") : "없음");
@@ -59,6 +59,7 @@ function StageInfo({ graph, apply, onPick, pool, say, stageId }: PanelProps & { 
       <Card title={`붙은 기술 ${s.techs.length}`}>
         {s.techs.length ? <ul className="insp-chips">{s.techs.map((t) => (
           <li key={t.id}><TechChip tech={t} info={pool.find((x) => x.id === t.id)} onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })}
+            onCandidate={outside(pool, t.id) ? () => onCandidate(t.id, t.name) : undefined} busy={marking === t.id}
             onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); document.querySelector<HTMLElement>(".insp")?.focus(); }} /></li>
         ))}</ul> : <p className="muted">아직 없어요. 하단 패널 기술 탭에서 넣어요.</p>}
       </Card>
