@@ -187,7 +187,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
   // 코드 속 지원 종료 모델(PRD-F38)도 같은 저장소의 서로 모르는 읽기라 함께 돈다
   const [skills, models] = closed
-    ? [{ found: [], errors: [], folders: 0, texts: new Map<string, string>() }, { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeLinks: [] }]
+    ? [{ found: [], errors: [], folders: 0, texts: new Map<string, string>() }, { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeUnseen: [] }]
     : await Promise.all([readSkills(repo), readModels(repo)]);
   // 스킬 위험 패턴 검사(SPEC-2): 코드 읽기가 받은 파일 목록 · 받은 SKILL.md로, 나머지 파일만 raw로 받는다(GitHub API 호출을 늘리지 않음).
   // 못 받은 · 다 검사하지 못한 스킬은 가져오기 오류로 그 스킬 줄에만 붙는다(아래 첫 읽기의 파일 오류 처리, 불변 2)
@@ -375,7 +375,7 @@ const sameVersion = (db: SupabaseClient, t: Target, patch: Record<string, unknow
 /** 코드 읽기의 결과 → 스킬 검사가 쓸 파일 목록. 목록 자체를 못 읽었으면(onlyUnread가 아닌 오류) 그 오류 */
 function treeOf(models: ModelRead): Tree {
   const failed = models.errors.find((e) => e.path === CODE_FILES && !e.onlyUnread);
-  return failed ? { error: { kind: failed.kind, message: failed.message } } : { paths: models.treePaths, links: models.treeLinks, complete: models.treeComplete };
+  return failed ? { error: { kind: failed.kind, message: failed.message } } : { paths: models.treePaths, unseen: models.treeUnseen, complete: models.treeComplete };
 }
 
 /**
