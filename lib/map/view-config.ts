@@ -13,6 +13,8 @@ export type Period = (typeof PERIODS)[number];
 export const PERIOD_DAYS: Record<Period, number> = { day: 1, week: 7, month: 30 };
 export const PERIOD_KO: Record<Period, string> = { day: "오늘", week: "이번 주", month: "이번 달" };
 /** 기간 칩 하나에 드는지(칩 수 · 필터 · 새로 들어온 것 보기가 같은 판정을 쓴다) */
+/** 지도에 올리는 최근 30일 새 기술 몫(서버 map-queries가 이만큼 읽음). 기간 보기는 이 안에서만 보여 화면이 안내한다 */
+export const NEW_QUOTA = 100;
 export const inPeriod = (n: Pick<MapNode, "addedDays">, p: Period) => n.addedDays !== null && n.addedDays < PERIOD_DAYS[p];
 /** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만, tags = 내 태그 중 하나라도 붙은 것 */
 export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; marks: MarkPick[]; hot: boolean; err: boolean; project: string; tags: string[] };
@@ -103,7 +105,7 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
     && (!f.mineOnly || n.mine || n.nearMine)
     && (!f.period || inPeriod(n, f.period))
-    && (!f.marks.length || (!!n.mark && f.marks.includes(n.mark.status)))
+    && (!f.marks.length || (!!n.decided && f.marks.includes(n.decided)))
     && (!f.hot || n.hot)
     && (!f.err || !!n.collectErrorKind)
     && (!f.project || n.projectIds.includes(f.project))

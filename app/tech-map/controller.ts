@@ -308,6 +308,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     setMark(key: string, mark: MapNode["mark"]) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
       n.mark = mark;
+      n.decided = mark?.status ?? null; // 방금 지도에서 한 판단이 가장 최근(알림 판단보다 뒤)
       if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },
     /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */

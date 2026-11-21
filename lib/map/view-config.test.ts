@@ -104,3 +104,15 @@ test("요즘 뜨는 칩: hot=1이면 뜨는 기술만, 못 읽으면 모델에 �
   assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")], trending: null }, NOW).trendFailed, true);
   assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")] }, NOW).trendFailed, false); // 안 읽은 것은 실패가 아님
 });
+
+test("판단 칩은 지금 판단(decided: 지도 표시와 알림 판단 중 최근 것)으로 거른다", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a"), tech("b")],
+    marks: [{ techId: tech("a").id, status: "interest", reason: null }], decided: { [tech("a").id]: "hold", [tech("b").id]: "candidate" } }, NOW);
+  const shown = (q: string) => m.nodes.filter((n) => passes(n, parseView(q))).map((n) => n.name).sort();
+  assert.deepEqual(shown("mk=hold"), ["a"]); // 지도에서는 관심이었지만 그 뒤 알림에서 보류
+  assert.deepEqual(shown("mk=candidate"), ["b"]); // 지도 표시 없이 알림에서만
+  assert.deepEqual(shown("mk=interest"), []);
+  assert.equal(m.nodes.find((n) => n.name === "a")?.mark?.status, "interest"); // 판단 줄 · 되돌리기는 지도 표시 그대로
+});

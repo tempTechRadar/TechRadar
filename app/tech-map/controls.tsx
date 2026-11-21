@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
-import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MARK_PICKS, MAX_LEVELS, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
 const MARK_CHIP: Record<MarkPick, string> = { interest: "내 관심", candidate: "적용 후보", hold: "보류" };
 import { MapSearch, type FindHit } from "./map-search";
@@ -143,7 +143,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
       {login ? <span className="map-seg" role="group" aria-label="내 판단">
         {MARK_PICKS.map((m) => { const on = f.marks.includes(m); return ( // 옛 보드의 칸(관심 · 적용 후보 · 보류)을 지도 칩으로(P-12f)
           <button key={m} type="button" className="chip" aria-pressed={on} onClick={() => set({ marks: on ? f.marks.filter((x) => x !== m) : [...f.marks, m] })}>
-            {MARK_CHIP[m]} <b>{count((x) => x.mark?.status === m)}</b>
+            {MARK_CHIP[m]} <b>{count((x) => x.decided === m)}</b>
           </button>
         ); })}
       </span> : null}
@@ -171,5 +171,7 @@ export function Legend({ L, view, onView }: { L: MapLayout; view: ViewConfig; on
 export function Status({ L, collapsed, nodes, view }: { L: MapLayout; collapsed: number; nodes: MapNode[]; view: ViewConfig }) {
   const shown = nodes.filter((x) => passes(x, view));
   const d = shown.filter((x) => x.grade === "danger").length, w = shown.filter((x) => x.grade === "caution").length, e = shown.filter((x) => x.collectErrorKind).length;
-  return <p className="map-status" role="status">보이는 기술 {L.shown} / 지도에 올린 기술 {L.total}{collapsed ? ` · 접힌 묶음 ${collapsed}` : ""} · 위험 {d} · 주의 {w}{e ? ` · 수집 오류 ${e}(점선 고리)` : ""}</p>;
+  // 기간 보기(옛 /new 포함)는 지도에 올린 최근 새 기술 안에서만 보인다: 전부처럼 보이지 않게 한 줄(P-12f)
+  const capped = view.filter.period ? ` · 새 기술은 지도에 올린 최근 ${NEW_QUOTA}개 안에서만 보여요` : "";
+  return <p className="map-status" role="status">보이는 기술 {L.shown} / 지도에 올린 기술 {L.total}{collapsed ? ` · 접힌 묶음 ${collapsed}` : ""} · 위험 {d} · 주의 {w}{e ? ` · 수집 오류 ${e}(점선 고리)` : ""}{capped}</p>;
 }
