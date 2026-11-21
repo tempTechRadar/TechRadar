@@ -12,6 +12,7 @@ import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
 import { CATALOG_LIMIT, NEW_RULE_VERSION, PICK_RULE, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { readTrending } from "@/lib/server/trending";
+import { MIN_HN_POINTS, MIN_STAR_GAIN, TREND_DAYS } from "@/lib/domain/trending";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
 import GoogleLoginButton from "./login/google-login-button";
@@ -42,7 +43,7 @@ const readHot = unstable_cache(async () => {
   const db = getServiceSupabase();
   if (!db) throw new Error("서비스 키 설정이 없음");
   return (await readTrending(db, Date.now(), 30)).map((t) => t.id);
-}, ["trending-ids"], { revalidate: 600 });
+}, ["trending-ids", String(TREND_DAYS), String(MIN_STAR_GAIN), String(MIN_HN_POINTS), "30"], { revalidate: 600 });
 /** null = 읽지 못함(칩이 "불러오지 못했어요") */
 const hotIds = () => readHot().catch(logged("요즘 뜨는 기술 조회 실패"));
 
@@ -79,14 +80,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   // 지도와 숫자는 따로 읽는다: 하나를 못 읽어도 다른 하나는 보여 주고, 못 읽은 쪽은 "없음"이 아니라 "읽지 못함"으로(불변 2)
   // 미리보기(개발용)는 DB를 부르지 않고 샘플로. 로그인한 사람이 있으면 연결 설정도 있다(getCurrentUser가 같은 설정으로 읽음)
   const db = isPreviewUser(user) ? null : (await getServerSupabase())!;
-  const [input, dash, firstReads, tags] = db ? await Promise.all([
+  const [input, dash, firstReads, tags, hot] = db ? await Promise.all([
     readMapInput(db, user.id, user.isDemo, selTech(query)).catch(logged("지도 조회 실패")),
     readDashboardData(db, user.id).catch(logged("지도 프로젝트 · 시작하기 조회 실패")),
     readRecentFirstReads(db, user.id).catch(logged("첫 점검 띠 조회 실패")),
     readMyTechTagMap(db, user.id).catch(logged("내 태그 조회 실패")), // 못 읽어도 지도는 그리고 태그만 "읽지 못함"
-  ]) : [sampleMapInput(), SAMPLE_DASHBOARD, SAMPLE_FIRST_READS, new Map<string, string[]>()];
+    hotIds(),
+  ]) : [sampleMapInput(), SAMPLE_DASHBOARD, SAMPLE_FIRST_READS, new Map<string, string[]>(), []];
   const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
-  const hot = db ? await hotIds() : []; // 미리보기(개발용)는 DB 없이
   const model = input ? capNew(buildTechMap({ ...input, tags: tags ? Object.fromEntries(tags) : null, trending: hot }, new Date()), MAP_NEW) : null;
   const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 

@@ -136,7 +136,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
         ); })}
       </span>
       {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
-      {trendFailed ? <span className="chip" aria-disabled="true" title="잠시 뒤 새로 고쳐 주세요">요즘 뜨는 · 불러오지 못했어요</span>
+      {trendFailed ? <span className="chip chip-note" role="status">요즘 뜨는 기술을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요</span>
         : hots || f.hot ? <button type="button" className="chip" aria-pressed={f.hot} title="7일 사이 별이 크게 늘었거나 Hacker News에 오른 기술" onClick={() => set({ hot: !f.hot })}>요즘 뜨는 <b>{hots}</b></button>
         : null /* 0개면 숨긴다(빈 칩이 시연에서 비어 보이지 않게). 못 읽음은 위처럼 따로 알린다(불변 2) */}
       <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>

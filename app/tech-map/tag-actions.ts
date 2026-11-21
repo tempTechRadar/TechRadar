@@ -19,7 +19,7 @@ async function changeTag(save: typeof addTag, techId: string, tag: string): Prom
   const db = await getServerSupabase();
   if (!db) return { ok: false, message: NOT_CONNECTED };
   const result = await save(db, user.id, { techId, tag });
-  if (result.ok && result.changed) { revalidatePath("/"); revalidatePath("/views"); }
+  if (result.ok && result.changed) { revalidatePath("/"); revalidatePath("/blueprint"); }
   return result;
 }
 

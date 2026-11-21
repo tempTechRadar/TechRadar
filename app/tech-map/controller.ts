@@ -41,7 +41,7 @@ function savedTune(): Tune {
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, marks: login ? v.filter.marks : [], tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, marks: login ? v.filter.marks : [], tags: login && !model.tagsFailed ? v.filter.tags : [], hot: !model.trendFailed && v.filter.hot, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -273,10 +273,11 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (arriving.size) landArrivals(now);
     if (S.ping && now - S.ping.t < 1.4) anim = true;
     const on = moving(S) && !document.hidden;
-    const revealing = on && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장
+    const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
+    const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장
     // 그 뒤 옅은 선 · 파동은 1초 20장. shortcut: 손대지 않은 지 90초면 멈춘다(배터리), 다시 만지면 이어서 — 정지 화면 따로 그리기는 동결 뒤
     const ambient = on && tick % 3 === 0 && now - lastActive < IDLE_SEC;
-    const pulsing = on && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
+    const pulsing = on && started && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
     if (ctx && (needDraw || anim || revealing || ambient || S.leaving.size || pulsing)) { draw(ctx, S, now); needDraw = false; }
   }
   function attach(canvas: HTMLCanvasElement) {

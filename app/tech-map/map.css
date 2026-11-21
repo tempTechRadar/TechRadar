@@ -127,3 +127,4 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
   .map-tabs, .map-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .map-tabs > *, .map-chips > * { flex: none; }
 }
+.chip.chip-note { cursor: default; } /* 알림 글을 담은 칩: 눌러지는 칩처럼 보이지 않게 */

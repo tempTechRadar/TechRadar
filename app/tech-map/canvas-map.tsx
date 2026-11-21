@@ -123,7 +123,11 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
     if (!n.techId) return;
     setBusy(true);
     await saveMarkWithToast({ techId: n.techId, status, reason, prev, text: markedText(status), say,
-      onSaved: (restored) => ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null) });
+      onSaved: (restored) => {
+        ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null);
+        // 판단 칩으로 거르는 중이면 판단을 바꾼 기술이 지도에서 빠지며 패널이 닫힌다: 초점이 사라지지 않게 열기 전 자리로
+        if (!ctl.S.sel && lastFocus.current instanceof HTMLElement && document.contains(lastFocus.current)) lastFocus.current.focus({ preventScroll: true });
+      } });
     setBusy(false);
   }
 

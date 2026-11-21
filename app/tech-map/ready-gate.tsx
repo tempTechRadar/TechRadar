@@ -2,9 +2,9 @@
 // 관문은 이 작은 스크립트가 직접 만든다(React가 그리는 부분 밖): 스크립트가 꺼져 있거나 실패하면 관문이 없어 막다른 길이 되지 않고,
 // 하이드레이션과도 부딪히지 않는다(뒤를 막는 것은 <dialog>.showModal()이 한다: React가 그린 요소에 inert를 달면 속성이 서버 HTML과 달라 경고가 난다). 뿌리 레이아웃에 두어 처음 열 때(새로 고침 포함) 한 번만 돈다(화면 안 이동에서는 React가 스크립트를 다시 안 돌림).
 // 지도는 관문 뒤에서 이미 그려지고 있어 첫 표시 속도(PRD-NF3)를 늦추지 않는다. 보일지는 gateDecision(시험 있음)이 정한다.
-// P-12f(사용자 결정 "덮개 = 로딩"): 지도가 그릴 준비가 되면(READY_MAP) 단추가 켜지고, 닫으면(GATE_CLOSED) 지도가 그때 첫 연출을 시작한다(introWaits).
-// 지도를 못 그려도(조회 실패 · 빈 지도) 막다른 길이 되지 않게 8초 뒤에는 단추를 켠다.
-import { closesGate, GATE_CLOSED, gateDecision, READY_MAP } from "@/lib/map/ready-gate";
+// P-12f(사용자 결정 "덮개 = 로딩"): 지도가 그릴 준비가 되면(READY_MAP) 단추가 켜지고, 닫으면 window.__techradarGate = "closed"가 되어
+// 지도 컨트롤러가 다음 장에 첫 연출을 시작한다(introWaits). 지도를 그리지 않는 화면(조회 실패 · 빈 지도)이면 바로 켜고, 그래도 8초 뒤에는 켠다.
+import { closesGate, gateDecision, READY_MAP } from "@/lib/map/ready-gate";
 import "./ready-gate.css";
 
 const SCRIPT = `(function () {
@@ -46,9 +46,9 @@ const SCRIPT = `(function () {
     document.removeEventListener("keydown", enter, true);
     if (gate.open && gate.close) gate.close();
     gate.remove();
-    window.__techradarGate = "closed";
-    window.dispatchEvent(new Event("${GATE_CLOSED}")); // 지도: 이제 첫 연출
-    var to = document.querySelector(".map-search input") || document.querySelector("main");
+    window.__techradarGate = "closed"; // 지도: 다음 장에 첫 연출
+    var touch = e && e.pointerType === "touch"; // 휴대폰에서 탭으로 닫으면 입력 칸에 초점을 주지 않는다(화상 키보드가 지도를 덮지 않게)
+    var to = (!touch && document.querySelector(".map-search input")) || document.querySelector("main");
     if (to) { if (to.tagName === "MAIN") to.tabIndex = -1; to.focus({ preventScroll: true }); } // 지도 찾기 칸으로(없으면 본문)
   }
   function open() {
@@ -60,6 +60,7 @@ const SCRIPT = `(function () {
     document.addEventListener("keydown", enter, true);
     try { gate.showModal(); } catch (e) { gate.setAttribute("open", ""); } // 모달: 뒤 화면은 브라우저가 막는다(화면 읽기 · Tab이 관문 뒤로 가지 않게)
     go.focus();
+    if (!document.querySelector(".map-wrap")) arm(); // 지도를 그리지 않는 화면(조회 실패 · 빈 지도): 기다릴 것이 없다
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", open); else open();
 })();`;

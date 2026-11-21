@@ -6,7 +6,6 @@ const I = ({ d }: { d: string }) => (
 );
 const ICON = {
   map: "M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 12l6-6",
-  radar: "M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z",
   history: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2",
   blueprint: "M4 4h16v16H4zM4 9h16M9 9v11",
   bell: "M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4",

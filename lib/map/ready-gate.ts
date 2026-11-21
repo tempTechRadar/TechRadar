@@ -18,6 +18,5 @@ export const closesGate = (key: { ctrlKey: boolean; metaKey: boolean; altKey: bo
 export type GateState = "open" | "closed" | undefined;
 /** 지도 첫 연출을 미룰지(P-12f 사용자 결정 "덮개 = 로딩"): 덮개가 떠 있는 동안만. 움직임이 꺼져 있으면(움직임 줄이기 · 끄기) 기다리지 않고 바로 다 보인다 */
 export const introWaits = (gate: GateState, moving: boolean): boolean => gate === "open" && moving;
-/** 관문 ↔ 지도 신호 이름: 지도가 그릴 준비가 되면 READY_MAP, 관문을 닫으면 GATE_CLOSED */
+/** 지도가 첫 장을 그리면 보내는 신호(관문 단추를 켬). 관문을 닫은 것은 window.__techradarGate = "closed"로 알린다(지도가 매 장 봄) */
 export const READY_MAP = "techradar:map-ready";
-export const GATE_CLOSED = "techradar:ready";
