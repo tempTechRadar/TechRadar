@@ -1,10 +1,10 @@
 // 사용자가 고른 묶기 기준으로 레이더 위 제자리(home)를 정하는 순수 함수(같은 입력이면 같은 그림). 시안 docs/wireframes/radar-layout.js와 같은 규칙.
 // 가운데 → 고리 1 = 1단계 묶음 → … → 맨 바깥 = 기술. 부채꼴 너비 ∝ √(들어 있는 기술 수)(첫 고리가 종류면 ∜, ADR 0030 9항 — 시안은 √만), 하위 묶음은 부모 부채꼴을 나눈다.
 // 기술이 많으면 바깥 고리를 여러 줄로 쌓는다. 색은 화면이 tokens.css에서 읽도록 토큰 이름으로 준다(테마를 바꾸면 같이 바뀜).
-import { NO_GRADE, UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
+import { MANUAL_KIND, NO_GRADE, UNSORTED, type MapNode, type TechMapModel } from "./build-map.ts";
 import { groupOf, passes, type Dim, type ViewConfig } from "./view-config.ts";
 
-export const OTHER = "그 밖";
+export const OTHER = "기타";
 /** 고리 간격: 1단계 묶음 고리 반지름과 단계 사이 거리(그리기의 고리도 같은 값) */
 export const FIRST_RING = 110, LEVEL_GAP = 95;
 // 11-21 사용자: 펼치면 딱딱 맞춰진 느낌 → 간격을 넓히고 기술마다 정해진 만큼 흩뿌린다(같은 입력이면 같은 그림, 바깥으로만 흩어 고리 순서는 그대로)
@@ -27,12 +27,12 @@ export type MapLayout = {
   depth: number; leafR: number; radius: number; shown: number; total: number;
 };
 
-const special = (v: string) => v === UNSORTED || v === OTHER || v === "모름" || v === "찾지 못함" || v === NO_GRADE || v === "내 프로젝트 아님";
+const special = (v: string) => v === UNSORTED || v === OTHER || v === MANUAL_KIND || v === "모름" || v === "찾지 못함" || v === NO_GRADE || v === "내 프로젝트 아님";
 const byValue = (a: string, b: string) => (special(a) !== special(b) ? (special(a) ? 1 : -1) : a.localeCompare(b, "ko"));
 const byName = (a: MapNode, b: MapNode) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.key < b.key ? -1 : 1);
 const polar = (a: number, r: number) => [Math.cos(a) * r, Math.sin(a) * r] as const;
 
-/** 색: 많은 값 8개까지 범주 색, 나머지는 "그 밖"(회색), 분류 전 같은 특별 값은 회색(분류 전은 빈 점) */
+/** 색: 많은 값 8개까지 범주 색, 나머지는 "기타"(회색), 분류 전 같은 특별 값은 회색(분류 전은 빈 점) */
 function legendOf(nodes: MapNode[], dim: Dim): { legend: LegendItem[]; tokenOf: (v: string) => string } {
   const counts = new Map<string, number>();
   for (const n of nodes) counts.set(n.attrs[dim], (counts.get(n.attrs[dim]) ?? 0) + 1);

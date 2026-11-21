@@ -7,16 +7,21 @@ export type Dim = (typeof DIMS)[number];
 export const DIM_KO: Record<Dim, string> = { field: "하는 일", sub: "세부 갈래", kind: "종류", host: "쓰는 곳", grade: "보안 등급", project: "내 프로젝트" };
 export const MAX_LEVELS = 3;
 
-/** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래 */
-export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; newOnly: boolean; err: boolean; project: string };
+/** 기간 칩: 들어온 지 하루 · 7일 · 30일 안(11-21 사용자: 일 · 주 · 월 보기) */
+export const PERIODS = ["day", "week", "month"] as const;
+export type Period = (typeof PERIODS)[number];
+export const PERIOD_DAYS: Record<Period, number> = { day: 1, week: 7, month: 30 };
+export const PERIOD_KO: Record<Period, string> = { day: "오늘", week: "이번 주", month: "이번 달" };
+/** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만 */
+export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; interest: boolean; err: boolean; project: string };
 /** scope = "이 분류만 보기"로 들어간 경로(바깥부터). 들어간 기준은 묶기에서 빠진다 */
 export type Scope = { dim: Dim; value: string };
 export type ViewConfig = { group: Dim[]; color: Dim; filter: ViewFilter; scope: Scope[] };
-/** 기본 보기(11-21 사용자 결정): 첫 고리 = 종류(MCP · 스킬 · 플러그인 · 패키지 · 개념), 둘째 = 하는 일. 부트캠프 교육생 · 나 같은 사용자가
+/** 기본 보기(11-21 사용자 결정): 첫 고리 = 종류(MCP · 스킬 · 플러그인 · 개발 도구 · 개념), 둘째 = 하는 일. 부트캠프 교육생 · 나 같은 사용자가
  *  "스킬이 뭐지, MCP가 뭐지"부터 바로 보게. 색은 첫 고리를 따른다(종류마다 한 색 부채꼴) */
 export const DEFAULT_VIEW: ViewConfig = {
   group: ["kind", "field"], color: "kind", scope: [],
-  filter: { kinds: [], fields: [], subs: [], risky: false, mineOnly: false, newOnly: false, err: false, project: "" },
+  filter: { kinds: [], fields: [], subs: [], risky: false, mineOnly: false, period: "", interest: false, err: false, project: "" },
 };
 
 /** 종류가 하나뿐인 카탈로그(11-21 운영은 공개 목록이 MCP뿐)면 첫 고리가 한 덩어리라 하는 일 먼저로(사용자 결정 "자동") */
@@ -32,6 +37,7 @@ export function withDefault(v: ViewConfig, query: string, kindCount: number): Vi
 }
 
 const isDim = (v: string): v is Dim => (DIMS as readonly string[]).includes(v);
+const isPeriod = (v: string): v is Period => (PERIODS as readonly string[]).includes(v);
 const values = (raw: string | null) => (raw ? raw.split(",").map((v) => v.trim().slice(0, 60)).filter(Boolean).slice(0, 20) : []);
 
 export function parseView(query: string | URLSearchParams): ViewConfig {
@@ -49,7 +55,8 @@ export function parseView(query: string | URLSearchParams): ViewConfig {
     color: isDim(c) ? c : g[0] ?? DEFAULT_VIEW.color,
     filter: {
       kinds: values(q.get("fk")), fields: values(q.get("ff")), subs: values(q.get("fs")),
-      risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", newOnly: q.get("new") === "1", err: q.get("err") === "1", project: (q.get("p") ?? "").slice(0, 60),
+      risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", interest: q.get("mk") === "1", err: q.get("err") === "1", project: (q.get("p") ?? "").slice(0, 60),
+      period: isPeriod(q.get("t") ?? "") ? q.get("t") as Period : q.get("new") === "1" ? "week" : "", // new=1 = 기간 칩 전의 "NEW만" 주소
     },
   };
 }
@@ -70,7 +77,8 @@ export function viewQuery(v: ViewConfig, base: ViewConfig = DEFAULT_VIEW): strin
   if (v.filter.err) q.set("err", "1");
   if (v.filter.risky) q.set("risky", "1");
   if (v.filter.mineOnly) q.set("mine", "1");
-  if (v.filter.newOnly) q.set("new", "1");
+  if (v.filter.period) q.set("t", v.filter.period);
+  if (v.filter.interest) q.set("mk", "1");
   if (v.filter.project) q.set("p", v.filter.project);
   return q.toString();
 }
@@ -82,7 +90,8 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
     && (!f.subs.length || f.subs.includes(n.attrs.sub))
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
     && (!f.mineOnly || n.mine || n.nearMine)
-    && (!f.newOnly || n.isNew)
+    && (!f.period || (n.addedDays !== null && n.addedDays < PERIOD_DAYS[f.period]))
+    && (!f.interest || n.mark?.status === "interest")
     && (!f.err || !!n.collectErrorKind)
     && (!f.project || n.projectIds.includes(f.project))
     && v.scope.every((s) => n.attrs[s.dim] === s.value);
@@ -91,5 +100,5 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
 /** 켠 필터 수(도구 줄의 "필터 n") */
 export const filterCount = (v: ViewConfig) => {
   const f = v.filter;
-  return f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(f.newOnly) + Number(f.err) + Number(!!f.project);
+  return f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(!!f.period) + Number(f.interest) + Number(f.err) + Number(!!f.project);
 };

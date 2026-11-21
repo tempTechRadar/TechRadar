@@ -7,8 +7,10 @@ export const GRADE_KO: Record<Grade, string> = { danger: "위험", caution: "주
 /** 개념(작업 방식) 노드는 설치물이 아니라 등급이 없다(ADR 0008 2항): "찾지 못함"으로 보이면 확인에 실패한 것처럼 읽힌다 */
 export const NO_GRADE = "등급 없음";
 export const isConcept = (techKey?: string | null, type?: string | null) => type === "concept" || Boolean(techKey?.startsWith("concept:"));
-export const KIND_KO: Record<string, string> = { mcp: "MCP", skill: "스킬", plugin: "플러그인", sdk: "패키지", model: "모델", service: "연동 서비스", concept: "개념" };
-export const UNSORTED = "분류 전";
+export const KIND_KO: Record<string, string> = { mcp: "MCP", skill: "스킬", plugin: "플러그인", sdk: "개발 도구", model: "모델", service: "연동 서비스", concept: "개념" };
+export const UNSORTED = "아직 분류 안 됨";
+/** 카탈로그에 없이 이름만 직접 넣은 기술의 종류(전에는 "모름": 쓰는 곳 "모름"과 헷갈려서, 11-21) */
+export const MANUAL_KIND = "직접 넣은 것";
 
 /** 묶기·색·거르기에 쓰는 기준(view-config.ts의 Dim과 같은 이름) */
 export type Attrs = { field: string; sub: string; kind: string; host: string; grade: string; project: string };
@@ -35,6 +37,7 @@ export type MapNode = {
   attrs: Attrs; hostGuessed: boolean; grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; license: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
+  /** 들어온 지 며칠(처음 채운 날 · 대량 채우기분은 null). 기간 칩(오늘 · 이번 주 · 이번 달)이 쓴다 */ addedDays: number | null;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
   /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
 };
@@ -83,21 +86,23 @@ export function categoryNames(categoryId: string | null, cats: Map<string, Categ
   return { field: cats.get(c.parentId)?.name ?? UNSORTED, sub: c.name };
 }
 
+/** 처음 채운 날 뒤에 들어온 것만 들어온 지 며칠, 아니면 null */
+const addedDaysOf = (createdAt: string | null, now: Date, newSince?: string) =>
+  createdAt && (!newSince || Date.parse(createdAt) > Date.parse(newSince)) ? daysSince(createdAt, now) : null; // 글자 비교는 +00:00·Z가 섞이면 틀린다
 /** 들어온 지 7일 안이고, 처음 채운 날 뒤에 들어온 것 */
-export const isNewTech = (createdAt: string | null, now: Date, newSince?: string) =>
-  (daysSince(createdAt, now) ?? Infinity) < NEW_DAYS && (!newSince || (!!createdAt && Date.parse(createdAt) > Date.parse(newSince))); // 글자 비교는 +00:00·Z가 섞이면 틀린다
+export const isNewTech = (createdAt: string | null, now: Date, newSince?: string) => (addedDaysOf(createdAt, now, newSince) ?? Infinity) < NEW_DAYS;
 
 function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date, newSince?: string): MapNode {
   const { host, guessed } = hostOf(t?.techKey ?? null, t?.type ?? null, t?.hosts ?? null);
   const grade = t?.grade ?? "unknown";
   return {
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
-    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : "모름", host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
+    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : MANUAL_KIND, host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: isNewTech(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), addedDays: addedDaysOf(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,
   };
 }
 

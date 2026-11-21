@@ -3,6 +3,7 @@
 // → ③ 거기에도 없으면(고유명사 등) "'이름' 직접 추가"로 내 기술에 넣기. 지도에 올리기 · 추가 뒤에는 그 기술을 고른 채로 지도를 새로 연다.
 import { useEffect, useState } from "react";
 import { searchTerm } from "@/lib/domain/my-tech-view";
+import { UNSORTED } from "@/lib/map/build-map";
 import type { Dim } from "@/lib/map/view-config";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { LoginLink } from "../login-link";
@@ -55,7 +56,7 @@ function CatalogPart({ term, searchable, catalog, login, projects }: { term: str
   return (
     <>
       {catalog.map((t) => (
-        <li key={t.id}><button type="button" onClick={() => openOnMap(`tech:${t.id}`)}>{t.name} <span className="muted">{t.field ?? "분류 전"} · 지도에 올리기</span></button></li>
+        <li key={t.id}><button type="button" onClick={() => openOnMap(`tech:${t.id}`)}>{t.name} <span className="muted">{t.field ?? UNSORTED} · 지도에 올리기</span></button></li>
       ))}
       {catalog.length ? null : <><li className="muted">모은 기술에서도 찾지 못했어요.</li><ManualAdd name={term} login={login} projects={projects} /></>}
     </>

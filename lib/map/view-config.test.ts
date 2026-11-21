@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_VIEW, filterCount, groupOf, parseView, viewQuery, type ViewConfig } from "./view-config.ts";
+import { DEFAULT_VIEW, filterCount, groupOf, parseView, passes, viewQuery, type ViewConfig } from "./view-config.ts";
 
 test("주소 → 보기 설정 → 주소가 같다(기본값은 주소에 싣지 않음)", () => {
   assert.deepEqual(parseView(""), DEFAULT_VIEW);
@@ -46,4 +46,18 @@ test("기본 보기는 종류가 둘 이상일 때만 종류 먼저, 하나뿐�
   const saved = viewQuery(picked, defaultFor(1));
   assert.deepEqual(withDefault(parseView(saved), saved, 1).group, ["kind", "field"]);
   assert.equal(viewQuery(defaultFor(1), defaultFor(1)), "", "기본 그대로면 싣지 않음");
+});
+
+test("기간 칩: 들어온 지 하루 · 7일 · 30일 안만, 처음 채운 날 것(addedDays 없음)은 어느 기간에도 안 듦. 옛 주소 new=1은 이번 주", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, ago, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], newSince: ago(60), techs: [
+    tech("d", { createdAt: ago(0.5) }), tech("w", { createdAt: ago(3) }), tech("m", { createdAt: ago(20) }), tech("old", { createdAt: ago(90) }), tech("bulk", { createdAt: null }),
+  ] }, NOW);
+  const shown = (t: string) => m.nodes.filter((n) => passes(n, parseView(`t=${t}`))).map((n) => n.name).sort();
+  assert.deepEqual([shown("day"), shown("week"), shown("month")], [["d"], ["d", "w"], ["d", "m", "w"]]);
+  assert.equal(parseView("new=1").filter.period, "week");
+  assert.equal(parseView("t=year").filter.period, "");
+  assert.equal(viewQuery(parseView("t=month&mk=1")), "t=month&mk=1");
+  assert.equal(filterCount(parseView("t=day&mk=1")), 2);
 });

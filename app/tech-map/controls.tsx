@@ -1,10 +1,10 @@
 "use client";
 // 지도 위 도구 줄(시안 radar.html·radar-ui.js): 찾기(이름·설명·갈래) · 보기(묶기 1~3단계 · 색) · 필터(값마다 개수) · 보기 초기화,
-// 그 아래 경로 칩(이 분류만 보기)과 요약 칩(이번 주 NEW · 내 기술과 비교군), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
+// 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
 import { useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
-import { DIMS, DIM_KO, filterCount, MAX_LEVELS, passes, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, MAX_LEVELS, passes, PERIOD_DAYS, PERIOD_KO, PERIODS, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 import { MapSearch, type FindHit } from "./map-search";
 
 type ListKey = "kinds" | "fields" | "subs";
@@ -73,9 +73,6 @@ export function Toolbar({ nodes, view, projects, canMine, login, motion, onView,
               <label className="check"><input type="checkbox" checked={f.risky} onChange={(e) => setFilter({ risky: e.target.checked })} /> 위험·주의만 <span className="muted">{count((x) => x.grade === "danger" || x.grade === "caution")}</span></label>
               <label className="check"><input type="checkbox" checked={f.err} onChange={(e) => setFilter({ err: e.target.checked })} /> 수집 오류만 <span className="muted">{count((x) => !!x.collectErrorKind)}</span></label>
             </fieldset>
-            <fieldset><legend>새로 들어옴</legend>
-              <label className="check"><input type="checkbox" checked={f.newOnly} onChange={(e) => setFilter({ newOnly: e.target.checked })} /> NEW만(7일) <span className="muted">{count((x) => x.isNew)}</span></label>
-            </fieldset>
             <fieldset><legend>내 기술</legend>
               <label className="check"><input type="checkbox" checked={f.mineOnly} disabled={!canMine} onChange={(e) => setFilter({ mineOnly: e.target.checked })} /> 내 기술과 비교군(한 단계){canMine ? <span className="muted"> {count((x) => x.mine || x.nearMine)}</span> : " (로그인하고 프로젝트를 등록한 뒤)"}</label>
               {canMine && projects.length > 1 ? (
@@ -90,7 +87,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, motion, onView,
                 <div className="map-subf" role="group" aria-label={`${v}의 세부 갈래`}>{[...new Set(base.filter((x) => x.attrs.field === v).map((x) => x.attrs.sub))].sort(sortKo).map((s) => box("subs", s))}</div>
               ) : null}</div>
             ))}</fieldset>
-            {n ? <button type="button" className="btn" onClick={() => onView({ ...view, filter: { ...f, kinds: [], fields: [], subs: [], risky: false, mineOnly: false, newOnly: false, err: false, project: "" } })}>필터 모두 끄기</button> : null}
+            {n ? <button type="button" className="btn" onClick={() => onView({ ...view, filter: { ...DEFAULT_VIEW.filter } })}>필터 모두 끄기</button> : null}
           </div>
         ) : null}
       </div>
@@ -114,17 +111,26 @@ export function Crumbs({ view, onView }: { view: ViewConfig; onView: (v: ViewCon
   );
 }
 
-export function SummaryChips({ nodes, view, canMine, onView }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; onView: (v: ViewConfig) => void }) {
-  const nw = nodes.filter((x) => x.isNew).length, near = nodes.filter((x) => x.mine || x.nearMine).length;
-  const flip = (k: "newOnly" | "mineOnly" | "err") => onView({ ...view, filter: { ...view.filter, [k]: !view.filter[k] } });
-  // 띠(design.md 17절 3차): 수집 오류 수. 필터가 켜져 있으면 0이어도 보여서 끌 수 있게
+/** 늘 보이는 빠른 칩(11-21 사용자: 필터를 보기 창 밖으로): 들어온 때(오늘 · 이번 주 · 이번 달) · 위험·주의 · 내 관심 · 내 기술과 비교군 · 수집 오류.
+ *  다시 누르면 꺼진다. 수는 들어간 분류와 상관없이 지도 전체에서 센다 */
+export function QuickChips({ nodes, view, canMine, login, onView }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; login: boolean; onView: (v: ViewConfig) => void }) {
+  const f = view.filter, set = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
+  const count = (fn: (x: MapNode) => boolean) => nodes.filter(fn).length;
   // shortcut: "마지막 수집"은 정기 실행 기록(runs)을 읽어야 정확해서 아직 없음. 노드 하나의 확인 시각은 지도 전체가 최신인 것처럼 보이게 한다
-  const errs = nodes.filter((x) => x.collectErrorKind).length;
+  const errs = count((x) => !!x.collectErrorKind);
   return (
     <>
-      {canMine ? <button type="button" className="chip" aria-pressed={view.filter.mineOnly} onClick={() => flip("mineOnly")}>내 기술과 비교군 <b>{near}</b></button> : null}
-      <button type="button" className="chip" aria-pressed={view.filter.newOnly} onClick={() => flip("newOnly")}>이번 주 NEW <b>{nw}</b></button>
-      {errs > 0 || view.filter.err ? <button type="button" className="chip" aria-pressed={view.filter.err} onClick={() => flip("err")}>수집 오류 <b>{errs}</b></button> : null}
+      <span className="map-seg" role="group" aria-label="들어온 때">
+        {PERIODS.map((p) => (
+          <button key={p} type="button" className="chip" aria-pressed={f.period === p} onClick={() => set({ period: f.period === p ? "" : p })}>
+            {PERIOD_KO[p]} <b>{count((x) => x.addedDays !== null && x.addedDays < PERIOD_DAYS[p])}</b>
+          </button>
+        ))}
+      </span>
+      <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
+      {login ? <button type="button" className="chip" aria-pressed={f.interest} onClick={() => set({ interest: !f.interest })}>내 관심 <b>{count((x) => x.mark?.status === "interest")}</b></button> : null}
+      {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>내 기술과 비교군 <b>{count((x) => x.mine || x.nearMine)}</b></button> : null}
+      {errs > 0 || f.err ? <button type="button" className="chip" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 <b>{errs}</b></button> : null}
     </>
   );
 }

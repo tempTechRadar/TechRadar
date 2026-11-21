@@ -28,8 +28,8 @@ test("묶기 기준 값: 작은 갈래는 큰 갈래 아래로, 갈래가 없으
   const m = buildTechMap(input({ techs: [tech("a"), tech("b", { categoryId: "big-design", type: "skill", techKey: "skill:x/y/b" }), tech("c", { categoryId: null })] }), NOW);
   const by = Object.fromEntries(m.nodes.map((n) => [n.name, n.attrs]));
   assert.deepEqual([by.a.field, by.a.sub, by.a.kind], ["백엔드·데이터", "DB", "MCP"]);
-  assert.deepEqual([by.b.field, by.b.sub, by.b.kind, by.b.host], ["디자인", "분류 전", "스킬", "Claude Code"]);
-  assert.deepEqual([by.c.field, by.c.sub], ["분류 전", "분류 전"]);
+  assert.deepEqual([by.b.field, by.b.sub, by.b.kind, by.b.host], ["디자인", "아직 분류 안 됨", "스킬", "Claude Code"]);
+  assert.deepEqual([by.c.field, by.c.sub], ["아직 분류 안 됨", "아직 분류 안 됨"]);
 });
 
 test("쓰는 곳은 칸이 있으면 그대로, 비면 기술 키·종류로 추정하고 추정이라고 표시", () => {
@@ -42,7 +42,7 @@ test("쓰는 곳은 칸이 있으면 그대로, 비면 기술 키·종류로 추
 test("같은 역할이 하나도 없는 내 기술은 외톨이, 이름만 추가한 기술은 분류 전·종류 모름", () => {
   const m = buildTechMap(input({ mine: [mine("m1", "a"), mine("m2", null, { manualName: "My Tool", grade: "unknown" })], techs: [tech("a")] }), NOW);
   const manual = m.nodes.find((n) => n.key === "name:my tool")!;
-  assert.deepEqual([manual.lonely, manual.attrs.field, manual.attrs.kind], [true, "분류 전", "모름"]);
+  assert.deepEqual([manual.lonely, manual.attrs.field, manual.attrs.kind], [true, "아직 분류 안 됨", "직접 넣은 것"]);
 });
 
 test("NEW는 카탈로그에 들어온 지 7일 안, 수집 오류는 '업데이트 n일 전'이 아니라 '수집 오류'(불변 2)", () => {

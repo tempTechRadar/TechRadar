@@ -109,3 +109,19 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-start ol { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; }
 .map-start li { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--hit); }
 .map-start li.done { color: var(--muted); text-decoration: line-through; }
+
+/* 보기 묶음 탭(노션 보기 탭처럼, 11-21): 테두리 없는 글자 탭, 고른 것만 밑줄. 빠른 칩의 "들어온 때"는 붙은 세 칸 */
+.map-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+.map-tab-wrap { display: inline-flex; align-items: center; border-radius: var(--r-md); background: color-mix(in srgb, var(--surface) 82%, transparent); }
+.map-tab { min-height: 36px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; }
+.map-tab:hover { color: var(--ink); }
+.map-tab[aria-pressed="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+.map-tab-x { min-width: 28px; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 11px; cursor: pointer; }
+.map-tab-x:hover { color: var(--ink); }
+.map-tab-add { color: var(--muted); }
+.map-tab-form { display: inline-flex; gap: 4px; align-items: center; }
+.map-tab-form input { min-height: 36px; width: 140px; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); background: var(--surface); }
+.map-seg { display: inline-flex; }
+.map-seg .chip { border-radius: 0; margin-left: -1px; }
+.map-seg .chip:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
+.map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }

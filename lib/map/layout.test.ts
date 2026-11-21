@@ -23,13 +23,13 @@ const names = (l: MapLayout) => leaves(l).map((x) => x.node.name);
 
 test("묶기 1단계·2단계: 고리 1 = 1단계 묶음, 고리 2 = 2단계 묶음, 맨 바깥 = 기술. 분류 전은 맨 뒤", () => {
   const l = layoutMap(buildTechMap(catalog, NOW), FIELD_VIEW); // 하는 일 › 종류
-  assert.deepEqual(groups(l).filter((g) => g.level === 1).map((g) => [g.value, g.count]), [["디자인", 1], ["백엔드·데이터", 2], ["분류 전", 1]]);
+  assert.deepEqual(groups(l).filter((g) => g.level === 1).map((g) => [g.value, g.count]), [["디자인", 1], ["백엔드·데이터", 2], ["아직 분류 안 됨", 1]]);
   assert.deepEqual(groups(l).filter((g) => g.level === 2 && g.parent?.endsWith("백엔드·데이터")).map((g) => g.value), ["스킬", "MCP"], "한국어 이름 먼저(ko 정렬)");
   const r = (x: number, y: number) => Math.hypot(x, y);
   const ring1 = Math.max(...groups(l).filter((g) => g.level === 1).map((g) => r(g.x, g.y)));
   const ring2 = Math.min(...groups(l).filter((g) => g.level === 2).map((g) => r(g.x, g.y)));
   assert.ok(ring1 < ring2 && ring2 < Math.min(...leaves(l).map((x) => r(x.x, x.y))), "안쪽부터 1단계 → 2단계 → 기술");
-  assert.equal(groups(l).find((g) => g.value === "분류 전")!.danger, 1, "묶음마다 위험 수");
+  assert.equal(groups(l).find((g) => g.value === "아직 분류 안 됨")!.danger, 1, "묶음마다 위험 수");
 });
 
 test("묶기 기준을 바꾸면 같은 기술이 다른 묶음으로(종류만), 묶지 않으면 기술만", () => {
@@ -41,7 +41,7 @@ test("묶기 기준을 바꾸면 같은 기술이 다른 묶음으로(종류만)
 
 test("색: 많은 값부터 범주 토큰, 분류 전은 회색 빈 점. 색 기준과 같은 단계의 묶음만 색을 가진다", () => {
   const l = layoutMap(buildTechMap(catalog, NOW), FIELD_VIEW);
-  assert.deepEqual(l.legend.map((x) => [x.value, x.count, x.token]), [["백엔드·데이터", 2, "--cat-1"], ["디자인", 1, "--cat-2"], ["분류 전", 1, "--unknown"]]);
+  assert.deepEqual(l.legend.map((x) => [x.value, x.count, x.token]), [["백엔드·데이터", 2, "--cat-1"], ["디자인", 1, "--cat-2"], ["아직 분류 안 됨", 1, "--unknown"]]);
   const d = leaves(l).find((x) => x.node.name === "d")!;
   assert.deepEqual([d.token, d.hollow], ["--unknown", true]);
   assert.ok(groups(l).filter((g) => g.level === 2).every((g) => g.token === null));

@@ -1,7 +1,7 @@
 // 새 기술(ADR 0028 4, design.md 13절 3): 처음 채운 뒤 7일 안에 들어온 공개 목록 기술을 하는 일 갈래별로, 갈래마다 10개 + 더 보기.
 // 줄마다 한 줄 소개 · 종류 · 보안, 지도에서 보기 · 관심. 본인 표시만 읽는다(불변 5).
 import Link from "next/link";
-import { buildTechMap, GRADE_KO } from "@/lib/map/build-map";
+import { buildTechMap, GRADE_KO, UNSORTED } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { NEW_LIMIT, NEW_RULE_VERSION, readNewTechs, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
@@ -46,7 +46,7 @@ export default async function NewTechPage({ searchParams }: { searchParams: Prom
               <li key={n.key} className="new-row">
                 <div className="new-main">
                   <b>{n.name}</b>
-                  <span className="muted">{[n.attrs.kind, n.attrs.sub !== "분류 전" ? n.attrs.sub : null].filter(Boolean).join(" · ")}</span>
+                  <span className="muted">{[n.attrs.kind, n.attrs.sub !== UNSORTED ? n.attrs.sub : null].filter(Boolean).join(" · ")}</span>
                   {n.oneLiner ? <span>{n.oneLiner}</span> : null}
                 </div>
                 {n.grade === "danger" || n.grade === "caution" ? <span className={`badge ${n.grade === "danger" ? "badge-danger" : "badge-warning"}`}>{n.grade === "danger" ? "✕" : "!"} {GRADE_KO[n.grade]}</span> : null}

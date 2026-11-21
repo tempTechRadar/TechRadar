@@ -59,16 +59,17 @@ const DEV_TYPES = ["skill", "plugin", "concept"]; // 개발 도구(sdk)는 입�
 export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)은 그 시드 파일의 줄 수만 막는다(다른 마이그레이션 · 관리자가 starter_set을 켜면 따로 세어 볼 것)
 const RISKY_MAX = 100, NEW_QUOTA = 60;
 /** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
-export const PICK_RULE = "dev-first-4";
+export const PICK_RULE = "dev-first-5";
 
 const devCategoryIds = (cats: Category[]) => {
   const tops = new Set(cats.filter((c) => !c.parentId && DEV_FIELDS.includes(c.name)).map((c) => c.id));
   return cats.filter((c) => tops.has(c.id) || (c.parentId !== null && tops.has(c.parentId))).map((c) => c.id);
 };
-const newSince = (now: Date) => { const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString(); return weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL; };
+/** days일 전과 처음 채운 날 중 늦은 때. 지도는 기간 칩의 가장 긴 것(이번 달 = 30일)까지 새 기술 몫으로 읽고(NEW 표시는 그중 7일 안만, build-map isNewTech), 새 기술 화면은 7일 */
+const sinceDays = (now: Date, days: number) => { const at = new Date(now.getTime() - days * 86_400_000).toISOString(); return at > CATALOG_FIRST_FILL ? at : CATALOG_FIRST_FILL; };
 
 /**
- * 지도에 올릴 모은 기술 CATALOG_LIMIT개(ADR 0030 8항): ① 위험 → 주의(RISKY_MAX까지) ② 입문 세트(STARTER_MAX까지) ③ 이번 주 새 기술(NEW_QUOTA까지, 대량 채우기분 제외)
+ * 지도에 올릴 모은 기술 CATALOG_LIMIT개(ADR 0030 8항): ① 위험 → 주의(RISKY_MAX까지) ② 입문 세트(STARTER_MAX까지) ③ 최근 30일 새 기술(최근 것부터 NEW_QUOTA까지, 대량 채우기분 제외)
  * ④ 개발 분야 · 스킬 · 플러그인 · 개념을 두꺼운 것 → 별 많은 순 ⑤ 자리가 남으면 나머지를 같은 순(생활 · 업무 연동 등). 겹치면 한 번.
  * 사라진 기술, (시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 공개 목록(소개 출처가 있음)만(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
@@ -80,7 +81,7 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]
   const [risky, starter, fresh, dev] = await Promise.all([
     listed().or("grade.eq.danger,grade.eq.caution").order("grade", { ascending: false }).order("depth").order("id").limit(RISKY_MAX), // 글자 내림차순: danger 먼저
     listed().eq("signals->>starter_set", "true").order("type").order("id").limit(STARTER_MAX),
-    listed().gt("created_at", newSince(new Date())).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_QUOTA),
+    listed().gt("created_at", sinceDays(new Date(), 30)).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_QUOTA),
     ranked(listed().or(devFilter)).limit(CATALOG_LIMIT),
   ]);
   const seen = new Set<string>(), pick = (r: { data: unknown; error: { message: string } | null }) => rowsOrThrow(r, "모은 기술을 읽지 못함").filter((x) => !seen.has(x.id) && seen.add(x.id));
@@ -94,7 +95,7 @@ export const NEW_LIMIT = 500;
 /** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
 /** userId가 null이면 로그인 전(11-21 사용자 결정: 새 기술도 로그인 없이): 서비스 키로 공개 목록만 읽고 내 표시는 없다(ADR 0029) */
 export async function readNewTechs(db: SupabaseClient, userId: string | null, now: Date): Promise<MapInput> {
-  const since = newSince(now);
+  const since = sinceDays(now, 7);
   const [categories, techRes, markRes] = await Promise.all([
     readCategories(db),
     // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다

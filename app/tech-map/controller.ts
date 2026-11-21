@@ -29,9 +29,9 @@ function savedMotion(): Motion {
   try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "ripple" || v === "off" ? v : "sweep"; } catch { return "sweep"; }
 }
 
-function usable(v: ViewConfig, model: TechMapModel, projectIds: string[]): ViewConfig {
+function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -44,7 +44,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
   const kindCount = new Set(model.nodes.map((n) => n.attrs.kind)).size; // 종류가 하나뿐이면 기본 묶기를 하는 일 먼저로
-  const view0 = usable(withDefault(parseView(opts.initialQuery), opts.initialQuery, kindCount), model, projectIds);
+  const view0 = usable(withDefault(parseView(opts.initialQuery), opts.initialQuery, kindCount), model, projectIds, opts.login);
   const L0 = layoutMap(model, view0);
 
   const S: MapState = {
@@ -92,7 +92,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (S.introAt !== Infinity) finishIntro(); // 도구 줄을 만지면 처음 연출은 끝(첫 장 전 되살리기는 연출을 지움)
     const scoped = JSON.stringify(next.scope) !== JSON.stringify(S.view.scope); // 되살린 보기는 새 배열이라 값으로 비교
     const regroup = next.group.join() !== S.view.group.join() || scoped;
-    S.view = usable(next, model, projectIds);
+    S.view = usable(next, model, projectIds, opts.login);
     if (regroup) manual.clear(); // 묶기가 바뀌면 묶음 id가 달라져 손댄 기억은 뜻이 없다
     rebuild(() => from);
     if (scoped) flyTo(homeCam(), false);
@@ -136,7 +136,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   /** 보기 초기화: 맨 처음 화면으로(묶기·색·필터·분류만 보기·펼침·카메라 모두, 사용자 11-20) */
   function resetView() {
     S.sel = "";
-    S.view = usable(defaultFor(kindCount), model, projectIds);
+    S.view = usable(defaultFor(kindCount), model, projectIds, opts.login);
     manual.clear();
     rebuild((it) => { const p = it.parent ? phys.B.get(it.parent) : null; return p ? [p.x, p.y] : [0, 0]; });
     flyTo(homeCam(), false); saveView(); dirty(); notify();
@@ -261,6 +261,11 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     /** 판단을 남긴 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로) */
     setMark(key: string, mark: MapNode["mark"]) { const n = model.nodes.find((x) => x.key === key); if (n) { n.mark = mark; notify(); } },
     groupMembers(g: GroupItem) { return S.L.items.filter((it): it is TechItem => it.type === "t" && isUnder(S.L, it, g.id)); },
+    /** 보기 묶음(프리셋): 주소 모양 보기를 이 지도의 기본 묶기 위에 연다 · 지금 보기를 같은 모양으로(같은 보기인지 비교) */
+    applyQuery(q: string) { setView(withDefault(parseView(q), q, kindCount)); },
+    queryOf(q: string) { return viewQuery(usable(withDefault(parseView(q), q, kindCount), model, projectIds, opts.login), defaultFor(kindCount)); },
+    countOf(q: string) { const v = usable(parseView(q), model, projectIds, opts.login); return model.nodes.filter((n) => passes(n, v)).length; },
+    query() { return viewQuery(S.view, defaultFor(kindCount)); },
   };
 }
 export type MapController = ReturnType<typeof createMapController>;
