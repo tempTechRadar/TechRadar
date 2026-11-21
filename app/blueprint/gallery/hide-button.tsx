@@ -20,9 +20,9 @@ export function HideButton({ id, name }: { id: string; name: string }) {
   const label = pending ? "처리 중…" : hidden ? "되돌리기" : "숨기기";
   return (
     <>
-      <button type="button" className="chip" onClick={hidden ? toggle : () => setAsking(true)} disabled={pending} aria-label={`${name} 템플릿 ${label}(관리자)`}>{label}</button>
+      <button type="button" className="chip" onClick={() => { if (!pending) (hidden ? toggle() : setAsking(true)); }} aria-disabled={pending} aria-label={`${name} 템플릿 ${label}(관리자)`}>{label}</button>
       <span role="status" aria-live="polite" className="muted">{message}</span>
-      {asking ? <AskDialog title="갤러리에서 숨길까요?" yes="숨기기" onYes={() => { setAsking(false); toggle(); }} onClose={() => setAsking(false)}>
+      {asking ? <AskDialog title="갤러리에서 숨길까요?" yes="숨기기" risky onYes={() => { setAsking(false); toggle(); }} onClose={() => setAsking(false)}>
         <p>&quot;{name}&quot; 템플릿을 갤러리에서 숨겨요. 만든 사람은 계속 볼 수 있어요.</p>
       </AskDialog> : null}
     </>

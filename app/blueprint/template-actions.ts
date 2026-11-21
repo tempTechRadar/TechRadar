@@ -16,7 +16,7 @@ export async function templatesAction(): Promise<TemplateLists | { message: stri
   const user = await getCurrentUser();
   if (!user) return { message: "로그인하면 템플릿을 쓸 수 있어요." };
   const db = await getServerSupabase();
-  if (!db) return { message: "템플릿을 읽지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+  if (!db) return { message: "템플릿을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." };
   const [mine, frame, combo] = await Promise.all([
     orNull(readMyTemplates(db, user.id), "내 템플릿 조회 실패"),
     orNull(readPublicTemplates(db, "frame"), "공개 틀 조회 실패"), orNull(readPublicTemplates(db, "combo"), "공개 조합 조회 실패"),

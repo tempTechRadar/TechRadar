@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { countPending, filterAlerts } from "@/lib/alerts/filter-alerts";
 import { parseAlertFilter } from "@/lib/alerts/parse-alert-filter";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
@@ -10,11 +11,17 @@ import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { chipHref, currentOf } from "@/lib/alerts/alert-chips";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
+import { PageSkeleton } from "../page-skeleton";
 
 // 알림 목록(IA-6, PRD-F14). 판단 버튼은 P-8, 대응안 초안은 P-13에서 상세에 붙인다.
 type Params = { kind?: string; status?: string; period?: string; project?: string };
 
-export default async function AlertsPage({ searchParams }: { searchParams: Promise<Params> }) {
+/** 읽는 동안 뼈대는 목록 화면만 감싼다: 폴더에 loading.tsx를 두면 하위 화면(redirect · notFound)까지 감싸 404 · 이동이 200으로 나간다(P-12f ④, page-skeleton.tsx) */
+export default function AlertsPage(props: { searchParams: Promise<Params> }) {
+  return <Suspense fallback={<PageSkeleton title="알림" />}><AlertsBody {...props} /></Suspense>;
+}
+
+async function AlertsBody({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
   if (!user) return <LoginNeeded title="알림" why="로그인하고 내 프로젝트를 등록하면, 내가 쓰는 기술에 위험이 생기거나 대안이 나왔을 때 여기에서 알려 드려요." next={backTo("/alerts", await searchParams)} />;
   const params = await searchParams;

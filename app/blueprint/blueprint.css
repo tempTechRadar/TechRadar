@@ -8,7 +8,6 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-name { font: inherit; font-weight: 700; font-size: 17px; min-height: var(--hit); padding: 0 8px; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--ink); }
 .bp-name:hover, .bp-name:focus { border-color: var(--line); }
 .bp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.bp-page .btn.bp-sm { min-height: 32px; padding: 0 8px; font-size: var(--fs-cap); }
 .bp-page .btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 
 .bp-opts { display: grid; gap: 6px; margin: 10px 0; }

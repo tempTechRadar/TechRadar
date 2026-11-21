@@ -22,7 +22,7 @@ export async function loadCheckAction(blueprintId: string): Promise<CheckLoad> {
   if (!user) return { ok: false, message: "로그인하면 확정한 청사진을 점검할 수 있어요." };
   const userDb = await getServerSupabase();
   const serviceDb = getServiceSupabase();
-  if (!userDb || !serviceDb) return { ok: false, message: "점검 내용을 읽지 못했어요. 잠시 뒤 다시 열어 주세요." };
+  if (!userDb || !serviceDb) return { ok: false, message: "점검 내용을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요." };
   const now = new Date();
   try {
     const loaded = await loadBlueprintFacts({ userDb, serviceDb }, String(blueprintId ?? ""), user.id, now);
@@ -31,7 +31,7 @@ export async function loadCheckAction(blueprintId: string): Promise<CheckLoad> {
     return { ok: true, data: { facts: loaded.facts.map(toStoredFact), latest, usedToday, limit: BLUEPRINT_CHECK_PER_USER_PER_DAY } };
   } catch (error) {
     console.error("청사진 점검 내용 읽기 실패", error instanceof Error ? error.message : error);
-    return { ok: false, message: "점검 내용을 읽지 못했어요. 잠시 뒤 다시 열어 주세요." };
+    return { ok: false, message: "점검 내용을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요." };
   }
 }
 

@@ -86,7 +86,7 @@
 .c-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
 .c-toast-float { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; }
 @media (max-width: 640px) { .c-toast-float { bottom: calc(64px + env(safe-area-inset-bottom)); } } /* 아래 탭 막대 위 */
-/* 공용 대화상자(app/c-dialog.tsx). 대화상자는 DOM에선 그 자리에 있어 .page 밖(지도 등)에서도 쓰게 전역으로 둔다 */
+/* 공용 대화상자(app/c-dialog.tsx). 단추는 .page .btn을 쓰므로 .page 안에서 그린다(찾기 · 넣기 대화상자는 .page 밖이라 capture.css에 따로) */
 .c-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
 .c-dialog::backdrop { background: rgba(0, 0, 0, .35); }
 .c-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 6px; }

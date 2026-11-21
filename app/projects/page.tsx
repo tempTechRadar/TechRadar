@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense } from "react";
 import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
 import { GRADE_OPTIONS, keepView, ownText, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
@@ -14,7 +14,9 @@ import { registerProject } from "./actions";
 import { AddTech } from "./add-tech";
 import { ArchivedProjects, type ArchivedProject } from "./archived-projects";
 import { ProjectManage } from "./project-manage";
-import { ProjectTechs, type ProjectRow } from "./tech-table";import { backTo, LoginNeeded } from "../login/login-needed";
+import { ProjectTechs, type ProjectRow } from "./tech-table";
+import { backTo, LoginNeeded } from "../login/login-needed";
+import { PageSkeleton } from "../page-skeleton";
 
 
 // 등록 · 다시 읽기(서버 액션)가 이 화면에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간. Hobby 최대(2026-11 공식 문서)
@@ -30,11 +32,16 @@ const URL_ERROR_TEXT: Record<string, string> = {
   ...PROJECT_ERROR_TEXT,
 };
 
-export default async function ProjectsPage({ searchParams }: { searchParams: Promise<Query> }) {
+/** 읽는 동안 뼈대는 목록 화면만 감싼다: 폴더에 loading.tsx를 두면 하위 화면(redirect · notFound)까지 감싸 404 · 이동이 200으로 나간다(P-12f ④, page-skeleton.tsx) */
+export default function ProjectsPage(props: { searchParams: Promise<Query> }) {
+  return <Suspense fallback={<PageSkeleton title="내 프로젝트" />}><ProjectsBody {...props} /></Suspense>;
+}
+
+async function ProjectsBody({ searchParams }: { searchParams: Promise<Query> }) {
   const user = await getCurrentUser();
   const query = await searchParams;
   // 로그인 전: 다른 화면처럼 그 자리 안내(보내기 대신) — 읽는 동안 뼈대(loading.tsx)를 두어도 이동이 200으로 나가지 않게(P-12f ④)
-  if (!user) return <LoginNeeded title="내 프로젝트" why="로그인하면 GitHub 저장소나 내 컴퓨터의 AI 코딩 도구를 등록하고, 읽은 기술을 지도와 현황에서 볼 수 있어요." next={backTo("/projects", query)} />;
+  if (!user) return <LoginNeeded title="내 프로젝트" why="로그인하면 GitHub 저장소나 내 컴퓨터의 AI 코딩 도구를 등록하고, 읽은 기술을 지도와 현황에서 볼 수 있어요." next={backTo("/projects", { ...query, error: undefined, notice: undefined })} />;
   if (isPreviewUser(user)) return <PreviewOnly title="내 프로젝트" />; // 미리보기(개발용)는 DB를 부르지 않는다. 프로젝트 샘플은 없어서 안내만
   const supabase = await getServerSupabase();
   if (!supabase) return <main className="page"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;
@@ -86,7 +93,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       </form>
       <p className="muted">package.json, requirements.txt, .mcp.json, .claude/skills와 Cursor · VS Code · Gemini CLI의 MCP 설정(.cursor/mcp.json · .vscode/mcp.json · .gemini/settings.json)에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
-      {noticeText && <p className="notice notice-empty" role="status">{noticeText}</p>}
+      {noticeText && <p className="notice notice-ok" role="status">{noticeText}</p>}
       {staleProject && <p className="notice notice-empty" role="status">그 프로젝트는 보관했거나 없어서 보여 줄 수 없어요. <Link href="/projects">전체 보기</Link></p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 "누가·언제 바꿨는지" 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
 

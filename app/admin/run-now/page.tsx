@@ -38,7 +38,7 @@ export default async function RunNowPage({ searchParams }: { searchParams: Promi
       {info ? <p role="status">{info}</p> : null}
       {readError ? <p role="alert" style={{ color: "var(--ink-danger)" }}>최근 기록을 불러오지 못했어요(없는 게 아니에요): {readError}</p> : null}
       {highlight.length > 0 ? (
-        <p role="alert" style={{ background: "var(--bg-danger)", padding: "8px 12px", borderRadius: 8 }}>
+        <p role="alert" style={{ background: "var(--bg-danger)", border: "1px solid var(--ink-danger)", padding: "8px 12px", borderRadius: 8 }}>
           {HIGHLIGHT_AFTER}번 연속 수집 오류: {highlight.join(", ")}
         </p>
       ) : null}

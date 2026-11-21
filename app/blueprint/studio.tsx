@@ -260,7 +260,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
-      {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => router.push(`/login?next=${encodeURIComponent("/blueprint")}`)} onClose={() => setLoginAsk(null)}>
+      {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => { setLoginAsk(null); router.push(`/login?next=${encodeURIComponent("/blueprint")}`); }} onClose={() => setLoginAsk(null)}>
         <p>{loginAsk} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요.</p>
       </AskDialog> : null}
     </div>

@@ -126,10 +126,10 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage, guest, onFound 
         <button type="submit" className="btn dock-sm" aria-disabled={busy || term.trim().length < 2}>{busy ? "찾는 중…" : "카탈로그에서 찾기"}</button>
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
-      <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾지 못했어요" : found ? `카탈로그에서 ${more.length}개 찾았어요` : ""}</p>
+      <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾은 결과를 불러오지 못했어요" : found ? `카탈로그에서 ${more.length}개 찾았어요` : ""}</p>
       {shown.length ? <ul className="dock-techs">{shown.map((t) => <TechCard key={t.id} t={t} use={usage.get(t.id)} tags={tags?.[t.id]} stage={stage?.name ?? null} placed={Boolean(stage?.techs.some((x) => x.id === t.id))} added={t === target} onPut={() => put(t)} />)}</ul>
         : <p className="muted">{pool.length ? "이 조건에 맞는 내 기술 · 적용 후보가 없어요." : guest ? "로그인 전에는 위 \"카탈로그에서 찾기\"로 기술을 찾아 넣어요." : "아직 내 기술 · 적용 후보가 없어요. 지도에서 적용 후보로 고르면 여기에 와요."}</p>}
-      {found === null ? <p className="notice notice-error" role="alert">카탈로그를 찾지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
+      {found === null ? <p className="notice notice-error" role="alert">찾은 결과를 불러오지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
       {found ? <><h3 className="dock-h">카탈로그 <span className="muted">{more.length}</span></h3>
         {more.length ? <ul className="dock-techs">{more.map((t) => guest ? <TechCard key={t.id} t={t} stage={stage?.name ?? null} placed={Boolean(stage?.techs.some((x) => x.id === t.id))} onPut={() => put(t)} />
           : <TechCard key={t.id} t={t} stage={null} gated onPut={() => undefined} />)}</ul> : <p className="muted">더 찾은 기술이 없어요.</p>}</> : null}
