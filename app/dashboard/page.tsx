@@ -10,6 +10,8 @@ import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { appliedTechs, repoCards } from "@/lib/dashboard/status-view";
 import { readDashboardData, type DashboardData } from "@/lib/server/dashboard-queries";
 import { readStatusData, type StatusData } from "@/lib/server/status-queries";
+import { listMyAlerts } from "@/lib/server/alert-queries";
+import type { AlertRecord } from "@/lib/alerts/to-alert-view";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_DASHBOARD, SAMPLE_STATUS } from "@/lib/dev/preview-data";
 import { getCurrentUser } from "@/lib/server/current-user";
@@ -40,10 +42,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     readRecentFirstReads(supabase, user.id).then(async (runs) => buildFirstCheckBand(runs, parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value)))
       .catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; }),
   ]);
+  // 숫자 묶음은 내 기술 · 프로젝트도 읽어 그쪽만 실패할 수 있다: 그때는 알림만 다시 읽어 판단 대기는 살린다(일지와 같은 대비)
+  const alerts = data?.alerts ?? (supabase ? await listMyAlerts(supabase, user.id).catch((e) => { console.error("현황 알림 조회 실패", e); return null; }) : null);
   return (
     <Shell now="overview">
       {band ? <FirstCheckBanner band={band} /> : null}
-      <Overview data={data} status={status} params={params} />
+      <Overview data={data} alerts={alerts} status={status} params={params} />
     </Shell>
   );
 }
@@ -62,7 +66,7 @@ function Guest() {
   );
 }
 
-function Overview({ data, status, params }: { data: DashboardData | null; status: StatusData | null; params: Params }) {
+function Overview({ data, alerts, status, params }: { data: DashboardData | null; alerts: AlertRecord[] | null; status: StatusData | null; params: Params }) {
   const now = new Date();
   const repos = status ? repoCards(status.projects, now) : null;
   return (
@@ -70,10 +74,10 @@ function Overview({ data, status, params }: { data: DashboardData | null; status
       {data === null ? <LoadError /> : <Numbers data={data} params={params} />}
       <Repos repos={repos} />
       <Applied techs={status ? appliedTechs(status.projects, status.tags) : []} failed={status === null} />
-      {data ? <>
-        <Pending alerts={data.alerts} />
-        <WeekCard count={countRecentChanges(data.alerts, now)} />
-        <ReviewCard items={findReviewDue(data.alerts, now)} />
+      {alerts ? <>
+        <Pending alerts={alerts} />
+        <WeekCard count={countRecentChanges(alerts, now)} />
+        <ReviewCard items={findReviewDue(alerts, now)} />
       </> : null}
       <RecommendCard />
     </>

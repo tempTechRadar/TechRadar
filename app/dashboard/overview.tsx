@@ -7,6 +7,7 @@ import { GRADE_KO } from "@/lib/map/build-map";
 import { koreanTime } from "@/lib/flow/run-list";
 
 const TECH_LIMIT = 24; // 넘으면 "내 프로젝트에서 모두 보기"
+const PENDING_LIMIT = 5; // 넘으면 "일지에서 모두 보기"(개요가 목록으로 길게 밀리지 않게)
 const TONE = { danger: "danger", caution: "warning", unknown: "neutral", pass: "success" } as const;
 
 export function Repos({ repos }: { repos: RepoCard[] | null }) {
@@ -20,7 +21,7 @@ export function Repos({ repos }: { repos: RepoCard[] | null }) {
             <Link href="/projects"><b>{r.name}</b></Link>
             <p>기술 {r.techCount}개{r.errorCount ? ` · 수집 오류 ${r.errorCount}개` : ""}</p>
             <p className="muted">마지막 읽기 {r.lastReadAt ? koreanTime(r.lastReadAt) : "기록 없음"}</p>
-            {r.notice ? <p className="muted">{r.notice}</p> : null}
+            {r.notice ? <p className="muted">{r.notice} <Link href="/projects">내 프로젝트에서 다시 읽기</Link></p> : null}
           </li>
         ))}</ul>}
     </section>
@@ -55,17 +56,18 @@ export function Pending({ alerts }: { alerts: AlertRecord[] }) {
     <section aria-labelledby="pending-title">
       <h2 id="pending-title">판단 대기 <span className="muted">{pending.length}</span></h2>
       {pending.length === 0 ? <p className="muted">판단을 기다리는 알림이 없어요.</p> : (
-        <ul className="alert-list">{pending.map((a) => (
+        <ul className="alert-list">{pending.slice(0, PENDING_LIMIT).map((a) => (
           <li key={a.id}>
             <Link className="alert-row" href={`/alerts/${a.id}`}>
               <span className={`badge badge-${a.kindTone}`}>{a.kindLabel}</span>
-              <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span></span>
+              <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
               <span className={`badge badge-${a.statusTone}`}>{a.statusLabel}</span>
               <time className="alert-time" dateTime={a.createdAt}>{a.createdAtLabel}</time>
             </Link>
           </li>
         ))}</ul>
       )}
+      {pending.length > PENDING_LIMIT ? <p className="status-more"><Link href="/history">일지에서 {pending.length}건 모두 보기</Link></p> : null}
     </section>
   );
 }

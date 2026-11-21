@@ -6,11 +6,15 @@ import { readCandidateBoard, type CandidateBoard } from "@/lib/server/candidate-
 import { buildKanban } from "@/lib/views/kanban";
 import { getServerSupabase } from "@/lib/supabase/server";
 
-export async function candidatesAction(): Promise<CandidateBoard | { message: string }> {
-  if (await isLoginPreview()) { const k = buildKanban({ ...SAMPLE_KANBAN, mine: [] }); return { interest: k.interest, candidate: k.candidate, hold: k.hold }; } // 미리보기는 샘플(DB 안 부름)
+/** login = 로그인 전(오류가 아니라 안내), error = 읽지 못함(빈 칸과 다르게, 불변 2) */
+export type CandidateRead = { kind: "ok"; board: CandidateBoard } | { kind: "login" } | { kind: "error"; message: string };
+const FAILED = { kind: "error" as const, message: "후보를 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 다시 시도해 주세요." };
+
+export async function candidatesAction(): Promise<CandidateRead> {
+  if (await isLoginPreview()) { const k = buildKanban({ ...SAMPLE_KANBAN, mine: [] }); return { kind: "ok", board: { interest: k.interest, candidate: k.candidate, hold: k.hold } }; } // 미리보기는 샘플(DB 안 부름)
   const user = await getCurrentUser();
-  if (!user) return { message: "로그인하면 내 관심 · 적용 후보 · 보류가 여기에 모여요." };
+  if (!user) return { kind: "login" };
   const db = await getServerSupabase();
-  if (!db) return { message: "후보를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." };
-  return readCandidateBoard(db, user.id).catch((e: unknown) => { console.error("후보 탭 조회 실패", e instanceof Error ? e.message : e); return { message: "후보를 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 다시 시도해 주세요." }; });
+  if (!db) return FAILED;
+  return readCandidateBoard(db, user.id).then((board) => ({ kind: "ok" as const, board }), (e: unknown) => { console.error("후보 탭 조회 실패", e instanceof Error ? e.message : e); return FAILED; });
 }
