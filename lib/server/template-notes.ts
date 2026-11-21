@@ -47,11 +47,13 @@ export async function reportTemplateNote(db: SupabaseClient, userId: string, not
   return { ok: true };
 }
 
-/** 그 템플릿의 사용기(새것 순, 숨긴 글 · 닫힌 템플릿은 RLS가 이미 뺀다). 쓴 사람 id는 읽지 않는다. 읽지 못하면 던진다("없음"과 다르게) */
-export async function readTemplateNotes(db: SupabaseClient, templateId: string, viewerId: string): Promise<UsageNoteView[]> {
+/** 그 템플릿의 사용기(새것 순, 숨긴 글 · 닫힌 템플릿은 RLS가 이미 뺀다). 쓴 사람 id는 읽지 않는다. 읽지 못하면 던진다("없음"과 다르게).
+ *  viewerId = null: 손님(anon, M6가 안전한 칸만 엶) — 내 글 · 누른 기록 · 신고 기록은 로그인한 사람 것이라 읽지 않고 모두 false */
+export async function readTemplateNotes(db: SupabaseClient, templateId: string, viewerId: string | null): Promise<UsageNoteView[]> {
   if (!isUuid(templateId)) return [];
   const notes = rowsOrThrow(await db.from("template_notes").select("id, used_for, result, tip, helpful_count, created_at").eq("template_id", templateId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "템플릿 사용기를 읽지 못함");
   if (notes.length === 0) return [];
+  if (!viewerId) return notes.map((n) => ({ id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count, createdAt: n.created_at, mine: false, voted: false, reported: false }));
   const ids = notes.map((n) => n.id as string);
   const [mine, votes, reports] = await Promise.all([
     db.rpc("my_template_note_ids", { p_ids: ids }),
