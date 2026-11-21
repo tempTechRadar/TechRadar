@@ -111,11 +111,11 @@ export function QuickChips({ nodes, view, canMine, login, onView, onReplay }: { 
   return (
     <>
       <span className="map-seg" role="group" aria-label="들어온 때">
-        {PERIODS.map((p) => (
-          <button key={p} type="button" className="chip" aria-pressed={f.period === p} onClick={() => set({ period: f.period === p ? "" : p })}>
-            {PERIOD_KO[p]} <b>{count((x) => x.addedDays !== null && x.addedDays < PERIOD_DAYS[p])}</b>
+        {PERIODS.map((p) => { const n = count((x) => x.addedDays !== null && x.addedDays < PERIOD_DAYS[p]); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
+          <button key={p} type="button" className="chip" aria-pressed={f.period === p} disabled={!n && f.period !== p} onClick={() => set({ period: f.period === p ? "" : p })}>
+            {PERIOD_KO[p]} <b>{n}</b>
           </button>
-        ))}
+        ); })}
       </span>
       {count((x) => x.addedDays !== null && x.addedDays < 7) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
       <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>

@@ -14,7 +14,7 @@
 .map-stage.open .map-top-hud { right: 392px; }
 .map-hud, .map-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .map-search { position: relative; flex: 0 1 280px; }
-.map-search input { width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
+.map-search input { box-sizing: border-box; width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
 .map-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 7; margin: 0; padding: 4px; list-style: none; max-height: 50vh; overflow: auto; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .map-results button { display: grid; width: 100%; min-height: 40px; padding: 4px 8px; text-align: left; background: none; border: 0; border-radius: var(--r-sm); font: inherit; cursor: pointer; }
 /* 카탈로그에도 없을 때 "직접 추가"(11-21): 이름 그대로 내 기술로 */
@@ -120,3 +120,9 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }
 .map-replay { border-style: dashed; }
 .map-replay:hover { border-style: solid; border-color: var(--ink); }
+.map-seg .chip:disabled { color: var(--muted); cursor: default; }
+/* 좁은 화면: 탭 · 칩 줄이 여러 줄로 늘어 지도를 덮지 않게 한 줄로 두고 옆으로 밀어 본다 */
+@media (max-width: 640px) {
+  .map-tabs, .map-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .map-tabs > *, .map-chips > * { flex: none; }
+}
