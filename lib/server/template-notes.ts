@@ -20,6 +20,7 @@ export async function saveTemplateNote(db: SupabaseClient, templateId: unknown, 
   if (!checked.ok) return checked;
   const { note } = checked;
   const { data, error } = await db.from("template_notes").insert({ template_id: templateId, used_for: note.usedFor, result: note.result, tip: note.tip }).select("id");
+  if (error?.code === UNIQUE_VIOLATION) return { ok: false, error: "이 템플릿에는 이미 사용기를 썼어요" };
   if (error?.code === NO_PRIVILEGE) return { ok: false, error: "이 템플릿으로 청사진을 확정해 본 뒤에 쓸 수 있어요(내 템플릿 · 공개되지 않은 템플릿은 안 돼요)" };
   if (error || !data) return failed(error?.message);
   if (data.length === 0) return failed("만들어진 줄이 없어요");

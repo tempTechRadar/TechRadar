@@ -83,7 +83,8 @@ export async function saveTemplateNoteAction(templateId: string, input: NoteInpu
   if (await isLoginPreview()) return { ok: false, error: PREVIEW_NO_SAVE };
   const c = await templateDb();
   if ("message" in c) return { ok: false, error: c.message };
-  return saveTemplateNote(c.db, templateId, input);
+  const text = (k: keyof NoteInput) => String((input as Partial<NoteInput> | null)?.[k] ?? ""); // 경계: 화면 값의 모양을 믿지 않음
+  return saveTemplateNote(c.db, templateId, { usedFor: text("usedFor"), result: text("result"), tip: text("tip") });
 }
 
 export async function markTemplateNoteHelpfulAction(noteId: string): Promise<ActionResult> {
