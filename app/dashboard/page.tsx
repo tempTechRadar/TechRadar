@@ -23,7 +23,7 @@ type Params = { status?: string; period?: string; project?: string };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (isPreviewUser(user)) return <PreviewOnly title="대시보드" />; // 미리보기(개발용)는 DB를 부르지 않는다
+  if (isPreviewUser(user)) return <PreviewOnly title="현황" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const data = await readDashboardData(supabase, user.id).catch((e) => { console.error("대시보드 조회 실패", e); return null; });
@@ -33,7 +33,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="alerts">
-      <h1>대시보드</h1>
+      <h1>현황</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
       {data === null ? <LoadError /> : data.techs.length === 0 && data.alerts.length === 0 ? <Empty /> : <Board data={data} params={params} />}
     </main>
