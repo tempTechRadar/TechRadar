@@ -116,7 +116,7 @@ export const SAMPLE_STATUS: StatusData = {
     id: p.id, name: p.name, kind: p.id === "p2" ? "local" as const : "repo" as const, runs: p.id === "p2" ? [] : [{ status: "succeeded", created_at: ago(0.3) }],
     my_technologies: MINE.filter((m) => m.projectId === p.id).map((m) => ({
       id: m.id, tech_id: m.techId, manual_name: m.manualName, hidden_at: null, read_at: ago(0.3), collect_error_kind: m.collectErrorKind, grade: m.grade,
-      technologies: m.techId ? { display_name: TECHS.find((t) => t.id === m.techId)!.name } : null,
+      technologies: m.techId ? (({ name, techKey, type }) => ({ display_name: name, tech_key: techKey, type }))(TECHS.find((t) => t.id === m.techId)!) : null,
     })),
   })),
   tags: new Map(Object.entries(SAMPLE_TAGS)),

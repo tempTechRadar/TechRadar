@@ -31,3 +31,11 @@ test("적용한 기술: 같은 기술은 프로젝트를 합쳐 한 줄(가장 �
   assert.equal(list.find((t) => t.name === "내 도구")!.techId, null);
   assert.ok(appliedTechs(rows, null).every((t) => t.tags === null));
 });
+
+test("적용한 기술: 개념(작업 방식)은 등급 대신 concept로, 위험 순서에서 맨 뒤", () => {
+  const rows: StatusProjectRow[] = [{ id: "p1", name: "앱", kind: "repo", my_technologies: [
+    tech("harness", { grade: "unknown", technologies: { display_name: "지침 파일", tech_key: "concept:harness", type: "concept" } }), tech("zod"),
+  ] }];
+  const list = appliedTechs(rows, new Map());
+  assert.deepEqual(list.map((t) => [t.name, t.concept]), [["zod", false], ["지침 파일", true]]);
+});

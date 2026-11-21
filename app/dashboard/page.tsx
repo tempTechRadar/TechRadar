@@ -10,6 +10,8 @@ import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { appliedTechs, repoCards } from "@/lib/dashboard/status-view";
 import { readDashboardData, type DashboardData } from "@/lib/server/dashboard-queries";
 import { readStatusData, type StatusData } from "@/lib/server/status-queries";
+import { readNewsFeed, type NewsFeedResult } from "@/lib/server/news-feed";
+import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import type { AlertRecord } from "@/lib/alerts/to-alert-view";
 import { isPreviewUser } from "@/lib/dev/login-preview";
@@ -31,9 +33,9 @@ type Params = { tab?: string; status?: string; period?: string; project?: string
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const user = await getCurrentUser();
-  if (!user) return <Guest />;
-  if (params.tab === "news") return <Shell now="news"><NewsTab /></Shell>;
+  if (!user) return <Guest feed={await readNews(null)} />;
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB를 부르지 않고 샘플로
+  if (params.tab === "news") return <Shell now="news"><NewsTab feed={preview ? "preview" : await readNews(user.id)} /></Shell>;
   const supabase = preview ? null : (await getServerSupabase())!;
   const [data, status, band] = !supabase ? [SAMPLE_DASHBOARD, SAMPLE_STATUS, null] : await Promise.all([
     readDashboardData(supabase, user.id).catch((e) => { console.error("현황 조회 실패", e); return null; }),
@@ -56,14 +58,21 @@ function Shell({ now, children }: { now: "overview" | "news"; children: React.Re
   return <main className="alerts"><h1>현황</h1><StatusTabs now={now} />{children}</main>;
 }
 
-/** 로그인 전: 소식만(공개). 내 레포 · 알림은 로그인 안내 */
-function Guest() {
+/** 로그인 전: 소식만(공개 값: 바깥 소식 · 뜨는 기술 · 새 공식, 내 취약점은 빠짐). 내 레포 · 알림은 로그인 안내 */
+function Guest({ feed }: { feed: NewsFeedResult | null }) {
   return (
     <Shell now="news">
       <p className="notice notice-empty"><strong>로그인하면 내 레포와 알림이 보여요.</strong> <Link href={`/login?next=${encodeURIComponent("/dashboard")}`}>로그인</Link></p>
-      <NewsTab />
+      <NewsTab feed={feed} />
     </Shell>
   );
+}
+
+/** 소식(DataCollector readNewsFeed): 로그인 전은 사용자 없이(공개 값만, RLS), 로그인하면 내 기술 취약점이 더해짐. 연결이 없거나 통째로 실패하면 null(출처별 실패는 feed.failed) */
+async function readNews(userId: string | null): Promise<NewsFeedResult | null> {
+  const db = await getServerSupabase();
+  if (!db) return null;
+  return readNewsFeed({ db, serviceDb: getServiceSupabase(), userId }).catch((e) => { console.error("소식 조회 실패", e instanceof Error ? e.message : e); return null; });
 }
 
 function Overview({ data, alerts, status, params }: { data: DashboardData | null; alerts: AlertRecord[] | null; status: StatusData | null; params: Params }) {
