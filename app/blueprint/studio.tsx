@@ -11,10 +11,9 @@ import {
   type ConnectProblem, type Graph, type Pos,
 } from "@/lib/blueprint/graph";
 import { recommendAt } from "@/lib/blueprint/knowledge";
-import { toStored } from "@/lib/blueprint/stored";
 import type { BlueprintPage } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
-import { confirmAction } from "./actions";
+import { confirmGraphAction } from "./actions";
 import { ConfirmDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
@@ -46,13 +45,12 @@ function useConfirm(onDone: (id: string) => void) {
   const last = useRef({ key: "", id: "" });
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const confirm = async (name: string, projectId: string | null, graph: Graph) => {
-    const board = toBoardView(graph);
-    if (!board) return setError("선이 고리로 이어져 있어 확정할 수 없어요.");
-    const stored = toStored(board), key = JSON.stringify([name, projectId, stored]);
+    // 같은 내용 = 단계(id · 이름 · 기술) + 연결선. 위치만 옮긴 것은 같은 확정으로 본다
+    const key = JSON.stringify([name, projectId, graph.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]), graph.edges]);
     if (key !== last.current.key) last.current = { key, id: crypto.randomUUID() };
     setBusy(true); setError("");
-    // shortcut: 확정 v2(그래프 · 연결선 저장, 조각 B)가 합쳐지기 전에는 옛 확정(순서대로 편 판)으로 저장한다. v2가 오면 graph를 함께 보낸다
-    const r = await confirmAction({ id: last.current.id, name, projectId, board: stored }).catch(() => ({ ok: false as const, message: "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요." }));
+    // 검사 · 관문(내 기술 · 적용 후보 · 내 이력) · 이름 다시 읽기는 DB 함수 confirm_blueprint_v2가 한다
+    const r = await confirmGraphAction({ id: last.current.id, name, projectId, graph }).catch(() => ({ ok: false as const, message: "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요." }));
     setBusy(false);
     if (r.ok) onDone(last.current.id); else setError(r.message);
   };

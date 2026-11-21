@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_BLUEPRINT } from "@/lib/dev/preview-data";
-import { readBlueprintPage } from "@/lib/server/blueprints";
+import { readAllowedTechIds, readBlueprintPage } from "@/lib/server/blueprints";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { backTo, LoginNeeded } from "../login/login-needed";
@@ -22,10 +22,13 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
   const { add } = await searchParams;
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB 없이 샘플로
   const db = preview ? null : await getServerSupabase();
-  const [data, tagMap] = preview ? [SAMPLE_BLUEPRINT, new Map<string, string[]>()] : db ? await Promise.all([
+  const [page, tagMap, allowed] = preview ? [SAMPLE_BLUEPRINT, new Map<string, string[]>(), null] : db ? await Promise.all([
     readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }),
     readMyTechTagMap(db, user.id).catch((e) => { console.error("청사진 내 태그 조회 실패", e instanceof Error ? e.message : e); return null; }), // 못 읽어도 판은 열고 태그만 "읽지 못함"
-  ]) : [null, null];
+    // 하단 패널 서랍 = 확정 DB 함수의 관문과 같은 목록. 못 읽으면(M1 적용 전 등) 같은 규칙으로 계산한 서랍을 그대로 쓴다
+    readAllowedTechIds(db).catch((e) => { console.error("청사진 관문 목록 조회 실패", e instanceof Error ? e.message : e); return null; }),
+  ]) : [null, null, null];
+  const data = page && allowed ? { ...page, pool: page.pool.filter((t) => allowed.has(t.id)) } : page;
   return (
     <main className="alerts bp-page">
       <h1 className="sr-only">청사진</h1>
