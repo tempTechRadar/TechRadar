@@ -1,8 +1,8 @@
 # 채점 결과 (PRD-F30)
 
-- 언제: 2026. 11. 20. 12시 48분 0초 · 등급 규칙 v1 · 정답: eval/gold.json (SPEC-10)
+- 언제: 2026. 11. 21. 19시 26분 28초 · 등급 규칙 v1 · 정답: eval/gold.json (SPEC-10)
 - 사건: 맞게 울림 6 · 맞게 조용함 6 · **놓침 0** · **잘못 울림 0** (사례 12)
-- 등급 맞음 8/12 · 실행 실패 0
+- 등급 맞음 12/12 · 실행 실패 0
 
 | 사례 | 대상 | 출처 | 기대 등급 | 실제 등급 | 등급 | 사건 판정 | 비고 |
 |---|---|---|---|---|---|---|---|
@@ -10,10 +10,10 @@
 | G2 | npm @modelcontextprotocol/inspector | 실수집 | 위험 | 위험 | 맞음 | 맞음 |  |
 | G3 | npm @modelcontextprotocol/server-filesystem | 실수집 | 위험 | 위험 | 맞음 | 맞음 |  |
 | G4 | PyPI mcp | 실수집 | 위험 | 위험 | 맞음 | 맞음 |  |
-| G5a | @modelcontextprotocol/inspector 최신 | 실수집 | 통과 또는 주의 | 찾지 못함 | 다름 | 맞음 |  |
-| G5b | @modelcontextprotocol/server-filesystem 최신 | 실수집 | 통과 또는 주의 | 찾지 못함 | 다름 | 맞음 |  |
-| G5c | mcp-remote 최신 | 실수집 | 통과 또는 주의 | 찾지 못함 | 다름 | 맞음 |  |
-| G5d | mcp 최신 | 실수집 | 통과 또는 주의 | 찾지 못함 | 다름 | 맞음 |  |
+| G5a | @modelcontextprotocol/inspector 최신 | 실수집 | 통과 또는 주의 | 통과 | 맞음 | 맞음 |  |
+| G5b | @modelcontextprotocol/server-filesystem 최신 | 실수집 | 통과 또는 주의 | 통과 | 맞음 | 맞음 |  |
+| G5c | mcp-remote 최신 | 실수집 | 통과 또는 주의 | 통과 | 맞음 | 맞음 |  |
+| G5d | mcp 최신 | 실수집 | 통과 또는 주의 | 통과 | 맞음 | 맞음 |  |
 | G6 | 시험용 스킬 skill-a-remote-exec | 가상 | 위험 | 위험 | 맞음 | 맞음 |  |
 | G7 | 시험용 스킬 skill-b-secret-leak | 가상 | 위험 | 위험 | 맞음 | 맞음 |  |
 | G8 | 시험용 스킬 skill-c-wide-permission | 가상 | 주의 | 주의 | 맞음 | 맞음 |  |
@@ -21,20 +21,22 @@
 
 ## 사건 종류·경계 사례 (eval/gold.json `edgeCases`)
 
-- 사건: 맞게 울림 15 · 맞게 조용함 23 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** (사례 38) · 실행 실패 0
+- 사건: 맞게 울림 18 · 맞게 조용함 26 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** (사례 44) · 실행 실패 0
 - 결과 다름 = 사건 수는 맞지만 앱이 낸 결과가 정답과 다름(예: 수집 오류를 변화 없음으로 봄).
-- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment.
+- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment·saveJudgment(저장 실패는 시연 스위치의 failingRpc를 끼움).
 - 손으로 따라 쓴 수집기 분기(DB에 묶여 부를 수 없음, lib/eval/edge.ts): checkOne(오류 → 수집 오류)·gradeOf(등급 읽기 실패 → parse)·applyResult(위험 아니면 비교)·readLatestChange(원인·별칭이 같은 변경의 가장 큰 회차)·saveGrade(위험 아님 시각)·createSecurityAlerts(이미 있는 알림 키). 이 순서가 수집기와 어긋나면 채점이 못 잡는다.
-- 채점 밖(DB가 있어야 함): save_judgment 저장과 저장 실패 때 되돌림, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록). 판단 사례는 입력 검사(validateJudgment)만 본다.
+- 판단 저장 실패(조치·저장 실패)는 앱 쪽만 본다: 진짜 saveJudgment가 실패를 돌려주는지, 흐름의 조치 상자가 실패로 칠해지는지(actionOutcomeOf), 메모리 속 알림 한 줄이 그대로인지.
+- 채점 밖(DB가 있어야 함): save_judgment 한 거래 안의 되돌림(DB 함수 자체)·저장은 됐는데 응답이 끊긴 경우, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록).
 
 | 종류 | 사례 | 맞음 | 놓침 | 잘못 울림 | 결과 다름 |
 |---|---|---|---|---|---|
 | 보안 경고 | 6 | 6 | 0 | 0 | 0 |
-| 적용 기회 | 8 | 8 | 0 | 0 | 0 |
+| 적용 기회 | 13 | 13 | 0 | 0 | 0 |
 | 변화 없음 | 3 | 3 | 0 | 0 | 0 |
 | 수집 실패 | 10 | 10 | 0 | 0 | 0 |
 | 거절·보류 | 6 | 6 | 0 | 0 | 0 |
 | 두 번 입력 | 5 | 5 | 0 | 0 | 0 |
+| 조치·저장 실패 | 1 | 1 | 0 | 0 | 0 |
 
 | 사례 | 종류 | 대상 | 출처 | 기대 결과 | 실제 결과 | 판정 | 비고 |
 |---|---|---|---|---|---|---|---|
@@ -65,6 +67,11 @@
 | E-opp-old-tech | 적용 기회 | 새 기술도 확정도 내가 등록하기 전 | SPEC-3.2 조건 2 | 알림 0 | 알림 0 | 맞음 |  |
 | E-opp-confirmed-later | 적용 기회 | 새 기술은 전부터 있었지만 등록 뒤에 같은 역할로 확정 | SPEC-3.2 조건 2(괄호) | 알림 1(u1) | 알림 1(u1) | 맞음 |  |
 | E-opp-sim-demo-only | 적용 기회 | 시뮬레이터 가짜 변경: 시연 계정에만 | SPEC-3.5 | 알림 1(u-demo) | 알림 1(u-demo) | 맞음 |  |
+| E-opp-stars-below | 적용 기회 | 새 기술의 별 수가 알려져 있고 99(하한 100 미만) | SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정 | 알림 0 | 알림 0 | 맞음 |  |
+| E-opp-stars-at-min | 적용 기회 | 새 기술의 별 수가 알려져 있고 정확히 100(하한) | SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정 | 알림 1(u1) | 알림 1(u1) | 맞음 |  |
+| E-opp-stars-unknown | 적용 기회 | 새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2) | SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정 | 알림 1(u1) | 알림 1(u1) | 맞음 |  |
+| E-opp-flagged | 적용 기회 | 별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보 | SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정 | 알림 0 | 알림 0 | 맞음 |  |
+| E-opp-sim-low-stars | 적용 기회 | 시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만) | SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정 | 알림 1(u-demo) | 알림 1(u-demo) | 맞음 |  |
 | E-twice-danger | 두 번 입력 | G1 위험을 두 번 읽음(쓰는 사람 2명) | 불변 3 · SPEC-3.1 중복 막기 키 · G1 | 변경 1 · 알림 2 | 변경 1 · 알림 2 | 맞음 |  |
 | E-twice-danger-save-failed | 두 번 입력 | 첫 읽기 뒤 등급 저장이 실패한 채로 다시 읽음 | 불변 3 · SPEC-3.1 정기 OSV 재확인 문단 · G1 | 변경 1 · 알림 2 | 변경 1 · 알림 2 | 맞음 |  |
 | E-twice-second-user | 두 번 입력 | 이어지는 위험: u1은 이미 받음, u2는 아직 → u2만 새 알림 | SPEC-3.1 처음 확인한 위험(두 번째 사용자도 받음) · 불변 3 · G1 | 변경 0 · 알림 1 | 변경 0 · 알림 1 | 맞음 |  |
@@ -76,7 +83,8 @@
 | E-judge-candidate-no-fix | 거절·보류 | 고친 버전이 없는 보안 경고를 적용 후보로 | SPEC-5.2 · ADR 0012 | 입력 검사 거절(저장 안 함) | 입력 검사 거절(저장 안 함) | 맞음 | 고친 버전이 아직 없어서 적용 후보로 저장할 수 없어요. 보류로 남겨 주세요. |
 | E-judge-candidate-fix | 거절·보류 | 보안 경고를 고친 버전으로 적용 후보 | SPEC-4.3 · ADR 0012 · G1 | 저장으로 넘김 · candidate · 고친 버전 0.1.16 | 저장으로 넘김 · candidate · 고친 버전 0.1.16 | 맞음 |  |
 | E-judge-unknown | 거절·보류 | 정해진 두 가지 밖의 판단(approve) | SPEC-4.1 할 수 있는 일 · 불변 1 | 입력 검사 거절(저장 안 함) | 입력 검사 거절(저장 안 함) | 맞음 | 적용 후보나 보류 중에서 골라 주세요. |
+| E-judge-save-failed | 조치·저장 실패 | 적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패 | 불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc) | 저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존 | 저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존 | 맞음 | 저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요. |
 
 ## 전체 (등급 사례 + 경계 사례)
 
-- 사례 50 · 맞게 울림 21 · 맞게 조용함 29 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** · 실행 실패 0
+- 사례 56 · 맞게 울림 24 · 맞게 조용함 32 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** · 실행 실패 0

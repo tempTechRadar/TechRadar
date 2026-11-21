@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import type { Reader } from "./actual.ts";
-import { computeEdgeActual, type EdgeInput } from "./edge.ts";
+import { computeEdgeActual, judgmentSaveFail, type EdgeInput } from "./edge.ts";
 import { EDGE_KINDS, scoreEdges, type EdgeCase } from "./edge-score.ts";
 
 // 저장된 OSV 응답만 읽는다(네트워크 없음). 폴더 읽기는 경계 사례에서 쓰지 않는다
@@ -119,7 +119,7 @@ test("사례 하나가 터져도 멈추지 않고 실패로 남긴다", async ()
 
 const edges = (JSON.parse(readFileSync("eval/gold.json", "utf8")) as { edgeCases: EdgeCase[] }).edgeCases;
 
-test("정답 파일 경계 사례: 여섯 종류가 다 있고, 사례마다 출처(SPEC·G·불변)가 있으며 id가 겹치지 않는다", () => {
+test("정답 파일 경계 사례: 모든 종류(EDGE_KINDS)가 다 있고, 사례마다 출처(SPEC·G·불변)가 있으며 id가 겹치지 않는다", () => {
   for (const kind of EDGE_KINDS) assert.ok(edges.some((c) => c.kind === kind), kind);
   for (const c of edges) {
     assert.ok(EDGE_KINDS.includes(c.kind), c.id);
@@ -134,4 +134,14 @@ test("지금 경계 사례 전체 채점: 실행 실패 0, 정답과 다른 사�
   const s = scoreEdges(edges, await Promise.all(edges.map((c) => computeEdgeActual(c, reader))));
   assert.equal(s.totals.failed, 0);
   assert.deepEqual(s.rows.filter((r) => r.verdict !== "맞음").map((r) => [r.id, r.verdict]), []);
+});
+
+test("판단 저장 실패 채점은 대조가 된다: 실패 클라이언트를 빼면 같은 가짜 DB에서 처리 완료·조치 성공·값이 바뀜으로 나온다(불변 4 사례가 늘 참이 아님)", async () => {
+  const i = { type: "judgment-save-fail" as const, decision: "candidate", reason: "", alertKind: "security" as const, fixedVersion: "0.1.16" };
+  const failed = await judgmentSaveFail(i);
+  assert.equal(failed.outcome, "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존");
+  assert.equal(failed.event, false);
+  const saved = await judgmentSaveFail(i, (db) => db);
+  assert.equal(saved.outcome, "처리 완료 · 조치 상자 성공 · 알림 done · 기존 값 바뀜");
+  assert.equal(saved.event, true);
 });

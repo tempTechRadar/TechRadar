@@ -81,6 +81,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "@modelcontextprotocol/inspector"
       },
       "expected": {
@@ -99,6 +100,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "@modelcontextprotocol/server-filesystem"
       },
       "expected": {
@@ -117,6 +119,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "mcp-remote"
       },
       "expected": {
@@ -135,6 +138,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "mcp"
       },
       "expected": {
@@ -1176,6 +1180,243 @@
       }
     },
     {
+      "id": "E-opp-stars-below",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수가 알려져 있고 99(하한 100 미만)",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 99
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-stars-at-min",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수가 알려져 있고 정확히 100(하한)",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 100
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-stars-unknown",
+      "kind": "적용 기회",
+      "target": "새 기술의 별 수를 모름(null): 낮다고 단정하지 않는다(불변 2)",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": null
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u1)",
+        "event": true
+      }
+    },
+    {
+      "id": "E-opp-flagged",
+      "kind": "적용 기회",
+      "target": "별은 5000인데 의심 표시(candidate_flags)가 붙은 별 후보",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": false
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 5000,
+          "flagged": true
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 0",
+        "event": false
+      }
+    },
+    {
+      "id": "E-opp-sim-low-stars",
+      "kind": "적용 기회",
+      "target": "시뮬레이터 변경은 별 3개·의심 표시여도 조건 4를 적용하지 않음(시연 계정에만)",
+      "source": "SPEC-3.2 조건 4 · ADR 0033 · ADR 0014 개정",
+      "input": {
+        "type": "opportunity",
+        "times": 1,
+        "change": {
+          "id": "c-opp",
+          "isSimulated": true
+        },
+        "newTech": {
+          "id": "t-new",
+          "techKey": "npm:new-remote-proxy",
+          "grade": "pass",
+          "status": "active",
+          "createdAt": "2026-11-19T00:00:00Z",
+          "stars": 3,
+          "flagged": true
+        },
+        "relations": [
+          {
+            "otherTechId": "t-mine",
+            "status": "confirmed",
+            "confirmedAt": "2026-11-01T00:00:00Z"
+          }
+        ],
+        "usages": [
+          {
+            "userId": "u1",
+            "myTechnologyId": "m1",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": false,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          },
+          {
+            "userId": "u-demo",
+            "myTechnologyId": "m-demo",
+            "techId": "t-mine",
+            "techKey": "npm:mcp-remote",
+            "isDemo": true,
+            "hidden": false,
+            "archived": false,
+            "registeredAt": "2026-11-10T00:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "outcome": "알림 1(u-demo)",
+        "event": true
+      }
+    },
+    {
       "id": "E-twice-danger",
       "kind": "두 번 입력",
       "target": "G1 위험을 두 번 읽음(쓰는 사람 2명)",
@@ -1516,6 +1757,23 @@
       },
       "expected": {
         "outcome": "입력 검사 거절(저장 안 함)",
+        "event": false
+      }
+    },
+    {
+      "id": "E-judge-save-failed",
+      "kind": "조치·저장 실패",
+      "target": "적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패",
+      "source": "불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc)",
+      "input": {
+        "type": "judgment-save-fail",
+        "decision": "candidate",
+        "reason": "",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
         "event": false
       }
     }

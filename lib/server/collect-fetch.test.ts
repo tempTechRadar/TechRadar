@@ -99,6 +99,14 @@ test("queryOsv: {vulns: []}도 오류가 아니라 알려진 취약점 없음", 
   assert.deepEqual(await queryOsv("mcp-remote", "npm", "0.1.15"), []);
 });
 
+test("queryOsv: 기본 한도(50만 자)를 넘는 큰 OSV 응답도 읽는다 — 취약점 많은 옛 버전이 매번 수집 오류가 되지 않게(QA Fail, litellm 약 70만 자)", async (t) => {
+  const body = (n: number) => JSON.stringify({ vulns: [{ id: "A", details: "x".repeat(n) }] });
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => new Response(body(700_000), { status: 200 }));
+  assert.deepEqual((await queryOsv("litellm", "PyPI", null)).map((v) => v.id), ["A"]);
+  fetchMock.mock.mockImplementation(async () => new Response(body(8_000_001), { status: 200 }));
+  await assert.rejects(queryOsv("litellm", "PyPI", null), (e) => e instanceof CollectError && e.kind === "parse" && e.message.includes("너무 큼"), "한도는 남아 있다: 넘으면 '없음'이 아니라 수집 오류");
+});
+
 // OSV는 결과가 많으면 첫 쪽만 주고 next_page_token을 붙인다. 그 쪽만 전부로 읽으면 취약점을 놓쳐 "변화 없음"이 된다(불변 2).
 const osvPages = (t: { mock: { method: (o: object, n: "fetch", f: unknown) => unknown } }, pages: Record<string, string>) => {
   const bodies: string[] = [];
