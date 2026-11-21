@@ -3,7 +3,8 @@ import type { Grade } from "../domain/grade.ts";
 
 export type GoldInput =
   | { type: "osv"; fixture: string; package: string }
-  | { type: "osv-batch"; fixture: string; package: string }
+  // repo: 통과 채점용 저장소 확인 값(GitHub에서 읽어 저장한 파일). 없으면 저장소 확인 전으로 본다
+  | { type: "osv-batch"; fixture: string; package: string; repo?: { fixture: string } }
   | { type: "skill"; dir: string };
 
 export type GoldCase = {

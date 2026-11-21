@@ -1,5 +1,5 @@
 // 채점 스크립트: `npm run eval` → eval/result.json, eval/result.md. 네트워크·DB를 쓰지 않는다(저장된 OSV 응답과 시험용 스킬만).
-// 등급 사례(cases, G1–G9)와 경계 사례(edgeCases: 사건 종류·변화 없음·수집 실패·거절·보류·두 번 입력)를 따로 세고 전체 수를 더한다.
+// 등급 사례(cases, G1–G9)와 경계 사례(edgeCases: 사건 종류·변화 없음·수집 실패·거절·보류·두 번 입력·조치·저장 실패)를 따로 세고 전체 수를 더한다.
 // 실행 기록(runs·run_steps)에 남기는 일은 lib/eval/record.ts가 맡고, 서비스 키가 필요해 이 스크립트에서는 부르지 않는다.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";

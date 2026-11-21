@@ -12,7 +12,7 @@ import { DetailPanel } from "../../admin/flow/run-view";
 
 const flow = flowJson as unknown as Flow;
 const ok = (...names: string[]): StepRow[] => names.map((step_name) => ({ step_name, status: "succeeded" }));
-const FETCH = ["fetch_osv", "fetch_registry", "fetch_github", "fetch_downloads"];
+const FETCH = ["fetch_osv", "fetch_registry", "fetch_github", "fetch_downloads", "fetch_stars", "fetch_popularity"];
 const TAIL = ["normalize", "compare", "grade", "is_event"];
 const TO_NOTIFY = [...TAIL, "save_change", "summarize", "notify"];
 
@@ -42,7 +42,7 @@ const DUPLICATE: StepDetail[] = [
 
 const SCENES: { title: string; run: RunRow; steps: StepDetail[]; node?: string }[] = [
   { title: "① 수집 오류", run: { id: "s1", trigger: "manual", status: "partial" },
-    steps: [{ step_name: "fetch_osv", status: "failed" }, ...ok("fetch_registry", "fetch_github", "fetch_downloads", ...TAIL, "no_change", "collect_error")] },
+    steps: [{ step_name: "fetch_osv", status: "failed" }, ...ok("fetch_registry", "fetch_github", "fetch_downloads", "fetch_stars", "fetch_popularity", ...TAIL, "no_change", "collect_error")] },
   { title: "② 사건 아님", run: { id: "s2", trigger: "manual", status: "succeeded" }, steps: ok(...FETCH, ...TAIL, "no_change") },
   { title: "③ 중복(새 변경 없음, 알림 0건)", run: { id: "s3", trigger: "simulator", status: "succeeded" }, steps: DUPLICATE, node: "save_change" },
   { title: "④ 판단 대기", run: { id: "s4", trigger: "simulator", status: "running" },
@@ -71,7 +71,7 @@ export default async function FlowSamplePage({ searchParams }: { searchParams: P
       </nav>
       <Legend />
       <FlowDiagram flow={flow} colored={colorize(flow, s.run, s.steps)} edgeLabels={edgeLabels(flow, s.steps)}
-        nodeHref={(id) => `/dev/flow-sample?scene=${i + 1}&node=${id}`} selected={picked?.id} />
+        nodeHref={(id) => `/dev/flow-sample?scene=${i + 1}&node=${id ?? ""}`} selected={picked?.id} />
       {picked ? <DetailPanel detail={nodeDetail(picked, s.steps)} /> : null}
     </main>
   );

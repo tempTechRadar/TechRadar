@@ -11,11 +11,12 @@ const MAX_SKILLS = 30;
 
 /** onlyUnread = 스킬 폴더 아래에서 이번에 못 읽은 줄만 가리킨다(한도 뒤의 스킬). 없으면 path 하나 또는 폴더 전체 */
 export type SkillError = { path: string; kind: ErrorKind; message: string; onlyUnread?: boolean };
-export type SkillRead = { found: FoundTech[]; errors: SkillError[]; folders: number };
+/** texts = 읽은 SKILL.md(경로 → 글). 스킬 위험 패턴 검사가 같은 파일을 다시 받지 않게 넘긴다 */
+export type SkillRead = { found: FoundTech[]; errors: SkillError[]; folders: number; texts: Map<string, string> };
 
 
 export async function readSkills(repo: { owner: string; repo: string }): Promise<SkillRead> {
-  const out: SkillRead = { found: [], errors: [], folders: 0 };
+  const out: SkillRead = { found: [], errors: [], folders: 0, texts: new Map() };
   let names: string[];
   try {
     const listing = await fetchText(`${repoApiUrl(repo)}/contents/${SKILLS_DIR}`, { headers: { Accept: "application/vnd.github+json" } });
@@ -39,7 +40,10 @@ export async function readSkills(repo: { owner: string; repo: string }): Promise
   }));
   for (const x of reads) {
     if ("failure" in x) out.errors.push({ path: `${SKILLS_DIR}/${x.name}`, kind: errorKindOf(x.failure), message: messageOf(x.failure) });
-    else if (x.md !== null) out.found.push(skillFromFolder(x.name, repo)); // SKILL.md가 없는 폴더는 스킬이 아니다
+    else if (x.md !== null) { // SKILL.md가 없는 폴더는 스킬이 아니다
+      out.found.push(skillFromFolder(x.name, repo));
+      out.texts.set(`${SKILLS_DIR}/${x.name}/${SKILL_FILE}`, x.md);
+    }
   }
   return out;
 }
