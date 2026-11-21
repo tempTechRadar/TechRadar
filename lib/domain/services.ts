@@ -39,6 +39,7 @@ const serviceFound = (s: Service, sourceFile: string): FoundTech => ({ tech: { k
 /**
  * 연동 서비스 · 개념의 한 줄 설명과 근거 링크(화면용). 카탈로그 줄에는 쓰지 않는다: 쓰면 사용자 저장소에서 생긴 줄이 공개 목록 · 로그인 전 지도에
  * 나가고(ADR 0029 4항) NEW 판정(isBulkFilled)이 날짜에 따라 갈린다. 정해 둔 목록에서만 나오는 글이다
+ * (예외: 입문 세트 시드가 확인한 공식 출처로 개념 줄을 채워 공개한다, ADR 0031)
  */
 export function fixedNote(techKey: string | null | undefined): { text: string; source: string | null } | null {
   const [kind, id] = (techKey ?? "").split(":");
