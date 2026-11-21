@@ -39,6 +39,8 @@
 | 영향 범위 | `package.json`(@xyflow/react 12.12.1 고정), `app/blueprint/{studio,stage-node,tech-chip,stepper,studio-types}.tsx`, `page.tsx`, 교체 끝에 `lanes.tsx` · `drawer.tsx` · 격자 이동 함수 지움(fromV1은 남김) |
 | 제약 | 병합 마감 월 20:00 · 동결 21:00, 푸시는 월 14:00 · 18:00 두 번(사용자 승인). 단축키는 Esc · Delete · 스페이스 손 모드만. 캔버스는 휴대폰 · 화면 읽기에서 보기만(편집은 목록 모드). 월 12:00 컷 라인 |
 | 열린 질문 | 확정 v2 서버(조각 B)가 오기 전에는 옛 확정(board 투영)으로 확정 |
+
+**결과(11-22 0시 기준, 로컬 · 미푸시):** 조각 D · E 끝, K(개발보조1) · A · H · I(DataCollector) · B · F(개발보조2) 합침. 캔버스(단계 노드 · 기술 칩 · 1px 선) · 스텝퍼 ①②③ · 되돌리기 50(이름 포함) · 초안 v2(parseDraft, 못 읽으면 따로 보관) · 8px 격자 · 보조선 · 근접 연결 미리보기(고리면 빨간 점선) · 자동 정렬 · 미니맵 · 휴대폰 목록 모드 + "그림으로 보기"(읽기 전용) · 확정 v2(같은 내용 = 한 줄, 나란히 순서 · 선 순서 반영) · 이 템플릿으로 시작 · 관문 밖 기술은 점선 후보 칩(사용자 결정) · 질문으로 틀 만들기(사용자 결정). 옛 격자 화면 · 쓰지 않는 창 지움(사용자 승인). 시험 1,436(통과 1,435 · 실패 0 · todo 1), tsc · `next build --webpack` 통과, code-review 15건 중 12 반영 + 개발보조1 넘김 4건 반영, QA 재검사 Pass(Fail 0). 남김: 여러 탭 동시 편집 · 끄는 동안 다시 그리기(shortcut 주석, 다음 단계). 운영 확정 · 템플릿 · 점검은 M1~M4 운영 적용(사용자 승인) 뒤에만 동작
 ## I-P-12e-graph · 2026-11-21 · 청사진 스튜디오 조각 A · H · I: 그래프 함수 · 점검 사실 · AI 점검 서버 (DataCollector 세션, 김영식)
 - 브랜치: `feat/P-12e-graph`(origin/feat/P-12d-alerts-history 21dbfdb에서) → FrontLead의 통합 브랜치 `feat/P-12e-blueprint-studio`로 merge
 - 출처: P-12e 계획(Maestro 전달, 사용자 승인) A · H · I, ADR 0035(DocsChecker), 불변 1 · 2 · 3 · 5
