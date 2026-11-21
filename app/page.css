@@ -80,6 +80,12 @@
 .page .settings-form label.check { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
 .page .settings-form input[type="checkbox"] { width: 20px; height: 20px; }
 .page .settings-form input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+/* 공용 대화상자(app/c-dialog.tsx). 대화상자는 DOM에선 그 자리에 있어 .page 밖(지도 등)에서도 쓰게 전역으로 둔다 */
+.c-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
+.c-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+.c-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 6px; }
+.c-dialog h2 { margin: 0; font-size: var(--fs-h2); }
+.c-dialog-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-3); }
 .page .notice-ok { border-color: var(--color-success); background: var(--color-success-bg); color: var(--color-success); } /* 저장 · 남김 같은 성공 안내(빈 상태 점선과 나눔) */
 .page .notice-error { border-color: var(--color-danger); background: var(--color-danger-bg); color: var(--color-danger); }
 

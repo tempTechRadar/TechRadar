@@ -16,6 +16,7 @@ import { addStageProblem, CONNECT_KO, newStageSpot, putProblem } from "@/lib/blu
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
+import { AskDialog } from "../c-dialog";
 import { ConfirmDialog, InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
@@ -56,6 +57,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState("");
+  const [loginAsk, setLoginAsk] = useState<string | null>(null); // 손님이 저장 · 판단을 누름: 무엇을 하려는지(묻는 대화상자 글)
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
@@ -95,9 +97,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
 
   /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
-  const toLogin = (what: string) => {
-    if (window.confirm(`${what} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요. 로그인할까요?`)) router.push(`/login?next=${encodeURIComponent("/blueprint")}`);
-  };
+  const toLogin = (what: string) => setLoginAsk(what);
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
     if (guest) return toLogin("적용 후보로 고르려면");
@@ -260,6 +260,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
+      {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => router.push(`/login?next=${encodeURIComponent("/blueprint")}`)} onClose={() => setLoginAsk(null)}>
+        <p>{loginAsk} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요.</p>
+      </AskDialog> : null}
     </div>
   );
 }
