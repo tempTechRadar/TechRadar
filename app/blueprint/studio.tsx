@@ -174,9 +174,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : "선을 지웠어요.");
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
-  /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정 "① 단계 구축에 다시 잇기"). 지금 판이 있으면 바꾸기 전에 묻고, 되돌리기 한 칸이면 전 판 */
+  /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정 "① 단계 구축에 다시 잇기"). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
   function makeFromAnswers(cols: string[][]) {
-    if (g.stages.length && !window.confirm("지금 판을 질문 답으로 만든 틀로 바꿀까요? 되돌리기로 지금 판에 돌아올 수 있어요.")) return;
     setAsking(false); unpick(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
@@ -239,7 +238,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={() => { done.reset(); setConfirming(true); }} /> : null}
       <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
-      {asking ? <InterviewDialog onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
+      {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
     </div>

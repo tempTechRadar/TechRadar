@@ -24,7 +24,8 @@ function Modal({ title, onClose, focusKey, children }: { title: string; onClose:
   );
 }
 
-export function InterviewDialog({ onMake, onClose }: { onMake: (cols: string[][]) => void; onClose: () => void }) {
+/** replacing = 지금 판에 단계가 있음: 마지막 확인에서 "바꾸기"로 묻는다(브라우저 기본 확인 창 대신 같은 대화상자 안에서) */
+export function InterviewDialog({ onMake, onClose, replacing = false }: { onMake: (cols: string[][]) => void; onClose: () => void; replacing?: boolean }) {
   const [step, setStep] = useState(0);
   const [a, setA] = useState<Record<string, string>>({});
   const q = QUESTIONS[step];
@@ -33,9 +34,9 @@ export function InterviewDialog({ onMake, onClose }: { onMake: (cols: string[][]
     return (
       <Modal title="이렇게 만들까요?" onClose={onClose} focusKey="done">
         <p>{flow(cols)}</p>
-        <p className="muted">만든 뒤에도 단계를 옮기거나 더하고 뺄 수 있어요.</p>
+        <p className="muted">{replacing ? "지금 판 대신 이 틀로 바꿔요. 되돌리기를 누르면 지금 판으로 돌아와요." : "만든 뒤에도 단계를 옮기거나 더하고 뺄 수 있어요."}</p>
         <div className="bp-row">
-          <button type="button" className="btn btn-primary" data-autofocus="" onClick={() => onMake(cols)}>이렇게 만들기</button>
+          <button type="button" className="btn btn-primary" data-autofocus="" onClick={() => onMake(cols)}>{replacing ? "지금 판을 이 틀로 바꾸기" : "이렇게 만들기"}</button>
           <button type="button" className="btn" onClick={() => { setStep(0); setA({}); }}>처음부터 다시</button>
         </div>
       </Modal>
