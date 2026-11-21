@@ -184,6 +184,7 @@ const TECH_REFS: [table: string, column: string][] = [
   ["tech_relations", "tech_a"],
   ["tech_relations", "tech_b"],
   ["grade_views", "tech_id"],
+  ["my_tech_tags", "tech_id"], // 사용자가 가짜 기술에 태그를 붙였으면 그 기술은 남긴다(지우면 외래 키 오류로 지우기 전체가 실패)
 ];
 
 async function referencedTechIds(db: SupabaseClient, ids: string[]): Promise<Set<string>> {
