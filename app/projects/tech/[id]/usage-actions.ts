@@ -2,8 +2,9 @@
 // 사용기 쓰기·도움이 됐어요·신고(PRD-F35). 로그인한 사람의 클라이언트로만 쓴다(열 권한과 RLS가 한 번 더 막는다, 불변 5).
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { isUuid } from "@/lib/domain/my-tech-view";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { markHelpful, reportNote, saveUsageNote, type ActionResult } from "@/lib/server/usage-notes";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -25,6 +26,7 @@ async function run(fd: FormData, act: (db: NonNullable<Awaited<ReturnType<typeof
 }
 
 export async function submitUsageNote(_prev: NoteState, fd: FormData): Promise<NoteState> {
+  if (await isLoginPreview()) return { error: PREVIEW_NO_SAVE }; // 미리보기(개발용)는 저장하지 않는다
   const techId = text(fd, "techId");
   const typed = { usedFor: text(fd, "usedFor"), result: text(fd, "result"), tip: text(fd, "tip") };
   if (!isUuid(techId)) return { ...typed, error: "기술을 찾지 못했어요" };
@@ -32,12 +34,14 @@ export async function submitUsageNote(_prev: NoteState, fd: FormData): Promise<N
 }
 
 export async function pressHelpful(_prev: NoteState, fd: FormData): Promise<NoteState> {
+  if (await isLoginPreview()) return { error: PREVIEW_NO_SAVE };
   const noteId = text(fd, "noteId");
   if (!isUuid(noteId)) return { error: "글을 찾지 못했어요" };
   return run(fd, (db, userId) => markHelpful(db, userId, noteId));
 }
 
 export async function sendReport(_prev: NoteState, fd: FormData): Promise<NoteState> {
+  if (await isLoginPreview()) return { error: PREVIEW_NO_SAVE };
   const noteId = text(fd, "noteId");
   if (!isUuid(noteId)) return { error: "글을 찾지 못했어요" };
   return run(fd, (db, userId) => reportNote(db, userId, noteId, text(fd, "reason")));

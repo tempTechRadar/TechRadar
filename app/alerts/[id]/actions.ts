@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { DEMO_FAIL_SAVE_COOKIE } from "@/lib/demo/demo-switch";
 import { maybeFailForDemo } from "@/lib/demo/judgment-hooks";
 import { recordActionOutcome } from "@/lib/server/action-record";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { saveJudgment, type JudgmentResult } from "@/lib/server/judgments";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -26,6 +27,7 @@ async function recordAction(alertId: string, result: JudgmentResult): Promise<vo
 
 /** 적용 후보·보류 저장(IA-7, PRD-F17·F19). 실패하면 알림은 그대로 판단 대기고 메시지만 돌려준다. */
 export async function judge(_previous: JudgeState, formData: FormData): Promise<JudgeState> {
+  if (await isLoginPreview()) return { message: PREVIEW_NO_SAVE }; // 미리보기(개발용)는 아무것도 저장하지 않는다(불변 1·4)
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const alertId = String(formData.get("alertId") ?? "");

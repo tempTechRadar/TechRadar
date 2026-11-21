@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { signOut } from "@/app/auth/actions";
+import { AccountMenu } from "@/app/account-menu";
+import { LoginLink } from "@/app/login-link";
+import { AlertBell } from "@/app/nav/alert-bell";
+import { NavLink } from "@/app/nav/nav-link";
+import { TabBar } from "@/app/nav/tab-bar";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
+import { ReadyGate } from "@/app/tech-map/ready-gate";
+import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
+import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
+import { SAMPLE_RECENT } from "@/lib/dev/preview-data";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
+import { getServerSupabase } from "@/lib/supabase/server";
 import "./tokens.css";
 import "./site-nav.css";
 
@@ -25,46 +33,44 @@ async function menuUser(): Promise<CurrentUser | null | undefined> {
   }
 }
 
+/** 메뉴의 판단 대기 수(design.md 17절). 못 읽으면 null: 배지를 빼고(0으로 보이지 않게, 불변 2) 알림 화면이 따로 읽는다.
+ *  shortcut: 화면 안 이동(링크)에서는 레이아웃이 다시 안 그려져 새로 고칠 때까지 옛 수일 수 있다. 바로 맞춰야 하면 판단 액션이 revalidatePath("/", "layout") */
+async function pendingCount(userId: string): Promise<number | null> {
+  const db = await getServerSupabase();
+  const r = await db?.from("alerts").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "pending");
+  if (!r || r.error || r.count === null) { if (r?.error) console.error("메뉴: 판단 대기 수를 읽지 못함", r.error.message); return null; }
+  return r.count;
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await menuUser();
+  const pending = isPreviewUser(user) ? SAMPLE_RECENT.pending : user ? await pendingCount(user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
   return (
     <html lang="ko">
       <body>
-        {/* 메뉴(design.md 13절 1): 왼쪽은 보는 곳, 오른쪽은 내 것. 대시보드·비교는 내 레이더(/views) 위 링크로 간다.
-            로그인 전에는 기술 지도만(나머지는 로그인이 필요). "+ 기술 넣기"는 대화상자(못 찾으면 내 프로젝트의 직접 추가로) */}
+        <ReadyGate />{/* 첫 화면 관문: 처음 열 때 한 번만 도는 스크립트(지도가 아니면 "이미 들어옴"만 남김) */}
+        {/* 메뉴(design.md 13절 1, 11-21 사용자 결정 "같은 메뉴 + 계정 묶기" → "종 알림 · 아바타 · 지금 화면 표시"): 로그인 전후 가운데 메뉴는 똑같이 보이고,
+            로그인이 필요한 화면은 누르면 그 자리에서 무엇이 열리는지 + 로그인(LoginNeeded). 왼쪽 로고 = 기술 지도.
+            알림은 글자 메뉴에서 빼 오른쪽 종으로(배지 = 판단 대기), 내 프로젝트 · 설정 · 관리자 · 로그아웃은 아바타 펼침 하나로 */}
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
-            <Link href="/">기술 지도</Link>
-            {user !== null ? (
-              <>
-                <Link href="/new">새 기술</Link>
-                <Link href="/recommend">추천</Link>
-                <Link href="/views">내 레이더</Link>
-                <Link href="/alerts">알림</Link>
-                <Link href="/history">기록</Link>
-              </>
-            ) : null}
+            <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
+            {/* 11-21 화면 개편 A: 보는 곳은 지도 · 청사진 둘. 보드 · 일지는 지도 공간이라 "지도"가 현재 표시, 그 안은 보는 곳 줄(SpaceSwitch)로. 새 기술 주소는 살려 둠 */}
+            <NavLink href="/" also={["/views", "/history"]}>지도</NavLink>
+            <NavLink href="/blueprint">청사진</NavLink>
           </div>
           <div className="site-nav-side">
-            {user !== null ? (
-              <>
-                <CaptureDialog />
-                <Link href="/projects">내 프로젝트</Link>
-                <Link href="/settings">설정</Link>
-              </>
-            ) : null}
-            {user?.role === "admin" ? <Link href="/admin">관리자</Link> : null}
-            {user ? (
-              <form action={signOut}>
-                <span>{user.nickname ? `${user.nickname}님` : "내 계정"}</span>
-                <button type="submit">로그아웃</button>
-              </form>
-            ) : (
-              <Link href="/login">로그인</Link>
-            )}
+            {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}
+            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">찾기 · 넣기</LoginLink>}
+            <AlertBell pending={pending} login={user !== null} />
+            {user !== null
+              ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />
+              : <LoginLink className="site-nav-login">로그인</LoginLink>}
           </div>
         </nav>
         {children}
+        <TabBar />
+        {loginPreviewAllowed(process.env) ? <LoginPreviewToggle on={isPreviewUser(user)} /> : null}
       </body>
     </html>
   );

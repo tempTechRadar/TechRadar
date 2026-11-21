@@ -49,6 +49,7 @@ export function attachInput(canvas: HTMLCanvasElement, stage: HTMLElement, ctl: 
   }
 
   function onDown(e: PointerEvent) {
+    if (ctl.finishIntro()) return; // 처음 연출 중이면 이 누르기는 연출을 끝내는 데만(카메라가 바뀌어 누른 점이 어긋나지 않게, 시안처럼)
     canvas.setPointerCapture(e.pointerId);
     const [x, y] = local(e);
     pts.set(e.pointerId, [x, y]);
@@ -103,7 +104,7 @@ export function attachInput(canvas: HTMLCanvasElement, stage: HTMLElement, ctl: 
   const onCancel = (e: PointerEvent) => endPointer(e, true);
   const onLeave = () => { if (!down) hover("", 0, 0); };
   const onDbl = (e: MouseEvent) => { const [x, y] = local(e); if (!hit(x, y)) ctl.fitVisible(); };
-  const onWheel = (e: WheelEvent) => { e.preventDefault(); const [x, y] = local(e); ctl.zoomAt(x, y, Math.exp(-e.deltaY * 0.0015)); };
+  const onWheel = (e: WheelEvent) => { e.preventDefault(); if (ctl.finishIntro()) return; const [x, y] = local(e); ctl.zoomAt(x, y, Math.exp(-e.deltaY * 0.0015)); };
 
   // 스페이스 = 손 모드(입력 칸·단추에 초점이 있으면 원래 동작 그대로)
   const typing = (el: EventTarget | null) => el instanceof Element && !!el.closest("input, select, textarea, button, a, summary, [contenteditable], dialog");

@@ -33,7 +33,7 @@ export default async function AdminFlowPage({ searchParams }: { searchParams: Pr
       <h1>흐름 화면</h1>
       <p>앱이 실제로 돈 기록(`runs`·`run_steps`)대로 칠해집니다. 기록이 없는 상자는 회색으로 남습니다.</p>
       {readError ? (
-        <p role="alert" style={{ color: "#b3261e" }}>기록을 읽지 못했어요(없는 게 아니라 조회 실패): {readError}</p>
+        <p role="alert" style={{ color: "var(--ink-danger)" }}>기록을 읽지 못했어요(없는 게 아니라 조회 실패): {readError}</p>
       ) : !picked ? (
         <p>아직 실행 기록이 없어요. 시뮬레이터(P-5)나 지금 실행(P-17)을 한 번 돌리면 여기에 생겨요.</p>
       ) : null}

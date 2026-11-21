@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
 import { GRADE_OPTIONS, keepView, ownText, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -33,7 +35,9 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const query = await searchParams;
-  const supabase = (await getServerSupabase())!;
+  if (isPreviewUser(user)) return <PreviewOnly title="내 프로젝트" />; // 미리보기(개발용)는 DB를 부르지 않는다. 프로젝트 샘플은 없어서 안내만
+  const supabase = await getServerSupabase();
+  if (!supabase) return <main className="alerts"><h1>내 프로젝트</h1><p>Supabase 연결 전이에요.</p></main>;
   const { data, error: loadError } = await supabase
     .from("projects")
     .select("id, name, kind, repo_url, memo, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name)), runs!runs_project_id_fkey(status, created_at)")
