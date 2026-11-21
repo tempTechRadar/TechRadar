@@ -28,8 +28,10 @@ export const TEMPLATES: { name: string; desc: string; cols: string[][] }[] = [
 ];
 
 /** 단계에 맞는 기술인지: 그 단계의 분류가 기술의 하는 일 · 세부 갈래 중 하나와 같으면. 목록에 없는 단계는 모두 맞음 */
+/** 단계 이름의 분류. 사용자가 지은 이름이 "constructor" 같은 객체 기본 속성과 겹쳐도 목록에 없는 단계로 본다 */
+export const stageFields = (stage: string): string[] | undefined => (Object.hasOwn(STAGE_FIELDS, stage) ? STAGE_FIELDS[stage] : undefined);
 export function fitsStage(stage: string, tech: { field: string | null; sub: string | null }): boolean {
-  const fields = STAGE_FIELDS[stage];
+  const fields = stageFields(stage);
   return !fields || fields.includes(tech.field ?? "") || fields.includes(tech.sub ?? "");
 }
 

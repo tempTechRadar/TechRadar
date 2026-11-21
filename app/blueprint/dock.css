@@ -1,0 +1,33 @@
+/* 청사진 스튜디오 하단 패널(P-12e 조각 K). 값은 공용 토큰(app/tokens.css). 누르는 칸은 --hit-sm 이상, 상태는 색만이 아니라 글자로 */
+.dock { position: relative; display: grid; grid-template-rows: auto auto 1fr; min-height: 0; background: var(--surface); border-top: 1px solid var(--line); }
+.dock-resize { height: 10px; margin-top: -5px; cursor: ns-resize; touch-action: none; }
+.dock-resize::before { content: ""; display: block; width: 44px; height: 4px; margin: 3px auto 0; border-radius: var(--r-pill); background: var(--muted); } /* --faint는 흰 바탕에서 2.1:1이라 손잡이로 안 보임 */
+.dock-resize:hover::before, .dock-resize:focus-visible::before { background: var(--ink); }
+.dock-resize:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.dock-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px; padding: 4px 12px; border-bottom: 1px solid var(--line); }
+.dock-tabs { display: flex; flex-wrap: wrap; gap: 2px; }
+.dock-tab { min-height: var(--hit-sm); padding: 0 12px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
+.dock-tab:hover { background: var(--sunken); }
+.dock-tab[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); font-weight: 700; }
+.dock-tab:focus-visible, .dock-sm:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.dock-body { overflow: auto; padding: 8px 12px 12px; display: grid; gap: 8px; align-content: start; font-size: var(--fs-sm); }
+.dock-body p { margin: 0; }
+.dock-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dock-row input, .dock-row select { min-height: var(--hit-sm); font: inherit; }
+.dock-h { margin: 4px 0 0; font-size: var(--fs-h3); }
+.dock-techs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 6px; }
+.dock-tech { display: grid; gap: 2px; justify-items: start; align-content: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
+.dock-tech[draggable="true"] { cursor: grab; }
+.dock-tech b { font-size: var(--fs-body); }
+.dock-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dock-tech.risky { background: var(--sunken); }
+.dock-tech.added { border: 2px solid var(--ink); } /* 보드에서 "청사진에 넣기"로 온 기술: 굵은 테두리 + 맨 앞 + 안내 글 */
+.dock-grade { font-size: var(--fs-cap); font-weight: 700; }
+.dock-grade.g-danger { color: var(--ink-danger); }
+.dock-grade.g-caution, .dock-grade.g-unknown { color: var(--ink-2); }
+.dock-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.dock-risky { color: var(--ink-danger); font-weight: 600; }
+.dock-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
+.dock-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); color: var(--ink); }
+.dock-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; align-items: start; }
+@media (max-width: 860px) { .dock-cols { grid-template-columns: 1fr; } }
