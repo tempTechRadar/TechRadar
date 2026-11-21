@@ -7,5 +7,7 @@
 .status-repos li, .status-techs li { display: grid; gap: 4px; align-content: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
 .status-repos p, .status-techs p { margin: 0; }
 .status-techs a { color: var(--ink); font-weight: 700; }
+/* 카드 안 이름 링크도 누르는 칸 --hit-sm(32px) 이상(WCAG 2.5.8, 접근성 점검 5번) */
+.status-repos a, .status-techs a { display: inline-flex; align-items: center; min-height: var(--hit-sm); }
 .status-techs .badge { justify-self: start; }
 .status-more { margin: calc(-1 * var(--sp-3)) 0 var(--sp-5); }
