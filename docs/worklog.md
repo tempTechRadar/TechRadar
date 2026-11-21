@@ -35,6 +35,7 @@
 ### 아직 안 된 것
 - "재로그인 후 입력 유지" QA 행(QA 세션), 사람 QA No Run 20행, erd 7절 팀 대조(동결 직후), 숫자 하나 재기·슬라이드 ▢ 7곳, 비공개 전환·강사 초대(사람, 11-23).
 - `night-rls-more`의 RLS 시험 SQL(미실행)은 운영에서 돌리려면 허락이 필요하다.
+| I-qa-final | 제출 전 QA: 남은 Fail·No Run 60줄을 직접/사람/덮임/못 함으로 나눔, 시험·채점·실제 OSV·실제 GitHub·운영 DB 읽기로 직접 확인(C19 Fail 풀림, 새 Fail 1: OSV 응답 크기 → DevAssi2), 사람 실행표 31줄(로그인 묶음 0·A·B·C·D) | Claude(QA 세션), 지휘 Maestro | `docs/qa-final.md`, `docs/qa.md`, `docs/qa-c.md` |
 
 ## 2026-11-20 (금)
 
@@ -42,6 +43,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-final-bugs | 제출 주간 수리(Maestro 배정): ① PRD-NF2 비밀값 점검 — origin/main 트리·이력, 운영 페이지 18개·JS 묶음 12개를 키 모양으로 찾음, 진짜 비밀값 0건(시험 가짜 값·공개 키만, 값은 안 옮김) ② QA Fail: OSV 응답 한도 50만 자 때문에 litellm 옛 버전·버전 없음이 매번 수집 오류 → queryOsv만 800만 자(다른 응답은 그대로, 넘으면 여전히 수집 오류). 실제 OSV로 52·85개 읽혀 "위험". 시험 1,271 통과, 빌드 통과 / 추가분: ① 흐름 그림 시작 상자 길 보기(파란 점선, 다시 누르면 해제, 글로도 — 실행 기록과 다른 모양이라 불변 6 유지) ② eval "조치·저장 실패" 사례(진짜 saveJudgment + 시연 failingRpc, 처리 완료 아님·기존 값 보존) — 경계 39/39 ③ rls_m0_more.sql 옮김(운영 스키마와 대조, 실행 안 함) ④ grade-pass 독립 검토(꼭 고칠 것 0, 권장 3 → DataCollector 반영) ⑤ 불변 5 권한 점검(문제 0·의심 4). 시험 1,272 통과, 빌드 통과 | 나(배정 · 확인) · Claude DevAssi2(점검 · 수정) | `lib/server/collect-fetch.ts` · 시험 · `app/admin/flow` · `lib/flow` · `lib/eval` · `eval/` · `supabase/tests/rls_m0_more.sql` |
+| I-qa-no-run-cleanup | QA 표 정리: 이미 다른 증거로 덮인 No Run·Fail 11행을 덮인 부분만 Pass로(운영 읽기 점검 11-20·H7 수집기 4상자·속도 재측정), 덮이지 않은 부분은 No Run 그대로, 새 행 1개(운영 읽기 점검 #194·#199). 로그인·쓰기가 필요한 사람 QA 행은 안 올림 | Claude(김영식 A 요청) | `docs/qa.md`, `docs/intent.md` |
 | I-prod-check-1120-pr194-199 | 합친 뒤 운영 읽기 점검: 배포 `8adb2f7` READY·서버 오류 0건, 관리자 5개 화면이 가짜 `?error=`·`?info=` 링크의 글을 안 보임, `/projects`에 "프로젝트 관리"·"보관하기" 보임. 버튼은 안 누름. 점검표에 L7·M4 줄 더함. 서명 통과한 진짜 안내 글과 보관·되살리기 저장은 사람이 한 번 확인해야 함 | Claude(김영식 A 요청) | `docs/운영-점검표.md`, `docs/intent.md` |
 | I-P-22-services | 연동 서비스 · 개념 노드(PRD-F40, 사용자 "남은작업 진행"): 공식 MCP를 레지스트리로 확인한 13개 서비스를 SDK · 설정 파일로, 개념 셋(하네스 · 서브에이전트 · 슬래시 명령)을 파일로 찾아 내 기술로. 설명은 화면에서 정해 둔 글로(공개 목록에 안 나가게). 개념은 "등급 없음". 리뷰 10건 반영. 시험 1,174 통과 | 나(진행) · Claude(조사 · 구현 · 확인) | `lib/domain/services.ts`, SPEC-7.4 |
 | I-P-12d-new-bulk | 지도 NEW 1,000개 고침(다른 세션 알림, 사용자 "진행"): 레지스트리 첫 전체 읽기로 들어온 기술은 NEW가 아님(새 줄에 표시, 옛 줄은 출처 · 시각으로). 지도 · 새 기술 화면 · 적용 기회가 같은 판정. 운영 읽기로 확인(NEW 0). 리뷰 9건 중 8건 고침. 시험 1,166 통과 | 나(진행) · Claude(조사 · 구현 · 확인) · 다른 세션(문제 발견) | `lib/domain/registry.ts` `isBulkFilled`, SPEC-3.2 |
