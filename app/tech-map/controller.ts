@@ -41,7 +41,7 @@ function savedTune(): Tune {
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, marks: login ? v.filter.marks : [], tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -307,7 +307,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     setMark(key: string, mark: MapNode["mark"]) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
       n.mark = mark;
-      if (S.view.filter.interest) setView({ ...S.view }); else notify(); // "내 관심"으로 거르는 중이면 관심을 풀자마자 지도에서도 빠지게
+      if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },
     /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */
     setTags(key: string, tags: string[]) {

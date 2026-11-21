@@ -58,7 +58,7 @@ test("기간 칩: 들어온 지 하루 · 7일 · 30일 안만, 처음 채운 �
   assert.deepEqual([shown("day"), shown("week"), shown("month")], [["d"], ["d", "w"], ["d", "m", "w"]]);
   assert.equal(parseView("new=1").filter.period, "week");
   assert.equal(parseView("t=year").filter.period, "");
-  assert.equal(viewQuery(parseView("t=month&mk=1")), "t=month&mk=1");
+  assert.equal(viewQuery(parseView("t=month&mk=1")), "t=month&mk=interest"); // 옛 mk=1은 관심으로 읽고 새 모양으로 싣는다
   assert.equal(filterCount(parseView("t=day&mk=1")), 2);
 });
 
@@ -79,4 +79,17 @@ test("내 태그 거르기: tg=를 여러 번(쉼표가 든 태그도), 하나�
   assert.equal(filterCount(v), 2);
   assert.equal(m.tagsFailed, false);
   assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")], tags: null }, NOW).tagsFailed, true);
+});
+
+test("판단 칩: mk=관심,보류처럼 여럿 고르면 그중 하나라도 맞는 기술, 옛 주소 mk=1은 관심, 모르는 값은 버림", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a"), tech("b"), tech("c"), tech("d")],
+    marks: [{ techId: tech("a").id, status: "interest", reason: null }, { techId: tech("b").id, status: "candidate", reason: null }, { techId: tech("c").id, status: "hold", reason: "아직 이름" }] }, NOW);
+  const shown = (q: string) => m.nodes.filter((n) => passes(n, parseView(q))).map((n) => n.name).sort();
+  assert.deepEqual(shown("mk=interest,hold"), ["a", "c"]);
+  assert.deepEqual(shown("mk=1"), ["a"]);
+  assert.deepEqual(parseView("mk=hold,nope,hold").filter.marks, ["hold"]);
+  assert.equal(viewQuery(parseView("mk=hold,interest")), "mk=interest%2Chold"); // 순서를 하나로(같은 보기는 같은 주소)
+  assert.equal(filterCount(parseView("mk=interest,candidate")), 2);
 });
