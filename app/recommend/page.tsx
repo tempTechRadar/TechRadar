@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readRecommendations } from "@/lib/server/recommend-queries";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -9,6 +11,7 @@ import "../alerts/alerts.css";
 export default async function RecommendPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/recommend");
+  if (isPreviewUser(user)) return <PreviewOnly title="추천" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const supabase = (await getServerSupabase())!;
   const view = await readRecommendations(supabase, user.id, user.isDemo).catch((e) => { console.error("추천 조회 실패", e); return null; });
   return (

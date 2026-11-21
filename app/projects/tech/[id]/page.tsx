@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getMyTechDetail, recordGradeView, type MyTechDetail } from "@/lib/server/my-tech";
 import { readUsageNotes, type UsageNoteView } from "@/lib/server/usage-notes";
@@ -16,6 +18,7 @@ import { UsageNotes } from "./usage-notes";
 export default async function TechDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="기술 상세" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const supabase = (await getServerSupabase())!;

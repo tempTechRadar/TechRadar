@@ -2,11 +2,13 @@
 import Link from "next/link";
 import "./alerts/alerts.css";
 
-export const metadata = { title: "찾을 수 없어요 · TechRadar" };
+export const metadata = { title: "찾을 수 없어요 · TechRadar" }; // 없는 주소용
 
 export default function NotFound() {
   return (
     <main className="alerts">
+      {/* 화면 안에서 notFound()를 부를 때(/alerts/[id])는 metadata가 안 먹어 탭이 "TechRadar"였다 */}
+      <title>찾을 수 없어요 · TechRadar</title>
       <h1>찾을 수 없어요</h1>
       <p>주소가 틀렸거나, 지워졌거나, 내가 볼 수 없는 곳이에요.</p>
       <p className="actions"><Link className="btn btn-primary" href="/">기술 지도로 가기</Link></p>

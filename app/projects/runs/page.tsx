@@ -6,6 +6,8 @@ import flowJson from "@/flow/flow.json";
 import { RUN_COLUMNS, STEP_COLUMNS } from "@/lib/flow/columns";
 import { isUserRun, USER_TRIGGERS } from "@/lib/flow/run-list";
 import type { Flow, RunListRow, StepDetail } from "@/lib/flow/types";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { RunView } from "../../admin/flow/run-view";
@@ -15,6 +17,7 @@ const flow = flowJson as unknown as Flow;
 export default async function MyRunsPage({ searchParams }: { searchParams: Promise<{ run?: string; node?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="내 실행 기록" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const supabase = await getServerSupabase();
   if (!supabase) return <main><h1>내 실행 기록</h1><p>Supabase 연결 전이에요.</p></main>;
 
