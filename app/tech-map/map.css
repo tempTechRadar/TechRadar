@@ -17,6 +17,14 @@
 .map-search input { width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
 .map-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 7; margin: 0; padding: 4px; list-style: none; max-height: 50vh; overflow: auto; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .map-results button { display: grid; width: 100%; min-height: 40px; padding: 4px 8px; text-align: left; background: none; border: 0; border-radius: var(--r-sm); font: inherit; cursor: pointer; }
+/* 카탈로그에도 없을 때 "직접 추가"(11-21): 이름 그대로 내 기술로 */
+.map-add { display: grid; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); margin-top: 4px; }
+.map-add > button:not(.btn), .map-add > a { font-weight: 700; text-align: left; background: none; border: 0; padding: 6px 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }
+.map-add label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.map-add select { min-height: 36px; font: inherit; border: 1px solid var(--ink-2); border-radius: var(--r-sm); background: var(--surface); }
+.map-add-error { color: var(--ink-danger); font-size: var(--fs-sm); }
+/* 지도 화면에서는 메뉴 바의 "찾기 · 넣기"를 숨긴다: 지도 찾기 칸이 같은 일을 한다(두 군데 있지 않게) */
+body:has(.map-page) .site-nav .site-nav-add { display: none; }
 .map-results button:hover, .map-results button:focus-visible { background: var(--sunken); }
 .map-results li.muted { padding: 8px; }
 .map-pop { position: relative; }
@@ -55,10 +63,8 @@
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: var(--sp-2) 0 0; font-size: var(--fs-sm); }
 .map-legend .chip { min-height: 32px; padding: 0 10px; }
 .map-legend .map-dot { margin-top: 0; }
-.map-status { margin: 4px 0; font-size: var(--fs-sm); color: var(--muted); }
-.map-klist summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-sm); }
-.map-klist ul { margin: 0; padding-left: 18px; }
-.map-klist button { min-height: 32px; font: inherit; background: none; border: 0; text-align: left; cursor: pointer; text-decoration: underline; }
+/* 상태 줄(보이는 수 · 위험 수)은 화면에서 빼고 화면 읽기에만 알린다(11-21 사용자: 보면 아는 것) */
+.map-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (max-width: 640px) {
   .map-stage { height: max(480px, calc(100dvh - 180px)); }
@@ -70,13 +76,13 @@
 
 /* 지도 페이지만 꽉 채움(A안, 11-20 사용자 결정, 시안 radar.html): 바깥 여백 · 테두리 없이 "화면 높이 − 메뉴 바".
    다른 화면은 같은 메뉴 바 · 같은 토큰 그대로라 일맥은 유지된다. 메뉴 바는 늘 보인다(판단 대기 배지가 가려지지 않게) */
-body:has(.map-page) { padding: 0; min-height: 100dvh; display: flex; flex-direction: column; }
+/* 11-21 사용자: 지도 화면은 스크롤 없이 지도만(높이 = 화면, 넘치는 것은 지도 안에서 끌어 다님) */
+body:has(.map-page) { padding: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
 body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .alerts.map-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; }
 .map-page > .notice, .map-page > section, .map-page > div:not(.map-wrap) { margin: var(--sp-2) var(--sp-4) 0; }
 .map-page .map-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.map-page .map-stage { flex: 1; height: auto; min-height: 420px; border: 0; border-radius: 0; }
-.map-page .map-klist { padding: 0 var(--sp-4); }
+.map-page .map-stage { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; }
 .map-top > * { pointer-events: auto; }
 .map-chip-note { cursor: default; background: color-mix(in srgb, var(--surface) 90%, transparent); }
 
@@ -85,10 +91,8 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-dock > * { pointer-events: auto; justify-self: start; max-width: 100%; }
 .map-dock > .map-toast { justify-self: center; }
 .map-dock .map-legend { margin: 0; }
-.map-dock .map-status { margin: 0; padding: 2px 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 88%, transparent); }
 .map-stage.open .map-dock { right: 392px; }
 @media (max-width: 640px) {
-  .map-page .map-stage { min-height: 520px; }
   .map-chip-note { display: none; } /* 좁은 화면에서는 로그인 단추만 남겨 지도를 덜 가린다 */
   .map-stage.open .map-dock { right: 12px; }
   .map-dock .map-legend { flex-wrap: nowrap; overflow-x: auto; width: 100%; }

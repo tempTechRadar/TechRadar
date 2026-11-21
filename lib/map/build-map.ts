@@ -160,3 +160,11 @@ export function buildTechMap(input: MapInput, now: Date): TechMapModel {
   edges.sort((x, y) => (x.join() < y.join() ? -1 : 1));
   return { mode: mine.size ? "mine" : "catalog", nodes: list.sort(byName), edges, quotes };
 }
+
+/** 지도 위 NEW 표시는 인기 상위 몇 개만(11-21 사용자: 한 주 수십 개면 다 못 본다). 별 → 주간 다운로드 순, 내 기술 · 비교군은 늘 남김.
+ *  "새 기술" 화면은 이 제한 없이 전부 보인다(목록은 둘러보는 곳) */
+export function capNew(model: TechMapModel, keep: number): TechMapModel {
+  const pop = (n: MapNode) => (n.stars ?? 0) * 10 + (n.weeklyDownloads ?? 0) / 100;
+  const top = new Set(model.nodes.filter((n) => n.isNew && !n.mine && !n.nearMine).sort((a, b) => pop(b) - pop(a) || a.name.localeCompare(b.name)).slice(0, keep).map((n) => n.key));
+  return { ...model, nodes: model.nodes.map((n) => (n.isNew && !n.mine && !n.nearMine && !top.has(n.key) ? { ...n, isNew: false } : n)) };
+}

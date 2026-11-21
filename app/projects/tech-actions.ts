@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { keepView } from "@/lib/domain/my-tech-view";
 import { maskSecrets } from "@/lib/domain/redact";
 import { getCurrentUser } from "@/lib/server/current-user";
-import { localProjectId } from "@/lib/server/local-import";
+import { resolveProjectId } from "@/lib/server/local-import";
 import { addTech, setTechHidden, type Ctx } from "@/lib/server/my-tech";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -39,9 +39,8 @@ export async function toggleHidden(formData: FormData): Promise<void> {
 
 /** "프로젝트 밖(내 컴퓨터)" 칸은 처음 쓸 때 만든다(import 저장과 같은 함수). */
 async function resolveProject(ctx: Ctx, raw: string): Promise<string | null> {
-  if (raw !== "local") return raw;
   try {
-    return await localProjectId(ctx.db, ctx.userId);
+    return await resolveProjectId(ctx.db, ctx.userId, raw);
   } catch (e) {
     console.error("프로젝트 밖 칸 준비 실패", maskSecrets(String(e)));
     return null;

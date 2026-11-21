@@ -5,11 +5,11 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { buildFirstCheckBand, FIRST_CHECK_COOKIE, parseSeenRunIds } from "@/lib/alerts/first-check-band";
 import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
-import { buildTechMap, type TechMapModel } from "@/lib/map/build-map";
+import { buildTechMap, capNew, type TechMapModel } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { readRecentFirstReads } from "@/lib/server/first-check-queries";
-import { NEW_RULE_VERSION, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
+import { CATALOG_LIMIT, NEW_RULE_VERSION, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
@@ -22,6 +22,8 @@ import "./alerts/alerts.css";
 
 /** 주소의 sel=tech:<uuid>(지도에서 보기)에서 기술 id만. 모양이 다르면 버린다 */
 const selTech = (query: string) => { const m = /^tech:([0-9a-f-]{36})$/i.exec(new URLSearchParams(query).get("sel") ?? ""); return m ? [m[1]] : []; };
+/** 지도 위 NEW 표시 수(11-21 사용자 결정, ADR 0030). 새 기술 화면은 전부 */
+const MAP_NEW = 15;
 const logged = (what: string) => (e: unknown) => { console.error(what, e instanceof Error ? e.message : e); return null; };
 
 // 로그인 전 지도는 누구에게나 같아 10분 동안 한 번만 읽는다(요청이 몰려도 DB는 그대로, ADR 0029). 실패는 기억하지 않는다(던지면 캐시 안 됨).
@@ -30,7 +32,7 @@ const readGuestMap = unstable_cache(async () => {
   const db = getServiceSupabase();
   if (!db) throw new Error("서비스 키 설정이 없음");
   return readGuestMapInput(db);
-}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION], { revalidate: 600 });
+}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT)], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
 
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; top: ReactNode }) {
@@ -53,7 +55,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     return (
       <main className="alerts map-page">
         <h1 className="sr-only">기술 지도</h1>
-        <MapBody model={input ? buildTechMap(input, new Date()) : null} projects={[]} query={query} canSave={false} top={<>
+        <MapBody model={input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
           <span className="map-chip map-chip-note">로그인하면 관심·판단·내 기술 비교가 열려요.</span>
           <GoogleLoginButton next={query ? `/?${query}` : "/"} />{/* 로그인 전 보기는 주소에만 있으니 들고 간다 */}
         </>} />
@@ -70,7 +72,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     readRecentFirstReads(db, user.id).catch(logged("첫 점검 띠 조회 실패")),
   ]);
   const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
-  const model = input ? buildTechMap(input, new Date()) : null;
+  const model = input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null;
   const summary = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;
   const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 

@@ -85,3 +85,14 @@ test("개념(작업 방식) 노드는 등급 칸이 '등급 없음'이다: 카�
   const m = buildTechMap(input({ techs: [concept, tech("x", { grade: "unknown" })], mine: [mine("m1", "h", { grade: "unknown" })] }), NOW);
   assert.deepEqual(m.nodes.map((n) => [n.key, n.attrs.grade]), [["tech:h", "등급 없음"], ["tech:x", "찾지 못함"]]);
 });
+
+test("지도 NEW 표시는 인기 상위만 남기고, 내 기술은 늘 NEW", async () => {
+  const { capNew } = await import("./build-map.ts");
+  const m = buildTechMap(input({
+    mine: [mine("m1", "c")],
+    techs: [tech("a", { createdAt: ago(1), signals: { stars: 900 } }), tech("b", { createdAt: ago(1), signals: { stars: 10 } }), tech("c", { createdAt: ago(1) }), tech("d", { createdAt: ago(1), signals: { stars: 50 } })],
+  }), NOW);
+  const capped = capNew(m, 2);
+  assert.deepEqual(capped.nodes.filter((n) => n.isNew).map((n) => n.name).sort(), ["a", "c", "d"]);
+  assert.equal(m.nodes.filter((n) => n.isNew).length, 4); // 원래 모델은 그대로
+});

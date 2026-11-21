@@ -5,20 +5,23 @@ import { useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
 import { DIMS, DIM_KO, filterCount, MAX_LEVELS, passes, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { MapSearch, type FindHit } from "./map-search";
 
 type ListKey = "kinds" | "fields" | "subs";
 const LIST_DIM: Record<ListKey, Dim> = { kinds: "kind", fields: "field", subs: "sub" };
 const sortKo = (a: string, b: string) => a.localeCompare(b, "ko");
 
-export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFind, onGo }: {
-  nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean;
-  onView: (v: ViewConfig) => void; onReset: () => void; onGo: (key: string) => void;
-  onFind: (q: string) => { key?: string; scope?: { dim: Dim; value: string }; label: string; sub: string }[];
+type Motion = "sweep" | "ripple" | "off";
+const MOTION_KO: [Motion, string][] = [["sweep", "도는 선"], ["ripple", "퍼지는 파동"], ["off", "끄기"]];
+
+export function Toolbar({ nodes, view, projects, canMine, login, motion, onView, onReset, onFind, onGo }: {
+  nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean; login: boolean;
+  motion: { value: Motion; still: boolean; set: (m: Motion) => void };
+  onView: (v: ViewConfig) => void; onReset: () => void; onGo: (key: string) => void; onFind: (q: string) => FindHit[];
 }) {
-  const [q, setQ] = useState("");
   const [open, setOpen] = useState<"" | "view" | "filter">("");
+  const [resets, setResets] = useState(0); // 보기 초기화 때 찾기 칸도 비운다(새로 그림)
   const f = view.filter, n = filterCount(view);
-  const results = q.trim() ? onFind(q) : [];
   const setFilter = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
   const setLevel = (i: number, dim: Dim | "") => {
     const group = dim ? [...view.group.slice(0, i), dim] : view.group.slice(0, i);
@@ -35,16 +38,7 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
 
   return (
     <div className="map-hud">
-      <div className="map-search" role="search">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="기술·분류 찾기" aria-label="기술이나 분류 찾기"
-          onKeyDown={(e) => { if (e.key === "Escape") setQ(""); }} />
-        {q.trim() ? (
-          <ul className="map-results">{results.length ? results.map((r) => (
-            <li key={r.key ?? `${r.scope!.dim}:${r.scope!.value}`}><button type="button" onClick={() => { setQ(""); if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }}>
-              {r.label} <span className="muted">{r.sub}</span></button></li>
-          )) : <li className="muted">맞는 기술이나 분류가 없어요. 지도에 올린 기술 안에서 찾아요.</li>}</ul>
-        ) : null}
-      </div>
+      <MapSearch key={resets} onFind={onFind} login={login} projects={projects} onPick={(r) => { if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }} />
       <div className="map-pop">
         <button type="button" className="btn" aria-expanded={open === "view"} onClick={() => setOpen(open === "view" ? "" : "view")}>보기</button>
         {open === "view" ? (
@@ -56,6 +50,12 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
                   {DIMS.filter((d) => !view.group.slice(0, i).includes(d) && (d !== "project" || canMine)).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
                 </select></label>
               ))}
+            </fieldset>
+            <fieldset><legend>움직임</legend>
+              <label>레이더 <select value={motion.still ? "off" : motion.value} disabled={motion.still} onChange={(e) => motion.set(e.target.value as Motion)}>
+                {MOTION_KO.map(([v, k]) => <option key={v} value={v}>{k}</option>)}
+              </select></label>
+              {motion.still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
             </fieldset>
             <fieldset><legend>색</legend>
               <label>색 기준 <select value={view.color} onChange={(e) => onView({ ...view, color: e.target.value as Dim })}>
@@ -94,7 +94,7 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
           </div>
         ) : null}
       </div>
-      <button type="button" className="btn" onClick={() => { setQ(""); setOpen(""); onReset(); }}>보기 초기화</button>
+      <button type="button" className="btn" onClick={() => { setOpen(""); setResets(resets + 1); onReset(); }}>보기 초기화</button>
     </div>
   );
 }
@@ -140,7 +140,6 @@ export function Legend({ L, view, onView }: { L: MapLayout; view: ViewConfig; on
         <button key={l.value} type="button" className="chip" aria-pressed={view.filter[key].includes(l.value)}
           onClick={() => onView({ ...view, filter: { ...view.filter, [key]: view.filter[key].includes(l.value) ? view.filter[key].filter((x) => x !== l.value) : [...view.filter[key], l.value] } })}>{dot(l)}{l.value} {l.count}</button>
       ) : <span key={l.value} className="chip">{dot(l)}{l.value} {l.count}</span>)}
-      <span className="muted">육각 · 마름모 · 네모 = 1 · 2 · 3단계 · 굵은 테두리 = 내 기술 · 빈 점 = 분류 전 · ✕ 위험 · ! 주의 · 점선 고리 = 수집 오류</span>
     </div>
   );
 }

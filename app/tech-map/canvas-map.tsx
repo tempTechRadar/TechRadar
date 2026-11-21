@@ -9,8 +9,8 @@ import { saveMarkWithToast, ToastLine, useToast } from "../undo-toast";
 import { Crumbs, Legend, Status, SummaryChips, Toolbar } from "./controls";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
-import { KeyboardList } from "./keyboard-list";
 import { markedText } from "./judge";
+import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import "./map.css";
 
@@ -133,7 +133,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
         <div ref={hud} className="map-top-hud">
           {top ? <div className="map-top">{top}</div> : null}
-          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
+          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} motion={{ value: S.motion, still: S.still, set: (m) => ctl.setMotion(m) }} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><SummaryChips nodes={model.nodes} view={S.view} canMine={canMine} onView={setView} /></div>
         </div>
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
@@ -155,7 +155,6 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>
       </div>
-      <KeyboardList L={S.L} collapsed={S.collapsed} onToggle={(id) => ctl.toggle(id)} onOpen={open} onDrill={drill} onFocus={(id) => ctl.setFocus(id)} />
     </div>
   );
 }
@@ -174,10 +173,11 @@ function TipCard({ item, x, y, shut, onDrill, onEnter, onLeave }: { item: Item; 
     );
   }
   const n = (item as TechItem).node;
+  const [what, facts] = describeKo(n); // 한국어 한 줄(11-21 사용자: 영어 소개는 빼고)
   return (
     <div className="map-card" style={style} role="tooltip">
-      <b>{n.name}{n.isNew ? " · NEW" : ""}</b><span className="muted">{pathOf(n)}</span>
-      {n.grade === "danger" ? <span>✕ 보안 위험</span> : n.grade === "caution" ? <span>! 보안 주의</span> : null}
+      <b>{n.name}{n.isNew ? " · NEW" : ""}</b><span>{what}</span>
+      {facts ? <span className="muted">{facts}</span> : null}
       {n.collectErrorKind ? <span>수집 오류(지난 값 표시)</span> : null}
       <span className="muted">누르면 자세히 · 끌면 이웃이 따라와요</span>
     </div>

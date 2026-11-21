@@ -5,7 +5,7 @@ import type { MapNode, TechMapModel } from "@/lib/map/build-map";
 import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, type GroupItem, type Item, type MapLayout, type TechItem } from "@/lib/map/layout";
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, parseView, passes, viewQuery, type ViewConfig } from "@/lib/map/view-config";
-import { draw, PULSE_SEC } from "./draw";
+import { draw, PULSE_SEC, REVEAL } from "./draw";
 
 const STORE = "techradar.mapView";
 const ZMIN = 0.05, ZMAX = 12; // 넓게: 끝없는 판처럼(사용자 11-20)
@@ -15,12 +15,19 @@ type Cam = { x: number; y: number; k: number };
 export type MapState = {
   W: number; H: number; top: number; right: number; /** 아래쪽에 뜬 범례 · 상태 줄 높이(그 밑에 점을 두지 않는다) */ bottom: number; cam: Cam; fly: { from: Cam; to: Cam; t0: number; dur: number } | null; userCam: boolean;
   L: MapLayout; view: ViewConfig; collapsed: Set<string>; hidden: Set<string>; leaving: Map<string, number>; phys: ReturnType<typeof createPhysics>;
-  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; sweepStart: number; now: number; scopeLabel: string;
+  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; motion: Motion; sweepStart: number; now: number; scopeLabel: string;
   riskRects: { x: number; y: number; list: TechItem[] }[]; hubLabels: { id: string; x: number; y: number; w: number; h: number }[];
   handles: { id: string; x: number; y: number }[]; homeArrow: { x: number; y: number } | null; scale: () => number; base: () => number;
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
+export type Motion = "sweep" | "ripple" | "off";
+const MOTION_KEY = "techradar-map-motion";
+/** 레이더 움직임 고르기는 이 브라우저에만 기억(편의). 서버 그림 중이거나 저장소를 못 쓰면 기본(도는 선) */
+function savedMotion(): Motion {
+  try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "ripple" || v === "off" ? v : "sweep"; } catch { return "sweep"; }
+}
+
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[]): ViewConfig {
   const mine = model.mode === "mine";
   return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
@@ -30,7 +37,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, tick = 0;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, tick = 0, lastActive = 0;
+  const IDLE_SEC = 90;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
@@ -39,13 +47,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: defaultCollapsed(L0), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, sweepStart: Infinity, now: 0, scopeLabel: "",
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), sweepStart: Infinity, now: 0, scopeLabel: "",
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
-    base() { return Math.min(this.W, this.H - this.top - this.bottom) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
+    // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
+    base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
   };
   const visible = () => S.L.items.filter((it) => !S.hidden.has(it.id));
   const notify = () => { version++; for (const f of listeners) f(); };
-  const dirty = () => { needDraw = true; };
+  const dirty = () => { needDraw = true; lastActive = S.now; };
 
   function saveView() {
     const q = viewQuery(S.view);
@@ -187,9 +196,12 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
       if (p >= 1) S.fly = null; anim = true;
     }
     if (phys.busy()) { if (S.still) for (let i = 0; i < 40 && phys.busy(); i++) phys.step(1 / 60, now, true); else phys.step(dt, now, false); anim = true; }
-    const sweeping = !S.still && now - S.sweepStart < 20;
-    const pulsing = !S.still && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
-    if (ctx && (needDraw || anim || sweeping || S.leaving.size || pulsing)) { draw(ctx, S, now); needDraw = false; }
+    const moving = !S.still && S.motion !== "off" && !document.hidden;
+    const revealing = moving && now - S.sweepStart < REVEAL + 1; // 펼침은 매 장
+    // 그 뒤 옅은 선 · 파동은 1초 20장. shortcut: 손대지 않은 지 90초면 멈춘다(배터리), 다시 만지면 이어서 — 정지 화면 따로 그리기는 동결 뒤
+    const ambient = moving && tick % 3 === 0 && now - lastActive < IDLE_SEC;
+    const pulsing = moving && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
+    if (ctx && (needDraw || anim || revealing || ambient || S.leaving.size || pulsing)) { draw(ctx, S, now); needDraw = false; }
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");
@@ -201,6 +213,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   rebuild(null, [...S.collapsed]);
   return {
+    /** 레이더 움직임 바꾸기(보기 메뉴). 펼침은 처음 한 번뿐이라 다시 켜도 옅은 움직임부터 */
+    setMotion(m: Motion) { S.motion = m; try { localStorage.setItem(MOTION_KEY, m); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
     S, model, phys, revealItem, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, drill, toggle, resetView, select, unselect, goTo, setFocus, measure, attach, dirty, notify,
     /** 주소에 보기 설정이 없으면 이 브라우저가 기억한 마지막 보기(로그인했을 때만). 붙인 뒤 한 번 */
     restoreSaved() {

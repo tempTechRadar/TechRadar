@@ -1,9 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { recordActionOutcome } from "@/lib/server/action-record";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { saveMark, type MarkResult, type MarkStatus } from "@/lib/server/marks";
+import { findPoolTechs, type PoolTech } from "@/lib/server/blueprints";
+import { resolveProjectId } from "@/lib/server/local-import";
+import { addTech } from "@/lib/server/my-tech";
+import { searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
+import { maskSecrets } from "@/lib/domain/redact";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -24,4 +29,43 @@ export async function markTech(techId: string, status: MarkStatus | null, reason
     revalidatePath("/alerts");
   }
   return result;
+}
+
+/** 로그인 전 찾기는 같은 글자면 10분 동안 한 번만 DB에(서버 액션은 누구나 부를 수 있는 주소라, 화면의 0.4초 쉬기만 믿지 않는다).
+ *  실패는 기억하지 않는다(던지면 캐시 안 됨). 공개 목록 · 공개 칸만(ADR 0029) */
+const guestSearch = unstable_cache(async (term: string) => {
+  const db = getServiceSupabase();
+  const r = db ? await findPoolTechs(db, term) : null;
+  if (r === null) throw new Error("로그인 전 카탈로그 찾기 실패");
+  return r;
+}, ["guest-catalog-search"], { revalidate: 600 });
+
+/** 지도 찾기에서 지도에 안 올린 기술 찾기(11-21 사용자: 찾기는 지도 찾기 칸 하나로). null = 찾지 못함(조회 실패, 불변 2). 빈 배열 = 찾았지만 없음 → 화면이 "직접 추가"를 보인다 */
+export async function searchCatalogAction(query: string): Promise<PoolTech[] | null> {
+  const term = searchTerm(String(query ?? ""));
+  if (!term) return null; // 화면이 같은 규칙으로 먼저 거른다(여기 오면 잘못 부른 것)
+  try {
+    const user = await getCurrentUser();
+    if (!user) return await guestSearch(term.toLowerCase());
+    const db = await getServerSupabase();
+    return db ? await findPoolTechs(db, term) : null;
+  } catch (e) {
+    console.error("지도 카탈로그 찾기 실패", maskSecrets(e instanceof Error ? e.message : String(e)));
+    return null;
+  }
+}
+
+/** 카탈로그에도 없는 이름(고유명사 등)을 내 기술로 직접 추가. 프로젝트 "local" = 프로젝트 밖(내 컴퓨터) 칸, 처음 쓸 때 만든다(내 프로젝트 화면과 같은 규칙) */
+export async function addMapTechAction(name: string, projectId: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const user = await getCurrentUser();
+  const db = user ? await getServerSupabase() : null;
+  if (!user || !db) return { ok: false, message: "로그인하면 직접 추가할 수 있어요." };
+  let target: string;
+  try { target = await resolveProjectId(db, user.id, String(projectId ?? "")); }
+  catch (e) { console.error("프로젝트 밖 칸 준비 실패", maskSecrets(String(e))); return { ok: false, message: TECH_ERROR_TEXT.failed }; }
+  const r = await addTech({ db, audit: getServiceSupabase(), userId: user.id }, { projectId: target, techId: null, name: String(name ?? ""), version: "" });
+  if (!r.ok) return { ok: false, message: TECH_ERROR_TEXT[r.code] ?? TECH_ERROR_TEXT.failed };
+  if (r.auditFailed) console.error("지도 직접 추가: 감사 기록을 남기지 못함(추가는 됨)");
+  revalidatePath("/"); revalidatePath("/projects");
+  return { ok: true };
 }

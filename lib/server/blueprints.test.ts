@@ -48,3 +48,30 @@ test("확정: DB가 거절하거나 답이 이상하면 실패로 알린다(처�
   assert.equal((await confirmBlueprint(fakeDb({ error: "x" }).db, { id: ID, name: "판", projectId: null, board: board([]) })).ok, false);
   assert.equal((await confirmBlueprint(fakeDb({ data: null }).db, { id: ID, name: "판", projectId: null, board: board([]) })).ok, false);
 });
+
+test("카탈로그 찾기: 공개 칸만 · 공개 목록만(사라짐 · 시뮬레이터 빼고), 앞글자 맞는 것 먼저, 못 읽으면 null", async () => {
+  const { findPoolTechs } = await import("./blueprints.ts");
+  const calls: string[] = [];
+  const rows = { pre: [{ id: "a", display_name: "github-mcp", type: "mcp", grade: "pass", category_id: null, one_liner: null }], any: [{ id: "b", display_name: "my-github", type: "mcp", grade: "pass", category_id: null, one_liner: null }, { id: "a", display_name: "github-mcp", type: "mcp", grade: "pass", category_id: null, one_liner: null }] };
+  const fake = (fail = false) => ({
+    from(table: string) {
+      if (table === "categories") return { select: () => Promise.resolve({ data: [], error: null }) };
+      let kind: "pre" | "any" = "any";
+      const q = {
+        select(cols: string) { calls.push(`select(${cols})`); return q; },
+        neq(k: string, v: unknown) { calls.push(`neq(${k},${v})`); return q; },
+        not(k: string, op: string, v: unknown) { calls.push(`not(${k},${op},${v})`); return q; },
+        eq(k: string, v: unknown) { calls.push(`eq(${k},${v})`); return q; },
+        ilike(_k: string, p: string) { kind = p.startsWith("%") ? "any" : "pre"; return q; },
+        order() { return q; },
+        limit() { return Promise.resolve(fail ? { data: null, error: { message: "x" } } : { data: rows[kind], error: null }); },
+      };
+      return q;
+    },
+  }) as unknown as SupabaseClient;
+  const r = await findPoolTechs(fake(), "github");
+  assert.deepEqual(r?.map((t) => t.name), ["github-mcp", "my-github"]);
+  for (const c of ["select(id, display_name, type, grade, category_id, one_liner)", "neq(status,gone)", "not(one_liner_source,is,null)", "eq(is_simulated,false)"]) assert.ok(calls.includes(c), c);
+  assert.equal(await findPoolTechs(fake(true), "github"), null);
+  assert.deepEqual(await findPoolTechs(fake(), "+"), []); // 찾을 글자가 없으면 묻지 않음
+});

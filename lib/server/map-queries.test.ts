@@ -66,11 +66,11 @@ test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 
   assert.ok(!manual.calls.some((c) => c.startsWith("tech_relations")));
 });
 
-test("모은 기술은 위험·주의 먼저, 두꺼운 것, 최근 순으로 최대 1,200개(시뮬레이터·사라진 기술 제외), 내 판단 표시는 내 것만", async () => {
+test("모은 기술은 위험·주의 먼저, 두꺼운 것, 최근 순으로 최대 500개(ADR 0030)(시뮬레이터·사라진 기술 제외), 내 판단 표시는 내 것만", async () => {
   const { db, calls } = recordingDb({ technologies: [{ id: "t9", display_name: "x" }] });
   const input = await readMapInput(db, "user-a", false);
   assert.deepEqual(input.techs.map((t) => t.id), ["t9"]);
-  for (const c of ["technologies.order(grade)", "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(1200)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
+  for (const c of ["technologies.order(grade)", "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });
 

@@ -7,7 +7,10 @@ import { groupOf, passes, type Dim, type ViewConfig } from "./view-config.ts";
 export const OTHER = "그 밖";
 /** 고리 간격: 1단계 묶음 고리 반지름과 단계 사이 거리(그리기의 고리도 같은 값) */
 export const FIRST_RING = 110, LEVEL_GAP = 95;
-const LEAF_GAP = 15, ROW_GAP = 16;
+// 11-21 사용자: 펼치면 딱딱 맞춰진 느낌 → 간격을 넓히고 기술마다 정해진 만큼 흩뿌린다(같은 입력이면 같은 그림, 바깥으로만 흩어 고리 순서는 그대로)
+const LEAF_GAP = 19, ROW_GAP = 24, SCATTER = 0.7;
+/** 기술 키마다 늘 같은 0~1 값(흩뿌리기용) */
+const seed = (key: string, salt: number) => { let h = 2166136261 ^ salt; for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619); return ((h >>> 0) % 1000) / 1000; };
 const HUB_R = [0, 22, 15, 10]; // 단계마다 크기·모양: 1 육각 · 2 마름모 · 3 네모
 /** 색 기준이 보안 등급이면 뜻이 정해진 색(범주 색을 주면 "위험 = 초록"처럼 거꾸로 읽힌다) */
 export const GRADE_TOKENS: Record<string, string> = { 위험: "--danger", 주의: "--caution", 통과: "--pass", "찾지 못함": "--unknown", [NO_GRADE]: "--unknown" };
@@ -70,8 +73,9 @@ export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
       const cap = Math.max(1, Math.floor(((a1 - a0) * leafR) / LEAF_GAP)), rows = Math.ceil(sorted.length / cap), per = Math.ceil(sorted.length / rows);
       sorted.forEach((n, i) => {
         const row = Math.floor(i / per), inRow = Math.min(per, sorted.length - row * per), col = i - row * per;
-        const r = leafR + row * ROW_GAP + (rows === 1 && sorted.length > 1 ? (i % 2) * 18 : 0); // 한 줄이면 번갈아 내밀어 이름표가 덜 겹치게
-        const [x, y] = polar(a0 + ((a1 - a0) * (col + 0.5)) / inRow, r), v = n.attrs[color];
+        const slot = (a1 - a0) / inRow;
+        const r = leafR + row * ROW_GAP + (rows === 1 && sorted.length > 1 ? (i % 2) * 18 : 0) + seed(n.key, 1) * ROW_GAP * SCATTER; // 한 줄이면 번갈아 내밀어 이름표가 덜 겹치게
+        const [x, y] = polar(a0 + slot * (col + 0.5) + (seed(n.key, 2) - 0.5) * slot * SCATTER, r), v = n.attrs[color];
         maxR = Math.max(maxR, r);
         items.push({ type: "t", id: n.key, node: n, parent, level, x, y, r: n.mine ? 6 : 4.5, token: tokenOf(v), hollow: v === UNSORTED });
       });
@@ -122,6 +126,8 @@ export function connected(L: MapLayout, id: string): Set<string> {
 export const hiddenOf = (L: MapLayout, collapsed: Set<string>) =>
   new Set(L.items.filter((it) => [...collapsed].some((g) => isUnder(L, it, g))).map((it) => it.id));
 
-/** 처음 펼침: 기술이 많으면(400 넘게) 맨 안쪽 묶음 단계를 접어 둔다 */
+/** 처음 펼침: 기술이 아주 많으면(700 넘게) 맨 안쪽 묶음 단계를 접어 둔다. 지도는 500개(ADR 0030)라 보통은 다 펼친 채로 시작해
+ *  첫 펼침 움직임에서 기술이 묶음 밖으로 날아 나온다(400이면 처음부터 모든 점이 접혀 움직임이 안 보였다) */
+export const COLLAPSE_OVER = 700;
 export const defaultCollapsed = (L: MapLayout) =>
-  new Set(L.shown > 400 ? L.items.filter((it) => it.type === "g" && it.level === L.depth).map((it) => it.id) : []);
+  new Set(L.shown > COLLAPSE_OVER ? L.items.filter((it) => it.type === "g" && it.level === L.depth).map((it) => it.id) : []);

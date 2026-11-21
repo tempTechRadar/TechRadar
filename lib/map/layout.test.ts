@@ -83,13 +83,15 @@ test("올리면 이어진 것: 묶음 → 위로 가는 길 + 아래 전부, 기
   assert.ok(leaf.has(top.id) && leaf.has("tech:c"));
 });
 
-test("기술이 많으면 바깥을 여러 줄로 쌓고, 400개를 넘으면 맨 안쪽 묶음을 접어 둔다(접힌 묶음 아래는 숨김)", () => {
-  const many = buildTechMap({ ...catalog, techs: Array.from({ length: 450 }, (_, i) => tech(`t${String(i).padStart(3, "0")}`, { categoryId: "db" })) }, NOW);
+test("기술이 많으면 바깥을 여러 줄로 쌓고, 700개를 넘으면 맨 안쪽 묶음을 접어 둔다(접힌 묶음 아래는 숨김)", () => {
+  const many = buildTechMap({ ...catalog, techs: Array.from({ length: 750 }, (_, i) => tech(`t${String(i).padStart(3, "0")}`, { categoryId: "db" })) }, NOW);
   const l = layoutMap(many, DEFAULT_VIEW);
   assert.ok(new Set(leaves(l).map((x) => Math.round(Math.hypot(x.x, x.y)))).size > 2, "여러 줄");
   const shut = defaultCollapsed(l);
   assert.deepEqual([...shut].map((id) => l.byId.get(id)!.level), [2]);
-  assert.equal(hiddenOf(l, shut).size, 450);
+  assert.equal(hiddenOf(l, shut).size, 750);
+  const fewer = layoutMap(buildTechMap({ ...catalog, techs: Array.from({ length: 500 }, (_, i) => tech(`t${String(i).padStart(3, "0")}`, { categoryId: "db" })) }, NOW), DEFAULT_VIEW);
+  assert.equal(defaultCollapsed(fewer).size, 0, "지도 기본 500개는 다 펼친 채로");
 });
 
 test("같은 입력이면 같은 그림", () => {

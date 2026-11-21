@@ -7,9 +7,9 @@ import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
 import { fixedNote } from "../domain/services.ts";
 
-/** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 7,800여 개를 다 그리지 않는다, 나머지는 찾기로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
- *  shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
-export const CATALOG_LIMIT = 1200;
+/** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 1만 5천여 개를 다 그리지 않는다, 나머지는 지도 찾기 칸으로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
+ *  11-21 사용자 결정으로 1,200 → 500(한눈에 받아들일 수 있는 양, ADR 0030). shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
+export const CATALOG_LIMIT = 500;
 /** id 목록을 주소에 싣는 읽기는 이만큼씩 나눈다(uuid 36자, 주소가 너무 길면 거절됨) */
 export const ID_CHUNK = 40;
 /** 카탈로그를 처음 채운 때(레지스트리 첫 동기화, 운영 11-19). 이때 들어온 것은 NEW가 아니다.
