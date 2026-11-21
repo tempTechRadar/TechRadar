@@ -5,6 +5,7 @@
 //   ④ ensureDanger + readLatestChange: 같은 (기술, 버전)의 변경 중 원인(별칭 포함, causeIdsOf)이 같은 것의 가장 큰 회차 → planDanger
 //   ⑤ saveGrade: 등급·근거를 저장하고 위험 아님이면 그 시각이 "마지막 위험 아님" ⑥ createSecurityAlerts: 변경의 종류·dedupe_key와 이미 있는 알림 키로 decideAlerts
 // 이 순서가 수집기와 어긋나면 채점이 못 잡는다. DB에만 있는 것(save_judgment 한 거래, 유일 제약)은 흉내 내지 않는다.
+// ⑦ 판단 저장 실패: 진짜 saveJudgment에 시연 스위치의 실패 클라이언트(failingRpc, P-20c)를 끼우고, 메모리 속 알림 한 줄로 전후를 비교한다.
 import { changeKey } from "../domain/dedupe-key.ts";
 import { gradeFromOsv, type Grade, type GradeResult, type OsvVuln } from "../domain/grade.ts";
 import { causeIdsOf, evidenceIds, isChanged, planDanger, type LatestChange, type OsvEcosystem, type OsvTarget } from "../domain/osv-daily.ts";
@@ -12,6 +13,11 @@ import { decideAlerts, type ChangeToAlert, type TechUsage } from "../alerts/deci
 import { decideOpportunityAlerts, type OpportunityRelation, type OpportunityUsage } from "../alerts/decide-opportunity-alerts.ts";
 import type { AlertKind } from "../alerts/filter-alerts.ts";
 import { validateJudgment } from "../alerts/validate-judgment.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { failingRpc } from "../demo/judgment-hooks.ts";
+import { actionOutcomeOf } from "../server/action-record.ts";
+import { getMyAlert } from "../server/alert-queries.ts";
+import { saveJudgment } from "../server/judgments.ts";
 import { CollectError, queryOsv } from "../server/collect-fetch.ts";
 import type { Reader } from "./actual.ts";
 import type { EdgeActual } from "./edge-score.ts";
@@ -31,7 +37,8 @@ export type EdgeInput =
   | ({ type: "osv-read" } & OsvRead)
   | ({ type: "osv-read-twice" } & Twice)
   | ({ type: "opportunity"; times: 1 | 2; relations: OpportunityRelation[]; usages: OpportunityUsage[] } & Pick<Opportunity, "change" | "newTech">)
-  | { type: "judgment"; decision: string; reason: string; alertKind: AlertKind; fixedVersion: string | null };
+  | { type: "judgment"; decision: string; reason: string; alertKind: AlertKind; fixedVersion: string | null }
+  | { type: "judgment-save-fail"; decision: string; reason: string; alertKind: AlertKind; fixedVersion: string | null };
 
 type Graded = { grade: Grade; ids: string[] };
 type ReadResult =
@@ -181,12 +188,51 @@ function judgment(i: Extract<EdgeInput, { type: "judgment" }>): Omit<EdgeActual,
   return { outcome: "입력 검사 거절(저장 안 함)", event: false, note: r.message };
 }
 
+type SaveFail = Extract<EdgeInput, { type: "judgment-save-fail" }>;
+
+/** u1의 판단 대기 알림 한 줄만 있는 DB(eq 조건은 지킨다). save_judgment가 불리면(성공) DB 함수처럼 판단을 남기고 알림을 완료로 바꾼다 */
+function oneAlertDb(i: SaveFail): SupabaseClient {
+  const row: Record<string, unknown> = {
+    id: "a1", user_id: "u1", kind: i.alertKind, status: "pending", created_at: "2026-11-21T00:00:00Z", judgments: null, comparison: null, my_technologies: null,
+    changes: { kind: "grade_to_danger", detected_at: "2026-11-21T00:00:00Z", prev_value: null, curr_value: i.fixedVersion ? { fixed_version: i.fixedVersion } : {}, technologies: { display_name: "mcp-remote" } },
+  };
+  // shortcut: select의 칸 목록은 무시하고 줄 전체를 준다. 칸이 빠지는 회귀는 alert-queries 시험 몫
+  const query = (eqs: [string, unknown][] = []) => ({
+    select: () => query(eqs),
+    eq: (col: string, v: unknown) => query([...eqs, [col, v]]),
+    maybeSingle: async () => ({ data: eqs.every(([c, v]) => row[c] === v) ? structuredClone(row) : null, error: null }),
+  });
+  const rpc = async (_name: string, args: { p_decision: string; p_reason: string; p_fixed_version: string | null }) => {
+    Object.assign(row, { status: "done", judgments: { decision: args.p_decision, reason: args.p_reason, fixed_version: args.p_fixed_version, judged_at: "2026-11-21T00:00:01Z" } });
+    return { data: null, error: null };
+  };
+  return { from: () => query(), rpc } as unknown as SupabaseClient;
+}
+
+/**
+ * 판단 저장이 실패하면 "처리 완료"로 보이지 않고(흐름의 조치 상자 = actionOutcomeOf) 알림·판단이 저장 전 그대로여야 한다(불변 4).
+ * wrap은 시험에서 실패 클라이언트를 빼고 대조할 때만 바꾼다.
+ */
+export async function judgmentSaveFail(i: SaveFail, wrap: (db: SupabaseClient) => SupabaseClient = failingRpc): Promise<Omit<EdgeActual, "id">> {
+  const db = oneAlertDb(i);
+  const before = await getMyAlert(db, "u1", "a1");
+  const r = await saveJudgment(wrap(db), { id: "u1", role: "user" }, { alertId: "a1", decision: i.decision, reason: i.reason });
+  const after = await getMyAlert(db, "u1", "a1");
+  const action = actionOutcomeOf(r);
+  const box = action === null ? "조치 기록 안 함" : action.ok ? "조치 상자 성공" : "조치 상자 실패";
+  const status = after?.status === "pending" ? "판단 대기" : String(after?.status);
+  const kept = JSON.stringify(after) === JSON.stringify(before) ? "보존" : "바뀜";
+  const head = r.ok ? "처리 완료" : `${r.saveAttempted ? "저장 실패" : "저장 전 거절"} · 처리 완료 아님`;
+  return { outcome: `${head} · ${box} · 알림 ${status} · 기존 값 ${kept}`, event: r.ok, ...(r.ok ? {} : { note: r.message }) };
+}
+
 async function actualOf(i: EdgeInput, read: Reader): Promise<Omit<EdgeActual, "id">> {
   switch (i.type) {
     case "osv-read": return osvRead(i, read);
     case "osv-read-twice": return osvReadTwice(i, read);
     case "opportunity": return opportunity(i);
     case "judgment": return judgment(i);
+    case "judgment-save-fail": return judgmentSaveFail(i);
     default: throw new Error(`모르는 입력 종류: ${(i as { type?: unknown }).type}`);
   }
 }

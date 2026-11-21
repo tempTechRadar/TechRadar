@@ -1518,6 +1518,23 @@
         "outcome": "입력 검사 거절(저장 안 함)",
         "event": false
       }
+    },
+    {
+      "id": "E-judge-save-failed",
+      "kind": "조치·저장 실패",
+      "target": "적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패",
+      "source": "불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc)",
+      "input": {
+        "type": "judgment-save-fail",
+        "decision": "candidate",
+        "reason": "",
+        "alertKind": "security",
+        "fixedVersion": "0.1.16"
+      },
+      "expected": {
+        "outcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
+        "event": false
+      }
     }
   ]
 }

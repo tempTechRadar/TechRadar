@@ -1,6 +1,6 @@
 # 채점 결과 (PRD-F30)
 
-- 언제: 2026. 11. 20. 12시 48분 0초 · 등급 규칙 v1 · 정답: eval/gold.json (SPEC-10)
+- 언제: 2026. 11. 21. 17시 56분 10초 · 등급 규칙 v1 · 정답: eval/gold.json (SPEC-10)
 - 사건: 맞게 울림 6 · 맞게 조용함 6 · **놓침 0** · **잘못 울림 0** (사례 12)
 - 등급 맞음 8/12 · 실행 실패 0
 
@@ -21,11 +21,12 @@
 
 ## 사건 종류·경계 사례 (eval/gold.json `edgeCases`)
 
-- 사건: 맞게 울림 15 · 맞게 조용함 23 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** (사례 38) · 실행 실패 0
+- 사건: 맞게 울림 15 · 맞게 조용함 24 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** (사례 39) · 실행 실패 0
 - 결과 다름 = 사건 수는 맞지만 앱이 낸 결과가 정답과 다름(예: 수집 오류를 변화 없음으로 봄).
-- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment.
+- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment·saveJudgment(저장 실패는 시연 스위치의 failingRpc를 끼움).
 - 손으로 따라 쓴 수집기 분기(DB에 묶여 부를 수 없음, lib/eval/edge.ts): checkOne(오류 → 수집 오류)·gradeOf(등급 읽기 실패 → parse)·applyResult(위험 아니면 비교)·readLatestChange(원인·별칭이 같은 변경의 가장 큰 회차)·saveGrade(위험 아님 시각)·createSecurityAlerts(이미 있는 알림 키). 이 순서가 수집기와 어긋나면 채점이 못 잡는다.
-- 채점 밖(DB가 있어야 함): save_judgment 저장과 저장 실패 때 되돌림, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록). 판단 사례는 입력 검사(validateJudgment)만 본다.
+- 판단 저장 실패(조치·저장 실패)는 앱 쪽만 본다: 진짜 saveJudgment가 실패를 돌려주는지, 흐름의 조치 상자가 실패로 칠해지는지(actionOutcomeOf), 메모리 속 알림 한 줄이 그대로인지.
+- 채점 밖(DB가 있어야 함): save_judgment 한 거래 안의 되돌림(DB 함수 자체)·저장은 됐는데 응답이 끊긴 경우, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록).
 
 | 종류 | 사례 | 맞음 | 놓침 | 잘못 울림 | 결과 다름 |
 |---|---|---|---|---|---|
@@ -35,6 +36,7 @@
 | 수집 실패 | 10 | 10 | 0 | 0 | 0 |
 | 거절·보류 | 6 | 6 | 0 | 0 | 0 |
 | 두 번 입력 | 5 | 5 | 0 | 0 | 0 |
+| 조치·저장 실패 | 1 | 1 | 0 | 0 | 0 |
 
 | 사례 | 종류 | 대상 | 출처 | 기대 결과 | 실제 결과 | 판정 | 비고 |
 |---|---|---|---|---|---|---|---|
@@ -76,7 +78,8 @@
 | E-judge-candidate-no-fix | 거절·보류 | 고친 버전이 없는 보안 경고를 적용 후보로 | SPEC-5.2 · ADR 0012 | 입력 검사 거절(저장 안 함) | 입력 검사 거절(저장 안 함) | 맞음 | 고친 버전이 아직 없어서 적용 후보로 저장할 수 없어요. 보류로 남겨 주세요. |
 | E-judge-candidate-fix | 거절·보류 | 보안 경고를 고친 버전으로 적용 후보 | SPEC-4.3 · ADR 0012 · G1 | 저장으로 넘김 · candidate · 고친 버전 0.1.16 | 저장으로 넘김 · candidate · 고친 버전 0.1.16 | 맞음 |  |
 | E-judge-unknown | 거절·보류 | 정해진 두 가지 밖의 판단(approve) | SPEC-4.1 할 수 있는 일 · 불변 1 | 입력 검사 거절(저장 안 함) | 입력 검사 거절(저장 안 함) | 맞음 | 적용 후보나 보류 중에서 골라 주세요. |
+| E-judge-save-failed | 조치·저장 실패 | 적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패 | 불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc) | 저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존 | 저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존 | 맞음 | 저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요. |
 
 ## 전체 (등급 사례 + 경계 사례)
 
-- 사례 50 · 맞게 울림 21 · 맞게 조용함 29 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** · 실행 실패 0
+- 사례 51 · 맞게 울림 21 · 맞게 조용함 30 · **놓침 0** · **잘못 울림 0** · **결과 다름 0** · 실행 실패 0

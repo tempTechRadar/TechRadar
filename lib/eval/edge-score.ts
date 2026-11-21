@@ -1,9 +1,9 @@
-// 경계 사례 채점(PRD-F30): 사건 종류(보안 경고·적용 기회)와 경계(변화 없음·수집 실패·거절·보류·두 번 입력)를 맞음·놓침·잘못 울림으로 센다.
+// 경계 사례 채점(PRD-F30): 사건 종류(보안 경고·적용 기회)와 경계(변화 없음·수집 실패·거절·보류·두 번 입력·조치·저장 실패)를 맞음·놓침·잘못 울림으로 센다.
 // 등급 사례(score.ts)와 따로 센다: 등급 사례의 수와 표는 그대로 두고, 전체 수만 더한다. DB·파일을 모르는 순수 함수.
 import type { EdgeInput } from "./edge.ts";
 import type { Totals, Verdict } from "./score.ts";
 
-export const EDGE_KINDS = ["보안 경고", "적용 기회", "변화 없음", "수집 실패", "거절·보류", "두 번 입력"] as const;
+export const EDGE_KINDS = ["보안 경고", "적용 기회", "변화 없음", "수집 실패", "거절·보류", "두 번 입력", "조치·저장 실패"] as const;
 export type EdgeKind = (typeof EDGE_KINDS)[number];
 
 export type EdgeCase = {
@@ -120,9 +120,10 @@ export function edgeMarkdown(s: EdgeScore): string {
     "",
     `- 사건: 맞게 울림 ${t.hit} · 맞게 조용함 ${t.quietOk} · **놓침 ${t.miss}** · **잘못 울림 ${t.falseAlarm}** · **결과 다름 ${t.outcomeWrong}** (사례 ${t.cases}) · 실행 실패 ${t.failed}`,
     "- 결과 다름 = 사건 수는 맞지만 앱이 낸 결과가 정답과 다름(예: 수집 오류를 변화 없음으로 봄).",
-    "- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment.",
+    "- 진짜 함수: queryOsv·gradeFromOsv·causeIdsOf·isChanged·planDanger·changeKey·decideAlerts·decideOpportunityAlerts·validateJudgment·saveJudgment(저장 실패는 시연 스위치의 failingRpc를 끼움).",
     "- 손으로 따라 쓴 수집기 분기(DB에 묶여 부를 수 없음, lib/eval/edge.ts): checkOne(오류 → 수집 오류)·gradeOf(등급 읽기 실패 → parse)·applyResult(위험 아니면 비교)·readLatestChange(원인·별칭이 같은 변경의 가장 큰 회차)·saveGrade(위험 아님 시각)·createSecurityAlerts(이미 있는 알림 키). 이 순서가 수집기와 어긋나면 채점이 못 잡는다.",
-    "- 채점 밖(DB가 있어야 함): save_judgment 저장과 저장 실패 때 되돌림, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록). 판단 사례는 입력 검사(validateJudgment)만 본다.",
+    "- 판단 저장 실패(조치·저장 실패)는 앱 쪽만 본다: 진짜 saveJudgment가 실패를 돌려주는지, 흐름의 조치 상자가 실패로 칠해지는지(actionOutcomeOf), 메모리 속 알림 한 줄이 그대로인지.",
+    "- 채점 밖(DB가 있어야 함): save_judgment 한 거래 안의 되돌림(DB 함수 자체)·저장은 됐는데 응답이 끊긴 경우, changes.dedupe_key·alerts(user_id, dedupe_key) 유일 제약, 수집기 전체 흐름(runBatch·실행 기록).",
     "",
     "| 종류 | 사례 | 맞음 | 놓침 | 잘못 울림 | 결과 다름 |",
     "|---|---|---|---|---|---|",
