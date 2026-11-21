@@ -10,6 +10,7 @@ import { CollectError, type ErrorKind } from "./collect-fetch.ts";
 import { countKinds } from "./collect-util.ts";
 import { fetchHnHits } from "./hn-fetch.ts";
 import { createThin, readCatalog, readSource, saveSignal, type Catalog, type Saved } from "./hn-store.ts";
+import { logFailure } from "./log-failure.ts";
 import { recordStep } from "./run-log.ts";
 
 const REQUEST_GAP_MS = 1_000; // SPEC-8: 요청 사이 1초 이상
@@ -39,7 +40,7 @@ async function collectHn(ctx: CollectorContext, d: Deps): Promise<{ items: numbe
   try {
     if (picked.length) await saveAll(run, picked);
   } catch (e) {
-    await recordSteps(run, false).catch(() => {}); // 저장 실패로 멈춰도 거기까지 저장한 것은 실행 기록에 남긴다(원래 오류는 가리지 않음)
+    await recordSteps(run, false).catch(logFailure("HN 저장 실패 뒤 단계 기록도 실패")); // 저장 실패로 멈춰도 거기까지 저장한 것은 실행 기록에 남긴다(원래 오류는 가리지 않음)
     throw e;
   }
   await recordSteps(run, true);
