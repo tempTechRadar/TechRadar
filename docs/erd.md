@@ -286,7 +286,7 @@ UK: (kind, ecosystem, value).
 | observed_at | timestamptz | ✔ | | |
 | is_simulated | bool | ✔ | | |
 
-**news_items** — 바깥 소식(P-12f ⑥ M7, `202611221700_P-12f_news_items.sql`, **운영 적용 전 — 사용자 승인 대기**). 약관을 확인한 공식 피드의 제목 · 링크 · 날짜 · 짧은 요약만(원문 링크를 같이 보임, AI 학습에 쓰지 않음). 로그인 없이도 읽힌다
+**news_items** — 바깥 소식(P-12f ⑥ M7, `202611221700_P-12f_news_items.sql`, **운영 적용 완료: 2026-11-21 15:40 UTC(2026-11-22 00:40 KST), `apply_migration` `p12f_news_items`, 사용자 승인. 적용 전 롤백 시험 14항목 통과**). 약관을 확인한 공식 피드의 제목 · 링크 · 날짜 · 짧은 요약만(원문 링크를 같이 보임, AI 학습에 쓰지 않음). 로그인 없이도 읽힌다
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
 | id | uuid | ✔ | PK | |
@@ -539,7 +539,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | template_notes | 남에게는 열린 템플릿의 숨기지 않은 글 · 안전한 칸만(쓴 사람 · 숨긴 사람 칸 못 읽음), 쓴 사람은 자기 글 모두, 관리자는 열린 템플릿의 글(숨긴 것 포함). **손님(anon)도 열린 템플릿의 숨기지 않은 글 · 안전한 칸 읽기**(P-12f M6). 쓰기는 써 본 사람만 · 수정 · 삭제 없음, 숨김은 관리자 |
 | template_helpful_votes · template_reports | 본인 줄만 읽기(신고는 관리자 전체), 넣기는 보이는 남의 글에만. 손님은 못 읽음 |
 | my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
-| news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 적용 전) |
+| news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 11-22 적용) |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
 | exports · grade_views | 본인 읽기·만들기. 관리자 읽기 |
 | audit_logs | 본인 줄 읽기, 관리자 전체 읽기. **고치기·지우기 아무도 못 함** |
@@ -634,6 +634,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | helpful_votes | 3 | 2 | 켜짐 | ✔ | 새 표(P-24) |
 | judgments | 10 | 1 | 켜짐 | ✔ |  |
 | my_technologies | 20 | 3 | 켜짐 | ✔ |  |
+| news_items | 9 | 1 | 켜짐 | ✔ | 새 표(P-12f M7, 11-22 적용, 사용자 승인) |
 | observations | 11 | 1 | 켜짐 | ✔ |  |
 | profiles | 7 | 2 | 켜짐 | ✔ |  |
 | projects | 8 | 3 | 켜짐 | ✔ |  |
@@ -672,5 +673,5 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 - 2026-11-21 P-12d-my-tech-tags(작업 `I-P-12d-my-tech-tags`, 마이그레이션 `202611211400_P-12d_my_tech_tags.sql`, Maestro가 전한 사용자 결정 "지금 만들기"): `my_tech_tags` 표를 더함(2절, 4절 권한, 관계 그림). 칸 단위 권한으로 넣는 칸을 `tech_id`·`tag`로 좁힘(11-21 권한 점검 의심 3에서 배운 것). 운영 적용은 사용자 승인 뒤.
 - 2026-11-21 P-21a 마이그레이션 파일 이름을 `202611211200_P-21a_github_search_source.sql` → `202611211210_P-21a_github_search_source.sql`로 바꿈(map-demo의 `202611211200_P-12d_starter_set.sql`과 번호가 겹침, 작업 `I-P-21-criteria`). 내용은 같다: `sources`에 `github_search`(방법 api, 우선순위 3) 한 줄(`on conflict do nothing`). 운영에는 사용자 승인으로 대시보드 SQL 편집기에서 직접 적용했고(2026-11-21 13:28 KST, `sources` 9 → 10줄) 그 방식은 `schema_migrations`에 기록을 남기지 않아 운영 기록에는 이 줄이 없다(표·칸 변경 없음).
 - 2026-11-21 P-12e M1 · M2(작업 `I-P-12e-blueprint-db` · `I-P-12e-blueprint-templates`, 마이그레이션 `202611221000_P-12e_blueprint_graph.sql` · `202611221100_P-12e_blueprint_templates.sql`): `blueprints`에 graph · template_id, 새 표 `blueprint_templates`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 템플릿 기술은 관문에 더하지 않음(사용자 결정 "고르기 칩"). **운영 적용: 11-21**(DB 이름 `p12e_blueprint_graph` `20261121133714`, `p12e_blueprint_templates` `20261121135023`), 권한 시험 40 · 19 · 37항목 모두 기대값. M3(템플릿 사용기 표)는 만들면 더함.
-- 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에는 아직 적용하지 않았다**(사용자 승인 대기) — 7절(실제 DB 대조)에는 적용 뒤 칸 · 정책 수를 읽어 채운다. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고
+- 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에 적용했다**(2026-11-21 15:40 UTC, 사용자 승인, 적용 전 롤백 시험 14항목 통과). 적용 뒤 읽어서 확인: 칸 9 · RLS 켜짐 · 정책 1(누구나 읽기) · 색인 기본키 외 2(url 유일 · 최신순) · anon · authenticated는 SELECT뿐 · 줄 0 · `sources`에 `news` 줄(enabled · api · 3) · `schema_migrations` 기록됨. 7절 표에 한 줄 더함. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고
 - 2026-11-22 P-12e M3 · P-12f M6(작업 `I-P-12e-template-notes` · `I-P-12f-guest`, 마이그레이션 `202611221200_P-12e_template_notes.sql` · `202611221310_P-12f_public_gallery_anon.sql`): 새 표 `template_notes` · `template_helpful_votes` · `template_reports`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 손님(anon)은 공개 갤러리 · 열린 템플릿 · 그 사용기의 안전한 칸 · 기술 사용기 수(`usage_note_count`) · 도움 합(`template_helpful_totals`)만, 기술 사용기 글은 손님에게 닫음(사용자 결정). **운영 적용: 11-22**(DB 이름 `p12e_template_notes` `20261121160505`, `p12f_public_gallery_anon` `20261121160610`), 권한 시험 41 · 33항목 모두 기대값.
