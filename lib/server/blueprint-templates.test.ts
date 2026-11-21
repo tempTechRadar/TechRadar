@@ -82,12 +82,26 @@ test("내 템플릿: 본인 것만(author_id 조건), 공개 · 숨김 표시, �
 
 test("템플릿 열기(이 템플릿으로 시작): 쓸 수 있으면 그래프, 없으면 null, 잘못된 id는 DB를 안 부름, 못 읽으면 던진다", async () => {
   const { readTemplateForUse } = await import("./blueprint-templates.ts");
-  const ok = fakeDb({ data: [{ id: ID, kind: "combo", name: "조합", graph }] });
-  assert.deepEqual(await readTemplateForUse(ok.db, ID), { id: ID, kind: "combo", name: "조합", graph });
-  assert.deepEqual(ok.calls, [{ fn: "blueprint_template_for_use", args: { p_id: ID } }]);
+  const frame = { ...graph, stages: [{ ...graph.stages[0], techs: [] }] };
+  const ok = fakeDb({ data: [{ id: ID, kind: "frame", name: "틀", graph: frame }] });
+  assert.deepEqual(await readTemplateForUse(ok.db, ID), { id: ID, kind: "frame", name: "틀", graph: frame, outsideGate: [] });
+  assert.deepEqual(ok.calls, [{ fn: "blueprint_template_for_use", args: { p_id: ID } }], "기술 없는 틀은 관문을 읽지 않는다");
   assert.equal(await readTemplateForUse(fakeDb({ data: [] }).db, ID), null);
   const none = fakeDb({ data: [] });
   assert.equal(await readTemplateForUse(none.db, "x"), null);
   assert.equal(none.calls.length, 0);
   await assert.rejects(readTemplateForUse(fakeDb({ error: "boom" }).db, ID), /템플릿을 읽지 못함/);
+});
+
+test("남의 조합 열기: 내 관문 밖 기술은 outsideGate로(화면이 후보 칩으로, ADR 0034 1), 관문을 못 읽으면 던진다(빈 관문으로 단정 안 함)", async () => {
+  const { readTemplateForUse } = await import("./blueprint-templates.ts");
+  const OTHER = "22222222-2222-4222-8222-222222222222";
+  const combo = { ...graph, stages: [{ ...graph.stages[0], techs: [{ id: TECH, name: "zod" }, { id: OTHER, name: "x" }] }] };
+  const db = (gate: { data?: string[]; error?: string }) => ({
+    rpc: (fn: string) => Promise.resolve(fn === "my_blueprint_tech_ids"
+      ? { data: gate.data ?? null, error: gate.error ? { message: gate.error } : null }
+      : { data: [{ id: ID, kind: "combo", name: "조합", graph: combo }], error: null }),
+  }) as unknown as SupabaseClient;
+  assert.deepEqual((await readTemplateForUse(db({ data: [TECH] }), ID))?.outsideGate, [OTHER]);
+  await assert.rejects(readTemplateForUse(db({ error: "boom" }), ID), /읽지 못함/);
 });
