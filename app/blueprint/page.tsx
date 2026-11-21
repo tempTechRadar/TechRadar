@@ -1,5 +1,6 @@
 // 블루프린트 = 설계도 판(design.md 14절 ⑤, 11-21 사용자 결정 "시안 거의 전부"): 단계를 순서 · 나란히로 놓고 단계마다 쓸 기술을 붙여
 // 확정하면 내 이력에 쌓이고, 프롬프트 · CLAUDE.md 글 · 메타프롬프트로 내보낸다. 로그인 전에는 그 자리 안내(LoginNeeded).
+import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_BLUEPRINT } from "@/lib/dev/preview-data";
@@ -28,7 +29,8 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
   return (
     <main className="alerts bp-page">
       <h1 className="sr-only">청사진</h1>
-      {data ? <Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} />
+      {/* 하단 패널이 주소의 add=를 읽어(useSearchParams) Suspense로 감싼다 */}
+      {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} /></Suspense>
         : <div className="notice notice-error" role="alert"><strong>내 기술을 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>
   );

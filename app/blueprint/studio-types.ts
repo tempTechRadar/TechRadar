@@ -18,6 +18,7 @@ export type PanelProps = {
   /** 내 태그(기술 id → 태그). null = 읽지 못함 */ tags: Record<string, string[]> | null;
   onTags: (techId: string, tags: string[]) => void;
   history: BlueprintRecord[] | null; say: Say;
+  /** 이 화면에서 방금 확정한 청사진 id(AI 점검 탭이 씀). 아직 확정 안 했으면 null */ confirmedId: string | null;
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

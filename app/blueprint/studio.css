@@ -6,7 +6,12 @@
 .studio-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
 .studio-add label { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); }
 .studio-add input { min-height: var(--hit); width: 12em; padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
-.studio-canvas { flex: 1; min-height: 320px; position: relative; background: var(--sunken); }
+/* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 결과물(③) · 하단 패널 */
+.studio-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; }
+.studio-insp { min-height: 0; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); }
+.studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
+@media (max-width: 860px) { .studio-main { grid-template-columns: minmax(0, 1fr); } }
+.studio-canvas { min-height: 320px; position: relative; background: var(--sunken); }
 /* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
 .studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
 
@@ -40,7 +45,10 @@
 /* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
 .react-flow__edge.se-near .react-flow__edge-path { stroke: var(--ink-2); stroke-dasharray: 4 3; }
 .react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
-.react-flow__minimap-node { fill: var(--faint); } /* 미니맵의 단계가 흰 바탕에 묻히지 않게 */
+/* 미니맵: 작게 · 테두리로 판과 구분(빈 흰 상자로 단계를 덮지 않게). 목록 모드(좁은 화면)에는 캔버스가 없어 미니맵도 없다 */
+.react-flow__minimap.studio-mini { width: 160px; height: 100px; margin: 8px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.react-flow__minimap.studio-mini svg { width: 160px; height: 100px; }
+.studio-note { margin: 0; border-radius: 0; }
 /* 정렬 보조선(캔버스 좌표) */
 .sg { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--ink); opacity: .45; }
 .sg-x { width: 1px; height: 100000px; }
@@ -58,6 +66,3 @@
 .tc[data-grade="pass"] .tc-dot { background: var(--pass); }
 .tc-x { min-width: 24px; min-height: 28px; padding: 0 6px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
 
-/* shortcut: 하단 패널(조각 K)이 오기 전 시험용 기술 줄 */
-.studio-tempdock { display: flex; flex-wrap: wrap; gap: 6px; padding: var(--sp-2) var(--sp-4); background: var(--surface); border-top: 1px solid var(--line); max-height: 20vh; overflow: auto; }
-.studio-tempdock > span { cursor: grab; }

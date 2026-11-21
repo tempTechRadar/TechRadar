@@ -3,24 +3,26 @@
 // 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기) · 스페이스(손 모드)만, 나머지는 단추(사용자 결정).
 // 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  addStage, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, moveStages, putTech, removeStage, removeTech, toBoardView,
+  addStage, autoLayout, connect, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
   type ConnectProblem, type Graph, type Pos,
 } from "@/lib/blueprint/graph";
 import { recommendAt } from "@/lib/blueprint/knowledge";
 import { toStored } from "@/lib/blueprint/stored";
-import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
+import type { BlueprintPage } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { confirmAction } from "./actions";
 import { ConfirmDialog } from "./dialogs";
+import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
+import { Inspector } from "./inspector";
+import { ListMode } from "./list-mode";
 import { StageNode, type StageNodeType } from "./stage-node";
 import { Stepper, StepResult } from "./stepper";
-import { TECH_DRAG, type Picked, type Step } from "./studio-types";
-import { TechChip } from "./tech-chip";
+import type { PanelProps, Picked, Step } from "./studio-types";
 import { useStudioGraph } from "./use-studio-graph";
 import "./studio.css";
 
@@ -31,12 +33,16 @@ const CONNECT_KO: Record<ConnectProblem, string> = {
 };
 
 type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null };
+// 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
+const NARROW = "(max-width: 860px)";
+const onNarrow = (f: () => void) => { const m = matchMedia(NARROW); m.addEventListener("change", f); return () => m.removeEventListener("change", f); };
+const useNarrow = () => useSyncExternalStore(onNarrow, () => matchMedia(NARROW).matches, () => false);
 export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
 /** 확정 id는 내용(이름 · 프로젝트 · 판)마다 하나: 같은 내용을 다시 눌러도 한 줄(불변 3). 실패하면 판은 그대로(불변 4) */
-function useConfirm(onDone: () => void) {
+function useConfirm(onDone: (id: string) => void) {
   const last = useRef({ key: "", id: "" });
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const confirm = async (name: string, projectId: string | null, graph: Graph) => {
@@ -48,25 +54,29 @@ function useConfirm(onDone: () => void) {
     // shortcut: 확정 v2(그래프 · 연결선 저장, 조각 B)가 합쳐지기 전에는 옛 확정(순서대로 편 판)으로 저장한다. v2가 오면 graph를 함께 보낸다
     const r = await confirmAction({ id: last.current.id, name, projectId, board: stored }).catch(() => ({ ok: false as const, message: "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요." }));
     setBusy(false);
-    if (r.ok) onDone(); else setError(r.message);
+    if (r.ok) onDone(last.current.id); else setError(r.message);
   };
   return { confirm, busy, error, reset: () => setError("") };
 }
 
-function StudioInner({ who, pool, projects, add }: Props) {
+function StudioInner({ who, pool, history, projects, tags: tags0, add }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
-  const { graph, push, undo, redo, canUndo, canRedo, name, setName } = useStudioGraph(who);
+  const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread } = useStudioGraph(who);
+  const [tags, setTags] = useState(tags0);
+  const narrow = useNarrow(), [listOn, setListOn] = useState(false), listMode = narrow || listOn;
   const [step, setStep] = useState<Step>(add ? 2 : 1);
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
+  const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState("");
   const [confirming, setConfirming] = useState(false);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
-  const done = useConfirm(() => { setConfirming(false); say("확정해서 내 이력에 남겼어요. 붙인 기술의 쓴 횟수에 더해져요."); router.refresh(); });
+  const [confirmedId, setConfirmedId] = useState<string | null>(null);
+  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
 
@@ -97,7 +107,7 @@ function StudioInner({ who, pool, projects, add }: Props) {
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
-    id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id),
+    id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)) },
   }));
   const edges: FlowEdge[] = g.edges.map((e) => {
@@ -110,15 +120,17 @@ function StudioInner({ who, pool, projects, add }: Props) {
     labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
   function onNodesChange(changes: NodeChange<StageNodeType>[]) {
-    let nextSel: Set<string> | null = null, moved = drag, ended = false;
+    let nextSel: Set<string> | null = null, nextDims: typeof dims | null = null, moved = drag, ended = false;
     const raw = new Map<string, Pos>();
     for (const c of changes) {
       if (c.type === "select") { nextSel ??= new Set(sel); if (c.selected) nextSel.add(c.id); else nextSel.delete(c.id); }
+      if (c.type === "dimensions" && c.dimensions) (nextDims ??= new Map(dims)).set(c.id, c.dimensions);
       if (c.type === "position") {
         if (c.position) raw.set(c.id, c.position);
         if (c.dragging === false) ended = true;
       }
     }
+    if (nextDims) setDims(nextDims);
     if (raw.size) moved = new Map([...(moved ?? []), ...assist.during(g, raw)]); // 격자 · 보조선에 붙인 위치
     if (nextSel) {
       setSel(nextSel);
@@ -149,6 +161,9 @@ function StudioInner({ who, pool, projects, add }: Props) {
   }
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
   const problems = limitProblems(g);
+  /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
+  const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
+  const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId };
 
   return (
     <div className="studio" data-step={step} onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -160,8 +175,10 @@ function StudioInner({ who, pool, projects, add }: Props) {
         <button type="button" className="btn" disabled={!canUndo} onClick={undo}>되돌리기</button>
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
         <button type="button" className="btn" onClick={() => { const next = autoLayout(g); apply(next, next === g ? "고리가 있으면 자동 정렬을 할 수 없어요." : "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: 200 })); }}>자동 정렬</button>
-        <button type="button" className="btn" onClick={() => void flow.fitView({ padding: 0.2, duration: 200 })}>보기 초기화</button>
+        <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: 200 })}>보기 초기화</button>
+        {narrow ? null : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
       </div>
+      {unread ? <p className="notice studio-note" role="status">지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요.</p> : null}
       {step === 1 ? (
         <form className="studio-add" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}>
           <label>새 단계 <input value={newName} maxLength={20} placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} /></label>
@@ -169,34 +186,26 @@ function StudioInner({ who, pool, projects, add }: Props) {
           {hints.map((h) => <button key={h} type="button" className="chip" onClick={() => addNamed(h)}>+ {h}</button>)}
         </form>
       ) : null}
-      <div className="studio-canvas" role="region" aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
-          deleteKeyCode="Delete" selectionOnDrag panOnDrag={[1, 2]} panActivationKeyCode="Space" minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }}
-          proOptions={{ hideAttribution: true }}>
-          <Background gap={16} size={1} />
-          <GuideLines guides={assist.guides} />
-          <MiniMap pannable zoomable ariaLabel="미니맵" />
-        </ReactFlow>
+      <div className="studio-main" data-list={listMode ? "" : undefined}>
+        {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
+          <div className="studio-canvas" role="region" aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
+            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+              onConnect={onConnect} onConnectEnd={onConnectEnd} isValidConnection={(c) => connectProblem(g, c.source, c.target) === null} onDelete={onDelete} onPaneClick={unpick}
+              deleteKeyCode="Delete" selectionOnDrag panOnDrag={[1, 2]} panActivationKeyCode="Space" minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }}
+              proOptions={{ hideAttribution: true }}>
+              <Background gap={16} size={1} />
+              <GuideLines guides={assist.guides} />
+              <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />
+            </ReactFlow>
+          </div>
+        )}
+        {narrow ? null : <aside className="studio-insp" aria-label="속성 패널"><Inspector {...panel} /></aside>}
       </div>
-      {step === 2 ? <TempDock pool={pool} picked={picked} onPut={(id) => picked && dropTech(picked.stageId, id)} /> : null}
       {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={() => { done.reset(); setConfirming(true); }} /> : null}
+      <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g)} onClose={() => setConfirming(false)} /> : null}
-    </div>
-  );
-}
-
-/** shortcut: 개발보조1의 하단 패널(조각 K, dock.tsx)이 합쳐지기 전 시험용 기술 줄. K가 오면 지운다 */
-function TempDock({ pool, picked, onPut }: { pool: PoolTech[]; picked: Picked; onPut: (techId: string) => void }) {
-  return (
-    <div className="studio-tempdock">
-      {pool.map((t) => (
-        <span key={t.id} draggable onDragStart={(e) => { e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
-          <TechChip tech={t} info={t} onPick={picked ? () => onPut(t.id) : undefined} />
-        </span>
-      ))}
     </div>
   );
 }

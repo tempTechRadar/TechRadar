@@ -18,7 +18,7 @@ export function PanelsSample({ pool, history, tags: start }: { pool: PoolTech[];
   const { toast, say, clear } = useToast();
   const graph = stack[stack.length - 1];
   const p: PanelProps = {
-    graph, step, picked, onPick: setPicked, pool, tags, history, say,
+    graph, step, picked, onPick: setPicked, pool, tags, history, say, confirmedId: null,
     apply: (next, text) => { if (next === graph) return; setStack((s) => [...s.slice(-49), next]); if (text) say(text); },
     onTags: (id, t) => setTags((x) => ({ ...x, [id]: t })),
   };
