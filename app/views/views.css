@@ -1,12 +1,15 @@
-/* 내 레이더(칸반)와 보기 탭. 값은 공용 토큰(app/tokens.css), .alerts의 단추·숫자 카드를 함께 쓴다 */
+/* 보드(칸반)와 보기 탭. 값은 공용 토큰(app/tokens.css), .alerts의 단추·숫자 카드를 함께 쓴다 */
 .views-page { max-width: 1200px; }
 .views-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
 .views-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; }
+.views-tabs .muted { align-self: center; }
 .views-tabs a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
 .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
 .kb-col { padding: var(--sp-3); border-radius: var(--r-lg); background: var(--sunken); }
 .kb-col h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-h2); }
 .kb-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.kb-group + .kb-group { margin-top: var(--sp-3); }
+.kb-group h3 { margin: 0 0 6px; font-size: var(--fs-sm); color: var(--ink); }
 .kb-card { display: grid; gap: 4px; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
 .kb-card .badge { justify-self: start; align-self: start; }
 .kb-links { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-sm); }

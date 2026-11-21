@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
 import { appendReason, HOLD_REASON_CHIPS, holdReasonProblem, MIN_HOLD_REASON, NO_FIXED_VERSION_MESSAGE } from "@/lib/alerts/validate-judgment";
 import { judge, type JudgeState } from "./actions";
 
@@ -11,7 +12,7 @@ export function JudgmentForm({ alertId, canCandidate, kind, candidateLabel }: { 
   return (
     <form action={action} className="card" aria-labelledby="judge-title">
       <h2 id="judge-title">판단하기</h2>
-      <p className="muted">저장하기 전에는 아무것도 바뀌지 않아요.</p>
+      <p className="muted">저장하기 전에는 아무것도 바뀌지 않아요. {BLUEPRINT_GATE}</p>
       <input type="hidden" name="alertId" value={alertId} />
       <label htmlFor="hold-reason">보류하는 이유 (보류할 때만, {MIN_HOLD_REASON}자 이상)</label>
       <textarea id="hold-reason" name="reason" value={reason} onChange={(e) => setReason(e.target.value)} aria-describedby="hold-help" />

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildKanban } from "./kanban.ts";
+import { buildKanban, groupCards, NO_TAG, type Card } from "./kanban.ts";
 
 const names = (cards: { name: string }[]) => cards.map((c) => c.name);
 
@@ -44,4 +44,13 @@ test("내 기술이면서 표시도 있으면 두 칸에 한 번씩(쓰는 중 +
     judged: [],
   });
   assert.deepEqual([names(k.using), names(k.candidate)], [["a-tool", "b-tool"], ["a-tool"]]);
+});
+
+test("칸 안 묶기: 갈래는 모르면 '아직 분류 안 됨', 내 태그는 여럿이면 묶음마다, 없음 묶음은 맨 뒤", () => {
+  const card = (key: string, techId: string | null, field: string | null): Card => ({ key, techId, name: key, grade: "pass", note: null, from: "mark", myTechId: null, field });
+  const cards = [card("a", "t1", "프론트엔드"), card("b", "t2", null), card("c", "t3", "검사·보안"), card("d", null, "프론트엔드")];
+  const byField = groupCards(cards, "field", {});
+  assert.deepEqual(byField.map((g) => [g.name, names(g.cards)]), [["검사·보안", ["c"]], ["프론트엔드", ["a", "d"]], ["아직 분류 안 됨", ["b"]]]);
+  const byTag = groupCards(cards, "tag", { t1: ["시연", "가벼움"], t3: ["시연"] });
+  assert.deepEqual(byTag.map((g) => [g.name, names(g.cards)]), [["가벼움", ["a"]], ["시연", ["a", "c"]], [NO_TAG, ["b", "d"]]]);
 });

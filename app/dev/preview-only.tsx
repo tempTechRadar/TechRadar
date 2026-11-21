@@ -7,8 +7,8 @@ export function PreviewOnly({ title }: { title: string }) {
   return (
     <main className="alerts">
       <h1>{title}</h1>
-      <p className="notice notice-empty" role="status">미리보기에서는 이 화면의 실제 기록을 읽지 않아요. 지도 · 알림 · 내 레이더에서 샘플을 볼 수 있어요.</p>
-      <p className="actions"><Link className="btn btn-primary" href="/">기술 지도로 가기</Link><Link className="btn" href="/views">내 레이더</Link></p>
+      <p className="notice notice-empty" role="status">미리보기에서는 이 화면의 실제 기록을 읽지 않아요. 지도 · 알림 · 보드에서 샘플을 볼 수 있어요.</p>
+      <p className="actions"><Link className="btn btn-primary" href="/">기술 지도로 가기</Link><Link className="btn" href="/views">보드</Link></p>
     </main>
   );
 }

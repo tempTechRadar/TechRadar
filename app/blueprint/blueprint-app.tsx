@@ -63,7 +63,7 @@ function withTech(board: Board, stageId: string, t: DragTech | PoolTech, say: Sa
   return putTech(board, stageId, { id: t.id, name: t.name });
 }
 
-export function BlueprintApp({ who, pool, history, projects }: BlueprintPage & { who: string }) {
+export function BlueprintApp({ who, pool, history, projects, add = null }: BlueprintPage & { who: string; add?: string | null }) {
   const router = useRouter();
   const { board, setBoard, name, setName } = useDraft(`techradar-blueprint:${who}`);
   const [focus, setFocus] = useState<string | null>(null);
@@ -102,7 +102,7 @@ export function BlueprintApp({ who, pool, history, projects }: BlueprintPage & {
         <button type="button" className="btn btn-primary" onClick={() => { done.reset(); setDlg("confirm"); }}>이 조합으로 확정</button>
       </div>
       <div className="bp-work">
-        <Drawer tab={tab} onTab={setTab} pool={pool} usage={usage} history={history} focus={focus ? find(board, focus)?.s ?? null : null} onFocus={setFocus} onPut={(t) => focus && put(focus, t)} onLoad={load} />
+        <Drawer tab={tab} onTab={setTab} pool={pool} usage={usage} history={history} focus={focus ? find(board, focus)?.s ?? null : null} onFocus={setFocus} onPut={(t) => focus && put(focus, t)} onLoad={load} add={add} />
         <div className="bp-canvas" role="region" aria-label="청사진 판. 왼쪽에서 오른쪽으로 순서, 같은 열은 동시에(나란히)">
           <Lanes board={board} focus={focus} onFocus={setFocus} change={change} dropTech={put} />
         </div>

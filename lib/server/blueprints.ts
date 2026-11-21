@@ -1,15 +1,17 @@
 // 블루프린트 화면의 읽기 · 쓰기(design.md 14절 ⑤). 로그인한 사용자의 토큰으로 부른다(본인 것만: user_id 조건 + RLS, 불변 5).
-// 서랍 = 내 기술 · 관심 · 적용 후보 · 확정에 쓴 기술(자주 쓴 순은 화면이 이력으로 정렬) + 카탈로그 찾기(공개 목록만, ADR 0029).
+// 서랍 = 내 기술 · 적용 후보 · 확정에 쓴 기술(자주 쓴 순은 화면이 이력으로 정렬) + 카탈로그 찾기(공개 목록만, ADR 0029).
+// 11-21 화면 개편 C "판단 = 청사진으로 가는 관문": 관심은 빼고 적용 후보만. 적용 후보는 보드의 "적용 후보" 칸과 같은 계산(지도 표시와 알림 판단 중 더 최근 것)이라 알림에서 고른 것도 들어온다.
 // 확정은 쉬운 실패 문구를 위해 여기서 먼저 보고(parseBoard · 위험 등급), 진짜 막기 · 기술 이름 다시 읽기 · 같은 id 한 줄은 DB 함수 confirm_blueprint가 한다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { categoryNames, type Category, type Grade } from "../map/build-map.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
 import { HISTORY_LIMIT, parseBoard, readStored, type BlueprintRecord } from "../blueprint/stored.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
+import { buildKanban } from "../views/kanban.ts";
 import { like } from "./capture.ts";
 import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 
-export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "interest" | "candidate" | null };
+export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 export type ConfirmInput = { id: unknown; name: unknown; projectId: unknown; board: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
@@ -41,22 +43,34 @@ async function readHistory(db: SupabaseClient, userId: string): Promise<Blueprin
 }
 
 export async function readBlueprintPage(db: SupabaseClient, userId: string): Promise<BlueprintPage> {
-  const [mineRes, markRes, projRes, cats, history] = await Promise.all([
+  const [mineRes, markRes, judgedRes, projRes, cats, history] = await Promise.all([
     db.from("my_technologies").select("tech_id, project_id, projects!inner(archived_at)").eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).not("tech_id", "is", null),
-    db.from("tech_marks").select("tech_id, status").eq("user_id", userId).in("status", ["interest", "candidate"]),
+    db.from("tech_marks").select("tech_id, status, updated_at").eq("user_id", userId),
+    db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"),
     db.from("projects").select("id, name").eq("owner_id", userId).is("archived_at", null).order("created_at"),
     readCategories(db),
     readHistory(db, userId),
   ]);
   const perTech = new Map<string, Set<string>>();
   for (const m of rowsOrThrow(mineRes, "내 기술을 읽지 못함")) perTech.set(m.tech_id, (perTech.get(m.tech_id) ?? new Set()).add(m.project_id));
-  const marks = new Map(rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((m) => [m.tech_id as string, m.status as "interest" | "candidate"]));
+  const candidates = candidateIds(rowsOrThrow(markRes, "내 판단 표시를 읽지 못함"), rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));
   const used = (history ?? []).flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => t.id)));
-  const ids = [...new Set([...perTech.keys(), ...marks.keys(), ...used])].filter(isUuid);
+  const ids = [...new Set([...perTech.keys(), ...candidates, ...used])].filter(isUuid);
   const map = catMap(cats);
-  const pool = (await readTechs(db, ids)).map((r) => toPool(r, map, { projects: perTech.get(r.id)?.size ?? 0, mark: marks.get(r.id) ?? null }));
+  const pool = (await readTechs(db, ids)).map((r) => toPool(r, map, { projects: perTech.get(r.id)?.size ?? 0, mark: candidates.has(r.id) ? "candidate" : null }));
   const projects = rowsOrThrow(projRes, "프로젝트를 읽지 못함").map((p) => ({ id: p.id as string, name: p.name as string }));
   return { pool, history, projects };
+}
+
+/** 적용 후보인 기술 id: 보드 칸과 같은 계산(buildKanban)을 그대로 쓴다. 이름 · 등급은 이 계산에 쓰이지 않아 비워 둔다.
+ *  alerts는 판단한 알림 줄(changes.tech_id, judgments 한 줄 객체 또는 배열) */
+export function candidateIds(marks: Row[], alerts: Row[]): Set<string> {
+  const judged = alerts.flatMap((a) => {
+    const j = Array.isArray(a.judgments) ? a.judgments[0] : a.judgments;
+    return j && a.changes?.tech_id ? [{ techId: a.changes.tech_id as string, name: "", grade: "unknown" as const, decision: j.decision, reason: null, judgedAt: j.judged_at }] : [];
+  });
+  const k = buildKanban({ mine: [], marks: marks.map((m) => ({ techId: m.tech_id, name: "", grade: "unknown", status: m.status, reason: null, updatedAt: m.updated_at })), judged });
+  return new Set(k.candidate.map((c) => c.techId!));
 }
 
 /** 서랍의 "카탈로그에서 찾기": 공개 목록에서 그 글자로 시작하는 이름 먼저, 그다음 들어 있는 이름(각각 이름순)으로 20개. 못 읽으면 null(빈 결과와 다르게, 불변 2) */

@@ -1,12 +1,13 @@
 "use client";
-// 내 레이더 칸반(ADR 0028, design.md 13절 4): 관심 → 적용 후보 → 쓰는 중, 보류. 옮기기는 칸 고르기로(끌어 놓기는 키보드로 못 써서 쓰지 않음).
+// 보드(옛 내 레이더 칸반, ADR 0028, design.md 13절 4 · 11-21 화면 개편 D): 관심 → 적용 후보 → 쓰는 중, 보류. 칸 안은 갈래 또는 내 태그로 묶음. 옮기기는 칸 고르기로(끌어 놓기는 키보드로 못 써서 쓰지 않음).
 // 옮기면 지도 사이드바와 같은 저장(markTech, 판단 대기 알림이 있으면 함께 판단). 실패하면 그대로 두고 이유를 보인다(불변 4).
 // 옮긴 뒤 알림 + "되돌리기"(지도와 같은 saveMarkWithToast: 다시 저장해도 알림이 판단되지 않는 관심 · 표시 없음에서 옮겼을 때만)
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { MarkStatus } from "@/lib/map/build-map";
-import { COLUMN_KO, COLUMN_ORDER, type Card, type Column } from "@/lib/views/kanban";
+import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
+import { COLUMN_KO, COLUMN_ORDER, groupCards, type Card, type Column, type GroupBy } from "@/lib/views/kanban";
 import { saveMarkWithToast, ToastLine, useToast, type Say } from "../undo-toast";
 
 const GRADE_TAG: Record<Card["grade"], string | null> = { danger: "✕ 위험", caution: "! 주의", pass: null, unknown: null };
@@ -51,7 +52,8 @@ function Move({ card, column, say }: { card: Card; column: Column; say: Say }) {
   );
 }
 
-export function Kanban({ columns }: { columns: Record<Column, Card[]> }) {
+/** by · tags: 칸 안 묶기(갈래 | 내 태그). tags = 기술 id → 내 태그들 */
+export function Kanban({ columns, by = "field", tags = {} }: { columns: Record<Column, Card[]>; by?: GroupBy; tags?: Record<string, string[]> }) {
   const { toast, say, clear } = useToast();
   return (
     <>
@@ -61,23 +63,32 @@ export function Kanban({ columns }: { columns: Record<Column, Card[]> }) {
         <section key={c} className="kb-col" aria-labelledby={`kb-${c}`}>
           <h2 id={`kb-${c}`}>{COLUMN_KO[c]} <span className="muted">{columns[c].length}</span></h2>
           {c === "using" ? <p className="muted">저장소에서 읽은 내 기술이에요. 옮기려면 프로젝트에서 빼거나 숨겨요.</p> : null}
-          {columns[c].length ? (
-            <ul>{columns[c].map((card) => (
-              <li key={card.key} className="kb-card">
-                <b>{card.name}</b>{GRADE_TAG[card.grade] ? <span className={`badge ${card.grade === "danger" ? "badge-danger" : "badge-warning"}`}>{GRADE_TAG[card.grade]}</span> : null}
-                {card.note ? <span className="muted">{c === "hold" ? `이유: ${card.note}` : card.note}</span> : null}
-                {card.from === "alert" ? <span className="muted">알림에서 판단함</span> : null}
-                <span className="kb-links">
-                  {card.myTechId ? <Link href={`/projects/tech/${card.myTechId}`}>기술 상세</Link> : card.techId ? <Link href={`/tech/${card.techId}`}>기술 상세</Link> : null}
-                  {card.techId ? <Link href={`/?sel=${encodeURIComponent(`tech:${card.techId}`)}`}>지도에서 보기</Link> : null}
-                </span>
-                {c === "using" ? null : <Move card={card} column={c} say={say} />}
-              </li>
-            ))}</ul>
-          ) : <p className="muted">{c === "interest" ? "지도나 새 기술에서 관심을 누르면 여기에 와요." : "없어요."}</p>}
+          {c === "candidate" ? <p className="muted">{BLUEPRINT_GATE}</p> : null}
+          {columns[c].length ? groupCards(columns[c], by, tags).map((g) => (
+            <div key={g.name} className="kb-group">
+              <h3>{g.name} <span className="muted">{g.cards.length}</span></h3>
+              <ul>{g.cards.map((card) => <CardItem key={card.key} card={card} column={c} say={say} />)}</ul>
+            </div>
+          )) : <p className="muted">{c === "interest" ? "지도에서 관심을 누르면 여기에 와요." : "없어요."}</p>}
         </section>
       ))}
     </div>
     </>
+  );
+}
+
+function CardItem({ card, column: c, say }: { card: Card; column: Column; say: Say }) {
+  return (
+    <li className="kb-card">
+      <b>{card.name}</b>{GRADE_TAG[card.grade] ? <span className={`badge ${card.grade === "danger" ? "badge-danger" : "badge-warning"}`}>{GRADE_TAG[card.grade]}</span> : null}
+      {card.note ? <span className="muted">{c === "hold" ? `이유: ${card.note}` : card.note}</span> : null}
+      {card.from === "alert" ? <span className="muted">알림에서 판단함</span> : null}
+      <span className="kb-links">
+        {card.myTechId ? <Link href={`/projects/tech/${card.myTechId}`}>기술 상세</Link> : card.techId ? <Link href={`/tech/${card.techId}`}>기술 상세</Link> : null}
+        {card.techId ? <Link href={`/?sel=${encodeURIComponent(`tech:${card.techId}`)}`}>지도에서 보기</Link> : null}
+        {c === "candidate" && card.techId ? <Link href={`/blueprint?add=${card.techId}`}>청사진에 넣기</Link> : null}
+      </span>
+      {c === "using" ? null : <Move card={card} column={c} say={say} />}
+    </li>
   );
 }

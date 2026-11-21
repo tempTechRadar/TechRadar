@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { confirmBlueprint } from "./blueprints.ts";
+import { candidateIds, confirmBlueprint } from "./blueprints.ts";
 
 const ID = "33333333-3333-4333-8333-333333333333";
 const SAFE = "11111111-1111-4111-8111-111111111111", RISKY = "22222222-2222-4222-8222-222222222222";
@@ -74,4 +74,17 @@ test("카탈로그 찾기: 공개 칸만 · 공개 목록만(사라짐 · 시뮬
   for (const c of ["select(id, display_name, type, grade, category_id, one_liner)", "neq(status,gone)", "not(one_liner_source,is,null)", "eq(is_simulated,false)"]) assert.ok(calls.includes(c), c);
   assert.equal(await findPoolTechs(fake(true), "github"), null);
   assert.deepEqual(await findPoolTechs(fake(), "+"), []); // 찾을 글자가 없으면 묻지 않음
+});
+
+test("서랍의 적용 후보 = 보드 칸과 같은 계산: 관심은 빼고, 알림에서 고른 것도 넣고, 더 최근 판단이 이긴다", () => {
+  const marks = [
+    { tech_id: "a", status: "interest", updated_at: "2026-11-20" },
+    { tech_id: "b", status: "candidate", updated_at: "2026-11-18" },
+    { tech_id: "c", status: "candidate", updated_at: "2026-11-20" },
+  ];
+  const alerts = [
+    { changes: { tech_id: "b" }, judgments: { decision: "hold", judged_at: "2026-11-19" } }, // 표시 뒤 알림에서 보류 → 빠짐
+    { changes: { tech_id: "d" }, judgments: [{ decision: "candidate", judged_at: "2026-11-19" }] }, // 알림에서만 고름 → 들어감
+  ];
+  assert.deepEqual([...candidateIds(marks, alerts)].sort(), ["c", "d"]);
 });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { toScenarioView } from "@/lib/alerts/to-scenario-view";
+import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { getMyAlert } from "@/lib/server/alert-queries";
@@ -52,7 +53,9 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           <article className="card" aria-labelledby="judged-title">
             <h2 id="judged-title">내 판단</h2>
             <p>{view.judgmentLine}</p>
-            <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요.</p>
+            <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요. {BLUEPRINT_GATE}</p>
+            {/* 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 적용 기회를 후보로 골랐으면 바로 넣으러 간다(보안 경고 · 모델 종료는 내가 쓰는 것이라 넣을 새 기술이 아님) */}
+            {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <p className="actions"><Link className="btn" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link></p> : null}
           </article>
         ) : (
           <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} candidateLabel={view.candidateLabel} />

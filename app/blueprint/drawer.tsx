@@ -1,9 +1,10 @@
 "use client";
 // 블루프린트 왼쪽 서랍: 기술(고른 단계에 맞는 것만, 내가 자주 쓴 순) / 내 이력(확정한 블루프린트 · 자주 쓴 기술).
-// 서랍 목록 = 내 기술 · 관심 · 적용 후보 · 확정에 쓴 기술. 없으면 "카탈로그에서 찾기"(서버, 공개 목록만). 위험한 기술은 넣지 못한다.
+// 서랍 목록 = 내 기술 · 적용 후보 · 확정에 쓴 기술(11-21 화면 개편 C: 판단이 관문이라 관심은 빼고). 카탈로그에서 찾은 것은 넣지 않고 지도에서 적용 후보로 고르게 보낸다.
+// 위험한 기술은 넣지 못한다. 보드의 "청사진에 넣기"(/blueprint?add=기술 id)로 오면 그 기술을 맨 앞에 강조하고 넣을 단계를 고르게 한다.
 import { useEffect, useState } from "react";
 import type { Stage } from "@/lib/blueprint/board";
-import { fitsStage, STAGE_FIELDS } from "@/lib/blueprint/knowledge";
+import { BLUEPRINT_GATE, fitsStage, STAGE_FIELDS } from "@/lib/blueprint/knowledge";
 import { HISTORY_LIMIT, type BlueprintRecord, type TechUsage } from "@/lib/blueprint/stored";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
@@ -13,13 +14,15 @@ export type Tab = "tech" | "hist";
 type Props = {
   tab: Tab; onTab: (t: Tab) => void; pool: PoolTech[]; usage: Map<string, TechUsage>; history: BlueprintRecord[] | null;
   focus: Stage | null; onFocus: (id: string | null) => void; onPut: (t: PoolTech) => void; onLoad: (h: BlueprintRecord) => void;
+  /** 보드에서 "청사진에 넣기"로 온 기술 id */
+  add: string | null;
 };
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
-const MARK_KO = { interest: "관심", candidate: "적용 후보" } as const;
+const MARK_KO = { candidate: "적용 후보" } as const;
 
 export function Drawer(p: Props) {
   // 좁은 화면(860px 이하)은 서랍이 판 위에 와서 판을 가린다: 처음엔 접고 단추로 연다. 넓은 화면은 CSS가 단추를 숨기고 늘 펼친다
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(p.add)); // 넣으러 왔으면 처음부터 펼침
   // 단계 번호를 누르면 그 단계에 넣을 기술을 고르는 것: 접혀 있으면 펼친다(휴대폰은 끌어 놓기가 안 돼 "넣기"가 유일한 길)
   const stageId = p.focus?.id;
   useEffect(() => { if (stageId) setOpen(true); }, [stageId]);
@@ -35,14 +38,15 @@ export function Drawer(p: Props) {
   );
 }
 
-function TechList({ pool, usage, focus, onFocus, onPut }: Props) {
+function TechList({ pool, usage, focus, onFocus, onPut, add }: Props) {
   const [q, setQ] = useState("");
   const [found, setFound] = useState<PoolTech[] | null | undefined>(undefined); // undefined = 안 찾음, null = 찾기 실패
   const [busy, setBusy] = useState(false);
   const term = q.trim().toLowerCase();
-  const fits = (t: PoolTech) => (!focus || fitsStage(focus.name, t)) && (!term || t.name.toLowerCase().includes(term));
+  const target = add ? pool.find((t) => t.id === add) : undefined;
+  const fits = (t: PoolTech) => t === target || ((!focus || fitsStage(focus.name, t)) && (!term || t.name.toLowerCase().includes(term)));
   const byUse = (a: PoolTech, b: PoolTech) => (usage.get(b.id)?.n ?? 0) - (usage.get(a.id)?.n ?? 0) || b.projects - a.projects || a.name.localeCompare(b.name);
-  const mine = pool.filter(fits).sort(byUse);
+  const mine = pool.filter(fits).sort((a, b) => Number(b === target) - Number(a === target) || byUse(a, b));
   const more = (found ?? []).filter((t) => !pool.some((x) => x.id === t.id) && (!focus || fitsStage(focus.name, t)));
   const search = async () => { setBusy(true); setFound(await searchAction(q).catch(() => null)); setBusy(false); };
   const fields = focus ? STAGE_FIELDS[focus.name] : undefined;
@@ -55,26 +59,31 @@ function TechList({ pool, usage, focus, onFocus, onPut }: Props) {
       <p className="muted">{focus ? <><b>{focus.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"} · <button type="button" className="bp-link" onClick={() => onFocus(null)}>모두 보기</button></>
         : "단계의 번호를 누르면 그 단계에 맞는 기술만 보여요. 기술은 단계로 끌어다 놓아요."}</p>
       <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾지 못했어요" : found ? `카탈로그에서 ${more.length}개 찾았어요` : ""}</p>
-      <h2 className="bp-h">내 기술 · 관심 <span className="muted">{mine.length}</span></h2>
-      {mine.length ? <ul className="bp-techs">{mine.map((t) => <TechItem key={t.id} t={t} use={usage.get(t.id)} focus={focus} onPut={onPut} />)}</ul>
-        : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술이 없어요. 위에서 카탈로그를 찾아보세요." : "아직 내 기술 · 관심이 없어요. 위에서 카탈로그를 찾아 넣어 보세요."}</p>}
+      {add ? <p className={`notice ${target && target.grade !== "danger" ? "" : "notice-error"}`} role="status">{target?.grade === "danger" ? <><b>{target.name}</b>은(는) 위험 등급이라 청사진에 넣지 않아요. 같은 역할의 다른 기술을 골라 주세요.</>
+        : target ? <><b>{target.name}</b>: 넣을 단계를 고르세요(단계의 번호를 누르면 &quot;넣기&quot;가 보여요).</> : "적용 후보로 고른 것만 넣을 수 있어요. 지도나 알림에서 적용 후보로 고른 뒤 다시 와 주세요."}</p> : null}
+      <h2 className="bp-h">내 기술 · 적용 후보 <span className="muted">{mine.length}</span></h2>
+      <p className="muted">{BLUEPRINT_GATE}</p>
+      {mine.length ? <ul className="bp-techs">{mine.map((t) => <TechItem key={t.id} t={t} use={usage.get(t.id)} focus={focus} onPut={onPut} added={t === target} />)}</ul>
+        : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술 · 적용 후보가 없어요." : "아직 내 기술 · 적용 후보가 없어요. 지도에서 적용 후보로 고르면 여기에 와요."}</p>}
       {found === null ? <p className="notice notice-error" role="alert">카탈로그를 찾지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
       {found ? <><h2 className="bp-h">카탈로그 <span className="muted">{more.length}</span></h2>
-        {more.length ? <ul className="bp-techs">{more.map((t) => <TechItem key={t.id} t={t} focus={focus} onPut={onPut} />)}</ul> : <p className="muted">더 찾은 기술이 없어요.</p>}</> : null}
+        {more.length ? <ul className="bp-techs">{more.map((t) => <TechItem key={t.id} t={t} focus={focus} onPut={onPut} gated />)}</ul> : <p className="muted">더 찾은 기술이 없어요.</p>}</> : null}
     </>
   );
 }
 
-function TechItem({ t, use, focus, onPut }: { t: PoolTech; use?: TechUsage; focus: Stage | null; onPut: (t: PoolTech) => void }) {
+/** gated: 카탈로그에서 찾은 것(적용 후보가 아님) — 넣지 않고 지도에서 고르게 보낸다. added: 보드에서 넣으러 온 기술 */
+function TechItem({ t, use, focus, onPut, gated = false, added = false }: { t: PoolTech; use?: TechUsage; focus: Stage | null; onPut: (t: PoolTech) => void; gated?: boolean; added?: boolean }) {
   const risky = t.grade === "danger";
   const drag: DragTech = { id: t.id, name: t.name, grade: t.grade };
   const tags = [t.field, t.projects ? `내 프로젝트 ${t.projects}개` : null, t.mark ? MARK_KO[t.mark] : null].filter(Boolean).join(" · ");
   return (
-    <li className={`bp-tech${risky ? " risky" : ""}`} draggable={!risky} onDragStart={(e) => e.dataTransfer.setData("text/plain", `tech:${JSON.stringify(drag)}`)}>
+    <li className={`bp-tech${risky ? " risky" : ""}${added ? " bp-added" : ""}`} draggable={!risky && !gated} onDragStart={(e) => e.dataTransfer.setData("text/plain", `tech:${JSON.stringify(drag)}`)}>
       <span><b>{t.name}</b>{tags ? <span className="muted"> · {tags}</span> : null}</span>
       {t.oneLiner ? <span className="muted bp-one">{t.oneLiner}</span> : null}
       {use ? <span className="muted">내가 {use.n}번 씀 · 프로젝트 {use.projects}개</span> : null}
       {risky ? <span className="bp-risky">✕ 위험 등급이라 넣지 않아요</span>
+        : gated ? <a className="bp-link" href={`/?sel=${encodeURIComponent(`tech:${t.id}`)}`}>지도에서 적용 후보로 고르기</a>
         : focus ? <button type="button" className="btn bp-sm" onClick={() => onPut(t)}>{focus.name}에 넣기</button> : null}
     </li>
   );
