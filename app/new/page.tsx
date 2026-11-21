@@ -1,7 +1,9 @@
 // 새 기술(ADR 0028 4, design.md 13절 3): 처음 채운 뒤 7일 안에 들어온 공개 목록 기술을 하는 일 갈래별로, 갈래마다 10개 + 더 보기.
 // 줄마다 한 줄 소개 · 종류 · 보안, 지도에서 보기 · 관심. 본인 표시만 읽는다(불변 5).
 import Link from "next/link";
-import { buildTechMap, GRADE_KO, UNSORTED } from "@/lib/map/build-map";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_NOW, sampleMapInput } from "@/lib/dev/preview-data";
+import { buildTechMap, GRADE_KO, UNSORTED, type MapInput } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { NEW_LIMIT, NEW_RULE_VERSION, readNewTechs, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
@@ -21,10 +23,16 @@ const readGuestNew = unstable_cache(async () => {
   return readNewTechs(db, null, new Date());
 }, ["guest-new", TECH_COLUMNS, NEW_RULE_VERSION], { revalidate: 600 });
 
+/** 미리보기(개발용) 가짜 계정은 DB를 부르지 않고 샘플 중 7일 안에 들어온 것만(지도 · 내 레이더와 같은 방식) */
+function previewNew(): MapInput {
+  const s = sampleMapInput(), since = SAMPLE_NOW.getTime() - 7 * 86_400_000; // 샘플 날짜와 같은 시계로(서버를 오래 켜 둬도 안 빠지게)
+  return { ...s, mine: [], relations: [], techs: s.techs.filter((t) => t.createdAt !== null && Date.parse(t.createdAt) > since) };
+}
+
 export default async function NewTechPage({ searchParams }: { searchParams: Promise<{ more?: string }> }) {
   const user = await getCurrentUser();
   const { more } = await searchParams;
-  const input = await (user ? readNewTechs((await getServerSupabase())!, user.id, new Date()) : readGuestNew())
+  const input = isPreviewUser(user) ? previewNew() : await (user ? readNewTechs((await getServerSupabase())!, user.id, new Date()) : readGuestNew())
     .catch((e: unknown) => { console.error("새 기술 조회 실패", e instanceof Error ? e.message : e); return null; });
   const groups = input ? groupByField(buildTechMap(input, new Date()).nodes) : null;
 
