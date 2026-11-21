@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { toScenarioView } from "@/lib/alerts/to-scenario-view";
+import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readScenarioState } from "@/lib/server/scenario-queries";
@@ -22,17 +25,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/alerts/${(await params).id}`)}`); // 알림 링크로 왔다면 로그인 뒤 그 알림으로
   const { id } = await params;
   if (!UUID.test(id)) notFound(); // 형식이 틀린 id는 DB가 오류로 답하므로 "불러오지 못함"과 섞이지 않게 먼저 거른다
-  const supabase = (await getServerSupabase())!;
-  const loaded = await getMyAlert(supabase, user.id, id).then((record) => ({ record }), (e) => { console.error("알림 상세 조회 실패", e); return null; });
+  // 미리보기(개발용)는 DB를 부르지 않고 샘플로(비슷한 지난 판단 없음, 시나리오는 만들기 전)
+  const supabase = isPreviewUser(user) ? null : (await getServerSupabase())!;
+  const loaded = !supabase ? { record: SAMPLE_ALERTS.find((a) => a.id === id) ?? null }
+    : await getMyAlert(supabase, user.id, id).then((record) => ({ record }), (e) => { console.error("알림 상세 조회 실패", e); return null; });
 
   if (loaded === null) return <LoadError id={id} />;
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
-  const similar = await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
-  const scenario = loaded.record.kind === "model_eol" ? undefined
+  const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
+  const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
   return (
@@ -48,10 +53,12 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           <article className="card" aria-labelledby="judged-title">
             <h2 id="judged-title">내 판단</h2>
             <p>{view.judgmentLine}</p>
-            <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요.</p>
+            <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요. {BLUEPRINT_GATE}</p>
+            {/* 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 적용 기회를 후보로 골랐으면 바로 넣으러 간다(보안 경고 · 모델 종료는 내가 쓰는 것이라 넣을 새 기술이 아님) */}
+            {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <p className="actions"><Link className="btn" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link></p> : null}
           </article>
         ) : (
-          <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} />
+          <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} candidateLabel={view.candidateLabel} />
         )}
       </header>
       <div className="alert-cols">
@@ -73,10 +80,34 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
       {scenario !== undefined && <ScenarioCard alertId={loaded.record.id} card={scenario} />}
       </div>
       <aside className="alert-right" aria-label="참고">
+        <RelatedCard record={loaded.record} createdAtLabel={view.createdAtLabel} judgedAtLabel={view.judgedAtLabel} judgmentLine={view.judgmentLine} />
         <SimilarCard similar={similar} />
       </aside>
       </div>
     </main>
+  );
+}
+
+/** 오른쪽(design.md 19절): 관련된 내 기술(상세 · 지도에서 보기)과 이 알림의 기록(생김 → 판단) */
+function RelatedCard({ record, createdAtLabel, judgedAtLabel, judgmentLine }: { record: AlertRecord; createdAtLabel: string; judgedAtLabel: string | null; judgmentLine: string | null }) {
+  const where = [record.projectName ?? "프로젝트 밖(내 컴퓨터)", record.sourceFile].filter(Boolean).join(" · ");
+  return (
+    <article className="card" aria-labelledby="related-title">
+      <h2 id="related-title">관련된 내 기술</h2>
+      <p><strong>{record.change.techName}</strong> <span className="muted">{where}</span></p>
+      {record.myTechnologyId || record.tech ? (
+        <p>
+          {record.myTechnologyId ? <Link href={`/projects/tech/${record.myTechnologyId}`}>내 기술 상세</Link> : null}
+          {record.myTechnologyId && record.tech ? " · " : null}
+          {record.tech ? <a href={`/?sel=${encodeURIComponent(`tech:${record.tech.id}`)}`}>지도에서 보기</a> : null}
+        </p>
+      ) : null}
+      <h3>이 알림의 기록</h3>
+      <ol className="muted">
+        <li>{createdAtLabel} 알림이 생겼어요</li>
+        {judgedAtLabel ? <li>{judgedAtLabel} {judgmentLine}</li> : <li>아직 판단하지 않았어요</li>}
+      </ol>
+    </article>
   );
 }
 

@@ -1,10 +1,13 @@
 // 새 기술(ADR 0028 4, design.md 13절 3): 처음 채운 뒤 7일 안에 들어온 공개 목록 기술을 하는 일 갈래별로, 갈래마다 10개 + 더 보기.
 // 줄마다 한 줄 소개 · 종류 · 보안, 지도에서 보기 · 관심. 본인 표시만 읽는다(불변 5).
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { buildTechMap, GRADE_KO } from "@/lib/map/build-map";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_NOW, sampleMapInput } from "@/lib/dev/preview-data";
+import { buildTechMap, GRADE_KO, UNSORTED, type MapInput } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
-import { NEW_LIMIT, readNewTechs } from "@/lib/server/map-queries";
+import { NEW_LIMIT, NEW_RULE_VERSION, readNewTechs, TECH_COLUMNS } from "@/lib/server/map-queries";
+import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { unstable_cache } from "next/cache";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { groupByField } from "@/lib/views/new-techs";
 import { InterestButton } from "./interest-button";
@@ -13,18 +16,30 @@ import "./new.css";
 
 const PER_GROUP = 10;
 
+// 로그인 전에도 연다(11-21 사용자 결정, ADR 0029와 같은 방식): 누구에게나 같은 공개 목록이라 10분 동안 한 번만 읽는다(실패는 기억하지 않음)
+const readGuestNew = unstable_cache(async () => {
+  const db = getServiceSupabase();
+  if (!db) throw new Error("서비스 키 설정이 없음");
+  return readNewTechs(db, null, new Date());
+}, ["guest-new", TECH_COLUMNS, NEW_RULE_VERSION], { revalidate: 600 });
+
+/** 미리보기(개발용) 가짜 계정은 DB를 부르지 않고 샘플 중 7일 안에 들어온 것만(지도 · 내 레이더와 같은 방식) */
+function previewNew(): MapInput {
+  const s = sampleMapInput(), since = SAMPLE_NOW.getTime() - 7 * 86_400_000; // 샘플 날짜와 같은 시계로(서버를 오래 켜 둬도 안 빠지게)
+  return { ...s, mine: [], relations: [], techs: s.techs.filter((t) => t.createdAt !== null && Date.parse(t.createdAt) > since) };
+}
+
 export default async function NewTechPage({ searchParams }: { searchParams: Promise<{ more?: string }> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/new");
-  const db = (await getServerSupabase())!;
   const { more } = await searchParams;
-  const input = await readNewTechs(db, user.id, new Date()).catch((e: unknown) => { console.error("새 기술 조회 실패", e instanceof Error ? e.message : e); return null; });
+  const input = isPreviewUser(user) ? previewNew() : await (user ? readNewTechs((await getServerSupabase())!, user.id, new Date()) : readGuestNew())
+    .catch((e: unknown) => { console.error("새 기술 조회 실패", e instanceof Error ? e.message : e); return null; });
   const groups = input ? groupByField(buildTechMap(input, new Date()).nodes) : null;
 
   return (
     <main className="alerts new-page">
       <h1>새 기술</h1>
-      <p className="muted">이번 주(7일 안)에 모은 기술이에요. 공식 목록에서 온 것만 보여요. 알림이 아니라 둘러보는 곳이에요.</p>
+      <p className="muted">이번 주(7일 안)에 모은 기술이에요. 공식 목록에서 온 것만 보여요. 알림이 아니라 둘러보는 곳이에요.{user ? null : <> <Link href="/login?next=/new">로그인</Link>하면 관심을 남길 수 있어요.</>}</p>
       {input && input.techs.length >= NEW_LIMIT ? <p className="notice notice-empty" role="status">최근 {NEW_LIMIT}개만 보여요. 더 오래된 이번 주 기술은 <Link href="/">기술 지도</Link>에서 찾아 보세요.</p> : null}
       {groups === null ? (
         <div className="notice notice-error" role="alert"><strong>새 기술을 읽지 못했어요.</strong> 새 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>
@@ -39,14 +54,14 @@ export default async function NewTechPage({ searchParams }: { searchParams: Prom
               <li key={n.key} className="new-row">
                 <div className="new-main">
                   <b>{n.name}</b>
-                  <span className="muted">{[n.attrs.kind, n.attrs.sub !== "분류 전" ? n.attrs.sub : null].filter(Boolean).join(" · ")}</span>
+                  <span className="muted">{[n.attrs.kind, n.attrs.sub !== UNSORTED ? n.attrs.sub : null].filter(Boolean).join(" · ")}</span>
                   {n.oneLiner ? <span>{n.oneLiner}</span> : null}
                 </div>
                 {n.grade === "danger" || n.grade === "caution" ? <span className={`badge ${n.grade === "danger" ? "badge-danger" : "badge-warning"}`}>{n.grade === "danger" ? "✕" : "!"} {GRADE_KO[n.grade]}</span> : null}
                 {n.collectErrorKind ? <span className="badge badge-neutral">수집 오류</span> : null}
                 <span className="new-actions">
                   <Link className="btn" href={`/?sel=${encodeURIComponent(n.key)}`}>지도에서 보기</Link>
-                  {n.techId ? <InterestButton techId={n.techId} initial={n.mark?.status ?? null} /> : null}
+                  {n.techId && user ? <InterestButton techId={n.techId} initial={n.mark?.status ?? null} /> : null}
                 </span>
               </li>
             ))}</ul>

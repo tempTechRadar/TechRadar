@@ -35,3 +35,15 @@ test("주소의 값을 거르기 조건으로 바꾸고, 모르는 값과 빈 �
   });
   assert.deepEqual(parseHistoryFilter({ q: "   ", decision: "아무거나", kind: ["a"] }, now), {});
 });
+
+test("이유로도 찾고, 지도에서 남긴 판단(종류 없음)은 종류로 거르면 빠지고 '관심'으로 거를 수 있다", () => {
+  const mixed: HistoryItem[] = [
+    item("a1", { reason: "고친 버전이 나오면 다시 볼게요" }),
+    item("m1", { kind: null, decision: "interest", reason: null, techName: "fastmcp" }),
+    item("m2", { kind: null, decision: null, techName: "fastmcp" }), // 표시를 지운 기록
+  ];
+  assert.deepEqual(ids(filterHistory(mixed, { query: "고친 버전" })), ["a1"]);
+  assert.deepEqual(ids(filterHistory(mixed, { kind: "security" })), ["a1"]);
+  assert.deepEqual(ids(filterHistory(mixed, parseHistoryFilter({ decision: "interest" }, new Date()))), ["m1"]);
+  assert.deepEqual(ids(filterHistory(mixed, { query: "FASTMCP" })), ["m1", "m2"]);
+});

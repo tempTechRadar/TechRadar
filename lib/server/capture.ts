@@ -15,7 +15,7 @@ type Row = { id: string; display_name: string; one_liner: string | null; grade: 
 const COLUMNS = "id, display_name, one_liner, grade, tech_key, repo_url, depth";
 const PER_LINE = 3;
 /** 사용자 글은 허용 글자만(searchTerm) 남기고, LIKE의 한 글자 자리표(_)는 글자 그대로 찾게 */
-const like = (s: string) => (searchTerm(s) ?? "").replace(/_/g, "\\_");
+export const like = (s: string) => (searchTerm(s) ?? "").replace(/_/g, "\\_");
 /** GitHub 저장소 주인·이름: GitHub가 허용하는 글자(영문·숫자·-·_·.)만, 한 글자 이름도 그대로 */
 const repoPart = (s: string) => s.replace(/[^\w.-]/g, "").replace(/_/g, "\\_");
 const logged = (what: string, message: string) => { console.error(what, maskSecrets(message)); return null; };

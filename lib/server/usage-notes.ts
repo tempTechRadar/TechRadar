@@ -61,3 +61,12 @@ export async function readUsageNotes(db: SupabaseClient, techId: string, viewerI
     mine: mineIds.has(n.id), voted: voted.has(n.id), reported: reported.has(n.id),
   }));
 }
+
+export type NoteSummary = { total: number; top: Pick<UsageNoteView, "id" | "usedFor" | "result" | "tip" | "helpfulCount">[] };
+/** 지도 사이드 패널의 사용기 요약(11-21 사용자 결정 G): "도움이 됐어요" 많은 순 몇 개 + 전체 수. 전체 글은 기술 상세에서. 읽지 못하면 던진다 */
+export async function readTopUsageNotes(db: SupabaseClient, techId: string, limit = 3): Promise<NoteSummary> {
+  const r = await db.from("usage_notes").select("id, used_for, result, tip, helpful_count", { count: "exact" }).eq("tech_id", techId)
+    .order("helpful_count", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+  const rows = rowsOrThrow(r, "사용기를 읽지 못함");
+  return { total: r.count ?? rows.length, top: rows.map((n) => ({ id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count })) };
+}

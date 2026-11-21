@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readTaste } from "@/lib/server/taste-store";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -11,6 +13,7 @@ import "../alerts/alerts.css";
 export default async function TastePage({ searchParams }: { searchParams: Promise<{ onboarding?: string; next?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/taste");
+  if (isPreviewUser(user)) return <PreviewOnly title="취향 알려 주기" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const saved = await readTaste(supabase, user.id).catch((e) => { console.error("취향 조회 실패", e); return undefined; });

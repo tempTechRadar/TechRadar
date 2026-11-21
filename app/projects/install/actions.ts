@@ -1,7 +1,8 @@
 "use server";
 // 설치 프롬프트·가져오기 서버 동작(IA-22). 사용자 본인 로그인으로만(서비스 키 없음, RLS).
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { maskSecrets } from "@/lib/domain/redact";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { logIfError } from "@/lib/server/log-failure";
 import { saveLocalImport, type ImportOutcome } from "@/lib/server/local-import";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -9,8 +10,9 @@ import { getServerSupabase } from "@/lib/supabase/server";
 export type ImportState = ImportOutcome | null;
 
 export async function saveImportAction(_prev: ImportState, form: FormData): Promise<ImportState> {
-  const user = await getCurrentUser();
   const none = { skipped: [], secretLines: [] };
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE, ...none }; // 미리보기(개발용)는 저장하지 않는다
+  const user = await getCurrentUser();
   if (!user) return { ok: false, message: "로그인이 필요해요.", ...none };
   const db = await getServerSupabase();
   if (!db) return { ok: false, message: "Supabase 연결 전이에요.", ...none };
@@ -21,6 +23,7 @@ export async function saveImportAction(_prev: ImportState, form: FormData): Prom
 
 /** 설치 프롬프트를 복사했다는 기록(exports). 실패해도 복사는 이미 됐으니 화면에는 영향 없음 */
 export async function recordPromptCopy(count: { tech: number; excludedDanger: number }): Promise<void> {
+  if (await isLoginPreview()) return;
   const user = await getCurrentUser();
   const db = await getServerSupabase();
   if (!user || !db) return;

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_FIRST_FILL, readGuestMapInput, readMapInput, readNewTechs, TECH_COLUMNS } from "./map-queries.ts";
+import { CATALOG_FIRST_FILL, readGuestMapInput, readListedByIds, readMapInput, readNewTechs, STARTER_MAX, TECH_COLUMNS } from "./map-queries.ts";
 import { NOT_BULK_FILTER } from "../domain/registry.ts";
 
 type Row = Record<string, unknown>;
@@ -13,7 +13,7 @@ function recordingDb(rows: Record<string, Rows>, errors: Record<string, string> 
   const db = {
     from(table: string) {
       const q: Record<string, unknown> = {}, mine: string[] = [];
-      for (const m of ["select", "eq", "is", "neq", "not", "gt", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map(String).join(",")})`; calls.push(c); mine.push(c); return q; };
+      for (const m of ["select", "eq", "is", "neq", "not", "gt", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map((a) => (a && typeof a === "object" ? JSON.stringify(a) : String(a))).join(",")})`; calls.push(c); mine.push(c); return q; };
       const data = () => { const r = rows[table] ?? []; return typeof r === "function" ? r(mine) : r; };
       q.then = (resolve: (v: unknown) => unknown) =>
         Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: data(), error: null }).then(resolve);
@@ -66,11 +66,21 @@ test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 
   assert.ok(!manual.calls.some((c) => c.startsWith("tech_relations")));
 });
 
-test("모은 기술은 위험·주의 먼저, 두꺼운 것, 최근 순으로 최대 1,200개(시뮬레이터·사라진 기술 제외), 내 판단 표시는 내 것만", async () => {
-  const { db, calls } = recordingDb({ technologies: [{ id: "t9", display_name: "x" }] });
+test("모은 기술은 위험 → 주의 → 입문 세트 → 이번 주 새 기술 → 개발 분야(스킬 · 플러그인 · 개념 · 개발 도구 · 개발 갈래)를 두꺼운 것 · 별 많은 순, 모자랄 때만 나머지(ADR 0030 8항, 겹치면 한 번), 내 판단 표시는 내 것만", async () => {
+  const cats = [{ id: "fe", name: "프론트엔드", parent_id: null }, { id: "fe-ui", name: "화면·컴포넌트", parent_id: "fe" }, { id: "life", name: "생활·정보", parent_id: null }];
+  const starterCalls: string[] = [];
+  const pick = (qc: string[]) => qc.some((c) => c.includes("grade.eq.danger")) ? [{ id: "risk", display_name: "r" }]
+    : qc.some((c) => c.includes("eq(signals->>starter_set,true)")) ? (starterCalls.push(...qc), [{ id: "start1", display_name: "s" }])
+    : qc.some((c) => c.startsWith("technologies.gt(created_at")) ? [{ id: "new1", display_name: "n" }, { id: "risk", display_name: "r" }]
+    : qc.some((c) => c.includes("type.in.(skill,plugin,concept)")) ? [{ id: "dev", display_name: "d" }, { id: "new1", display_name: "n" }, { id: "start1", display_name: "s" }]
+    : [{ id: "life1", display_name: "l" }, { id: "dev", display_name: "d" }];
+  const { db, calls } = recordingDb({ technologies: pick, categories: cats });
   const input = await readMapInput(db, "user-a", false);
-  assert.deepEqual(input.techs.map((t) => t.id), ["t9"]);
-  for (const c of ["technologies.order(grade)", "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(1200)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
+  assert.deepEqual(input.techs.map((t) => t.id), ["risk", "start1", "new1", "dev", "life1"]);
+  assert.ok(calls.includes("technologies.or(type.in.(skill,plugin,concept),category_id.in.(fe,fe-ui))"), "개발 갈래와 그 아래 세부 갈래");
+  // 입문 세트 질의 하나만 보고: 공개 목록 조건 + 몫(서비스 키로 읽는 로그인 전 지도에 비공개 줄이 나가지 않게, 불변 5)
+  for (const c of ["technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", `technologies.limit(${STARTER_MAX})`]) assert.ok(starterCalls.includes(c), `입문 세트 질의: ${c}`);
+  for (const c of ['technologies.order(grade,{"ascending":false})', 'technologies.order(signals->stars,{"ascending":false,"nullsFirst":false})', "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });
 
@@ -92,8 +102,8 @@ test("로그인 전 지도는 공용 표(technologies·categories)만, 시뮬레
 
 test("공개 칸은 정해 둔 목록 그대로다: 칸을 더하면 이 시험과 ADR 0029를 함께 고친다(로그인 전에도 나가므로)", () => {
   assert.deepEqual(TECH_COLUMNS.split(",").map((c) => c.trim()), [
-    "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url",
-    "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated",
+    "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url", "license",
+    "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated", "is_official",
   ]);
 });
 
@@ -102,6 +112,12 @@ test("카탈로그는 공개 목록에서 온 기술만 읽고(남의 비공개 
   const input = await readGuestMapInput(db);
   assert.ok(calls.includes("technologies.not(one_liner_source,is,null)"));
   assert.deepEqual(input.techs[0].signals, { stars: 5, weekly_downloads: 9 });
+});
+
+test("공식 표시는 DB 칸이 true일 때만 true다(빈 칸 · 다른 값은 공식 아님)", async () => {
+  const { db } = recordingDb({ technologies: [{ id: "t1", display_name: "a", is_official: true }, { id: "t2", display_name: "b", is_official: null }, { id: "t3", display_name: "c" }], categories: [] });
+  const input = await readGuestMapInput(db);
+  assert.deepEqual(input.techs.map((x) => [x.id, x.official]), [["t1", true], ["t2", false], ["t3", false]]);
 });
 
 test("로그인 전 지도를 못 읽으면 던진다(빈 지도로 보이지 않게, 불변 2)", async () => {
@@ -144,4 +160,20 @@ test("연동 서비스 · 개념은 카탈로그 설명이 없으면 정해 둔 
   const { db } = recordingDb({ technologies: [{ id: "s", tech_key: "service:supabase", one_liner: null }, { id: "n", tech_key: "npm:x", one_liner: null }], categories: [] });
   const input = await readGuestMapInput(db);
   assert.deepEqual(input.techs.map((t) => t.oneLiner), ["공식 MCP 서버(com.supabase/mcp)가 있어 AI 도구와 연결할 수 있어요", null]);
+});
+
+test("로그인 전 새 기술: 내 표시는 읽지 않고(남의 줄을 읽을 일이 없게) 공개 목록 조건은 그대로", async () => {
+  const { db, calls } = recordingDb({});
+  const input = await readNewTechs(db, null, new Date("2026-11-22T00:00:00Z"));
+  assert.ok(!calls.some((c) => c.startsWith("tech_marks.")));
+  for (const c of ["technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)"]) assert.ok(calls.includes(c), c);
+  assert.deepEqual(input.marks, []);
+});
+
+test("로그인 전 지도에 고른 기술 더하기(sel=)도 공개 목록 조건 그대로, 고른 게 없으면 읽지 않는다", async () => {
+  const { db, calls } = recordingDb({ technologies: [{ id: "x", tech_key: "mcp:x", display_name: "x" }] });
+  assert.deepEqual(await readListedByIds(db, []), []);
+  assert.equal(calls.length, 0);
+  assert.deepEqual((await readListedByIds(db, ["x"])).map((t) => t.id), ["x"]);
+  for (const c of ["technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)"]) assert.ok(calls.includes(c), c);
 });

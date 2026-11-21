@@ -1,9 +1,14 @@
 "use server";
 // 로그아웃(PRD-F1, IA-1). 주인: 김영식(A). 사용자 토큰 쿠키를 지우고 첫 화면으로.
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { LOGIN_PREVIEW_COOKIE } from "@/lib/dev/login-preview";
+import { isLoginPreview } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export async function signOut(): Promise<void> {
+  // 미리보기(개발용)의 로그아웃은 미리보기만 끈다: 밑에 깔린 진짜 로그인은 그대로
+  if (await isLoginPreview()) { (await cookies()).delete(LOGIN_PREVIEW_COOKIE); redirect("/"); }
   const supabase = await getServerSupabase();
   if (supabase) {
     // 이 브라우저만(기본값 global은 다른 기기·리허설 중인 같은 계정까지 끊는다)

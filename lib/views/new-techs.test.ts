@@ -9,5 +9,5 @@ test("새 기술: 많이 들어온 갈래 먼저, 분류 전은 맨 뒤, 갈래 
   const m = buildTechMap({ mine: [], relations: [], categories, techs: [
     tech("x", { categoryId: null }), tech("r1", { categoryId: "a" }), tech("r2", { categoryId: "a", grade: "danger" }), tech("d1", { categoryId: "b" }),
   ] }, NOW);
-  assert.deepEqual(groupByField(m.nodes).map((g) => [g.field, g.nodes.map((n) => n.name)]), [["리서치", ["r2", "r1"]], ["디자인", ["d1"]], ["분류 전", ["x"]]]);
+  assert.deepEqual(groupByField(m.nodes).map((g) => [g.field, g.nodes.map((n) => n.name)]), [["리서치", ["r2", "r1"]], ["디자인", ["d1"]], ["아직 분류 안 됨", ["x"]]]);
 });

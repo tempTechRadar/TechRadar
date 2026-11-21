@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { isTempNickname } from "@/lib/domain/nickname";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SettingsForm } from "./settings-form";
@@ -13,6 +15,7 @@ type Params = { welcome?: string; next?: string };
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/settings");
+  if (isPreviewUser(user)) return <PreviewOnly title="설정" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const params = await searchParams;
   const supabase = (await getServerSupabase())!;
   const { data, error } = await supabase.from("profiles").select("is_public").eq("id", user.id).single();

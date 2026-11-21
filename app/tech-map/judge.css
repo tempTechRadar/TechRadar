@@ -2,5 +2,8 @@
 .map-judge { display: grid; gap: 6px; }
 .map-judge .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .map-judge .btn:disabled { color: var(--faint); border-color: var(--line); cursor: not-allowed; }
+.map-judge-compact .map-row { gap: 6px; }
+.map-judge-compact .chip:disabled { color: var(--faint); cursor: not-allowed; }
+.map-judge-compact > p { margin: 0; font-size: var(--fs-sm); }
 .map-hold { display: grid; gap: 6px; }
 .map-hold label { display: grid; gap: 4px; }

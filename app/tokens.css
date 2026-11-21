@@ -5,6 +5,8 @@
   --line: #d4d4d4; --surface: #ffffff; --sunken: #f3f3f3; --on-ink: #ffffff;
 
   --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
+  /* 글자로 읽는 오류 빨강(상태 색은 표시에만): 흰 바탕 6.5:1 */
+  --ink-danger: #b91c1c;
 
   --cat-1: #2a78d6; --cat-2: #1baf7a; --cat-3: #6250d6; --cat-4: #008300;
   --cat-5: #e87ba4; --cat-6: #0b7fa0; --cat-7: #6d7a1f; --cat-8: #b0479e;
@@ -23,8 +25,12 @@
 @media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
 
 body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background: var(--surface); }
+/* 화면 읽기 프로그램만 읽는 글(모든 화면 공용: 지도 css에만 있어 다른 화면에서 글이 그대로 보이던 것) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: var(--focus); outline-offset: 2px; }
 /* 칩(알림 거르기 · 지도 요약 · 범례 · 경로): 눌림은 aria-pressed / aria-current로 표시 */
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
 .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 700; }
 .chip[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
+/* 읽기만 하는 태그(design.md 16절 c-tag). 지도 · 알림 · 기록이 같이 쓴다 */
+.tag { display: inline-block; padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); color: var(--ink-2); white-space: nowrap; }

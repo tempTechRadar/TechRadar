@@ -26,9 +26,9 @@ export function CaptureDialog() {
   const close = () => dialog.current?.close();
   return (
     <>
-      <button type="button" className="site-nav-add" onClick={() => dialog.current?.showModal()}>+ 기술 넣기</button>
+      <button type="button" className="site-nav-add" onClick={() => dialog.current?.showModal()}>찾기 · 넣기</button>
       {mounted ? createPortal(<dialog ref={dialog} className="capture" aria-labelledby="capture-title">
-        <div className="capture-head"><h2 id="capture-title">기술 넣기</h2><button type="button" className="btn" onClick={close} aria-label="닫기">✕</button></div>
+        <div className="capture-head"><h2 id="capture-title">기술 찾기 · 넣기</h2><button type="button" className="btn" onClick={close} aria-label="닫기">✕</button></div>
         <form onSubmit={find}>
           <label htmlFor="capture-text">한 줄에 하나씩: GitHub·npm·PyPI 주소, 설치 명령(npx …), 기술 이름</label>
           <textarea id="capture-text" rows={5} value={text} onChange={(e) => setText(e.target.value)} placeholder={"https://github.com/upstash/context7\nnpx -y mcp-remote\nplaywright"} />

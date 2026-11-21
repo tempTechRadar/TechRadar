@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { parseCompareSelection } from "@/lib/alerts/parse-compare-selection";
 import { listCatalogTechs, readTechsForCompare } from "@/lib/server/compare-queries";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { CompareTable } from "./compare-table";
@@ -11,6 +13,7 @@ import "../alerts/alerts.css";
 export default async function ComparePage({ searchParams }: { searchParams: Promise<{ techs?: string | string[] }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="기술 비교" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const selection = parseCompareSelection((await searchParams).techs);
   const supabase = (await getServerSupabase())!;
   const catalog = await listCatalogTechs(supabase).catch((e) => { console.error("기술 목록 조회 실패", e); return null; });
