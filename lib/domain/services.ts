@@ -26,7 +26,7 @@ const SERVICES: Service[] = [
 
 // 개념(작업 방식): 설치물이 아니라 등급 · 알림이 없다. 파일로 확실히 알 수 있는 것만
 // shortcut: 처음 목록은 팀 · 관리자가 정하기로 했다(데이터설계 18). 그 전까지 파일 셋으로만
-const CONCEPTS: { id: string; name: string; oneLiner: string; files: RegExp }[] = [
+export const CONCEPTS: { id: string; name: string; oneLiner: string; files: RegExp }[] = [
   { id: "harness", name: "지침 파일(CLAUDE.md · AGENTS.md)", oneLiner: "AI 에이전트에게 규칙 · 절차를 적어 주는 파일로 일하는 방식", files: /^(CLAUDE|AGENTS|GEMINI)\.md$/ },
   { id: "subagents", name: "서브에이전트", oneLiner: "일을 나눠 맡는 보조 에이전트를 정의해 쓰는 방식", files: /^\.claude\/agents\/[^/]+\.md$/ },
   { id: "slash-commands", name: "슬래시 명령", oneLiner: "자주 하는 지시를 /명령으로 저장해 쓰는 방식", files: /^\.claude\/commands\/.+\.md$/ },

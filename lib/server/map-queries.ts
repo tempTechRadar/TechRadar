@@ -53,12 +53,13 @@ export async function readCategories(db: SupabaseClient): Promise<Category[]> {
 /** 개발 분야(11-21 사용자: 부트캠프 교육생 · 나 같은 사용자에게 맞는 것 먼저). 큰 갈래 이름(categories 시드)과 그 아래 세부 갈래, 그리고 종류.
  *  shortcut: 갈래를 이름으로 찾는다 — 관리자가 큰 갈래 이름을 바꾸면 여기와 PICK_RULE을 같이 고친다(갈래 키 칸이 생기면 키로) */
 const DEV_FIELDS = ["프론트엔드", "백엔드·데이터", "검사·보안", "배포·운영", "AI 작업 방식", "기획·문서"];
-const DEV_TYPES = ["skill", "plugin", "concept", "sdk"];
+const DEV_TYPES = ["skill", "plugin", "concept"]; // 개발 도구(sdk)는 입문 세트 몫으로 늘 들어간다(여기 넣으면 저장소에서 생긴 sdk 줄 전체가 개발 분야가 됨)
 /** 늘 넣는 몫: 위험 · 주의(시연 계정의 시뮬레이터 위험 등, 이것만으로 지도가 차지 않게), 입문 세트(signals.starter_set, 별이 없어 별 순에 밀리므로),
  *  이번 주 새 기술(NEW 표시 15개를 고를 몫) */
-const RISKY_MAX = 100, STARTER_MAX = 80, NEW_QUOTA = 60;
+export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)이 줄 수를 막는다
+const RISKY_MAX = 100, NEW_QUOTA = 60;
 /** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
-export const PICK_RULE = "dev-first-3";
+export const PICK_RULE = "dev-first-4";
 
 const devCategoryIds = (cats: Category[]) => {
   const tops = new Set(cats.filter((c) => !c.parentId && DEV_FIELDS.includes(c.name)).map((c) => c.id));
@@ -68,7 +69,7 @@ const newSince = (now: Date) => { const weekAgo = new Date(now.getTime() - 7 * 8
 
 /**
  * 지도에 올릴 모은 기술 CATALOG_LIMIT개(ADR 0030 8항): ① 위험 → 주의(RISKY_MAX까지) ② 입문 세트(STARTER_MAX까지) ③ 이번 주 새 기술(NEW_QUOTA까지, 대량 채우기분 제외)
- * ④ 개발 분야 · 스킬 · 플러그인 · 개념 · 개발 도구를 두꺼운 것 → 별 많은 순 ⑤ 자리가 남으면 나머지를 같은 순(생활 · 업무 연동 등). 겹치면 한 번.
+ * ④ 개발 분야 · 스킬 · 플러그인 · 개념을 두꺼운 것 → 별 많은 순 ⑤ 자리가 남으면 나머지를 같은 순(생활 · 업무 연동 등). 겹치면 한 번.
  * 사라진 기술, (시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 공개 목록(소개 출처가 있음)만(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
 async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]): Promise<CatalogTech[]> {

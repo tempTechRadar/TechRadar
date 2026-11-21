@@ -68,15 +68,18 @@ test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 
 
 test("모은 기술은 위험 → 주의 → 입문 세트 → 이번 주 새 기술 → 개발 분야(스킬 · 플러그인 · 개념 · 개발 도구 · 개발 갈래)를 두꺼운 것 · 별 많은 순, 모자랄 때만 나머지(ADR 0030 8항, 겹치면 한 번), 내 판단 표시는 내 것만", async () => {
   const cats = [{ id: "fe", name: "프론트엔드", parent_id: null }, { id: "fe-ui", name: "화면·컴포넌트", parent_id: "fe" }, { id: "life", name: "생활·정보", parent_id: null }];
+  const starterCalls: string[] = [];
   const pick = (qc: string[]) => qc.some((c) => c.includes("grade.eq.danger")) ? [{ id: "risk", display_name: "r" }]
-    : qc.some((c) => c.includes("eq(signals->>starter_set,true)")) ? [{ id: "start1", display_name: "s" }]
+    : qc.some((c) => c.includes("eq(signals->>starter_set,true)")) ? (starterCalls.push(...qc), [{ id: "start1", display_name: "s" }])
     : qc.some((c) => c.startsWith("technologies.gt(created_at")) ? [{ id: "new1", display_name: "n" }, { id: "risk", display_name: "r" }]
-    : qc.some((c) => c.includes("type.in.(skill,plugin,concept,sdk)")) ? [{ id: "dev", display_name: "d" }, { id: "new1", display_name: "n" }, { id: "start1", display_name: "s" }]
+    : qc.some((c) => c.includes("type.in.(skill,plugin,concept)")) ? [{ id: "dev", display_name: "d" }, { id: "new1", display_name: "n" }, { id: "start1", display_name: "s" }]
     : [{ id: "life1", display_name: "l" }, { id: "dev", display_name: "d" }];
   const { db, calls } = recordingDb({ technologies: pick, categories: cats });
   const input = await readMapInput(db, "user-a", false);
   assert.deepEqual(input.techs.map((t) => t.id), ["risk", "start1", "new1", "dev", "life1"]);
-  assert.ok(calls.includes("technologies.or(type.in.(skill,plugin,concept,sdk),category_id.in.(fe,fe-ui))"), "개발 갈래와 그 아래 세부 갈래");
+  assert.ok(calls.includes("technologies.or(type.in.(skill,plugin,concept),category_id.in.(fe,fe-ui))"), "개발 갈래와 그 아래 세부 갈래");
+  // 입문 세트 질의 하나만 보고: 공개 목록 조건 + 몫(서비스 키로 읽는 로그인 전 지도에 비공개 줄이 나가지 않게, 불변 5)
+  for (const c of ["technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.limit(80)"]) assert.ok(starterCalls.includes(c), `입문 세트 질의: ${c}`);
   for (const c of ['technologies.order(grade,{"ascending":false})', 'technologies.order(signals->stars,{"ascending":false,"nullsFirst":false})', "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });

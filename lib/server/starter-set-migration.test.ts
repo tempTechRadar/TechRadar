@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { CATEGORY_SEED } from "../map/classify.ts";
+import { CONCEPTS } from "../domain/services.ts";
+import { STARTER_MAX } from "./map-queries.ts";
 
 const sql = readFileSync("supabase/migrations/202611211200_P-12d_starter_set.sql", "utf8");
 const values = sql.match(/from \(values([\s\S]*?)\n\) as v\(/)?.[1] ?? "";
@@ -43,4 +45,14 @@ test("한 줄 설명과 근거(https)가 모두 있고, 한 줄은 짧다", () =
 test("코드가 이미 쓰는 개념 키(harness · subagents · slash-commands)와 같은 키를 쓴다", () => {
   const keys = new Set(rows.map((r) => r[0]));
   for (const k of ["concept:harness", "concept:subagents", "concept:slash-commands"]) assert.ok(keys.has(k), k);
+});
+
+test("입문 세트는 지도 몫(STARTER_MAX) 안이고, 코드가 아는 개념은 코드와 같은 이름(시드 · 첫 읽기 중 먼저 넣는 쪽 이름이 남으므로)", () => {
+  assert.ok(rows.length <= STARTER_MAX, `${rows.length}줄 > 지도 몫 ${STARTER_MAX}: 넘치면 조용히 잘린다`);
+  for (const c of CONCEPTS) {
+    const row = rows.find((r) => r[0] === `concept:${c.id}`);
+    if (row) assert.equal(row[1], c.name, `concept:${c.id}`);
+  }
+  const harness = CONCEPTS.find((c) => c.id === "harness")!.name;
+  assert.ok(sql.includes(`update public.technologies set display_name = '${harness}'`), "운영 이름 바꾸기가 코드 이름과 같다");
 });
