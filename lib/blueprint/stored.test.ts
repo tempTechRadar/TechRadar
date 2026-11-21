@@ -50,3 +50,10 @@ test("내보내기: 프롬프트 · CLAUDE.md 표 · 메타프롬프트(같은 �
   assert.match(meta, /<청사진 이름="ab">/);
   assert.match(meta, /끝났다고 볼 기준/);
 });
+
+test("이력의 graph 칸: v2 겉모양이면 그대로, 옛 확정본(null)·모양이 다르면 null(board로 연다)", async () => {
+  const { readStoredGraph } = await import("./stored.ts");
+  const g = { v: 2, stages: [{ id: "s1", name: "a", x: 0, y: 0, techs: [] }], edges: [] };
+  assert.deepEqual(readStoredGraph(g), g);
+  for (const bad of [null, undefined, { v: 1, stages: [], edges: [] }, { v: 2, stages: {} }, "x"]) assert.equal(readStoredGraph(bad), null);
+});
