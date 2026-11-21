@@ -17,9 +17,11 @@ grant execute on function public.public_blueprint_templates(text, int, int) to a
 grant execute on function public.blueprint_template_for_use(uuid) to anon;
 
 -- 기술 사용기(P-24): 글은 손님에게 닫힌 그대로, 숨기지 않은 글의 수만("사용기 n개 — 로그인하면 볼 수 있어요")
+-- 공개 목록 기술만(lib/server/map-queries.ts listedTechs와 같은 규칙: 사라짐 · 저장소에서만 생긴 줄 · 시뮬레이터 제외), 아니면 0
 create function public.usage_note_count(p_tech_id uuid) returns integer
 language sql stable security definer set search_path = '' as $$
-  select count(*)::integer from public.usage_notes n where n.tech_id = p_tech_id and n.hidden_at is null;
+  select count(*)::integer from public.usage_notes n join public.technologies t on t.id = n.tech_id
+   where n.tech_id = p_tech_id and n.hidden_at is null and t.status <> 'gone' and t.one_liner_source is not null and not t.is_simulated;
 $$;
 revoke execute on function public.usage_note_count(uuid) from public;
 grant execute on function public.usage_note_count(uuid) to anon, authenticated;
@@ -28,3 +30,14 @@ grant execute on function public.usage_note_count(uuid) to anon, authenticated;
 grant execute on function public.is_open_template(uuid) to anon;
 grant select (id, created_at, template_id, used_for, result, tip, helpful_count, hidden_at) on public.template_notes to anon;
 create policy template_notes_select_anon on public.template_notes for select to anon using (hidden_at is null and public.is_open_template(template_id));
+
+-- 갤러리 "도움 순"(P-12f 9): 템플릿마다 숨기지 않은 사용기의 "도움이 됐어요" 합을 DB에서 센다
+-- (보는 사람 토큰으로 줄을 읽으면 관리자 · 쓴 사람에게만 숨긴 글이 더해져 순서가 달라지고, 1000줄 한도에서 말없이 잘린다). 열린 템플릿만
+create function public.template_helpful_totals(p_ids uuid[]) returns table (template_id uuid, helpful integer)
+language sql stable security definer set search_path = '' as $$
+  select n.template_id, sum(n.helpful_count)::integer from public.template_notes n
+   where n.template_id = any (p_ids[1:100]) and n.hidden_at is null and public.is_open_template(n.template_id)
+   group by n.template_id;
+$$;
+revoke execute on function public.template_helpful_totals(uuid[]) from public;
+grant execute on function public.template_helpful_totals(uuid[]) to anon, authenticated;
