@@ -9,7 +9,7 @@ import { planCandidates, SEARCH_TAGS, type Candidate, type Plan, type SearchPage
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
 import { CollectError, readToken } from "./collect-fetch.ts";
 import { fetchSearchPage, PER_PAGE, type SearchQuery } from "./github-search-fetch.ts";
-import { countStarRows, fromRegistry, readExisting, readSource, saveEntry, STARS_CAP, type Entry, type SaveCtx } from "./github-search-store.ts";
+import { countStarRows, readExisting, readSource, saveEntry, STARS_CAP, type Entry, type SaveCtx } from "./github-search-store.ts";
 import { recordStep } from "./run-log.ts";
 
 const REQUEST_GAP_MS = 1_000; // 검색 한도(토큰 30회/분)보다 넉넉하게 요청 사이 1초
@@ -33,8 +33,8 @@ async function collectStars(ctx: CollectorContext, d: Deps): Promise<{ items: nu
   const found = await searchAll(d, token, Math.min(ctx.deadlineMs, d.now() + SEARCH_BUDGET_MS));
   // 시간 몫이 시작 전에 다 지났으면 "후보 0곳"이 아니라 못 읽은 것(불변 2)
   if (found.requests === 0) throw new CollectError("timeout", "시간 몫이 시작 전에 다 지나 GitHub 검색을 한 번도 하지 못했어요");
-  const existing = await readExisting(ctx.db);
-  const candidates: Candidate[] = [...found.repos.values()].map((r) => ({ ...r, inRegistry: fromRegistry(existing.get(repoKey(r))) }));
+  const { byRepo: existing, known, registry } = await readExisting(ctx.db);
+  const candidates: Candidate[] = [...found.repos.values()].map((r) => ({ ...r, inRegistry: registry.has(repoKey(r)), known: known.has(repoKey(r)) }));
   const plan = planCandidates(candidates, d.now());
   const s: SaveCtx = { db: ctx.db, runId: ctx.runId, sourceId: source.id, at: new Date(d.now()).toISOString(), existing, starRows: countStarRows(existing) };
   const tally: Tally = { created: 0, merged: 0, refreshed: 0, capped: 0, same: 0, observed: 0, suspects: plan.suspects.length, unsaved: 0 };

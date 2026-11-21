@@ -35,23 +35,31 @@ export async function readSource(db: SupabaseClient): Promise<{ id: string; enab
   return { id: data.id as string, enabled: Boolean(data.enabled) }; // 관리자가 끈 출처는 읽지 않는다(IA-15)
 }
 
+/**
+ * byRepo: 저장소 키 → 합칠 줄 하나. known: 우리 수집기가 만들지 않은 줄(github: 키가 아님 = 레지스트리·사용자 줄)이 있는 저장소.
+ * registry: 그중 레지스트리가 만든 줄이 있는 저장소. 우리가 전에 만든 github: 줄은 known이 아니다(한 번 들어온 복제본이 스스로 원본이 되지 않게).
+ */
+export type ExistingRows = { byRepo: Map<string, Existing>; known: Set<string>; registry: Set<string> };
+
 /** 저장소가 있는 진짜 기술 줄을 저장소 키로 모은다(쪽으로 나눠 모두: PostgREST는 한 번에 1000줄까지). 시뮬레이터 줄은 건드리지 않는다. */
-export async function readExisting(db: SupabaseClient): Promise<Map<string, Existing>> {
-  const map = new Map<string, Existing>();
+export async function readExisting(db: SupabaseClient): Promise<ExistingRows> {
+  const rows: ExistingRows = { byRepo: new Map(), known: new Set(), registry: new Set() };
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db.from("technologies").select(COLUMNS).or("repo_url.not.is.null,tech_key.like.github:*").order("id").range(from, from + PAGE - 1);
     if (error) throw new Error(`기술 목록을 읽지 못함: ${error.message}`);
-    for (const row of (data ?? []) as Existing[]) addRow(map, row);
-    if ((data?.length ?? 0) < PAGE) return map;
+    for (const row of (data ?? []) as Existing[]) addRow(rows, row);
+    if ((data?.length ?? 0) < PAGE) return rows;
   }
 }
 
 // shortcut: 같은 저장소를 가리키는 줄이 여럿이면(모노레포의 패키지들) github: 키 줄, 없으면 먼저 읽은 줄 하나에만 별 신호를 붙인다. 패키지마다 붙여야 하면 묶음으로 바꾼다
-function addRow(map: Map<string, Existing>, row: Existing): void {
+function addRow(rows: ExistingRows, row: Existing): void {
   const ref = row.is_simulated ? null : repoRefOf(row);
   if (!ref) return;
   const key = repoKey(ref);
-  if (!map.has(key) || row.tech_key.toLowerCase() === `github:${key}`) map.set(key, row);
+  if (!row.tech_key.startsWith("github:")) rows.known.add(key);
+  if (fromRegistry(row)) rows.registry.add(key);
+  if (!rows.byRepo.has(key) || row.tech_key.toLowerCase() === `github:${key}`) rows.byRepo.set(key, row);
 }
 
 /** 공식 레지스트리가 만든 줄인가: 레지스트리는 github: 키를 만들지 않고, 설명 출처가 레지스트리이거나 대량 채우기 표시(signals.registry_backfill)를 남긴다 */

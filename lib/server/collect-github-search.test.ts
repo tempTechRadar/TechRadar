@@ -256,3 +256,23 @@ test("쓸 내용이 지금 줄과 같으면 쓰지 않는다. 묶음 시간이 �
   const out = await run(world(), fakes({ mcp: [repo("a/one"), repo("b/two"), repo("c/three")] }, { now: () => (clock += 1000) }), {}, NOW + 3500);
   assert.match(out.summary!, /시간이 모자라 \d+곳은 다 저장 못 함/);
 });
+
+test("clone_cluster ④ 우리 수집기가 전에 만든 github: 줄은 알려진 원본으로 치지 않고, 레지스트리·사용자 줄(github: 아님)만 원본으로 뺀다", async () => {
+  const pairOf = () => fakes({ mcp: [repo("orig/tool", { createdAt: ago(900), stars: 2000 }), repo("copy/tool", { createdAt: ago(60), stars: 1990 })] });
+  const ours = tech("github:orig/tool", { repo_url: "https://github.com/orig/tool", depth: "thick", thick_reasons: ["stars"], signals: { stars: 2000, candidate_flags: [] } });
+  const t1 = world([ours]);
+  await run(t1, pairOf());
+  assert.deepEqual([sig(ours).candidate_flags, sig(byKey(t1, "github:copy/tool")).candidate_flags], [["clone_cluster"], ["clone_cluster"]]);
+  const user = tech("npm:orig-tool", { repo_url: "https://github.com/orig/tool" });
+  const t2 = world([user]);
+  await run(t2, pairOf());
+  assert.deepEqual([sig(user).candidate_flags, user.depth, sig(byKey(t2, "github:copy/tool")).candidate_flags], [[], "thick", ["clone_cluster"]]);
+});
+
+test("공식 레지스트리 줄과 합쳐지는 저장소는 신뢰 점수를 더 받는다(같은 저장소를 가리키는 github: 줄이 따로 있어도)", async () => {
+  const reg = tech("npm:a-one", { repo_url: "https://github.com/a/one", signals: { registry_backfill: true } });
+  const ours = tech("github:a/one", { repo_url: "https://github.com/a/one", signals: { stars: 2000, candidate_flags: [] } });
+  const t = world([reg, ours]);
+  await run(t, fakes({ mcp: [repo("a/one"), repo("b/two")] }));
+  assert.ok((sig(ours).candidate_score as number) > (sig(byKey(t, "github:b/two")).candidate_score as number));
+});
