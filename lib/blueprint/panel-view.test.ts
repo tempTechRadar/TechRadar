@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -64,4 +64,19 @@ test("사용자가 지은 단계 이름이 객체 기본 속성(constructor 등)
     assert.equal(stageFields(stage), undefined);
     assert.deepEqual(names(filterPool(pool, { stage, term: "", tag: null, tags: {}, add: null, usage: new Map() })), ["a"]);
   }
+});
+
+test("템플릿 저장 id: 같은 내용이면 같은 id(다른 내용을 거쳐 돌아와도), 위치만 옮긴 것은 같은 내용, 이름 · 종류가 다르면 새 id(불변 3)", () => {
+  let n = 0;
+  const make = () => `id${++n}`;
+  const a: Graph = { ...emptyGraph(), stages: [st("기획", 0, 0, [{ id: "t1", name: "t1" }]), st("개발", 300, 0)], edges: [{ from: "기획", to: "개발" }] };
+  const moved: Graph = { ...a, stages: a.stages.map((s) => ({ ...s, x: s.x + 50 })) };
+  const b: Graph = { ...a, edges: [] };
+  const first = templateSaveId("combo", "웹앱 ", a, make);
+  assert.equal(templateSaveId("combo", "웹앱", moved, make), first);
+  const other = templateSaveId("combo", "웹앱", b, make);
+  assert.notEqual(other, first);
+  assert.equal(templateSaveId("combo", "웹앱", a, make), first);
+  assert.notEqual(templateSaveId("frame", "웹앱", a, make), first);
+  assert.notEqual(templateSaveId("combo", "모바일", a, make), first);
 });
