@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, outside, putProblem, templateSaveId } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -81,8 +81,12 @@ test("템플릿 저장 id: 같은 내용이면 같은 id(다른 내용을 거쳐
   assert.notEqual(templateSaveId("combo", "모바일", a, make), first);
 });
 
-test("관문 밖 기술: 서랍 후보에 없는 id만", () => {
-  assert.equal(outside([{ id: "a" }], "a"), false);
-  assert.equal(outside([{ id: "a" }], "b"), true);
-  assert.equal(outside([], "a"), true);
+test("저장 id 만들기: randomUUID가 없는 http 주소에서도 UUID v4 모양", () => {
+  const real = crypto.randomUUID;
+  try {
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true });
+    const id = uuid();
+    assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    assert.notEqual(uuid(), id);
+  } finally { Object.defineProperty(crypto, "randomUUID", { value: real, configurable: true }); }
 });
