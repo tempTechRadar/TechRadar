@@ -20,6 +20,7 @@ export type CatalogTech = {
   grade: Grade; gradeReason: string | null; oneLiner: string | null; repoUrl: string | null; license?: string | null;
   lastActivityAt: string | null; lastActivityKind: string | null; lastCheckedOkAt: string | null;
   collectErrorKind: string | null; signals: Record<string, unknown> | null;
+  /** 공식 조직 · 공식 저장소(technologies.is_official, ADR 0019 · 0031 · 0030 10항) */ official?: boolean;
 };
 export type MyTechRow = {
   id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string; sourceFile?: string | null;
@@ -40,6 +41,7 @@ export type MapNode = {
   /** 들어온 지 며칠(처음 채운 날 · 대량 채우기분은 null). 기간 칩(오늘 · 이번 주 · 이번 달)이 쓴다 */ addedDays: number | null;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
   /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
+  official: boolean;
 };
 /** quotes: 비교군 선마다 왜 비교군인지(관리자가 확인한 근거 한 줄), 키는 `a|b`(작은 키가 앞) */
 export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string> };
@@ -102,7 +104,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
-    isNew: isNewTech(t?.createdAt ?? null, now, newSince), addedDays: addedDaysOf(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade,
+    isNew: isNewTech(t?.createdAt ?? null, now, newSince), addedDays: addedDaysOf(t?.createdAt ?? null, now, newSince), lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade, official: t?.official === true,
   };
 }
 

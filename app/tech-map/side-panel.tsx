@@ -37,6 +37,7 @@ function TechHead({ n }: { n: MapNode }) {
       {facts ? <p className="muted">{facts}</p> : null}
       <p className="map-row side-tags">
         {n.attrs.kind !== "모름" ? <span className="tag">{n.attrs.kind}</span> : null}
+        {n.official ? <span className="tag">공식</span> : null}
         {n.isNew ? <span className="tag">NEW</span> : null}
         {isRisky(n) ? <span className={`tag tag-${n.grade}`}>보안 {GRADE_KO[n.grade]}</span> : null}
         {n.collectErrorKind ? <span className="tag">수집 오류</span> : null}

@@ -24,6 +24,11 @@ test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 
   assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
 });
 
+test("공식 표시는 카탈로그 칸이 true일 때만: 칸이 없는 기술 · 이름만 넣은 내 기술은 공식 아님", () => {
+  const m = buildTechMap(input({ mine: [mine("m1", null, { manualName: "직접 넣은 것" })], techs: [tech("a", { official: true }), tech("b")] }), NOW);
+  assert.deepEqual(m.nodes.map((n) => [n.name, n.official]).sort(), [["a", true], ["b", false], ["직접 넣은 것", false]]);
+});
+
 test("묶기 기준 값: 작은 갈래는 큰 갈래 아래로, 갈래가 없으면 '분류 전', 종류는 한국어", () => {
   const m = buildTechMap(input({ techs: [tech("a"), tech("b", { categoryId: "big-design", type: "skill", techKey: "skill:x/y/b" }), tech("c", { categoryId: null })] }), NOW);
   const by = Object.fromEntries(m.nodes.map((n) => [n.name, n.attrs]));

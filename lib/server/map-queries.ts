@@ -16,7 +16,7 @@ export const ID_CHUNK = 40;
  *  shortcut: 고정 시각, 카탈로그를 다시 처음부터 채우면 이 값을 바꾼다 */
 export const CATALOG_FIRST_FILL = "2026-11-20T00:00:00Z";
 /** 지도가 쓰는 기술 칸 = 로그인 전에도 내보내는 공개 칸(ADR 0029). 등급 근거 원문·두께 이유·상태를 정한 주체 같은 내부 칸은 넣지 않는다 */
-export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, license, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated";
+export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, license, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated, is_official";
 
 /** NEW를 정하려고 서버에서만 더 읽는 칸. toTech가 버려서 화면 · 캐시로 나가지 않는다(공개 칸은 TECH_COLUMNS 그대로) */
 const READ_COLUMNS = `${TECH_COLUMNS}, one_liner_source`;
@@ -25,7 +25,7 @@ const READ_COLUMNS = `${TECH_COLUMNS}, one_liner_source`;
 const toTech = (r: Row): CatalogTech => ({
   id: r.id, techKey: r.tech_key, createdAt: isBulkFilled(r) ? null : r.created_at, name: r.display_name, type: r.type, hosts: r.hosts, categoryId: r.category_id, grade: r.grade as Grade, gradeReason: r.grade_reason,
   oneLiner: r.one_liner ?? fixedNote(r.tech_key)?.text ?? null, repoUrl: r.repo_url, license: r.license ?? null, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
-  lastCheckedOkAt: r.last_checked_ok_at, collectErrorKind: r.collect_error_kind,
+  lastCheckedOkAt: r.last_checked_ok_at, collectErrorKind: r.collect_error_kind, official: r.is_official === true,
   signals: { stars: r.signals?.stars ?? null, weekly_downloads: r.signals?.weekly_downloads ?? null }, // 수집 오류 문장 같은 나머지는 화면·캐시로 보내지 않는다(ADR 0029)
 });
 const toMine = (r: Row): MyTechRow => ({
