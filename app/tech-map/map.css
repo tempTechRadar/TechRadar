@@ -29,6 +29,8 @@ body:has(.map-page) .site-nav .site-nav-add { display: none; }
 .map-pop { position: relative; }
 .map-pop > .btn[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .map-pop-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 6; width: min(320px, calc(100vw - 48px)); max-height: 60vh; overflow: auto; padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
+.map-seg-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-sm); color: var(--ink-2); }
+.map-pop-panel.map-pop-top { z-index: 7; } /* 펼쳐 둔 보기 창 위로 필터 창 */
 .map-pop-panel fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
 .map-pop-panel legend { font-weight: 700; font-size: var(--fs-sm); margin-bottom: 2px; }
 .map-pop-panel label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
@@ -112,7 +114,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-tab-form input { min-height: 36px; width: 140px; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); background: var(--surface); }
 .map-seg { display: inline-flex; }
 .map-seg .chip { border-radius: 0; margin-left: -1px; }
-.map-seg .chip:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
+.map-seg .chip:first-of-type { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
 .map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }
 .map-replay { border-style: dashed; }
 .map-replay:hover { border-style: solid; border-color: var(--ink); }

@@ -14,6 +14,27 @@
 .side-tags .tag-danger { border-color: var(--danger); color: var(--ink-danger); font-weight: 700; }
 .side-tags .tag-caution { border-color: var(--caution); color: var(--ink); font-weight: 700; }
 
+/* 내 태그: 나만 보는 말이라 점선 테두리로 카탈로그 배지와 구분 */
+.side-mytags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 var(--sp-3); }
+.side-mytags .tag-mine { display: inline-flex; align-items: center; gap: 2px; padding-right: 0; border-style: dashed; color: var(--ink); }
+.side-mytags .tag-x { min-width: var(--hit-sm); min-height: var(--hit-sm); padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
+.side-tag-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.side-tag-form input { min-height: var(--hit-sm); max-width: 12em; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+.side-mytags .notice { flex-basis: 100%; margin: 0; }
+/* 위험 · 주의일 때만 뜨는 띠: 상태 색은 왼쪽 굵은 선 · 테두리에만, 글자는 읽는 색 */
+.side-band { margin: 0 0 var(--sp-3); padding: 10px 12px; border: 1px solid var(--caution); border-left-width: 6px; border-radius: var(--r-md); }
+.side-band-danger { border-color: var(--danger); }
+.side-band-danger b { color: var(--ink-danger); }
+.side-band p { margin: 0; }
+.side-band summary { min-height: var(--hit-sm); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-sm); }
+.side-err { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+.side-decide { display: grid; gap: 10px; padding: var(--sp-3); border-radius: var(--r-lg); background: var(--sunken); }
+.side-to-bp { display: grid; gap: 4px; justify-items: start; }
+.side-to-bp p { margin: 0; font-size: var(--fs-sm); }
+.side-notes { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 8px; }
+.side-notes li { padding-top: 8px; border-top: 1px solid var(--line); overflow-wrap: anywhere; white-space: pre-wrap; }
+.side-notes li:first-child { padding-top: 0; border-top: 0; }
+.side-notes p { margin: 0; }
 .side-card { margin-top: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .side-card h3 { margin: 0 0 6px; font-size: var(--fs-sm); color: var(--ink-2); }
 .side-card p { margin: 0 0 4px; }

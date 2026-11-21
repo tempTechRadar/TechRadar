@@ -66,3 +66,17 @@ test("11-21에 바꾼 이름: 저장된 보기 · 주소의 옛 값(패키지 ·
   const v = parseView(`fk=${encodeURIComponent("패키지,모름,개발 도구")}&ff=${encodeURIComponent("분류 전")}&fs=${encodeURIComponent("분류 전")}`);
   assert.deepEqual([v.filter.kinds, v.filter.fields, v.filter.subs], [["개발 도구", "직접 넣은 것"], ["아직 분류 안 됨"], ["아직 분류 안 됨"]]);
 });
+
+test("내 태그 거르기: tg=를 여러 번(쉼표가 든 태그도), 하나라도 붙으면 보임, 대소문자는 같게. 태그 못 읽으면 모델에 표시", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a"), tech("b"), tech("c")],
+    tags: { [tech("a").id]: ["React"], [tech("b").id]: ["회사, 팀"] } }, NOW);
+  const v = parseView(`tg=react&tg=${encodeURIComponent("회사, 팀")}`);
+  assert.deepEqual(v.filter.tags, ["react", "회사, 팀"]);
+  assert.deepEqual(m.nodes.filter((n) => passes(n, v)).map((n) => n.name).sort(), ["a", "b"]);
+  assert.deepEqual(parseView(viewQuery(v)).filter.tags, v.filter.tags);
+  assert.equal(filterCount(v), 2);
+  assert.equal(m.tagsFailed, false);
+  assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")], tags: null }, NOW).tagsFailed, true);
+});

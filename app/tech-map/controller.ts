@@ -37,7 +37,7 @@ function savedTune(): Tune {
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -301,6 +301,12 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
       n.mark = mark;
       if (S.view.filter.interest) setView({ ...S.view }); else notify(); // "내 관심"으로 거르는 중이면 관심을 풀자마자 지도에서도 빠지게
+    },
+    /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */
+    setTags(key: string, tags: string[]) {
+      const n = model.nodes.find((x) => x.key === key); if (!n) return;
+      n.tags = tags;
+      if (S.view.filter.tags.length) setView({ ...S.view }); else notify();
     },
     groupMembers(g: GroupItem) { return S.L.items.filter((it): it is TechItem => it.type === "t" && isUnder(S.L, it, g.id)); },
     /** 보기 묶음(프리셋): 주소 모양 보기를 이 지도의 기본 묶기 위에 연다 · 지금 보기를 같은 모양으로(같은 보기인지 비교) */

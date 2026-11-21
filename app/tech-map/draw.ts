@@ -263,31 +263,45 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
   const names = ramp(z, TIER.names), det = ramp(z, TIER.detail);
   const onScreen = (it: Item) => { const [x, y] = P(it); return x > -20 && y > S.top - 20 && x < S.W - S.right + 20 && y < S.H + 20; };
+  const alone = names < 1 && !quiet ? aloneOnScreen(vis, P) : null; // 주변이 빈 점은 한 단계 낮은 배율에서도 이름 · 설명(11-21 사용자 결정 F③)
+  const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
-    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
+    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
   const boxes: number[][] = [];
   for (const it of want.slice(0, 160)) {
-    const [x, y] = P(it), [what, facts] = det > 0.4 ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
+    const solo = alone?.has(it.id) && names > 0.4;
+    const [x, y] = P(it), [what, facts] = det > 0.4 || solo ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
+    const name = dated && it.node.addedAt ? `${it.node.name} · ${monthDay(it.node.addedAt)}` : it.node.name;
     c.font = `12px ${col("--font")}`;
-    const w = Math.max(c.measureText(it.node.name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
+    const w = Math.max(c.measureText(name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
     const off = dotRadius(it, sc) + 5; // 가까이 가면 점이 커지니 점 가장자리에서 띄운다
     const right = x > S.W / 2 - 1 ? x + off + w < S.W - S.right - 4 : x - off - w < 4; // 바깥쪽에, 화면 끝에 잘리면 안쪽으로
     const box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
     if (boxes.some((o) => box[0] < o[0] + o[2] && o[0] < box[0] + box[2] && box[1] < o[1] + o[3] && o[1] < box[1] + box[3])) continue;
     boxes.push(box);
-    const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
+    const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) || alone?.has(it.id) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
     if (a < 0.3) continue;
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
-    label(c, it.node.name, box[0], y, 12, col("--ink"));
+    label(c, name, box[0], y, 12, col("--ink"));
     if (!what) continue;
-    c.globalAlpha *= Math.min(1, (det - 0.4) / 0.4 + 0.3);
+    c.globalAlpha *= solo ? 1 : Math.min(1, (det - 0.4) / 0.4 + 0.3);
     label(c, what, box[0], y + 14, 11, col("--ink-2"));
     if (facts) label(c, facts, box[0], y + 27, 10, col("--muted"));
   }
   c.globalAlpha = 1;
+}
+
+const monthDay = (iso: string) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; };
+/** 화면에서 주변 칸(40px 격자 3×3)에 다른 기술 점이 없는 점. 격자라 점 수에 비례(매 장면 500개도 가벼움) */
+function aloneOnScreen(vis: Item[], P: Frame["P"]): Set<string> {
+  const CELL = 40, cells = new Map<string, number>();
+  const pts = vis.filter((it) => it.type === "t").map((it) => { const [x, y] = P(it); return { id: it.id, cx: Math.floor(x / CELL), cy: Math.floor(y / CELL) }; });
+  for (const p of pts) cells.set(`${p.cx},${p.cy}`, (cells.get(`${p.cx},${p.cy}`) ?? 0) + 1);
+  const near = (p: (typeof pts)[number]) => { let n = 0; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) n += cells.get(`${p.cx + dx},${p.cy + dy}`) ?? 0; return n; };
+  return new Set(pts.filter((p) => near(p) === 1).map((p) => p.id));
 }
 
 // 화면 밖 위험·주의: 방향마다(15°) 가장자리에 삼각형과 개수. 누르면 그쪽 기술을 연다

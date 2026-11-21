@@ -6,6 +6,7 @@ import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { saveMark, type MarkResult, type MarkStatus } from "@/lib/server/marks";
 import { findPoolTechs, type PoolTech } from "@/lib/server/blueprints";
+import { readTopUsageNotes, type NoteSummary } from "@/lib/server/usage-notes";
 import { resolveProjectId } from "@/lib/server/local-import";
 import { addTech } from "@/lib/server/my-tech";
 import { searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
@@ -31,6 +32,20 @@ export async function markTech(techId: string, status: MarkStatus | null, reason
     revalidatePath("/alerts");
   }
   return result;
+}
+
+/** 사이드 패널 사용기 요약(도움 많은 순 3개 + 전체 수). 로그인한 사람만(사용기는 로그인해야 읽힘, RLS). null = 읽지 못함(불변 2) */
+export async function usageSummaryAction(techId: string): Promise<NoteSummary | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(String(techId))) return null;
+  if (await isLoginPreview()) return { total: 0, top: [] }; // 미리보기(개발용)는 DB를 부르지 않는다
+  if (!(await getCurrentUser())) return null;
+  const db = await getServerSupabase();
+  try {
+    return db ? await readTopUsageNotes(db, techId) : null;
+  } catch (e) {
+    console.error("사용기 요약 조회 실패", maskSecrets(e instanceof Error ? e.message : String(e)));
+    return null;
+  }
 }
 
 /** 로그인 전 찾기는 같은 글자면 10분 동안 한 번만 DB에(서버 액션은 누구나 부를 수 있는 주소라, 화면의 0.4초 쉬기만 믿지 않는다).

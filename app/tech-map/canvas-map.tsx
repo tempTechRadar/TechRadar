@@ -146,7 +146,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
         <div ref={hud} className="map-top-hud">
           {top ? <div className="map-top">{top}</div> : null}
-          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
+          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} tagsFailed={model.tagsFailed} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} onView={setView} onReplay={replay} /></div>
         </div>
@@ -159,7 +159,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         ) : null}
         <aside ref={side} className="map-side" aria-labelledby="map-side-title" data-open={sel ? "" : undefined} inert={!sel}>
           <button type="button" className="btn map-close" onClick={close} aria-label="닫기">✕</button>
-          {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(shown, s, r)} onGo={go} /> : null}
+          {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(shown, s, r)} onGo={go} onTags={(tags) => ctl.setTags(shown.node.key, tags)} /> : null}
           {shown?.type === "g" ? <GroupPanel g={shown} members={ctl.groupMembers(shown)} shut={S.collapsed.has(shown.id)} onDrill={() => drill(shown.id)} onToggle={() => ctl.toggle(shown.id)} onGo={go} /> : null}
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}

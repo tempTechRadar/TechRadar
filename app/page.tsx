@@ -1,10 +1,9 @@
-// 첫 화면 = 기술 지도(IA-10, D8). 로그인 뒤: 위에 첫 점검 띠·판단 대기·변경 수(누르면 그 목록), 아래에 지도.
+// 첫 화면 = 기술 지도(IA-10, D8). 로그인 뒤: 위에 첫 점검 띠, 아래에 지도. 판단 대기 · 최근 변경 수는 일지 맨 위로 옮겼다(11-21 사용자 결정 B).
 // 로그인 전: 누구에게나 같은 카탈로그 지도와 로그인 유도 띠(ADR 0029). 내 기술·숫자·첫 점검 띠는 없다.
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { buildFirstCheckBand, FIRST_CHECK_COOKIE, parseSeenRunIds } from "@/lib/alerts/first-check-band";
-import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { buildTechMap, capNew, type TechMapModel } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
@@ -16,6 +15,7 @@ import { FirstCheckBanner } from "./dashboard/first-check-banner";
 import GoogleLoginButton from "./login/google-login-button";
 import type { ReactNode } from "react";
 import { CanvasMap } from "./tech-map/canvas-map";
+import { SpaceSwitch } from "./nav/space-switch";
 import { StartChecklist } from "./tech-map/start-checklist";
 import { startSteps } from "@/lib/onboarding/start-steps";
 import { isPreviewUser } from "@/lib/dev/login-preview";
@@ -58,6 +58,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <main className="alerts map-page">
         <h1 className="sr-only">기술 지도</h1>
         <MapBody model={input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
+          <SpaceSwitch />
           <span className="map-chip map-chip-note">로그인하면 관심·판단·내 기술 비교가 열려요.</span>
           <GoogleLoginButton next={query ? `/?${query}` : "/"} />{/* 로그인 전 보기는 주소에만 있으니 들고 간다 */}
         </>} />
@@ -71,12 +72,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const db = isPreviewUser(user) ? null : (await getServerSupabase())!;
   const [input, dash, firstReads] = db ? await Promise.all([
     readMapInput(db, user.id, user.isDemo, selTech(query)).catch(logged("지도 조회 실패")),
-    readDashboardData(db, user.id).catch(logged("지도 위 숫자 조회 실패")),
+    readDashboardData(db, user.id).catch(logged("지도 프로젝트 · 시작하기 조회 실패")),
     readRecentFirstReads(db, user.id).catch(logged("첫 점검 띠 조회 실패")),
   ]) : [sampleMapInput(), SAMPLE_DASHBOARD, SAMPLE_FIRST_READS];
   const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
   const model = input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null;
-  const summary = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;
   const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 
   return (
@@ -84,12 +84,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <h1 className="sr-only">기술 지도</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
-        {summary ? (
-          <>
-            <Link className="map-chip" href={summary.links.pending}>판단 대기 <strong>{summary.pendingCount}</strong></Link>
-            <Link className="map-chip" href={summary.links.changes}>최근 변경 <strong>{summary.changeCount}</strong></Link>
-          </>
-        ) : <span className="notice" role="status">판단 대기·변경 수를 읽지 못했어요. 새로 고치거나 <Link href="/alerts">알림</Link>에서 확인해 주세요.</span>}
+        <SpaceSwitch />
         {start ? <StartChecklist steps={start} who={user.id} /> : null}
         {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/projects">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
       </>} />

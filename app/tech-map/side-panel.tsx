@@ -1,19 +1,21 @@
 "use client";
-// 지도 위에 덮는 사이드바(시안 radar-side.js): 기술은 머리(이름 · 한국어 한 줄 · 배지) → 내 판단 → 구역 카드(왜 여기 · 비교군 · 보안 · 출처), 묶음은 목록 · 이 분류만 보기 · 접기.
+// 지도 위에 덮는 사이드바(시안 radar-side.js, 11-21 사용자 결정 G): 기술은 머리(이름 · 한국어 한 줄 · 배지 · 내 태그) → 위험할 때만 보안 띠 →
+// 한 줄 판단 + 주 단추 "청사진에 넣기" → 구역 카드(왜 여기 · 비교군 · 출처) → 사용기 요약. 묶음은 목록 · 이 분류만 보기 · 접기.
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { GRADE_KO, isConcept, UNSORTED, type MapNode, type MarkStatus } from "@/lib/map/build-map";
 import { describeKo } from "@/lib/map/describe";
 import type { GroupItem, TechItem } from "@/lib/map/layout";
 import { Judge } from "./judge";
+import { SideNotes } from "./side-notes";
+import { TagEditor } from "./tag-editor";
 import { DIM_KO } from "@/lib/map/view-config";
 import "./side-panel.css";
 
-const SEC_TEXT: Record<string, string> = {
-  danger: "✕ 보안 위험: 알려진 취약점이 있어요.", caution: "! 보안 주의: 확인할 점이 있어요.",
-  pass: "✓ 알려진 취약점이 없어요.", unknown: "? 보안 정보를 찾지 못했어요(위험하지 않다는 뜻이 아니에요).",
-};
+// 위험 · 주의는 맨 위 띠로, 나머지는 출처 카드 한 줄로(평소엔 보안 구역을 길게 두지 않음)
+const SEC_SHORT: Record<string, string> = { pass: "알려진 취약점 없음", unknown: "정보를 찾지 못함(위험하지 않다는 뜻이 아니에요)" };
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "아직 없음");
+const day = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
 export const pathOf = (n: MapNode) => [n.attrs.field, n.attrs.sub, n.attrs.kind].filter((v) => v !== UNSORTED).join(" › ") || UNSORTED;
 const isRisky = (n: MapNode): n is MapNode & { grade: "danger" | "caution" } => n.grade === "danger" || n.grade === "caution";
 const Dot = ({ token, hollow }: { token: string | null; hollow?: boolean }) => (
@@ -25,7 +27,7 @@ const Card = ({ title, children }: { title: ReactNode; children: ReactNode }) =>
 type Compare = { item: TechItem | null; node: MapNode; quote: string | null };
 type TechProps = {
   item: TechItem; compare: Compare[]; login: boolean; busy: boolean;
-  onMark: (status: MarkStatus | null, reason: string) => void; onGo: (key: string) => void;
+  onMark: (status: MarkStatus | null, reason: string) => void; onGo: (key: string) => void; onTags: (tags: string[]) => void;
 };
 
 function TechHead({ n }: { n: MapNode }) {
@@ -39,7 +41,7 @@ function TechHead({ n }: { n: MapNode }) {
         <span className="tag">{n.attrs.kind}</span>
         {n.official ? <span className="tag">공식</span> : null}
         {n.isNew ? <span className="tag">NEW</span> : null}
-        {isRisky(n) ? <span className={`tag tag-${n.grade}`}>보안 {GRADE_KO[n.grade]}</span> : null}
+        {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
         {n.collectErrorKind ? <span className="tag">수집 오류</span> : null}
         {n.mine ? <span className="tag strong">내 기술 · 쓰는 중</span> : null}{n.nearMine ? <span className="tag">내 기술의 비교군</span> : null}
       </p>
@@ -59,35 +61,66 @@ function CompareList({ n, compare, onGo }: { n: MapNode; compare: Compare[]; onG
   );
 }
 
-export function TechPanel({ item, compare, login, busy, onMark, onGo }: TechProps) {
+/** 위험 · 주의일 때만 머리 아래 눈에 띄는 띠. 이유는 "자세히"를 펼쳐서 */
+function SecurityBand({ n }: { n: MapNode & { grade: "danger" | "caution" } }) {
+  return (
+    <div className={`side-band side-band-${n.grade}`} role="note" aria-label="보안">
+      <p><b>{n.grade === "danger" ? "✕ 보안 위험" : "! 보안 주의"}</b> {n.grade === "danger" ? "알려진 취약점이 있어요." : "확인할 점이 있어요."}</p>
+      <details><summary>자세히</summary>
+        <p>{n.gradeReason ?? "이유를 아직 적지 않았어요."}</p>
+        {n.mine ? <p className="muted">내가 쓰는 버전 기준은 기술 상세에서 봐요.</p> : null}
+      </details>
+    </div>
+  );
+}
+
+/** 판단 = 청사진으로 가는 관문(11-21 사용자 결정 C): 적용 후보만 넣을 수 있다. 실제 설치는 사람이 Claude Code에서 */
+function ToBlueprint({ n, login }: { n: MapNode; login: boolean }) {
+  if (!login || !n.techId) return null;
+  const ok = n.mark?.status === "candidate";
+  return (
+    <div className="side-to-bp">
+      {ok ? <Link className="btn btn-primary" href={`/blueprint?add=${n.techId}`}>청사진에 넣기</Link>
+        : <button type="button" className="btn btn-primary" disabled>청사진에 넣기</button>}
+      <p className="muted">적용 후보로 고른 것만 청사진에 넣을 수 있어요. 설치는 Claude Code에서 직접 해요.</p>
+    </div>
+  );
+}
+
+export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: TechProps) {
   const n = item.node;
   const none = n.collectErrorKind ? "수집 오류로 못 읽었어요" : "아직 없음"; // 불변 2: 수집 오류를 "없음"으로 보이지 않게
+  const myDetail = n.mine && n.myTechIds[0] ? `/projects/tech/${n.myTechIds[0]}` : null;
   return (
     <>
       <TechHead n={n} />
-      <Judge key={`${n.key}:${n.mark?.status ?? "none"}`} techId={n.techId} grade={n.catalogGrade} mark={n.mark} login={login} busy={busy} onMark={onMark} />
+      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} />
+      {isRisky(n) ? <SecurityBand n={n} /> : null}
+      {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
+      <section className="side-decide" aria-label="판단과 청사진">
+        <Judge key={`${n.key}:${n.mark?.status ?? "none"}`} techId={n.techId} grade={n.catalogGrade} mark={n.mark} login={login} busy={busy} onMark={onMark} compact />
+        <ToBlueprint n={n} login={login} />
+      </section>
       <Card title="왜 여기">
         <p>{pathOf(n)}</p>
         <p className="muted">쓰는 곳 {n.attrs.host}{n.hostGuessed ? "(추정)" : ""}{n.mine ? ` · 내 프로젝트 ${n.projectNames.join(", ")}` : ""}</p>
       </Card>
       <Card title={`비교군 ${compare.length}`}><CompareList n={n} compare={compare} onGo={onGo} /></Card>
-      <Card title="보안">
-        <p>{isConcept(null, n.type) ? "작업 방식이라 보안 등급이 없어요." : SEC_TEXT[n.grade]}{n.gradeReason ? ` ${n.gradeReason}` : ""}</p>
-        {n.collectErrorKind ? <p className="muted">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
-      </Card>
       <Card title="출처">
         {n.oneLiner ? <p>{n.oneLiner}</p> : null}
         <dl className="side-facts">
           <dt>저장소</dt><dd>{n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소 열기</a> : none}</dd>
           <dt>라이선스</dt><dd>{n.license ?? none}</dd>
           <dt>활동</dt><dd>{n.label}</dd>
+          {isRisky(n) ? null : <><dt>보안</dt><dd>{isConcept(null, n.type) ? "작업 방식이라 등급 없음" : SEC_SHORT[n.grade]}</dd></>}
         </dl>
       </Card>
+      <Card title="사용기"><SideNotes techId={n.techId} login={login} all={myDetail} /></Card>
       <p className="map-row side-actions">
         {/* 지도의 모든 기술에 상세(17절 2차). 내 기술은 내 버전 기준 상세(카탈로그 등급이 내 버전의 위험을 가리지 않게), 나머지는 카탈로그 상세.
             로그인 전에는 로그인 뒤 그 상세로 돌아온다 */}
-        {n.mine && n.myTechIds[0] ? <Link className="btn btn-primary" href={`/projects/tech/${n.myTechIds[0]}`}>기술 상세</Link>
-          : n.techId ? <Link className="btn btn-primary" href={`/tech/${n.techId}`}>{login ? "기술 상세" : "로그인하고 기술 상세 보기"}</Link> : null}
+        {myDetail ? <Link className="btn" href={myDetail}>기술 상세</Link>
+          : n.techId ? <Link className="btn" href={`/tech/${n.techId}`}>{login ? "기술 상세" : "로그인하고 기술 상세 보기"}</Link> : null}
       </p>
     </>
   );
