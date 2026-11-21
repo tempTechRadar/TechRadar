@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { keepView } from "@/lib/domain/my-tech-view";
 import { maskSecrets } from "@/lib/domain/redact";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { resolveProjectId } from "@/lib/server/local-import";
 import { addTech, setTechHidden, type Ctx } from "@/lib/server/my-tech";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
@@ -32,6 +32,7 @@ function finish(result: Outcome, notice: string, view: string): never {
 
 /** 직접 숨기기·되돌리기. 숨긴 기술은 다시 읽어도 되살아나지 않는다(first-read가 hidden_at을 덮어쓰지 않음). */
 export async function toggleHidden(formData: FormData): Promise<void> {
+  if (await isLoginPreview()) return; // 미리보기(개발용)는 저장하지 않는다
   const ctx = await context();
   const hide = formData.get("hide") === "1";
   finish(await setTechHidden(ctx, String(formData.get("id") ?? ""), hide), hide ? "hidden" : "restored", viewOf(formData));
@@ -49,6 +50,7 @@ async function resolveProject(ctx: Ctx, raw: string): Promise<string | null> {
 
 /** 직접 추가: 모은 기술에서 고르거나(techId), 이름만 쓴다(name). */
 export async function addTechAction(formData: FormData): Promise<void> {
+  if (await isLoginPreview()) return;
   const ctx = await context();
   const projectId = await resolveProject(ctx, String(formData.get("projectId") ?? ""));
   const view = viewOf(formData);

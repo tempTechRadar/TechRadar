@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { toScenarioView } from "@/lib/alerts/to-scenario-view";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { getMyAlert } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readScenarioState } from "@/lib/server/scenario-queries";
@@ -25,14 +27,16 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
   if (!user) redirect(`/login?next=${encodeURIComponent(`/alerts/${(await params).id}`)}`); // 알림 링크로 왔다면 로그인 뒤 그 알림으로
   const { id } = await params;
   if (!UUID.test(id)) notFound(); // 형식이 틀린 id는 DB가 오류로 답하므로 "불러오지 못함"과 섞이지 않게 먼저 거른다
-  const supabase = (await getServerSupabase())!;
-  const loaded = await getMyAlert(supabase, user.id, id).then((record) => ({ record }), (e) => { console.error("알림 상세 조회 실패", e); return null; });
+  // 미리보기(개발용)는 DB를 부르지 않고 샘플로(비슷한 지난 판단 없음, 시나리오는 만들기 전)
+  const supabase = isPreviewUser(user) ? null : (await getServerSupabase())!;
+  const loaded = !supabase ? { record: SAMPLE_ALERTS.find((a) => a.id === id) ?? null }
+    : await getMyAlert(supabase, user.id, id).then((record) => ({ record }), (e) => { console.error("알림 상세 조회 실패", e); return null; });
 
   if (loaded === null) return <LoadError id={id} />;
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
-  const similar = await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
-  const scenario = loaded.record.kind === "model_eol" ? undefined
+  const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
+  const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
   return (
