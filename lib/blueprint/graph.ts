@@ -26,7 +26,8 @@
 //     autoLayout(g): Graph                                깊이마다 열, 같은 깊이는 지금 y 순서 유지, 열은 가운데 맞춤(사이클이면 그대로)
 //   바꿔 읽기
 //     fromV1(board): Graph                                옛 열 · 행 판 → 그래프(이웃한 열의 모든 짝을 잇는다)
-//     parseGraph(raw): ParsedGraph                        화면 · DB에서 온 값 검사(경계). 기술 name은 믿지 않음(서버가 DB에서 다시 읽음)
+//     parseGraph(raw): ParsedGraph                        확정 · 서버가 읽는 값 검사(경계): 모양 · id · 연결선 · 개수 · 고리 + 깊이 · 같은 깊이. 기술 name은 믿지 않음(서버가 DB에서 다시 읽음)
+//     parseDraft(raw): ParsedGraph                        브라우저 초안 읽기: parseGraph에서 깊이 · 같은 깊이를 뺀 것, 단계 0개도 받음(편집으로 갈 수 있는 판을 버리지 않으려고)
 //     asFrame(g): Graph                                   틀: 단계와 연결만(기술 뺌)
 //     applyTemplate(t, kind): Graph                       틀 · 조합 적용(단계 id를 새로 매김)
 //   한도는 확정 조건이라 편집 중에는 막지 않는다(깊이 · 같은 깊이는 limitProblems가 알림). 편집 함수가 막는 것은 단계 48 · 기술 8 · 연결 200 · 고리 · 자기 연결 · 겹친 연결.
@@ -108,6 +109,11 @@ export function toBoardView(g: Graph): Board | null {
   return l.levels.map((col) => col.map((id) => ({ id, name: by.get(id)!.name, techs: [...by.get(id)!.techs] })));
 }
 
+const cycleText = (g: Graph, cycle: string[]) => {
+  const names = cycle.map((id) => g.stages.find((s) => s.id === id)!.name);
+  return `연결이 고리를 이뤄요: ${[...names, names[0]].join(" → ")}`;
+};
+
 /** 확정 조건에서 어긋난 곳(사람이 읽는 문장). 빈 배열이면 확정할 수 있다. 단계가 하나도 없는 것은 parseGraph가 본다 */
 export function limitProblems(g: Graph): string[] {
   const out: string[] = [];
@@ -115,10 +121,7 @@ export function limitProblems(g: Graph): string[] {
   if (g.edges.length > LIMITS.edges) out.push(`연결선은 ${LIMITS.edges}개까지예요(지금 ${g.edges.length}개).`);
   for (const s of g.stages) if (s.techs.length > LIMITS.techs) out.push(`"${s.name}" 단계의 기술이 ${s.techs.length}개예요(${LIMITS.techs}개까지).`);
   const l = layers(g);
-  if (!l.ok) {
-    const names = l.cycle.map((id) => g.stages.find((s) => s.id === id)!.name);
-    return [...out, `연결이 고리를 이뤄요: ${[...names, names[0]].join(" → ")}`];
-  }
+  if (!l.ok) return [...out, cycleText(g, l.cycle)];
   if (l.levels.length > LIMITS.depth) out.push(`순서가 ${l.levels.length}단계예요(${LIMITS.depth}단계까지).`);
   l.levels.forEach((col, d) => { if (col.length > LIMITS.parallel) out.push(`${d + 1}번째 순서에 단계가 ${col.length}개예요(동시에 ${LIMITS.parallel}개까지).`); });
   return out;
@@ -291,11 +294,11 @@ function parseEdge(e: unknown, ids: Set<string>, seen: Set<string>): Edge | stri
   return { from, to };
 }
 
-/** 화면 · DB에서 온 그래프를 믿지 않고 다시 본다(경계). 한도 · 고리까지 보고, 기술 name은 서버가 DB에서 다시 읽으니 믿지 않는다 */
-export function parseGraph(raw: unknown): ParsedGraph {
+/** 모양 · id · 연결선 · 개수(단계 48 · 기술 8 · 연결선 200) · 고리. 깊이 · 같은 깊이는 보지 않는다(그건 확정 조건) */
+function parseShape(raw: unknown, minStages: number): ParsedGraph {
   const r = (raw ?? {}) as { v?: unknown; stages?: unknown; edges?: unknown };
   if (r.v !== 2 || !Array.isArray(r.stages) || !Array.isArray(r.edges)) return bad("청사진 모양이 맞지 않아요.");
-  if (r.stages.length < 1 || r.stages.length > LIMITS.stages) return bad(`단계는 1~${LIMITS.stages}개여야 해요.`);
+  if (r.stages.length < minStages || r.stages.length > LIMITS.stages) return bad(`단계는 ${minStages}~${LIMITS.stages}개여야 해요.`);
   if (r.edges.length > LIMITS.edges) return bad(`연결선은 ${LIMITS.edges}개까지예요.`);
   const stages: Stage[] = [];
   const ids = new Set<string>();
@@ -314,6 +317,23 @@ export function parseGraph(raw: unknown): ParsedGraph {
     pairs.add(`${p.from}\n${p.to}`);
   }
   const graph: Graph = { v: 2, stages, edges };
-  const problems = limitProblems(graph);
-  return problems.length ? bad(problems[0]) : { ok: true, graph };
+  const l = layers(graph);
+  return l.ok ? { ok: true, graph } : bad(cycleText(graph, l.cycle));
 }
+
+/**
+ * 확정 · 서버가 읽는 그래프(경계): 모양 · id · 연결선 · 개수 · 고리에 더해 깊이 12 · 같은 깊이 4까지 본다. 단계는 1개 이상.
+ * 기술 name은 서버가 DB에서 다시 읽으니 믿지 않는다.
+ */
+export function parseGraph(raw: unknown): ParsedGraph {
+  const p = parseShape(raw, 1);
+  if (!p.ok) return p;
+  const problems = limitProblems(p.graph);
+  return problems.length ? bad(problems[0]) : p;
+}
+
+/**
+ * 브라우저 초안을 다시 열 때 읽는 그래프: 편집으로 갈 수 있는 판(깊이 13 · 같은 깊이 5 · 단계 0개)은 버리지 않는다. 확정 조건은 limitProblems가 따로 알린다.
+ * 이걸 읽은 값을 서버로 보낼 때는 parseGraph(또는 DB 함수)가 다시 본다.
+ */
+export const parseDraft = (raw: unknown): ParsedGraph => parseShape(raw, 0);

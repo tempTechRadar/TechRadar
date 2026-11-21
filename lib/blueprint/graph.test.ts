@@ -5,7 +5,7 @@ import { fromNames } from "./board.ts";
 import { parseBoard, toStored } from "./stored.ts";
 import {
   addStage, applyTemplate, asFrame, autoLayout, connect, connectProblem, createStage, disconnect, emptyGraph, fromV1, layers, limitProblems, moveStages,
-  nearestLink, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, type Graph, type Stage,
+  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, type Graph, type Stage,
 } from "./graph.ts";
 
 const T = (n: number) => ({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, name: `기술${n}` });
@@ -240,4 +240,41 @@ test("그래프: 편집 함수는 새 그래프를 돌려주고 원본을 건드
   addStage(g, stage); removeStage(g, "a"); renameStage(g, "a", "z"); moveStages(g, new Map([["a", { x: 9, y: 9 }]]));
   putTech(g, "a", T(1)); connect(g, "b", "a"); disconnect(g, "a", "b"); autoLayout(g); applyTemplate(g, "combo"); asFrame(g);
   assert.equal(JSON.stringify(g), snapshot);
+});
+
+const rawStages = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `s${i}`, name: `s${i}`, x: i * 320, y: 0, techs: [] }));
+
+test("초안 읽기: 깊이 13 사슬 · 같은 깊이 5는 초안으로는 읽히고, 확정 검사(parseGraph · limitProblems)에서는 걸린다", () => {
+  const chain = { v: 2, stages: rawStages(13), edges: Array.from({ length: 12 }, (_, i) => ({ from: `s${i}`, to: `s${i + 1}` })) };
+  const draft = parseDraft(chain);
+  assert.ok(draft.ok);
+  if (draft.ok) assert.match(limitProblems(draft.graph)[0], /순서가 13단계예요/);
+  const g13 = parseGraph(chain);
+  assert.equal(g13.ok, false);
+  if (!g13.ok) assert.match(g13.message, /순서가 13단계예요/);
+
+  const wide = { v: 2, stages: rawStages(5), edges: [] };
+  const draftWide = parseDraft(wide);
+  assert.ok(draftWide.ok);
+  if (draftWide.ok) assert.match(limitProblems(draftWide.graph)[0], /5개예요\(동시에 4개까지\)/);
+  assert.equal(parseGraph(wide).ok, false);
+});
+
+test("초안 읽기: 단계 0개도 읽고, 모양 · id · 연결선 · 개수 · 고리는 확정 때와 똑같이 거절한다", () => {
+  assert.deepEqual(parseDraft({ v: 2, stages: [], edges: [] }), { ok: true, graph: { v: 2, stages: [], edges: [] } });
+  assert.equal(parseGraph({ v: 2, stages: [], edges: [] }).ok, false, "확정은 단계 1개 이상");
+  const reason = (r: unknown) => { const p = parseDraft(r); return p.ok ? "OK" : p.message; };
+  const base = () => ({ v: 2, stages: rawStages(2) as Record<string, unknown>[], edges: [] as Record<string, unknown>[] });
+  assert.equal(parseDraft(null).ok, false);
+  assert.match(reason({ ...base(), v: 1 }), /모양이 맞지 않아요/);
+  assert.match(reason({ ...base(), stages: rawStages(49) }), /단계는 0~48개/);
+  assert.match(reason({ ...base(), stages: [{ ...rawStages(1)[0], id: "기획" }] }), /id는 1~64자의 영문/);
+  assert.match(reason({ ...base(), stages: [{ ...rawStages(1)[0], name: "  " }] }), /이름은 1~20자/);
+  assert.match(reason({ ...base(), stages: [{ ...rawStages(1)[0], techs: Array.from({ length: 9 }, (_, i) => T(i + 1)) }] }), /기술이 맞지 않아요/);
+  assert.match(reason({ ...base(), edges: [{ from: "s0", to: "nope" }] }), /없는 단계/);
+  assert.match(reason({ ...base(), edges: [{ from: "s0", to: "s0" }] }), /자기 자신/);
+  assert.match(reason({ ...base(), edges: [{ from: "s0", to: "s1" }, { from: "s0", to: "s1" }] }), /겹쳐요/);
+  assert.match(reason({ ...base(), edges: Array.from({ length: 201 }, () => ({ from: "s0", to: "s1" })) }), /연결선은 200개까지/);
+  assert.match(reason({ ...base(), edges: [{ from: "s0", to: "s1" }, { from: "s1", to: "s0" }] }), /고리를 이뤄요: s[01] → s[01] → s[01]/);
+  assert.equal(reason({ ...base(), edges: [{ from: "s0", to: "s1" }] }), "OK");
 });
