@@ -30,6 +30,9 @@ body:has(.map-page) .site-nav .site-nav-add { display: none; }
 .map-pop > .btn[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .map-pop-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 6; width: min(320px, calc(100vw - 48px)); max-height: 60vh; overflow: auto; padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
 .map-seg-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-sm); color: var(--ink-2); }
+/* 보기 창은 펼친 채 두는 창(F①)이라 도구 줄 · 보기 묶음 · 칩을 덮지 않게 HUD 전체 아래 왼쪽에 띄운다(감싼 칸을 static으로 해 기준을 HUD로) */
+.map-pop-view { position: static; }
+.map-pop-view > .map-pop-panel { z-index: 5; max-height: 45vh; }
 .map-pop-panel.map-pop-top { z-index: 7; } /* 펼쳐 둔 보기 창 위로 필터 창 */
 .map-pop-panel fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
 .map-pop-panel legend { font-weight: 700; font-size: var(--fs-sm); margin-bottom: 2px; }

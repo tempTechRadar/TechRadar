@@ -37,7 +37,7 @@ function savedTune(): Tune {
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
@@ -67,7 +67,9 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function saveView() {
     const q = viewQuery(S.view, defaultFor(kindCount)); // 이 지도의 기본과 같은 묶기는 싣지 않음(되살릴 때 같은 기본)
     history.replaceState(null, "", q ? `?${q}` : location.pathname);
-    if (canSave) try { localStorage.setItem(STORE, q); } catch { /* 기억은 편의일 뿐 */ }
+    // 내 태그 이름은 본인만 보는 말이라 사람마다 나뉘지 않는 이 기억에는 싣지 않는다(같은 브라우저의 다른 계정에 보이지 않게, 불변 5)
+    const kept = viewQuery({ ...S.view, filter: { ...S.view.filter, tags: [] } }, defaultFor(kindCount));
+    if (canSave) try { localStorage.setItem(STORE, kept); } catch { /* 기억은 편의일 뿐 */ }
   }
 
   // ---- 배치

@@ -32,8 +32,11 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
   const count = (fn: (x: MapNode) => boolean) => base.filter(fn).length;
   const values = (dim: Dim) => [...new Set(base.map((x) => x.attrs[dim]))].sort(sortKo);
   const toggleValue = (key: ListKey, v: string) => setFilter({ [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] });
-  const tags = [...new Set([...base.flatMap((x) => x.tags), ...f.tags])].sort(sortKo); // 주소로 온 태그도 끌 수 있게
-  const toggleTag = (t: string) => setFilter({ tags: f.tags.includes(t) ? f.tags.filter((x) => x !== t) : [...f.tags, t] });
+  // 태그는 대소문자를 같게 본다(passes와 같은 규칙). 주소로 온 태그도 끌 수 있게 목록에 넣는다
+  const same = (a: string) => (b: string) => a.toLowerCase() === b.toLowerCase();
+  const tags = [...f.tags, ...base.flatMap((x) => x.tags)].filter((t, i, all) => all.findIndex(same(t)) === i).sort(sortKo);
+  const tagOn = (t: string) => f.tags.some(same(t));
+  const toggleTag = (t: string) => setFilter({ tags: tagOn(t) ? f.tags.filter((x) => !same(t)(x)) : [...f.tags, t] });
   const box = (key: ListKey, v: string) => (
     <label key={v} className="check"><input type="checkbox" checked={f[key].includes(v)} onChange={() => toggleValue(key, v)} /> {v} <span className="muted">{count((x) => x.attrs[LIST_DIM[key]] === v)}</span></label>
   );
@@ -41,7 +44,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
   return (
     <div className="map-hud">
       <MapSearch key={resets} onFind={onFind} login={login} projects={projects} onPick={(r) => { if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }} />
-      <div className="map-pop">
+      <div className="map-pop map-pop-view">
         <button type="button" className="btn" aria-expanded={viewOpen} onClick={toggleView}>보기</button>
         {viewOpen ? (
           <div className="map-pop-panel">
@@ -79,7 +82,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
             </fieldset>
             {login ? <fieldset><legend>내 태그</legend>
               {tagsFailed ? <p className="muted">내 태그를 읽지 못했어요(없다는 뜻이 아니에요).</p>
-                : tags.length ? tags.map((t) => <label key={t} className="check"><input type="checkbox" checked={f.tags.includes(t)} onChange={() => toggleTag(t)} /> {t} <span className="muted">{count((x) => x.tags.includes(t))}</span></label>)
+                : tags.length ? tags.map((t) => <label key={t} className="check"><input type="checkbox" checked={tagOn(t)} onChange={() => toggleTag(t)} /> {t} <span className="muted">{count((x) => x.tags.some(same(t)))}</span></label>)
                 : <p className="muted">기술을 눌러 내 태그를 붙이면 여기서 거를 수 있어요.</p>}
             </fieldset> : null}
             <fieldset><legend>종류</legend>{values("kind").map((v) => box("kinds", v))}</fieldset>

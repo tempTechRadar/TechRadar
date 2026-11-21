@@ -5,6 +5,8 @@ import { useId, useState } from "react";
 import { addTagAction, removeTagAction, techTagsAction } from "./tag-actions";
 
 const byKo = (a: string, b: string) => a.localeCompare(b, "ko");
+const SAVE_FAIL = "저장하지 못했어요. 연결을 확인하고 다시 눌러 주세요.";
+const LIST_FAIL = "내 태그 목록을 읽지 못했어요. 직접 써서 붙일 수는 있어요.";
 
 /** 기술이 바뀌면 부르는 쪽이 key를 바꿔 새로 그린다 */
 export function TagEditor({ techId, tags, login, onChange }: { techId: string | null; tags: string[]; login: boolean; onChange: (tags: string[]) => void }) {
@@ -17,25 +19,28 @@ export function TagEditor({ techId, tags, login, onChange }: { techId: string | 
   if (!login || !techId) return null;
   const id = techId;
 
+  /** 서버 액션이 던져도(연결 끊김) 단추가 막힌 채 남지 않게, 실패는 문구로 */
+  async function run<T>(call: () => Promise<T>, fail = SAVE_FAIL): Promise<T | null> {
+    setBusy(true); setMsg("");
+    try { return await call(); } catch { setMsg(fail); return null; } finally { setBusy(false); }
+  }
   async function open() {
-    setAdding(true); setMsg("");
-    const r = await techTagsAction(id); // 자동 완성용 내 태그 종류(지도 밖 기술에 붙인 것까지)
-    if (r.ok) setMine(r.mine.map((m) => m.tag));
+    setAdding(true);
+    const r = await run(() => techTagsAction(id), LIST_FAIL); // 자동 완성용 내 태그 종류(지도 밖 기술에 붙인 것까지). 못 읽어도 직접 쓰면 된다
+    if (r?.ok) setMine(r.mine.map((m) => m.tag)); else if (r) setMsg(LIST_FAIL);
   }
   async function add() {
     const t = text.trim();
     if (!t) return;
-    setBusy(true); setMsg("");
-    const r = await addTagAction(id, t);
-    setBusy(false);
+    const r = await run(() => addTagAction(id, t));
+    if (!r) return;
     if (!r.ok) return setMsg(r.message);
     if (!tags.some((x) => x.toLowerCase() === r.tag.toLowerCase())) onChange([...tags, r.tag].sort(byKo)); // 서버가 정리한 표기(앞뒤 공백 · 처음 적은 대소문자)
     setText("");
   }
   async function remove(t: string) {
-    setBusy(true); setMsg("");
-    const r = await removeTagAction(id, t);
-    setBusy(false);
+    const r = await run(() => removeTagAction(id, t));
+    if (!r) return;
     if (!r.ok) return setMsg(r.message);
     onChange(tags.filter((x) => x !== t));
   }

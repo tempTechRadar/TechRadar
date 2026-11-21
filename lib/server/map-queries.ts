@@ -66,7 +66,7 @@ const devCategoryIds = (cats: Category[]) => {
   const tops = new Set(cats.filter((c) => !c.parentId && DEV_FIELDS.includes(c.name)).map((c) => c.id));
   return cats.filter((c) => tops.has(c.id) || (c.parentId !== null && tops.has(c.parentId))).map((c) => c.id);
 };
-/** days일 전과 처음 채운 날 중 늦은 때. 지도는 기간 칩의 가장 긴 것(이번 달 = 30일)까지 새 기술 몫으로 읽고(NEW 표시는 그중 7일 안만, build-map isNewTech), 새 기술 화면은 7일 */
+/** days일 전과 처음 채운 날 중 늦은 때. 지도는 기간 칩의 가장 긴 것(이번 달 = 30일)까지 새 기술 몫으로 읽고(NEW 표시는 그중 7일 안만, build-map baseNode), 새 기술 화면은 7일 */
 const sinceDays = (now: Date, days: number) => { const at = new Date(now.getTime() - days * 86_400_000).toISOString(); return at > CATALOG_FIRST_FILL ? at : CATALOG_FIRST_FILL; };
 
 /**

@@ -94,8 +94,6 @@ export function categoryNames(categoryId: string | null, cats: Map<string, Categ
 /** 처음 채운 날 뒤에 들어온 것만 들어온 지 며칠, 아니면 null */
 const addedDaysOf = (createdAt: string | null, now: Date, newSince?: string) =>
   createdAt && (!newSince || Date.parse(createdAt) > Date.parse(newSince)) ? daysSince(createdAt, now) : null; // 글자 비교는 +00:00·Z가 섞이면 틀린다
-/** 들어온 지 7일 안이고, 처음 채운 날 뒤에 들어온 것 */
-export const isNewTech = (createdAt: string | null, now: Date, newSince?: string) => (addedDaysOf(createdAt, now, newSince) ?? Infinity) < NEW_DAYS;
 
 function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: Map<string, Category>, now: Date, newSince?: string): MapNode {
   const { host, guessed } = hostOf(t?.techKey ?? null, t?.type ?? null, t?.hosts ?? null);
@@ -107,6 +105,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
+    // NEW = 들어온 지 7일 안이고 처음 채운 날 뒤에 들어온 것
     isNew: (added ?? Infinity) < NEW_DAYS, addedDays: added, addedAt: added === null ? null : t?.createdAt ?? null, tags: [], lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade, official: t?.official === true,
   };
 }

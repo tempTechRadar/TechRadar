@@ -263,7 +263,8 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
   const names = ramp(z, TIER.names), det = ramp(z, TIER.detail);
   const onScreen = (it: Item) => { const [x, y] = P(it); return x > -20 && y > S.top - 20 && x < S.W - S.right + 20 && y < S.H + 20; };
-  const alone = names < 1 && !quiet ? aloneOnScreen(vis, P) : null; // 주변이 빈 점은 한 단계 낮은 배율에서도 이름 · 설명(11-21 사용자 결정 F③)
+  // 주변이 빈 점은 한 단계 낮은 배율에서도 이름(묶음만 보는 가장 먼 배율은 빼고) · 이름 단계에서는 설명까지(11-21 사용자 결정 F③)
+  const alone = det < 0.4 && z >= TIER.far && !quiet ? aloneOnScreen(vis, P) : null;
   const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
     || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
@@ -273,7 +274,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   for (const it of want.slice(0, 160)) {
     const solo = alone?.has(it.id) && names > 0.4;
     const [x, y] = P(it), [what, facts] = det > 0.4 || solo ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
-    const name = dated && it.node.addedAt ? `${it.node.name} · ${monthDay(it.node.addedAt)}` : it.node.name;
+    const name = dated && it.node.addedDays !== null ? `${it.node.name} · ${it.node.addedDays ? `${it.node.addedDays}일 전` : "오늘"}` : it.node.name; // 기간 칩과 같은 기준(지금부터 24시간 = 오늘)
     c.font = `12px ${col("--font")}`;
     const w = Math.max(c.measureText(name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
@@ -294,7 +295,6 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   c.globalAlpha = 1;
 }
 
-const monthDay = (iso: string) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; };
 /** 화면에서 주변 칸(40px 격자 3×3)에 다른 기술 점이 없는 점. 격자라 점 수에 비례(매 장면 500개도 가벼움) */
 function aloneOnScreen(vis: Item[], P: Frame["P"]): Set<string> {
   const CELL = 40, cells = new Map<string, number>();

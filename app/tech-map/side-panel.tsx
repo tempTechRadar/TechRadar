@@ -112,7 +112,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
           <dt>저장소</dt><dd>{n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소 열기</a> : none}</dd>
           <dt>라이선스</dt><dd>{n.license ?? none}</dd>
           <dt>활동</dt><dd>{n.label}</dd>
-          {isRisky(n) ? null : <><dt>보안</dt><dd>{isConcept(null, n.type) ? "작업 방식이라 등급 없음" : SEC_SHORT[n.grade]}</dd></>}
+          {isRisky(n) ? null : <><dt>보안</dt><dd>{isConcept(null, n.type) ? "작업 방식이라 등급 없음" : `${SEC_SHORT[n.grade]}${n.gradeReason ? ` · ${n.gradeReason}` : ""}`}</dd></>}
         </dl>
       </Card>
       <Card title="사용기"><SideNotes techId={n.techId} login={login} all={myDetail} /></Card>

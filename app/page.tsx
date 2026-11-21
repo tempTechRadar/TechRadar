@@ -85,6 +85,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       {band ? <FirstCheckBanner band={band} /> : null}
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
         <SpaceSwitch />
+        {dash ? null : <span className="notice" role="status">내 프로젝트 목록을 읽지 못했어요(없다는 뜻이 아니에요). 프로젝트로 거르기 · 시작하기가 빠져 있어요.</span>}
         {start ? <StartChecklist steps={start} who={user.id} /> : null}
         {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/projects">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
       </>} />
