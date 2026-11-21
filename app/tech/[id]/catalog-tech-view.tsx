@@ -80,7 +80,7 @@ export function CatalogTechView({ d, markBar, usingText, notes, guest = false }:
           <article className="card" aria-labelledby="notes-title">
             {/* 사용기 읽기(P-24, 쓴 사람은 보이지 않음). 손님에게는 수만(글은 로그인 사용자에게만, 11-22 사용자 결정). 쓰기 · 도움이 됐어요는 내 기술 상세에서 */}
             <h2 id="notes-title">사용기 {notes ? notes.total : ""}</h2>
-            {notes === null || notes === undefined ? <p className="notice notice-error" role="alert">사용기를 읽지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
+            {notes === null || notes === undefined ? <p className="notice notice-error" role="alert">사용기를 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
               : guest ? <p className="muted">{notes.total ? <>사용기 {notes.total}개 — <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 볼 수 있어요.</> : <>아직 사용기가 없어요. <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 내 프로젝트에 넣고 사용기를 쓸 수 있어요.</>}</p>
               : notes.top.length ? <ul>{notes.top.map((n) => <li key={n.id}><b>{n.usedFor}</b> · {n.result} · 팁: {n.tip}<span className="muted"> · 도움이 됐어요 {n.helpfulCount}</span></li>)}</ul>
               : <p className="muted">아직 사용기가 없어요.</p>}

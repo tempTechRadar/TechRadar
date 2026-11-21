@@ -46,7 +46,7 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
   if (using && !using.ok) console.error(using.error);
   const markBar = !user ? <p className="muted">판단(관심 · 적용 후보 · 보류)은 <Link href={`/login?next=${encodeURIComponent(`/tech/${id}`)}`}>로그인</Link>하면 남길 수 있어요.</p>
     : mark ? <MarkBar techId={d.tech.id} grade={mark.grade} initial={mark.mark} />
-    : <p className="notice notice-error" role="alert">내 판단 표시를 읽지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
+    : <p className="notice notice-error" role="alert">내 판단 표시를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
   return <CatalogTechView d={d} markBar={markBar} usingText={!using ? "로그인하면 이 기술을 쓰고 있는 사람 수가 보여요." : usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
 }
 

@@ -10,7 +10,7 @@ import "./judge.css";
 export const MARK_KO: Record<MarkStatus, string> = { interest: "관심", candidate: "적용 후보", hold: "보류" };
 /** 저장 뒤 문구: 받침이 있으면 "으로"(관심으로), 없거나 ㄹ이면 "로"(적용 후보로 · 보류로) */
 export function markedText(status: MarkStatus | null): string {
-  if (!status) return "표시를 지웠어요.";
+  if (!status) return "판단을 지웠어요.";
   const w = MARK_KO[status], code = w.charCodeAt(w.length - 1) - 0xac00, jong = code >= 0 && code < 11172 ? code % 28 : 0;
   return `${w}${jong === 0 || jong === 8 ? "로" : "으로"} 남겼어요.`;
 }
