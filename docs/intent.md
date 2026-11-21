@@ -6,6 +6,18 @@
 
 ---
 
+## I-P-12e-blueprint-studio · 2026-11-21 · 청사진 스튜디오: 자유 캔버스 · 연결선 순서 · 스텝퍼 · 되돌리기 (조각 D · E, 통합) (김영식)
+- 브랜치: `feat/P-12e-blueprint-studio`(#202 head 21dbfdb 위, 통합 브랜치). 그래프 함수는 DataCollector `feat/P-12e-graph`, 패널은 개발보조1 `feat/P-12e-studio-panels`, 서버 · DB는 개발보조2 · DataCollector를 합침
+- 출처: 사용자 승인 계획 P-12e(11-21 밤, `.claude/plans-share/p12e-blueprint-studio.md`), ADR 0032(컨셉), design.md 14절 ⑤, 불변 1 · 3 · 4
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지금 청사진은 열 · 행 격자라 단계를 자유롭게 두지 못하고, 화살표가 기술보다 눈에 띄며, 단계 설계와 도구 배치가 한 화면에 섞여 있다 |
+| 기대 결과 | React Flow 캔버스에 단계 노드(머리 작게 · 기술 칩이 주인공), 연결선 1px 옅게 · 화살촉 작게, ① 단계 구축 → ② 스킬 붙이기 → ③ 결과물 스텝퍼, 되돌리기 · 다시 50단계(단추), 초안 `blueprint-draft-v2`(옛 초안은 처음 한 번 변환). E: 8px 스냅 · 보조선 · 근접 연결 미리보기(고리면 빨간 점선) · 자동 정렬 · 미니맵 · 보기 초기화 |
+| 영향 범위 | `package.json`(@xyflow/react 12.12.1 고정), `app/blueprint/{studio,stage-node,tech-chip,stepper,studio-types}.tsx`, `page.tsx`, 교체 끝에 `lanes.tsx` · `drawer.tsx` · 격자 이동 함수 지움(fromV1은 남김) |
+| 제약 | 병합 마감 월 20:00 · 동결 21:00, 푸시는 월 14:00 · 18:00 두 번(사용자 승인). 단축키는 Esc · Delete · 스페이스 손 모드만. 캔버스는 휴대폰 · 화면 읽기에서 보기만(편집은 목록 모드). 월 12:00 컷 라인 |
+| 열린 질문 | 확정 v2 서버(조각 B)가 오기 전에는 옛 확정(board 투영)으로 확정 |
+
 ## I-P-12d-screen-revamp · 2026-11-21 · 화면 개편: 지도 | 보드 | 일지 · 내 태그 UI · 사이드 패널 정리 · 보기 단추 고정 · 발견 날짜 (김영식)
 - 브랜치: `feat/P-12d-map-demo` → #202(`feat/P-12d-alerts-history`). 메뉴 · 일지 · 보드는 개발보조1 `feat/P-12d-board-journal`, 내 태그 DB · 서버는 개발보조2 `feat/P-12d-my-tech-tags`를 합침
 - 출처: 사용자 결정(11-21 밤, Maestro 전달) A~G, 컨셉 "지도에서 고르고, 청사진으로 옮긴다". PRD-F23 · IA-10 · 안내서 공통 필수(대시보드 · 내 프로젝트 · 기록과 찾기), 불변 1 · 4 · 5
