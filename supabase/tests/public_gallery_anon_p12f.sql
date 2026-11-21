@@ -13,7 +13,8 @@ begin
     (u3, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'p12f-g-u3@example.test', '{"provider":"email"}', '{}', now(), now());
   update public.profiles set nickname = '손님시험작가', is_public = true where id = u1;
   update public.profiles set is_demo = true where id = u3;
-  insert into public.technologies (tech_key, display_name, type) values ('npm:p12f-g-a', 'tA', 'mcp') returning id into tA;
+  -- 공개 목록 기술(one_liner_source 있음): usage_note_count는 공개 목록 기술만 센다
+  insert into public.technologies (tech_key, display_name, type, one_liner_source) values ('npm:p12f-g-a', 'tA', 'mcp', 'https://registry.example/p12f') returning id into tA;
   insert into public.projects (owner_id, kind, name) values (u1, 'local', 'p12f-g') returning id into p1;
   insert into public.my_technologies (owner_id, project_id, tech_id, origin, added_by) values (u1, p1, tA, 'manual', u1);
   insert into public.tech_marks (user_id, tech_id, status, updated_at) values (u2, tA, 'candidate', now());
@@ -59,6 +60,8 @@ begin
   begin select count(*) into c from public.usage_notes where tech_id = tA; msg := msg || 'usage_notes=OPEN(' || c || ');';
   exception when insufficient_privilege then msg := msg || 'usage_notes=blocked;'; end;
   msg := msg || 'usage_count=' || public.usage_note_count(tA) || '(1);';
+  select coalesce(sum(t.helpful), -1) into c from public.template_helpful_totals(array[pub, priv]) t; msg := msg || 'helpful_totals=' || c || '(0);';
+  select count(*) into c from public.template_helpful_totals(array[pub, priv]) t where t.template_id = priv; msg := msg || 'helpful_priv=' || c || '(0);';
   select count(*) into c from public.template_notes where id in (tn, tn_priv); msg := msg || 'template_notes=' || c || '(1);';
   begin perform author_id from public.template_notes limit 1; msg := msg || 'tnote_author_id=OPEN;';
   exception when insufficient_privilege then msg := msg || 'tnote_author_id=blocked;'; end;
@@ -83,5 +86,5 @@ begin
   execute 'reset role';
 
   raise exception 'ROLLBACK_OK %', msg;
-  -- 기대: gallery=1(1);nickname=손님시험작가(손님시험작가);no_author_id=true(true);uses=1(1);open_pub=1(1);open_priv=0(0);open_hidden=0(0);open_demo=0(0);usage_notes=blocked;usage_count=1(1);template_notes=1(1);tnote_author_id=blocked;profiles=blocked;projects=blocked;my_technologies=blocked;tech_marks=blocked;alerts=blocked;judgments=blocked;blueprints=blocked;blueprint_templates=blocked;my_tech_tags=blocked;helpful_votes=blocked;reports=blocked;template_helpful_votes=blocked;template_reports=blocked;confirm=blocked;save_template=blocked;my_tech_ids=blocked;my_note_ids=blocked;insert_note=blocked;insert_tnote=blocked;
+  -- 기대: gallery=1(1);nickname=손님시험작가(손님시험작가);no_author_id=true(true);uses=1(1);open_pub=1(1);open_priv=0(0);open_hidden=0(0);open_demo=0(0);usage_notes=blocked;usage_count=1(1);helpful_totals=0(0);helpful_priv=0(0);template_notes=1(1);tnote_author_id=blocked;profiles=blocked;projects=blocked;my_technologies=blocked;tech_marks=blocked;alerts=blocked;judgments=blocked;blueprints=blocked;blueprint_templates=blocked;my_tech_tags=blocked;helpful_votes=blocked;reports=blocked;template_helpful_votes=blocked;template_reports=blocked;confirm=blocked;save_template=blocked;my_tech_ids=blocked;my_note_ids=blocked;insert_note=blocked;insert_tnote=blocked;
 end $$;
