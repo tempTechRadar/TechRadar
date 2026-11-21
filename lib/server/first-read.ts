@@ -10,7 +10,11 @@ import { assertRepoPublic, CollectError, OSV_QUERY_URL, RepoNotPublicError, erro
 import { REPO_FILES, readRepoFile, requirementIncludes, type FoundTech } from "../domain/manifest.ts";
 import { SKILLS_DIR } from "../domain/skills.ts";
 import { readSkills } from "./read-skills.ts";
-import { CODE_FILES, readModels } from "./read-models.ts";
+import { CODE_FILES, readModels, type ModelRead } from "./read-models.ts";
+import { SKILL_RULE_VERSION } from "../domain/skill-scan.ts";
+import { scanSkills, type SkillScan, type Tree } from "./scan-skills.ts";
+
+type SkillSaved = { counts: Record<string, number>; checkErrors: string[]; failed: number };
 import { eolOfKey } from "../domain/model-eol.ts";
 import { detectConcepts, detectServices } from "../domain/services.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult, type RepoFacts } from "../domain/grade.ts";
@@ -50,7 +54,7 @@ export async function registerAndRead(user: CurrentUser, repo: RepoRef, deps: { 
 
 async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId: string; ownerId: string }, repo: RepoRef): Promise<ReadResult> {
   const { runId, projectId } = ctx;
-  const { found, dropped, fileErrors, filesParsed } = await readRepo(db, runId, repo);
+  const { found, dropped, fileErrors, filesParsed, skillScans } = await readRepo(db, runId, repo);
   const readAt = new Date().toISOString();
   const techIds = await saveMyTechnologies(db, { ownerId: ctx.ownerId, projectId, readAt }, found);
   // 못 읽은 파일에서 전에 읽은 기술은 지우지 않고 수집 오류로(불변 2: "사라짐"으로 단정하지 않음).
@@ -76,7 +80,14 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
     if (r.error) throw new Error(`수집 오류를 저장하지 못함: ${r.error.message}`);
   }
 
-  const { graded, osvErrors, osvTargets } = await gradeAll(db, runId, projectId, found, techIds);
+  // shortcut: 스킬이 위험이어도 변경·알림은 만들지 않는다(등급만, 11-21 범위). 스킬 위험 알림(SPEC-3.1)은 다음 조각
+  const skill = await saveSkillScans(db, projectId, { scans: skillScans, techIds });
+  const { graded, osvErrors, osvTargets, byGrade, repoFactsError } = await gradeAll(db, runId, projectId, found, techIds);
+  // 등급 단계는 실행마다 한 줄(첫 점검 띠가 한 줄을 읽는다): OSV와 스킬 등급 수를 함께 센다. 스킬을 다 검사하지 못했으면 이 단계에 남긴다
+  for (const [g, n] of Object.entries(skill.counts)) byGrade[g] = (byGrade[g] ?? 0) + n;
+  const total = Object.values(byGrade).reduce((n, c) => n + c, 0);
+  const gradeNotes = [repoFactsError, ...skill.checkErrors].filter(Boolean).join("; ") || undefined;
+  await recordStep(db, runId, { stepName: "grade", status: skill.checkErrors.length ? "failed" : "succeeded", countIn: total + skill.checkErrors.length, countOut: total, branchCounts: byGrade, errorMessage: gradeNotes });
   const events = graded.filter((g) => g.result.grade === "danger");
   await recordStep(db, runId, {
     stepName: "is_event",
@@ -122,8 +133,8 @@ async function readAndGrade(db: SupabaseClient, ctx: { runId: string; projectId:
   await recordStep(db, runId, { stepName: "save_change", status: "succeeded", countIn: changeCount, countOut: changeCount });
   await notifyOwner(db, ctx, saved);
 
-  const errors = fileErrors.length + osvErrors;
-  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors, filesParsed) };
+  const errors = fileErrors.length + osvErrors + skill.failed;
+  return { projectId, runId, found: found.length, danger: events.length, changesCreated, errors, status: runStatus(fileErrors, osvErrors + skill.failed, filesParsed) };
 }
 
 /**
@@ -176,18 +187,24 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   const closed = fileErrors.some((f) => f.path === SKILLS_DIR);
   // 코드 속 지원 종료 모델(PRD-F38)도 같은 저장소의 서로 모르는 읽기라 함께 돈다
   const [skills, models] = closed
-    ? [{ found: [], errors: [], folders: 0 }, { found: [], errors: [], scanned: 0, treePaths: [] }]
+    ? [{ found: [], errors: [], folders: 0, texts: new Map<string, string>() }, { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeLinks: [] }]
     : await Promise.all([readSkills(repo), readModels(repo)]);
+  // 스킬 위험 패턴 검사(SPEC-2): 코드 읽기가 받은 파일 목록 · 받은 SKILL.md로, 나머지 파일만 raw로 받는다(GitHub API 호출을 늘리지 않음).
+  // 못 받은 · 다 검사하지 못한 스킬은 가져오기 오류로 그 스킬 줄에만 붙는다(아래 첫 읽기의 파일 오류 처리, 불변 2)
+  // shortcut: 한도(MAX_TECHS)로 저장하지 않을 스킬도 받는다. 스킬 검사 몫(시간 · 파일 수) 안이라 그대로 둔다
+  const skillScans = skills.found.length ? await scanSkills({ repo, skills: skills.found, tree: treeOf(models), known: skills.texts }) : [];
   fileErrors.push(...skills.errors, ...models.errors);
+  // 스킬 파일을 못 받은 것은 이 "가져오기" 단계에 보인다(줄의 오류 표시는 등급 저장 때 그 줄에만). 다 검사하지 못한 것은 "등급 계산" 단계에
+  const fetchProblems = [...fileErrors, ...skillScans.flatMap((s) => ("error" in s && s.error.stage === "fetch" ? [s.error] : []))];
   await recordStep(db, runId, {
     stepName: "fetch_repo",
-    status: fileErrors.length ? "failed" : "succeeded",
+    status: fetchProblems.length ? "failed" : "succeeded",
     inputSummary: repo.url,
     outputSummary: `읽음 ${files.map((f) => f.path).join(", ") || "없음"}${skills.folders ? ` · 스킬 폴더 ${skills.folders}개` : ""}${models.scanned ? ` · 코드 파일 ${models.scanned}개` : ""}`,
     countIn: REPO_FILES.length + skills.folders + models.scanned,
     countOut: files.length + skills.found.length + models.scanned,
-    errorKind: fileErrors[0]?.kind,
-    errorMessage: [...new Set(fileErrors.map((f) => f.message))].join("; ") || undefined,
+    errorKind: fetchProblems[0]?.kind,
+    errorMessage: [...new Set(fetchProblems.map((f) => f.message))].join("; ") || undefined,
   });
 
   // extract_my_tech: 깨진 파일은 해석 실패로 남기고 나머지는 계속.
@@ -230,7 +247,7 @@ async function readRepo(db: SupabaseClient, runId: string, repo: RepoRef) {
   // 스킬을 하나라도 읽었으면 해석한 것이 있다(저장소 파일이 없고 스킬만 있는 저장소도 실패가 아니다)
   // 모델 · 연동 서비스 · 개념은 OSV를 부르지 않고 정해 둔 목록에서만 나와(수가 정해져 있다) 기술 수 한도 밖에 둔다: 의존성이 많은 저장소에서 먼저 잘리지 않게.
   // 코드 파일을 하나라도 열었으면 해석한 것이 있다(모델이 없어도)
-  return { found: [...unique.slice(0, MAX_TECHS), ...modelList], dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length + models.scanned };
+  return { found: [...unique.slice(0, MAX_TECHS), ...modelList], dropped: unique.slice(MAX_TECHS), fileErrors, filesParsed: filesParsed + skills.found.length + models.scanned, skillScans };
 }
 
 /** 같은 모델이 여러 파일에 있으면 앞 파일 하나(my_technologies (project_id, tech_id) UK) */
@@ -256,6 +273,7 @@ async function readFactsSafely(db: SupabaseClient, techIds: string[]): Promise<{
 }
 
 /** fetch_osv → grade. 한 기술의 실패는 그 기술만 수집 오류, 다른 기술은 계속. */
+/** 등급 단계(grade) 기록은 스킬 등급과 합쳐 부르는 쪽(readAndGrade)이 한 줄로 남긴다: 여기서는 등급별 수와 확인 값 오류를 돌려준다 */
 async function gradeAll(db: SupabaseClient, runId: string, projectId: string, found: FoundTech[], techIds: Map<string, string>) {
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
   const osvFailures: { kind: ErrorKind; message: string; httpStatus?: number }[] = [];
@@ -292,8 +310,7 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
     errorMessage: osvFailures.map((f) => f.message).join("; ") || undefined,
   });
   const byGrade = graded.reduce<Record<string, number>>((m, g) => ({ ...m, [g.result.grade]: (m[g.result.grade] ?? 0) + 1 }), {});
-  await recordStep(db, runId, { stepName: "grade", status: "succeeded", countIn: graded.length, countOut: graded.length, branchCounts: byGrade, errorMessage: repoFactsError });
-  return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length };
+  return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length, byGrade, repoFactsError };
 }
 
 /** 이 프로젝트에서 파일 목록 · 코드 파일로 찾는 줄(종류 model · service · concept 중 고른 것) id */
@@ -354,6 +371,38 @@ const sameVersion = (db: SupabaseClient, t: Target, patch: Record<string, unknow
   const q = db.from("my_technologies").update(patch).eq("tech_id", t.techId);
   return t.version === null ? q.is("version", null) : q.eq("version", t.version);
 };
+
+/** 코드 읽기의 결과 → 스킬 검사가 쓸 파일 목록. 목록 자체를 못 읽었으면(onlyUnread가 아닌 오류) 그 오류 */
+function treeOf(models: ModelRead): Tree {
+  const failed = models.errors.find((e) => e.path === CODE_FILES && !e.onlyUnread);
+  return failed ? { error: { kind: failed.kind, message: failed.message } } : { paths: models.treePaths, links: models.treeLinks, complete: models.treeComplete };
+}
+
+/**
+ * 스킬 줄의 등급 저장(SPEC-2). 같은 값을 다시 써도 줄·변경이 늘지 않는다(불변 3).
+ * 못 받았거나 다 검사하지 못한 스킬은 그 줄에만 수집 오류이고 있던 등급은 그대로(불변 2·4). 한도(MAX_TECHS)로 저장하지 않은 스킬은 건너뛴다.
+ */
+async function saveSkillScans(db: SupabaseClient, projectId: string, run: { scans: SkillScan[]; techIds: Map<string, string> }): Promise<SkillSaved> {
+  const saved: SkillSaved = { counts: {}, checkErrors: [], failed: 0 };
+  for (const s of run.scans) {
+    const techId = run.techIds.get(s.key);
+    if (!techId) continue;
+    const t = { projectId, techId, version: null };
+    if ("error" in s) {
+      saved.failed++;
+      if (s.error.stage === "check") saved.checkErrors.push(`${s.path}: ${s.error.message}`);
+      await markCollectError(db, t, s.error.kind);
+      continue;
+    }
+    const now = new Date().toISOString();
+    const up = await sameVersion(db, t, { grade: s.result.grade, grade_reason: s.result.reason, grade_evidence: s.result.evidence, grade_rule_version: SKILL_RULE_VERSION, graded_at: now });
+    if (up.error) throw new Error(`스킬 등급을 저장하지 못함: ${up.error.message}`);
+    const mine = await db.from("my_technologies").update({ last_checked_ok_at: now, collect_error_kind: null }).eq("project_id", projectId).eq("tech_id", techId);
+    if (mine.error) throw new Error(`확인 시각을 저장하지 못함: ${mine.error.message}`);
+    saved.counts[s.result.grade] = (saved.counts[s.result.grade] ?? 0) + 1;
+  }
+  return saved;
+}
 
 /** 등급 저장. 근거가 바뀌었을 때만 수집 자료(observations, "바뀐 값만")를 남긴다. */
 async function applyGrade(db: SupabaseClient, runId: string, t: Target, r: GradeResult) {
