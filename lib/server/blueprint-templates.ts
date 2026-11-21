@@ -7,6 +7,9 @@ import { readStored, type StoredBoard } from "../blueprint/stored.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
 import type { Row } from "./alert-db.ts";
 import { readAllowedTechIds } from "./blueprints.ts";
+import { publicTechs, readCategories } from "./map-queries.ts";
+import { categoryNames, UNSORTED } from "../map/build-map.ts";
+import type { GalleryFacet } from "../blueprint/gallery.ts";
 
 export type TemplateResult = { ok: true } | { ok: false; message: string };
 export type MyTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph; board: StoredBoard; isPublic: boolean; hidden: boolean; createdAt: string };
@@ -85,6 +88,27 @@ export async function readPublicTemplates(db: SupabaseClient, kind: TemplateKind
   const r = await db.rpc("public_blueprint_templates", { p_kind: kind, p_limit: 60, p_offset: 0 });
   if (r.error || !Array.isArray(r.data)) throw new Error(`공개 템플릿을 읽지 못함: ${r.error?.message ?? "빈 응답"}`);
   return (r.data as Row[]).flatMap((x) => { const c = toCommon(x); return c ? [{ ...c, authorNickname: String(x.author_nickname ?? "익명"), uses: Number(x.uses ?? 0) }] : []; });
+}
+
+/** 갤러리 거르기 · 정렬 재료(P-12f 9): 템플릿마다 든 기술의 큰 갈래와 사용기 "도움이 됐어요" 합.
+ *  catalog = 카탈로그를 읽을 클라이언트(로그인 = 내 토큰, 손님 = 서버 키, 공개 목록만), notes = 사용기를 읽을 토큰(RLS: 열린 템플릿 · 숨기지 않은 글). 못 읽으면 던진다
+ *  shortcut: 기술 id를 한 번에 in(...)으로 읽는다(갤러리 60개 × 기술 수십 개). 주소가 길어 실패하면 나눠 읽는다 */
+export async function readGalleryFacets(catalog: SupabaseClient, notes: SupabaseClient, list: PublicTemplate[]): Promise<Map<string, GalleryFacet>> {
+  const techIds = [...new Set(list.flatMap((t) => t.graph.stages.flatMap((s) => s.techs.map((x) => x.id))))];
+  const [techs, cats, helpful] = await Promise.all([
+    techIds.length ? publicTechs(catalog, "id, category_id").in("id", techIds) : Promise.resolve({ data: [], error: null }),
+    readCategories(catalog),
+    list.length ? notes.from("template_notes").select("template_id, helpful_count").in("template_id", list.map((t) => t.id)) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (techs.error || helpful.error) throw new Error(`갤러리 분야 · 도움을 읽지 못함: ${techs.error?.message ?? helpful.error?.message}`);
+  const byId = new Map(cats.map((c) => [c.id, c]));
+  const field = new Map(((techs.data ?? []) as Row[]).map((r) => [r.id as string, categoryNames(r.category_id ?? null, byId).field]));
+  const sum = new Map<string, number>();
+  for (const r of (helpful.data ?? []) as Row[]) sum.set(r.template_id, (sum.get(r.template_id) ?? 0) + Number(r.helpful_count ?? 0));
+  return new Map(list.map((t) => [t.id, {
+    fields: [...new Set(t.graph.stages.flatMap((s) => s.techs.map((x) => field.get(x.id))).filter((f): f is string => !!f && f !== UNSORTED))],
+    helpful: sum.get(t.id) ?? 0,
+  }]));
 }
 
 /** 템플릿 열기 결과. outsideGate = 내 관문(내 기술 · 적용 후보 · 내 이력) 밖 기술 id: 화면은 옅은 후보 칩으로만 보이고 "적용 후보로 고르기" 뒤에 넣는다(ADR 0034 1) */
