@@ -143,7 +143,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
           <div className="map-empty notice notice-empty" role="status"><strong>이 보기에 맞는 기술이 없어요.</strong> 필터를 끄거나 보기 초기화를 눌러 보세요.
             <button type="button" className="btn" onClick={() => ctl.resetView()}>보기 초기화</button></div>
         ) : null}
-        <aside ref={side} className="map-side" aria-labelledby="map-side-title" hidden={!sel}>
+        <aside ref={side} className="map-side" aria-labelledby="map-side-title" data-open={sel ? "" : undefined} inert={!sel}>
           <button type="button" className="btn map-close" onClick={close} aria-label="닫기">✕</button>
           {sel?.type === "t" ? <TechPanel item={sel} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(sel, s, r)} onGo={go} /> : null}
           {sel?.type === "g" ? <GroupPanel g={sel} members={ctl.groupMembers(sel)} shut={S.collapsed.has(sel.id)} onDrill={() => drill(sel.id)} onToggle={() => ctl.toggle(sel.id)} onGo={go} /> : null}
