@@ -8,8 +8,8 @@ import { CollectError, TOKEN_SHAPE, errorKindOf, fetchText, messageOf, rawFileUr
 /** 코드 파일 전체를 가리키는 오류 자리. onlyUnread = 이번에 못 본 모델 줄만(읽은 줄은 덮지 않게) */
 export const CODE_FILES = "(코드 파일)";
 export type ModelError = { path: string; kind: ErrorKind; message: string; onlyUnread?: boolean };
-/** treePaths = 저장소의 모든 파일 경로(연동 서비스 · 개념 찾기가 쓴다). 목록을 못 읽으면 빈 목록 */
-export type ModelRead = { found: FoundTech[]; errors: ModelError[]; scanned: number; treePaths: string[] };
+/** treePaths = 저장소의 모든 파일 경로(연동 서비스 · 개념 찾기 · 스킬 검사가 쓴다). 목록을 못 읽으면 빈 목록. treeComplete = 목록을 잘리지 않고 끝까지 받음, treeLinks = 심볼릭 링크 */
+export type ModelRead = { found: FoundTech[]; errors: ModelError[]; scanned: number; treePaths: string[]; treeComplete: boolean; treeLinks: string[] };
 
 const BATCH = 10; // 한꺼번에 여는 파일 수: 100개를 동시에 열면 GitHub raw가 끊는다
 const BUDGET_MS = 25_000; // 코드 읽기에 쓰는 시간: 느린 날에도 뒤의 OSV · 저장이 함수 시간 안에 끝나게
@@ -32,7 +32,7 @@ async function readTree(repo: { owner: string; repo: string }, token: string | u
 }
 
 export async function readModels(repo: { owner: string; repo: string }, deps: Deps = {}): Promise<ModelRead> {
-  const out: ModelRead = { found: [], errors: [], scanned: 0, treePaths: [] };
+  const out: ModelRead = { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeLinks: [] };
   const now = deps.now ?? Date.now;
   const started = now();
   const raw = (deps.token ?? process.env.GITHUB_TOKEN)?.trim();
@@ -44,6 +44,8 @@ export async function readModels(repo: { owner: string; repo: string }, deps: De
     if (parsed === null) throw new CollectError("parse", `${CODE_FILES}: 파일 목록의 모양이 달라 해석하지 못함`);
     files = parsed;
     out.treePaths = parsed.all;
+    out.treeComplete = !parsed.truncated;
+    out.treeLinks = parsed.links;
   } catch (e) {
     out.errors.push({ path: CODE_FILES, kind: errorKindOf(e), message: messageOf(e) });
     return out;
