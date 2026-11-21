@@ -23,6 +23,7 @@
     { "id": "fetch_downloads", "type": "api", "name": "다운로드 수 가져오기", "badge": "npm·PyPI", "priority": 1, "config": { "source": ["npm_downloads", "pypi_downloads"] } },
     { "id": "fetch_stars", "type": "api", "name": "별 많은 저장소 찾기", "badge": "GitHub 검색", "priority": 3, "config": { "source": "github_search", "token": "서버 환경변수" } },
     { "id": "fetch_popularity", "type": "api", "name": "인기 신호 가져오기", "badge": "HN", "priority": 3, "config": { "source": ["hn"] } },
+    { "id": "fetch_news", "type": "api", "name": "바깥 소식 가져오기", "badge": "공식 피드", "priority": 3, "config": { "source": "news", "feeds": "약관을 확인한 4곳", "once_per": "day" } },
 
     { "id": "fetch_repo", "type": "api", "name": "내 저장소 파일 읽기", "badge": "GitHub", "priority": 1, "config": { "files": ["package.json", "requirements.txt", ".mcp.json", ".claude/skills/*/"] } },
     { "id": "extract_my_tech", "type": "transform", "name": "내 기술 뽑기 (기술 키)", "priority": 1, "config": { "rules": "SPEC-7", "allowlist": "rule_lists.allow_package" } },
@@ -53,12 +54,14 @@
     { "from": "start_schedule", "to": "fetch_downloads", "when": "항상" },
     { "from": "start_schedule", "to": "fetch_stars", "when": "항상" },
     { "from": "start_schedule", "to": "fetch_popularity", "when": "항상" },
+    { "from": "start_schedule", "to": "fetch_news", "when": "항상" },
     { "from": "start_manual", "to": "fetch_osv", "when": "항상" },
     { "from": "start_manual", "to": "fetch_registry", "when": "항상" },
     { "from": "start_manual", "to": "fetch_github", "when": "항상" },
     { "from": "start_manual", "to": "fetch_downloads", "when": "항상" },
     { "from": "start_manual", "to": "fetch_stars", "when": "항상" },
     { "from": "start_manual", "to": "fetch_popularity", "when": "항상" },
+    { "from": "start_manual", "to": "fetch_news", "when": "항상" },
     { "from": "start_simulator", "to": "normalize", "when": "가짜 취약점·가짜 새 기술을 넣음(is_simulated)" },
 
     { "from": "start_first_read", "to": "fetch_repo", "when": "항상" },
@@ -79,6 +82,7 @@
     { "from": "fetch_downloads", "to": "collect_error", "when": "실패" },
     { "from": "fetch_stars", "to": "collect_error", "when": "실패" },
     { "from": "fetch_popularity", "to": "collect_error", "when": "실패" },
+    { "from": "fetch_news", "to": "collect_error", "when": "실패" },
 
     { "from": "normalize", "to": "compare", "when": "항상" },
     { "from": "compare", "to": "grade", "when": "항상" },

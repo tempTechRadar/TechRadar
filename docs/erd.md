@@ -280,6 +280,21 @@ UK: (kind, ecosystem, value).
 | observed_at | timestamptz | ✔ | | |
 | is_simulated | bool | ✔ | | |
 
+**news_items** — 바깥 소식(P-12f ⑥ M7, `202611221700_P-12f_news_items.sql`, **운영 적용 전 — 사용자 승인 대기**). 약관을 확인한 공식 피드의 제목 · 링크 · 날짜 · 짧은 요약만(원문 링크를 같이 보임, AI 학습에 쓰지 않음). 로그인 없이도 읽힌다
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| id | uuid | ✔ | PK | |
+| created_at | timestamptz | ✔ | | 우리가 저장한 때 |
+| source_key | text | ✔ | | 피드 키(`github_changelog` 등, `lib/domain/news-feeds.ts`). 1~64자 |
+| title | text | ✔ | | 1~300자 |
+| url | text | ✔ | **UK** | `https://`로 시작, 2000자 이하. 같은 주소는 한 줄이라 다시 읽어도 늘지 않는다(불변 3) |
+| summary | text | | | 짧은 요약(400자 이하, 태그 없는 글자만) |
+| published_at | timestamptz | ✔ | | 피드가 말한 날짜(미래 날짜 · 못 읽는 날짜는 수집기가 버림) |
+| tools | text[] | ✔ | | 어느 도구 소식인가(소식판 "내가 쓰는 곳" 거르기) |
+| official | bool | ✔ | | 기본 참(공식 피드만 읽음) |
+
+색인: `url` 유일 · `published_at desc`. 접근 규칙: **누구나 읽기**(anon 포함), 넣기 · 고치기 · 지우기는 서버(서비스 키)만. 출처 줄은 `sources`의 `news`(관리자가 끄는 스위치이자 `last_synced_at` = "하루 한 번" 기준 시각).
+
 ### 2.5 사건과 판단
 
 **changes** — 변경(공용)
@@ -479,6 +494,7 @@ UK: (kind, ecosystem, value).
 | tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
 | blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint`로만(고른 프로젝트도 본인 것만), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
 | my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
+| news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 적용 전) |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
 | exports · grade_views | 본인 읽기·만들기. 관리자 읽기 |
 | audit_logs | 본인 줄 읽기, 관리자 전체 읽기. **고치기·지우기 아무도 못 함** |
@@ -606,3 +622,4 @@ UK: (kind, ecosystem, value).
 - 2026-11-21 P-12d-blueprint(작업 `I-P-12d-blueprint`): `blueprints`와 DB 함수 `confirm_blueprint`를 더함(2.5절, 4절 권한, 관계 그림). 코드 리뷰 뒤 직접 넣기 권한을 빼고 함수로만 쓰게 바꿈(검사를 건너뛰지 못하게). 마이그레이션 `202611211000_P-12d_blueprints.sql`, 시험 `supabase/tests/blueprints_p12d.sql`(운영 되돌림 시험 기대값 19개 맞음). **운영 적용: 11-21 09:37 KST**(DB 이름 `p12d_blueprints`, 보안 점검 새 경고는 `confirm_blueprint` security definer 1건 — `set_tech_mark`와 같은 의도)
 - 2026-11-21 P-12d-my-tech-tags(작업 `I-P-12d-my-tech-tags`, 마이그레이션 `202611211400_P-12d_my_tech_tags.sql`, Maestro가 전한 사용자 결정 "지금 만들기"): `my_tech_tags` 표를 더함(2절, 4절 권한, 관계 그림). 칸 단위 권한으로 넣는 칸을 `tech_id`·`tag`로 좁힘(11-21 권한 점검 의심 3에서 배운 것). 운영 적용은 사용자 승인 뒤.
 - 2026-11-21 P-21a 마이그레이션 파일 이름을 `202611211200_P-21a_github_search_source.sql` → `202611211210_P-21a_github_search_source.sql`로 바꿈(map-demo의 `202611211200_P-12d_starter_set.sql`과 번호가 겹침, 작업 `I-P-21-criteria`). 내용은 같다: `sources`에 `github_search`(방법 api, 우선순위 3) 한 줄(`on conflict do nothing`). 운영에는 사용자 승인으로 대시보드 SQL 편집기에서 직접 적용했고(2026-11-21 13:28 KST, `sources` 9 → 10줄) 그 방식은 `schema_migrations`에 기록을 남기지 않아 운영 기록에는 이 줄이 없다(표·칸 변경 없음).
+- 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에는 아직 적용하지 않았다**(사용자 승인 대기) — 7절(실제 DB 대조)에는 적용 뒤 칸 · 정책 수를 읽어 채운다. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고
