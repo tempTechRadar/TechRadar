@@ -1,11 +1,11 @@
 // 블루프린트 화면의 읽기 · 쓰기(design.md 14절 ⑤). 로그인한 사용자의 토큰으로 부른다(본인 것만: user_id 조건 + RLS, 불변 5).
 // 서랍 = 내 기술 · 적용 후보 · 확정에 쓴 기술(자주 쓴 순은 화면이 이력으로 정렬) + 카탈로그 찾기(공개 목록만, ADR 0029).
 // 11-21 화면 개편 C "판단 = 청사진으로 가는 관문": 관심은 빼고 적용 후보만. 적용 후보는 보드의 "적용 후보" 칸과 같은 계산(지도 표시와 알림 판단 중 더 최근 것)이라 알림에서 고른 것도 들어온다.
-// 확정은 쉬운 실패 문구를 위해 여기서 먼저 보고(parseBoard · 위험 등급), 진짜 막기 · 기술 이름 다시 읽기 · 같은 id 한 줄은 DB 함수 confirm_blueprint가 한다.
+// 확정(v2, P-12e)은 쉬운 실패 문구를 위해 여기서 먼저 보고(parseGraph), 진짜 막기 · 관문 · 기술 이름 다시 읽기 · 같은 id 한 줄은 DB 함수 confirm_blueprint_v2가 한다. 옛 v1 확정은 지움(M5에서 DB 실행 권한도 회수).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { categoryNames, type Category, type Grade } from "../map/build-map.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
-import { HISTORY_LIMIT, parseBoard, readStored, readStoredGraph, type BlueprintRecord } from "../blueprint/stored.ts";
+import { HISTORY_LIMIT, readStored, readStoredGraph, type BlueprintRecord } from "../blueprint/stored.ts";
 import { parseGraph, type Graph } from "../blueprint/graph.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { buildKanban } from "../views/kanban.ts";
@@ -14,7 +14,6 @@ import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 
 export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
-export type ConfirmInput = { id: unknown; name: unknown; projectId: unknown; board: unknown };
 /** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 템플릿에 든 기술도 내 관문만 거친다(DB, ADR 0034 1) */
 export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown; templateId?: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
@@ -163,21 +162,3 @@ export async function readAllowedTechIds(db: SupabaseClient): Promise<Set<string
   return new Set((r.data as unknown[]).map(String));
 }
 
-/** 이 조합으로 확정: 쉬운 문구용 미리 보기(판 모양 · 없는 기술 · 위험 등급) → DB 함수가 다시 막고 남김(같은 id는 한 줄, 불변 3). 실패하면 아무것도 안 남김(불변 4) */
-export async function confirmBlueprint(db: SupabaseClient, input: ConfirmInput): Promise<ConfirmResult> {
-  const name = typeof input.name === "string" ? input.name.trim().slice(0, 60) : "";
-  if (!isUuid(input.id)) return { ok: false, message: "확정을 다시 눌러 주세요." };
-  if (!name) return { ok: false, message: "청사진 이름을 적어 주세요." };
-  if (input.projectId !== null && !isUuid(input.projectId)) return { ok: false, message: "프로젝트를 다시 골라 주세요." };
-  const parsed = parseBoard(input.board);
-  if (!parsed.ok) return parsed;
-  const ids = [...new Set(parsed.cols.flat().flatMap((s) => s.techIds))];
-  let techs: Map<string, Row>;
-  try { techs = new Map((await readTechs(db, ids)).map((r) => [r.id as string, r])); }
-  catch (e) { console.error("확정할 기술을 읽지 못함", e instanceof Error ? e.message : e); return { ok: false, message: "기술을 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요." }; }
-  if (ids.some((id) => !techs.has(id))) return { ok: false, message: "찾지 못한 기술이 있어요. 서랍에서 다시 넣어 주세요." };
-  const risky = ids.map((id) => techs.get(id)!).filter((t) => t.grade === "danger");
-  if (risky.length) return { ok: false, message: `위험한 기술은 넣지 않아요: ${risky.map((t) => t.display_name).join(", ")}. 빼고 다시 확정해 주세요.` };
-  const board = parsed.cols.map((c) => c.map((s) => ({ name: s.name, techs: s.techIds.map((id) => ({ id })) })));
-  return confirmResult(await db.rpc("confirm_blueprint", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_board: board }));
-}
