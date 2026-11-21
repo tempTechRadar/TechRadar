@@ -10,7 +10,7 @@ type Tables = Record<string, Row[]>;
 
 // 메모리 표로 "무엇을 읽고 무엇을 쓰려 했는지"를 모으는 가짜 클라이언트. errors: "read:표" · "insert:표" · "update:표"
 // uniqueGenerating: 같은 확정본에 만드는 중 줄이 이미 있으면 넣을 때 23505(부분 유일 색인 흉내)
-function fakeDb(tables: Tables, errors: Record<string, string> = {}, uniqueGenerating = false) {
+function fakeDb(tables: Tables, errors: Record<string, string> = {}, uniqueGenerating = false, afterInsert?: (tables: Tables) => void) {
   const writes: { table: string; op: "insert" | "update"; value: Row }[] = [];
   let counter = 0;
   const fail = (key: string) => (errors[key] ? { data: null, error: { message: errors[key] } } : null);
@@ -36,6 +36,7 @@ function fakeDb(tables: Tables, errors: Record<string, string> = {}, uniqueGener
           const error = dup ? { message: "duplicate key value violates unique constraint", code: "23505" } : fail(`insert:${table}`)?.error ?? null;
           const id = `${table}-${++counter}`;
           if (!error) (tables[table] ??= []).push({ id, status: table === "blueprint_checks" ? "generating" : undefined, created_at: "2026-11-22T04:00:00.000Z", ...value });
+          if (!error && table === "blueprint_checks") afterInsert?.(tables);
           const promise: any = Promise.resolve(error ? { data: null, error } : { data: [{ id }], error: null });
           promise.select = () => ({ single: () => Promise.resolve(error ? { data: null, error } : { data: { id }, error: null }) });
           return promise;
@@ -172,6 +173,17 @@ test("점검: 사용자당 하루 3번(한국 시간 기준) — 어제 것은 �
   const two = fakeDb(tables({ blueprint_checks: [...mine(2, TODAY), ...mine(5, YESTERDAY)] }));
   assert.equal((await run(two, fakeDb(tables()), fakeAi().ai)).status, "created");
   assert.equal(await countChecksToday(two.db, "u1", NOW), 3);
+});
+
+test("점검: 다른 청사진으로 동시에 눌러 한도를 함께 통과해도, 넣은 뒤 다시 세서 넘으면 부르지 않고 그 줄을 닫는다", async () => {
+  const mine = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `c${i}`, requested_by: "u1", blueprint_id: BP, status: "done", created_at: TODAY }));
+  const t = tables({ blueprint_checks: mine(2) }); // 2번 썼으니 세기는 통과
+  const user = fakeDb(t, {}, false, (all) => all.blueprint_checks.push({ id: "racer", requested_by: "u1", blueprint_id: "other", status: "generating", created_at: TODAY })); // 같은 순간 들어온 다른 요청
+  const ai = fakeAi();
+  assert.deepEqual(await run(user, fakeDb(t), ai.ai), { status: "refused", reason: "user_limit" });
+  assert.equal(ai.seen.length, 0);
+  assert.equal(t.blueprint_checks.find((r) => r.id === "blueprint_checks-1")!.status, "failed", "내 줄은 닫는다");
+  assert.equal(wrote(user.writes, "ai_calls", "insert").length, 0);
 });
 
 test("점검: 서비스 전체 하루 200번이 차면 막는다", async () => {

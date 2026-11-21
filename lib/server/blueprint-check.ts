@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AiClient } from "../ai/ai-client.ts";
 import { buildCheckPrompt } from "../ai/build-check-prompt.ts";
-import { decideAiCall, startOfKoreanDay } from "../ai/decide-ai-call.ts";
+import { BLUEPRINT_CHECK_PER_USER_PER_DAY, decideAiCall, startOfKoreanDay } from "../ai/decide-ai-call.ts";
 import { parseScenarioResponse } from "../ai/parse-scenario-response.ts";
 import type { Board } from "../blueprint/board.ts";
 import { checkFacts, type CheckTech, type Fact, type SameRolePair } from "../blueprint/check-facts.ts";
@@ -91,7 +91,7 @@ async function markFailed(db: SupabaseClient, checkId: string, now: Date): Promi
   await db.from("blueprint_checks").update({ status: "failed", finished_at: now.toISOString() }).eq("id", checkId);
 }
 
-const storedFact = ({ kind, severity, text, source, techIds }: Fact): StoredFact => ({ kind, severity, text, source, techIds });
+export const toStoredFact = ({ kind, severity, text, source, techIds }: Fact): StoredFact => ({ kind, severity, text, source, techIds });
 
 async function callAndSave(deps: Deps, loaded: Loaded, prompt: ReturnType<typeof buildCheckPrompt>, hash: string, checkId: string, userId: string, now: Date): Promise<CheckResult> {
   const base = { user_id: userId, input_hash: hash };
@@ -109,7 +109,7 @@ async function callAndSave(deps: Deps, loaded: Loaded, prompt: ReturnType<typeof
     await logCall(deps.serviceDb, { ...base, ...tokens, status: "failed", error: parsed.error });
     return { status: "failed", reason: parsed.error, checkId };
   }
-  const body: BlueprintCheckBody = { facts: loaded.facts.map(storedFact), suggestions: parsed.steps, notes: parsed.risks };
+  const body: BlueprintCheckBody = { facts: loaded.facts.map(toStoredFact), suggestions: parsed.steps, notes: parsed.risks };
   const saved = await deps.serviceDb.from("blueprint_checks").update({ status: "done", body, sources: parsed.sources, input_hash: hash, finished_at: now.toISOString() }).eq("id", checkId);
   // 호출은 이미 끝나 토큰이 들었다: 저장이 실패해도 기록해야 하루 한도에 센다
   if (saved.error) {
@@ -150,6 +150,12 @@ async function runCheck(deps: Deps, input: Input, now: Date): Promise<CheckResul
   }
   const checkId = await openRequest(deps, input.blueprintId, input.userId, now);
   if (!checkId) return { status: "refused", reason: "in_progress" };
+  // 위의 "세기"와 이 "넣기" 사이에 다른 청사진으로 동시에 누른 요청이 한도를 함께 통과했을 수 있다(같은 청사진은 부분 유일 색인이 막음).
+  // 내 줄을 넣은 뒤 다시 세서 넘으면 이 줄을 닫고 거절한다: 동시에 넣어도 둘 다 서로를 보고 물러나므로 한도를 넘어 부르지는 않는다(안전한 쪽으로만 어긋남).
+  if ((await countChecksToday(deps.userDb, input.userId, now)) > BLUEPRINT_CHECK_PER_USER_PER_DAY) {
+    await markFailed(deps.serviceDb, checkId, now);
+    return { status: "refused", reason: "user_limit" };
+  }
   try {
     const result = await callAndSave(deps, loaded, prompt, hash, checkId, input.userId, now);
     if (result.status === "failed") await markFailed(deps.serviceDb, checkId, now);
