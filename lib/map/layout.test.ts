@@ -93,7 +93,15 @@ test("기술이 많으면 바깥을 여러 줄로 쌓고, 700개를 넘으면 �
   assert.deepEqual([...shut].map((id) => l.byId.get(id)!.level), [2]);
   assert.equal(hiddenOf(l, shut).size, 750);
   const fewer = layoutMap(buildTechMap({ ...catalog, techs: Array.from({ length: 500 }, (_, i) => tech(`t${String(i).padStart(3, "0")}`, { categoryId: "db" })) }, NOW), DEFAULT_VIEW);
-  assert.equal(defaultCollapsed(fewer).size, 0, "지도 기본 500개는 다 펼친 채로");
+  assert.equal(defaultCollapsed(fewer).size, 0, "묶음이 모두 크면 접지 않음(점이 보이게)");
+  // 좁은 칸에 깊게 쌓일 묶음만 접는다: 큰 갈래 하나 + 작은 갈래 여럿이면 큰 것만
+  const cats2 = [...categories, ...Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, name: `갈래${i}`, parentId: null }))];
+  const mixed = layoutMap(buildTechMap({ ...catalog, categories: cats2, techs: [
+    ...Array.from({ length: 600 }, (_, i) => tech(`m${String(i).padStart(3, "0")}`, { categoryId: "db" })),
+    ...Array.from({ length: 12 }, (_, i) => tech(`s${i}`, { categoryId: `c${i}` })),
+  ] }, NOW), FIELD_VIEW);
+  const shut2 = defaultCollapsed(mixed);
+  assert.deepEqual([...shut2].map((id) => (mixed.byId.get(id) as GroupItem).count), [600]);
 });
 
 test("같은 입력이면 같은 그림", () => {
@@ -104,4 +112,15 @@ test("같은 입력이면 같은 그림", () => {
 test("색 기준이 보안 등급이면 위험 = 위험 토큰, 통과 = 통과 토큰(범주 색을 쓰지 않음)", () => {
   const l = layoutMap(buildTechMap(catalog, NOW), view("c=grade"));
   assert.deepEqual(l.legend.map((x) => [x.value, x.token]), [["위험", "--danger"], ["통과", "--pass"]]);
+});
+
+test("첫 고리가 종류면 거의 고른 너비(네제곱근): 개수가 20배 넘게 달라도 √일 때(83%)보다 훨씬 고르게(70% 아래)", () => {
+  const m = buildTechMap({ ...catalog, techs: [
+    ...Array.from({ length: 90 }, (_, i) => tech(`m${i}`, { categoryId: "db" })),
+    ...Array.from({ length: 4 }, (_, i) => tech(`s${i}`, { categoryId: "db", type: "skill", techKey: `skill:o/r/s${i}` })),
+  ] }, NOW);
+  const l = layoutMap(m, parseView("g=kind,field&c=kind"));
+  const spans = groups(l).filter((g) => g.level === 1).map((g) => g.span).sort((a, b) => b - a);
+  assert.equal(spans.length, 2);
+  assert.ok(spans[0] / (spans[0] + spans[1]) < 0.7, `큰 쪽 비율 ${spans[0] / (spans[0] + spans[1])}`);
 });
