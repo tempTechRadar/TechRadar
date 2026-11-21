@@ -48,6 +48,7 @@ test("템플릿 사용기: RLS 거절(써 보지 않음 · 작가 · 닫힌 템�
   const r = await saveTemplateNote(fakeDb({ template_notes: fail("42501") }).db, TPL, note);
   assert.match(r.ok ? "" : r.error, /확정해 본 뒤에/);
   assert.equal((await saveTemplateNote(fakeDb({ template_notes: ok([]) }).db, TPL, note)).ok, false);
+  assert.deepEqual(await saveTemplateNote(fakeDb({ template_notes: fail("23505") }).db, TPL, note), { ok: false, error: "이 템플릿에는 이미 사용기를 썼어요" });
 });
 
 test("도움이 됐어요 · 신고: 한 번만(23505), 막힌 글(42501)은 쉬운 말", async () => {
