@@ -55,10 +55,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
             <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
-            <NavLink href="/new">새 기술</NavLink>
-            <NavLink href="/views">내 레이더</NavLink>
-            <NavLink href="/history">기록</NavLink>
-            <NavLink href="/blueprint">청사진</NavLink>{/* 넓은 화면 전용(design.md 14절 ⑤): 휴대폰 탭 바에는 없고 내 레이더 탭 줄에서 들어감 */}
+            {/* 11-21 화면 개편 A: 보는 곳은 지도 · 청사진 둘. 보드 · 일지는 지도 공간이라 "지도"가 현재 표시, 그 안은 보는 곳 줄(SpaceSwitch)로. 새 기술 주소는 살려 둠 */}
+            <NavLink href="/" also={["/views", "/history"]}>지도</NavLink>
+            <NavLink href="/blueprint">청사진</NavLink>
           </div>
           <div className="site-nav-side">
             {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}

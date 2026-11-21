@@ -3,7 +3,7 @@
 import type { AlertRecord } from "@/lib/alerts/to-alert-view";
 import type { FirstCheckRun } from "@/lib/alerts/first-check-band";
 import type { BlueprintRecord } from "@/lib/blueprint/stored";
-import type { CatalogTech, MapInput, MyTechRow } from "@/lib/map/build-map";
+import { categoryNames, type CatalogTech, type MapInput, type MyTechRow } from "@/lib/map/build-map";
 import type { DashboardData } from "@/lib/server/dashboard-queries";
 import type { PoolTech } from "@/lib/server/blueprints";
 import type { RecentAlert } from "@/lib/server/recent-alerts";
@@ -100,18 +100,23 @@ export const SAMPLE_GALLERY: GalleryRow[] = MINE.map((m) => {
     collectErrorKind: m.collectErrorKind, lastCheckedOkAt: m.lastCheckedOkAt, projectName: m.projectName, concept: found?.type === "concept" };
 });
 /** 칸반 = 내 기술 + 지도 판단(sampleMapInput 표시) + 판단한 알림. 다른 화면과 같은 기록 */
+const CAT_MAP = new Map(CATS.map((c) => [c.id, c]));
+const fieldOf = (techId: string | null) => categoryNames(TECHS.find((x) => x.id === techId)?.categoryId ?? null, CAT_MAP).field;
 export const SAMPLE_KANBAN: KanbanInput = {
-  mine: MINE.map((m, i) => ({ id: m.id, techId: m.techId, name: SAMPLE_GALLERY[i].name, grade: m.grade, projectName: m.projectName })),
-  marks: (sampleMapInput().marks ?? []).map((m) => { const found = TECHS.find((x) => x.id === m.techId)!; return { ...m, name: found.name, grade: found.grade, updatedAt: ago(1.5) }; }),
-  judged: SAMPLE_ALERTS.flatMap((a) => (a.judgment && a.tech ? [{ techId: a.tech.id, name: a.change.techName, grade: tech(a.change.techName).grade, decision: a.judgment.decision, reason: a.judgment.reason, judgedAt: a.judgment.judgedAt }] : [])),
+  mine: MINE.map((m, i) => ({ id: m.id, techId: m.techId, name: SAMPLE_GALLERY[i].name, grade: m.grade, projectName: m.projectName, field: fieldOf(m.techId) })),
+  marks: (sampleMapInput().marks ?? []).map((m) => { const found = TECHS.find((x) => x.id === m.techId)!; return { ...m, name: found.name, grade: found.grade, updatedAt: ago(1.5), field: fieldOf(m.techId) }; }),
+  judged: SAMPLE_ALERTS.flatMap((a) => (a.judgment && a.tech ? [{ techId: a.tech.id, name: a.change.techName, grade: tech(a.change.techName).grade, decision: a.judgment.decision, reason: a.judgment.reason, judgedAt: a.judgment.judgedAt, field: fieldOf(a.tech.id) }] : [])),
 };
+/** 보드 "묶기: 내 태그"용 내 태그(기술 id → 태그들) */
+export const SAMPLE_TAGS: Record<string, string[]> = { [tech("mcp-remote").id]: ["시연", "바꿀 것"], [tech("deep-research").id]: ["시연"], [tech("@supabase/mcp-server").id]: ["매일 씀"] };
 
 const pool = (id: string, name: string, field: string, extra: Partial<PoolTech> = {}): PoolTech =>
   ({ id: uuid(Number(id) + 500), name, type: "mcp", grade: "pass", field, sub: null, oneLiner: `${name} 한 줄 소개`, projects: 1, mark: null, ...extra });
 const POOL = [
   pool("1", "Context7", "기획·문서"), pool("2", "Playwright MCP", "프론트엔드", { sub: "브라우저 자동화" }), pool("3", "Supabase MCP", "백엔드·데이터", { projects: 2 }),
-  pool("4", "Vercel", "배포·운영"), pool("5", "mcp-remote", "업무·서비스 연동", { grade: "danger" }), pool("6", "Figma MCP", "디자인", { mark: "interest", projects: 0 }),
+  pool("4", "Vercel", "배포·운영"), pool("5", "mcp-remote", "업무·서비스 연동", { grade: "danger" }), pool("6", "Figma MCP", "디자인", { mark: "candidate", projects: 0 }),
   pool("7", "Semgrep", "검사·보안", { mark: "candidate", projects: 0 }),
+  pool("8", "deep-research", "리서치", { id: tech("deep-research").id, type: "skill", mark: "candidate", projects: 0 }), // 보드 · 알림에서 적용 후보로 고른 것과 같은 id("청사진에 넣기" 시연)
 ];
 const HISTORY: BlueprintRecord[] = [
   { id: "h1", name: "TechRadar 1차", projectId: "p1", projectName: "TechRadar", createdAt: "2026-11-10T03:00:00Z",

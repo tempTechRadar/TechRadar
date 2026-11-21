@@ -1,5 +1,5 @@
 import { PageSkeleton } from "../page-skeleton";
 
 export default function Loading() {
-  return <PageSkeleton title="기록 찾기" />;
+  return <PageSkeleton title="일지" />;
 }
