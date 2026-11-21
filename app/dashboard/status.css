@@ -1,0 +1,11 @@
+/* 현황(P-12f ④): 탭 줄 · 내 레포 카드 · 적용한 기술. 값은 공용 토큰, 누르는 칸 --hit, 지금 탭은 색만이 아니라 굵게 + 채움 */
+.status-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
+.status-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; }
+.status-tabs a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
+.status-tabs a:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.status-repos, .status-techs { list-style: none; margin: 0 0 var(--sp-5); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: var(--sp-3); }
+.status-repos li, .status-techs li { display: grid; gap: 4px; align-content: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
+.status-repos p, .status-techs p { margin: 0; }
+.status-techs a { color: var(--ink); font-weight: 700; }
+.status-techs .badge { justify-self: start; }
+.status-more { margin: calc(-1 * var(--sp-3)) 0 var(--sp-5); }
