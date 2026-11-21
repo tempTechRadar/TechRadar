@@ -55,6 +55,8 @@ const SCRIPT = `(function () {
     document.body.append(gate);
     gate.addEventListener("click", enter);
     gate.addEventListener("cancel", enter);
+    // 준비 전 Esc: 브라우저가 사용자 동작 전 cancel은 막지 못하게 해 모달이 풀린다 → 다시 모달로(뒤 화면 Tab · 화면 읽기가 열리지 않게)
+    gate.addEventListener("close", function () { if (!armed && !done) { try { gate.showModal(); } catch (e) { /* 이미 열림 */ } } });
     document.addEventListener("keydown", enter, true);
     try { gate.showModal(); } catch (e) { gate.setAttribute("open", ""); } // 모달: 뒤 화면은 브라우저가 막는다(화면 읽기 · Tab이 관문 뒤로 가지 않게)
     go.focus();
