@@ -251,6 +251,36 @@ test("위험이 아닌 새 등급(주의)은 변경·알림 없이 수집 자료
   assert.deepEqual(step(t, "is_event")!.branch_counts, { event: 0, no_change: 1, collect_error: 0 });
 });
 
+// 기술의 저장소 확인 값(P-9가 technologies에 남김): NOW 기준 확인 1일 전·마지막 푸시 3일 전이면 신선하다
+const DAY = 24 * 60 * 60 * 1000;
+const repoCols = (over: Row = {}): Row => ({ status: "active", last_activity_at: new Date(NOW - 3 * DAY).toISOString(), last_checked_ok_at: new Date(NOW - DAY).toISOString(), missed_count: 0, signals: { github_found_repo: "acme/tool" }, ...over });
+const withRepo = (key: string, over: Row = {}): Row => ({ technologies: { tech_key: key, depth: "thick", is_simulated: false, ...repoCols(over) } });
+
+test("취약점 0건이고 기술의 저장소 확인이 신선하면 통과: 수집 자료만 남기고 변경·알림은 없다(알림은 위험만)", async () => {
+  const t = world([graded("m1", "npm:zod", "unknown", [], withRepo("npm:zod"))]);
+  const f = fakes({ "zod@1.0.0": [] });
+  await run(t, f);
+  assert.deepEqual([rowsOf(t, "npm:zod")[0].grade, rowsOf(t, "npm:zod")[0].grade_reason], ["pass", "알려진 취약점이 없고, 저장소(acme/tool)가 최근 3개월 안에 고쳐지고 있어요."]);
+  assert.deepEqual([t.observations.length, f.saved.length, f.alerted.length], [1, 0, 0]);
+});
+
+test("저장소 확인이 낡았거나(8일 전)·한 번도 없거나·상태가 active가 아니면 취약점 0건이어도 찾지 못함 그대로(불변 2)", async () => {
+  const t = world([
+    graded("m1", "npm:old-check", "unknown", [], withRepo("npm:old-check", { last_checked_ok_at: new Date(NOW - 8 * DAY).toISOString() })),
+    graded("m2", "npm:never", "unknown", [], withRepo("npm:never", { last_checked_ok_at: null, last_activity_at: null })),
+    graded("m3", "npm:gone", "unknown", [], withRepo("npm:gone", { status: "gone" })),
+    graded("m4", "npm:no-repo", "unknown", [], withRepo("npm:no-repo", { signals: {} })), // P-9가 읽은 저장소 이름이 없다
+  ]);
+  await run(t, fakes({ "old-check@1.0.0": [], "never@1.0.0": [], "gone@1.0.0": [], "no-repo@1.0.0": [] }));
+  assert.deepEqual(t.my_technologies.map((r) => r.grade), ["unknown", "unknown", "unknown", "unknown"]);
+});
+
+test("통과였던 것도 저장소 확인이 낡아지면 찾지 못함으로 돌아간다: 예전 통과가 확인 없이 그대로 보이지 않게(SPEC-1)", async () => {
+  const t = world([graded("m1", "npm:zod", "pass", [], withRepo("npm:zod", { last_checked_ok_at: new Date(NOW - 30 * DAY).toISOString() }))]);
+  await run(t, fakes({ "zod@1.0.0": [] }));
+  assert.equal(rowsOf(t, "npm:zod")[0].grade, "unknown");
+});
+
 test("같은 값을 다시 읽으면 수집 자료가 늘지 않는다(불변 3): compare의 나가는 건수 0", async () => {
   const t = world([graded("m1", "npm:zod", "caution", [{ id: "GHSA-bbbb" }])]);
   await run(t, fakes({ "zod@1.0.0": LOW }));

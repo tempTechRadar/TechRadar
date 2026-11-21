@@ -81,6 +81,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "@modelcontextprotocol/inspector"
       },
       "expected": {
@@ -99,6 +100,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "@modelcontextprotocol/server-filesystem"
       },
       "expected": {
@@ -117,6 +119,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "mcp-remote"
       },
       "expected": {
@@ -135,6 +138,7 @@
       "input": {
         "type": "osv-batch",
         "fixture": "lib/domain/fixtures/osv-g5-latest.json",
+        "repo": { "fixture": "lib/domain/fixtures/repo-g5-latest.json" },
         "package": "mcp"
       },
       "expected": {

@@ -1,20 +1,39 @@
 // 정기 OSV 재확인의 DB 읽기·쓰기(P-9d). 주인: 김영식 A. 수집기(collect-osv.ts)는 순서·기록을 맡고, 저장 규칙은 여기에 둔다.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { GRADE_RULE_VERSION, type GradeResult } from "../domain/grade.ts";
+import { GRADE_RULE_VERSION, type GradeResult, type RepoFacts } from "../domain/grade.ts";
 import { groupTargets, type MyTechRow, type OsvTarget } from "../domain/osv-daily.ts";
 import type { ErrorKind } from "./collect-fetch.ts";
 
 const PAGE = 500;
+// 통과 판단에 쓰는 저장소 확인 값은 기술(technologies)에 있다(P-9 github-store가 씀)
+const REPO_COLUMNS = "status, last_activity_at, last_checked_ok_at, missed_count, signals";
 // 두꺼운 진짜 기술의 줄 중 숨기지 않았고 보관하지 않은 프로젝트의 것만(쓰는 사람이 없는 위험은 알림 대상이 없다)
-const SELECT = "id, tech_id, version, grade, graded_at, grade_evidence, last_checked_ok_at, technologies!inner(tech_key), projects!inner(archived_at)";
+const SELECT =`id, tech_id, version, grade, graded_at, grade_evidence, last_checked_ok_at, technologies!inner(tech_key, ${REPO_COLUMNS}), projects!inner(archived_at)`;
 
+type RepoCols = { status: string; last_activity_at: string | null; last_checked_ok_at: string | null; missed_count: number; signals: unknown };
+type TechCols = RepoCols & { tech_key: string };
 type Raw = {
   tech_id: string; version: string | null; grade: MyTechRow["grade"]; graded_at: string | null; grade_evidence: unknown; last_checked_ok_at: string | null;
-  technologies: { tech_key: string } | { tech_key: string }[];
+  technologies: TechCols | TechCols[];
 };
-const techKeyOf = (r: Raw) => (Array.isArray(r.technologies) ? r.technologies[0]?.tech_key : r.technologies?.tech_key) ?? "";
-const toRow = (r: Raw): MyTechRow => ({ techId: r.tech_id, techKey: techKeyOf(r), version: r.version, grade: r.grade, gradedAt: r.graded_at, evidence: r.grade_evidence, checkedAt: r.last_checked_ok_at });
+const foundRepoOf = (signals: unknown): string | null => {
+  const name = (signals as { github_found_repo?: unknown } | null)?.github_found_repo;
+  return typeof name === "string" && name !== "" ? name : null;
+};
+const factsOf = (t: RepoCols): RepoFacts => ({ status: t.status, activityAt: t.last_activity_at, checkedAt: t.last_checked_ok_at, missedCount: t.missed_count, repoName: foundRepoOf(t.signals) });
+const techOf = (r: Raw) => (Array.isArray(r.technologies) ? r.technologies[0] : r.technologies);
+const toRow = (r: Raw): MyTechRow => ({
+  techId: r.tech_id, techKey: techOf(r).tech_key, version: r.version, grade: r.grade, gradedAt: r.graded_at, evidence: r.grade_evidence, checkedAt: r.last_checked_ok_at, repo: factsOf(techOf(r)),
+});
+
+/** 기술 id → 저장소 확인 값(처음 읽기용). 읽지 못한 기술은 맵에 없다. */
+export async function readRepoFacts(db: SupabaseClient, techIds: string[]): Promise<Map<string, RepoFacts>> {
+  if (techIds.length === 0) return new Map();
+  const { data, error } = await db.from("technologies").select(`id, ${REPO_COLUMNS}`).in("id", techIds);
+  if (error) throw new Error(`저장소 확인 값을 읽지 못함: ${error.message}`);
+  return new Map((data as (RepoCols & { id: string })[]).map((t) => [t.id, factsOf(t)]));
+}
 
 /** 읽을 (기술, 버전) 목록: 오래 안 본 것부터. 쪽으로 나눠 모두 읽는다(PostgREST는 한 번에 1000줄까지). */
 export async function readOsvTargets(db: SupabaseClient): Promise<OsvTarget[]> {

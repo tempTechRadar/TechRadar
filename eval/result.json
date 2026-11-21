@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 21. 10시 28분 53초",
+  "when": "2026. 11. 21. 17시 38분 57초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -51,8 +51,8 @@
       "target": "@modelcontextprotocol/inspector 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -62,8 +62,8 @@
       "target": "@modelcontextprotocol/server-filesystem 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -73,8 +73,8 @@
       "target": "mcp-remote 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -84,8 +84,8 @@
       "target": "mcp 최신",
       "origin": "실수집",
       "expectedGrade": "통과 또는 주의",
-      "actualGrade": "unknown",
-      "gradeOk": false,
+      "actualGrade": "pass",
+      "gradeOk": true,
       "causeOk": null,
       "verdict": "맞음",
       "note": ""
@@ -141,7 +141,7 @@
     "quietOk": 6,
     "miss": 0,
     "falseAlarm": 0,
-    "gradeOk": 8,
+    "gradeOk": 12,
     "failed": 0
   },
   "edges": {

@@ -13,8 +13,9 @@ import { readSkills } from "./read-skills.ts";
 import { CODE_FILES, readModels } from "./read-models.ts";
 import { eolOfKey } from "../domain/model-eol.ts";
 import { detectConcepts, detectServices } from "../domain/services.ts";
-import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult } from "../domain/grade.ts";
+import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult, type RepoFacts } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
+import { readRepoFacts } from "./osv-store.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
@@ -250,13 +251,23 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
   const graded: { f: FoundTech; techId: string; result: GradeResult }[] = [];
   const osvFailures: { kind: ErrorKind; message: string; httpStatus?: number }[] = [];
   const osvTargets = found.filter((f) => f.tech?.key.startsWith("npm:") || f.tech?.key.startsWith("pypi:"));
+  // 다시 읽을 때 정기 확인이 매긴 "통과"가 "찾지 못함"으로 되돌아가지 않게 같은 저장소 확인 값을 쓴다.
+  // 이 값을 못 읽어도 처음 읽기 전체(OSV 위험 결과 저장)를 멈추지 않는다: 값 없이 "찾지 못함"으로 매기고 이유를 단계 기록에 남긴다(통과로 단정하지 않음, 불변 2)
+  let repoFacts = new Map<string, RepoFacts>();
+  let repoFactsError: string | undefined;
+  try {
+    repoFacts = await readRepoFacts(db, osvTargets.map((f) => techIds.get(f.tech!.key)!));
+  } catch (e) {
+    repoFactsError = `저장소 확인 값을 읽지 못해 이번에는 통과를 매기지 못했어요(찾지 못함으로 둠): ${messageOf(e)}`;
+  }
   for (const [i, f] of osvTargets.entries()) {
     if (i > 0) await sleep(1000); // SPEC-8 요청 사이 1초
     const techId = techIds.get(f.tech!.key)!;
     const target = { projectId, techId, version: f.tech!.version };
     const [eco, name] = f.tech!.key.startsWith("npm:") ? (["npm", f.tech!.key.slice(4)] as const) : (["PyPI", f.tech!.key.slice(5)] as const);
     try {
-      const result = gradeFromOsv(f.tech!.version, await queryOsv(name, eco, f.tech!.version));
+      const facts = repoFacts.get(techId);
+      const result = gradeFromOsv(f.tech!.version, await queryOsv(name, eco, f.tech!.version), facts && { ...facts, nowMs: Date.now() });
       await applyGrade(db, runId, target, result);
       graded.push({ f, techId, result });
     } catch (e) {
@@ -277,7 +288,7 @@ async function gradeAll(db: SupabaseClient, runId: string, projectId: string, fo
     errorMessage: osvFailures.map((f) => f.message).join("; ") || undefined,
   });
   const byGrade = graded.reduce<Record<string, number>>((m, g) => ({ ...m, [g.result.grade]: (m[g.result.grade] ?? 0) + 1 }), {});
-  await recordStep(db, runId, { stepName: "grade", status: "succeeded", countIn: graded.length, countOut: graded.length, branchCounts: byGrade });
+  await recordStep(db, runId, { stepName: "grade", status: "succeeded", countIn: graded.length, countOut: graded.length, branchCounts: byGrade, errorMessage: repoFactsError });
   return { graded, osvErrors: osvFailures.length, osvTargets: osvTargets.length };
 }
 
