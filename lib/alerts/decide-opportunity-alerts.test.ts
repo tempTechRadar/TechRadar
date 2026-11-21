@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decideOpportunityAlerts, type OpportunityUsage } from "./decide-opportunity-alerts.ts";
+import { ALERT_MIN_STARS, decideOpportunityAlerts, type OpportunityUsage } from "./decide-opportunity-alerts.ts";
 
-const newTech = { id: "new", techKey: "mcp-new", grade: "pass", status: "active", createdAt: "2026-11-18T00:00:00Z" };
+const newTech = { id: "new", techKey: "mcp-new", grade: "pass", status: "active", createdAt: "2026-11-18T00:00:00Z", stars: null as number | null, flagged: false };
 const relations = [{ otherTechId: "mine", status: "confirmed" as const, confirmedAt: "2026-11-18T01:00:00Z" }];
 
 function usage(userId: string, overrides: Partial<OpportunityUsage> = {}): OpportunityUsage {
@@ -78,4 +78,36 @@ test("새 기술이 지원 종료(deprecated)이거나 사라졌으면(gone) 만
   assert.deepEqual(run({ newTech: { ...newTech, status: "gone" } }), []);
   assert.equal(run({ newTech: { ...newTech, status: "dormant" } }).length, 2);
   assert.equal(run().length, 2);
+});
+
+test("조건 4: 별 수가 알려져 있고 100 미만이면 알림을 만들지 않는다(99는 막고 100은 통과, 0도 알려진 값이라 막는다)", () => {
+  assert.equal(ALERT_MIN_STARS, 100);
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 99 } }), []);
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 0 } }), []);
+  assert.equal(run({ newTech: { ...newTech, stars: 100 } }).length, 2);
+  assert.equal(run({ newTech: { ...newTech, stars: 12345 } }).length, 2);
+});
+
+test("조건 4: 별 수를 모르면(null) 제외하지 않는다 — 읽지 않은 것을 낮다고 단정하지 않는다(불변 2)", () => {
+  assert.equal(run({ newTech: { ...newTech, stars: null } }).length, 2);
+});
+
+test("조건 4: 의심 표시(candidate_flags)가 붙은 별 후보는 별이 많아도 알림 대상이 아니다", () => {
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 5000, flagged: true } }), []);
+  assert.deepEqual(run({ newTech: { ...newTech, stars: null, flagged: true } }), [], "별 수를 몰라도 의심 표시가 있으면 막는다");
+});
+
+test("조건 4는 시뮬레이터 변경에는 적용하지 않는다(가짜 기술은 별 정보가 없다): 낮은 별·의심 표시에도 시연 계정에는 만든다", () => {
+  const alerts = run({
+    change: { id: "change-1", isSimulated: true },
+    newTech: { ...newTech, stars: 3, flagged: true },
+    usages: [usage("demo", { isDemo: true }), usage("real")],
+  });
+  assert.deepEqual(alerts.map((a) => a.userId), ["demo"]);
+});
+
+test("조건 4는 다른 조건을 대신하지 않는다: 별이 충분해도 위험·지원 종료·후보 관계는 여전히 막는다", () => {
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 5000, grade: "danger" } }), []);
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 5000, status: "deprecated" } }), []);
+  assert.deepEqual(run({ newTech: { ...newTech, stars: 5000 }, relations: [{ otherTechId: "mine", status: "candidate", confirmedAt: null }] }), []);
 });

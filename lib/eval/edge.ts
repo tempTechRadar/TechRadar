@@ -26,11 +26,13 @@ type OsvReply = { fixture: string } | { status: number; body: string } | { throw
 type OsvRead = { package: string; ecosystem: OsvEcosystem; techKey: string; version: string | null; reply: OsvReply; prev: Prev };
 type Twice = OsvRead & { usages: TechUsage[]; firstReadAt: string; gradeSaveFails: boolean; secondReply?: OsvReply };
 type Opportunity = Parameters<typeof decideOpportunityAlerts>[0];
+/** 정답 사례는 별 정보가 없으면 적지 않는다: 모름(null)·의심 없음(false)으로 읽는다 */
+type OpportunityNewTech = Omit<Opportunity["newTech"], "stars" | "flagged"> & Partial<Pick<Opportunity["newTech"], "stars" | "flagged">>;
 
 export type EdgeInput =
   | ({ type: "osv-read" } & OsvRead)
   | ({ type: "osv-read-twice" } & Twice)
-  | ({ type: "opportunity"; times: 1 | 2; relations: OpportunityRelation[]; usages: OpportunityUsage[] } & Pick<Opportunity, "change" | "newTech">)
+  | ({ type: "opportunity"; times: 1 | 2; relations: OpportunityRelation[]; usages: OpportunityUsage[] } & Pick<Opportunity, "change"> & { newTech: OpportunityNewTech })
   | { type: "judgment"; decision: string; reason: string; alertKind: AlertKind; fixedVersion: string | null };
 
 type Graded = { grade: Grade; ids: string[] };
@@ -166,7 +168,7 @@ function opportunity(i: Extract<EdgeInput, { type: "opportunity" }>): Omit<EdgeA
   const keys = new Set<string>();
   const users: string[] = [];
   for (let n = 0; n < i.times; n++) {
-    for (const a of decideOpportunityAlerts({ ...i, existingAlertKeys: keys })) {
+    for (const a of decideOpportunityAlerts({ ...i, newTech: { stars: null, flagged: false, ...i.newTech }, existingAlertKeys: keys })) {
       keys.add(a.dedupeKey);
       users.push(a.userId);
     }
