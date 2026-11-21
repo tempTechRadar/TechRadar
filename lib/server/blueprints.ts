@@ -81,7 +81,7 @@ const DB_REFUSED: Record<string, string> = { "본인 프로젝트가 아니다":
 export async function confirmBlueprint(db: SupabaseClient, input: ConfirmInput): Promise<ConfirmResult> {
   const name = typeof input.name === "string" ? input.name.trim().slice(0, 60) : "";
   if (!isUuid(input.id)) return { ok: false, message: "확정을 다시 눌러 주세요." };
-  if (!name) return { ok: false, message: "블루프린트 이름을 적어 주세요." };
+  if (!name) return { ok: false, message: "청사진 이름을 적어 주세요." };
   if (input.projectId !== null && !isUuid(input.projectId)) return { ok: false, message: "프로젝트를 다시 골라 주세요." };
   const parsed = parseBoard(input.board);
   if (!parsed.ok) return parsed;

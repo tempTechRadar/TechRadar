@@ -77,7 +77,7 @@ export function ExportDialog({ name, board, onClose, say }: { name: string; boar
   return (
     <Modal title="내보내기" onClose={onClose}>
       <div className="bp-row" role="group" aria-label="내보낼 모양">{KINDS.map(([k, n]) => <button key={k} type="button" className="btn bp-sm" aria-pressed={kind === k} data-autofocus={k === "prompt" ? "" : undefined} onClick={() => setKind(k)}>{n}</button>)}</div>
-      <p className="muted">{kind === "meta" ? "이 글을 내 Claude에 붙여 넣으면 블루프린트를 한 번 더 다듬어 줘요. 앱은 AI를 부르지 않아요." : "글만 만들어요. 설치하거나 내 저장소를 바꾸지 않아요."}</p>
+      <p className="muted">{kind === "meta" ? "이 글을 내 Claude에 붙여 넣으면 청사진을 한 번 더 다듬어 줘요. 앱은 AI를 부르지 않아요." : "글만 만들어요. 설치하거나 내 저장소를 바꾸지 않아요."}</p>
       <textarea className="bp-out" readOnly value={text} aria-label="내보낼 글" rows={12} />
       <div className="bp-row"><button type="button" className="btn btn-primary" onClick={copy}>복사</button></div>
     </Modal>

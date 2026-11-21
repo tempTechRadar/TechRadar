@@ -47,6 +47,6 @@ test("내보내기: 프롬프트 · CLAUDE.md 표 · 메타프롬프트(같은 �
   assert.match(exportText("prompt", "x", b), /1\. 기획\(notion\)\n2\. 디자인 \+ 백\|엔드 — 동시에 진행/);
   assert.match(exportText("md", "x", b), /\| 2 \| 백\/엔드 \| - \|/);
   const meta = exportText("meta", 'a"><b', b);
-  assert.match(meta, /<블루프린트 이름="ab">/);
+  assert.match(meta, /<청사진 이름="ab">/);
   assert.match(meta, /끝났다고 볼 기준/);
 });

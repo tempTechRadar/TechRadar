@@ -92,7 +92,7 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
         <Link href="/recommend">추천</Link>{/* 메뉴에서 옮겨 옴(11-21, 메뉴 줄이기) */}
         <Link href="/dashboard">대시보드</Link>
         <Link href="/compare">기술 비교</Link>
-        <Link href="/blueprint">블루프린트</Link>
+        <Link href="/blueprint">청사진</Link>
       </nav>
       {readError ? null : (
         <>

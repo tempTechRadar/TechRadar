@@ -82,12 +82,12 @@ function TechItem({ t, use, focus, onPut }: { t: PoolTech; use?: TechUsage; focu
 
 function History({ history, usage, pool, onLoad }: { history: BlueprintRecord[] | null; usage: Map<string, TechUsage>; pool: PoolTech[]; onLoad: (h: BlueprintRecord) => void }) {
   if (history === null) return <p className="notice notice-error" role="alert">내 이력을 읽지 못했어요. 확정한 게 없다는 뜻이 아니에요. 판 만들기는 그대로 쓸 수 있어요.</p>;
-  if (!history.length) return <p className="muted">아직 확정한 블루프린트가 없어요. 판을 만든 뒤 "이 조합으로 확정"을 누르면 여기에 쌓여요.</p>;
+  if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. 판을 만든 뒤 "이 조합으로 확정"을 누르면 여기에 쌓여요.</p>;
   const names = new Map([...pool.map((t) => [t.id, t.name] as const), ...history.flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => [t.id, t.name] as const)))]);
   const top = [...usage].sort((a, b) => b[1].n - a[1].n).slice(0, 15);
   return (
     <>
-      <h2 className="bp-h">확정한 블루프린트 <span className="muted">{history.length}</span></h2>
+      <h2 className="bp-h">확정한 청사진 <span className="muted">{history.length}</span></h2>
       {history.length >= HISTORY_LIMIT ? <p className="muted">최근 {HISTORY_LIMIT}개만 보여요. 쓴 횟수도 이 안에서 셌어요.</p> : null}
       <ul className="bp-techs">{history.map((h) => (
         <li key={h.id} className="bp-tech">
@@ -99,7 +99,7 @@ function History({ history, usage, pool, onLoad }: { history: BlueprintRecord[] 
       <h2 className="bp-h">자주 쓴 기술</h2>
       {top.length ? <ul className="bp-techs">{top.map(([id, x]) => (
         <li key={id} className="bp-tech"><span><b>{names.get(id) ?? "이름 모름"}</b><span className="muted"> · {x.n}번 · 프로젝트 {x.projects}개 · {x.stages.join(", ")}</span></span></li>
-      ))}</ul> : <p className="muted">확정한 블루프린트에 붙인 기술이 아직 없어요.</p>}
+      ))}</ul> : <p className="muted">확정한 청사진에 붙인 기술이 아직 없어요.</p>}
     </>
   );
 }

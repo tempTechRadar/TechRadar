@@ -10,7 +10,7 @@ const cell = (s: string) => s.replace(/\|/g, "/").replace(/\r?\n/g, " ");
 const attr = (s: string) => s.replace(/["<>]/g, "");
 
 const META_RULES = [
-  "너는 개발 작업 계획을 다듬는 도우미야. 아래 블루프린트를 검토해서 같은 형식으로 고쳐 줘.",
+  "너는 개발 작업 계획을 다듬는 도우미야. 아래 청사진을 검토해서 같은 형식으로 고쳐 줘.",
   "- 빠진 단계가 있으면 넣고, 필요 없는 단계는 빼 줘.",
   "- 순서와 동시에 할 단계(같은 번호)가 맞는지 봐 줘.",
   "- 단계마다 끝났다고 볼 기준을 한 줄 붙여 줘.",
@@ -23,6 +23,6 @@ export function exportText(kind: ExportKind, name: string, b: Board): string {
     const rows = b.flatMap((col, i) => col.map((s) => `| ${i + 1} | ${cell(s.name)} | ${cell(techs(s.techs)) || "-"} |`));
     return `## 작업 단계와 쓸 도구\n\n| 순서 | 단계 | 쓸 도구 |\n|---|---|---|\n${rows.join("\n")}\n\n같은 순서 번호의 단계는 동시에 진행한다.\n`;
   }
-  if (kind === "meta") return `${META_RULES}\n\n<블루프린트 이름="${attr(name)}">\n${steps(b)}\n</블루프린트>\n`;
-  return `아래 블루프린트대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${steps(b)}\n`;
+  if (kind === "meta") return `${META_RULES}\n\n<청사진 이름="${attr(name)}">\n${steps(b)}\n</청사진>\n`;
+  return `아래 청사진대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${steps(b)}\n`;
 }

@@ -10,17 +10,17 @@ import { BlueprintApp } from "./blueprint-app";
 import "../alerts/alerts.css";
 import "./blueprint.css";
 
-export const metadata = { title: "블루프린트 · TechRadar" };
+export const metadata = { title: "청사진 · TechRadar" };
 
 export default async function BlueprintPage() {
   const user = await getCurrentUser();
-  if (!user) return <LoginNeeded title="블루프린트" why="로그인하면 단계마다 쓸 기술을 골라 내 개발 설계도를 만들고, 확정한 조합을 내 이력으로 쌓을 수 있어요." next="/blueprint" />;
+  if (!user) return <LoginNeeded title="청사진" why="로그인하면 단계마다 쓸 기술을 골라 내 청사진을 만들고, 확정한 조합을 내 이력으로 쌓을 수 있어요." next="/blueprint" />;
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB 없이 샘플로
   const db = preview ? null : await getServerSupabase();
   const data = preview ? SAMPLE_BLUEPRINT : db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
   return (
     <main className="alerts bp-page">
-      <h1 className="sr-only">블루프린트</h1>
+      <h1 className="sr-only">청사진</h1>
       {data ? <BlueprintApp who={user.id} {...data} />
         : <div className="notice notice-error" role="alert"><strong>내 기술을 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>

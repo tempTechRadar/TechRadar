@@ -58,7 +58,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <NavLink href="/new">새 기술</NavLink>
             <NavLink href="/views">내 레이더</NavLink>
             <NavLink href="/history">기록</NavLink>
-            <NavLink href="/blueprint">블루프린트</NavLink>{/* 넓은 화면 전용(design.md 14절 ⑤): 휴대폰 탭 바에는 없고 내 레이더 탭 줄에서 들어감 */}
+            <NavLink href="/blueprint">청사진</NavLink>{/* 넓은 화면 전용(design.md 14절 ⑤): 휴대폰 탭 바에는 없고 내 레이더 탭 줄에서 들어감 */}
           </div>
           <div className="site-nav-side">
             {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}

@@ -10,7 +10,7 @@ export default function BlueprintSamplePage() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <main className="alerts bp-page">
-      <h1 className="sr-only">블루프린트 샘플</h1>
+      <h1 className="sr-only">청사진 샘플</h1>
       <BlueprintApp who="sample" {...SAMPLE_BLUEPRINT} />
     </main>
   );

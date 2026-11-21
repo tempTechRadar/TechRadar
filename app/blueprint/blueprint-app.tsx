@@ -24,7 +24,7 @@ function readDraft(key: string): Draft | null {
 /** 판 · 이름을 이 브라우저에 두고 다시 불러온다. 서버 그림과 맞추려 처음엔 null, 브라우저에서 초안 또는 기본 템플릿으로 */
 function useDraft(key: string) {
   const [board, setBoard] = useState<Board | null>(null);
-  const [name, setName] = useState("내 블루프린트");
+  const [name, setName] = useState("내 청사진");
   useEffect(() => {
     const d = readDraft(key);
     setBoard(d ? toBoard(d.board) : fromNames(TEMPLATES[0].cols));
@@ -57,7 +57,7 @@ function useConfirm(onDone: () => void) {
 function withTech(board: Board, stageId: string, t: DragTech | PoolTech, say: Say): Board | null {
   const s = find(board, stageId)?.s;
   if (!s) return null;
-  if (t.grade === "danger") { say("위험 등급 기술은 블루프린트에 넣지 않아요."); return null; }
+  if (t.grade === "danger") { say("위험 등급 기술은 청사진에 넣지 않아요."); return null; }
   if (s.techs.some((x) => x.id === t.id)) { say(`${s.name}에 이미 있어요.`); return null; }
   if (s.techs.length >= MAX_TECHS) { say(`한 단계에 기술은 ${MAX_TECHS}개까지예요.`); return null; }
   return putTech(board, stageId, { id: t.id, name: t.name });
@@ -88,12 +88,12 @@ export function BlueprintApp({ who, pool, history, projects }: BlueprintPage & {
     setFocus(null); setBoard(toBoard(h.board)); setName(h.name);
     say(`"${h.name}"을(를) 불러왔어요.`, () => { setBoard(prev.board); setName(prev.name); say("되돌렸어요."); });
   };
-  const title = name.trim() || "이름 없는 블루프린트";
+  const title = name.trim() || "이름 없는 청사진";
 
   return (
     <>
       <div className="bp-bar">
-        <label className="sr-only" htmlFor="bp-name">블루프린트 이름</label>
+        <label className="sr-only" htmlFor="bp-name">청사진 이름</label>
         <input id="bp-name" className="bp-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
         <span className="bp-grow" />
         <button type="button" className="btn" onClick={() => setDlg("tpl")}>템플릿</button>
@@ -103,13 +103,13 @@ export function BlueprintApp({ who, pool, history, projects }: BlueprintPage & {
       </div>
       <div className="bp-work">
         <Drawer tab={tab} onTab={setTab} pool={pool} usage={usage} history={history} focus={focus ? find(board, focus)?.s ?? null : null} onFocus={setFocus} onPut={(t) => focus && put(focus, t)} onLoad={load} />
-        <div className="bp-canvas" role="region" aria-label="블루프린트 판. 왼쪽에서 오른쪽으로 순서, 같은 열은 동시에(나란히)">
+        <div className="bp-canvas" role="region" aria-label="청사진 판. 왼쪽에서 오른쪽으로 순서, 같은 열은 동시에(나란히)">
           <Lanes board={board} focus={focus} onFocus={setFocus} change={change} dropTech={put} />
         </div>
       </div>
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
       {dlg === "tpl" ? <TemplateDialog onClose={() => setDlg(null)} onPick={(cols, n) => replace(cols, `"${n}"으로 바꿨어요.`)} /> : null}
-      {dlg === "iv" ? <InterviewDialog onClose={() => setDlg(null)} onMake={(cols) => replace(cols, "인터뷰 답으로 블루프린트를 만들었어요.")} /> : null}
+      {dlg === "iv" ? <InterviewDialog onClose={() => setDlg(null)} onMake={(cols) => replace(cols, "인터뷰 답으로 청사진을 만들었어요.")} /> : null}
       {dlg === "export" ? <ExportDialog name={title} board={board} onClose={() => setDlg(null)} say={say} /> : null}
       {dlg === "confirm" ? <ConfirmDialog name={title} board={board} projects={projects} busy={done.busy} error={done.error} onConfirm={(p) => void done.confirm(title, p, board)} onClose={() => setDlg(null)} /> : null}
     </>
