@@ -17,6 +17,19 @@
 | 영향 범위 | `app/page.tsx`, `app/tech-map/*`, `lib/map/{build-map,view-config}.ts`, `lib/server/map-queries.ts`, 새 `app/nav/space-switch.tsx` |
 | 제약 | 일요일(11-22) 18:00 푸시 1번. 레이더 모양 · 움직임은 테마 때로(사용자). 끌어 놓기 안 함(불변 1). 범위가 넘치면 F③(밀도 이름) · G 디자인 다듬기부터 뺌 |
 | 열린 질문 | 소개 문구 ②(사용자 보류) |
+## I-P-12d-my-tech-tags · 2026-11-21 · 내 태그 — 사용자가 기술에 직접 붙이는 태그의 DB·서버·시험 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12d-my-tech-tags` (origin `feat/P-12d-alerts-history` 741c06b 위, #202에 얹음. UI는 FrontLead)
+- 출처: 사용자 결정 "지금 만들기"(Maestro 전달 11-21), 불변 3·4·5, ADR 0009(공개는 별명·수뿐), 권한 점검 의심 3(칸 단위 권한)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 사용자가 기술을 자기 말로 묶어 둘 곳이 없다(관심·적용 후보·보류 표시는 판단이라 자유 분류가 아님) |
+| 기대 결과 | 본인만 보는 태그를 기술에 붙이고 뗀다. 같은 태그를 다시 붙여도 한 줄(불변 3), 실패는 실패로(불변 4), 남의 태그는 못 읽고 못 씀(불변 5) |
+| 영향 범위 | 새 마이그레이션(my_tech_tags, RLS·칸 단위 권한), 새 `lib/domain/my-tech-tag.ts`·`lib/server/my-tech-tags.ts`·서버 액션 + 시험, `supabase/tests/` 권한 시험 SQL, erd |
+| 제약 | 공개하지 않음. 운영 적용은 사용자 승인 뒤(병합 전, 실행 직전 Maestro에). 새 라이브러리 없음. UI는 FrontLead |
+| 열린 질문 | 태그로 지도를 거르는 화면은 FrontLead가 정함 |
+
+**결과:** `my_tech_tags`(본인만 읽기·넣기·지우기, 고치기 없음, anon 0, 넣는 칸은 tech_id·tag만) + 넣기 전 트리거 `my_tech_tags_limits`(사람마다 잠금, 기술당 10·종류 50·합 1,000, 같은 태그면 유일 색인에 맡김). 서버 `lib/server/my-tech-tags.ts`(readTagPanel·readTechTags·readMyTechTagMap·addTag·removeTag)와 서버 액션 `app/tech-map/tag-actions.ts`(addTagAction·removeTagAction·techTagsAction, 미리보기는 저장 안 함). 같은 태그(대소문자 무시)를 다시 붙여도 한 줄(동시 요청은 유일 색인 23505 → 저장된 표기), 실패는 실패로, 읽은 줄이 실제 수보다 적으면 던짐. 시뮬레이터 지우기가 태그 붙은 가짜 기술을 남기게 참조 목록에 한 줄. 시험 1,351 통과, 빌드 통과, 뮤테이션 모두 잡힘, code-review 2번(10건+7건 반영). 권한 시험 SQL `supabase/tests/my_tech_tags_p12d.sql`은 **아직 안 돌림**(운영 적용과 함께 사용자 승인 뒤). **한계:** 비밀값 모양 거르기는 서버만(사용자 토큰으로 직접 넣으면 들어감, 본인만 읽음), JS와 Postgres의 소문자 규칙이 다른 몇 글자는 DB 유일 색인이 최종 판정.
 
 ## I-P-12d-ui-sweep · 2026-11-21 · 동결 전 지도 밖 화면 버그 고치기: 탭 바 가림 · 한국어 404 · 오류 · 블루프린트 390px · 미리보기 DB (김영식)
 - 브랜치: `fix/P-12d-ui-sweep`(`feat/P-12d-map-demo` 87b2777 위, 로컬, 미푸시)
