@@ -1,9 +1,10 @@
 -- P-12e-blueprint-studio M2: 청사진 템플릿(틀 · 조합)과 공개 갤러리. ADR 0035 · 0036(ADR 0009 개정), 계획 "데이터 · DB" M2.
 -- 틀(frame) = 단계와 연결만(기술 뺌), 조합(combo) = 단계와 기술. 기본 비공개, 만든 사람이 "공개"를 눌러야 갤러리에 보인다(ADR 0036 1).
 -- 갤러리는 DB 함수 public_blueprint_templates가 별명과 수만 골라 준다: author_id(사람 id)는 내보내지 않고, 시연 계정은 뺀다(ADR 0036 2, using_now 패턴).
--- 표는 만든 사람(과 관리자)만 읽는다(불변 5). 쓰기는 함수로만(save_blueprint_template · set_template_public · hide_blueprint_template):
+-- 표는 만든 사람만 읽는다(관리자도 남의 것은 못 읽음, 불변 5). 쓰기는 함수로만(save_blueprint_template · set_template_public · hide_blueprint_template):
 -- 그래프는 M1의 blueprint_graph_clean으로 검사 · 정리(한도 · 고리 · 이름 다시 읽기 · 위험 등급), 조합의 기술은 만든 사람의 관문(내 기술 · 적용 후보 · 내 이력)을 거친다.
--- 남의 조합 템플릿으로 확정할 때는 그 템플릿에 든 기술을 관문에 더해 받는다(템플릿을 고른 것이 사람의 선택, 위험 등급은 그래도 거절).
+-- 남의 조합 템플릿으로 확정해도 기술은 **내 관문만** 거친다(ADR 0034 1, 2026-11-21 사용자 결정 "고르기 칩"): 관문 밖 기술은 화면에 후보 칩으로만 보이고,
+-- 사람이 "적용 후보로 고르기"(set_tech_mark)로 판단해야 들어간다. 템플릿 기술을 관문에 더해 주면 확정 뒤 "내 이력"이 돼 계속 통과하므로 하지 않는다.
 -- 추가만 한다(M1 뒤에 적용).
 
 create table public.blueprint_templates (
@@ -93,7 +94,8 @@ end $$;
 revoke all on function public.set_template_public(uuid, boolean) from public, anon;
 grant execute on function public.set_template_public(uuid, boolean) to authenticated;
 
--- 관리자 숨김 · 되돌리기(ADR 0036 4). 공개된 템플릿만 다룬다(비공개는 주인만의 것). 숨기면 갤러리에서 빠진다(주인은 계속 봄)
+-- 관리자 숨김 · 되돌리기(ADR 0036 4). 숨기기는 공개된 템플릿만(비공개는 주인만의 것), 되돌리기는 숨긴 것이면 공개 여부와 무관하게
+-- (숨긴 뒤 작가가 비공개로 돌리면 되돌리기도 재공개도 막혀 굳지 않게). 숨기면 갤러리에서 빠진다(주인은 계속 봄)
 create function public.hide_blueprint_template(p_id uuid, p_hidden boolean)
 returns boolean
 language plpgsql security definer set search_path = '' as $$
@@ -103,8 +105,9 @@ begin
   if v_uid is null or not (select public.is_admin()) then raise exception '관리자만 숨길 수 있다'; end if;
   if p_hidden is null then raise exception '숨김 여부가 없다'; end if;
   update public.blueprint_templates set hidden_at = case when p_hidden then now() else null end, hidden_by = case when p_hidden then v_uid else null end
-   where id = p_id and is_public;
-  if not found then raise exception '공개 템플릿을 찾지 못했다'; end if;
+   where id = p_id and case when p_hidden then is_public else hidden_at is not null end;
+  if not found and p_hidden then raise exception '공개 템플릿을 찾지 못했다'; end if;
+  if not found then raise exception '숨긴 템플릿을 찾지 못했다'; end if;
   return p_hidden;
 end $$;
 revoke all on function public.hide_blueprint_template(uuid, boolean) from public, anon;
@@ -139,14 +142,14 @@ revoke all on function public.blueprint_template_for_use(uuid) from public, anon
 grant execute on function public.blueprint_template_for_use(uuid) to authenticated;
 
 -- 확정(v2)이 템플릿을 받게 바꾼다(M1의 같은 이름 · 모양). 템플릿은 blueprint_template_for_use와 같은 기준(내 것, 또는 공개 · 숨기지 않음 · 시연 계정 아님).
--- 조합 템플릿의 기술은 관문에 더해 받는다(사람이 고른 템플릿). 위험 등급은 blueprint_graph_clean이 그래도 거절
+-- 기술은 템플릿에 들었어도 내 관문만 거친다(머리말, ADR 0034 1)
 create or replace function public.confirm_blueprint_v2(p_id uuid, p_name text, p_project_id uuid, p_graph jsonb, p_template_id uuid default null)
 returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   v_uid uuid := (select auth.uid());
   v_name text := btrim(coalesce(p_name, ''));
-  v_owner uuid; v_clean jsonb; v_n int; v_extra uuid[] := '{}'; v_tpl public.blueprint_templates;
+  v_owner uuid; v_clean jsonb; v_n int;
 begin
   if v_uid is null then raise exception '로그인이 필요하다'; end if;
   if p_id is null then raise exception '확정 id가 없다'; end if;
@@ -159,15 +162,12 @@ begin
     if v_owner = v_uid then return 'exists'; end if;
     raise exception '이미 쓰인 확정 id';
   end if;
-  if p_template_id is not null then
-    select t.* into v_tpl from public.blueprint_templates t join public.profiles p on p.id = t.author_id
-     where t.id = p_template_id and (t.author_id = v_uid or (t.is_public and t.hidden_at is null and not p.is_demo));
-    if not found then raise exception '쓸 수 없는 템플릿'; end if;
-    select coalesce(array_agg((t ->> 'id')::uuid), '{}') into v_extra
-      from jsonb_array_elements(v_tpl.graph -> 'stages') s cross join lateral jsonb_array_elements(coalesce(s -> 'techs', '[]')) t
-     where t ->> 'id' is not null;
+  if p_template_id is not null and not exists (
+    select 1 from public.blueprint_templates t join public.profiles p on p.id = t.author_id
+     where t.id = p_template_id and (t.author_id = v_uid or (t.is_public and t.hidden_at is null and not p.is_demo))) then
+    raise exception '쓸 수 없는 템플릿';
   end if;
-  v_clean := public.blueprint_graph_clean(v_uid, p_graph, v_extra);
+  v_clean := public.blueprint_graph_clean(v_uid, p_graph);
   insert into public.blueprints (id, user_id, name, project_id, board, graph, template_id)
   values (p_id, v_uid, v_name, p_project_id, v_clean -> 'board', v_clean -> 'graph', p_template_id)
   on conflict (id) do nothing;

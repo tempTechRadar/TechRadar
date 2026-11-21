@@ -15,7 +15,7 @@ import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 export type ConfirmInput = { id: unknown; name: unknown; projectId: unknown; board: unknown };
-/** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 조합 템플릿의 기술은 관문에 더해 받는다(DB) */
+/** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 템플릿에 든 기술도 내 관문만 거친다(DB, ADR 0034 1) */
 export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown; templateId?: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
 
