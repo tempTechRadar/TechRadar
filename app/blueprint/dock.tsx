@@ -59,12 +59,15 @@ export function Dock(p: PanelProps) {
       </div>
       {open ? (
         <div className="dock-body">
+          {/* 손님(P-12f): 기술 탭(카탈로그 찾기)만. 이력 · 템플릿 · AI 점검은 내 데이터라 로그인 안내 */}
+          {p.guest && tab !== "tech" ? <p className="notice" role="status">로그인하면 {tab === "hist" ? "확정한 청사진이 여기에 쌓여요" : tab === "tpl" ? "판을 템플릿으로 저장하고 공개할 수 있어요" : "확정한 청사진을 AI로 점검받을 수 있어요"}. <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> · 지금 판은 이 브라우저에 그대로 있어요.</p> : <>
           {tab === "tech" ? <TechTab {...p} usage={usage} /> : null}
           {tab === "cand" ? <CandidateTab {...p} /> : null}{/* P-12f ⑤ 보드 녹이기: 관심 · 적용 후보 · 보류 */}
           {tab === "hist" ? <HistTab {...p} usage={usage} /> : null}
           {tab === "tpl" ? <TemplateTab {...p} /> : null}
           {/* 확정 전(null)이면 CheckPanel이 "③ 결과물에서 먼저 확정해 주세요"를 보인다(조각 I, DataCollector) */}
           {tab === "check" ? <CheckPanel blueprintId={p.confirmedId} /> : null}
+          </>}
         </div>
       ) : null}
     </section>
@@ -84,7 +87,7 @@ function Resizer({ h, max, onH }: { h: number; max: number; onH: (v: number) => 
   );
 }
 
-function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
+function TechTab({ graph, picked, apply, pool, tags, say, usage, guest, onFound }: PanelProps & { usage: Map<string, TechUsage> }) {
   const add = useSearchParams()?.get("add") ?? null;
   const [term, setTerm] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -107,7 +110,7 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & 
     const n = ++ask.current;
     setBusy(true);
     const got = await searchAction(term).catch(() => null);
-    if (n === ask.current) { setFound(got); setBusy(false); }
+    if (n === ask.current) { setFound(got); setBusy(false); if (got) onFound?.(got); }
   };
   const fields = stage ? stageFields(stage.name) : undefined;
   return (
@@ -125,10 +128,11 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & 
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
       <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾지 못했어요" : found ? `카탈로그에서 ${more.length}개 찾았어요` : ""}</p>
       {shown.length ? <ul className="dock-techs">{shown.map((t) => <TechCard key={t.id} t={t} use={usage.get(t.id)} tags={tags?.[t.id]} stage={stage?.name ?? null} placed={Boolean(stage?.techs.some((x) => x.id === t.id))} added={t === target} onPut={() => put(t)} />)}</ul>
-        : <p className="muted">{pool.length ? "이 조건에 맞는 내 기술 · 적용 후보가 없어요." : "아직 내 기술 · 적용 후보가 없어요. 지도에서 적용 후보로 고르면 여기에 와요."}</p>}
+        : <p className="muted">{pool.length ? "이 조건에 맞는 내 기술 · 적용 후보가 없어요." : guest ? "로그인 전에는 위 \"카탈로그에서 찾기\"로 기술을 찾아 넣어요." : "아직 내 기술 · 적용 후보가 없어요. 지도에서 적용 후보로 고르면 여기에 와요."}</p>}
       {found === null ? <p className="notice notice-error" role="alert">카탈로그를 찾지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
       {found ? <><h3 className="dock-h">카탈로그 <span className="muted">{more.length}</span></h3>
-        {more.length ? <ul className="dock-techs">{more.map((t) => <TechCard key={t.id} t={t} stage={null} gated onPut={() => undefined} />)}</ul> : <p className="muted">더 찾은 기술이 없어요.</p>}</> : null}
+        {more.length ? <ul className="dock-techs">{more.map((t) => guest ? <TechCard key={t.id} t={t} stage={stage?.name ?? null} placed={Boolean(stage?.techs.some((x) => x.id === t.id))} onPut={() => put(t)} />
+          : <TechCard key={t.id} t={t} stage={null} gated onPut={() => undefined} />)}</ul> : <p className="muted">더 찾은 기술이 없어요.</p>}</> : null}
     </>
   );
 }

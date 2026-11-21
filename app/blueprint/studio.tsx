@@ -13,7 +13,7 @@ import {
 import { fromNames } from "@/lib/blueprint/board";
 import { recommendAt } from "@/lib/blueprint/knowledge";
 import { addStageProblem, CONNECT_KO, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
-import type { BlueprintPage } from "@/lib/server/blueprints";
+import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
 import { ConfirmDialog, InterviewDialog } from "./dialogs";
@@ -30,8 +30,8 @@ import "./studio.css";
 
 const nodeTypes = { stage: StageNode };
 
-/** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함 */
-type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean };
+/** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
+type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean };
 type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
@@ -41,10 +41,10 @@ export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
-function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing }: Props) {
+function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
-  const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread } = useStudioGraph(who);
+  const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
   const [tags, setTags] = useState(tags0);
   // 넓은 화면: 캔버스(목록 모드 단추로 바꿈). 좁은 화면: 목록으로 고치기가 기본, "그림으로 보기"는 확대 · 이동만 되는 읽기 전용 캔버스
   const narrow = useNarrow(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
@@ -59,7 +59,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
-  const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
+  const [found, setFound] = useState<PoolTech[]>([]); // 손님이 카탈로그에서 찾은 기술: 끌어 놓을 수 있게 info에만 더한다(손님 서랍)
+  const info = useMemo(() => new Map([...found, ...pool].map((t) => [t.id, t])), [pool, found]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   // 실패 문구는 확정 창이 열려 있으면 창 안에만, 창을 닫은 뒤 왔으면 알림으로(같은 말을 두 번 보이지 않게)
   const confirmOpen = useRef(false);
@@ -93,8 +94,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
 
+  /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
+  const toLogin = (what: string) => {
+    if (window.confirm(`${what} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요. 로그인할까요?`)) router.push(`/login?next=${encodeURIComponent("/blueprint")}`);
+  };
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
+    if (guest) return toLogin("적용 후보로 고르려면");
     if (inflight.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
@@ -197,11 +203,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }
   // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
   const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
-  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
+  // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
+  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
   const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
-    onCandidate: (tid, tn) => void markCandidate(tid, tn), marking };
+    onCandidate: (tid, tn) => void markCandidate(tid, tn), marking,
+    guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
 
   return (
     <div className="studio" data-step={step} onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -219,6 +227,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
+      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 아래 기술 탭의 &quot;카탈로그에서 찾기&quot;로 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
+      {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
+        <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
       {step === 1 ? (
         <form className="studio-add" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}>
           <label>새 단계 <input value={newName} maxLength={20} placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} /></label>
@@ -243,7 +254,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         )}
         {narrow ? null : <aside className="studio-insp" aria-label="속성 패널"><Inspector {...panel} /></aside>}
       </div>
-      {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={() => { done.reset(); setConfirming(true); }} /> : null}
+      {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={guest ? () => toLogin("확정하려면") : () => { done.reset(); setConfirming(true); }} /> : null}
       <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="bp-toast" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}

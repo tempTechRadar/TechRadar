@@ -46,6 +46,8 @@ erDiagram
   technologies ||--o{ my_tech_tags : "붙인 기술"
   profiles ||--o{ blueprints : "확정한 블루프린트"
   projects |o--o{ blueprints : "어느 프로젝트에(없어도 됨)"
+  profiles ||--o{ blueprint_templates : "만든 템플릿"
+  blueprint_templates |o--o{ blueprints : "이 템플릿으로 시작(없어도 됨)"
   alerts ||--o{ scenarios : "요청"
   profiles ||--o{ judgments : "판단한다"
   profiles ||--o{ exports : "만든다"
@@ -369,10 +371,29 @@ UK: (kind, ecosystem, value).
 | user_id | uuid | ✔ | FK→profiles | 기본값 `auth.uid()` |
 | name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
 | project_id | uuid | | FK→projects (지우면 null) | 고른 프로젝트(본인 것만, 함수가 확인) |
-| board | jsonb | ✔ | | `[[{name, techs:[{id,name}]}]]` — 바깥 = 순서, 안 = 같이(나란히). 열 1~12개 · 128KB 이하(check). 모양 · 단계 이름 1~20자 · 나란히 1~4 · 기술 8개 · 있는 기술인지 · 위험 등급은 `confirm_blueprint`가 막고, 기술 이름은 DB에서 다시 읽어 넣음 |
+| board | jsonb | ✔ | | `[[{name, techs:[{id,name}]}]]` — 바깥 = 순서, 안 = 같이(나란히). 열 1~12개 · 128KB 이하(check). 모양 · 단계 이름 1~20자 · 나란히 1~4 · 기술 8개 · 있는 기술인지 · 위험 등급은 `confirm_blueprint`가 막고, 기술 이름은 DB에서 다시 읽어 넣음. P-12e부터는 graph의 투영(깊이 = 열, 같은 깊이는 y → x 순) |
+| graph | jsonb | | | P-12e M1. 캔버스 그래프 `{v:2, stages:[{id,name,x,y,techs}], edges:[{from,to}]}`, 256KB 이하(check). 단계 1~48 · 깊이 12 · 나란히 4 · 기술 8 · 연결 200 · 고리 없음은 `confirm_blueprint_v2`가 막음. 옛 줄은 null |
+| template_id | uuid | | FK→blueprint_templates (지우면 null) | P-12e. "이 템플릿으로 시작"한 템플릿(갤러리의 쓰인 수) |
 | created_at | timestamptz | ✔ | | |
 
-쓰기는 DB 함수 `confirm_blueprint(id, 이름, 프로젝트, 판)` 하나로만(표에 직접 넣기 권한 없음, tech_marks와 같은 방식): 같은 id를 내가 다시 보내면 'exists'(한 줄 그대로, 불변 3), 남의 id · 틀린 값은 예외로 아무것도 안 남김(불변 4). 고치기 · 지우기 없음(이력은 쌓이기만, 다음엔 불러와서 새로 확정). 기술 id는 FK가 아니라 jsonb 안에 있어 기술이 사라져도 이력의 이름은 남는다.
+P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프, 템플릿)`로: 기술은 **관문**(내 기술 · 적용 후보 · 내 이력, ADR 0034 1)에 든 것만 받는다. 템플릿으로 시작해도 템플릿 기술은 관문에 더하지 않는다(11-21 사용자 결정 "고르기 칩"). 옛 `confirm_blueprint`는 판을 그래프로 바꿔 v2로 넘긴다(실행 권한 회수는 M5).
+옛 설명 — 쓰기는 DB 함수 `confirm_blueprint(id, 이름, 프로젝트, 판)` 하나로만(표에 직접 넣기 권한 없음, tech_marks와 같은 방식): 같은 id를 내가 다시 보내면 'exists'(한 줄 그대로, 불변 3), 남의 id · 틀린 값은 예외로 아무것도 안 남김(불변 4). 고치기 · 지우기 없음(이력은 쌓이기만, 다음엔 불러와서 새로 확정). 기술 id는 FK가 아니라 jsonb 안에 있어 기술이 사라져도 이력의 이름은 남는다.
+
+**blueprint_templates** — 청사진 템플릿(P-12e M2, ADR 0035 · 0036). 틀(frame) = 단계와 연결만, 조합(combo) = 단계와 기술. 기본 비공개
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| id | uuid | ✔ | PK | 화면이 저장할 때 만들어 보냄(같은 저장 = 한 줄, 불변 3) |
+| author_id | uuid | ✔ | FK→profiles (지우면 함께) | 기본값 `auth.uid()`. 갤러리 함수는 내보내지 않음(ADR 0036 2) |
+| kind | text | ✔ | | `frame` / `combo` |
+| name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
+| graph | jsonb | ✔ | | blueprints.graph와 같은 모양 · 256KB 이하. 틀은 기술을 비우고 저장 |
+| board | jsonb | ✔ | | graph의 투영(미리 보기) |
+| is_public | boolean | ✔ | | 기본 false. 작가가 공개를 눌러야 갤러리에 보임(ADR 0036 1) |
+| hidden_at | timestamptz | | | 관리자 숨김. 숨기면 갤러리에서 빠지고 작가가 다시 공개 못 함 |
+| hidden_by | uuid | | FK→profiles (지우면 null) | 숨긴 관리자 |
+| created_at | timestamptz | ✔ | | |
+
+쓰기는 함수로만: `save_blueprint_template`(조합 기술은 작가의 관문 · 위험 등급 거절, 한 사람 100개), `set_template_public`(작가만), `hide_blueprint_template`(관리자, 숨기기는 공개된 것만 · 풀기는 숨긴 것이면 공개 여부와 무관). 읽기는 `public_blueprint_templates`(공개 · 숨김 아님 · 시연 계정 아님, 별명 — 설정 비공개면 "익명" — 과 쓴 사람 수만)와 `blueprint_template_for_use`(내 것 또는 공개된 것 한 개).
 
 **scenarios** — 적용 시나리오(참고 자료)
 | 칸 | 종류 | 필수 | 키 | 설명 |
@@ -492,7 +513,8 @@ UK: (kind, ecosystem, value).
 | alerts | 본인 읽기. 만들기는 서버. `status`는 판단 저장 함수로만 바뀜 |
 | judgments | **본인 알림에만, 사용자 로그인 토큰으로만 만들기.** 관리자 읽기만. 서비스 키로 쓰는 코드 없음(테스트) |
 | tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
-| blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint`로만(고른 프로젝트도 본인 것만), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
+| blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint` · `confirm_blueprint_v2`로만(고른 프로젝트도 본인 것만, 기술은 관문 안만, 템플릿은 내 것 또는 공개 · 숨김 아님 · 시연 아님), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
+| blueprint_templates | **작가만 읽기**(관리자도 남의 비공개 못 봄). 남의 공개 템플릿은 갤러리 함수로만(author_id 없이). 쓰기는 함수로만(직접 넣기 · 고치기 권한 없음), 숨기기는 관리자 함수. anon은 읽기 · 함수 모두 막힘 |
 | my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
 | news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 적용 전) |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
@@ -576,7 +598,8 @@ UK: (kind, ecosystem, value).
 | ai_calls | 9 | 1 | 켜짐 | ✔ |  |
 | alerts | 10 | 1 | 켜짐 | ✔ |  |
 | audit_logs | 8 | 1 | 켜짐 | ✔ |  |
-| blueprints | 6 | 1 | 켜짐 | ✔ | 새 표(P-12d-blueprint, 11-21 적용) |
+| blueprint_templates | 10 | 1 | 켜짐 | ✔ | 새 표(P-12e M2, 11-21 적용) |
+| blueprints | 8 | 1 | 켜짐 | ✔ | 새 표(P-12d-blueprint, 11-21 적용). P-12e M1로 graph · template_id 더함 |
 | categories | 5 | 1 | 켜짐 | ✔ |  |
 | changes | 15 | 1 | 켜짐 | ✔ |  |
 | chat_logs | 6 | 2 | 켜짐 | ✔ |  |
@@ -622,4 +645,5 @@ UK: (kind, ecosystem, value).
 - 2026-11-21 P-12d-blueprint(작업 `I-P-12d-blueprint`): `blueprints`와 DB 함수 `confirm_blueprint`를 더함(2.5절, 4절 권한, 관계 그림). 코드 리뷰 뒤 직접 넣기 권한을 빼고 함수로만 쓰게 바꿈(검사를 건너뛰지 못하게). 마이그레이션 `202611211000_P-12d_blueprints.sql`, 시험 `supabase/tests/blueprints_p12d.sql`(운영 되돌림 시험 기대값 19개 맞음). **운영 적용: 11-21 09:37 KST**(DB 이름 `p12d_blueprints`, 보안 점검 새 경고는 `confirm_blueprint` security definer 1건 — `set_tech_mark`와 같은 의도)
 - 2026-11-21 P-12d-my-tech-tags(작업 `I-P-12d-my-tech-tags`, 마이그레이션 `202611211400_P-12d_my_tech_tags.sql`, Maestro가 전한 사용자 결정 "지금 만들기"): `my_tech_tags` 표를 더함(2절, 4절 권한, 관계 그림). 칸 단위 권한으로 넣는 칸을 `tech_id`·`tag`로 좁힘(11-21 권한 점검 의심 3에서 배운 것). 운영 적용은 사용자 승인 뒤.
 - 2026-11-21 P-21a 마이그레이션 파일 이름을 `202611211200_P-21a_github_search_source.sql` → `202611211210_P-21a_github_search_source.sql`로 바꿈(map-demo의 `202611211200_P-12d_starter_set.sql`과 번호가 겹침, 작업 `I-P-21-criteria`). 내용은 같다: `sources`에 `github_search`(방법 api, 우선순위 3) 한 줄(`on conflict do nothing`). 운영에는 사용자 승인으로 대시보드 SQL 편집기에서 직접 적용했고(2026-11-21 13:28 KST, `sources` 9 → 10줄) 그 방식은 `schema_migrations`에 기록을 남기지 않아 운영 기록에는 이 줄이 없다(표·칸 변경 없음).
+- 2026-11-21 P-12e M1 · M2(작업 `I-P-12e-blueprint-db` · `I-P-12e-blueprint-templates`, 마이그레이션 `202611221000_P-12e_blueprint_graph.sql` · `202611221100_P-12e_blueprint_templates.sql`): `blueprints`에 graph · template_id, 새 표 `blueprint_templates`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 템플릿 기술은 관문에 더하지 않음(사용자 결정 "고르기 칩"). **운영 적용: 11-21**(DB 이름 `p12e_blueprint_graph` `20261121133714`, `p12e_blueprint_templates` `20261121135023`), 권한 시험 40 · 19 · 37항목 모두 기대값. M3(템플릿 사용기 표)는 만들면 더함.
 - 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에는 아직 적용하지 않았다**(사용자 승인 대기) — 7절(실제 DB 대조)에는 적용 뒤 칸 · 정책 수를 읽어 채운다. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고

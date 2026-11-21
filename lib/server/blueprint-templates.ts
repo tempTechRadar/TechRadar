@@ -90,8 +90,9 @@ export async function readPublicTemplates(db: SupabaseClient, kind: TemplateKind
 /** 템플릿 열기 결과. outsideGate = 내 관문(내 기술 · 적용 후보 · 내 이력) 밖 기술 id: 화면은 옅은 후보 칩으로만 보이고 "적용 후보로 고르기" 뒤에 넣는다(ADR 0034 1) */
 export type TemplateForUse = { id: string; kind: TemplateKind; name: string; graph: Graph; outsideGate: string[] };
 
-/** "이 템플릿으로 시작": 내 것이거나 공개(숨김 · 시연 계정 아님)인 템플릿의 그래프. 쓸 수 없거나 없으면 null. 못 읽으면 던진다 */
-export async function readTemplateForUse(db: SupabaseClient, id: unknown): Promise<TemplateForUse | null> {
+/** "이 템플릿으로 시작": 내 것이거나 공개(숨김 · 시연 계정 아님)인 템플릿의 그래프. 쓸 수 없거나 없으면 null. 못 읽으면 던진다.
+ *  guest = 로그인 전(M6): 관문이 없으니 기술은 모두 관문 밖 */
+export async function readTemplateForUse(db: SupabaseClient, id: unknown, guest = false): Promise<TemplateForUse | null> {
   if (!isUuid(id)) return null;
   const r = await db.rpc("blueprint_template_for_use", { p_id: id });
   if (r.error || !Array.isArray(r.data)) throw new Error(`템플릿을 읽지 못함: ${r.error?.message ?? "빈 응답"}`);
@@ -100,6 +101,6 @@ export async function readTemplateForUse(db: SupabaseClient, id: unknown): Promi
   const parsed = parseGraph(row.graph);
   if (!parsed.ok || !KINDS.includes(row.kind)) return null;
   const techIds = [...new Set(parsed.graph.stages.flatMap((s) => s.techs.map((t) => t.id)))];
-  const allowed = techIds.length ? await readAllowedTechIds(db) : new Set<string>();
+  const allowed = techIds.length && !guest ? await readAllowedTechIds(db) : new Set<string>();
   return { id: row.id, kind: row.kind as TemplateKind, name: row.name, graph: parsed.graph, outsideGate: techIds.filter((t) => !allowed.has(t)) };
 }

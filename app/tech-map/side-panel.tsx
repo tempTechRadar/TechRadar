@@ -94,7 +94,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
   return (
     <>
       <TechHead n={n} />
-      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} />
+      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
       {isRisky(n) ? <SecurityBand n={n} /> : null}
       {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <section className="side-decide" aria-label="판단과 청사진">
