@@ -23,7 +23,7 @@ function stub(t: { mock: { method: (o: object, n: "fetch", f: unknown) => unknow
 
 test("빈 저장소(트리 409)는 오류가 아니라 코드 파일이 없을 뿐이다", async (t) => {
   stub(t, () => new Response("", { status: 409 }));
-  assert.deepEqual(await readModels(REPO, { token: "" }), { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeLinks: [] });
+  assert.deepEqual(await readModels(REPO, { token: "" }), { found: [], errors: [], scanned: 0, treePaths: [], treeComplete: false, treeUnseen: [] });
 });
 
 test("서버 토큰을 붙이고, 토큰이 거절되면(401) 토큰 없이 한 번 더 읽는다. 모양이 이상한 토큰은 붙이지 않는다", async (t) => {
