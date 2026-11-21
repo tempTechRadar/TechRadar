@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { markTemplateNoteHelpful, readTemplateNotes, reportTemplateNote, saveTemplateNote } from "./template-notes.ts";
+import { canNoteTemplate, markTemplateNoteHelpful, readTemplateNotes, reportTemplateNote, saveTemplateNote } from "./template-notes.ts";
 
 type Answer = { data: unknown; error: { message: string; code?: string } | null };
 type Call = { table: string; op: string; row?: unknown; filters: [string, unknown][] };
@@ -22,7 +22,8 @@ function fakeDb(answers: Record<string, Answer>) {
       const builder: Record<string, unknown> = {
         insert: (row: unknown) => ((call.op = "insert"), (call.row = row), builder),
         select: () => builder, eq: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
-        in: (c: string, v: unknown) => (call.filters.push([c, v]), builder), order: () => builder, limit: () => builder,
+        in: (c: string, v: unknown) => (call.filters.push([c, v]), builder), is: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
+        order: () => builder, limit: () => builder,
         then: (resolve: (a: Answer) => unknown) => resolve(answers[table] ?? { data: [], error: null }),
       };
       return builder;
@@ -65,7 +66,7 @@ test("템플릿 사용기 읽기: 내 글 · 누름 · 신고 표시, 쓴 사람
   const { db, calls } = fakeDb({ template_notes: ok([row]), "rpc:my_template_note_ids": ok([NOTE]), template_helpful_votes: ok([{ note_id: NOTE }]), template_reports: ok([]) });
   const [v] = await readTemplateNotes(db, TPL, "u1");
   assert.deepEqual([v.mine, v.voted, v.reported, v.helpfulCount], [true, true, false, 2]);
-  assert.deepEqual(calls[0].filters, [["template_id", TPL]]);
+  assert.deepEqual(calls[0].filters, [["template_id", TPL], ["hidden_at", null]]); // 숨긴 글은 관리자 · 쓴 사람에게도 목록에서 뺌
   await assert.rejects(readTemplateNotes(fakeDb({ template_notes: fail() }).db, TPL, "u1"), /읽지 못함/);
 });
 
@@ -76,4 +77,14 @@ test("손님(viewerId null)은 사용기 줄만 읽고 내 글 · 누른 기록�
   assert.deepEqual([v.mine, v.voted, v.reported, v.helpfulCount], [false, false, false, 2]);
   assert.deepEqual(calls.map((c) => c.table), ["template_notes"]);
   await assert.rejects(readTemplateNotes(fakeDb({ template_notes: fail() }).db, TPL, null), /읽지 못함/);
+});
+
+test("쓸 수 있는지: DB 함수 can_note_template 결과 그대로, 잘못된 id는 부르지 않고 false, 못 읽으면 던진다", async () => {
+  const yes = fakeDb({ "rpc:can_note_template": ok(true) });
+  assert.equal(await canNoteTemplate(yes.db, TPL), true);
+  assert.deepEqual(yes.calls[0].row, { p_template_id: TPL });
+  const none = fakeDb({});
+  assert.equal(await canNoteTemplate(none.db, "x"), false);
+  assert.equal(none.calls.length, 0);
+  await assert.rejects(canNoteTemplate(fakeDb({ "rpc:can_note_template": fail() }).db, TPL), /읽지 못함/);
 });
