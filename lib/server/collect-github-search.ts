@@ -10,15 +10,20 @@ import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
 import { CollectError, readToken } from "./collect-fetch.ts";
 import { fetchSearchPage, PER_PAGE, type SearchQuery } from "./github-search-fetch.ts";
 import { countStarRows, readExisting, readSource, saveEntry, STARS_CAP, type Entry, type SaveCtx } from "./github-search-store.ts";
+import { logFailure } from "./log-failure.ts";
 import { recordStep } from "./run-log.ts";
 
 const REQUEST_GAP_MS = 1_000; // 검색 한도(토큰 30회/분)보다 넉넉하게 요청 사이 1초
-const SEARCH_BUDGET_MS = 20_000; // 묶음 시간 예산(240초) 중 별 후보의 몫(data-sources 0-1)
+// 묶음 시간 예산(240초) 중 별 후보의 몫: 검색 40초(18쪽 안팎 × 1초 간격 + 응답 지연), 저장까지 합쳐 90초
+const SEARCH_BUDGET_MS = 40_000;
+const COLLECT_BUDGET_MS = 90_000;
+const RETRY_INCOMPLETE_MS = 1_000; // 결과가 다 안 나온 쪽은 1초 뒤 한 번만 다시
 const SEARCH_WINDOW = 1_000; // GitHub 검색은 한 질의에 앞 1,000건까지만 준다
 
 type Deps = { fetchPage: (q: SearchQuery, token: string) => Promise<SearchPage>; token: () => string | undefined; sleep: (ms: number) => Promise<void>; now: () => number };
 type Cursor = SearchQuery & { done: boolean };
-type Found = { repos: Map<string, SearchRepo & { tags: SearchTag[] }>; unread: SearchTag[]; requests: number };
+/** unread: 시간 몫으로 다 못 읽은 태그. cutShort: 다시 읽어도 결과가 다 안 나와 나머지를 건너뛴 태그. pages: 결과가 다 나온 쪽 수 */
+type Found = { repos: Map<string, SearchRepo & { tags: SearchTag[] }>; unread: SearchTag[]; cutShort: SearchTag[]; requests: number; pages: number };
 type Tally = { created: number; merged: number; refreshed: number; capped: number; same: number; observed: number; suspects: number; unsaved: number };
 
 export function githubSearchCollector(deps: Partial<Deps> = {}): Collector {
@@ -30,27 +35,39 @@ async function collectStars(ctx: CollectorContext, d: Deps): Promise<{ items: nu
   const source = await readSource(ctx.db);
   if (!source.enabled) return { items: 0, summary: "GitHub 별 후보 검색 출처가 꺼져 있어요(관리자 설정)" };
   const token = readToken(d.token());
-  const found = await searchAll(d, token, Math.min(ctx.deadlineMs, d.now() + SEARCH_BUDGET_MS));
-  // 시간 몫이 시작 전에 다 지났으면 "후보 0곳"이 아니라 못 읽은 것(불변 2)
-  if (found.requests === 0) throw new CollectError("timeout", "시간 몫이 시작 전에 다 지나 GitHub 검색을 한 번도 하지 못했어요");
-  const { byRepo: existing, known, registry } = await readExisting(ctx.db);
-  const candidates: Candidate[] = [...found.repos.values()].map((r) => ({ ...r, inRegistry: registry.has(repoKey(r)), known: known.has(repoKey(r)) }));
+  const start = d.now();
+  const deadlineMs = Math.min(ctx.deadlineMs, start + COLLECT_BUDGET_MS);
+  const found = await searchAll(d, token, Math.min(deadlineMs, start + SEARCH_BUDGET_MS));
+  if (found.pages === 0) throw nothingRead(found); // 한 쪽도 다 못 읽었으면 "후보 0곳"이 아니라 못 읽은 것(불변 2)
+  const { byRepo: existing, known } = await readExisting(ctx.db);
+  // 신뢰 점수의 "공식 레지스트리 줄과 합쳐짐"도 주인이 증명한 줄로만 센다(검증 안 된 repo_url로 점수를 얻지 않게)
+  const candidates: Candidate[] = [...found.repos.values()].map((r) => ({ ...r, inRegistry: known.has(repoKey(r)), known: known.has(repoKey(r)) }));
   const plan = planCandidates(candidates, d.now());
-  const s: SaveCtx = { db: ctx.db, runId: ctx.runId, sourceId: source.id, at: new Date(d.now()).toISOString(), existing, starRows: countStarRows(existing) };
+  const partial = found.unread.length > 0 || found.cutShort.length > 0;
+  const s: SaveCtx = { db: ctx.db, runId: ctx.runId, sourceId: source.id, at: new Date(d.now()).toISOString(), existing, starRows: countStarRows(existing), partial };
   const tally: Tally = { created: 0, merged: 0, refreshed: 0, capped: 0, same: 0, observed: 0, suspects: plan.suspects.length, unsaved: 0 };
   try {
-    await saveAll(s, plan, tally, () => d.now() >= ctx.deadlineMs);
+    await saveAll(s, plan, tally, () => d.now() >= deadlineMs);
   } catch (e) {
-    await recordSteps(ctx, found, plan, tally).catch(() => {}); // 저장 실패로 멈춰도 거기까지 저장한 것은 실행 기록에 남긴다(원래 오류는 가리지 않음)
+    // 저장 실패로 멈춰도 거기까지 저장한 것은 실행 기록에 남긴다. 기록마저 실패하면 로그에 남기고 원래 오류를 던진다
+    await recordSteps(ctx, found, plan, tally).catch(logFailure("별 후보 단계(normalize·compare)를 기록하지 못함"));
     throw e;
   }
   await recordSteps(ctx, found, plan, tally);
   return { items: found.repos.size, summary: summarize(found, plan, tally) };
 }
 
-/** 태그마다 별 많은 순으로 쪽을 넘긴다. 태그를 돌아가며 한 쪽씩 읽어, 시간 몫이 다해도 태그마다 별 많은 쪽은 읽혀 있게 한다 */
+const nothingRead = (found: Found) =>
+  new CollectError("timeout", found.requests === 0
+    ? "시간 몫이 시작 전에 다 지나 GitHub 검색을 한 번도 하지 못했어요"
+    : `GitHub 검색이 모든 쪽에서 결과가 다 안 나왔다고 답했어요(incomplete_results, 태그 ${found.cutShort.join(", ")})`);
+
+/**
+ * 태그마다 별 많은 순으로 쪽을 넘긴다. 태그를 돌아가며 한 쪽씩 읽어, 시간 몫이 다해도 태그마다 별 많은 쪽은 읽혀 있게 한다.
+ * 다시 읽어도 결과가 다 안 나온 쪽이면 그 태그의 나머지를 건너뛴다(읽은 것은 쓴다): 한 쪽 때문에 묶음 전체가 재시도되지 않게
+ */
 async function searchAll(d: Deps, token: string, deadlineMs: number): Promise<Found> {
-  const found: Found = { repos: new Map(), unread: [], requests: 0 };
+  const found: Found = { repos: new Map(), unread: [], cutShort: [], requests: 0, pages: 0 };
   let cursors: Cursor[] = SEARCH_TAGS.map((tag) => ({ tag, upper: null, page: 1, done: false }));
   while (cursors.length > 0) {
     for (const c of cursors) {
@@ -58,14 +75,33 @@ async function searchAll(d: Deps, token: string, deadlineMs: number): Promise<Fo
         found.unread = cursors.filter((x) => !x.done).map((x) => x.tag);
         return found;
       }
-      if (found.requests++ > 0) await d.sleep(REQUEST_GAP_MS);
-      const page = await d.fetchPage({ tag: c.tag, upper: c.upper, page: c.page }, token);
+      const page = await readPage(d, token, c, found);
       for (const r of page.items) addFound(found, r, c.tag);
-      advance(c, page);
+      advanceOrStop(c, page, found);
     }
     cursors = cursors.filter((c) => !c.done);
   }
   return found;
+}
+
+/** 한 쪽 읽기. 결과가 다 안 나왔으면 1초 뒤 한 번만 다시 */
+async function readPage(d: Deps, token: string, c: Cursor, found: Found): Promise<SearchPage> {
+  const q: SearchQuery = { tag: c.tag, upper: c.upper, page: c.page };
+  if (found.requests++ > 0) await d.sleep(REQUEST_GAP_MS);
+  let page = await d.fetchPage(q, token);
+  if (page.incomplete) {
+    found.requests++;
+    await d.sleep(RETRY_INCOMPLETE_MS);
+    page = await d.fetchPage(q, token);
+  }
+  if (!page.incomplete) found.pages++;
+  return page;
+}
+
+function advanceOrStop(c: Cursor, page: SearchPage, found: Found): void {
+  if (!page.incomplete) return advance(c, page);
+  c.done = true;
+  found.cutShort.push(c.tag);
 }
 
 function addFound(found: Found, r: SearchRepo, tag: SearchTag): void {
@@ -96,7 +132,8 @@ async function saveAll(s: SaveCtx, plan: Plan, t: Tally, overTime: () => boolean
   const entries: Entry[] = [
     ...plan.top.map((c): Entry => ({ c, key: c.key, score: c.score, flags: [], mode: "top" })),
     ...plan.suspects.map((c): Entry => ({ c, key: c.key, score: null, flags: c.flags, mode: "suspect" })),
-    ...plan.rest.map((c): Entry => ({ c, key: c.key, score: c.score, flags: [], mode: "refresh" })),
+    // 다 못 읽은 실행은 지난 표시를 맞추지 않는다: 짝을 못 읽은 복제본의 표시가 지워지지 않게
+    ...(s.partial ? [] : plan.rest.map((c): Entry => ({ c, key: c.key, score: c.score, flags: [], mode: "refresh" }))),
   ];
   for (const [i, e] of entries.entries()) {
     if (overTime()) {
@@ -128,6 +165,8 @@ function summarize(found: Found, plan: Plan, t: Tally): string {
   if (t.suspects) parts.push(`의심 표시 ${t.suspects}곳은 NEW 후보(얇게)`);
   if (t.capped) parts.push(`상한 ${STARS_CAP}에 닿아 ${t.capped}곳은 안 올림`);
   if (found.unread.length) parts.push(`시간 몫으로 다 못 읽은 태그: ${found.unread.join(", ")}`);
+  if (found.cutShort.length) parts.push(`결과가 다 안 나와 나머지를 건너뛴 태그: ${found.cutShort.join(", ")}`);
+  if (found.unread.length || found.cutShort.length) parts.push("다 못 읽어 의심 표시를 지우거나 점수를 바꾸지 않음");
   if (t.unsaved) parts.push(`시간이 모자라 ${t.unsaved}곳은 다 저장 못 함(다음 실행이 이어 감)`);
   return parts.join(", ");
 }

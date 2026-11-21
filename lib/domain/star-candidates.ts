@@ -1,6 +1,7 @@
 // 별 후보의 순수 규칙(P-21a, ADR 0030, 데이터설계 8절 "별 후보"): 검색 응답 읽기, 관문, 의심 표시, 태그 안 점수, 상위 고르기. 바깥 호출·DB는 lib/server.
 // 별은 "한번 볼 만하다"는 신호일 뿐이라 관문 → 의심 거르기 → 점수 순으로 쓴다. 숫자는 모두 팀 추정(첫 수집 뒤 세어 고친다).
 // 응답 모양이 다르면 0건이 아니라 null: 못 읽은 것을 "후보 없음"으로 단정하지 않는다(불변 2).
+import { cleanText } from "./clean-text.ts";
 import { repoKey, repoRefOf } from "./github-repo.ts";
 
 export const SEARCH_TAGS = ["mcp-server", "mcp", "agent-skills", "claude-skills"] as const;
@@ -110,9 +111,9 @@ function isCloneCluster(group: SearchRepo[]): boolean {
   return (max - Math.min(...stars)) * 100 <= max * CLONE_GAP_PCT; // 정수로 비교해 경계(정확히 5%)가 소수 오차로 흔들리지 않게
 }
 
-/** 값마다 백분위(0~1). 같은 값은 같은 자리(가운데 순위), 하나뿐이면 1 */
+/** 값마다 백분위(0~1). 같은 값은 같은 자리(가운데 순위). 하나뿐이면 비교할 상대가 없어 중립 0.5(혼자 남은 태그의 저장소가 모든 항목 만점을 받지 않게) */
 export function percentiles(values: number[]): number[] {
-  if (values.length === 1) return [1];
+  if (values.length === 1) return [0.5];
   return values.map((v) => {
     const below = values.filter((x) => x < v).length;
     const same = values.filter((x) => x === v).length;
@@ -164,9 +165,7 @@ export function planCandidates(all: Candidate[], nowMs: number): Plan {
 /** 종류 임시 추정: mcp 태그가 하나라도 있으면 mcp(여러 태그면 mcp 먼저), 아니면 skill */
 export const typeOf = (tags: SearchTag[]): "mcp" | "skill" => (tags.some((t) => t === "mcp-server" || t === "mcp") ? "mcp" : "skill");
 
-/** 한 줄 설명: 공백을 한 칸으로, 200자(코드 포인트)에서 자름, 비면 null. 이모지(대리쌍)를 반으로 자르면 Postgres가 그 글을 거부한다 */
+/** 한 줄 설명: 저장소 설명도 믿지 않는 입력이라 위험한 글자를 지우고 200 코드 포인트에서 자름(clean-text.ts), 비면 null */
 export function oneLinerOf(description: string | null): string | null {
-  const chars = Array.from((description ?? "").replace(/\s+/g, " ").trim());
-  if (chars.length === 0) return null;
-  return chars.length > MAX_ONE_LINER ? `${chars.slice(0, MAX_ONE_LINER - 1).join("")}…` : chars.join("");
+  return cleanText(description ?? "", MAX_ONE_LINER, true) || null;
 }

@@ -39,10 +39,14 @@ test("실제 크기의 응답(100건, 건당 7KB 안팎 = 70만 자 넘게)을 '
   await withFetch(200, body, async () => assert.equal((await fetchSearchPage({ tag: "mcp", upper: null, page: 1 }, TOKEN)).items.length, 100));
 });
 
-test("후보 없음으로 단정하지 않는다: 결과가 다 안 나옴·모양 이상·404·422·한도 초과는 수집 오류", async () => {
+test("GitHub가 결과가 다 안 나왔다고 한 쪽(incomplete_results)은 던지지 않고 incomplete로 돌려준다(다시 읽기는 수집기가)", async () => {
+  await withFetch(200, ok({ incomplete_results: true }), async () => assert.equal((await fetchSearchPage({ tag: "mcp", upper: null, page: 1 }, TOKEN)).incomplete, true));
+});
+
+test("후보 없음으로 단정하지 않는다: 모양 이상·404·422·한도 초과는 수집 오류", async () => {
   const q = { tag: "mcp" as const, upper: null, page: 1 };
   const cases: [number, string, string, Record<string, string>?][] = [
-    [200, ok({ incomplete_results: true }), "timeout"], [200, "{}", "parse"], [404, "", "http_status"], [422, "{}", "http_status"], [403, "{}", "rate_limited", { "x-ratelimit-remaining": "0" }], [429, "{}", "rate_limited"],
+    [200, "{}", "parse"], [404, "", "http_status"], [422, "{}", "http_status"], [403, "{}", "rate_limited", { "x-ratelimit-remaining": "0" }], [429, "{}", "rate_limited"],
   ];
   for (const [status, body, kind, headers] of cases) {
     await withFetch(status, body, () => assert.rejects(fetchSearchPage(q, TOKEN), (e: unknown) => e instanceof CollectError && e.kind === kind), headers);

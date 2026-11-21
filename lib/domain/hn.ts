@@ -1,6 +1,7 @@
 // Hacker News 화제 신호의 순수 규칙(P-21b, ADR 0030 2번, 데이터설계 8절 관문 1). 주인: 김영식 A.
 // 글은 GitHub 저장소나 npm 패키지로 이어질 때만 쓴다(근거 없는 글은 저장하지 않음). 글의 제목·주소는 믿지 않는 입력이라 여기서 거른다.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
+import { cleanText } from "./clean-text.ts";
 
 export const HN_KEYWORDS = ["mcp", "model context protocol", "claude code", "agent skills"] as const;
 
@@ -85,9 +86,7 @@ export function bestPerTarget(hits: { target: StoryTarget; hit: HnHit }[]): { ta
   return [...best.values()];
 }
 
-// eslint-disable-next-line no-control-regex
-const CONTROL = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩]/g;
-const cleanTitle = (t: string) => t.replace(CONTROL, " ").replace(/\s+/g, " ").trim().slice(0, MAX_TITLE);
+const cleanTitle = (t: string) => cleanText(t, MAX_TITLE);
 
 export function signalOf(hit: HnHit, seenAt: string): HnSignal {
   return {
