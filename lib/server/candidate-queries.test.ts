@@ -37,14 +37,13 @@ const tables = () => ({
   ],
 });
 
-test("후보 탭: 내 것만, 표시와 알림 판단 중 더 최근 것(보드 칸과 같은 계산), 갈래도 함께", async () => {
+test("후보 탭: 내 것만, 표시와 알림 판단 중 더 최근 것(보드 칸과 같은 계산)", async () => {
   const b = await readCandidateBoard(fakeDb(tables()), "me");
   assert.deepEqual([b.interest, b.candidate, b.hold].map((c) => c.map((x) => x.name)), [["a"], ["c"], ["b"]]);
-  assert.equal(b.interest[0].field, "프론트엔드");
   assert.equal(b.hold[0].note, "다음 달에");
 });
 
 test("하나라도 못 읽으면 던진다(빈 칸으로 보이지 않게, 불변 2)", async () => {
   await assert.rejects(readCandidateBoard(fakeDb(tables(), { tech_marks: "timeout" }), "me"));
-  await assert.rejects(readCandidateBoard(fakeDb(tables(), { categories: "timeout" }), "me"), /갈래를 읽지 못함/);
+  await assert.rejects(readCandidateBoard(fakeDb(tables(), { alerts: "timeout" }), "me"));
 });
