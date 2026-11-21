@@ -12,14 +12,15 @@ import { filterPool, poolTags, putProblem } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
+import { CandidateTab } from "./candidate-tab";
 import { CheckPanel } from "./check-panel";
 import { TemplateTab } from "./template-tab";
 import { TechChip } from "./tech-chip";
 import { TECH_DRAG, type PanelProps, type Step } from "./studio-types";
 import "./dock.css";
 
-type Tab = "tech" | "hist" | "tpl" | "check";
-const TABS: [Tab, string][] = [["tech", "기술"], ["hist", "내 이력"], ["tpl", "템플릿"], ["check", "AI 점검"]];
+type Tab = "tech" | "cand" | "hist" | "tpl" | "check";
+const TABS: [Tab, string][] = [["tech", "기술"], ["cand", "후보"], ["hist", "내 이력"], ["tpl", "템플릿"], ["check", "AI 점검"]];
 const STEP_TAB: Record<Step, Tab> = { 1: "tpl", 2: "tech", 3: "check" };
 const H = { min: 120, start: 260, step: 24, max: 560 };
 /** 높이 한도 = 화면 높이의 70%. 서버는 화면을 몰라 기본값으로 그리고, 붙은 뒤(useEffect) 맞춘다(하이드레이션 어긋남 없게) */
@@ -59,6 +60,7 @@ export function Dock(p: PanelProps) {
       {open ? (
         <div className="dock-body">
           {tab === "tech" ? <TechTab {...p} usage={usage} /> : null}
+          {tab === "cand" ? <CandidateTab {...p} /> : null}{/* P-12f ⑤ 보드 녹이기: 관심 · 적용 후보 · 보류 */}
           {tab === "hist" ? <HistTab {...p} usage={usage} /> : null}
           {tab === "tpl" ? <TemplateTab {...p} /> : null}
           {/* 확정 전(null)이면 CheckPanel이 "③ 결과물에서 먼저 확정해 주세요"를 보인다(조각 I, DataCollector) */}
