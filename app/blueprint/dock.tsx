@@ -1,6 +1,6 @@
 "use client";
 // 청사진 스튜디오 하단 패널(P-12e 조각 K, 유니티식): 높이 조절 · 접기, 탭 = 기술 | 내 이력 | 템플릿 | AI 점검.
-// 단계별 기본 탭: ① 단계 구축 → 템플릿(틀), ② 스킬 붙이기 → 기술, ③ 결과물 → AI 점검(CheckPanel, 조각 I). 템플릿 내용은 조각 F가 채운다(그전엔 준비 중).
+// 단계별 기본 탭: ① 단계 구축 → 템플릿(틀), ② 스킬 붙이기 → 기술, ③ 결과물 → AI 점검(CheckPanel, 조각 I). 템플릿 탭은 template-tab.tsx(서버는 조각 F).
 // 기술 탭 = 옛 서랍(drawer.tsx) 로직: 관문(내 기술 · 적용 후보 · 이력만, candidateIds) · 고른 단계에 맞는 것(fitsStage) · 내 태그 · ?add= 강조.
 // 끌어서 캔버스 단계에 놓거나(TECH_DRAG, 놓기는 studio), 키보드로 "고른 단계에 넣기". 그래프는 apply로만 바꾼다.
 import { useSearchParams } from "next/navigation";
@@ -13,6 +13,7 @@ import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
 import { CheckPanel } from "./check-panel";
+import { TemplateTab } from "./template-tab";
 import { TechChip } from "./tech-chip";
 import { TECH_DRAG, type PanelProps, type Step } from "./studio-types";
 import "./dock.css";
@@ -59,7 +60,7 @@ export function Dock(p: PanelProps) {
         <div className="dock-body">
           {tab === "tech" ? <TechTab {...p} usage={usage} /> : null}
           {tab === "hist" ? <HistTab {...p} usage={usage} /> : null}
-          {tab === "tpl" ? <Soon what="템플릿" text="틀(단계와 연결만)과 조합(단계와 기술)을 골라 판에 펼치는 곳이에요. 템플릿 서버가 합쳐지면 채워져요." /> : null}
+          {tab === "tpl" ? <TemplateTab {...p} /> : null}
           {/* 확정 전(null)이면 CheckPanel이 "③ 결과물에서 먼저 확정해 주세요"를 보인다(조각 I, DataCollector) */}
           {tab === "check" ? <CheckPanel blueprintId={p.confirmedId} /> : null}
         </div>
@@ -79,10 +80,6 @@ function Resizer({ h, max, onH }: { h: number; max: number; onH: (v: number) => 
       onPointerMove={(e) => { if (from.current) onH(from.current.h + from.current.y - e.clientY); }}
       onPointerUp={() => { from.current = null; }} onPointerCancel={() => { from.current = null; }} />
   );
-}
-
-function Soon({ what, text }: { what: string; text: string }) {
-  return <div className="notice notice-empty"><strong>{what} (준비 중)</strong> {text}</div>;
 }
 
 function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
