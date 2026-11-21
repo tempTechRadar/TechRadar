@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
+import { stageFields } from "./knowledge.ts";
 import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
@@ -55,4 +56,12 @@ test("못 바꾸는 이유: 위험 등급 · 이미 있음 · 8개, 빈 이름 �
   assert.match(addStageProblem(many, "하나 더")!, /48/);
   assert.deepEqual(newStageSpot(emptyGraph()), { x: 0, y: 0 });
   assert.deepEqual(newStageSpot({ ...emptyGraph(), stages: [st("a", 40, 10), st("b", 300, 60)] }), { x: 580, y: 60 });
+});
+
+test("사용자가 지은 단계 이름이 객체 기본 속성(constructor 등)과 겹쳐도 거르기가 깨지지 않는다", () => {
+  const pool = [tech("a", { field: "디자인" })];
+  for (const stage of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+    assert.equal(stageFields(stage), undefined);
+    assert.deepEqual(names(filterPool(pool, { stage, term: "", tag: null, tags: {}, add: null, usage: new Map() })), ["a"]);
+  }
 });
