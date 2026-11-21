@@ -16,6 +16,7 @@ import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { confirmAction } from "./actions";
 import { ConfirmDialog } from "./dialogs";
+import { GuideLines, useDragAssist } from "./drag-assist";
 import { StageNode, type StageNodeType } from "./stage-node";
 import { Stepper, StepResult } from "./stepper";
 import { TECH_DRAG, type Picked, type Step } from "./studio-types";
@@ -63,6 +64,7 @@ function StudioInner({ who, pool, projects, add }: Props) {
   const [newName, setNewName] = useState("");
   const [confirming, setConfirming] = useState(false);
   const { toast, say, clear } = useToast();
+  const assist = useDragAssist();
   const info = useMemo(() => new Map(pool.map((t) => [t.id, t])), [pool]);
   const done = useConfirm(() => { setConfirming(false); say("확정해서 내 이력에 남겼어요. 붙인 기술의 쓴 횟수에 더해져요."); router.refresh(); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
@@ -102,22 +104,28 @@ function StudioInner({ who, pool, projects, add }: Props) {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
     return { id, source: e.from, target: e.to, selected: selEdges.has(id), className: on ? "se se-on" : "se", markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 } };
   });
+  const near = assist.near;
+  if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
+    label: near.blocked === "cycle" ? "고리가 생겨 못 이어요" : near.blocked ? "못 이어요" : "놓으면 이어져요",
+    labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
   function onNodesChange(changes: NodeChange<StageNodeType>[]) {
     let nextSel: Set<string> | null = null, moved = drag, ended = false;
+    const raw = new Map<string, Pos>();
     for (const c of changes) {
       if (c.type === "select") { nextSel ??= new Set(sel); if (c.selected) nextSel.add(c.id); else nextSel.delete(c.id); }
       if (c.type === "position") {
-        if (c.position) { moved = new Map(moved ?? []); moved.set(c.id, { x: Math.round(c.position.x), y: Math.round(c.position.y) }); }
+        if (c.position) raw.set(c.id, c.position);
         if (c.dragging === false) ended = true;
       }
     }
+    if (raw.size) moved = new Map([...(moved ?? []), ...assist.during(g, raw)]); // 격자 · 보조선에 붙인 위치
     if (nextSel) {
       setSel(nextSel);
       const one = nextSel.size === 1 ? [...nextSel][0] : null;
       setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : null));
     }
-    if (ended) { if (moved?.size) apply(moveStages(g, moved)); setDrag(null); } else if (moved !== drag) setDrag(moved);
+    if (ended) { const r = assist.drop(g, moved); apply(r.next, r.linked ? "가까이 둔 단계와 이었어요." : undefined); setDrag(null); } else if (moved !== drag) setDrag(moved);
   }
   function onEdgesChange(changes: EdgeChange[]) {
     let next: Set<string> | null = null;
@@ -167,6 +175,7 @@ function StudioInner({ who, pool, projects, add }: Props) {
           deleteKeyCode="Delete" selectionOnDrag panOnDrag={[1, 2]} panActivationKeyCode="Space" minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }}
           proOptions={{ hideAttribution: true }}>
           <Background gap={16} size={1} />
+          <GuideLines guides={assist.guides} />
           <MiniMap pannable zoomable ariaLabel="미니맵" />
         </ReactFlow>
       </div>

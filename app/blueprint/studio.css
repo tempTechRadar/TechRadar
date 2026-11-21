@@ -37,6 +37,14 @@
 /* 연결선: 옅고 가늘게, 고른 단계 · 선만 진하게 */
 .react-flow__edge.se .react-flow__edge-path { stroke: var(--faint); stroke-width: 1; }
 .react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.selected .react-flow__edge-path { stroke: var(--ink); stroke-width: 1.5; }
+/* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
+.react-flow__edge.se-near .react-flow__edge-path { stroke: var(--ink-2); stroke-dasharray: 4 3; }
+.react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
+.react-flow__minimap-node { fill: var(--faint); } /* 미니맵의 단계가 흰 바탕에 묻히지 않게 */
+/* 정렬 보조선(캔버스 좌표) */
+.sg { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--ink); opacity: .45; }
+.sg-x { width: 1px; height: 100000px; }
+.sg-y { width: 100000px; height: 1px; }
 
 /* 기술 칩(주인공): 글자 아이콘 · 이름 · 등급 점 */
 .tc { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); }
