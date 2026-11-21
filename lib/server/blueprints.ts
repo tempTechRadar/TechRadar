@@ -5,7 +5,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { categoryNames, type Category, type Grade } from "../map/build-map.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
-import { HISTORY_LIMIT, parseBoard, readStored, type BlueprintRecord } from "../blueprint/stored.ts";
+import { HISTORY_LIMIT, parseBoard, readStored, readStoredGraph, type BlueprintRecord } from "../blueprint/stored.ts";
+import { parseGraph, type Graph } from "../blueprint/graph.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { buildKanban } from "../views/kanban.ts";
 import { like } from "./capture.ts";
@@ -14,6 +15,8 @@ import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 export type ConfirmInput = { id: unknown; name: unknown; projectId: unknown; board: unknown };
+/** v2 확정(P-12e): 캔버스 그래프. templateId는 M2(템플릿) 뒤에 쓴다 */
+export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
 
 const TECH_COLUMNS = "id, display_name, type, grade, category_id, one_liner";
@@ -89,7 +92,74 @@ export async function findPoolTechs(db: SupabaseClient, query: string): Promise<
   return unique.map((x) => toPool(x, map, { projects: 0, mark: null }));
 }
 
-const DB_REFUSED: Record<string, string> = { "본인 프로젝트가 아니다": "프로젝트를 다시 골라 주세요.", "이미 쓰인 확정 id": "확정을 다시 눌러 주세요." };
+/** DB 거절 문구의 열쇠 → 쉬운 말. 열쇠는 마이그레이션 문구 그대로여야 한다(blueprints.test.ts가 파일과 대조) */
+export const DB_REFUSED: Record<string, string> = {
+  "본인 프로젝트가 아니다": "프로젝트를 다시 골라 주세요.",
+  "이미 쓰인 확정 id": "확정을 다시 눌러 주세요.",
+  // v2(M1 202611221000 blueprint_graph_clean)의 거절 문구
+  "위험 등급 기술": "위험한 기술은 넣지 않아요. 빼고 다시 확정해 주세요.",
+  "고른 적 없는 기술": "청사진에는 내 기술 · 적용 후보 · 내 이력의 기술만 넣을 수 있어요. 지도에서 적용 후보로 고른 뒤 넣어 주세요.",
+  "기술을 찾지 못했다": "찾지 못한 기술이 있어요. 빼고 다시 넣어 주세요.",
+  "사이클": "연결선이 돌고 있어 순서를 정할 수 없어요. 연결 하나를 끊어 주세요.",
+  "단계 깊이는 12": "단계는 12단계 깊이까지예요.",
+  "같은 깊이의 단계는 4": "같은 순서(동시)에 둘 수 있는 단계는 4개까지예요.",
+  "단계는 1~48": "단계는 1~48개까지예요.",
+  "단계마다 기술은 8": "단계마다 기술은 8개까지예요.",
+  "연결선은 200": "연결선은 200개까지예요.",
+  "단계 이름은 1~20자": "단계 이름은 1~20자로 적어 주세요.",
+  "단계 자리(x, y)": "단계 자리가 맞지 않아요. 자동 정렬을 누른 뒤 다시 확정해 주세요.",
+  "자기 자신": "단계를 자기 자신에 이을 수 없어요.",
+  "같은 연결선": "같은 연결선이 두 번 있어요. 하나를 지워 주세요.",
+  "없는 단계": "연결선이 없는 단계를 가리켜요. 그 연결을 지워 주세요.",
+  "단계 id": "단계 하나의 이름표가 맞지 않아요. 그 단계를 지우고 다시 놓아 주세요.",
+  "청사진 이름은 1~60자": "청사진 이름은 1~60자로 적어 주세요.",
+  "v2가 아니다": "청사진 모양이 맞지 않아요. 새로 고친 뒤 다시 확정해 주세요.",
+  "단계 열은 1~12": "단계 열은 1~12개까지예요.",
+  "나란히 단계는 1~4": "나란히 둘 수 있는 단계는 4개까지예요.",
+  "템플릿은 아직": "템플릿은 아직 쓸 수 없어요.",
+};
+const CONFIRM_FAILED = "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요.";
+
+/** DB 함수 답 → 결과. 거절 문구는 쉬운 말로, 'saved' · 'exists'만 성공(같은 id는 한 줄, 불변 3). 그 밖은 실패(불변 4) */
+function confirmResult(r: { data: unknown; error: { message: string } | null }): ConfirmResult {
+  if (r.error) {
+    console.error("청사진을 확정하지 못함", r.error.message);
+    const known = Object.entries(DB_REFUSED).find(([k]) => r.error!.message.includes(k));
+    // 관문 · 위험 등급은 DB가 막힌 기술 이름을 ": 이름"으로 붙인다(어느 기술을 뺄지 알게)
+    const tech = /(?:고른 적 없는 기술|위험 등급 기술)[^:]*: (.+)$/.exec(r.error.message)?.[1];
+    return { ok: false, message: known ? (tech ? `${known[1]} (${tech})` : known[1]) : CONFIRM_FAILED };
+  }
+  return r.data === "saved" || r.data === "exists" ? { ok: true } : { ok: false, message: "확정됐는지 확인하지 못했어요. 내 이력을 새로 고쳐 확인해 주세요." };
+}
+
+/**
+ * 이 그래프로 확정(v2, P-12e). 모양 · 한도 · 고리 · 기술 이름 · 위험 등급 · 관문(내 기술 · 적용 후보 · 내 이력만)은 DB 함수
+ * confirm_blueprint_v2가 본다(화면 · 서버를 건너뛴 직접 호출도 같은 검사). 여기서는 값의 겉모양과 쉬운 실패 문구만.
+ */
+export async function confirmBlueprintGraph(db: SupabaseClient, input: ConfirmGraphInput): Promise<ConfirmResult> {
+  const name = typeof input.name === "string" ? input.name.trim().slice(0, 60) : "";
+  if (!isUuid(input.id)) return { ok: false, message: "확정을 다시 눌러 주세요." };
+  if (!name) return { ok: false, message: "청사진 이름을 적어 주세요." };
+  if (input.projectId !== null && !isUuid(input.projectId)) return { ok: false, message: "프로젝트를 다시 골라 주세요." };
+  const parsed = parseGraph(input.graph); // 쉬운 문구용 미리 보기(모양 · 한도 · 고리). 진짜 막기는 DB 함수
+  if (!parsed.ok) return { ok: false, message: parsed.message };
+  return confirmResult(await db.rpc("confirm_blueprint_v2", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_graph: parsed.graph }));
+}
+
+/** 확정본 하나의 그래프(스튜디오가 열 때). 옛 v1 확정본 · 없는 id · 남의 것은 null(화면은 board를 fromV1로). 못 읽으면 던진다(불변 2) */
+export async function readBlueprintGraph(db: SupabaseClient, userId: string, id: string): Promise<Graph | null> {
+  if (!isUuid(id)) return null;
+  const r = await db.from("blueprints").select("graph").eq("user_id", userId).eq("id", id).maybeSingle();
+  if (r.error) throw new Error(`청사진 그래프를 읽지 못함: ${r.error.message}`);
+  return readStoredGraph((r.data as { graph?: unknown } | null)?.graph ?? null);
+}
+
+/** 청사진에 넣을 수 있는 내 기술 id(내 기술 · 적용 후보 · 내 이력) — DB 관문과 같은 목록(my_blueprint_tech_ids). 못 읽으면 던진다 */
+export async function readAllowedTechIds(db: SupabaseClient): Promise<Set<string>> {
+  const r = await db.rpc("my_blueprint_tech_ids");
+  if (r.error || !Array.isArray(r.data)) throw new Error(`청사진에 넣을 수 있는 기술을 읽지 못함: ${r.error?.message ?? "빈 응답"}`);
+  return new Set((r.data as unknown[]).map(String));
+}
 
 /** 이 조합으로 확정: 쉬운 문구용 미리 보기(판 모양 · 없는 기술 · 위험 등급) → DB 함수가 다시 막고 남김(같은 id는 한 줄, 불변 3). 실패하면 아무것도 안 남김(불변 4) */
 export async function confirmBlueprint(db: SupabaseClient, input: ConfirmInput): Promise<ConfirmResult> {
@@ -107,11 +177,5 @@ export async function confirmBlueprint(db: SupabaseClient, input: ConfirmInput):
   const risky = ids.map((id) => techs.get(id)!).filter((t) => t.grade === "danger");
   if (risky.length) return { ok: false, message: `위험한 기술은 넣지 않아요: ${risky.map((t) => t.display_name).join(", ")}. 빼고 다시 확정해 주세요.` };
   const board = parsed.cols.map((c) => c.map((s) => ({ name: s.name, techs: s.techIds.map((id) => ({ id })) })));
-  const r = await db.rpc("confirm_blueprint", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_board: board });
-  if (r.error) {
-    console.error("블루프린트를 확정하지 못함", r.error.message);
-    const known = Object.entries(DB_REFUSED).find(([k]) => r.error!.message.includes(k));
-    return { ok: false, message: known?.[1] ?? "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요." };
-  }
-  return r.data === "saved" || r.data === "exists" ? { ok: true } : { ok: false, message: "확정됐는지 확인하지 못했어요. 내 이력을 새로 고쳐 확인해 주세요." };
+  return confirmResult(await db.rpc("confirm_blueprint", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_board: board }));
 }

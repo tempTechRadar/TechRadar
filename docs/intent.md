@@ -51,6 +51,19 @@
 | 열린 질문 | 점검 답의 steps · risks를 "제안 · 주의할 점"으로 재사용한 모양이 화면에서 읽기 좋은지, 오래됨 기준 365일(팀 추정), 서비스 전체 200번은 호출 뒤 기록하는 거친 예산이라 동시 요청에 약간 넘을 수 있음 |
 
 **결과:** 됨(로컬 커밋 10개, 미푸시). 시험 1,407(통과 1,406 · 실패 0 · todo 1, 기존 1,356 + 51), 타입 검사 통과. M4는 운영에서 **롤백 시험만** 돌려 기대값 17개가 모두 맞았고 흔적 0을 읽어서 확인했다(적용 안 함). 정한 것: 단계 id는 ASCII 1~64자(DB 정렬과 같게, DevAssi2 제안) · 한도(깊이 12 · 같은 깊이 4)는 확정 조건이라 편집 중에는 개수 · 고리만 막음 · 읽지 못한 것(정보 없음 · 등급 못 찾음 · 수집 오류 · 활동 날짜 모름)은 "확인하지 못했어요" · 같은 확정본을 같은 재료로 다시 누르면 이전 결과를 재사용(한도 안 씀) · 보안 검토 지적(다른 청사진으로 동시에 눌러 한도 통과)은 "넣은 뒤 다시 세기"로 막음. **확인하지 못한 것:** 화면(브라우저), `next build`, 점검 서버를 실제 Claude로 한 번도 안 돌림(시험은 가짜 클라이언트), 적용 뒤 RLS 재확인
+## I-P-12e-blueprint-db · 2026-11-22 · 청사진 스튜디오 DB(M1 그래프 v2 · 관문) — 조각 B (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12e-blueprint-db` (origin `feat/P-12d-alerts-history` 21dbfdb 위 + graph.ts 타입 fe7c8ae)
+- 출처: 사용자 승인 계획 P-12e(Maestro 전달, `.claude/plans-share/p12e-blueprint-studio.md` "데이터 · DB" M1), ADR 0032(지도에서 고르고 청사진으로), 불변 1·3·4·5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 청사진이 열·행 격자라 자유 캔버스로 못 옮긴다. 또 "청사진에는 고른 기술만"(불변 1) 관문이 화면에만 있고 DB 함수는 위험 등급만 막는다 |
+| 기대 결과 | blueprints에 graph(v2)·template_id 칸, DB 함수가 그래프를 검사(한도·고리·이름 다시 읽기·위험·관문)하고 board로 투영해 함께 저장. 같은 id 다시 보내도 한 줄, 실패는 아무것도 안 남김 |
+| 영향 범위 | 새 마이그레이션 202611221000(칸 2개 · blueprint_allowed_techs · my_blueprint_tech_ids · blueprint_clean_techs · blueprint_depths · blueprint_graph_clean · blueprint_graph_from_board · confirm_blueprint_v2, **옛 confirm_blueprint를 v2로 넘기게 바꿈**), 권한 시험 SQL 2개, `lib/server/blueprints.ts`(confirmBlueprintGraph · readBlueprintGraph · readAllowedTechIds), `lib/blueprint/stored.ts`(readStoredGraph), `app/blueprint/actions.ts`(confirmGraphAction) |
+| 제약 | 지우는 것 없음. **계획 변경(코드 리뷰 1차):** 옛 confirm_blueprint를 그대로 두면 v1로 아무 기술이나 이력에 넣고 v2가 "내 이력"으로 받아 주는 우회가 생겨, 이름·인자·권한은 그대로 두고 판을 그래프로 바꿔 v2로 넘기게 했다 → 적용하면 지금 화면의 확정도 관문을 거친다(같은 id는 판을 보기 전에 exists). 실행 권한 회수는 그대로 M5. 이력 목록은 graph를 읽지 않고 한 건 열 때만(마이그레이션 전 배포에도 안전). 운영 적용·권한 시험은 사용자 승인 뒤. 한도는 graph.ts LIMITS와 같은 숫자 |
+| 열린 질문 | 화면(스튜디오)이 v2로 바뀐 뒤 옛 confirmBlueprint 서버 함수를 지우는 시점(M5와 함께) |
+
+**결과(커밋 전):** 위 마이그레이션 + 시험 SQL(blueprint_graph_p12e.sql 39항목, blueprints_p12d.sql은 ta를 u1 내 기술로 한 줄), 서버 v2 · 한 건 그래프 읽기 · 본인 허용 목록 읽기(스튜디오 하단 패널이 쓸 것), 거절 문구에 막힌 기술 이름. 시험 1,381 통과, 빌드 통과, code-review 2번(9+9건, 반영 14). **판단해 둔 것:** ① 사용자가 직접 넣은 "내 기술"은 사람이 고른 것으로 보아 관문을 통과(설계: 내 기술 · 적용 후보 · 이력) ② 관문 전 v1으로 저장된 옛 이력은 운영에 0건이라 걱정 없음(11-22 읽기) ③ 매 확정마다 허용 목록 전체를 만드는 비용은 지금 규모에선 낮음(나중에 요청한 id로 좁힘).
 
 ## I-P-12d-screen-revamp · 2026-11-21 · 화면 개편: 지도 | 보드 | 일지 · 내 태그 UI · 사이드 패널 정리 · 보기 단추 고정 · 발견 날짜 (김영식)
 - 브랜치: `feat/P-12d-map-demo` → #202(`feat/P-12d-alerts-history`). 메뉴 · 일지 · 보드는 개발보조1 `feat/P-12d-board-journal`, 내 태그 DB · 서버는 개발보조2 `feat/P-12d-my-tech-tags`를 합침

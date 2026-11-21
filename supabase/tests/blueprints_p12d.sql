@@ -14,6 +14,8 @@ begin
   insert into public.projects (owner_id, kind, name) values (u2, 'local', 'bp-p2') returning id into p2;
   insert into public.technologies (tech_key, display_name, type) values ('npm:bp-a', 'bp-a(DB 이름)', 'mcp') returning id into ta;
   insert into public.technologies (tech_key, display_name, type, grade) values ('npm:bp-d', 'bp-d', 'mcp', 'danger') returning id into td;
+  -- P-12e M1 뒤로 v1도 관문(내 기술 · 적용 후보 · 내 이력)을 거친다: ta는 u1의 내 기술로 둔다
+  insert into public.my_technologies (owner_id, project_id, tech_id, origin, added_by) values (u1, p1, ta, 'manual', u1);
 
   -- u1: 본인 프로젝트로 확정 → 기술 이름은 DB에서, 같은 기술 두 번은 한 번 → 같은 id 다시는 'exists' · 한 줄 그대로
   perform set_config('request.jwt.claims', json_build_object('sub', u1, 'role', 'authenticated')::text, true);
