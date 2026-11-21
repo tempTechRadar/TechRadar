@@ -37,10 +37,10 @@ const readGuestMap = unstable_cache(async () => {
 }, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT), PICK_RULE], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
 
 // canSave = 로그인함(보기 기억·판단 남기기)
-function MapBody({ model, projects, query, canSave, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; top: ReactNode }) {
+function MapBody({ model, projects, query, canSave, who, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; who?: string; top: ReactNode }) {
   if (model === null) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice" role="alert"><strong>지도를 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/projects">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div></>;
   if (model.nodes.length === 0) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice notice-empty"><strong>아직 지도에 올릴 기술이 없어요.</strong>{canSave ? <> <Link href="/projects">내 프로젝트를 등록</Link>하면 저장소에서 읽은 기술이 지도에 와요.</> : " 모은 기술이 들어오면 여기에 보여요."}</div></>;
-  return <CanvasMap model={model} projects={projects} initialQuery={query} canSave={canSave} login={canSave} top={top} />;
+  return <CanvasMap model={model} projects={projects} initialQuery={query} canSave={canSave} login={canSave} who={who} top={top} />;
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -83,7 +83,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     <main className="alerts map-page">
       <h1 className="sr-only">기술 지도</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
-      <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave top={<>
+      <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
         {summary ? (
           <>
             <Link className="map-chip" href={summary.links.pending}>판단 대기 <strong>{summary.pendingCount}</strong></Link>

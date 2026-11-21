@@ -61,3 +61,8 @@ test("기간 칩: 들어온 지 하루 · 7일 · 30일 안만, 처음 채운 �
   assert.equal(viewQuery(parseView("t=month&mk=1")), "t=month&mk=1");
   assert.equal(filterCount(parseView("t=day&mk=1")), 2);
 });
+
+test("11-21에 바꾼 이름: 저장된 보기 · 주소의 옛 값(패키지 · 모름 · 분류 전)은 새 값으로 읽는다", () => {
+  const v = parseView(`fk=${encodeURIComponent("패키지,모름,개발 도구")}&ff=${encodeURIComponent("분류 전")}&fs=${encodeURIComponent("분류 전")}`);
+  assert.deepEqual([v.filter.kinds, v.filter.fields, v.filter.subs], [["개발 도구", "직접 넣은 것"], ["아직 분류 안 됨"], ["아직 분류 안 됨"]]);
+});

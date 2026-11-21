@@ -17,10 +17,11 @@ import { ViewTabs } from "./view-tabs";
 import "./map.css";
 
 /** top = 지도 위에 뜨는 첫 줄(판단 대기 · 최근 변경 · 로그인 유도 등, 페이지가 정함) */
-type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean; login: boolean; top?: ReactNode };
+/** who = 로그인한 사람 id(이 브라우저에 저장한 보기 묶음을 사람마다 따로) */
+type Props = { model: TechMapModel; projects: { id: string; name: string }[]; initialQuery: string; canSave: boolean; login: boolean; who?: string; top?: ReactNode };
 type Tip = { id: string; x: number; y: number };
 
-export function CanvasMap({ model, projects, initialQuery, canSave, login, top }: Props) {
+export function CanvasMap({ model, projects, initialQuery, canSave, login, who, top }: Props) {
   const [ctl] = useState(() => createMapController({ model, projectIds: projects.map((p) => p.id), initialQuery, canSave, login }));
   useSyncExternalStore(ctl.subscribe, ctl.version, ctl.version);
   const S = ctl.S;
@@ -42,6 +43,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   function open(id: string) {
     clearTip();
     if (!S.sel) lastFocus.current = document.activeElement;
+    if (S.sel !== id) side.current?.scrollTo(0, 0); // 패널은 닫혀도 그려져 있어 지난 기술의 스크롤 자리가 남는다
     ctl.select(id);
     requestAnimationFrame(() => document.getElementById("map-side-title")?.focus({ preventScroll: true })); // 초점 때문에 화면이 밀리지 않게
   }
@@ -54,10 +56,10 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   // 범례 · 상태 줄 높이(알림 말풍선은 빼고 잰다: 말풍선이 뜰 때마다 지도가 다시 맞춰지지 않게)
   const dockHeight = () => { const first = dock.current?.querySelector(".map-legend, .map-status"); return first && stage.current ? stage.current.getBoundingClientRect().bottom - first.getBoundingClientRect().top : 0; };
   // 크기 재기: 도구 줄 아래부터 범례 · 상태 줄 위까지가 지도, 사이드바가 화면 높이만큼이면 그 폭은 비운다(가려진 것을 꺼낼 때만 씀).
-  // 사이드바가 열려 도구 줄 · 범례가 좁아지며 줄이 늘어도 위아래 여백은 연 때 그대로: 바뀌면 배율이 바뀌어 지도가 밀린다(11-21 사용자: 지도 위로 덮기만)
+  // 사이드바는 도구 줄 · 범례 위로 덮기만 해서(좁히지 않음) 열고 닫아도 위아래 여백 · 배율이 그대로다(11-21 사용자: 지도를 밀지 않게)
   const insets = (st: HTMLDivElement) => ({
-    top: S.sel && S.W ? S.top : hud.current ? hud.current.getBoundingClientRect().bottom - st.getBoundingClientRect().top + 6 : 0,
-    bottom: S.sel && S.W ? S.bottom : dockHeight(),
+    top: hud.current ? hud.current.getBoundingClientRect().bottom - st.getBoundingClientRect().top + 6 : 0,
+    bottom: dockHeight(),
     right: (() => { const sd = side.current?.getBoundingClientRect(); return S.sel && sd && sd.height > st.clientHeight * 0.9 ? sd.width : 0; })(),
   });
   useEffect(() => {
@@ -95,6 +97,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   const replay = () => { clearTip(); if (S.sel) close(); const n = ctl.replayArrivals(); say(n ? `이번 주에 들어온 ${n}개예요. 이번 주 칩을 다시 누르면 전체로 돌아가요.` : "이번 주에 새로 들어온 기술이 없어요."); };
   const go = (key: string) => {
     if (!S.sel) lastFocus.current = document.activeElement; // 고르기 전에: 닫을 때 초점을 돌려놓을 곳
+    if (S.sel !== key) side.current?.scrollTo(0, 0);
     const msg = ctl.goTo(key); if (msg) say(msg); if (S.sel === key) open(key);
   };
   /** 이 분류만 보기: 누른 단추가 사라지니 초점을 경로 칩(나오는 길)으로 */
@@ -144,7 +147,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         <div ref={hud} className="map-top-hud">
           {top ? <div className="map-top">{top}</div> : null}
           <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
-          <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} login={login} canMine={canMine} say={say} />
+          <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} onView={setView} onReplay={replay} /></div>
         </div>
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}

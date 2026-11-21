@@ -1,17 +1,17 @@
 "use client";
 // 보기 묶음 탭(노션의 보기 탭처럼, 11-21 사용자): 누르면 그 보기로, 지금 보기와 같으면 눌린 표시, 다시 누르면 기본 보기.
-// "지금 보기 저장"은 로그인했을 때만 이 브라우저에 5개까지(보기 기억과 같은 규칙, design.md 14절). 기본 묶음은 lib/map/presets.ts
+// "지금 보기 저장"은 로그인했을 때만 이 브라우저에 사람마다 5개까지(보기 기억과 같은 규칙, design.md 14절, 같은 브라우저의 다른 계정에 안 보이게). 기본 묶음은 lib/map/presets.ts
 import { useEffect, useState } from "react";
 import { addPreset, BUILTIN_PRESETS, MAX_SAVED, parsePresets, type Preset } from "@/lib/map/presets";
 
-const KEY = "techradar-map-presets";
+/** who = 로그인한 사람 id, 없으면 로그인 전(저장 없음) */
+type Props = { current: string; queryOf: (q: string) => string; countOf: (q: string) => number; apply: (q: string) => void; who?: string; canMine: boolean; say: (m: string) => void };
 
-type Props = { current: string; queryOf: (q: string) => string; countOf: (q: string) => number; apply: (q: string) => void; login: boolean; canMine: boolean; say: (m: string) => void };
-
-export function ViewTabs({ current, queryOf, countOf, apply, login, canMine, say }: Props) {
+export function ViewTabs({ current, queryOf, countOf, apply, who, canMine, say }: Props) {
+  const login = !!who, KEY = `techradar-map-presets:${who}`;
   const [saved, setSaved] = useState<Preset[]>([]);
   const [name, setName] = useState<string | null>(null); // null = 이름 칸 닫힘
-  useEffect(() => { if (login) try { setSaved(parsePresets(localStorage.getItem(KEY))); } catch { /* 저장소를 못 쓰는 브라우저: 기본 묶음만 */ } }, [login]);
+  useEffect(() => { if (login) try { setSaved(parsePresets(localStorage.getItem(KEY))); } catch { /* 저장소를 못 쓰는 브라우저: 기본 묶음만 */ } }, [login, KEY]);
   const store = (list: Preset[]) => { setSaved(list); try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* 이번 화면에서만 */ } };
   const save = () => {
     const n = (name ?? "").trim();
@@ -32,7 +32,7 @@ export function ViewTabs({ current, queryOf, countOf, apply, login, canMine, say
   return (
     <nav className="map-tabs" aria-label="보기 묶음">
       {/* 기본 묶음은 지금 지도에서 비는 것은 숨긴다(누르면 빈 지도뿐인 탭은 시연에서 고장처럼 보인다). 내가 저장한 것은 그대로 */}
-      {BUILTIN_PRESETS.filter((p) => (!p.login || login) && (!p.mine || canMine) && countOf(p.query) > 0).map((p) => tab(p, false))}
+      {BUILTIN_PRESETS.filter((p) => (!p.login || login) && (!p.mine || canMine) && (countOf(p.query) > 0 || queryOf(p.query) === current)).map((p) => tab(p, false))}{/* 켜진 탭은 비어도 남겨 끌 수 있게 */}
       {saved.map((p) => tab(p, true))}
       {login ? (name === null
         ? <button type="button" className="map-tab map-tab-add" onClick={() => setName("")}>+ 지금 보기 저장</button>

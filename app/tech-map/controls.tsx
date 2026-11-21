@@ -4,7 +4,7 @@
 import { useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
-import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, MAX_LEVELS, passes, PERIOD_DAYS, PERIOD_KO, PERIODS, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MAX_LEVELS, passes, PERIOD_KO, PERIODS, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 import { MapSearch, type FindHit } from "./map-search";
 
 type ListKey = "kinds" | "fields" | "subs";
@@ -111,13 +111,13 @@ export function QuickChips({ nodes, view, canMine, login, onView, onReplay }: { 
   return (
     <>
       <span className="map-seg" role="group" aria-label="들어온 때">
-        {PERIODS.map((p) => { const n = count((x) => x.addedDays !== null && x.addedDays < PERIOD_DAYS[p]); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
+        {PERIODS.map((p) => { const n = count((x) => inPeriod(x, p)); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
           <button key={p} type="button" className="chip" aria-pressed={f.period === p} disabled={!n && f.period !== p} onClick={() => set({ period: f.period === p ? "" : p })}>
             {PERIOD_KO[p]} <b>{n}</b>
           </button>
         ); })}
       </span>
-      {count((x) => x.addedDays !== null && x.addedDays < 7) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
+      {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
       <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
       {login ? <button type="button" className="chip" aria-pressed={f.interest} onClick={() => set({ interest: !f.interest })}>내 관심 <b>{count((x) => x.mark?.status === "interest")}</b></button> : null}
       {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>내 기술과 비교군 <b>{count((x) => x.mine || x.nearMine)}</b></button> : null}

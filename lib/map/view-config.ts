@@ -1,6 +1,6 @@
 // 지도 보기 설정(노션의 묶기·거르기처럼 사용자가 고름): 1~3차 묶기 기준, 색 기준, 거르기. 주소에 싣고 브라우저가 마지막 설정을 기억한다.
 // 주소는 누구나 바꿀 수 있는 입력이라 아는 값만 받는다(모르는 기준은 버리고, 거르기 값은 길이·개수를 자른다).
-import type { MapNode } from "./build-map.ts";
+import { KIND_KO, MANUAL_KIND, UNSORTED, type MapNode } from "./build-map.ts";
 
 export const DIMS = ["field", "sub", "kind", "host", "grade", "project"] as const;
 export type Dim = (typeof DIMS)[number];
@@ -12,6 +12,8 @@ export const PERIODS = ["day", "week", "month"] as const;
 export type Period = (typeof PERIODS)[number];
 export const PERIOD_DAYS: Record<Period, number> = { day: 1, week: 7, month: 30 };
 export const PERIOD_KO: Record<Period, string> = { day: "오늘", week: "이번 주", month: "이번 달" };
+/** 기간 칩 하나에 드는지(칩 수 · 필터 · 새로 들어온 것 보기가 같은 판정을 쓴다) */
+export const inPeriod = (n: Pick<MapNode, "addedDays">, p: Period) => n.addedDays !== null && n.addedDays < PERIOD_DAYS[p];
 /** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만 */
 export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; interest: boolean; err: boolean; project: string };
 /** scope = "이 분류만 보기"로 들어간 경로(바깥부터). 들어간 기준은 묶기에서 빠진다 */
@@ -39,6 +41,9 @@ export function withDefault(v: ViewConfig, query: string, kindCount: number): Vi
 const isDim = (v: string): v is Dim => (DIMS as readonly string[]).includes(v);
 const isPeriod = (v: string): v is Period => (PERIODS as readonly string[]).includes(v);
 const values = (raw: string | null) => (raw ? raw.split(",").map((v) => v.trim().slice(0, 60)).filter(Boolean).slice(0, 20) : []);
+/** 11-21에 바꾼 글자(ADR 0030 11항): 저장된 보기 · 공유 주소의 옛 값이 아무것도 안 맞는 필터가 되지 않게 새 값으로 */
+const RENAMED: Record<string, string> = { 패키지: KIND_KO.sdk, 모름: MANUAL_KIND, "분류 전": UNSORTED };
+const renamed = (raw: string | null) => [...new Set(values(raw).map((v) => RENAMED[v] ?? v))];
 
 export function parseView(query: string | URLSearchParams): ViewConfig {
   const q = typeof query === "string" ? new URLSearchParams(query) : query;
@@ -54,7 +59,7 @@ export function parseView(query: string | URLSearchParams): ViewConfig {
     group: g, scope,
     color: isDim(c) ? c : g[0] ?? DEFAULT_VIEW.color,
     filter: {
-      kinds: values(q.get("fk")), fields: values(q.get("ff")), subs: values(q.get("fs")),
+      kinds: renamed(q.get("fk")), fields: renamed(q.get("ff")), subs: renamed(q.get("fs")),
       risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", interest: q.get("mk") === "1", err: q.get("err") === "1", project: (q.get("p") ?? "").slice(0, 60),
       period: isPeriod(q.get("t") ?? "") ? q.get("t") as Period : q.get("new") === "1" ? "week" : "", // new=1 = 기간 칩 전의 "NEW만" 주소
     },
@@ -90,7 +95,7 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
     && (!f.subs.length || f.subs.includes(n.attrs.sub))
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
     && (!f.mineOnly || n.mine || n.nearMine)
-    && (!f.period || (n.addedDays !== null && n.addedDays < PERIOD_DAYS[f.period]))
+    && (!f.period || inPeriod(n, f.period))
     && (!f.interest || n.mark?.status === "interest")
     && (!f.err || !!n.collectErrorKind)
     && (!f.project || n.projectIds.includes(f.project))

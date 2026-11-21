@@ -52,8 +52,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   const P = home;
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
   const alphaOf = (it: Item) => Math.min(1, grow(S, now, it) * 1.6) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
-  const homeK = S.L.radius / (Math.max(FIRST_RING, ...vis.map((it) => Math.hypot(it.x, it.y))) + 40); // controller homeCam과 같은 맞춤
-  const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / (homeK || 1) };
+  const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / S.homeK };
   endless(F, [ox, oy]);
 
   sectorLight(F, [ox, oy]);
@@ -230,14 +229,14 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
 }
 
 /** 큰 묶음(1단계)에 올리면 그 부채꼴이 옅게 밝아진다: 어디까지가 그 묶음인지 한눈에(11-21 사용자: 보기 좋은 요소) */
-function sectorLight({ c, S, vis, P, sc }: Frame, [ox, oy]: Pt) {
+function sectorLight({ c, S, sc }: Frame, [ox, oy]: Pt) {
   const g = S.focusId ? S.L.byId.get(S.focusId) : undefined;
   if (!g || g.type !== "g" || g.level !== 1) return;
   const base = Math.atan2(g.y, g.x);
   let lo = 0, hi = 0;
-  for (const it of vis) {
-    if (it.type !== "t" || !isUnder(S.L, it, g.id)) continue;
-    const [x, y] = P(it), d = Math.atan2(Math.sin(Math.atan2(y - oy, x - ox) - base), Math.cos(Math.atan2(y - oy, x - ox) - base)); // 묶음 방향에서 잰 각(-π~π)
+  for (const it of S.L.items) { // 접혀 숨은 것까지 배치 자리로 잰다(접힌 묶음만 있어도 부채꼴이 실처럼 좁아지지 않게)
+    if (!isUnder(S.L, it, g.id)) continue;
+    const a = Math.atan2(it.y, it.x) - base, d = Math.atan2(Math.sin(a), Math.cos(a)); // 묶음 방향에서 잰 각(-π~π)
     lo = Math.min(lo, d); hi = Math.max(hi, d);
   }
   const pad = 0.04, r0 = (FIRST_RING - 30) * sc, r1 = (S.L.leafR + 60) * sc;
@@ -246,10 +245,10 @@ function sectorLight({ c, S, vis, P, sc }: Frame, [ox, oy]: Pt) {
   c.globalAlpha = 1;
 }
 
-/** 찾아간 기술 · 펼친 묶음 자리에 두 겹 물결(1.2초). 움직임 줄이기면 없음 */
+/** 찾아간 기술 · 펼친 묶음 자리에 두 겹 물결(1.2초). 움직임 줄이기 · ⚙ 끄기면 없음 */
 function pingRing({ c, S, P, now }: Frame) {
   const p = S.ping, it = p ? S.L.byId.get(p.id) : undefined;
-  if (!p || !it || S.hidden.has(it.id) || S.still) return;
+  if (!p || !it || S.hidden.has(it.id) || !moving(S)) return;
   const [x, y] = P(it);
   for (const lag of [0, 0.25]) {
     const age = now - p.t - lag; if (age < 0 || age > 1.2) continue;
@@ -270,7 +269,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   want.sort((a, b) => rank(a) - rank(b));
   const boxes: number[][] = [];
   for (const it of want.slice(0, 160)) {
-    const [x, y] = P(it), [what, facts] = det > 0 ? describeKo(it.node) : ["", ""];
+    const [x, y] = P(it), [what, facts] = det > 0.4 ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
     c.font = `12px ${col("--font")}`;
     const w = Math.max(c.measureText(it.node.name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
@@ -284,7 +283,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
     label(c, it.node.name, box[0], y, 12, col("--ink"));
     if (!what) continue;
-    c.globalAlpha *= det;
+    c.globalAlpha *= Math.min(1, (det - 0.4) / 0.4 + 0.3);
     label(c, what, box[0], y + 14, 11, col("--ink-2"));
     if (facts) label(c, facts, box[0], y + 27, 10, col("--muted"));
   }

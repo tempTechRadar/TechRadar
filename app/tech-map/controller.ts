@@ -20,6 +20,7 @@ export type MapState = {
   riskRects: { x: number; y: number; list: TechItem[] }[]; hubLabels: { id: string; x: number; y: number; w: number; h: number }[];
   handles: { id: string; x: number; y: number }[]; homeArrow: { x: number; y: number } | null; scale: () => number; base: () => number;
   /** 찾아간 기술 · 펼친 묶음 자리에 한 번 퍼지는 물결(t = 시작 시각, 카메라가 도착할 때) */ ping: { id: string; t: number } | null;
+  /** 처음 보기 배율(homeCam이 정할 때 기억). 배율 단계(draw)가 이것 대비로 본다: 펼침 · 거르기만으로 단계가 바뀌지 않게 */ homeK: number;
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
@@ -54,7 +55,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), tune: savedTune(), shift: 0, introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null,
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), tune: savedTune(), shift: 0, introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1,
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
     base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
@@ -72,6 +73,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   // ---- 배치
   /** 사람이 직접 펼치거나 접은 묶음(true = 펼침). 처음 접기는 판이 바뀔 때마다(필터 · 되살린 보기) 새로 정하고, 이것만 그 위에 남긴다 */
   const manual = new Map<string, boolean>();
+  const arriving = new Map<string, [number, number]>(); // 새로 들어온 것 보기: 날아오는 점 → 제자리. 처음 닿을 때 한 번 튕김(bump)
   /** 접힌 묶음: 처음 접기(분류만 보기 안에서는 없음 — 고른 것을 다 보이게) + 사람이 바꾼 것 */
   function collapsedFor(L: MapLayout): Set<string> {
     const auto = S.view.scope.length ? new Set<string>() : defaultCollapsed(L);
@@ -82,7 +84,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function rebuild(from: ((it: Item) => [number, number] | null) | null) {
     S.L = layoutMap(model, S.view);
     S.collapsed = collapsedFor(S.L);
-    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear();
+    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear(); arriving.clear();
     if (S.sel && !S.L.byId.has(S.sel)) S.sel = "";
     const vis = visible();
     phys.sync(vis, from ? (it) => from(it as Item) : undefined);
@@ -140,15 +142,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     dirty(); notify();
   }
   // ---- 새로 들어온 것 보기
-  const arriving = new Map<string, [number, number]>(); // 날아오는 점 → 제자리. 처음 닿을 때 한 번 튕김(bump)
   /** 새로 들어온 것 보기(11-21 사용자): 이번 주 들어온 것만 남기고, 그 점들이 화면 밖 제 방향에서 날아와 제자리에 꽂힌다.
    *  실제 수집이 아니라 이미 모은 것을 다시 보여 준다(수집은 관리자만). 움직임 줄이기면 걸러 보여 주기만. 몇 개인지 돌려준다 */
   function replayArrivals(): number {
-    S.sel = "";
-    setView({ ...S.view, filter: { ...S.view.filter, period: "week" }, scope: [] });
-    const list = visible().filter((it): it is TechItem => it.type === "t" && it.node.addedDays !== null && it.node.addedDays < 7);
+    S.sel = ""; manual.clear(); // 다른 필터 · 손으로 접은 묶음은 풀어야 칩 수만큼 날아온다(묶기 · 색은 그대로)
+    setView({ ...S.view, filter: { ...DEFAULT_VIEW.filter, period: "week" }, scope: [] });
+    const list = visible().filter((it): it is TechItem => it.type === "t");
     const cam = homeCam(); flyTo(cam, false);
-    if (S.still || !list.length) return list.length;
+    if (!moving(S) || !list.length) return list.length; // 움직임 줄이기 · ⚙ 끄기면 걸러 보여 주기만
     const half = Math.hypot(S.W, S.H) / 2 / (cam.k * S.base()), ang = (it: Item) => Math.atan2(it.y, it.x);
     [...list].sort((a, b) => ang(a) - ang(b)).forEach((it, i, all) => { // 각도 순으로 조금씩 멀리서: 레이더가 도는 차례로 꽂힌다
       const b = phys.B.get(it.id), r = half * (1.15 + (0.9 * i) / all.length);
@@ -176,6 +177,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   // ---- 카메라
   function homeCam(): Cam { // 처음 보기: 보이는 것(접힌 묶음 제외)이 꽉 차게, 도구 줄 밑 가운데에
     const vr = Math.max(FIRST_RING, ...visible().map((it) => Math.hypot(it.x, it.y))) + 40, k = clampK(S.L.radius / vr);
+    S.homeK = k;
     return { x: 0, y: -(S.top - S.bottom) / 2 / (k * S.base()), k };
   }
   const toWorld = (sx: number, sy: number): [number, number] => [S.cam.x + (sx - S.W / 2) / S.scale(), S.cam.y + (sy - S.H / 2) / S.scale()];
@@ -295,7 +297,11 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     subscribe(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; },
     version: () => version,
     /** 판단을 남긴 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로) */
-    setMark(key: string, mark: MapNode["mark"]) { const n = model.nodes.find((x) => x.key === key); if (n) { n.mark = mark; notify(); } },
+    setMark(key: string, mark: MapNode["mark"]) {
+      const n = model.nodes.find((x) => x.key === key); if (!n) return;
+      n.mark = mark;
+      if (S.view.filter.interest) setView({ ...S.view }); else notify(); // "내 관심"으로 거르는 중이면 관심을 풀자마자 지도에서도 빠지게
+    },
     groupMembers(g: GroupItem) { return S.L.items.filter((it): it is TechItem => it.type === "t" && isUnder(S.L, it, g.id)); },
     /** 보기 묶음(프리셋): 주소 모양 보기를 이 지도의 기본 묶기 위에 연다 · 지금 보기를 같은 모양으로(같은 보기인지 비교) */
     applyQuery(q: string) { setView(withDefault(parseView(q), q, kindCount)); },

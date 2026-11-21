@@ -57,7 +57,8 @@ const DEV_TYPES = ["skill", "plugin", "concept"]; // 개발 도구(sdk)는 입�
 /** 늘 넣는 몫: 위험 · 주의(시연 계정의 시뮬레이터 위험 등, 이것만으로 지도가 차지 않게), 입문 세트(signals.starter_set, 별이 없어 별 순에 밀리므로),
  *  이번 주 새 기술(NEW 표시 15개를 고를 몫) */
 export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)은 그 시드 파일의 줄 수만 막는다(다른 마이그레이션 · 관리자가 starter_set을 켜면 따로 세어 볼 것)
-const RISKY_MAX = 100, NEW_QUOTA = 60;
+// shortcut: 기간 칩 수는 지도에 올린 것만 센다 — 30일 새 기술이 NEW_QUOTA보다 많으면 "이번 달"은 최근 것부터 이 수까지만. 늘 넘치면 칩 수를 DB 개수로
+const RISKY_MAX = 100, NEW_QUOTA = 100;
 /** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
 export const PICK_RULE = "dev-first-5";
 

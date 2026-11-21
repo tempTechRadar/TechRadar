@@ -11,7 +11,6 @@
 
 .map-top-hud { position: absolute; top: 10px; left: 12px; right: 12px; z-index: 3; display: grid; gap: var(--sp-2); pointer-events: none; }
 .map-top-hud > * { pointer-events: none; } .map-top-hud > * > * { pointer-events: auto; }
-.map-stage.open .map-top-hud { right: 392px; }
 .map-hud, .map-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .map-search { position: relative; flex: 0 1 280px; }
 .map-search input { box-sizing: border-box; width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
@@ -63,7 +62,6 @@ body:has(.map-page) .site-nav .site-nav-add { display: none; }
 
 @media (max-width: 640px) {
   .map-stage { height: max(480px, calc(100dvh - 180px)); }
-  .map-stage.open .map-top-hud { right: 12px; }
   .map-search { flex-basis: 100%; }
 }
 
@@ -84,10 +82,8 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-dock > * { pointer-events: auto; justify-self: start; max-width: 100%; }
 .map-dock > .map-toast { justify-self: center; }
 .map-dock .map-legend { margin: 0; }
-.map-stage.open .map-dock { right: 392px; }
 @media (max-width: 640px) {
   .map-chip-note { display: none; } /* 좁은 화면에서는 로그인 단추만 남겨 지도를 덜 가린다 */
-  .map-stage.open .map-dock { right: 12px; }
   .map-dock .map-legend { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
   .map-dock .map-legend > * { flex: none; white-space: nowrap; }
 }
