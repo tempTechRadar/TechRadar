@@ -1,0 +1,55 @@
+/* 청사진 스튜디오(P-12e): 메뉴 밑을 꽉 채우는 캔버스. 기술 칩이 주인공, 단계 머리는 작게, 연결선은 1px 옅게 · 화살촉 작게(고른 것만 진하게). 값은 공용 토큰 */
+.studio { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.studio-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
+.studio-grow { flex: 1; }
+.studio .btn:disabled { opacity: .45; cursor: not-allowed; }
+.studio-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
+.studio-add label { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); }
+.studio-add input { min-height: var(--hit); width: 12em; padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+.studio-canvas { flex: 1; min-height: 320px; position: relative; background: var(--sunken); }
+/* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
+.studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
+
+/* 스텝퍼: 지금 단계만 진하게(색만이 아니라 굵기 · 밑줄) */
+.st { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-pill); }
+.st-step { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; }
+.st-step[aria-current="step"] { background: var(--ink); color: var(--on-ink); font-weight: 700; }
+.st-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 50%; font-size: var(--fs-cap); }
+.st-result { display: grid; gap: var(--sp-2); max-height: 40vh; overflow: auto; padding: var(--sp-3) var(--sp-4); background: var(--surface); border-top: 1px solid var(--line); }
+.st-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.st-row select { min-height: var(--hit); font: inherit; }
+.st-grow { flex: 1; }
+.st-preview { margin: 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.st-result ul { margin: 4px 0 0; padding-left: 1.2em; }
+
+/* 단계 노드 */
+.sn { box-sizing: border-box; min-width: 200px; max-width: 260px; padding: 6px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
+.sn[data-selected] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.sn[data-over] { outline: 2px dashed var(--ink); outline-offset: 2px; }
+.sn-head { display: flex; gap: 6px; align-items: center; font-size: var(--fs-cap); color: var(--ink-2); }
+.sn-order { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
+.sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--ink); }
+.sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.studio[data-step="1"] .sn-techs { opacity: .45; } /* ① 단계 구축: 단계 설계에 집중 */
+.sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
+.react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }
+
+/* 연결선: 옅고 가늘게, 고른 단계 · 선만 진하게 */
+.react-flow__edge.se .react-flow__edge-path { stroke: var(--faint); stroke-width: 1; }
+.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.selected .react-flow__edge-path { stroke: var(--ink); stroke-width: 1.5; }
+
+/* 기술 칩(주인공): 글자 아이콘 · 이름 · 등급 점 */
+.tc { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); }
+.tc[data-picked] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tc-main { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 0 8px 0 3px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
+.tc-icon { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; }
+.tc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--unknown); }
+.tc[data-grade="danger"] .tc-dot { background: var(--danger); }
+.tc[data-grade="caution"] .tc-dot { background: var(--caution); }
+.tc[data-grade="pass"] .tc-dot { background: var(--pass); }
+.tc-x { min-width: 24px; min-height: 28px; padding: 0 6px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
+
+/* shortcut: 하단 패널(조각 K)이 오기 전 시험용 기술 줄 */
+.studio-tempdock { display: flex; flex-wrap: wrap; gap: 6px; padding: var(--sp-2) var(--sp-4); background: var(--surface); border-top: 1px solid var(--line); max-height: 20vh; overflow: auto; }
+.studio-tempdock > span { cursor: grab; }

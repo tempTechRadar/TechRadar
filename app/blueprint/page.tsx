@@ -7,7 +7,8 @@ import { readBlueprintPage } from "@/lib/server/blueprints";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { backTo, LoginNeeded } from "../login/login-needed";
-import { BlueprintApp } from "./blueprint-app";
+import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
+import { Studio } from "./studio";
 import "../alerts/alerts.css";
 import "./blueprint.css";
 
@@ -20,11 +21,14 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
   const { add } = await searchParams;
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB 없이 샘플로
   const db = preview ? null : await getServerSupabase();
-  const data = preview ? SAMPLE_BLUEPRINT : db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
+  const [data, tagMap] = preview ? [SAMPLE_BLUEPRINT, new Map<string, string[]>()] : db ? await Promise.all([
+    readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }),
+    readMyTechTagMap(db, user.id).catch((e) => { console.error("청사진 내 태그 조회 실패", e instanceof Error ? e.message : e); return null; }), // 못 읽어도 판은 열고 태그만 "읽지 못함"
+  ]) : [null, null];
   return (
     <main className="alerts bp-page">
       <h1 className="sr-only">청사진</h1>
-      {data ? <BlueprintApp who={user.id} {...data} add={isUuid(add) ? add : null} />
+      {data ? <Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} />
         : <div className="notice notice-error" role="alert"><strong>내 기술을 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>
   );
