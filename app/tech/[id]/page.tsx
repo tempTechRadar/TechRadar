@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { getCatalogTechDetail, type CatalogTechDetail } from "@/lib/server/catalog-tech";
 import { PreviewOnly } from "@/app/dev/preview-only";
@@ -8,6 +8,8 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { readMarkForTech } from "@/lib/server/marks";
 import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { readTopUsageNotes } from "@/lib/server/usage-notes";
 import { usingNowText } from "@/lib/views/using-now-text";
 import { MarkBar } from "../../projects/tech/[id]/mark-bar";
 import { CatalogTechView } from "./catalog-tech-view";
@@ -15,14 +17,16 @@ import "../../alerts/alerts.css";
 
 // 카탈로그 기술 상세(design.md 17절 2차 "지도의 모든 기술에 상세가 열림", IA-4). 머리 + 2단은 내 기술 상세와 같은 틀.
 // 내 기술이면 프로젝트 줄의 상세(버전 · 내 등급 · 사용기)로 가는 길을 함께 보인다.
+// 로그인 전(P-12f 손님)에도 연다: 카탈로그 칸은 서버 키로 공개 목록만, 사용기는 손님 토큰(M6 정책: 숨기지 않은 글 · 안전한 칸), 판단 · 내 기술 · 내 판단 기록은 없음(불변 5).
 
 export default async function CatalogTechPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const user = await getCurrentUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(`/tech/${id}`)}`); // 로그인 뒤 이 상세로 돌아온다
-  if (isPreviewUser(user)) return <PreviewOnly title="기술 상세" />; // 미리보기(개발용)는 DB를 부르지 않는다
-  const db = (await getServerSupabase())!;
+  if (user && isPreviewUser(user)) return <PreviewOnly title="기술 상세" />; // 미리보기(개발용)는 DB를 부르지 않는다
+  const own = await getServerSupabase(); // 로그인했으면 내 토큰, 아니면 손님 토큰(사용기 읽기)
+  const db = user ? own : getServiceSupabase();
+  if (!db) return <LoadError id={id} />;
   let d: CatalogTechDetail | null;
   try {
     d = await getCatalogTechDetail(db, user, id);
@@ -33,14 +37,16 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
   if (!d) notFound();
   // 등급 열람 기록(grade_views, PRD-F44 지표)은 내 버전의 등급 이유를 보는 내 기술 상세에서만 남긴다: 여기는 카탈로그 등급이라 지표가 부풀려진다
   // 판단 표시 · 쓰고 있어요는 못 읽어도 상세는 보이고 그 칸만 "읽지 못했어요"(불변 2)
-  const [mark, using] = await Promise.all([
-    readMarkForTech(db, user.id, id).catch((e) => { console.error("내 판단 표시 조회 실패", e instanceof Error ? e.message : e); return null; }),
+  const [mark, using, notes] = await Promise.all([
+    user ? readMarkForTech(db, user.id, id).catch((e) => { console.error("내 판단 표시 조회 실패", e instanceof Error ? e.message : e); return null; }) : null,
     readUsingNow(db, id),
+    own ? readTopUsageNotes(own, id).catch((e) => { console.error("사용기 조회 실패", e instanceof Error ? e.message : e); return null; }) : null,
   ]);
   if (!using.ok) console.error(using.error);
-  const markBar = mark ? <MarkBar techId={d.tech.id} grade={mark.grade} initial={mark.mark} />
+  const markBar = !user ? <p className="muted">판단(관심 · 적용 후보 · 보류)은 <Link href={`/login?next=${encodeURIComponent(`/tech/${id}`)}`}>로그인</Link>하면 남길 수 있어요.</p>
+    : mark ? <MarkBar techId={d.tech.id} grade={mark.grade} initial={mark.mark} />
     : <p className="notice notice-error" role="alert">내 판단 표시를 읽지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
-  return <CatalogTechView d={d} markBar={markBar} usingText={usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} />;
+  return <CatalogTechView d={d} markBar={markBar} usingText={usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
 }
 
 function LoadError({ id }: { id: string }) {

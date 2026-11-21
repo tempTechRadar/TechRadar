@@ -5,6 +5,7 @@ import { fixedNote } from "@/lib/domain/services";
 import { koreanTime } from "@/lib/flow/run-list";
 import { GRADE_KO, KIND_KO } from "@/lib/map/build-map";
 import type { CatalogTechDetail } from "@/lib/server/catalog-tech";
+import type { NoteSummary } from "@/lib/server/usage-notes";
 
 // 카탈로그 기술 상세의 본문(design.md 17절 2차). 머리 + 2단은 내 기술 상세와 같은 틀, 읽기만 하는 화면 조각.
 const NONE = "확인하지 못함";
@@ -12,8 +13,8 @@ const MARK_KO = { interest: "관심", candidate: "적용 후보", hold: "보류"
 const STATUS_KO: Record<string, string> = { deprecated: "지원 종료", dormant: "활동 멈춤", gone: "사라짐" };
 const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 
-/** markBar = 판단 줄(못 읽었으면 그 안내), usingText = 쓰고 있어요 한 줄 */
-export function CatalogTechView({ d, markBar, usingText }: { d: CatalogTechDetail; markBar: ReactNode; usingText: string }) {
+/** markBar = 판단 줄(못 읽었으면 그 안내), usingText = 쓰고 있어요 한 줄, notes = 사용기 요약(null = 읽지 못함), guest = 로그인 전(P-12f) */
+export function CatalogTechView({ d, markBar, usingText, notes, guest = false }: { d: CatalogTechDetail; markBar: ReactNode; usingText: string; notes?: NoteSummary | null; guest?: boolean }) {
   const t = d.tech;
   const note = t.oneLiner ? null : fixedNote(t.techKey);
   return (
@@ -51,12 +52,12 @@ export function CatalogTechView({ d, markBar, usingText }: { d: CatalogTechDetai
               </>
             ) : null}
           </article>
-          <article className="card" aria-labelledby="history-title">
+          {guest ? null : <article className="card" aria-labelledby="history-title">
             <h2 id="history-title">내 판단 기록</h2>
             {d.events.length ? (
               <ol>{d.events.map((e, i) => <li key={i}>{when(e.at)} · {e.status ? MARK_KO[e.status] : "표시 지움"}{e.reason ? ` · ${e.reason}` : ""}</li>)}</ol>
             ) : <p className="muted">아직 이 기술에 남긴 판단이 없어요.</p>}
-          </article>
+          </article>}
         </aside>
         <div className="td-left">
           <article className="card" aria-labelledby="grade-title">
@@ -75,6 +76,14 @@ export function CatalogTechView({ d, markBar, usingText }: { d: CatalogTechDetai
               ))}</ul>
             ) : <p className="muted">관리자가 확인한 비교군이 아직 없어요.</p>}
             {d.peers.length && d.mine.length ? <p><Link href={`/compare`}>내 기술과 비교군 비교하기</Link></p> : null}
+          </article>
+          <article className="card" aria-labelledby="notes-title">
+            {/* 사용기 읽기(P-24, 쓴 사람은 보이지 않음). 쓰기 · 도움이 됐어요는 내 기술 상세에서, 로그인 뒤 */}
+            <h2 id="notes-title">사용기 {notes ? notes.total : ""}</h2>
+            {notes === null || notes === undefined ? <p className="notice notice-error" role="alert">사용기를 읽지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
+              : notes.top.length ? <ul>{notes.top.map((n) => <li key={n.id}><b>{n.usedFor}</b> · {n.result} · 팁: {n.tip}<span className="muted"> · 도움이 됐어요 {n.helpfulCount}</span></li>)}</ul>
+              : <p className="muted">아직 사용기가 없어요.</p>}
+            {guest ? <p className="muted"><Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 이 기술을 내 프로젝트에 넣고 사용기를 쓸 수 있어요.</p> : null}
           </article>
         </div>
       </div>
