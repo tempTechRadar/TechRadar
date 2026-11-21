@@ -6,6 +6,22 @@
 
 ---
 
+## I-qa-final · 2026-11-21 · 제출 전 QA — 남은 Fail·No Run 나누기, 직접 돌리기, 사람 실행표 (QA 세션)
+- 브랜치: `docs/qa-final`(origin/main `8adb2f7`에서, `docs/qa-no-run-cleanup` 커밋 2개 cherry-pick). 코드·운영 DB 쓰기 없음, 푸시 안 함
+- 출처: Maestro 지시(11-21), `rules/qa.md`, `docs/qa.md`·`docs/qa-c.md`, 사전 허가 D(운영 DB 읽기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 제출(11-23 23:59) 전에 QA 표의 Fail·No Run이 무엇이 Claude로 되고 무엇이 사람 로그인이 필요한지, 무엇이 이미 덮였는지가 한눈에 안 보인다. 옛 실행표(11-19)는 줄 번호가 낡았다 |
+| 기대 결과 | 남은 행 전부를 직접/사람/덮임/못 함으로 나눈 표, 직접 가능한 것의 실행 결과(원래 행에 기록), 로그인 묶음별 사람 실행표(방법·정상이면 보이는 것·주의점) |
+| 영향 범위 | `docs/qa-final.md`(새), `docs/qa.md` 행 6개 고침·4개 더함·사람 행 4개 상태 보탬, `docs/qa-c.md` C19, 기록 문서 |
+| 제약 | 코드 고치지 않음(Fail은 DevAssi2), 운영 DB SELECT만, 시뮬레이터·지금 실행 금지, 근거 없이 Pass 금지 |
+| 열린 질문 | ① G5 등급 4건 "찾지 못함"(기대 "통과") — 사용자 결정 대기(Maestro). ② AI 입력 감싸기 실제 모델 반응을 스크립트로 Claude만 불러 볼지(허가 F 범위인지). ③ 사람 실행표 묶음 A-3(같은 역할 확정)은 되돌릴 수 없어 사용자 허락 필요. ④ `docs/qa-실행표.md`는 낡았지만 지우지 않음 |
+
+**결과:** `npm test` 1271개 중 1270 통과·실패 0·할 일 1, `npm run eval` 경계 사례 결과 다름 0(qa-c C19 Fail 풀림). 실제 OSV: 없는 경로 404 Pass, 쪽 나눔은 실제로 못 만듦, **새 Fail — `litellm` 옛 버전·버전 없음이 응답 50만 자 한도로 매번 수집 오류**(DevAssi2에 넘김 → 로컬 `fix/final-bugs` `3145ff9`로 고침, QA가 같은 스크립트로 확인 Pass, 운영은 병합 뒤). 코드 파일 100개 한도로 11-21 읽기 2건 `partial`은 설계대로(새 행). G5는 고치는 중(DataCollector). 실제 GitHub `.cursor/mcp.json` 8곳 Pass(`localhost` url은 기술로 안 만듦). 운영 DB 읽기: 읽기 실행 5건 단계 건수 맞음, 수집기 4개 상자·건수와 되풀이해도 안 늘어남 Pass. NF2 다시 점검 행은 DevAssi2 보고를 옮김. 나눈 표 60줄(사람 38·덮임 15·직접 8·못 함 5·결정 2), 사람 실행표 31줄(0·A·B·C·D 묶음, 약 4시간 45분).
+
+---
+
 ## I-qa-no-run-cleanup · 2026-11-20 · QA 표에서 이미 다른 증거로 덮인 No Run·Fail을 정리 (영역 A, 김영식)
 - 브랜치: `docs/qa-no-run-cleanup`(`docs/prod-check-1120-pr194-199`의 커밋 하나를 함께 가져옴). 코드·DB 변경 없음
 - 출처: stage-check 11-20 보고("QA No Run 28행, 대부분 사람 QA"), `rules/qa.md`("근거 없이 Pass를 쓰지 않는다"), `docs/qa-실행표.md`의 "이미 Pass인 행" 방식
