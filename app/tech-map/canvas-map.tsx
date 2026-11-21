@@ -10,6 +10,7 @@ import { Crumbs, Legend, Status, SummaryChips, Toolbar } from "./controls";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
 import { markedText } from "./judge";
+import { RadarSettings } from "./radar-settings";
 import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import "./map.css";
@@ -133,7 +134,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
         <div ref={hud} className="map-top-hud">
           {top ? <div className="map-top">{top}</div> : null}
-          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} motion={{ value: S.motion, still: S.still, set: (m) => ctl.setMotion(m) }} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
+          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><SummaryChips nodes={model.nodes} view={S.view} canMine={canMine} onView={setView} /></div>
         </div>
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
@@ -150,6 +151,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
         <div ref={dock} className="map-dock">
+          <RadarSettings motion={S.motion} tune={S.tune} still={S.still} onMotion={ctl.setMotion} onTune={ctl.setTune} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
