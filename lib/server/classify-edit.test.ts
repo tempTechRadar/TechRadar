@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addRule, confirmRelation, setCategory, setRuleEnabled, type EditCtx } from "./classify-edit.ts";
+import { addRule, classifyNow, confirmRelation, setCategory, setRuleEnabled, type EditCtx } from "./classify-edit.ts";
 
 type Row = Record<string, unknown>;
 type Op = { table: string; op: "select" | "update" | "insert"; row?: Row; filters: [string, unknown][] };
@@ -188,4 +188,38 @@ test("갈래 확정 불변 5: DB(RLS)가 막아 0줄이면 실패, 기록 실패
   assert.equal(blocked.auditOps.length, 0);
   const noAudit = ctx(catTables(), {}, "fail");
   assert.deepEqual(await setCategory(noAudit.c, TECH, SMALL, "기록이 실패하는 경우"), { ok: true, changed: true, auditFailed: true });
+});
+
+test("한 번에 분류: 사유를 받아 규칙 분류를 한 번 돌리고, 결과와 함께 담당자 · 사유를 바꾼 기록에 남긴다", async () => {
+  const { c, auditOps } = ctx({});
+  let calls = 0;
+  const r = await classifyNow(c, async () => (calls++, { items: 12, summary: "classify_category 갈래 12개 정함" }), "갈래가 빈 기술이 많아서");
+  assert.deepEqual(r, { ok: true, items: 12, summary: "classify_category 갈래 12개 정함", auditFailed: false });
+  assert.equal(calls, 1);
+  const a = auditOps.find((o) => o.op === "insert")!;
+  assert.deepEqual(a.row, { actor_id: ADMIN, actor_role: "admin", action: "classify_all", target_table: "technologies", target_id: "catalog", reason: "갈래가 빈 기술이 많아서 (결과: classify_category 갈래 12개 정함)" });
+});
+
+test("한 번에 분류: 짧은 사유는 분류도 기록도 하지 않는다(사유는 5자 이상)", async () => {
+  const { c, auditOps } = ctx({});
+  let calls = 0;
+  assert.deepEqual(await classifyNow(c, async () => (calls++, { items: 0, summary: "" }), "짧음"), { ok: false, code: "reason" });
+  assert.equal(calls, 0);
+  assert.equal(auditOps.length, 0);
+});
+
+test("한 번에 분류: 중간에 실패해도 실패로 알리고 기록은 남긴다(일부는 저장됐을 수 있음, 비밀 값은 가림)", async () => {
+  const { c, auditOps } = ctx({});
+  const r = await classifyNow(c, async () => { throw new Error("갈래를 저장하지 못함(3개 저장 뒤): denied ghp_" + "a1B2c3D4e5F6g7H8i9J0"); }, "갈래가 빈 기술이 많아서");
+  assert.deepEqual(r, { ok: false, code: "failed" });
+  const reason = String(auditOps.find((o) => o.op === "insert")!.row!.reason);
+  assert.match(reason, /\(실패: 갈래를 저장하지 못함\(3개 저장 뒤\)/);
+  assert.ok(!reason.includes("ghp_" + "a1B2c3D4e5F6g7H8i9J0"));
+});
+
+test("한 번에 분류: 분류는 됐는데 기록이 실패하면 되돌리지 않고 auditFailed로 알린다", async () => {
+  const fail = ctx({}, {}, "fail");
+  assert.deepEqual(await classifyNow(fail.c, async () => ({ items: 1, summary: "s" }), "갈래가 빈 기술이 많아서"), { ok: true, items: 1, summary: "s", auditFailed: true });
+  const none = ctx({}, {}, "none");
+  assert.deepEqual(await classifyNow(none.c, async () => ({ items: 0, summary: "s" }), "갈래가 빈 기술이 많아서"), { ok: true, items: 0, summary: "s", auditFailed: true });
 });
