@@ -1,5 +1,5 @@
 {
-  "when": "2026. 11. 21. 17시 38분 57초",
+  "when": "2026. 11. 21. 18시 10분 27초",
   "ruleVersion": "v1",
   "rows": [
     {
@@ -618,12 +618,23 @@
         "actualOutcome": "입력 검사 거절(저장 안 함)",
         "verdict": "맞음",
         "note": "적용 후보나 보류 중에서 골라 주세요."
+      },
+      {
+        "id": "E-judge-save-failed",
+        "kind": "조치·저장 실패",
+        "target": "적용 후보를 눌렀는데 판단 저장(save_judgment)이 실패",
+        "source": "불변 4(저장 실패 시 기존 값 보존, 처리 완료로 표시 안 함) · SPEC-4.1 · docs/flow.md 4절 ⑤ 저장 실패 시연(P-20c failingRpc)",
+        "expectedOutcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
+        "expectedEvent": false,
+        "actualOutcome": "저장 실패 · 처리 완료 아님 · 조치 상자 실패 · 알림 판단 대기 · 기존 값 보존",
+        "verdict": "맞음",
+        "note": "저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요."
       }
     ],
     "totals": {
-      "cases": 43,
+      "cases": 44,
       "hit": 18,
-      "quietOk": 25,
+      "quietOk": 26,
       "miss": 0,
       "falseAlarm": 0,
       "outcomeWrong": 0,
@@ -671,13 +682,20 @@
         "miss": 0,
         "falseAlarm": 0,
         "outcomeWrong": 0
+      },
+      "조치·저장 실패": {
+        "cases": 1,
+        "right": 1,
+        "miss": 0,
+        "falseAlarm": 0,
+        "outcomeWrong": 0
       }
     }
   },
   "overall": {
-    "cases": 55,
+    "cases": 56,
     "hit": 24,
-    "quietOk": 31,
+    "quietOk": 32,
     "miss": 0,
     "falseAlarm": 0,
     "outcomeWrong": 0,
