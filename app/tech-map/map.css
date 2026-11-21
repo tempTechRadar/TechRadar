@@ -99,7 +99,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-start { position: relative; }
 .map-start > summary { list-style: none; }
 .map-start > summary::-webkit-details-marker { display: none; }
-.map-start-body { position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; min-width: 220px; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.map-start-body { position: absolute; top: calc(100% + 4px); right: 0; /* 보는 곳 줄 오른쪽에 붙어 있어 오른쪽 끝에 맞춘다(390px에서 화면 밖으로 나가지 않게) */ z-index: 5; min-width: 220px; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .map-start ol { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; }
 .map-start li { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--hit); }
 .map-start li.done { color: var(--muted); text-decoration: line-through; }
