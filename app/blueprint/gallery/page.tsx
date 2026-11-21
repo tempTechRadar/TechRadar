@@ -58,12 +58,13 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
   const db = preview ? null : await getServerSupabase(); // 미리보기(개발용)는 DB 없이 빈 갤러리
   const list = !db ? (preview ? [] : null)
     : await readPublicTemplates(db, kind).catch((e) => { console.error("템플릿 갤러리 조회 실패", e instanceof Error ? e.message : e); return null; });
-  const sort = parseSort(params.sort);
+  const asked = parseSort(params.sort);
   // 분야 · 도움(P-12f 9): 카탈로그는 로그인이면 내 토큰, 손님이면 서버 키(공개 목록만). 못 읽으면 거르기 · 도움 순 없이 많이 쓴 순
   const catalog = user ? db : getServiceSupabase();
   const facets = list?.length && db && catalog ? await readGalleryFacets(catalog, db, list).catch((e) => { console.error("갤러리 분야 · 도움 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
   const fields = facets ? galleryFields(facets) : [];
   const field = typeof params.field === "string" && fields.some(([f]) => f === params.field) ? params.field : null;
+  const sort: GallerySort = facets ? asked : "uses"; // 도움을 못 읽었으면 실제로 보이는 순서(많이 쓴 순)를 칩에도
   const shown = list ? arrangeGallery(list, facets, { field, sort }) : null;
   return (
     <main className="alerts gl-page">
@@ -84,8 +85,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
       {list?.length && !facets ? <p className="muted" role="status">분야 · 도움을 읽지 못해 거르기 없이 많이 쓴 순으로 보여요.</p> : null}
       {list === null ? <div className="notice notice-error" role="alert"><strong>템플릿을 읽지 못했어요.</strong> 템플릿이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>
         : list.length === 0 ? <p className="notice notice-empty">아직 공개된 템플릿이 없어요. 청사진에서 템플릿으로 저장한 뒤 공개해 보세요.</p>
-        : !shown?.length ? <p className="notice notice-empty">이 분야의 공개 템플릿이 없어요. <Link href={href({ kind, field: null, sort })}>모든 분야 보기</Link></p>
-        : <ul className="gl-list">{shown.map((t) => <Card key={t.id} t={t} admin={user?.role === "admin"} />)}</ul>}
+        : <ul className="gl-list">{(shown ?? list).map((t) => <Card key={t.id} t={t} admin={user?.role === "admin"} />)}</ul>}
       <p><Link href="/blueprint">청사진으로 돌아가기</Link></p>
     </main>
   );
