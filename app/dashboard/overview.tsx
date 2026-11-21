@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import type { AppliedTech, RepoCard } from "@/lib/dashboard/status-view";
-import { GRADE_KO } from "@/lib/map/build-map";
+import { GRADE_KO, NO_GRADE } from "@/lib/map/build-map";
 import { koreanTime } from "@/lib/flow/run-list";
 
 const TECH_LIMIT = 24; // 넘으면 "내 프로젝트에서 모두 보기"
@@ -39,7 +39,7 @@ export function Applied({ techs, failed }: { techs: AppliedTech[]; failed: boole
         <ul className="status-techs">{techs.slice(0, TECH_LIMIT).map((t) => (
           <li key={t.key}>
             <Link href={t.techId ? `/?sel=${encodeURIComponent(`tech:${t.techId}`)}` : `/projects/tech/${t.myTechId}`}>{t.name}</Link>
-            <span className={`badge badge-${TONE[t.grade]}`}>보안 {GRADE_KO[t.grade]}</span>
+            {t.concept ? <span className="badge badge-neutral">{NO_GRADE}</span> : <span className={`badge badge-${TONE[t.grade]}`}>보안 {GRADE_KO[t.grade]}</span>}
             <p className="muted">{t.projects.join(" · ")}{t.collectError ? " · 수집 오류(지난 값)" : ""}</p>
             {t.tags?.length ? <p className="alert-tags">{t.tags.map((x) => <span key={x} className="tag">{x}</span>)}</p> : null}
           </li>
