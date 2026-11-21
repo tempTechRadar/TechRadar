@@ -53,7 +53,9 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
 function LoadError({ id }: { id: string }) {
   return (
     <main className="page">
-      <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요(조회 실패). 없는 게 아니에요. <Link href={`/tech/${id}`}>다시 불러오기</Link></p>
+      <title>기술 상세 · TechRadar</title>
+      <h1>기술 상세</h1>
+      <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요. 없는 게 아니에요. <Link href={`/tech/${id}`}>다시 불러오기</Link></p>
     </main>
   );
 }

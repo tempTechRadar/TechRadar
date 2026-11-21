@@ -86,7 +86,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
       {list === null ? <div className="notice notice-error" role="alert"><strong>템플릿을 불러오지 못했어요.</strong> 템플릿이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>
         : list.length === 0 ? <p className="notice notice-empty">아직 공개된 템플릿이 없어요. <Link href="/blueprint">청사진</Link>에서 템플릿으로 저장한 뒤 공개해 보세요.</p>
         : <ul className="gl-list">{(shown ?? list).map((t) => <Card key={t.id} t={t} admin={user?.role === "admin"} />)}</ul>}
-      <p><Link href="/blueprint">청사진으로 돌아가기</Link></p>
+      <p className="actions"><Link className="btn" href="/blueprint">청사진으로 돌아가기</Link></p>
     </main>
   );
 }

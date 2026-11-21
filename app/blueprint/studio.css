@@ -34,8 +34,12 @@
 .sn-order { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--ink); }
 .sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.studio[data-step="1"] .sn-techs { opacity: .45; } /* ① 단계 구축: 단계 설계에 집중 */
+/* ① 단계 구축: 단계 설계에 집중. 투명도는 글자 대비가 2.9:1로 떨어져 옅은 바탕 + 흐린 글자(5:1 이상)로 */
+.studio[data-step="1"] .sn-techs .tc { background: var(--sunken); }
+.studio[data-step="1"] .sn-techs .tc-main { color: var(--muted); }
+.studio[data-step="1"] .sn-techs .tc-icon { background: var(--muted); }
 .sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
+.studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
 .react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }
 
 /* 연결선: 옅고 가늘게, 고른 단계 · 선만 진하게 */

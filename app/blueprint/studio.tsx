@@ -244,7 +244,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
               onDelete={onDelete} onPaneClick={unpick} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
-              nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly}
+              nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
