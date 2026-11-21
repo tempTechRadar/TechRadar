@@ -270,7 +270,7 @@ test("clearSimulated: 다른 표가 가리키는 가짜 기술은 지우지 않�
   const { db, calls } = fakeDb(clearResponder());
   await clearSimulated({ db }, { adminId: "a" });
   const checked = calls.filter((c) => c.op === "select" && c.filters.some(([, op, v]) => op === "in" && Array.isArray(v) && v.includes("t-1"))).map((c) => `${c.table}.${c.filters[0][0]}`);
-  assert.deepEqual(checked, ["my_technologies.tech_id", "observations.tech_id", "changes.tech_id", "tech_relations.tech_a", "tech_relations.tech_b", "grade_views.tech_id"]);
+  assert.deepEqual(checked, ["my_technologies.tech_id", "observations.tech_id", "changes.tech_id", "tech_relations.tech_a", "tech_relations.tech_b", "grade_views.tech_id", "my_tech_tags.tech_id"]);
 });
 
 test("clearSimulated: 중간에 실패해도 지운 수와 가린 오류를 바꾼 기록 1줄로 남기고 원래 오류를 던진다", async () => {
