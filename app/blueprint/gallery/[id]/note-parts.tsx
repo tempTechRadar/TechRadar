@@ -22,7 +22,8 @@ export function NoteButtons({ noteId, count, mine, voted, reported }: { noteId: 
     setBusy(true); setError("");
     const r = await safe(markTemplateNoteHelpfulAction(noteId));
     setBusy(false);
-    if (r.ok) { setDidHelp(true); router.refresh(); } else setError(r.error);
+    // "이미 눌렀어요"(다른 탭 · 오래된 화면)는 눌린 것으로 맞추고 서버 값으로 다시 그린다
+    if (r.ok || r.error === "이미 눌렀어요") { setDidHelp(true); router.refresh(); } else setError(r.error);
   }
   async function report() {
     setBusy(true); setError("");
@@ -72,7 +73,7 @@ export function NoteForm({ templateId }: { templateId: string }) {
       {field("usedFor", "무엇에 썼나요")}
       {field("result", "결과는 어땠나요")}
       {field("tip", "한 줄 팁")}
-      <p className={left < 0 ? "notice notice-error" : "muted"}>세 칸 합쳐 {NOTE_MAX}자까지 · {left >= 0 ? `${left}자 남음` : `${-left}자 넘었어요`}</p>
+      <p className={left < 0 ? "notice notice-error" : "muted"} aria-live="polite">세 칸 합쳐 {NOTE_MAX}자까지 · {left >= 0 ? `${left}자 남음` : `${-left}자 넘었어요`}</p>
       {msg ? <div className={`notice ${msg.ok ? "notice-ok" : "notice-error"}`} role={msg.ok ? "status" : "alert"}><strong>{msg.text}</strong></div> : null}
       <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? "남기는 중…" : "사용기 남기기"}</button>
     </form>

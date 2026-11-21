@@ -9,7 +9,8 @@ import type { ActionResult, UsageNoteView } from "./usage-notes.ts";
 
 const UNIQUE_VIOLATION = "23505";
 const NO_PRIVILEGE = "42501"; // RLS가 막으면 이 코드로 온다
-const LIST_LIMIT = 50; // shortcut: 한 템플릿에 사용기가 이보다 많아지면 쪽으로 나눈다
+/** shortcut: 한 템플릿에 사용기가 이보다 많아지면 쪽으로 나눈다(화면은 이만큼 읽었으면 "n개 넘게"로 말한다) */
+export const TEMPLATE_NOTES_LIMIT = 50;
 const failed = (message?: string): ActionResult => ({ ok: false, error: `저장하지 못했어요: ${maskSecrets(message ?? "빈 응답")}` });
 const BAD_ID: ActionResult = { ok: false, error: "다시 골라 주세요" };
 
@@ -47,11 +48,22 @@ export async function reportTemplateNote(db: SupabaseClient, userId: string, not
   return { ok: true };
 }
 
-/** 그 템플릿의 사용기(새것 순, 숨긴 글 · 닫힌 템플릿은 RLS가 이미 뺀다). 쓴 사람 id는 읽지 않는다. 읽지 못하면 던진다("없음"과 다르게).
+/** 내가 이 템플릿에 사용기를 쓸 수 있는지(DB 함수 can_note_template: 로그인 · 시연 아님 · 열린 템플릿 · 작가 아님 · 이 템플릿으로 확정해 봄).
+ *  화면이 쓰기 칸을 보일지 정하는 안내용이고, 진짜 막기는 insert 정책이 같은 함수로 한다(불변 5). 못 읽으면 던진다 */
+export async function canNoteTemplate(db: SupabaseClient, templateId: string): Promise<boolean> {
+  if (!isUuid(templateId)) return false;
+  const { data, error } = await db.rpc("can_note_template", { p_template_id: templateId });
+  if (error || typeof data !== "boolean") throw new Error(`쓸 수 있는지 읽지 못함: ${maskSecrets(error?.message ?? "빈 응답")}`);
+  return data;
+}
+
+/** 그 템플릿의 사용기(도움 많은 순 → 새것 순: 위 몇 개가 오래된 글에 밀리지 않게). 닫힌 템플릿은 RLS가 빼고, 숨긴 글은 여기서 뺀다
+ *  (RLS는 관리자 · 쓴 사람에게 숨긴 글도 주므로 사람마다 목록 · 개수가 달라지지 않게). 쓴 사람 id는 읽지 않는다. 읽지 못하면 던진다("없음"과 다르게).
  *  viewerId = null: 손님(anon, M6가 안전한 칸만 엶) — 내 글 · 누른 기록 · 신고 기록은 로그인한 사람 것이라 읽지 않고 모두 false */
 export async function readTemplateNotes(db: SupabaseClient, templateId: string, viewerId: string | null): Promise<UsageNoteView[]> {
   if (!isUuid(templateId)) return [];
-  const notes = rowsOrThrow(await db.from("template_notes").select("id, used_for, result, tip, helpful_count, created_at").eq("template_id", templateId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "템플릿 사용기를 읽지 못함");
+  const notes = rowsOrThrow(await db.from("template_notes").select("id, used_for, result, tip, helpful_count, created_at, hidden_at").eq("template_id", templateId).is("hidden_at", null)
+    .order("helpful_count", { ascending: false }).order("created_at", { ascending: false }).limit(TEMPLATE_NOTES_LIMIT), "템플릿 사용기를 읽지 못함");
   if (notes.length === 0) return [];
   if (!viewerId) return notes.map((n) => ({ id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count, createdAt: n.created_at, mine: false, voted: false, reported: false }));
   const ids = notes.map((n) => n.id as string);
