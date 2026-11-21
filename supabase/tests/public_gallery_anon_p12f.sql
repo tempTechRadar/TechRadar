@@ -1,6 +1,6 @@
 -- P-12f M6 손님(anon) 권한 시험(불변 5, ADR 0036 개정). 끝에서 일부러 예외를 내 모두 되돌린다.
 -- 실행: M1 · M2 · M3 · M6을 적용한 뒤 운영 MCP execute_sql로 1번(사용자 승인 뒤). "ROLLBACK_OK ..."가 맨 아래 주석의 기대 문자열과 같아야 한다.
--- 손님이 보는 것 = 이미 모두에게 공개된 것(열린 템플릿, 숨기지 않은 사용기의 안전한 칸)뿐. 개인 표는 모두 막힘, 쓰기 함수 모두 막힘.
+-- 손님이 보는 것 = 이미 모두에게 공개된 것(열린 템플릿, 그 템플릿의 숨기지 않은 사용기의 안전한 칸, 기술 사용기는 수만)뿐. 개인 표 · 기술 사용기 글은 모두 막힘, 쓰기 함수 모두 막힘.
 do $$
 declare
   u1 uuid := gen_random_uuid(); u2 uuid := gen_random_uuid(); u3 uuid := gen_random_uuid();
@@ -55,9 +55,10 @@ begin
   select count(*) into c from public.blueprint_template_for_use(priv); msg := msg || 'open_priv=' || c || '(0);';
   select count(*) into c from public.blueprint_template_for_use(hid); msg := msg || 'open_hidden=' || c || '(0);';
   select count(*) into c from public.blueprint_template_for_use(demo); msg := msg || 'open_demo=' || c || '(0);';
-  select count(*) into c from public.usage_notes where tech_id = tA; msg := msg || 'usage_notes=' || c || '(1);';
-  begin perform author_id from public.usage_notes limit 1; msg := msg || 'usage_author_id=OPEN;';
-  exception when insufficient_privilege then msg := msg || 'usage_author_id=blocked;'; end;
+  -- 기술 사용기 글은 손님에게 닫힘(2026-11-22 사용자 결정), 숨기지 않은 글의 수만
+  begin select count(*) into c from public.usage_notes where tech_id = tA; msg := msg || 'usage_notes=OPEN(' || c || ');';
+  exception when insufficient_privilege then msg := msg || 'usage_notes=blocked;'; end;
+  msg := msg || 'usage_count=' || public.usage_note_count(tA) || '(1);';
   select count(*) into c from public.template_notes where id in (tn, tn_priv); msg := msg || 'template_notes=' || c || '(1);';
   begin perform author_id from public.template_notes limit 1; msg := msg || 'tnote_author_id=OPEN;';
   exception when insufficient_privilege then msg := msg || 'tnote_author_id=blocked;'; end;
@@ -82,5 +83,5 @@ begin
   execute 'reset role';
 
   raise exception 'ROLLBACK_OK %', msg;
-  -- 기대: gallery=1(1);nickname=손님시험작가(손님시험작가);no_author_id=true(true);uses=1(1);open_pub=1(1);open_priv=0(0);open_hidden=0(0);open_demo=0(0);usage_notes=1(1);usage_author_id=blocked;template_notes=1(1);tnote_author_id=blocked;profiles=blocked;projects=blocked;my_technologies=blocked;tech_marks=blocked;alerts=blocked;judgments=blocked;blueprints=blocked;blueprint_templates=blocked;my_tech_tags=blocked;helpful_votes=blocked;reports=blocked;template_helpful_votes=blocked;template_reports=blocked;confirm=blocked;save_template=blocked;my_tech_ids=blocked;my_note_ids=blocked;insert_note=blocked;insert_tnote=blocked;
+  -- 기대: gallery=1(1);nickname=손님시험작가(손님시험작가);no_author_id=true(true);uses=1(1);open_pub=1(1);open_priv=0(0);open_hidden=0(0);open_demo=0(0);usage_notes=blocked;usage_count=1(1);template_notes=1(1);tnote_author_id=blocked;profiles=blocked;projects=blocked;my_technologies=blocked;tech_marks=blocked;alerts=blocked;judgments=blocked;blueprints=blocked;blueprint_templates=blocked;my_tech_tags=blocked;helpful_votes=blocked;reports=blocked;template_helpful_votes=blocked;template_reports=blocked;confirm=blocked;save_template=blocked;my_tech_ids=blocked;my_note_ids=blocked;insert_note=blocked;insert_tnote=blocked;
 end $$;
