@@ -15,8 +15,8 @@ import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 export type ConfirmInput = { id: unknown; name: unknown; projectId: unknown; board: unknown };
-/** v2 확정(P-12e): 캔버스 그래프. templateId는 M2(템플릿) 뒤에 쓴다 */
-export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown };
+/** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 조합 템플릿의 기술은 관문에 더해 받는다(DB) */
+export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown; templateId?: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
 
 const TECH_COLUMNS = "id, display_name, type, grade, category_id, one_liner";
@@ -116,7 +116,7 @@ export const DB_REFUSED: Record<string, string> = {
   "v2가 아니다": "청사진 모양이 맞지 않아요. 새로 고친 뒤 다시 확정해 주세요.",
   "단계 열은 1~12": "단계 열은 1~12개까지예요.",
   "나란히 단계는 1~4": "나란히 둘 수 있는 단계는 4개까지예요.",
-  "템플릿은 아직": "템플릿은 아직 쓸 수 없어요.",
+  "쓸 수 없는 템플릿": "이 템플릿은 지금 쓸 수 없어요(비공개로 바뀌었거나 숨겨졌어요). 템플릿 없이 다시 확정해 주세요.",
 };
 const CONFIRM_FAILED = "확정하지 못했어요. 판은 그대로 있어요. 잠시 뒤 다시 시도해 주세요.";
 
@@ -141,9 +141,11 @@ export async function confirmBlueprintGraph(db: SupabaseClient, input: ConfirmGr
   if (!isUuid(input.id)) return { ok: false, message: "확정을 다시 눌러 주세요." };
   if (!name) return { ok: false, message: "청사진 이름을 적어 주세요." };
   if (input.projectId !== null && !isUuid(input.projectId)) return { ok: false, message: "프로젝트를 다시 골라 주세요." };
+  const templateId = input.templateId ?? null;
+  if (templateId !== null && !isUuid(templateId)) return { ok: false, message: "템플릿을 다시 골라 주세요." };
   const parsed = parseGraph(input.graph); // 쉬운 문구용 미리 보기(모양 · 한도 · 고리). 진짜 막기는 DB 함수
   if (!parsed.ok) return { ok: false, message: parsed.message };
-  return confirmResult(await db.rpc("confirm_blueprint_v2", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_graph: parsed.graph }));
+  return confirmResult(await db.rpc("confirm_blueprint_v2", { p_id: input.id, p_name: name, p_project_id: input.projectId, p_graph: parsed.graph, p_template_id: templateId }));
 }
 
 /** 확정본 하나의 그래프(스튜디오가 열 때). 옛 v1 확정본 · 없는 id · 남의 것은 null(화면은 board를 fromV1로). 못 읽으면 던진다(불변 2) */

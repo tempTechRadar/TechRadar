@@ -94,8 +94,9 @@ end $$;
 revoke all on function public.blueprint_depths(int, int[], int[]) from public, anon, authenticated;
 
 -- graph v2 검사 · 정리 · 투영. 돌려주는 값 {graph, board}. 틀리면 예외(아무것도 안 남음, 불변 4). 사용자가 직접 부르지 못한다.
+-- p_extra = 관문에 더해 받아 줄 기술(사람이 고른 조합 템플릿에 든 기술, M2). 위험 등급은 그래도 거절
 -- board(v1 모양)는 깊이마다 열 하나, 같은 깊이 안은 y → x → id 순(graph.ts toBoardView와 같음, id는 ASCII라 COLLATE "C" = JS 글자 순)
-create function public.blueprint_graph_clean(p_uid uuid, p_graph jsonb) returns jsonb
+create function public.blueprint_graph_clean(p_uid uuid, p_graph jsonb, p_extra uuid[] default '{}') returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
   v_allowed uuid[]; v_ids text[] := '{}'; v_rows jsonb[] := '{}'; v_from int[] := '{}'; v_to int[] := '{}';
@@ -105,7 +106,7 @@ begin
   if jsonb_typeof(p_graph) is distinct from 'object' or (p_graph -> 'v') is distinct from '2'::jsonb then raise exception '청사진 모양이 v2가 아니다'; end if;
   if jsonb_typeof(p_graph -> 'stages') is distinct from 'array' or jsonb_array_length(p_graph -> 'stages') not between 1 and 48 then raise exception '단계는 1~48개'; end if;
   if jsonb_typeof(coalesce(p_graph -> 'edges', '[]')) <> 'array' or jsonb_array_length(coalesce(p_graph -> 'edges', '[]')) > 200 then raise exception '연결선은 200개까지'; end if;
-  select coalesce(array_agg(a.tech_id) filter (where a.tech_id is not null), '{}') into v_allowed from public.blueprint_allowed_techs(p_uid) a;
+  select coalesce(array_agg(a.tech_id) filter (where a.tech_id is not null), '{}') || array_remove(coalesce(p_extra, '{}'), null) into v_allowed from public.blueprint_allowed_techs(p_uid) a;
 
   for v_stage in select value from jsonb_array_elements(p_graph -> 'stages') loop
     v_id := v_stage ->> 'id';
@@ -140,7 +141,7 @@ begin
   select jsonb_agg(r) into v_stages from unnest(v_rows) r;
   return jsonb_build_object('graph', jsonb_build_object('v', 2, 'stages', v_stages, 'edges', v_edges), 'board', v_board);
 end $$;
-revoke all on function public.blueprint_graph_clean(uuid, jsonb) from public, anon, authenticated;
+revoke all on function public.blueprint_graph_clean(uuid, jsonb, uuid[]) from public, anon, authenticated;
 
 -- 옛 판(v1 board [[{name, techs}]]) → 그래프: 이웃한 열의 모든 짝을 잇는다(graph.ts fromV1과 같음). 투영하면 같은 board가 나온다
 create function public.blueprint_graph_from_board(p_board jsonb) returns jsonb
