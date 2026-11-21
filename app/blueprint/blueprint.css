@@ -54,7 +54,7 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-pop { position: absolute; z-index: 5; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); width: 260px; display: grid; gap: 6px; padding: 10px; background: var(--surface); border: 1px solid var(--ink); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .bp-gap .bp-pop { top: calc(50% + 22px); }
 
-.bp-dialog { width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
+.bp-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
 .bp-dialog::backdrop { background: rgba(0, 0, 0, .35); }
 .bp-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 6px; }
 .bp-dialog h2 { margin: 0; font-size: var(--fs-h2); }
@@ -67,9 +67,16 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 
 .bp-toast { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
 .bp-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
+.bp-page .btn.bp-shelf { display: none; } /* .alerts .btn의 inline-flex를 이겨야 넓은 화면에서 숨는다 */
 @media (max-width: 860px) {
   .bp-work { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .bp-drawer { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  /* 서랍은 처음에 접어 둔다(drawer.tsx): 단계 판이 먼저 보이게 */
+  .bp-page .btn.bp-shelf { display: inline-flex; justify-self: start; min-height: var(--hit); }
+  .bp-drawer[data-open="false"] > :not(.bp-shelf) { display: none; }
   .bp-canvas { min-height: 420px; }
+  /* 휴대폰 너비(390)에서 첫 단계 카드가 오른쪽에서 잘리지 않게 여백 · 시작 칸을 줄인다 */
+  .bp-lanes { padding: 24px 12px; }
+  .bp-end { width: 56px; }
 }
 @media (max-width: 640px) { .bp-toast { bottom: calc(64px + env(safe-area-inset-bottom)); } }

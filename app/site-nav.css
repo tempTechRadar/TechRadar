@@ -45,10 +45,13 @@
 .tab-bar { display: none; }
 @media (max-width: 640px) {
   .site-nav-main a:not(.site-nav-logo) { display: none; } /* 보는 곳 메뉴는 아래 탭 바로 */
-  /* 탭 바는 화면 맨 아래 고정, 본문은 그 높이(57px)만큼 아래를 비운다. 꽉 채운 지도는 그만큼 짧아진다(위쪽 여백 0 · 높이 계산은 map.css 규칙보다 우선) */
-  body { padding-bottom: calc(var(--sp-5) + 57px + env(safe-area-inset-bottom)); }
-  html body:has(.map-page), html body:has(.bp-page) { padding-bottom: calc(57px + env(safe-area-inset-bottom)); min-height: calc(100dvh - 57px - env(safe-area-inset-bottom)); }
-  html body:has(.map-page) { height: calc(100dvh - 57px - env(safe-area-inset-bottom)); }
+  /* 탭 바는 화면 맨 아래 고정, 본문은 그 높이만큼 아래를 비운다. 꽉 채운 지도는 그만큼 짧아진다(위쪽 여백 0 · 높이 계산은 map.css 규칙보다 우선) */
+  :root { --tab-bar-h: calc(57px + env(safe-area-inset-bottom)); }
+  /* Tab으로 옮긴 초점이 탭 바 밑에 숨지 않게: 브라우저가 그 높이만큼 더 올려 보여 준다(WCAG 2.4.11) */
+  html { scroll-padding-bottom: var(--tab-bar-h); }
+  body { padding-bottom: calc(var(--sp-5) + var(--tab-bar-h)); }
+  html body:has(.map-page), html body:has(.bp-page) { padding-bottom: var(--tab-bar-h); min-height: calc(100dvh - var(--tab-bar-h)); }
+  html body:has(.map-page) { height: calc(100dvh - var(--tab-bar-h)); }
   .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); }
   .tab-bar a { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 56px; font-size: var(--fs-cap); color: var(--muted); text-decoration: none; }
   .tab-bar a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 3px 0 var(--ink); }

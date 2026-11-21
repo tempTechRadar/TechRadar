@@ -1,7 +1,7 @@
 "use client";
 // 블루프린트 왼쪽 서랍: 기술(고른 단계에 맞는 것만, 내가 자주 쓴 순) / 내 이력(확정한 블루프린트 · 자주 쓴 기술).
 // 서랍 목록 = 내 기술 · 관심 · 적용 후보 · 확정에 쓴 기술. 없으면 "카탈로그에서 찾기"(서버, 공개 목록만). 위험한 기술은 넣지 못한다.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Stage } from "@/lib/blueprint/board";
 import { fitsStage, STAGE_FIELDS } from "@/lib/blueprint/knowledge";
 import { HISTORY_LIMIT, type BlueprintRecord, type TechUsage } from "@/lib/blueprint/stored";
@@ -18,8 +18,14 @@ const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "
 const MARK_KO = { interest: "관심", candidate: "적용 후보" } as const;
 
 export function Drawer(p: Props) {
+  // 좁은 화면(860px 이하)은 서랍이 판 위에 와서 판을 가린다: 처음엔 접고 단추로 연다. 넓은 화면은 CSS가 단추를 숨기고 늘 펼친다
+  const [open, setOpen] = useState(false);
+  // 단계 번호를 누르면 그 단계에 넣을 기술을 고르는 것: 접혀 있으면 펼친다(휴대폰은 끌어 놓기가 안 돼 "넣기"가 유일한 길)
+  const stageId = p.focus?.id;
+  useEffect(() => { if (stageId) setOpen(true); }, [stageId]);
   return (
-    <aside className="bp-drawer" aria-label="기술 서랍과 내 이력">
+    <aside className="bp-drawer" data-open={open} aria-label="기술 서랍과 내 이력">
+      <button type="button" className="btn bp-sm bp-shelf" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "기술 서랍 접기 ▲" : "기술 서랍 열기 ▼"}</button>
       <div className="bp-tabs" role="group" aria-label="서랍 보기">
         <button type="button" className="btn bp-sm" aria-pressed={p.tab === "tech"} onClick={() => p.onTab("tech")}>기술</button>
         <button type="button" className="btn bp-sm" aria-pressed={p.tab === "hist"} onClick={() => p.onTab("hist")}>내 이력{p.history ? ` ${p.history.length}` : ""}</button>
