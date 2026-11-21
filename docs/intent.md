@@ -14,7 +14,7 @@
 |---|---|
 | 문제 | 로그인 전에 쓸 수 있는 것이 지도뿐이라 처음 온 사람이 청사진 · 갤러리 · 기술 상세를 맛볼 수 없다. 내 태그는 하나씩 손으로만 붙인다 |
 | 기대 결과 | 손님도 청사진 판을 만들고(초안 `blueprint-draft-v2:guest`, 로그인하면 가져올지 한 번 묻기) 카탈로그에서 찾아 넣고 내보내기 복사. 확정 · 판단 · 템플릿 · AI 점검은 로그인 안내(판은 그대로). 갤러리 · 템플릿 열기 · 카탈로그 상세 `/tech/[id]` · 사용기 읽기는 공개. 내 태그 "자동 제안" 체크 목록 |
-| 영향 범위 | M6 `202611221300_P-12f_public_gallery_anon.sql` + 권한 시험 31항목, `app/blueprint/{page,studio,dock,use-studio-graph,studio-types,actions}`, `gallery/page.tsx`, `app/tech/[id]/*`, `lib/server/{catalog-tech,blueprint-templates}.ts`, `lib/blueprint/draft.ts`, 새 `lib/domain/tag-suggest.ts`, `app/tech-map/{tag-editor,side-panel}.tsx` |
+| 영향 범위 | M6 `202611221310_P-12f_public_gallery_anon.sql` + 권한 시험 31항목, `app/blueprint/{page,studio,dock,use-studio-graph,studio-types,actions}`, `gallery/page.tsx`, `app/tech/[id]/*`, `lib/server/{catalog-tech,blueprint-templates}.ts`, `lib/blueprint/draft.ts`, 새 `lib/domain/tag-suggest.ts`, `app/tech-map/{tag-editor,side-panel}.tsx` |
 | 제약 | 개인 데이터(내 기술 · 판단 · 알림 · 프로젝트 · 태그 · 청사진 · 비공개 템플릿 · 쓴 사람 id)는 손님에게 절대 X(불변 5). `app/projects/tech/[id]`(내 기술 상세)는 로그인 벽 그대로(Maestro). dock.tsx는 분기 최소(DevAssi1 후보 탭과 겹침). 운영 적용(M3 · M6)은 사용자 승인 |
 | 열린 질문 | 손님 템플릿 열기 · 갤러리는 M6 운영 적용 전엔 "읽지 못했어요". 갤러리 분야 거르기 · 정렬(P-12f 9)은 다음 |
 
