@@ -8,12 +8,11 @@ const flow = JSON.parse(readFileSync("flow/flow.json", "utf8")) as Flow;
 const run = (trigger: string, status: RunRow["status"] = "succeeded"): RunRow => ({ id: "r1", trigger, status });
 const step = (step_name: string, status: StepRow["status"]): StepRow => ({ step_name, status });
 
-test("실행이 없으면 아무것도 칠하지 않는다(꺼 둔 3순위 상자만 '꺼짐')", () => {
+test("실행이 없으면 아무것도 칠하지 않는다(꺼 둔 상자가 없으면 모두 '안 켜짐')", () => {
   const { states, activeStart, boldEdges } = colorize(flow, null, []);
   assert.equal(activeStart, null);
   assert.equal(boldEdges.size, 0);
-  assert.equal(states.fetch_popularity, "disabled");
-  assert.ok(Object.entries(states).filter(([id]) => id !== "fetch_popularity").every(([, s]) => s === "off"));
+  assert.ok(Object.values(states).every((s) => s === "off")); // fetch_popularity는 11-21(ADR 0030)에 HN으로 켰다. "꺼짐"을 칠하는 길은 아래에서 따로 본다
 });
 
 test("누른 시작 상자만 켜지고 그 시작의 길이 굵어진다", () => {

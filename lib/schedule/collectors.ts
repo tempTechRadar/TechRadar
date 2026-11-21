@@ -4,9 +4,11 @@
 // 순서가 곧 시간 예산(묶음 240초)을 쓰는 순서다: 새 위험을 알리는 보안 확인(OSV, 몫 150초)을 먼저, 보안 등급의 주의 근거를 채우는 GitHub(몫 60초)를 그다음, 카탈로그(레지스트리, 몫 60초)를 그다음, 인기 신호(다운로드)를 마지막에 둔다.
 import { downloadsCollector } from "../server/collect-downloads.ts";
 import { githubCollector } from "../server/collect-github.ts";
+import { githubSearchCollector } from "../server/collect-github-search.ts";
+import { hnCollector } from "../server/collect-hn.ts";
 import { osvCollector } from "../server/collect-osv.ts";
 import { registryCollector } from "../server/collect-registry.ts";
 import type { Collector } from "./run-batch.ts";
 
-export const SCHEDULE_COLLECTORS: Collector[] = [osvCollector(), githubCollector(), registryCollector(), downloadsCollector()];
+export const SCHEDULE_COLLECTORS: Collector[] = [osvCollector(), githubCollector(), githubSearchCollector(), registryCollector(), downloadsCollector(), hnCollector()];
 // 갈래 분류(P-12c)는 수집이 아니라 여기 넣지 않는다: 부르는 쪽이 묶음 뒤에 classifyAfterBatch를 부른다(lib/server/classify-store.ts)
