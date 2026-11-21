@@ -51,6 +51,20 @@
 | 열린 질문 | 점검 답의 steps · risks를 "제안 · 주의할 점"으로 재사용한 모양이 화면에서 읽기 좋은지, 오래됨 기준 365일(팀 추정), 서비스 전체 200번은 호출 뒤 기록하는 거친 예산이라 동시 요청에 약간 넘을 수 있음 |
 
 **결과:** 됨(로컬 커밋 10개, 미푸시). 시험 1,407(통과 1,406 · 실패 0 · todo 1, 기존 1,356 + 51), 타입 검사 통과. M4는 운영에서 **롤백 시험만** 돌려 기대값 17개가 모두 맞았고 흔적 0을 읽어서 확인했다(적용 안 함). 정한 것: 단계 id는 ASCII 1~64자(DB 정렬과 같게, DevAssi2 제안) · 한도(깊이 12 · 같은 깊이 4)는 확정 조건이라 편집 중에는 개수 · 고리만 막음 · 읽지 못한 것(정보 없음 · 등급 못 찾음 · 수집 오류 · 활동 날짜 모름)은 "확인하지 못했어요" · 같은 확정본을 같은 재료로 다시 누르면 이전 결과를 재사용(한도 안 씀) · 보안 검토 지적(다른 청사진으로 동시에 눌러 한도 통과)은 "넣은 뒤 다시 세기"로 막음. **확인하지 못한 것:** 화면(브라우저), `next build`, 점검 서버를 실제 Claude로 한 번도 안 돌림(시험은 가짜 클라이언트), 적용 뒤 RLS 재확인
+## I-P-12e-blueprint-templates · 2026-11-22 · 청사진 템플릿(틀 · 조합) · 공개 갤러리 — 조각 F (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12e-blueprint-db`(조각 B 위에 이어서, 같은 PR로 감)
+- 출처: 계획 P-12e M2, ADR 0035 · 0036(공개 범위 확장: 기본 비공개 · 별명뿐 · author_id 미노출 · 시연 제외 · 관리자 숨김), 불변 1·3·4·5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 청사진을 다시 쓰거나 남과 나눌 길이 없다(사용자 요청: 템플릿 공유) |
+| 기대 결과 | 내 청사진을 틀(단계 · 연결)이나 조합(기술까지)으로 저장하고, 공개를 누르면 갤러리에 별명과 함께 보인다. 남의 공개 템플릿으로 시작할 수 있다 |
+| 영향 범위 | 새 마이그레이션 202611221100(blueprint_templates · save_blueprint_template · set_template_public · hide_blueprint_template · public_blueprint_templates · blueprint_template_for_use, blueprints.template_id 외래 키, confirm_blueprint_v2 교체), M1 blueprint_graph_clean에 p_extra, 권한 시험 SQL, `lib/server/blueprint-templates.ts`, `app/blueprint/actions.ts`, `app/blueprint/gallery/` |
+| 제약 | ADR 0036 그대로. 운영 적용은 M1 뒤 사용자 승인. 스튜디오 화면이 `?template=`을 받는 것과 템플릿 탭은 FrontLead · DevAssi1 |
+| 열린 질문 | 숨긴 템플릿을 다시 보이게 할 관리자 목록 화면(지금은 숨긴 그 자리에서만 되돌림) |
+
+**결과(커밋 전):** 위 마이그레이션 · 서버 · 갤러리. 남의 공개 조합으로 시작하면 그 조합의 기술은 관문에 더해 받는다(사람이 고른 템플릿, 위험 등급은 그래도 거절, 시연 계정 템플릿은 안 됨). uses = 확정한 사람 수(작가 · 시연 빼고), 설정에서 공개를 끈 작가는 "익명". 관리자도 남의 비공개는 못 보고 공개된 것만 숨긴다. 시험 1,389 통과, 빌드 통과, code-review 1번(10건 모두 반영). 권한 시험 SQL 33항목 미실행. 갤러리 화면은 로그인이 필요해 브라우저로 보지 못함.
+
 ## I-P-12e-blueprint-db · 2026-11-22 · 청사진 스튜디오 DB(M1 그래프 v2 · 관문) — 조각 B (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12e-blueprint-db` (origin `feat/P-12d-alerts-history` 21dbfdb 위 + graph.ts 타입 fe7c8ae)
 - 출처: 사용자 승인 계획 P-12e(Maestro 전달, `.claude/plans-share/p12e-blueprint-studio.md` "데이터 · DB" M1), ADR 0032(지도에서 고르고 청사진으로), 불변 1·3·4·5

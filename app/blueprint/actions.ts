@@ -5,6 +5,7 @@ import { confirmBlueprint, confirmBlueprintGraph, findPoolTechs, type ConfirmGra
 import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { hideTemplate, saveTemplate, setTemplatePublic, type TemplateInput, type TemplateResult } from "@/lib/server/blueprint-templates";
 
 export async function confirmAction(input: ConfirmInput): Promise<ConfirmResult> {
   if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE }; // 미리보기(개발용)는 저장하지 않는다(불변 1·4)
@@ -34,4 +35,42 @@ export async function searchAction(query: string): Promise<PoolTech[] | null> {
   const user = await getCurrentUser();
   const db = user ? await getServerSupabase() : null;
   return db ? findPoolTechs(db, String(query ?? "")) : null;
+}
+
+/** 템플릿 액션 공통: 미리보기 막기는 각 액션이 먼저 한다(글자 검사가 그 순서를 본다). 로그인 → 연결. 못 하면 문구 */
+async function templateDb(): Promise<{ db: NonNullable<Awaited<ReturnType<typeof getServerSupabase>>> } | { message: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { message: "로그인하면 템플릿을 쓸 수 있어요." };
+  const db = await getServerSupabase();
+  return db ? { db } : { message: "처리하지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+}
+
+/** 템플릿 저장(틀 · 조합, P-12e). 검사 · 관문은 DB 함수 save_blueprint_template가 한다(사용자 토큰, 불변 1·4·5) */
+export async function saveTemplateAction(input: TemplateInput): Promise<TemplateResult> {
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE };
+  const c = await templateDb();
+  if ("message" in c) return { ok: false, message: c.message };
+  const r = await saveTemplate(c.db, input);
+  if (r.ok) revalidatePath("/blueprint");
+  return r;
+}
+
+/** 내 템플릿 공개 · 비공개(ADR 0036 1). 공개하면 갤러리에 별명과 함께 보인다 */
+export async function setTemplatePublicAction(id: string, isPublic: boolean): Promise<TemplateResult> {
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE };
+  if (typeof isPublic !== "boolean") return { ok: false, message: "공개 · 비공개 중에서 골라 주세요." }; // 경계: 화면 값을 믿지 않음
+  const c = await templateDb();
+  if ("message" in c) return { ok: false, message: c.message };
+  const r = await setTemplatePublic(c.db, id, isPublic);
+  if (r.ok) { revalidatePath("/blueprint"); revalidatePath("/blueprint/gallery"); }
+  return r;
+}
+
+/** 관리자 숨김 · 되돌리기(ADR 0036 4). 관리자 확인은 DB 함수가 한다(화면 단추만 믿지 않음, 불변 5). 갤러리는 단추가 결과를 보이도록 바로 다시 그리지 않는다 */
+export async function hideTemplateAction(id: string, hidden: boolean): Promise<TemplateResult> {
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE };
+  if (typeof hidden !== "boolean") return { ok: false, message: "숨기기 · 되돌리기 중에서 골라 주세요." };
+  const c = await templateDb();
+  if ("message" in c) return { ok: false, message: c.message };
+  return hideTemplate(c.db, id, hidden);
 }

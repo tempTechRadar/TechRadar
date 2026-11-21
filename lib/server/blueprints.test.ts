@@ -95,7 +95,7 @@ test("v2 확정: 그래프를 DB 함수 confirm_blueprint_v2 하나로 보낸다
   const { db, calls } = fakeDb();
   const g = graph([SAFE]);
   assert.deepEqual(await confirmBlueprintGraph(db, { id: ID, name: " 캔버스 ", projectId: null, graph: g }), { ok: true });
-  assert.deepEqual(calls, [{ fn: "confirm_blueprint_v2", args: { p_id: ID, p_name: "캔버스", p_project_id: null, p_graph: g } }]);
+  assert.deepEqual(calls, [{ fn: "confirm_blueprint_v2", args: { p_id: ID, p_name: "캔버스", p_project_id: null, p_graph: g, p_template_id: null } }]);
   assert.deepEqual(await confirmBlueprintGraph(fakeDb({ data: "exists" }).db, { id: ID, name: "캔버스", projectId: null, graph: g }), { ok: true }, "같은 id = 한 줄(불변 3)");
 });
 
@@ -151,11 +151,20 @@ test("청사진에 넣을 수 있는 기술 = DB 관문과 같은 목록(my_blue
 test("DB 거절 문구의 열쇠는 모두 마이그레이션에 그대로 있다(문구를 바꾸면 여기서 걸린다 — 쉬운 말이 조용히 사라지지 않게)", async () => {
   const { readFileSync } = await import("node:fs");
   const { DB_REFUSED } = await import("./blueprints.ts");
-  const sql = ["202611211000_P-12d_blueprints.sql", "202611221000_P-12e_blueprint_graph.sql"].map((f) => readFileSync(`supabase/migrations/${f}`, "utf8")).join("\n");
+  const sql = ["202611211000_P-12d_blueprints.sql", "202611221000_P-12e_blueprint_graph.sql", "202611221100_P-12e_blueprint_templates.sql"].map((f) => readFileSync(`supabase/migrations/${f}`, "utf8")).join("\n");
   assert.deepEqual(Object.keys(DB_REFUSED).filter((k) => !sql.includes(k)), []);
 });
 
 test("관문 · 위험 등급 거절은 막힌 기술 이름을 함께 알린다", async () => {
   const r = await confirmBlueprintGraph(fakeDb({ error: "고른 적 없는 기술은 청사진에 넣지 않는다(내 기술 · 적용 후보 · 내 이력만): old-lib" }).db, { id: ID, name: "판", projectId: null, graph: graph([SAFE]) });
   assert.match(r.ok ? "" : r.message, /\(old-lib\)$/);
+});
+
+test("v2 확정: 템플릿으로 시작했으면 template id도 보낸다, 잘못된 id는 DB를 안 부른다", async () => {
+  const { db, calls } = fakeDb();
+  const g = graph([SAFE]);
+  assert.deepEqual(await confirmBlueprintGraph(db, { id: ID, name: "판", projectId: null, graph: g, templateId: SAFE }), { ok: true });
+  assert.equal((calls[0].args as { p_template_id: string }).p_template_id, SAFE);
+  assert.equal((await confirmBlueprintGraph(db, { id: ID, name: "판", projectId: null, graph: g, templateId: "x" })).ok, false);
+  assert.equal(calls.length, 1);
 });
