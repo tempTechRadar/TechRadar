@@ -30,6 +30,7 @@
 .side-err { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
 .side-decide { display: grid; gap: 10px; padding: var(--sp-3); border-radius: var(--r-lg); background: var(--sunken); }
 .side-to-bp { display: grid; gap: 4px; justify-items: start; }
+.side-to-bp .btn:disabled { background: var(--surface); border-color: var(--line); color: var(--faint); cursor: not-allowed; } /* 막힌 주 단추가 눌리는 단추처럼 보이지 않게 */
 .side-to-bp p { margin: 0; font-size: var(--fs-sm); }
 .side-notes { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 8px; }
 .side-notes li { padding-top: 8px; border-top: 1px solid var(--line); overflow-wrap: anywhere; white-space: pre-wrap; }
