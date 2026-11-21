@@ -4,6 +4,7 @@ import Link from "next/link";
 import { galleryCards, type GalleryRow } from "@/lib/views/gallery";
 import { categoryNames, isConcept } from "@/lib/map/build-map";
 import { readCategories } from "@/lib/server/map-queries";
+import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
 import { buildKanban, type GroupBy, type KanbanInput } from "@/lib/views/kanban";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
@@ -31,9 +32,6 @@ type JudgmentRow = { decision: "candidate" | "hold"; reason: string | null; judg
 // judgments.alert_id가 unique라 한 줄 객체로 올 수도, 배열로 올 수도 있다(타입 생성 전)
 type AlertRow = { status: "pending" | "done"; changes: { tech_id: string; technologies: TechRef } | null; judgments: JudgmentRow | JudgmentRow[] | null };
 const one = <T,>(j: T | T[] | null) => (Array.isArray(j) ? j[0] : j) ?? null;
-
-// shortcut: 내 태그는 DevAssi2의 readMyTechTagMap(lib/server/my-tech-tags.ts, 브랜치 feat/P-12d-my-tech-tags)이 합쳐지기 전이라 빈 목록("태그 없음" 묶음 하나). 합치면 이 줄을 그 함수로 바꾼다
-const readMyTechTagMap = async (_db: SupabaseClient, _userId: string): Promise<Map<string, string[]>> => new Map();
 
 /** 칸반 · 갤러리 · 갈래 · 내 태그를 한 번에 읽는다 */
 async function readViews(db: SupabaseClient, userId: string) {
