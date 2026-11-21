@@ -6,6 +6,22 @@
 
 ---
 
+## I-submit-check · 2026-11-21 · 제출 전 0–9단계 점검과 README·plan·체크리스트·위키·erd 마무리 (DocsChecker 세션, 김영식)
+- 브랜치: `docs/submit-check` (origin/main 8adb2f7, worktree `.claude/worktrees/submit-check`). 문서만, 푸시는 Maestro와 맞춰 한 번
+- 출처: `.claude/skills/stage-check/`(요건 19c777d), `docs/제출물-체크리스트.md`, 안내서 12장 제출 목록, Maestro 지시(11-21)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 제출 마감(11-23 23:59)이 D-2인데 README 상태·plan 4절·체크리스트 숫자가 11-20 기준이고, 위키는 #194–#201을 반영하지 않았다. 합쳐지지 않은 기록 커밋과 루트 작업 폴더의 미커밋 기록 줄이 남아 있다 |
+| 기대 결과 | 0–9단계 점검 표를 Maestro에 보고(고치지 않음). 승인 뒤 README·plan·체크리스트가 실제와 맞고, 위키는 반영 계획을 보이고 확인 받은 뒤 반영. 남은 기록 줄은 이 브랜치로 살림 |
+| 영향 범위 | `README.md`, `docs/plan.md`, `docs/제출물-체크리스트.md`, `docs/erd.md`, `wiki/`, 기록 문서. 앱 코드·qa 문서는 건드리지 않음 |
+| 제약 | 푸시 금지(Maestro와 맞춤). 점검은 보고만. 위키는 계획 먼저. 이메일·토큰은 옮기지 않음 |
+| 열린 질문 | ① `night-rls-more`의 RLS 시험 SQL(미실행)을 살려 운영에서 돌릴지는 사용자 허가 필요. ② 루트 `supabase/seed/`는 버림 후보, P-2 "시드" 남은 것을 닫을지 팀 결정 |
+
+**결과:** (진행 중) 점검 ✅58·🟡18·❌2·➖1·❔7 보고. cherry-pick 1(#194·#199 운영 점검 기록), 루트 기록 11줄 살림
+
+---
+
 ## I-prod-check-1120-pr194-199 · 2026-11-20 · 운영 읽기 점검 — #194 프로젝트 수정·보관, #199 안내 글 서명 (김영식)
 - 브랜치: 기록만(문서) `docs/prod-check-1120-pr194-199`. 코드·DB 변경 없음, 읽기만
 - 출처: `docs/운영-점검표.md`, `I-P-22-project-archive`·`I-P-23-admin-reflect-params` 열린 질문(운영 화면 확인 필요), 사용자 "진행"(11-20)
