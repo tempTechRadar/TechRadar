@@ -37,3 +37,13 @@ test("질문으로 틀 만들기: 답 → 열 · 행 판 → 그래프에서 단
   const depthOf = (name: string) => lay.depth.get(g.stages.find((s) => s.name === name)!.id);
   cols.forEach((col, i) => col.forEach((name) => assert.equal(depthOf(name), i, name)));
 });
+
+test("손님 초안: 처음 판에서 고친 것만 가져오자고 묻는다(못 읽거나 그대로면 묻지 않음)", async () => {
+  const { guestOffer } = await import("./draft.ts");
+  const blank = fromV1(fromNames([["리서치"], ["개발"]]));
+  const edited = fromV1(fromNames([["리서치"], ["개발", "검증"]]));
+  assert.equal(guestOffer(null, blank), null);
+  assert.equal(guestOffer("{깨짐", blank), null);
+  assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: blank }), blank), null);
+  assert.equal(guestOffer(JSON.stringify({ name: "손님 판", graph: edited }), blank)?.name, "손님 판");
+});
