@@ -52,6 +52,8 @@ erDiagram
   profiles ||--o{ template_notes : "쓴 사용기"
   template_notes ||--o{ template_helpful_votes : "도움이 됐어요"
   template_notes ||--o{ template_reports : "신고"
+  blueprints ||--o{ blueprint_checks : "AI 점검(확정본마다, P-12e M4)"
+  profiles ||--o{ blueprint_checks : "점검을 요청"
   alerts ||--o{ scenarios : "요청"
   profiles ||--o{ judgments : "판단한다"
   profiles ||--o{ exports : "만든다"
@@ -416,6 +418,21 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 
 **template_reports** — 템플릿 사용기 신고(한 사람이 같은 글을 한 번). 칸: id · created_at · note_id(FK→template_notes) · reporter_id(FK→profiles) · reason(1~200자) · handled_by · handled_at · handle_reason(관리자 처리, 함께 있거나 함께 없음).
 
+**blueprint_checks** — 확정한 청사진의 AI 점검 결과(P-12e M4, `202611221300_P-12e_blueprint_checks.sql`, **운영 적용 전 — 사용자 승인 대기**, 롤백 시험 17항목은 2026-11-21 통과). 모양은 `scenarios`를 따른다. 확정본에서 "점검 받기"를 누를 때만 한 줄이 생기고, Claude는 코드가 확인한 사실(`lib/blueprint/check-facts.ts`)을 재료로 제안만 쓴다(청사진은 안 바뀜, 불변 1)
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| id | uuid | ✔ | PK | |
+| created_at | timestamptz | ✔ | | 하루 한도(사용자당 3번, 한국 시간 0시 기준)는 이 칸으로 센다 |
+| blueprint_id | uuid | ✔ | FK→blueprints | 어느 확정본의 점검인가 |
+| requested_by | uuid | ✔ | FK→profiles | 요청한 사람(본인) |
+| status | text | ✔ | | `generating` / `done` / `failed` (기본 `generating`). 끝난 줄(`done`)에만 본문이 있다(check) |
+| input_hash | text | | | 점검 재료(청사진 · 코드 사실 · 글)의 해시. 같은 확정본을 같은 재료로 다시 누르면 새로 부르지 않고 이전 `done` 줄을 다시 쓴다(불변 3) |
+| body | jsonb | | | `{facts:[{kind,severity,text,source:{label,url},techIds}], suggestions:[글], notes:[글]}` — 객체 · 64KB 이하(check). 코드 사실은 그대로, 제안 · 주의할 점은 Claude |
+| sources | jsonb | | | 프롬프트에 실제로 넣은 주소만(지어낸 출처는 서버가 버림) |
+| finished_at | timestamptz | | | |
+
+색인 3개: `(blueprint_id) where status = 'generating'` **유일**(같은 확정본에 만드는 중은 하나 — 두 번 눌러도 Claude를 두 번 부르지 않음) · `(blueprint_id, input_hash) where status = 'done'`(재사용 찾기) · `(requested_by, created_at)`(하루 한도). 사용자는 `blueprint_id`·`requested_by` 두 칸만 넣을 수 있고(열 권한, 본인 확정본만, 상태는 기본값) 상태 · 본문 · 해시 · 출처는 서버(서비스 키)만 쓴다. 고치기 · 지우기 권한 없음(실패는 `failed`로 닫음, 10분 넘게 `generating`이면 서버가 실패로 닫음).
+
 **scenarios** — 적용 시나리오(참고 자료)
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
@@ -459,14 +476,14 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 **ai_calls** — Claude 호출 기록
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
-| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` |
+| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 전: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) |
 | user_id | uuid | | FK→profiles | 사람이 요청했으면 |
 | input_hash | text | ✔ | | 같은 입력은 다시 보내지 않음 |
 | tokens_in · tokens_out | int | | | |
 | status | text | ✔ | | `succeeded` / `failed` |
 | error | text | | | |
 
-하루 한도(SPEC-9)는 이 테이블을 세서 건다.
+하루 한도(SPEC-9)는 이 테이블을 세서 건다. 청사진 점검의 사용자당 하루 3번은 `blueprint_checks` 줄 수로 세고, 서비스 전체 하루 200번은 이 테이블을 센다.
 
 **chat_logs** — 위키 챗봇(팀원·관리자만)
 | 칸 | 종류 | 필수 | 키 | 설명 |
@@ -538,6 +555,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | blueprint_templates | **작가만 읽기**(관리자도 남의 비공개 못 봄). 공개 목록 밖 기술이 든 조합은 공개 거절(202611221320). 남의 공개 템플릿은 갤러리 함수로만(author_id 없이). 쓰기는 함수로만(직접 넣기 · 고치기 권한 없음), 숨기기는 관리자 함수. anon은 읽기 · 함수 모두 막힘 |
 | template_notes | 남에게는 열린 템플릿의 숨기지 않은 글 · 안전한 칸만(쓴 사람 · 숨긴 사람 칸 못 읽음), 쓴 사람은 자기 글 모두, 관리자는 열린 템플릿의 글(숨긴 것 포함). **손님(anon)도 열린 템플릿의 숨기지 않은 글 · 안전한 칸 읽기**(P-12f M6). 쓰기는 써 본 사람만 · 수정 · 삭제 없음, 숨김은 관리자 |
 | template_helpful_votes · template_reports | 본인 줄만 읽기(신고는 관리자 전체), 넣기는 보이는 남의 글에만. 손님은 못 읽음 |
+| blueprint_checks | **본인만 읽기**(관리자도 못 봄). 만들기는 `blueprint_id`·`requested_by` 두 칸만, 본인 확정본에만(정책이 확인). 상태 · 본문 · 해시 · 출처는 서버만 쓴다. 고치기 · 지우기 · anon 권한 없음 |
 | my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
 | news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 11-22 적용) |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
@@ -675,3 +693,4 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 - 2026-11-21 P-12e M1 · M2(작업 `I-P-12e-blueprint-db` · `I-P-12e-blueprint-templates`, 마이그레이션 `202611221000_P-12e_blueprint_graph.sql` · `202611221100_P-12e_blueprint_templates.sql`): `blueprints`에 graph · template_id, 새 표 `blueprint_templates`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 템플릿 기술은 관문에 더하지 않음(사용자 결정 "고르기 칩"). **운영 적용: 11-21**(DB 이름 `p12e_blueprint_graph` `20261121133714`, `p12e_blueprint_templates` `20261121135023`), 권한 시험 40 · 19 · 37항목 모두 기대값. M3(템플릿 사용기 표)는 만들면 더함.
 - 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에 적용했다**(2026-11-21 15:40 UTC, 사용자 승인, 적용 전 롤백 시험 14항목 통과). 적용 뒤 읽어서 확인: 칸 9 · RLS 켜짐 · 정책 1(누구나 읽기) · 색인 기본키 외 2(url 유일 · 최신순) · anon · authenticated는 SELECT뿐 · 줄 0 · `sources`에 `news` 줄(enabled · api · 3) · `schema_migrations` 기록됨. 7절 표에 한 줄 더함. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고
 - 2026-11-22 P-12e M3 · P-12f M6(작업 `I-P-12e-template-notes` · `I-P-12f-guest`, 마이그레이션 `202611221200_P-12e_template_notes.sql` · `202611221310_P-12f_public_gallery_anon.sql`): 새 표 `template_notes` · `template_helpful_votes` · `template_reports`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 손님(anon)은 공개 갤러리 · 열린 템플릿 · 그 사용기의 안전한 칸 · 기술 사용기 수(`usage_note_count`) · 도움 합(`template_helpful_totals`)만, 기술 사용기 글은 손님에게 닫음(사용자 결정). **운영 적용: 11-22**(DB 이름 `p12e_template_notes` `20261121160505`, `p12f_public_gallery_anon` `20261121160610`), 권한 시험 41 · 33항목 모두 기대값.
+- 2026-11-21 P-12e M4(작업 `I-P-12e-graph`, 마이그레이션 `202611221300_P-12e_blueprint_checks.sql`, Maestro 요청): `blueprint_checks` 표를 더하고(2.5절, 4절 권한, 관계 그림) `ai_calls.purpose` 허용 값에 `blueprint_check`를 더함(2.6절). **운영에는 아직 적용하지 않았다**(사용자 승인 대기, 롤백 시험만 통과) — 그래서 7절(실제 DB 대조)에는 넣지 않았고 적용 뒤 칸 · 정책 수를 읽어 채운다. 이유: 확정한 청사진에 AI 점검 결과를 남기려고(같은 재료는 재사용, 하루 한도, 본인만 읽기)
