@@ -1,6 +1,8 @@
 // 블루프린트 = 설계도 판(design.md 14절 ⑤, 11-21 사용자 결정 "시안 거의 전부"): 단계를 순서 · 나란히로 놓고 단계마다 쓸 기술을 붙여
 // 확정하면 내 이력에 쌓이고, 프롬프트 · CLAUDE.md 글 · 메타프롬프트로 내보낸다. 로그인 전에는 그 자리 안내(LoginNeeded).
 import { getCurrentUser } from "@/lib/server/current-user";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_BLUEPRINT } from "@/lib/dev/preview-data";
 import { readBlueprintPage } from "@/lib/server/blueprints";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { LoginNeeded } from "../login/login-needed";
@@ -14,7 +16,7 @@ export default async function BlueprintPage() {
   const user = await getCurrentUser();
   if (!user) return <LoginNeeded title="블루프린트" why="로그인하면 단계마다 쓸 기술을 골라 내 개발 설계도를 만들고, 확정한 조합을 내 이력으로 쌓을 수 있어요." next="/blueprint" />;
   const db = await getServerSupabase();
-  const data = db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
+  const data = isPreviewUser(user) ? SAMPLE_BLUEPRINT /* 미리보기(개발용) */ : db ? await readBlueprintPage(db, user.id).catch((e) => { console.error("블루프린트 화면 조회 실패", e instanceof Error ? e.message : e); return null; }) : null;
   return (
     <main className="alerts bp-page">
       <h1 className="sr-only">블루프린트</h1>

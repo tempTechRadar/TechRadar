@@ -8,6 +8,9 @@ import { NavLink } from "@/app/nav/nav-link";
 import { TabBar } from "@/app/nav/tab-bar";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
+import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
+import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
+import { SAMPLE_RECENT } from "@/lib/dev/preview-data";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "./tokens.css";
@@ -41,7 +44,7 @@ async function pendingCount(userId: string): Promise<number | null> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await menuUser();
-  const pending = user ? await pendingCount(user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
+  const pending = isPreviewUser(user) ? SAMPLE_RECENT.pending : user ? await pendingCount(user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
   return (
     <html lang="ko">
       <body>
@@ -68,6 +71,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </nav>
         {children}
         <TabBar />
+        {loginPreviewAllowed(process.env) ? <LoginPreviewToggle on={isPreviewUser(user)} /> : null}
       </body>
     </html>
   );

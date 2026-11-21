@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import type { Ctx } from "@/lib/server/my-tech";
 import { archiveProject, editProject, restoreProject, type ProjectResult } from "@/lib/server/project-edit";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
@@ -27,16 +27,19 @@ function finish(result: ProjectResult, notice: string): never {
 const idOf = (formData: FormData) => String(formData.get("id") ?? "");
 
 export async function editProjectAction(formData: FormData): Promise<void> {
+  if (await isLoginPreview()) return; // 미리보기(개발용)는 저장하지 않는다
   const ctx = await context();
   finish(await editProject(ctx, idOf(formData), { name: String(formData.get("name") ?? ""), memo: String(formData.get("memo") ?? "") }), "project_edited");
 }
 
 export async function archiveProjectAction(formData: FormData): Promise<void> {
+  if (await isLoginPreview()) return;
   const ctx = await context();
   finish(await archiveProject(ctx, idOf(formData)), "project_archived");
 }
 
 export async function restoreProjectAction(formData: FormData): Promise<void> {
+  if (await isLoginPreview()) return;
   const ctx = await context();
   finish(await restoreProject(ctx, idOf(formData)), "project_restored");
 }

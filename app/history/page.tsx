@@ -2,6 +2,8 @@ import Link from "next/link";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "../alerts/filter-select";
 import { filterHistory, parseHistoryFilter } from "@/lib/alerts/filter-history";
 import { listTime, toAlertView } from "@/lib/alerts/to-alert-view";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_ALERTS, SAMPLE_MARK_EVENTS } from "@/lib/dev/preview-data";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
@@ -23,8 +25,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const user = await getCurrentUser();
   if (!user) return <LoginNeeded title="기록 찾기" why="로그인하면 내가 남긴 판단(관심 · 적용 후보 · 보류)과 이유를 여기에서 다시 찾을 수 있어요." next={backTo("/history", await searchParams)} />;
   const params = await searchParams;
-  const supabase = (await getServerSupabase())!;
-  const [records, marks] = await Promise.all([
+  // 미리보기(개발용)는 DB를 부르지 않고 샘플로
+  const supabase = isPreviewUser(user) ? null : (await getServerSupabase())!;
+  const [records, marks] = !supabase ? [SAMPLE_ALERTS, { data: SAMPLE_MARK_EVENTS, error: null }] : await Promise.all([
     listMyAlerts(supabase, user.id).catch((e) => { console.error("기록 조회 실패", e); return null; }),
     supabase.from("tech_mark_events").select("id, created_at, tech_id, new_status, reason, technologies(display_name)").eq("user_id", user.id)
       .order("created_at", { ascending: false }).limit(MARK_LIMIT),

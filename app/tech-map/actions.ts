@@ -2,7 +2,8 @@
 
 import { revalidatePath, unstable_cache } from "next/cache";
 import { recordActionOutcome } from "@/lib/server/action-record";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { saveMark, type MarkResult, type MarkStatus } from "@/lib/server/marks";
 import { findPoolTechs, type PoolTech } from "@/lib/server/blueprints";
 import { resolveProjectId } from "@/lib/server/local-import";
@@ -17,6 +18,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
  * 저장은 사용자 토큰으로 DB 함수 하나(불변 1·4·5). 함께 판단된 알림이 있으면 흐름 화면의 "조치와 기록" 단계를 남긴다(alerts/[id]/actions.ts와 같은 방식).
  */
 export async function markTech(techId: string, status: MarkStatus | null, reason: string): Promise<MarkResult> {
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE }; // 미리보기(개발용)는 저장하지 않는다(불변 1·4)
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: "로그인하면 판단을 남길 수 있어요." };
   const db = await getServerSupabase();
@@ -57,6 +59,7 @@ export async function searchCatalogAction(query: string): Promise<PoolTech[] | n
 
 /** 카탈로그에도 없는 이름(고유명사 등)을 내 기술로 직접 추가. 프로젝트 "local" = 프로젝트 밖(내 컴퓨터) 칸, 처음 쓸 때 만든다(내 프로젝트 화면과 같은 규칙) */
 export async function addMapTechAction(name: string, projectId: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE };
   const user = await getCurrentUser();
   const db = user ? await getServerSupabase() : null;
   if (!user || !db) return { ok: false, message: "로그인하면 직접 추가할 수 있어요." };

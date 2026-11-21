@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { registerAndRead } from "@/lib/server/first-read";
 import { RepoNotPublicError } from "@/lib/server/collect-fetch";
 import { parseGithubRepo } from "@/lib/domain/manifest";
@@ -11,6 +11,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 
 /** 프로젝트 등록 = 처음 읽기. 이미 등록한 주소면 다시 읽기(IA-2, PRD-F4·F6). */
 export async function registerProject(formData: FormData) {
+  if (await isLoginPreview()) return; // 미리보기(개발용)는 저장하지 않는다(불변 1·4)
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const repo = parseGithubRepo(String(formData.get("repoUrl") ?? ""));

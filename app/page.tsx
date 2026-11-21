@@ -18,6 +18,8 @@ import type { ReactNode } from "react";
 import { CanvasMap } from "./tech-map/canvas-map";
 import { StartChecklist } from "./tech-map/start-checklist";
 import { startSteps } from "@/lib/onboarding/start-steps";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_DASHBOARD, SAMPLE_FIRST_READS, sampleMapInput } from "@/lib/dev/preview-data";
 import "./alerts/alerts.css";
 
 /** 주소의 sel=tech:<uuid>(지도에서 보기)에서 기술 id만. 모양이 다르면 버린다 */
@@ -63,14 +65,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     );
   }
 
-  const db = (await getServerSupabase())!; // 로그인한 사람이 있으면 연결 설정도 있다(getCurrentUser가 같은 설정으로 읽음)
   const seen = parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value);
   // 지도와 숫자는 따로 읽는다: 하나를 못 읽어도 다른 하나는 보여 주고, 못 읽은 쪽은 "없음"이 아니라 "읽지 못함"으로(불변 2)
-  const [input, dash, firstReads] = await Promise.all([
+  // 미리보기(개발용)는 DB를 부르지 않고 샘플로. 로그인한 사람이 있으면 연결 설정도 있다(getCurrentUser가 같은 설정으로 읽음)
+  const db = isPreviewUser(user) ? null : (await getServerSupabase())!;
+  const [input, dash, firstReads] = db ? await Promise.all([
     readMapInput(db, user.id, user.isDemo, selTech(query)).catch(logged("지도 조회 실패")),
     readDashboardData(db, user.id).catch(logged("지도 위 숫자 조회 실패")),
     readRecentFirstReads(db, user.id).catch(logged("첫 점검 띠 조회 실패")),
-  ]);
+  ]) : [sampleMapInput(), SAMPLE_DASHBOARD, SAMPLE_FIRST_READS];
   const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
   const model = input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null;
   const summary = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;

@@ -9,6 +9,9 @@ import { buildKanban, type KanbanInput } from "@/lib/views/kanban";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_DASHBOARD, SAMPLE_GALLERY, SAMPLE_KANBAN } from "@/lib/dev/preview-data";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Kanban } from "./kanban";
 import { Gallery, NewsPlaceholder, UsingNowPlaceholder } from "./view-parts";
 import "../alerts/alerts.css";
@@ -29,22 +32,16 @@ type JudgmentRow = { decision: "candidate" | "hold"; reason: string | null; judg
 type AlertRow = { status: "pending" | "done"; changes: { tech_id: string; technologies: TechRef } | null; judgments: JudgmentRow | JudgmentRow[] | null };
 const one = <T,>(j: T | T[] | null) => (Array.isArray(j) ? j[0] : j) ?? null;
 
-export default async function ViewsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const user = await getCurrentUser();
-  if (!user) return <LoginNeeded title="내 레이더" why="로그인하면 관심 두고, 써 볼 후보로 고르고, 쓰고 있는 기술이 여기에 모여요." next={backTo("/views", await searchParams)} />;
-  const db = await getServerSupabase();
-  if (!db) return <main className="alerts"><h1>내 레이더</h1><p>Supabase 연결 전이에요.</p></main>;
-  const { tab: raw } = await searchParams;
-  const tab: Tab = TABS.some(([k]) => k === raw) ? (raw as Tab) : "radar";
-
+/** 칸반 · 갤러리 · 숫자를 한 번에 읽는다 */
+async function readViews(db: SupabaseClient, userId: string) {
   // DB 타입을 생성하기 전이라 다대일도 배열로 추론된다. 실제 응답은 한 줄 객체
   const [techRes, markRes, alertRes, dash] = await Promise.all([
     db.from("my_technologies")
       .select("id, tech_id, version, grade, grade_reason, collect_error_kind, last_checked_ok_at, manual_name, technologies(display_name, tech_key), projects!inner(name, archived_at)")
-      .eq("owner_id", user.id).is("hidden_at", null).is("projects.archived_at", null), // 지도와 같은 범위: 보관한 프로젝트는 뺀다
-    db.from("tech_marks").select("tech_id, status, reason, updated_at, technologies(display_name, grade)").eq("user_id", user.id),
-    db.from("alerts").select("status, changes(tech_id, technologies(display_name, grade)), judgments(decision, reason, judged_at)").eq("user_id", user.id),
-    readDashboardData(db, user.id).catch((e: unknown) => { console.error("내 레이더 숫자 조회 실패", e instanceof Error ? e.message : e); return null; }),
+      .eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null), // 지도와 같은 범위: 보관한 프로젝트는 뺀다
+    db.from("tech_marks").select("tech_id, status, reason, updated_at, technologies(display_name, grade)").eq("user_id", userId),
+    db.from("alerts").select("status, changes(tech_id, technologies(display_name, grade)), judgments(decision, reason, judged_at)").eq("user_id", userId),
+    readDashboardData(db, userId).catch((e: unknown) => { console.error("내 레이더 숫자 조회 실패", e instanceof Error ? e.message : e); return null; }),
   ]);
   const techs = (techRes.data ?? []) as unknown as MyTech[];
   const alerts = (alertRes.data ?? []) as unknown as AlertRow[];
@@ -63,6 +60,18 @@ export default async function ViewsPage({ searchParams }: { searchParams: Promis
     id: t.id, name: t.technologies?.display_name ?? t.manual_name ?? "(이름 없음)", version: t.version, grade: t.grade, gradeReason: t.grade_reason,
     collectErrorKind: t.collect_error_kind, lastCheckedOkAt: t.last_checked_ok_at, projectName: t.projects?.name ?? "", concept: isConcept(t.technologies?.tech_key),
   }));
+  return { kanban, rows, readError, dash };
+}
+
+export default async function ViewsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) return <LoginNeeded title="내 레이더" why="로그인하면 관심 두고, 써 볼 후보로 고르고, 쓰고 있는 기술이 여기에 모여요." next={backTo("/views", await searchParams)} />;
+  const db = isPreviewUser(user) ? null : await getServerSupabase(); // 미리보기(개발용)는 DB 없이 샘플로
+  if (!db && !isPreviewUser(user)) return <main className="alerts"><h1>내 레이더</h1><p>Supabase 연결 전이에요.</p></main>;
+  const { tab: raw } = await searchParams;
+  const tab: Tab = TABS.some(([k]) => k === raw) ? (raw as Tab) : "radar";
+
+  const { kanban, rows, readError, dash } = db ? await readViews(db, user.id) : { kanban: SAMPLE_KANBAN, rows: SAMPLE_GALLERY, readError: null, dash: SAMPLE_DASHBOARD };
   // 숫자는 대시보드와 같은 계산(IA-5: 내 기술 수 · 변경 수 · 판단 대기 / 완료, ADR 0028 3)
   const sum = dash ? summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() }) : null;
 

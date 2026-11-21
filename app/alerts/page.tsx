@@ -2,6 +2,8 @@ import Link from "next/link";
 import { countPending, filterAlerts } from "@/lib/alerts/filter-alerts";
 import { parseAlertFilter } from "@/lib/alerts/parse-alert-filter";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
@@ -17,8 +19,8 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const user = await getCurrentUser();
   if (!user) return <LoginNeeded title="알림" why="로그인하고 내 프로젝트를 등록하면, 내가 쓰는 기술에 위험이 생기거나 대안이 나왔을 때 여기에서 알려 드려요." next={backTo("/alerts", await searchParams)} />;
   const params = await searchParams;
-  const supabase = (await getServerSupabase())!;
-  const records = await listMyAlerts(supabase, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
+  const records = isPreviewUser(user) ? SAMPLE_ALERTS // 미리보기(개발용)는 샘플
+    : await listMyAlerts((await getServerSupabase())!, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
 
   return (
     <main className="alerts">
