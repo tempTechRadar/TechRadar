@@ -5,6 +5,8 @@ import { MIN_STARS, readSearchPage, type SearchPage, type SearchTag } from "../d
 import { CollectError, fetchText } from "./collect-fetch.ts";
 
 export const PER_PAGE = 100;
+// 검색 응답은 저장소 한 건이 7KB 안팎이라 100건이면 70만 자에 가깝다(11-21 실측 673,697자). fetchText의 기본 한도(50만 자)로는 첫 쪽부터 막힌다
+const MAX_SEARCH_TEXT = 2_000_000;
 /** upper: 별 상한(검색 한 번에 1,000건까지라 넘으면 앞에서 본 가장 적은 별 수로 구간을 좁혀 이어 읽는다). null이면 하한만 */
 export type SearchQuery = { tag: SearchTag; upper: number | null; page: number };
 
@@ -18,7 +20,7 @@ export async function fetchSearchPage(q: SearchQuery, token: string): Promise<Se
   const url = searchUrl(q);
   const text = await fetchText(url, {
     headers: { accept: "application/vnd.github+json", authorization: `Bearer ${token}`, "x-github-api-version": "2022-11-28", "user-agent": "TechRadar-collector" },
-  });
+  }, MAX_SEARCH_TEXT);
   if (text === null) throw new CollectError("http_status", `${url}: 404`, 404);
   const page = readSearchPage(text);
   if (page === null) throw new CollectError("parse", `${url}: 응답의 모양이 달라 해석하지 못함`);

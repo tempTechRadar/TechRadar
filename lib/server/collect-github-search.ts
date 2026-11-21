@@ -7,7 +7,7 @@
 import { repoKey } from "../domain/github-repo.ts";
 import { planCandidates, SEARCH_TAGS, type Candidate, type Plan, type SearchPage, type SearchRepo, type SearchTag } from "../domain/star-candidates.ts";
 import type { Collector, CollectorContext } from "../schedule/run-batch.ts";
-import { readToken } from "./collect-github.ts";
+import { CollectError, readToken } from "./collect-fetch.ts";
 import { fetchSearchPage, PER_PAGE, type SearchQuery } from "./github-search-fetch.ts";
 import { countStarRows, fromRegistry, readExisting, readSource, saveEntry, STARS_CAP, type Entry, type SaveCtx } from "./github-search-store.ts";
 import { recordStep } from "./run-log.ts";
@@ -19,7 +19,7 @@ const SEARCH_WINDOW = 1_000; // GitHub 검색은 한 질의에 앞 1,000건까�
 type Deps = { fetchPage: (q: SearchQuery, token: string) => Promise<SearchPage>; token: () => string | undefined; sleep: (ms: number) => Promise<void>; now: () => number };
 type Cursor = SearchQuery & { done: boolean };
 type Found = { repos: Map<string, SearchRepo & { tags: SearchTag[] }>; unread: SearchTag[]; requests: number };
-type Tally = { created: number; merged: number; capped: number; observed: number; suspects: number };
+type Tally = { created: number; merged: number; refreshed: number; capped: number; same: number; observed: number; suspects: number; unsaved: number };
 
 export function githubSearchCollector(deps: Partial<Deps> = {}): Collector {
   const d: Deps = { fetchPage: fetchSearchPage, token: () => process.env.GITHUB_TOKEN, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: Date.now, ...deps };
@@ -29,13 +29,21 @@ export function githubSearchCollector(deps: Partial<Deps> = {}): Collector {
 async function collectStars(ctx: CollectorContext, d: Deps): Promise<{ items: number; summary: string }> {
   const source = await readSource(ctx.db);
   if (!source.enabled) return { items: 0, summary: "GitHub 별 후보 검색 출처가 꺼져 있어요(관리자 설정)" };
-  const token = readToken({ token: d.token } as Parameters<typeof readToken>[0]); // readToken은 token만 읽는다
+  const token = readToken(d.token());
   const found = await searchAll(d, token, Math.min(ctx.deadlineMs, d.now() + SEARCH_BUDGET_MS));
+  // 시간 몫이 시작 전에 다 지났으면 "후보 0곳"이 아니라 못 읽은 것(불변 2)
+  if (found.requests === 0) throw new CollectError("timeout", "시간 몫이 시작 전에 다 지나 GitHub 검색을 한 번도 하지 못했어요");
   const existing = await readExisting(ctx.db);
   const candidates: Candidate[] = [...found.repos.values()].map((r) => ({ ...r, inRegistry: fromRegistry(existing.get(repoKey(r))) }));
   const plan = planCandidates(candidates, d.now());
   const s: SaveCtx = { db: ctx.db, runId: ctx.runId, sourceId: source.id, at: new Date(d.now()).toISOString(), existing, starRows: countStarRows(existing) };
-  const tally = await saveAll(s, plan);
+  const tally: Tally = { created: 0, merged: 0, refreshed: 0, capped: 0, same: 0, observed: 0, suspects: plan.suspects.length, unsaved: 0 };
+  try {
+    await saveAll(s, plan, tally, () => d.now() >= ctx.deadlineMs);
+  } catch (e) {
+    await recordSteps(ctx, found, plan, tally).catch(() => {}); // 저장 실패로 멈춰도 거기까지 저장한 것은 실행 기록에 남긴다(원래 오류는 가리지 않음)
+    throw e;
+  }
   await recordSteps(ctx, found, plan, tally);
   return { items: found.repos.size, summary: summarize(found, plan, tally) };
 }
@@ -80,19 +88,25 @@ function advance(c: Cursor, page: SearchPage): void {
   else c.done = true;
 }
 
-/** 점수 높은 순으로 저장해 누적 상한이 낮은 쪽부터 막히게 한다. 의심 붙은 NEW 후보는 얇게 */
-async function saveAll(s: SaveCtx, plan: Plan): Promise<Tally> {
-  const t: Tally = { created: 0, merged: 0, capped: 0, observed: 0, suspects: plan.suspects.length };
+/**
+ * 점수 높은 순으로 저장해 누적 상한이 낮은 쪽부터 막히게 한다. 의심 붙은 NEW 후보는 얇게, 나머지는 전에 표시한 줄만 맞춘다.
+ * 묶음 시간이 다하면 멈춘다: 멱등이라 다음 실행이 남은 것을 이어 간다.
+ */
+async function saveAll(s: SaveCtx, plan: Plan, t: Tally, overTime: () => boolean): Promise<void> {
   const entries: Entry[] = [
-    ...plan.top.map((c) => ({ c, key: c.key, score: c.score, flags: [], thick: true })),
-    ...plan.suspects.map((c) => ({ c, key: c.key, score: null, flags: c.flags, thick: false })),
+    ...plan.top.map((c): Entry => ({ c, key: c.key, score: c.score, flags: [], mode: "top" })),
+    ...plan.suspects.map((c): Entry => ({ c, key: c.key, score: null, flags: c.flags, mode: "suspect" })),
+    ...plan.rest.map((c): Entry => ({ c, key: c.key, score: c.score, flags: [], mode: "refresh" })),
   ];
-  for (const e of entries) {
+  for (const [i, e] of entries.entries()) {
+    if (overTime()) {
+      t.unsaved = entries.length - i;
+      return;
+    }
     const saved = await saveEntry(s, e);
     t[saved.outcome]++;
     if (saved.observed) t.observed++;
   }
-  return t;
 }
 
 /** 수집 상자 줄은 runBatch가 남긴다. 여기서는 그 뒤 normalize·compare만(compare의 나가는 건수는 0: 등급 계산으로 넘어가지 않는다) */
@@ -105,7 +119,7 @@ async function recordSteps(ctx: CollectorContext, found: Found, plan: Plan, t: T
   });
   await recordStep(ctx.db, ctx.runId, {
     stepName: "compare", status: "succeeded", countIn: plan.top.length + plan.suspects.length, countOut: 0,
-    outputSummary: `별 수가 바뀐 것 ${t.observed}곳(수집 자료로만 남김, 등급 계산으로 넘어가지 않음), 새 줄 ${t.created}·기존 줄 합침 ${t.merged}`,
+    outputSummary: `별 수가 바뀐 것 ${t.observed}곳(수집 자료로만 남김, 등급 계산으로 넘어가지 않음), 새 줄 ${t.created}·기존 줄 합침 ${t.merged}·지난 표시 맞춤 ${t.refreshed}·그대로 ${t.same}`,
   });
 }
 
@@ -114,5 +128,6 @@ function summarize(found: Found, plan: Plan, t: Tally): string {
   if (t.suspects) parts.push(`의심 표시 ${t.suspects}곳은 NEW 후보(얇게)`);
   if (t.capped) parts.push(`상한 ${STARS_CAP}에 닿아 ${t.capped}곳은 안 올림`);
   if (found.unread.length) parts.push(`시간 몫으로 다 못 읽은 태그: ${found.unread.join(", ")}`);
+  if (t.unsaved) parts.push(`시간이 모자라 ${t.unsaved}곳은 다 저장 못 함(다음 실행이 이어 감)`);
   return parts.join(", ");
 }

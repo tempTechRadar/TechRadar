@@ -54,13 +54,26 @@ test("new_spike 경계: 생성 30일 미만이고 별 500 이상일 때만", () 
   assert.deepEqual(flags(30, 500), []);
 });
 
-test("clone_cluster 경계: 같은 이름(대소문자 무시)·다른 소유자 2곳 이상·별 차이가 최대의 5% 이하", () => {
+test("clone_cluster 경계: 같은 이름(대소문자 무시)·다른 소유자 2곳 이상·별 차이가 최대의 5% 이하. 생성일이 가장 이른 것(원본)은 표시하지 않는다", () => {
+  // 두 번째가 나중에 만들어진 복제본
   const pair = (a: number, b: number, owners = ["x", "y"], names = ["tool", "Tool"]) =>
-    flagsOf([repo(`${owners[0]}/${names[0]}`, { stars: a }), repo(`${owners[1]}/${names[1]}`, { stars: b })], NOW);
-  assert.deepEqual([...pair(1000, 950).values()], [["clone_cluster"], ["clone_cluster"]]);
+    flagsOf([repo(`${owners[0]}/${names[0]}`, { stars: a, createdAt: ago(400) }), repo(`${owners[1]}/${names[1]}`, { stars: b, createdAt: ago(60) })], NOW);
+  assert.deepEqual([...pair(1000, 950).values()], [[], ["clone_cluster"]]);
+  assert.deepEqual([...pair(950, 1000).values()], [[], ["clone_cluster"]], "별이 더 많아도 나중에 만든 쪽이 복제본");
   assert.deepEqual([...pair(1000, 949).values()], [[], []]);
   assert.deepEqual([...pair(1000, 1000, ["x", "X"]).values()], [[]], "같은 소유자(대소문자만 다름)는 묶음이 아님");
   assert.deepEqual([...pair(1000, 1000, ["x", "y"], ["tool", "other"]).values()], [[], []]);
+  const three = flagsOf([repo("a/t", { createdAt: ago(50) }), repo("b/t", { createdAt: ago(500) }), repo("c/t", { createdAt: ago(40) })], NOW);
+  assert.deepEqual([...three.entries()], [["github:a/t", ["clone_cluster"]], ["github:b/t", []], ["github:c/t", ["clone_cluster"]]]);
+});
+
+test("clone_cluster는 관문을 통과한 저장소끼리만 묶는다: 보관·포크·오래된 같은 이름은 정상 기술을 복제본으로 만들지 않는다", () => {
+  for (const over of [{ archived: true }, { fork: true }, { pushedAt: ago(400) }]) {
+    const plan = planCandidates([cand("orig/tool", { createdAt: ago(60) }), cand("other/tool", { createdAt: ago(900), ...over })], NOW);
+    assert.deepEqual(plan.suspects, [], JSON.stringify(over));
+  }
+  const plan = planCandidates([cand("orig/tool", { createdAt: ago(900) }), cand("copy/tool", { createdAt: ago(60) })], NOW);
+  assert.deepEqual([plan.top.map((t) => t.key), plan.suspects.map((s) => [s.key, s.flags])], [["github:orig/tool"], [["github:copy/tool", ["clone_cluster"]]]]);
 });
 
 test("백분위: 같은 값은 같은 자리, 하나뿐이면 1", () => {
@@ -101,6 +114,12 @@ test("계획: 관문에서 떨어진 것은 버리고, 의심이 붙은 것은 �
   assert.deepEqual(plan.top.map((t) => t.key), ["github:a/ok", "github:d/ok2"]);
   assert.deepEqual(plan.suspects.map((s) => [s.key, s.flags]), [["github:c/spike", ["new_spike"]]]);
   assert.equal(plan.gated, 1);
+  assert.deepEqual(plan.rest.map((r) => [r.key, r.score]), [["github:b/old", null]], "관문 탈락은 점수 없이 나머지로");
+});
+
+test("나머지(rest): 상위 100 밖이어도 점수를 갖고 돌아온다(전에 붙인 의심 표시를 지우는 데 씀)", () => {
+  const plan = planCandidates(Array.from({ length: 101 }, (_, i) => cand(`o/r${i}`, { stars: 1000 + i })), NOW);
+  assert.deepEqual([plan.top.length, plan.rest.length, plan.rest[0].key, typeof plan.rest[0].score], [100, 1, "github:o/r0", "number"]);
 });
 
 test("종류 추정·키·한 줄 설명", () => {
@@ -110,4 +129,11 @@ test("종류 추정·키·한 줄 설명", () => {
   assert.equal(oneLinerOf("  a \n b  "), "a b");
   assert.equal(oneLinerOf("   "), null);
   assert.equal(oneLinerOf("x".repeat(300))!.length, 200);
+});
+
+test("한 줄 설명은 코드 포인트로 자른다: 199·200번째 자리의 이모지(대리쌍)를 반으로 자르지 않는다", () => {
+  const cut = oneLinerOf(`${"x".repeat(198)}😀😀${"y".repeat(10)}`)!;
+  assert.equal(cut, `${"x".repeat(198)}😀…`);
+  assert.ok(cut.isWellFormed(), "짝 없는 대리 문자 없음");
+  assert.equal(oneLinerOf(`${"x".repeat(199)}😀`), `${"x".repeat(199)}😀`, "정확히 200 코드 포인트면 그대로");
 });

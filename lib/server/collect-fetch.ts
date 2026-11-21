@@ -11,6 +11,14 @@ export const OSV_QUERY_URL = "https://api.osv.dev/v1/query";
 
 export type ErrorKind = NonNullable<StepRecord["errorKind"]>;
 
+/** GitHub 서버 토큰. 없거나 모양이 이상하면 호출 없이 수집 오류(저장소 정보·별 후보 수집기가 함께 쓴다). 값은 문구에 넣지 않는다. */
+export function readToken(token: string | undefined): string {
+  const t = token?.trim();
+  if (!t) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN이 없어 GitHub를 부르지 않았어요(Vercel·.env에 넣어야 함)");
+  if (!TOKEN_SHAPE.test(t)) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN의 모양이 이상해 GitHub를 부르지 않았어요(공백·줄바꿈·따옴표가 섞였는지 확인, 값은 기록하지 않음)");
+  return t;
+}
+
 export class CollectError extends Error {
   readonly kind: ErrorKind;
   readonly httpStatus?: number;
