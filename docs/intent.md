@@ -6,6 +6,27 @@
 
 ---
 
+## I-P-12e-studio-panels · 2026-11-22 · 청사진 스튜디오 하단 패널 · 속성 패널 · 목록 모드 (조각 K) (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12e-studio-panels`(통합 `feat/P-12e-blueprint-studio` dba6d5d 위 + DataCollector `ecad6d0` + 통합 머리 `9a824fa` 합침, 로컬, 미푸시 — FrontLead가 합침)
+- 출처: 사용자 승인 계획 P-12e(청사진 스튜디오) 조각 K, Maestro 배정 · FrontLead 밑. PRD NF(접근성: 키보드 · 대비 · 390px), 불변 1 · 2 · 4
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 자유 캔버스만으로는 휴대폰 · 키보드 · 화면 읽기로 청사진을 고칠 수 없고, 서랍이 왼쪽에 붙어 캔버스를 가리며, 고른 단계 · 기술을 자세히 볼 곳이 없다 |
+| 기대 결과 | 하단 패널(높이 조절 · 접기, 기술 / 내 이력 / 템플릿 / AI 점검 탭, 단계별 기본 탭), 오른쪽 속성 패널(단계: 이름 · 앞 · 다음 · 붙은 기술 · 지우기 / 기술: 등급 · 보안 띠 · 내 태그 · 사용기 3개), 목록 모드(깊이 순 카드로 단계 더하기 · 이름 · 잇기 · 끊기 · 기술 넣기 · 빼기 · 지우기, 끌기 없이) |
+| 영향 범위 | 새 `app/blueprint/{dock,inspector,list-mode}.tsx` + css, `lib/blueprint/panel-view.ts` + 시험, `lib/blueprint/knowledge.ts`(stageFields), 개발용 샘플 `app/dev/studio-panels-sample/*` |
+| 제약 | studio · stage-node · tech-chip · stepper · studio.css · page · studio-types는 FrontLead 몫(가져다 쓰기만). 그래프는 graph.ts 편집 함수 → `apply`로만(되돌리기 · 저장은 studio). package.json · lock은 FrontLead만. 로컬 커밋만 |
+| 열린 질문 | 템플릿 · AI 점검 탭 내용(조각 F · I). 진짜 캔버스 위에서 끌어 놓기 · 배치 체감 |
+
+**결정 · 이유:**
+- 기술 탭은 옛 서랍 관문 그대로(내 기술 · 적용 후보 · 이력만, 카탈로그 찾은 것은 "지도에서 적용 후보로 고르기"). 막힌 카드는 끌기도 막고 dragstart에서 한 번 더 거른다(카드 안 링크를 끌어도 기술 id가 실리지 않게).
+- 단계 지우기 · 이력 불러오기는 확인 창 없이 되돌리기에 맡긴다(studio가 50단계를 쌓음). 알림 문구에 "되돌리기로 살릴 수 있어요"를 적는다.
+- 목록 모드에서 고리가 생기는 앞 단계는 고르기 목록에서 빼고, 못 잇는 이유는 `connectProblem` → 한국어 문구로 보인다.
+- 단계 이름 분류는 `Object.hasOwn`으로 찾는다(`stageFields`): 사용자가 "constructor" 같은 이름을 지으면 화면이 깨졌다(리뷰 발견).
+
+**결과:** 됨(로컬 커밋 96d34ca feat · 8cd0faf test · 8be2aef fix · 2bf77ed test · 이 docs). 시험 1,379개 중 통과 1,378 · 실패 0(todo 1), `tsc` · `next build --webpack` 통과. `/dev/studio-panels-sample`(캔버스 없이 얇은 studio 대역)에서 1280 · 390px로 확인: 단계 더하기(키보드) · 잇기 · 고리 막힘 · 기술 넣기(이미 있으면 "✓ 있어요") · 칩 고르기 → 속성 패널 · 높이 조절(↑↓ +48px) · 접기 · 1단계에서 템플릿 탭, 빼기 뒤 초점은 그 카드 이름 단추, 단계 지우기 뒤 초점은 목록 제목, "constructor" 단계도 안 깨짐, 390px 가로 넘침 0 · 32px 미만 누르는 칸 0. code-review 10건 모두 반영. 하이드레이션 어긋남(높이 한도 계산) 1건 고침, 남은 경고는 점검 브라우저 확장의 body 커서 스타일. `node_modules`는 루트 정션을 `cmd /c rmdir`로 링크만 지우고 이 worktree에 `npm ci`(허가 H, 루트 원본 그대로).
+**확인하지 못함:** 진짜 캔버스와 붙인 배치 · 캔버스로 끌어 놓기(studio가 받음), 로그인한 상태의 사용기 · 내 태그 저장(샘플은 로그인 없이 열어 "불러오지 못했어요"), 실제 휴대폰 터치, 다크 모드, 화면 읽기 프로그램.
+
 ## I-P-12e-blueprint-studio · 2026-11-21 · 청사진 스튜디오: 자유 캔버스 · 연결선 순서 · 스텝퍼 · 되돌리기 (조각 D · E, 통합) (김영식)
 - 브랜치: `feat/P-12e-blueprint-studio`(#202 head 21dbfdb 위, 통합 브랜치). 그래프 함수는 DataCollector `feat/P-12e-graph`, 패널은 개발보조1 `feat/P-12e-studio-panels`, 서버 · DB는 개발보조2 · DataCollector를 합침
 - 출처: 사용자 승인 계획 P-12e(11-21 밤, `.claude/plans-share/p12e-blueprint-studio.md`), ADR 0032(컨셉), design.md 14절 ⑤, 불변 1 · 3 · 4
