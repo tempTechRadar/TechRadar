@@ -183,3 +183,39 @@ test("레지스트리 대량 채우기로 들어온 기술은 '내가 등록한 
   assert.equal(await createAlertsForChange(fakeDb(tables({ registry_backfill: true })).db, input), 0);
   assert.equal(await createAlertsForChange(fakeDb(tables({ registry_backfill: false })).db, input), 2);
 });
+
+// SPEC-3.2 조건 4(ADR 0033): 새 기술 줄의 signals에서 별 수와 의심 표시를 읽어 규칙에 넘긴다
+const withNewSignals = (signals: unknown, mutate: (t: Tables) => void = () => {}): Tables => {
+  const tables = baseTables();
+  tables.technologies[1] = tech("new", "mcp-new", { created_at: "2026-11-18T00:00:00Z", signals });
+  mutate(tables);
+  return tables;
+};
+const createdWith = async (signals: unknown, mutate?: (t: Tables) => void) => createAlertsForChange(fakeDb(withNewSignals(signals, mutate)).db, input);
+
+test("별 수 경계: signals.stars가 99면 알림 0건, 100이면 만든다(기술 줄을 읽을 때 signals 칸도 가져온다)", async () => {
+  assert.equal(await createdWith({ stars: 99 }), 0);
+  assert.equal(await createdWith({ stars: 100 }), 2);
+  const { db, selects } = fakeDb(withNewSignals({ stars: 100 }));
+  await createAlertsForChange(db, input);
+  assert.ok(selects.find((s) => s.table === "technologies")!.columns.split(", ").includes("signals"), "새 기술 줄을 읽을 때 signals 칸이 빠지면 별 수를 못 읽는다");
+});
+
+test("별 수를 못 읽으면(없음·문자열·NaN·음수·signals 자체가 없음) 낮다고 단정하지 않고 알림을 만든다(불변 2)", async () => {
+  for (const signals of [null, {}, { stars: "50" }, { stars: NaN }, { stars: -5 }, { stars: null }, [], "x"]) {
+    assert.equal(await createdWith(signals), 2, JSON.stringify(signals));
+  }
+});
+
+test("의심 표시(candidate_flags)가 붙은 새 기술은 별이 많아도 알림 0건, 빈 배열이면 만든다", async () => {
+  assert.equal(await createdWith({ stars: 5000, candidate_flags: ["new_spike"] }), 0);
+  assert.equal(await createdWith({ stars: 5000, candidate_flags: [] }), 2);
+});
+
+test("시뮬레이터 변경에는 별 조건을 적용하지 않는다: 별 3개·의심 표시가 있어도 시연 계정에는 만든다", async () => {
+  const created = await createdWith({ stars: 3, candidate_flags: ["clone_cluster"] }, (t) => {
+    t.changes[0].is_simulated = true;
+    t.profiles[1].is_demo = true;
+  });
+  assert.equal(created, 1);
+});
