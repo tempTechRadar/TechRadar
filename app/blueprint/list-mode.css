@@ -16,6 +16,7 @@
 .lm-part { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); }
 .lm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .lm-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.lm-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .lm-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
 .lm-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); padding: 0; border: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .lm-name:focus-visible, .lm-link:focus-visible, .lm-sm:focus-visible { outline: var(--focus); outline-offset: 2px; }

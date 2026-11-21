@@ -7,11 +7,12 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toBoard, usageOf, HISTORY_LIMIT, type BlueprintRecord, type TechUsage } from "@/lib/blueprint/stored";
 import { fromV1, putTech } from "@/lib/blueprint/graph";
-import { BLUEPRINT_GATE, STAGE_FIELDS } from "@/lib/blueprint/knowledge";
+import { BLUEPRINT_GATE, stageFields } from "@/lib/blueprint/knowledge";
 import { filterPool, poolTags, putProblem } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
+import { TechChip } from "./tech-chip";
 import { TECH_DRAG, type PanelProps, type Step } from "./studio-types";
 import "./dock.css";
 
@@ -88,9 +89,12 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & 
   const [tag, setTag] = useState<string | null>(null);
   const [found, setFound] = useState<PoolTech[] | null | undefined>(undefined); // undefined = 안 찾음, null = 찾기 실패
   const [busy, setBusy] = useState(false);
+  const ask = useRef(0); // 찾기 차례: 글자를 바꾸면 늘려서 앞선 응답을 버린다
   const stage = picked ? graph.stages.find((s) => s.id === picked.stageId) ?? null : null;
+  const options = poolTags(pool, tags);
+  const tagNow = tag && options.includes(tag) ? tag : null;
   const target = add ? pool.find((t) => t.id === add) : undefined;
-  const shown = filterPool(pool, { stage: stage?.name ?? null, term, tag, tags, add: target ? add : null, usage });
+  const shown = filterPool(pool, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: target ? add : null, usage });
   const more = (found ?? []).filter((t) => !pool.some((x) => x.id === t.id));
   const put = (t: PoolTech) => {
     if (!stage) return;
@@ -98,8 +102,13 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & 
     if (why) { say(why); return; }
     apply(putTech(graph, stage.id, { id: t.id, name: t.name }), `${stage.name}에 ${t.name}을(를) 넣었어요.`);
   };
-  const search = async () => { setBusy(true); setFound(await searchAction(term).catch(() => null)); setBusy(false); };
-  const fields = stage ? STAGE_FIELDS[stage.name] : undefined;
+  const search = async () => {
+    const n = ++ask.current;
+    setBusy(true);
+    const got = await searchAction(term).catch(() => null);
+    if (n === ask.current) { setFound(got); setBusy(false); }
+  };
+  const fields = stage ? stageFields(stage.name) : undefined;
   return (
     <>
       {add ? <p className={`notice ${target && target.grade !== "danger" ? "" : "notice-error"}`} role="status">
@@ -108,8 +117,8 @@ function TechTab({ graph, picked, apply, pool, tags, say, usage }: PanelProps & 
           : <><b>{target.name}</b>: 넣을 단계를 캔버스에서 고르거나, 이 카드를 단계로 끌어 놓으세요.</>}
       </p> : null}
       <form className="dock-row" role="search" onSubmit={(e) => { e.preventDefault(); if (!busy && term.trim().length >= 2) void search(); }}>
-        <input type="search" value={term} onChange={(e) => { setTerm(e.target.value); setFound(undefined); }} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
-        <TagPick tags={tags} options={poolTags(pool, tags)} value={tag} onChange={setTag} />
+        <input type="search" value={term} onChange={(e) => { setTerm(e.target.value); setFound(undefined); ask.current++; setBusy(false); }} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
+        <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
         <button type="submit" className="btn dock-sm" aria-disabled={busy || term.trim().length < 2}>{busy ? "찾는 중…" : "카탈로그에서 찾기"}</button>
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
@@ -142,8 +151,9 @@ function TechCard({ t, use, tags, stage, placed = false, added = false, gated = 
   const facts = [t.field, t.projects ? `내 프로젝트 ${t.projects}개` : null, t.mark ? "적용 후보" : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
   return (
     <li className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}`} draggable={!risky && !gated}
-      onDragStart={(e) => { e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
-      <span><b>{t.name}</b>{t.grade !== "pass" ? <span className={`dock-grade g-${t.grade}`}> {GRADE_KO[t.grade]}</span> : null}</span>
+      onDragStart={(e) => { if (risky || gated) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
+      {/* 칩 모양은 단계 노드와 같게(tech-chip). 끌기는 이 카드(li)가 맡고, 등급은 점 색만이 아니라 글자로도 */}
+      <span className="dock-chip"><TechChip tech={t} info={t} />{t.grade !== "pass" ? <span className={`dock-grade g-${t.grade}`}>{GRADE_KO[t.grade]}</span> : null}</span>
       {facts ? <span className="muted">{facts}</span> : null}
       {tags?.length ? <span className="dock-tags">{tags.map((x) => <span key={x} className="tag">{x}</span>)}</span> : null}
       {risky ? <span className="dock-risky">✕ 위험 등급이라 넣지 않아요</span>

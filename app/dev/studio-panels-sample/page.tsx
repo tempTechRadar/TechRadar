@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { SAMPLE_BLUEPRINT, SAMPLE_TAGS } from "@/lib/dev/preview-data";
 import { PanelsSample } from "./panels-sample";
 import "../../alerts/alerts.css";
+import "../../blueprint/studio.css"; // 기술 칩(tech-chip) 모양
 
 export default function StudioPanelsSamplePage() {
   if (process.env.NODE_ENV === "production") notFound();

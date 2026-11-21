@@ -2,26 +2,29 @@
 // 청사진 스튜디오 목록 모드(P-12e 조각 K): 휴대폰(860px 이하) · 키보드 · 화면 읽기용 편집. 캔버스는 보기만, 편집은 여기서.
 // 단계를 순서(연결선의 깊이)대로 카드로: 단계 더하기 · 이름 · 앞 단계 잇기 / 끊기 · 기술 넣기 / 빼기 · 지우기. 끌기 없이 고르기 칸과 단추만.
 // 그래프는 graph.ts 편집 함수 → apply로만 바꾼다(캔버스와 같은 상태, 되돌리기 · 저장은 studio).
-import { useState } from "react";
-import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Stage } from "@/lib/blueprint/graph";
+import { useMemo, useRef, useState } from "react";
+import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
+import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
 import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
+import { TechChip } from "./tech-chip";
 import "./list-mode.css";
 
 export function ListMode(p: PanelProps) {
   const { rows, cycle } = listRows(p.graph);
+  const canFrom = useMemo(() => fromOptions(p.graph), [p.graph]);
   const nameOf = new Map(p.graph.stages.map((s) => [s.id, s.name]));
   return (
     <section className="lm" aria-labelledby="lm-title">
-      <h2 id="lm-title">목록으로 고치기</h2>
+      <h2 id="lm-title" tabIndex={-1}>목록으로 고치기</h2>
       <p className="muted">캔버스와 같은 판이에요. 여기서 바꾸면 캔버스에도 바로 보여요. 순서는 &quot;앞 단계&quot;로 정해요.</p>
       {cycle ? <p className="notice notice-error" role="alert">순서가 돌고 도는 연결이 있어요({cycle.map((id) => nameOf.get(id) ?? id).join(" → ")}). 앞 단계 하나를 끊어 주세요. 이대로는 확정할 수 없어요.</p> : null}
       {rows.length ? (
         <ol className="lm-rows">{rows.map((row, i) => (
           <li key={row.map((s) => s.id).join()}>
             <h3 className="lm-step">{cycle ? `${i + 1}번째(순서 모름)` : `${i + 1}번째`}{row.length > 1 ? ` · 동시에 ${row.length}개` : ""}</h3>
-            <ul className="lm-cards">{row.map((s) => <StageCard key={`${s.id}:${s.name}`} {...p} s={s} />)}{/* 이름이 다른 곳(속성 패널)에서 바뀌면 이름 칸을 새로 */}</ul>
+            <ul className="lm-cards">{row.map((s) => <StageCard key={`${s.id}:${s.name}`} {...p} s={s} canFrom={canFrom.get(s.id) ?? []} />)}{/* 이름이 다른 곳(속성 패널)에서 바뀌면 이름 칸을 새로 */}</ul>
           </li>
         ))}</ol>
       ) : <p className="muted">아직 단계가 없어요. 아래에서 첫 단계를 더해 보세요.</p>}
@@ -29,6 +32,9 @@ export function ListMode(p: PanelProps) {
     </section>
   );
 }
+
+/** 단계마다 앞 단계로 이을 수 있는 단계(고리 · 겹침 · 한도면 빠짐). 판이 바뀔 때 한 번만 */
+const fromOptions = (g: Graph) => new Map(g.stages.map((s) => [s.id, g.stages.filter((x) => connectProblem(g, x.id, s.id) === null)]));
 
 function AddStage({ graph, apply, say }: PanelProps) {
   const [name, setName] = useState("");
@@ -41,20 +47,22 @@ function AddStage({ graph, apply, say }: PanelProps) {
   };
   return (
     <form className="lm-row lm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-      <label>새 단계 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="예: 기획, 개발, 테스트" /></label>
+      <label>새 단계 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} placeholder="예: 기획, 개발, 테스트" /></label>
       <button type="submit" className="btn btn-primary lm-sm">단계 더하기</button>
     </form>
   );
 }
 
-function StageCard({ graph, apply, pool, picked, onPick, say, s }: PanelProps & { s: Stage }) {
+function StageCard({ graph, apply, pool, picked, onPick, say, s, canFrom }: PanelProps & { s: Stage; canFrom: Stage[] }) {
   const [from, setFrom] = useState("");
   const [tech, setTech] = useState("");
   const [name, setName] = useState(s.name);
   const { before } = neighbors(graph, s.id);
-  const canFrom = graph.stages.filter((x) => connectProblem(graph, x.id, s.id) === null);
   const canPut = pool.filter((t) => t.grade !== "danger" && fitsStage(s.name, t) && !s.techs.some((x) => x.id === t.id));
-  const chosen = picked?.stageId === s.id;
+  const card = useRef<HTMLLIElement>(null);
+  const stay = () => card.current?.querySelector<HTMLElement>(".lm-name")?.focus(); // 뺀 칩 · 끊은 단추가 사라져도 초점은 이 카드에
+  const chosenStage = picked?.stageId === s.id;
+  const chosen = chosenStage && picked?.kind === "stage";
   const link = () => {
     const why = connectProblem(graph, from, s.id);
     if (why) { say(CONNECT_KO[why]); return; }
@@ -75,19 +83,19 @@ function StageCard({ graph, apply, pool, picked, onPick, say, s }: PanelProps & 
     if (name.trim() !== s.name) apply(renameStage(graph, s.id, name), `단계 이름을 "${name.trim()}"(으)로 바꿨어요.`);
   };
   return (
-    <li className={`lm-card${chosen ? " chosen" : ""}`} aria-label={`${s.name} 단계`}>
+    <li ref={card} className={`lm-card${chosen ? " chosen" : ""}`} aria-label={`${s.name} 단계`}>
       <div className="lm-row lm-head">
         <button type="button" className="lm-name" aria-pressed={chosen} onClick={() => onPick(chosen ? null : { kind: "stage", stageId: s.id })}>{s.name}</button>
-        <button type="button" className="btn lm-sm" onClick={() => { if (chosen) onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); }}>단계 지우기</button>
+        <button type="button" className="btn lm-sm" onClick={() => { if (chosenStage) onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); document.getElementById("lm-title")?.focus(); }}>단계 지우기</button>
       </div>
       <form className="lm-row" onSubmit={(e) => { e.preventDefault(); rename(); }}>
-        <label>이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} /></label>
+        <label>이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} /></label>
         <button type="submit" className="btn lm-sm">이름 바꾸기</button>
       </form>
       <div className="lm-part">
         <p><b>앞 단계</b> {before.length ? null : <span className="muted">없음(처음에 해요)</span>}</p>
         {before.length ? <ul className="lm-list">{before.map((b) => (
-          <li key={b.id}>{b.name} <button type="button" className="btn lm-sm" aria-label={`${b.name}에서 오는 연결 끊기`} onClick={() => apply(disconnect(graph, b.id, s.id), `${b.name} → ${s.name} 연결을 끊었어요.`)}>끊기</button></li>
+          <li key={b.id}>{b.name} <button type="button" className="btn lm-sm" aria-label={`${b.name}에서 오는 연결 끊기`} onClick={() => { apply(disconnect(graph, b.id, s.id), `${b.name} → ${s.name} 연결을 끊었어요.`); stay(); }}>끊기</button></li>
         ))}</ul> : null}
         {canFrom.length ? (
           <div className="lm-row">
@@ -101,11 +109,9 @@ function StageCard({ graph, apply, pool, picked, onPick, say, s }: PanelProps & 
       </div>
       <div className="lm-part">
         <p><b>기술 {s.techs.length}</b></p>
-        {s.techs.length ? <ul className="lm-list">{s.techs.map((t) => (
-          <li key={t.id}>
-            <button type="button" className="lm-link" onClick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })}>{t.name}</button>{" "}
-            <button type="button" className="btn lm-sm" aria-label={`${t.name} 빼기`} onClick={() => apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`)}>빼기</button>
-          </li>
+        {s.techs.length ? <ul className="lm-chips">{s.techs.map((t) => (
+          <li key={t.id}><TechChip tech={t} info={pool.find((x) => x.id === t.id)} picked={picked?.kind === "tech" && picked.techId === t.id && chosenStage}
+            onPick={() => onPick({ kind: "tech", stageId: s.id, techId: t.id })} onRemove={() => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); stay(); }} /></li>
         ))}</ul> : null}
         {canPut.length ? (
           <div className="lm-row">
