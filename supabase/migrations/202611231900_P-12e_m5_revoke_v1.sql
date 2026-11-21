@@ -3,6 +3,8 @@
 -- 1) v1: 스튜디오(P-12e)는 confirm_blueprint_v2만 부른다. v1은 M1에서 v2로 넘기게 바꿔 두었지만(관문 우회 없음) 쓰지 않는 입구는 닫는다. 함수는 지우지 않는다(되돌리기 쉽게).
 -- 2) p_extra: 템플릿 기술을 관문에 더해 주던 인자(11-21 사용자 결정 "고르기 칩"으로 M2가 넘기지 않음). 남겨 두면 나중의 definer 함수가 넘겨 관문을 건너뛸 수 있어 없앤다.
 --    인자를 없애려면 지우고 다시 만들어야 한다: 본문은 M1(202611221000)과 같고 v_allowed 한 줄만 다르다. 부르는 곳(confirm_blueprint_v2 · save_blueprint_template)은 두 인자로 부르므로 그대로.
+-- 3) "열린 템플릿" 규칙 하나로(보안 검토 · QA 관찰, Maestro: 새 마이그레이션 대신 M5에): is_open_template에도 202611221320의 "공개 목록 밖 기술 없음"을 더한다.
+--    공개 뒤 기술이 목록 밖이 된 템플릿은 갤러리에서 빠지듯 그 사용기도 남(손님 포함)에게 안 보이고 새로 쓸 수 없다(쓴 사람은 계속 봄). 그 전까지는 알려진 한계.
 
 revoke execute on function public.confirm_blueprint(uuid, text, uuid, jsonb) from public, anon, authenticated;
 
@@ -53,3 +55,10 @@ begin
   return jsonb_build_object('graph', jsonb_build_object('v', 2, 'stages', v_stages, 'edges', v_edges), 'board', v_board);
 end $$;
 revoke all on function public.blueprint_graph_clean(uuid, jsonb) from public, anon, authenticated;
+
+create or replace function public.is_open_template(p_template_id uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.blueprint_templates t join public.profiles p on p.id = t.author_id
+    where t.id = p_template_id and t.is_public and t.hidden_at is null and not p.is_demo
+      and cardinality(public.template_unlisted_techs(t.graph)) = 0);
+$$;
