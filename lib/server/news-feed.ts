@@ -20,15 +20,24 @@ const DAY_MS = 86_400_000;
 const LABELS = Object.fromEntries(NEWS_FEEDS.map((f) => [f.key, f.label]));
 const LIMIT = 100;
 
+/** 내 알림에 이어진 위험 변경만. changes의 RLS는 관리자에게 전부 보이므로 "내 것"은 서버 조건(alerts.user_id)으로 다시 건다(불변 5). 시뮬레이터 사건도 내 알림에 있으면 보인다(판단 대기와 같게) */
+async function readMyVulns(db: SupabaseClient, userId: string, sinceIso: string): Promise<VulnChangeIn[]> {
+  const rows = rowsOrThrow(
+    await db.from("alerts").select("id, changes(id, kind, detected_at, curr_value, technologies(display_name))").eq("user_id", userId).eq("kind", "security").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(LIMIT),
+    "내 취약점 소식을 읽지 못함",
+  );
+  return rows.flatMap((a) => (Array.isArray(a.changes) ? a.changes : a.changes ? [a.changes] : [])) as VulnChangeIn[];
+}
+
 export async function readNewsFeed({ db, serviceDb, userId, nowMs = Date.now(), tools = [] }: Deps): Promise<NewsFeedResult> {
   const sinceIso = new Date(nowMs - NEWS_DAYS * DAY_MS).toISOString();
   const parts: Part[] = [
     { name: "바깥 소식", run: async () => ({ items: externalNews((rowsOrThrow(await db.from("news_items").select("id, source_key, title, url, summary, published_at, tools, official").gte("published_at", sinceIso).order("published_at", { ascending: false }).limit(LIMIT), "바깥 소식을 읽지 못함")) as NewsRowIn[], LABELS) }) },
     { name: "새 공식 스킬 · 플러그인", run: async () => { if (!serviceDb) throw new Error("서버 연결이 없어요"); return officialNews(rowsOrThrow(await listedTechs(serviceDb, "id, display_name, type, repo_url, created_at").eq("is_official", true).in("type", ["skill", "plugin"]).gt("created_at", sinceIso).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).limit(LIMIT), "새 공식 기술을 읽지 못함") as OfficialNewIn[]); } },
-    { name: "요즘 뜨는 기술", run: async () => { if (!serviceDb) throw new Error("서버 연결이 없어요"); return trendingNews(await readTrending(serviceDb, nowMs), nowMs); } },
+    { name: "요즘 뜨는 기술", run: async () => { if (!serviceDb) throw new Error("서버 연결이 없어요"); return trendingNews(await readTrending(serviceDb, nowMs)); } },
   ];
   if (userId) {
-    parts.push({ name: "내 기술의 새 취약점", run: async () => vulnNews(rowsOrThrow(await db.from("changes").select("id, kind, detected_at, curr_value, technologies(display_name)").in("kind", ["grade_to_danger", "first_seen_danger"]).eq("is_simulated", false).gte("detected_at", sinceIso).order("detected_at", { ascending: false }).limit(LIMIT), "내 취약점 소식을 읽지 못함") as VulnChangeIn[]) });
+    parts.push({ name: "내 기술의 새 취약점", run: async () => vulnNews(await readMyVulns(db, userId, sinceIso)) });
   }
   const settled = await Promise.allSettled(parts.map((p) => p.run()));
   const failed: string[] = [];

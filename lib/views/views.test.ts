@@ -33,7 +33,7 @@ test("쓰고 있어요: 결과에는 별명과 수만 있다(남의 목록 원�
 
 // ── 소식판
 const NOW = Date.parse("2026-11-18T00:00:00Z");
-const n = (id: string, publishedAt: string, extra: Partial<NewsItem> = {}): NewsItem => ({ id, title: id, url: `https://x.dev/${id}`, publishedAt, source: "공식", official: true, tools: ["Claude Code"], ...extra });
+const n = (id: string, publishedAt: string, extra: Partial<NewsItem> = {}): NewsItem => ({ id, title: id, url: `https://x.dev/${id}`, publishedAt, source: "공식", official: true, kind: "external", tools: ["Claude Code"], ...extra });
 
 test("소식판: 공식 출처·https만, 최근 30일, 새것부터", () => {
   const r = newsBoard([

@@ -48,6 +48,7 @@ test("뜨는 기술 읽기: 별이 는 기술과 최근 HN 글이 있는 기술�
   const r = await readTrending(db, NOW);
   assert.deepEqual(r.map((x) => [x.id, x.score]), [["b", 40], ["a", 16]]);
   assert.deepEqual(r[1].reasons, [{ kind: "stars", gain: 80, stars: 170 }]);
+  assert.deepEqual([r[0].at, r[1].at], [ago(2), ago(1)], "뜬 시각 = HN 글을 본 때 · 별이 는 것을 본 가장 늦은 때");
   assert.equal(r[0].reasons[0].kind, "hn");
 });
 
