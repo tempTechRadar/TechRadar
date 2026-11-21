@@ -121,13 +121,18 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
   }
 
   const sel = S.sel ? S.L.byId.get(S.sel) : undefined;
+  // 사이드바가 빠져나가는 동안(0.22초)에도 마지막 내용을 둔다: 바로 비우면 빈 판이 미끄러져 나간다. 열림 여부는 sel로만
+  const [lastSel, setLastSel] = useState(sel);
+  if (sel && sel !== lastSel) setLastSel(sel);
+  const shown = sel ?? lastSel;
   const compare = useMemo(() => {
+    const sel = shown;
     if (!sel || sel.type !== "t") return [];
     return model.edges.filter(([a, b]) => a === sel.id || b === sel.id).map(([a, b]) => {
       const k = a === sel.id ? b : a, item = S.L.byId.get(k) as TechItem | undefined;
       return { item: item ?? null, node: model.nodes.find((n) => n.key === k)!, quote: model.quotes[`${a}|${b}`] ?? null };
     }).filter((c) => c.node);
-  }, [sel, model, S.L]);
+  }, [shown, model, S.L]);
   const tipItem = tip.id ? S.L.byId.get(tip.id) : undefined;
 
   return (
@@ -149,8 +154,8 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, top }
         ) : null}
         <aside ref={side} className="map-side" aria-labelledby="map-side-title" data-open={sel ? "" : undefined} inert={!sel}>
           <button type="button" className="btn map-close" onClick={close} aria-label="닫기">✕</button>
-          {sel?.type === "t" ? <TechPanel item={sel} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(sel, s, r)} onGo={go} /> : null}
-          {sel?.type === "g" ? <GroupPanel g={sel} members={ctl.groupMembers(sel)} shut={S.collapsed.has(sel.id)} onDrill={() => drill(sel.id)} onToggle={() => ctl.toggle(sel.id)} onGo={go} /> : null}
+          {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(shown, s, r)} onGo={go} /> : null}
+          {shown?.type === "g" ? <GroupPanel g={shown} members={ctl.groupMembers(shown)} shut={S.collapsed.has(shown.id)} onDrill={() => drill(shown.id)} onToggle={() => ctl.toggle(shown.id)} onGo={go} /> : null}
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
         <div ref={dock} className="map-dock">
