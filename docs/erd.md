@@ -48,6 +48,10 @@ erDiagram
   projects |o--o{ blueprints : "어느 프로젝트에(없어도 됨)"
   profiles ||--o{ blueprint_templates : "만든 템플릿"
   blueprint_templates |o--o{ blueprints : "이 템플릿으로 시작(없어도 됨)"
+  blueprint_templates ||--o{ template_notes : "템플릿 사용기"
+  profiles ||--o{ template_notes : "쓴 사용기"
+  template_notes ||--o{ template_helpful_votes : "도움이 됐어요"
+  template_notes ||--o{ template_reports : "신고"
   alerts ||--o{ scenarios : "요청"
   profiles ||--o{ judgments : "판단한다"
   profiles ||--o{ exports : "만든다"
@@ -395,6 +399,23 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 
 쓰기는 함수로만: `save_blueprint_template`(조합 기술은 작가의 관문 · 위험 등급 거절, 한 사람 100개), `set_template_public`(작가만), `hide_blueprint_template`(관리자, 숨기기는 공개된 것만 · 풀기는 숨긴 것이면 공개 여부와 무관). 읽기는 `public_blueprint_templates`(공개 · 숨김 아님 · 시연 계정 아님, 별명 — 설정 비공개면 "익명" — 과 쓴 사람 수만)와 `blueprint_template_for_use`(내 것 또는 공개된 것 한 개).
 
+**template_notes** — 템플릿 사용기(P-12e M3 "이 조합 써봤어요", P-24 usage_notes와 같은 틀). 수정 · 삭제 없음, 관리자 숨김만
+| 칸 | 종류 | 필수 | 키 | 설명 |
+|---|---|---|---|---|
+| id | uuid | ✔ | PK | |
+| created_at | timestamptz | ✔ | | |
+| author_id | uuid | ✔ | FK→profiles | 기본값 `auth.uid()`. 남은 못 읽음(칸 권한) |
+| template_id | uuid | ✔ | FK→blueprint_templates (지우면 함께) | (template_id, author_id) 유일: 한 사람 한 템플릿 한 글 |
+| used_for · result · tip | text | ✔ | | 빈 칸 금지, 세 칸 합 500자(check) |
+| helpful_count | integer | ✔ | | 서버 칸: template_helpful_votes 트리거만 올림 |
+| hidden_at · hidden_by | timestamptz · uuid | | hidden_by FK→profiles | 관리자 숨김(함께 있거나 함께 없음). hidden_by는 남이 못 읽음 |
+
+쓰기는 열린 템플릿(공개 · 숨김 아님 · 작가가 시연 계정 아님)에서 그 템플릿으로 확정해 본 사람만, 작가 본인 · 시연 계정 제외(`can_note_template`). 템플릿이 비공개 · 숨김이 되면 쓴 사람만 봄(관리자도 못 봄, ADR 0036 4).
+
+**template_helpful_votes** — 템플릿 사용기 "도움이 됐어요"(한 사람 한 번, 취소 없음). 칸: note_id(FK→template_notes, PK) · user_id(FK→profiles, PK) · created_at. 보이는 남의 글에만, 시연 계정 제외.
+
+**template_reports** — 템플릿 사용기 신고(한 사람이 같은 글을 한 번). 칸: id · created_at · note_id(FK→template_notes) · reporter_id(FK→profiles) · reason(1~200자) · handled_by · handled_at · handle_reason(관리자 처리, 함께 있거나 함께 없음).
+
 **scenarios** — 적용 시나리오(참고 자료)
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
@@ -515,6 +536,8 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
 | blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint` · `confirm_blueprint_v2`로만(고른 프로젝트도 본인 것만, 기술은 관문 안만, 템플릿은 내 것 또는 공개 · 숨김 아님 · 시연 아님), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
 | blueprint_templates | **작가만 읽기**(관리자도 남의 비공개 못 봄). 남의 공개 템플릿은 갤러리 함수로만(author_id 없이). 쓰기는 함수로만(직접 넣기 · 고치기 권한 없음), 숨기기는 관리자 함수. anon은 읽기 · 함수 모두 막힘 |
+| template_notes | 남에게는 열린 템플릿의 숨기지 않은 글 · 안전한 칸만(쓴 사람 · 숨긴 사람 칸 못 읽음), 쓴 사람은 자기 글 모두, 관리자는 열린 템플릿의 글(숨긴 것 포함). **손님(anon)도 열린 템플릿의 숨기지 않은 글 · 안전한 칸 읽기**(P-12f M6). 쓰기는 써 본 사람만 · 수정 · 삭제 없음, 숨김은 관리자 |
+| template_helpful_votes · template_reports | 본인 줄만 읽기(신고는 관리자 전체), 넣기는 보이는 남의 글에만. 손님은 못 읽음 |
 | my_tech_tags | **본인만** 읽기·넣기·지우기(관리자도 못 봄), 고치기 권한 없음. 넣는 칸은 `tech_id`·`tag`만(`user_id`는 기본값, 정책이 본인 확인). anon 권한 없음 |
 | news_items | **누구나 읽기**(공개 소식, anon 포함). 넣기 · 고치기 · 지우기는 서버(서비스 키)만(P-12f M7, 적용 전) |
 | scenarios | 본인 알림에 요청·읽기. 관리자 읽기 |
@@ -599,6 +622,9 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | alerts | 10 | 1 | 켜짐 | ✔ |  |
 | audit_logs | 8 | 1 | 켜짐 | ✔ |  |
 | blueprint_templates | 10 | 1 | 켜짐 | ✔ | 새 표(P-12e M2, 11-21 적용) |
+| template_helpful_votes | 3 | 2 | 켜짐 | ✔ | 새 표(P-12e M3, 11-22 적용) |
+| template_notes | 10 | 4 | 켜짐 | ✔ | 새 표(P-12e M3, 11-22 적용). 손님 정책 1개 포함(P-12f M6) |
+| template_reports | 8 | 3 | 켜짐 | ✔ | 새 표(P-12e M3, 11-22 적용) |
 | blueprints | 8 | 1 | 켜짐 | ✔ | 새 표(P-12d-blueprint, 11-21 적용). P-12e M1로 graph · template_id 더함 |
 | categories | 5 | 1 | 켜짐 | ✔ |  |
 | changes | 15 | 1 | 켜짐 | ✔ |  |
@@ -647,3 +673,4 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 - 2026-11-21 P-21a 마이그레이션 파일 이름을 `202611211200_P-21a_github_search_source.sql` → `202611211210_P-21a_github_search_source.sql`로 바꿈(map-demo의 `202611211200_P-12d_starter_set.sql`과 번호가 겹침, 작업 `I-P-21-criteria`). 내용은 같다: `sources`에 `github_search`(방법 api, 우선순위 3) 한 줄(`on conflict do nothing`). 운영에는 사용자 승인으로 대시보드 SQL 편집기에서 직접 적용했고(2026-11-21 13:28 KST, `sources` 9 → 10줄) 그 방식은 `schema_migrations`에 기록을 남기지 않아 운영 기록에는 이 줄이 없다(표·칸 변경 없음).
 - 2026-11-21 P-12e M1 · M2(작업 `I-P-12e-blueprint-db` · `I-P-12e-blueprint-templates`, 마이그레이션 `202611221000_P-12e_blueprint_graph.sql` · `202611221100_P-12e_blueprint_templates.sql`): `blueprints`에 graph · template_id, 새 표 `blueprint_templates`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 템플릿 기술은 관문에 더하지 않음(사용자 결정 "고르기 칩"). **운영 적용: 11-21**(DB 이름 `p12e_blueprint_graph` `20261121133714`, `p12e_blueprint_templates` `20261121135023`), 권한 시험 40 · 19 · 37항목 모두 기대값. M3(템플릿 사용기 표)는 만들면 더함.
 - 2026-11-22 P-12f M7(작업 `I-P-12f-news`, 마이그레이션 `202611221700_P-12f_news_items.sql`, 앱 구조 개편 계획 ⑥): `news_items` 표와 `sources`의 `news` 줄을 더함(2.4절 끝, 4절 권한). **운영에는 아직 적용하지 않았다**(사용자 승인 대기) — 7절(실제 DB 대조)에는 적용 뒤 칸 · 정책 수를 읽어 채운다. 이유: 바깥 소식 수집기가 공식 피드의 제목 · 링크만 쌓아 현황 소식에서 로그인 없이 보이게 하려고
+- 2026-11-22 P-12e M3 · P-12f M6(작업 `I-P-12e-template-notes` · `I-P-12f-guest`, 마이그레이션 `202611221200_P-12e_template_notes.sql` · `202611221310_P-12f_public_gallery_anon.sql`): 새 표 `template_notes` · `template_helpful_votes` · `template_reports`(2.5절, 4절 권한, 관계 그림, 7절 칸 수). 손님(anon)은 공개 갤러리 · 열린 템플릿 · 그 사용기의 안전한 칸 · 기술 사용기 수(`usage_note_count`) · 도움 합(`template_helpful_totals`)만, 기술 사용기 글은 손님에게 닫음(사용자 결정). **운영 적용: 11-22**(DB 이름 `p12e_template_notes` `20261121160505`, `p12f_public_gallery_anon` `20261121160610`), 권한 시험 41 · 33항목 모두 기대값.

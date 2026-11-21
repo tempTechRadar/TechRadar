@@ -5,8 +5,8 @@ import { confirmBlueprintGraph, findPoolTechs, type ConfirmGraphInput, type Conf
 import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { hideTemplate, saveTemplate, setTemplatePublic, type TemplateInput, type TemplateResult } from "@/lib/server/blueprint-templates";
+import { searchCatalogAction } from "../tech-map/actions";
 import { markTemplateNoteHelpful, reportTemplateNote, saveTemplateNote } from "@/lib/server/template-notes";
 import type { ActionResult } from "@/lib/server/usage-notes";
 import type { NoteInput } from "@/lib/domain/usage-note";
@@ -26,8 +26,9 @@ export async function confirmGraphAction(input: ConfirmGraphInput): Promise<Conf
 /** null = 찾지 못함(조회 실패). 빈 배열 = 찾았지만 없음 */
 export async function searchAction(query: string): Promise<PoolTech[] | null> {
   const user = await getCurrentUser();
-  // 손님(P-12f): 카탈로그 공개 줄 · 칸만 서버 키로 찾는다(findPoolTechs = publicTechs, 개인 칸 없음 — 불변 5)
-  const db = user ? await getServerSupabase() : getServiceSupabase();
+  // 손님(P-12f): 지도 찾기와 같은 길 — 공개 목록 · 공개 칸만, 같은 글자는 10분에 한 번만 DB(누구나 부를 수 있는 주소라 캐시, 보안 검토)
+  if (!user) return searchCatalogAction(query);
+  const db = await getServerSupabase();
   return db ? findPoolTechs(db, String(query ?? "")) : null;
 }
 
