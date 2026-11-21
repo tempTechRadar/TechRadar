@@ -1,7 +1,7 @@
 // 청사진 스튜디오 패널(P-12e 조각 K: 하단 패널 · 속성 패널 · 목록 모드)이 쓰는 순수 계산. 화면 · DB · xyflow를 모른다.
 // 그래프를 바꾸는 것은 graph.ts 편집 함수이고, 여기는 무엇을 보일지 · 왜 못 바꾸는지만 정한다.
 import { STAGE_NAME_MAX, cleanName } from "./board.ts";
-import { LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage } from "./graph.ts";
+import { LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
 import { fitsStage } from "./knowledge.ts";
 import type { TechUsage } from "./stored.ts";
 
@@ -61,3 +61,12 @@ export const newStageSpot = (g: Graph): Pos => {
   const right = g.stages.reduce<Stage | null>((m, s) => (!m || s.x > m.x ? s : m), null);
   return right ? { x: right.x + 280, y: right.y } : { x: 0, y: 0 };
 };
+
+// 템플릿 저장 id: 탭이 닫혔다 열려도(단계를 바꾸면 탭이 바뀜) 같은 내용이면 같은 id라 모듈에 둔다. 새로 고치면 비지만 그때는 DB 함수가 같은 id만 "exists"로 본다
+const savedIds = new Map<string, string>();
+/** 같은 내용(종류 · 이름 · 단계 id · 이름 · 기술 + 연결선, 위치는 뺌)이면 같은 id(불변 3: 두 번 저장해도 한 줄). 다른 내용을 거쳐 돌아와도 같다 */
+export function templateSaveId(kind: TemplateKind, name: string, g: Graph, make: () => string = () => crypto.randomUUID()): string {
+  const key = JSON.stringify([kind, name.trim(), g.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]), g.edges]);
+  if (!savedIds.has(key)) savedIds.set(key, make());
+  return savedIds.get(key)!;
+}
