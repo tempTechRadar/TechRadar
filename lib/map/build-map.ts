@@ -32,7 +32,8 @@ export type MarkStatus = "interest" | "candidate" | "hold";
 export type Mark = { techId: string; status: MarkStatus; reason: string | null };
 /** newSince: 이 시각 뒤에 들어온 것만 NEW(카탈로그를 처음 채운 날 들어온 수천 개를 NEW로 치지 않게) */
 /** tags = 내 태그(기술 id → 태그, 본인만). null = 읽지 못함(지도는 그리고 태그만 "읽지 못함"), 없음 = 로그인 전 */
-export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[]; tags?: Record<string, string[]> | null; newSince?: string };
+/** trending = 요즘 뜨는 기술 id(lib/server/trending.ts, 공개 값). null = 읽지 못함(칩이 "못 읽음"), 없음 = 안 읽음 */
+export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[]; tags?: Record<string, string[]> | null; trending?: string[] | null; newSince?: string };
 
 export type MapNode = {
   key: string; name: string; mine: boolean; techId: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
@@ -42,12 +43,13 @@ export type MapNode = {
   /** 들어온 지 며칠(처음 채운 날 · 대량 채우기분은 null). 기간 칩(오늘 · 이번 주 · 이번 달)이 쓴다 */ addedDays: number | null;
   /** 들어온 때(addedDays가 있을 때만). 기간 보기에서 점 옆 · 사이드 패널에 날짜로 */ addedAt: string | null;
   /** 내가 붙인 태그(11-21 사용자 결정 E "내 묶음") */ tags: string[];
+  /** 요즘 뜨는 기술(7일 별 증가 · Hacker News, P-12f) */ hot: boolean;
   /** 내 기술과 확정 비교군으로 이어짐(한 단계) */ nearMine: boolean; mark: Mark | null;
   /** 카탈로그 등급(판단 줄의 "위험이면 적용 후보 막기"는 DB 규칙 set_tech_mark처럼 이것을 본다. grade는 내 기술이면 내 버전 중 가장 나쁜 것) */ catalogGrade: Grade;
   official: boolean;
 };
 /** quotes: 비교군 선마다 왜 비교군인지(관리자가 확인한 근거 한 줄), 키는 `a|b`(작은 키가 앞) */
-export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string>; tagsFailed?: boolean };
+export type TechMapModel = { mode: "mine" | "catalog"; nodes: MapNode[]; edges: [string, string][]; quotes: Record<string, string>; tagsFailed?: boolean; trendFailed?: boolean };
 
 const DAY = 86_400_000;
 const NEW_DAYS = 7;
@@ -106,7 +108,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
     // NEW = 들어온 지 7일 안이고 처음 채운 날 뒤에 들어온 것
-    isNew: (added ?? Infinity) < NEW_DAYS, addedDays: added, addedAt: added === null ? null : t?.createdAt ?? null, tags: [], lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade, official: t?.official === true,
+    isNew: (added ?? Infinity) < NEW_DAYS, addedDays: added, addedAt: added === null ? null : t?.createdAt ?? null, tags: [], hot: false, lonely: false, label: "", nearMine: false, mark: null, catalogGrade: grade, official: t?.official === true,
   };
 }
 
@@ -160,14 +162,15 @@ export function buildTechMap(input: MapInput, now: Date): TechMapModel {
   }
   for (const t of input.techs) if (!nodes.has(`tech:${t.id}`)) nodes.set(`tech:${t.id}`, baseNode(`tech:${t.id}`, t.name, t, cats, now, input.newSince));
   const marks = new Map((input.marks ?? []).map((m) => [`tech:${m.techId}`, m]));
+  const hot = new Set(input.trending ?? []);
   const linked = new Set(edges.flat());
   const list = [...nodes.values()];
   for (const n of list) {
     n.lonely = n.mine && !linked.has(n.key); n.nearMine = !n.mine && linked.has(n.key);
-    n.label = labelOf(n.collectErrorKind, n.lastActivityAt, now); n.mark = marks.get(n.key) ?? null; n.tags = n.techId ? input.tags?.[n.techId] ?? [] : [];
+    n.label = labelOf(n.collectErrorKind, n.lastActivityAt, now); n.mark = marks.get(n.key) ?? null; n.tags = n.techId ? input.tags?.[n.techId] ?? [] : []; n.hot = !!n.techId && hot.has(n.techId);
   }
   edges.sort((x, y) => (x.join() < y.join() ? -1 : 1));
-  return { mode: mine.size ? "mine" : "catalog", nodes: list.sort(byName), edges, quotes, tagsFailed: input.tags === null };
+  return { mode: mine.size ? "mine" : "catalog", nodes: list.sort(byName), edges, quotes, tagsFailed: input.tags === null, trendFailed: input.trending === null };
 }
 
 /** 지도 위 NEW 표시는 인기 상위 몇 개만(11-21 사용자: 한 주 수십 개면 다 못 본다). 별 → 주간 다운로드 순, 내 기술 · 비교군은 늘 남김.

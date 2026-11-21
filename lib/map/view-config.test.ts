@@ -93,3 +93,14 @@ test("판단 칩: mk=관심,보류처럼 여럿 고르면 그중 하나라도 �
   assert.equal(viewQuery(parseView("mk=hold,interest")), "mk=interest%2Chold"); // 순서를 하나로(같은 보기는 같은 주소)
   assert.equal(filterCount(parseView("mk=interest,candidate")), 2);
 });
+
+test("요즘 뜨는 칩: hot=1이면 뜨는 기술만, 못 읽으면 모델에 표시(없음과 다르게)", async () => {
+  const { buildTechMap } = await import("./build-map.ts");
+  const { NOW, tech } = await import("./test-fixtures.ts");
+  const m = buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a"), tech("b")], trending: [tech("b").id, "지도에 없는 기술"] }, NOW);
+  assert.deepEqual(m.nodes.filter((n) => passes(n, parseView("hot=1"))).map((n) => n.name), ["b"]);
+  assert.equal(viewQuery(parseView("hot=1")), "hot=1");
+  assert.equal(m.trendFailed, false);
+  assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")], trending: null }, NOW).trendFailed, true);
+  assert.equal(buildTechMap({ mine: [], relations: [], categories: [], techs: [tech("a")] }, NOW).trendFailed, false); // 안 읽은 것은 실패가 아님
+});

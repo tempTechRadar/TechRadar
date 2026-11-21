@@ -11,6 +11,7 @@ import { readRecentFirstReads } from "@/lib/server/first-check-queries";
 import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
 import { CATALOG_LIMIT, NEW_RULE_VERSION, PICK_RULE, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
+import { readTrending } from "@/lib/server/trending";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
 import GoogleLoginButton from "./login/google-login-button";
@@ -36,6 +37,15 @@ const readGuestMap = unstable_cache(async () => {
   return readGuestMapInput(db);
 }, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT), PICK_RULE], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
 
+// 요즘 뜨는 기술 id(P-12f, DataCollector readTrending): 누구에게나 같은 공개 값이라 10분에 한 번만 읽는다(DB 3번). 실패는 기억하지 않는다(던지면 캐시 안 됨)
+const readHot = unstable_cache(async () => {
+  const db = getServiceSupabase();
+  if (!db) throw new Error("서비스 키 설정이 없음");
+  return (await readTrending(db, Date.now(), 30)).map((t) => t.id);
+}, ["trending-ids"], { revalidate: 600 });
+/** null = 읽지 못함(칩이 "불러오지 못했어요") */
+const hotIds = () => readHot().catch(logged("요즘 뜨는 기술 조회 실패"));
+
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave, who, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; who?: string; top: ReactNode }) {
   if (model === null) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice" role="alert"><strong>지도를 읽지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/projects">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div></>;
@@ -48,7 +58,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const query = new URLSearchParams(Object.entries(await searchParams).filter((e): e is [string, string] => typeof e[1] === "string")).toString();
   const user = await getCurrentUser();
   if (!user) {
-    const cached = await readGuestMap().catch(logged("로그인 전 지도 조회 실패"));
+    const [cached, hot] = await Promise.all([readGuestMap().catch(logged("로그인 전 지도 조회 실패")), hotIds()]);
     // 새 기술의 "지도에서 보기"(sel=)로 온 기술이 캐시한 1,200개 밖이면 그 하나만 더 읽어 올린다(공개 목록 기술만)
     const want = selTech(query).filter((id) => cached && !cached.techs.some((t) => t.id === id));
     const db = want.length ? getServiceSupabase() : null;
@@ -57,7 +67,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     return (
       <main className="alerts map-page">
         <h1 className="sr-only">기술 지도</h1>
-        <MapBody model={input ? capNew(buildTechMap(input, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
+        <MapBody model={input ? capNew(buildTechMap({ ...input, trending: hot }, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
           <span className="map-chip map-chip-note">로그인하면 관심·판단·내 기술 비교가 열려요.</span>
           <GoogleLoginButton next={query ? `/?${query}` : "/"} />{/* 로그인 전 보기는 주소에만 있으니 들고 간다 */}
         </>} />
@@ -76,7 +86,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     readMyTechTagMap(db, user.id).catch(logged("내 태그 조회 실패")), // 못 읽어도 지도는 그리고 태그만 "읽지 못함"
   ]) : [sampleMapInput(), SAMPLE_DASHBOARD, SAMPLE_FIRST_READS, new Map<string, string[]>()];
   const band = firstReads ? buildFirstCheckBand(firstReads, seen) : null;
-  const model = input ? capNew(buildTechMap({ ...input, tags: tags ? Object.fromEntries(tags) : null }, new Date()), MAP_NEW) : null;
+  const hot = db ? await hotIds() : []; // 미리보기(개발용)는 DB 없이
+  const model = input ? capNew(buildTechMap({ ...input, tags: tags ? Object.fromEntries(tags) : null, trending: hot }, new Date()), MAP_NEW) : null;
   const start = startSteps(dash && input && firstReads ? { projects: dash.projects.length, unseenCheck: band !== null, judged: dash.alerts.some((a) => a.judgment) || (input.marks?.length ?? 0) > 0 } : null);
 
   return (
