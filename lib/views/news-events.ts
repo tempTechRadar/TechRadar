@@ -1,5 +1,5 @@
 // 소식판에 섞이는 "이미 모은 사건" 항목 만들기(P-12f ⑥ a). DB · 화면을 모르는 순수 함수: 읽어 온 줄을 NewsItem으로 바꾼다.
-// 모든 항목은 https 출처 링크가 있어야 한다("출처 없는 소식"을 만들지 않음). 링크가 없어 뺀 것은 omitted로 센다(조용히 사라지지 않게).
+// 모든 항목은 https 출처 링크와 이름이 있어야 한다("출처 없는 소식"을 만들지 않음). 소식으로 만들 수 없어 뺀 것(링크 · 이름 · 날짜가 없음)은 omitted로 센다(조용히 사라지지 않게).
 // 만들지 않은 것: "내 기술의 새 버전"(레지스트리 수집기가 버전 변화를 기록하지 않음 — 지금 운영 observations에 version 지표가 없다), "모델 지원 종료"(model_eol 사건은 3순위라 아직 안 생김).
 import type { Trending } from "../domain/trending.ts";
 import type { NewsItem } from "./news.ts";
@@ -17,8 +17,9 @@ export const externalNews = (rows: NewsRowIn[], labels: Record<string, string>):
 
 /** 내 기술의 새 취약점(changes: grade_to_danger · first_seen_danger). 본인 알림에 이어진 줄만 읽히므로(RLS) 내 것뿐이다. 출처는 OSV 근거 주소 */
 export type VulnChangeIn = { id: string; kind: string; detected_at: string; curr_value: unknown; technologies: { display_name?: unknown } | { display_name?: unknown }[] | null };
+const VULN_KINDS = ["grade_to_danger", "first_seen_danger"];
 export function vulnNews(rows: VulnChangeIn[]): Built {
-  return built(rows.map((r) => {
+  return built(rows.filter((r) => VULN_KINDS.includes(r.kind)).map((r) => {
     const tech = Array.isArray(r.technologies) ? r.technologies[0] : r.technologies;
     const name = text(tech?.display_name, 100);
     const curr = record(r.curr_value);
@@ -30,15 +31,15 @@ export function vulnNews(rows: VulnChangeIn[]): Built {
   }));
 }
 
-/** 요즘 뜨는 기술(lib/domain/trending.ts). 출처는 HN 글 주소, 없으면 저장소 주소. 시각은 읽은 시각(now) */
-export function trendingNews(list: Trending[], nowMs: number): Built {
+/** 요즘 뜨는 기술(lib/domain/trending.ts). 출처는 HN 글 주소, 없으면 저장소 주소. 시각은 신호가 읽힌 때(Trending.at) — 지금 시각을 날짜처럼 쓰지 않고, 날짜를 모르면 뺀다 */
+export function trendingNews(list: Trending[]): Built {
   return built(list.map((t) => {
     const hn = t.reasons.find((r) => r.kind === "hn");
     const url = (hn?.kind === "hn" ? https(hn.url) : null) ?? t.link;
-    if (!url) return null;
+    if (!url || !t.at) return null;
     const stars = t.reasons.find((r) => r.kind === "stars");
     const bits = [stars?.kind === "stars" ? `이번 주 별 +${stars.gain}` : null, hn?.kind === "hn" ? `Hacker News ${hn.points}점` : null].filter(Boolean);
-    return { id: `trending:${t.id}`, title: `${t.name} — 요즘 뜨고 있어요`, url, publishedAt: new Date(nowMs).toISOString(), source: hn ? "Hacker News · GitHub" : "GitHub", official: false, tools: [t.name], kind: "trending", summary: bits.join(" · ") };
+    return { id: `trending:${t.id}`, title: `${t.name} — 요즘 뜨고 있어요`, url, publishedAt: t.at, source: hn ? "Hacker News · GitHub" : "GitHub", official: false, tools: [t.name], kind: "trending", summary: bits.join(" · ") };
   }));
 }
 

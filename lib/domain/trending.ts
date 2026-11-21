@@ -12,13 +12,23 @@ const DAY_MS = 86_400_000;
 const FUTURE_SLACK_MS = 24 * 60 * 60 * 1000;
 
 export type HnSeen = { points: number; comments: number; title: string; url: string; seenAt: string };
-export type TrendInput = { id: string; name: string; grade: Grade; stars: number | null; starsGain: number; hn: HnSeen | null; flagged: boolean; link?: string | null };
+export type TrendInput = { id: string; name: string; grade: Grade; stars: number | null; starsGain: number; starsAt?: string | null; hn: HnSeen | null; flagged: boolean; link?: string | null };
 export type TrendReason = { kind: "stars"; gain: number; stars: number | null } | { kind: "hn"; points: number; comments: number; title: string; url: string };
-/** link = 저장소 주소(https만, 출처 링크로 씀). 없으면 null */
-export type Trending = { id: string; name: string; score: number; reasons: TrendReason[]; link: string | null };
+/** link = 저장소 주소(https만, 출처 링크로 씀). at = 뜬다고 본 신호가 읽힌 가장 늦은 시각(소식 날짜로 씀, 읽은 때가 아니라 신호 날짜) */
+export type Trending = { id: string; name: string; score: number; reasons: TrendReason[]; link: string | null; at: string | null };
 
 /** 별 수 관찰 하나: prev가 없으면 "처음 읽음"이라 늘었다고 보지 않는다 */
 export type StarObservation = { observedAt: string; prev: number | null; curr: number };
+
+/** 최근 7일 안에서 별이 실제로 늘어난 관찰 중 가장 늦은 시각(없으면 null). 소식 날짜로 쓴다 */
+export function latestGainAt(observations: StarObservation[], nowMs: number): string | null {
+  const since = nowMs - TREND_DAYS * DAY_MS;
+  const times = observations.flatMap((o) => {
+    const at = Date.parse(o.observedAt);
+    return Number.isFinite(at) && at >= since && at <= nowMs + FUTURE_SLACK_MS && o.prev !== null && o.curr > o.prev ? [at] : [];
+  });
+  return times.length ? new Date(Math.max(...times)).toISOString() : null;
+}
 
 /** 최근 7일 안에서 별이 늘어난 수의 합(줄어든 것은 0으로, 처음 읽은 줄은 뺀다). 시각을 못 읽거나 미래이면 뺀다 */
 export function starGainOf(observations: StarObservation[], nowMs: number): number {
@@ -48,7 +58,8 @@ export function trendingTechs(items: TrendInput[], nowMs: number, limit = DEFAUL
     if (fresh(t.hn, nowMs)) reasons.push({ kind: "hn", points: t.hn.points, comments: t.hn.comments, title: t.hn.title, url: t.hn.url });
     if (reasons.length === 0) continue;
     const score = Math.round((part(t.starsGain >= MIN_STAR_GAIN ? t.starsGain : 0) + part(reasons.some((r) => r.kind === "hn") ? t.hn!.points : 0)) * 10) / 10;
-    out.push({ id: t.id, name: t.name, score, reasons, link: t.link?.startsWith("https://") ? t.link : null });
+    const times = [reasons.some((r) => r.kind === "stars") ? t.starsAt : null, reasons.some((r) => r.kind === "hn") ? t.hn?.seenAt : null].flatMap((x) => (x && Number.isFinite(Date.parse(x)) ? [Date.parse(x)] : []));
+    out.push({ id: t.id, name: t.name, score, reasons, link: t.link?.startsWith("https://") ? t.link : null, at: times.length ? new Date(Math.max(...times)).toISOString() : null });
   }
   const byName = (a: Trending, b: Trending) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1);
   return out.sort((a, b) => b.score - a.score || byName(a, b)).slice(0, Math.max(0, limit));

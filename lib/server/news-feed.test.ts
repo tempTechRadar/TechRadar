@@ -45,7 +45,11 @@ const tables = (): Record<string, Row[]> => ({
   ],
   observations: [{ tech_id: "hot", metric: "stars", is_simulated: false, observed_at: ago(1), prev_value: { stars: 100 }, curr_value: { stars: 190 } }],
   technologies: [tech("hot", { signals: { stars: 190 } }), tech("off", { is_official: true, type: "skill", created_at: ago(3), repo_url: "https://github.com/anthropics/skills" }), tech("plain")],
-  changes: [{ id: "c1", kind: "grade_to_danger", is_simulated: false, detected_at: ago(1), curr_value: { reason: "문제", evidence: [{ id: "GHSA-1", url: "https://osv.dev/v/1" }] }, technologies: { display_name: "mcp-remote" } }],
+  alerts: [
+    { id: "a1", user_id: "u1", kind: "security", created_at: ago(1), changes: { id: "c1", kind: "grade_to_danger", detected_at: ago(1), curr_value: { reason: "문제", evidence: [{ id: "GHSA-1", url: "https://osv.dev/v/1" }] }, technologies: { display_name: "mcp-remote" } } },
+    { id: "a2", user_id: "other", kind: "security", created_at: ago(1), changes: { id: "c2", kind: "first_seen_danger", detected_at: ago(1), curr_value: { evidence: [{ id: "GHSA-9", url: "https://osv.dev/v/9" }] }, technologies: { display_name: "남의-기술" } } },
+    { id: "a3", user_id: "u1", kind: "opportunity", created_at: ago(1), changes: { id: "c3", kind: "same_role_new", detected_at: ago(1), curr_value: {}, technologies: { display_name: "x" } } },
+  ],
 });
 const ids = (r: { items: { id: string }[] }) => r.items.map((i) => i.id).sort();
 
@@ -54,7 +58,7 @@ test("소식 읽기(로그인 전): 바깥 소식 + 새 공식 스킬 + 요즘 �
   const r = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: null, nowMs: NOW });
   assert.deepEqual(ids(r), ["news:n1", "official:off", "trending:hot"]);
   assert.deepEqual([r.failed, r.omitted], [[], 0]);
-  assert.ok(!t.reads.includes("changes"), "로그인 전에는 내 사건 표를 읽지 않는다(불변 5)");
+  assert.ok(!t.reads.includes("alerts"), "로그인 전에는 내 알림 표를 읽지 않는다(불변 5)");
 });
 
 test("소식 읽기(로그인): 내 새 취약점이 더해지고 출처는 OSV 근거 주소", async () => {
@@ -66,7 +70,7 @@ test("소식 읽기(로그인): 내 새 취약점이 더해지고 출처는 OSV 
 });
 
 test("소식 읽기: 한 출처를 못 읽어도 나머지는 보여 주고, 못 읽은 출처 이름을 알린다(빈 목록으로 속이지 않음, 불변 2)", async () => {
-  const t = fakeDb(tables(), ["news_items", "changes"]);
+  const t = fakeDb(tables(), ["news_items", "alerts"]);
   const r = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: "u1", nowMs: NOW });
   assert.deepEqual(ids(r), ["official:off", "trending:hot"]);
   assert.deepEqual(r.failed.sort(), ["내 기술의 새 취약점", "바깥 소식"]);
@@ -97,4 +101,14 @@ test("소식 읽기: 출처 링크가 없어 뺀 항목은 건수로 알리고, 
   assert.equal(all.omitted, 1);
   const github = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: null, nowMs: NOW, tools: ["GitHub"] });
   assert.deepEqual(ids(github), ["news:n1"]);
+});
+
+test("소식 읽기(불변 5): 내 취약점은 내 알림에 이어진 것만 — RLS가 전부 보여 주는 관리자 연결이어도 남의 알림 · 위험이 아닌 변경은 안 섞인다", async () => {
+  const t = fakeDb(tables());
+  const mine = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: "u1", nowMs: NOW });
+  assert.deepEqual(mine.items.filter((i) => i.kind === "vuln").map((i) => i.id), ["vuln:c1"]);
+  const other = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: "other", nowMs: NOW });
+  assert.deepEqual(other.items.filter((i) => i.kind === "vuln").map((i) => i.id), ["vuln:c2"]);
+  const nobody = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: "admin-no-alerts", nowMs: NOW });
+  assert.deepEqual(nobody.items.filter((i) => i.kind === "vuln"), []);
 });

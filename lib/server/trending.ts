@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Grade } from "../domain/grade.ts";
 import { isFlaggedSignals, starsOfSignals } from "../domain/star-signals.ts";
-import { DEFAULT_TREND_LIMIT, MIN_STAR_GAIN, TREND_DAYS, starGainOf, trendingTechs, type HnSeen, type StarObservation, type TrendInput, type Trending } from "../domain/trending.ts";
+import { DEFAULT_TREND_LIMIT, MIN_STAR_GAIN, TREND_DAYS, latestGainAt, starGainOf, trendingTechs, type HnSeen, type StarObservation, type TrendInput, type Trending } from "../domain/trending.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { chunks, listedTechs } from "./map-queries.ts";
 
@@ -29,16 +29,17 @@ function hnOf(signals: unknown): HnSeen | null {
 }
 
 /** 줄 하나 → 고르기 입력. 이름이 없는 줄은 건너뛴다 */
-function toInput(r: Row, gains: Map<string, number>): TrendInput | null {
+type Gain = { gain: number; at: string | null };
+function toInput(r: Row, gains: Map<string, Gain>): TrendInput | null {
   if (typeof r.display_name !== "string" || !r.display_name) return null;
   return {
     id: r.id, name: r.display_name, grade: GRADES.find((g) => g === r.grade) ?? "unknown",
-    stars: starsOfSignals(r.signals), starsGain: gains.get(r.id) ?? 0, hn: hnOf(r.signals), flagged: isFlaggedSignals(r.signals),
+    stars: starsOfSignals(r.signals), starsGain: gains.get(r.id)?.gain ?? 0, starsAt: gains.get(r.id)?.at ?? null, hn: hnOf(r.signals), flagged: isFlaggedSignals(r.signals),
     link: typeof r.repo_url === "string" ? r.repo_url : null,
   };
 }
 
-async function readGains(db: SupabaseClient, sinceIso: string, nowMs: number): Promise<Map<string, number>> {
+async function readGains(db: SupabaseClient, sinceIso: string, nowMs: number): Promise<Map<string, Gain>> {
   const rows = rowsOrThrow(
     await db.from("observations").select("tech_id, prev_value, curr_value, observed_at").eq("metric", "stars").eq("is_simulated", false).gte("observed_at", sinceIso).order("observed_at", { ascending: false }).limit(OBSERVATION_LIMIT),
     "별 변화를 읽지 못함",
@@ -49,13 +50,13 @@ async function readGains(db: SupabaseClient, sinceIso: string, nowMs: number): P
     if (curr === null) continue;
     byTech.set(r.tech_id, [...(byTech.get(r.tech_id) ?? []), { observedAt: r.observed_at, prev: starOf(r.prev_value), curr }]);
   }
-  return new Map([...byTech].map(([id, list]) => [id, starGainOf(list, nowMs)]));
+  return new Map([...byTech].map(([id, list]): [string, Gain] => [id, { gain: starGainOf(list, nowMs), at: latestGainAt(list, nowMs) }]));
 }
 
 export async function readTrending(db: SupabaseClient, nowMs: number = Date.now(), limit: number = DEFAULT_TREND_LIMIT): Promise<Trending[]> {
   const sinceIso = new Date(nowMs - TREND_DAYS * DAY_MS).toISOString();
   const gains = await readGains(db, sinceIso, nowMs);
-  const risers = [...gains].filter(([, g]) => g >= MIN_STAR_GAIN).map(([id]) => id);
+  const risers = [...gains].filter(([, g]) => g.gain >= MIN_STAR_GAIN).map(([id]) => id);
   const byStars = (await Promise.all(chunks(risers).map(async (ids) => rowsOrThrow(await listedTechs(db, COLUMNS).in("id", ids), "별이 는 기술을 읽지 못함")))).flat();
   const byHn = rowsOrThrow(await listedTechs(db, COLUMNS).gte("signals->hn->>seen_at", sinceIso).limit(1000), "화제가 된 기술을 읽지 못함");
   const rows = new Map([...byStars, ...byHn].map((r) => [r.id as string, r as Row]));

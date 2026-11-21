@@ -3,7 +3,7 @@
 
 /** external = 바깥 소식 수집기(news_items), 나머지는 이미 모은 사건에서 만든 항목 */
 export type NewsKind = "external" | "vuln" | "trending" | "official_new";
-export type NewsItem = { id: string; title: string; url: string; publishedAt: string; source: string; official: boolean; tools: string[]; kind?: NewsKind; summary?: string | null };
+export type NewsItem = { id: string; title: string; url: string; publishedAt: string; source: string; official: boolean; tools: string[]; kind: NewsKind; summary?: string | null };
 
 export const NEWS_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -13,7 +13,7 @@ export function newsBoard(items: NewsItem[], nowMs: number, tools: string[] = []
   const since = nowMs - NEWS_DAYS * DAY_MS;
   const want = new Set(tools.map((t) => t.toLowerCase()));
   return items
-    .filter((n) => n.url.startsWith("https://") && (n.official || (n.kind ?? "external") !== "external"))
+    .filter((n) => n.url.startsWith("https://") && (n.official || n.kind !== "external"))
     .filter((n) => {
       const t = Date.parse(n.publishedAt);
       return Number.isFinite(t) && t >= since && t <= nowMs;

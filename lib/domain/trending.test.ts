@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MIN_HN_POINTS, MIN_STAR_GAIN, starGainOf, trendingTechs, type HnSeen, type StarObservation, type TrendInput } from "./trending.ts";
+import { MIN_HN_POINTS, MIN_STAR_GAIN, latestGainAt, starGainOf, trendingTechs, type HnSeen, type StarObservation, type TrendInput } from "./trending.ts";
 
 const NOW = Date.parse("2026-11-22T00:00:00Z");
 const ago = (days: number) => new Date(NOW - days * 86_400_000).toISOString();
@@ -71,4 +71,17 @@ test("뜨는 기술: 개수 제한 · 0이면 빈 목록 · 같은 입력은 늘
   assert.deepEqual(trendingTechs(items, NOW, 0), []);
   assert.deepEqual(trendingTechs([...items].reverse(), NOW), trendingTechs(items, NOW));
   assert.equal(trendingTechs(items, NOW)[0].id, "t19", "가장 많이 늘어난 것이 맨 위");
+});
+
+test("뜬 시각(at): 신호가 읽힌 때 중 가장 늦은 것 — 별은 늘어난 관찰 시각, HN은 글을 본 시각. 모르면 null(지금 시각을 대신 쓰지 않음)", () => {
+  assert.equal(latestGainAt([obs(5, 100, 140), obs(2, 140, 180), obs(1, 180, 170), obs(1, null, 999)], NOW), ago(2), "줄어든 · 처음 읽은 관찰은 시각에 안 센다");
+  assert.equal(latestGainAt([obs(8, 1, 90)], NOW), null);
+  const r = trendingTechs([
+    tech("both", { starsGain: 100, starsAt: ago(3), hn: hn(100, { seenAt: ago(1) }) }),
+    tech("stars-only", { starsGain: 100, starsAt: ago(4) }),
+    tech("hn-only", { hn: hn(100, { seenAt: ago(2) }), starsAt: ago(0.5) }),
+    tech("no-time", { starsGain: 100 }),
+  ], NOW);
+  const at = (id: string) => r.find((x) => x.id === id)!.at;
+  assert.deepEqual([at("both"), at("stars-only"), at("hn-only"), at("no-time")], [ago(1), ago(4), ago(2), null], "이유가 아닌 신호의 시각은 안 쓴다(hn-only는 별 시각 무시)");
 });
