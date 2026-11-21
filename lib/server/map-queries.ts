@@ -50,16 +50,40 @@ export async function readCategories(db: SupabaseClient): Promise<Category[]> {
   return rowsOrThrow(await db.from("categories").select("id, name, parent_id"), "갈래를 읽지 못함").map((r) => ({ id: r.id, name: r.name, parentId: r.parent_id }));
 }
 
+/** 개발 분야(11-21 사용자: 부트캠프 교육생 · 나 같은 사용자에게 맞는 것 먼저). 큰 갈래 이름(categories 시드)과 그 아래 세부 갈래, 그리고 종류.
+ *  shortcut: 갈래를 이름으로 찾는다 — 관리자가 큰 갈래 이름을 바꾸면 여기와 PICK_RULE을 같이 고친다(갈래 키 칸이 생기면 키로) */
+const DEV_FIELDS = ["프론트엔드", "백엔드·데이터", "검사·보안", "배포·운영", "AI 작업 방식", "기획·문서"];
+const DEV_TYPES = ["skill", "plugin", "concept"];
+/** 늘 넣는 위험 · 주의 수의 상한(시연 계정의 시뮬레이터 위험 등. 이것만으로 지도가 차지 않게), 늘 넣는 이번 주 새 기술 수(NEW 표시 15개를 고를 몫) */
+const RISKY_MAX = 100, NEW_QUOTA = 60;
+/** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
+export const PICK_RULE = "dev-first-2";
+
+const devCategoryIds = (cats: Category[]) => {
+  const tops = new Set(cats.filter((c) => !c.parentId && DEV_FIELDS.includes(c.name)).map((c) => c.id));
+  return cats.filter((c) => tops.has(c.id) || (c.parentId !== null && tops.has(c.parentId))).map((c) => c.id);
+};
+const newSince = (now: Date) => { const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString(); return weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL; };
+
 /**
- * 모은 기술을 갈래별로(UJ-A2): 두꺼운 것 먼저, 얇은 것은 최근에 들어온 순. 사라진 기술, (시연 계정이 아니면) 시뮬레이터 기술은 뺀다.
- * 공개 목록(레지스트리 등)에서 온 기술만(소개 출처가 있음): 누군가의 비공개 저장소에서 읽혀 생긴 줄(내부 주소·비공개 패키지 이름)은
- * 남의 카탈로그·로그인 전 지도에 나오지 않는다(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
+ * 지도에 올릴 모은 기술 CATALOG_LIMIT개(ADR 0030 8항): ① 위험 → 주의(RISKY_MAX까지) ② 이번 주 새 기술(NEW_QUOTA까지, 대량 채우기분 제외)
+ * ③ 개발 분야 · 스킬 · 플러그인 · 개념을 두꺼운 것 → 별 많은 순 ④ 자리가 남으면 나머지를 같은 순(생활 · 업무 연동 등). 겹치면 한 번.
+ * 사라진 기술, (시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 공개 목록(소개 출처가 있음)만(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
-async function readCatalog(db: SupabaseClient, isDemo: boolean): Promise<CatalogTech[]> {
-  const q = listedTechs(db, READ_COLUMNS, isDemo);
-  // 위험·주의 먼저(grade 글자순: caution < danger < pass < unknown), 그다음 두꺼운 것, 최근에 들어온 것(NEW)
-  const res = await q.order("grade").order("depth").order("created_at", { ascending: false }).order("id").limit(CATALOG_LIMIT);
-  return rowsOrThrow(res, "모은 기술을 읽지 못함").map(toTech);
+async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]): Promise<CatalogTech[]> {
+  const listed = () => listedTechs(db, READ_COLUMNS, isDemo);
+  // 두꺼운 것 먼저(글자순 thick < thin), 별이 많은 순(없으면 뒤로), 같으면 최근에 들어온 것
+  const ranked = <Q extends ReturnType<typeof listed>>(q: Q) => q.order("depth").order("signals->stars", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).order("id");
+  const ids = devCategoryIds(cats), devFilter = [`type.in.(${DEV_TYPES.join(",")})`, ...(ids.length ? [`category_id.in.(${ids.join(",")})`] : [])].join(",");
+  const [risky, fresh, dev] = await Promise.all([
+    listed().or("grade.eq.danger,grade.eq.caution").order("grade", { ascending: false }).order("depth").order("id").limit(RISKY_MAX), // 글자 내림차순: danger 먼저
+    listed().gt("created_at", newSince(new Date())).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_QUOTA),
+    ranked(listed().or(devFilter)).limit(CATALOG_LIMIT),
+  ]);
+  const seen = new Set<string>(), pick = (r: { data: unknown; error: { message: string } | null }) => rowsOrThrow(r, "모은 기술을 읽지 못함").filter((x) => !seen.has(x.id) && seen.add(x.id));
+  const rows = [...pick(risky), ...pick(fresh), ...pick(dev)];
+  if (rows.length < CATALOG_LIMIT) rows.push(...pick(await ranked(listed()).limit(CATALOG_LIMIT))); // 개발 분야로 다 못 채웠을 때만(보통은 안 읽음)
+  return rows.slice(0, CATALOG_LIMIT).map(toTech);
 }
 
 /** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
@@ -67,8 +91,7 @@ export const NEW_LIMIT = 500;
 /** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
 /** userId가 null이면 로그인 전(11-21 사용자 결정: 새 기술도 로그인 없이): 서비스 키로 공개 목록만 읽고 내 표시는 없다(ADR 0029) */
 export async function readNewTechs(db: SupabaseClient, userId: string | null, now: Date): Promise<MapInput> {
-  const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
-  const since = weekAgo > CATALOG_FIRST_FILL ? weekAgo : CATALOG_FIRST_FILL;
+  const since = newSince(now);
   const [categories, techRes, markRes] = await Promise.all([
     readCategories(db),
     // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다
@@ -91,19 +114,21 @@ export async function readListedByIds(db: SupabaseClient, ids: string[]): Promis
 }
 
 export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
-  const [categories, techs] = await Promise.all([readCategories(db), readCatalog(db, false)]);
+  const categories = await readCategories(db);
+  const techs = await readCatalog(db, false, categories);
   return { mine: [], techs, relations: [], categories, newSince: CATALOG_FIRST_FILL };
 }
 
 /** 시뮬레이터가 넣은 기술·관계(is_simulated)는 시연 계정에만 보인다(SPEC-3.5). 내 기술 자체는 늘 보인다 */
-/** extraIds: 카탈로그 1,200개 밖이어도 꼭 올릴 기술(주소의 sel=, 내 레이더·새 기술의 "지도에서 보기") */
+/** extraIds: 카탈로그 500개 밖이어도 꼭 올릴 기술(주소의 sel=, 내 레이더·새 기술의 "지도에서 보기") */
 export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean, extraIds: string[] = []): Promise<MapInput> {
+  const cats = readCategories(db); // 카탈로그 고르기(개발 분야)가 갈래를 쓴다: 한 번만 읽어 나눠 씀
   const [mineRes, categories, catalog, markRes] = await Promise.all([
     db.from("my_technologies")
       .select("id, tech_id, manual_name, project_id, source_file, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
       .eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).order("created_at").order("id"), // 같은 등급끼리 합칠 때 늘 같은 줄이 앞에
-    readCategories(db),
-    readCatalog(db, isDemo), // 로그인 뒤에도 기본은 전체 지도(ADR 0027)
+    cats,
+    cats.then((c) => readCatalog(db, isDemo, c)), // 로그인 뒤에도 기본은 전체 지도(ADR 0027)
     db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
   ]);
   const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);

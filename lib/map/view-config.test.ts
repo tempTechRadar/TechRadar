@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_VIEW, filterCount, groupOf, parseView, viewQuery } from "./view-config.ts";
+import { DEFAULT_VIEW, filterCount, groupOf, parseView, viewQuery, type ViewConfig } from "./view-config.ts";
 
 test("주소 → 보기 설정 → 주소가 같다(기본값은 주소에 싣지 않음)", () => {
   assert.deepEqual(parseView(""), DEFAULT_VIEW);
@@ -31,4 +31,19 @@ test("이 분류만 보기(in=): 기준마다 한 번, 모르는 기준은 버�
   assert.deepEqual(parseView(viewQuery(v)), v);
   assert.deepEqual(groupOf(v), []);
   assert.equal(filterCount(v), 3);
+});
+
+test("기본 보기는 종류가 둘 이상일 때만 종류 먼저, 하나뿐이면 하는 일 먼저(주소로 고른 묶기는 그대로)", async () => {
+  const { defaultFor, withDefault } = await import("./view-config.ts");
+  assert.deepEqual([defaultFor(3).group, defaultFor(3).color], [["kind", "field"], "kind"]);
+  assert.deepEqual([defaultFor(1).group, defaultFor(1).color], [["field", "kind"], "field"]);
+  assert.deepEqual(withDefault(parseView(""), "", 1).group, ["field", "kind"]);
+  assert.deepEqual(withDefault(parseView("g=host"), "g=host", 1).group, ["host"]);
+  assert.equal(withDefault(parseView("c=grade"), "c=grade", 1).color, "grade");
+  assert.equal(withDefault(parseView("c=nope"), "c=nope", 1).color, "field", "잘못된 c는 없는 것으로");
+  // 종류 하나인 지도에서 일부러 종류 먼저를 고르면 주소에 남고, 되살리면 그대로
+  const picked = { ...defaultFor(1), group: ["kind", "field"] as ViewConfig["group"], color: "kind" as ViewConfig["color"] };
+  const saved = viewQuery(picked, defaultFor(1));
+  assert.deepEqual(withDefault(parseView(saved), saved, 1).group, ["kind", "field"]);
+  assert.equal(viewQuery(defaultFor(1), defaultFor(1)), "", "기본 그대로면 싣지 않음");
 });

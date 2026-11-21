@@ -9,7 +9,7 @@ import { buildTechMap, capNew, type TechMapModel } from "@/lib/map/build-map";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { readRecentFirstReads } from "@/lib/server/first-check-queries";
-import { CATALOG_LIMIT, NEW_RULE_VERSION, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
+import { CATALOG_LIMIT, NEW_RULE_VERSION, PICK_RULE, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FirstCheckBanner } from "./dashboard/first-check-banner";
@@ -32,7 +32,7 @@ const readGuestMap = unstable_cache(async () => {
   const db = getServiceSupabase();
   if (!db) throw new Error("서비스 키 설정이 없음");
   return readGuestMapInput(db);
-}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT)], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
+}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT), PICK_RULE], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
 
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; top: ReactNode }) {

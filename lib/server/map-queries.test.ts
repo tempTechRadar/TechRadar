@@ -13,7 +13,7 @@ function recordingDb(rows: Record<string, Rows>, errors: Record<string, string> 
   const db = {
     from(table: string) {
       const q: Record<string, unknown> = {}, mine: string[] = [];
-      for (const m of ["select", "eq", "is", "neq", "not", "gt", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map(String).join(",")})`; calls.push(c); mine.push(c); return q; };
+      for (const m of ["select", "eq", "is", "neq", "not", "gt", "or", "in", "order", "limit"]) q[m] = (...args: unknown[]) => { const c = `${table}.${m}(${args.map((a) => (a && typeof a === "object" ? JSON.stringify(a) : String(a))).join(",")})`; calls.push(c); mine.push(c); return q; };
       const data = () => { const r = rows[table] ?? []; return typeof r === "function" ? r(mine) : r; };
       q.then = (resolve: (v: unknown) => unknown) =>
         Promise.resolve(errors[table] ? { data: null, error: { message: errors[table] } } : { data: data(), error: null }).then(resolve);
@@ -66,11 +66,17 @@ test("내 기술 id가 많으면 나눠 읽는다(주소가 너무 길어지지 
   assert.ok(!manual.calls.some((c) => c.startsWith("tech_relations")));
 });
 
-test("모은 기술은 위험·주의 먼저, 두꺼운 것, 최근 순으로 최대 500개(ADR 0030)(시뮬레이터·사라진 기술 제외), 내 판단 표시는 내 것만", async () => {
-  const { db, calls } = recordingDb({ technologies: [{ id: "t9", display_name: "x" }] });
+test("모은 기술은 위험 → 주의 → 이번 주 새 기술 → 개발 분야(스킬 · 플러그인 · 개념 · 개발 갈래)를 두꺼운 것 · 별 많은 순, 모자랄 때만 나머지(ADR 0030 8항, 겹치면 한 번), 내 판단 표시는 내 것만", async () => {
+  const cats = [{ id: "fe", name: "프론트엔드", parent_id: null }, { id: "fe-ui", name: "화면·컴포넌트", parent_id: "fe" }, { id: "life", name: "생활·정보", parent_id: null }];
+  const pick = (qc: string[]) => qc.some((c) => c.includes("grade.eq.danger")) ? [{ id: "risk", display_name: "r" }]
+    : qc.some((c) => c.startsWith("technologies.gt(created_at")) ? [{ id: "new1", display_name: "n" }, { id: "risk", display_name: "r" }]
+    : qc.some((c) => c.includes("type.in.(skill,plugin,concept)")) ? [{ id: "dev", display_name: "d" }, { id: "new1", display_name: "n" }]
+    : [{ id: "life1", display_name: "l" }, { id: "dev", display_name: "d" }];
+  const { db, calls } = recordingDb({ technologies: pick, categories: cats });
   const input = await readMapInput(db, "user-a", false);
-  assert.deepEqual(input.techs.map((t) => t.id), ["t9"]);
-  for (const c of ["technologies.order(grade)", "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
+  assert.deepEqual(input.techs.map((t) => t.id), ["risk", "new1", "dev", "life1"]);
+  assert.ok(calls.includes("technologies.or(type.in.(skill,plugin,concept),category_id.in.(fe,fe-ui))"), "개발 갈래와 그 아래 세부 갈래");
+  for (const c of ['technologies.order(grade,{"ascending":false})', 'technologies.order(signals->stars,{"ascending":false,"nullsFirst":false})', "technologies.order(depth)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.limit(500)", "tech_marks.eq(user_id,user-a)"]) assert.ok(calls.includes(c), c);
   assert.ok(!calls.some((c) => c.startsWith("tech_relations")));
 });
 

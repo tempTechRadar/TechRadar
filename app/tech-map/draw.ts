@@ -3,6 +3,7 @@
 import { FIRST_RING, LEVEL_GAP, type Item, type TechItem } from "@/lib/map/layout";
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import type { MapState } from "./controller";
+import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 export const PULSE_SEC = 10;
@@ -14,42 +15,6 @@ type Pt = readonly [number, number];
 /** 한 장 그리는 데 함께 쓰는 것(함수 인자를 줄이려고 묶음) */
 type Frame = { c: Ctx; S: MapState; vis: Item[]; P: (it: Item) => Pt; alphaOf: (it: Item) => number; sc: number; now: number };
 
-// 레이더 움직임(11-21 사용자 결정): 처음 한 번 선(또는 파동)이 지나가며 기술이 묶음에서 제자리로 펼쳐지고(REVEAL초),
-// 그 뒤 아주 옅은 선 · 파동이 계속 돌며 닿는 점이 살짝 빛난다. 끄기 · 움직임 줄이기면 처음부터 다 보이고 움직임 없음.
-// 펼침은 첫 장부터 2.2초(REVEAL + GROW)에 끝난다: 하이드레이션까지 0.8초 안이면 첫 화면 3초(PRD-NF3) 안(11-20의 "처음부터 다 보이게"를 이 결정으로 바꿈, ADR 0030)
-export const REVEAL = 1.8;
-const AMBIENT = 8, RIPPLE = 6, GROW = 0.4, GLOW = 0.7;
-const angleOf = (x: number, y: number) => (Math.atan2(y, x) + Math.PI / 2 + TAU) % TAU;
-const moving = (S: MapState) => !S.still && S.motion !== "off";
-const since = (S: MapState, now: number) => now - S.sweepStart;
-/** 선의 각도(위에서 시계 방향): 펼침 동안 빠르게 한 바퀴, 그 뒤 천천히 */
-const sweepAngle = (S: MapState, now: number) => { const t = since(S, now); return -Math.PI / 2 + (t < REVEAL ? (t / REVEAL) * TAU : TAU + ((t - REVEAL) / AMBIENT) * TAU); };
-/** 선 · 파동의 진하기: 펼침 동안 1, 그 뒤 옅게 남음, 끄면 0 */
-const sweepAlpha = (S: MapState, now: number) => { const t = since(S, now); return !moving(S) || !(t >= 0) ? 0 : t < REVEAL ? 1 : 0.3; };
-/** 파동 반지름(세계 좌표): 펼침 동안 가운데 → 끝, 그 뒤 RIPPLE초마다 다시 */
-const rippleR = (S: MapState, now: number) => { const t = since(S, now); return S.L.radius * (t < REVEAL ? t / REVEAL : ((t - REVEAL) % RIPPLE) / RIPPLE); };
-/** 이 점이 처음 나타나는 순간(펼침): 선이면 각도 순, 파동이면 가운데에서 거리 순. 부모 묶음보다 먼저 나오지 않는다(부모 자리에서 날아 나오므로) */
-function revealAt(S: MapState, it: Item): number {
-  const own = S.sweepStart + REVEAL * (S.motion === "ripple" ? Math.min(1, Math.hypot(it.x, it.y) / S.L.radius) : angleOf(it.x, it.y) / TAU);
-  const parent = it.parent ? S.L.byId.get(it.parent) : null;
-  return parent ? Math.max(own, revealAt(S, parent)) : own;
-}
-/** 선 · 파동이 이 점을 지나간 지 몇 초(빛남용). 아직 안 지났으면 큰 값 */
-function touchAge(S: MapState, now: number, it: Item): number {
-  const t = since(S, now);
-  if (S.motion === "ripple") { const speed = S.L.radius / (t < REVEAL ? REVEAL : RIPPLE), d = rippleR(S, now) - Math.hypot(it.x, it.y); return d >= 0 ? d / speed : 99; }
-  const speed = TAU / (t < REVEAL ? REVEAL : AMBIENT);
-  return ((((sweepAngle(S, now) - (angleOf(it.x, it.y) - Math.PI / 2)) % TAU) + TAU) % TAU) / speed;
-}
-/** 펼침 진행 0 → 1(살짝 넘었다 돌아오는 곡선), 움직임이 없으면 늘 1 */
-function grow(S: MapState, now: number, it: Item): number {
-  if (!moving(S) || since(S, now) > REVEAL + GROW) return 1; // 펼침이 끝난 뒤에는 점마다 계산하지 않는다
-  const p = (now - revealAt(S, it)) / GROW;
-  if (p <= 0) return 0;
-  if (p >= 1) return 1;
-  const c1 = 1.70158, c3 = c1 + 1;
-  return 1 + c3 * (p - 1) ** 3 + c1 * (p - 1) ** 2; // easeOutBack
-}
 const bumpOf = (age: number) => (age >= 0 && age < 0.3 ? Math.sin((Math.PI * age) / 0.3) : 0); // 0 → 1 → 0, 0.3초
 export const hubRadius = (it: Item, sc: number) => it.r * Math.min(1.4, Math.max(0.7, sc ** 0.5));
 export const dotRadius = (it: Item, sc: number) => Math.max(2.4, it.r * sc ** 0.6);
@@ -77,31 +42,17 @@ export function draw(c: Ctx, S: MapState, now: number) {
   const home = (it: Item): Pt => { const b = phys.B.get(it.id); return b ? toS(b.x, b.y) : toS(it.x, it.y); };
   c.fillStyle = col("--surface"); c.fillRect(0, 0, W, H);
   const [ox, oy] = toS(0, 0);
-  // 펼침: 아직이면 부모 묶음(없으면 가운데) 자리에서 제자리로 날아간다
-  const P = (it: Item): Pt => {
-    const g = grow(S, now, it), [x, y] = home(it);
-    if (g >= 1) return [x, y];
-    const parent = it.parent ? L.byId.get(it.parent) : null, [px, py] = parent ? home(parent) : [ox, oy];
-    return [px + (x - px) * g, py + (y - py) * g];
-  };
+  // 펼침(11-21 사용자: 가운데서 튀어나오기보다 레이더가 지나간 자리에서 떠오르게): 자리는 그대로, 크기 · 진하기만 grow로(drawTechs · drawHubs)
+  const P = home;
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
   const alphaOf = (it: Item) => Math.min(1, grow(S, now, it) * 1.6) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
   const F: Frame = { c, S, vis, P, alphaOf, sc, now };
   endless(F, [ox, oy]);
 
   rings(F, [ox, oy]);
-  const sa = sweepAlpha(S, now), ang = sweepAngle(S, now);
+  const sa = sweepAlpha(S, now);
   if (sa > 0.01 && S.motion === "ripple") ripple(F, [ox, oy], sa);
-  else if (sa > 0.01) {
-    const R = L.radius * sc;
-    if ("createConicGradient" in c) {
-      const g = c.createConicGradient(ang - 1.1, ox, oy);
-      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1.1 / TAU, `rgba(26,26,26,${0.12 * sa})`); g.addColorStop(1.1 / TAU + 0.001, "rgba(0,0,0,0)");
-      c.fillStyle = g; c.beginPath(); c.moveTo(ox, oy); c.arc(ox, oy, R, ang - 1.1, ang); c.closePath(); c.fill();
-    }
-    c.strokeStyle = col("--ink"); c.globalAlpha = 0.55 * sa; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + Math.cos(ang) * R, oy + Math.sin(ang) * R); c.stroke(); c.globalAlpha = 1;
-  }
+  else if (sa > 0.01) sweep(F, [ox, oy], sa);
 
   // 선: 위아래 단계(가운데 → 1단계 → … → 기술), 비교군은 점선
   for (const it of vis) {
@@ -129,29 +80,65 @@ export function draw(c: Ctx, S: MapState, now: number) {
   drawHubs(F);
   leafLabels(F);
   ringLabels(F, [ox, oy]);
-  S.riskRects = offscreenRisks(F);
+  S.riskRects = introducing(S, now) ? [] : offscreenRisks(F); // 처음 연출(확대 중) 동안은 화면 밖 위험 표시 · 누르기 없음(시안처럼)
   S.homeArrow = homeArrow(F, [ox, oy]);
 }
 
 /** 고리 + 윗변 가운데 이름(11-21 사용자): 안쪽부터 "1단계 · 하는 일" …, 맨 바깥 "기술" */
-function rings({ c, S, sc }: Frame, [ox, oy]: Pt) {
+function rings(F: Frame, [ox, oy]: Pt) {
+  const { c, S, sc } = F;
   const group = groupOf(S.view), rs = [...group.map((_, l) => FIRST_RING + l * LEVEL_GAP), S.L.leafR];
   c.strokeStyle = col("--line"); c.lineWidth = 1;
-  for (const r of rs) { c.beginPath(); c.arc(ox, oy, r * sc, 0, TAU); c.stroke(); }
+  rs.forEach((r, k) => { // 처음 열 때 안쪽부터 차례로 퍼져 나온다
+    const g = ringGrow(S, F.now, k + 1); if (g <= 0) return;
+    c.globalAlpha = g; c.beginPath(); c.arc(ox, oy, r * sc * g, 0, TAU); c.stroke();
+  });
+  c.globalAlpha = 1;
 }
 /** 고리 이름은 맨 마지막에(묶음 모양이 윗변을 가려도 읽히게) */
-function ringLabels({ c, S, sc }: Frame, [ox, oy]: Pt) {
+function ringLabels(F: Frame, [ox, oy]: Pt) {
+  const { c, S, sc } = F;
   const group = groupOf(S.view), rs = [...group.map((_, l) => FIRST_RING + l * LEVEL_GAP), S.L.leafR];
-  rs.forEach((r, l) => label(c, l < group.length ? `${l + 1}단계 · ${DIM_KO[group[l]]}` : "기술", ox, oy - r * sc - 2, 11, col("--muted"), "center", 600));
+  rs.forEach((r, l) => {
+    const g = ringGrow(S, F.now, l + 1); // 고리가 다 퍼진 뒤에 이름
+    if (g < 0.99) return;
+    label(c, l < group.length ? `${l + 1}단계 · ${DIM_KO[group[l]]}` : "기술", ox, oy - r * sc - 2, 11, col("--muted"), "center", 600);
+  });
 }
 
-/** 퍼지는 파동: 가운데에서 바깥으로 번지는 고리(펼침 동안 진하게, 그 뒤 옅게 되풀이) */
-function ripple({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
-  const R = rippleR(S, now), fade = 1 - R / S.L.radius;
-  c.strokeStyle = col("--ink"); c.lineWidth = 1.5; c.globalAlpha = 0.5 * sa * Math.max(0.2, fade);
-  c.beginPath(); c.arc(ox, oy, R * sc, 0, TAU); c.stroke();
-  c.globalAlpha = 0.12 * sa * fade; c.lineWidth = 14;
-  c.beginPath(); c.arc(ox, oy, Math.max(0, R * sc - 7), 0, TAU); c.stroke();
+/** 화면 끝까지의 거리(화면 좌표): 선 · 파동은 지도 끝이 아니라 화면 끝까지(경계 없는 판) */
+const farOf = (S: MapState, [ox, oy]: Pt) => Math.max(Math.hypot(ox, oy), Math.hypot(S.W - ox, oy), Math.hypot(ox, S.H - oy), Math.hypot(S.W - ox, S.H - oy)) + 40;
+/** 고리 반지름들(세계 좌표): 묶기 고리 + 기술 고리 + 바깥으로 이어지는 고리(endless와 같은 간격) */
+function ringRadii(S: MapState, sc: number, farWorld: number): number[] {
+  const rs = [...groupOf(S.view).map((_, l) => FIRST_RING + l * LEVEL_GAP), S.L.leafR];
+  const step = LEVEL_GAP * 2 ** Math.max(0, Math.ceil(Math.log2(10 / (LEVEL_GAP * sc))));
+  for (let r = S.L.leafR + step, n = 0; r < farWorld && n < 120; r += step, n++) rs.push(r);
+  return rs;
+}
+
+/** 퍼지는 파동(시안처럼 얇은 고리 하나): 펼침 동안 가운데 → 지도 끝, 그 뒤 몇 초마다 화면 끝까지 번지며 옅어진다 */
+function ripple({ c, S, sc, now }: Frame, o: Pt, sa: number) {
+  const { r, fade } = rippleR(S, now, farOf(S, o) / sc);
+  if (r <= 0) return;
+  c.strokeStyle = col("--ink"); c.lineWidth = 1.5; c.globalAlpha = 0.35 * sa * fade;
+  c.beginPath(); c.arc(o[0], o[1], r * sc, 0, TAU); c.stroke();
+  c.globalAlpha = 1;
+}
+
+/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 TRAIL 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛 */
+const TRAIL = 1.2; // 라디안(약 70도)
+function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
+  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink");
+  if ("createConicGradient" in c && !introducing(S, now)) { // 잔광은 처음 연출이 끝난 뒤(고리가 다 퍼진 뒤, 시안처럼)
+    const f = TRAIL / TAU, g = c.createConicGradient(ang - TRAIL, ox, oy), a = 0.35 * sa;
+    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(f * 0.6, `rgba(26,26,26,${(a * 0.25).toFixed(3)})`); g.addColorStop(f, `rgba(26,26,26,${a.toFixed(3)})`); g.addColorStop(Math.min(1, f + 0.001), "rgba(0,0,0,0)");
+    c.strokeStyle = g; c.lineWidth = 1.2; c.beginPath();
+    for (const r of ringRadii(S, sc, far / sc)) { c.moveTo(ox + r * sc * Math.cos(ang - TRAIL), oy + r * sc * Math.sin(ang - TRAIL)); c.arc(ox, oy, r * sc, ang - TRAIL, ang); }
+    c.stroke();
+  }
+  const line = (alpha: number, w: number) => { c.strokeStyle = ink; c.globalAlpha = alpha; c.lineWidth = w; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + far * Math.cos(ang), oy + far * Math.sin(ang)); c.stroke(); };
+  line(0.05 * sa, 5); // 옅은 빛
+  line(0.5 * sa, 1.1);
   c.globalAlpha = 1;
 }
 
@@ -162,7 +149,8 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now }: Frame, sa: number) {
     const [x, y] = P(it);
     if (x < -40 || y < -40 || x > S.W + 40 || y > S.H + 40) continue;
     const n = it.node, b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9));
-    const rp = dotRadius(it, sc) * (it.id === S.focusId ? 1.3 : 1);
+    const g = grow(S, now, it), rp = dotRadius(it, sc) * (it.id === S.focusId ? 1.3 : 1) * (0.35 + 0.65 * g); // 작게 떠올라 제 크기로
+    if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
     if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
     if (n.grade === "danger") { // 맥박: 처음 10초만(계속 움직이면 거슬리고 접근성 기준에도 걸림), 그 뒤·움직임 줄이기면 멈춘 굵은 고리
@@ -180,7 +168,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now }: Frame, sa: number) {
     if (n.isNew && (sc > 0.8 || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
     if (it.id === S.sel) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 6, 0, TAU); c.stroke(); }
     const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 모든 점은 옅게 빛나고, 위험 · NEW는 한 번 울림
-    if (age < GLOW) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.35 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
+    if (age < GLOW) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
     if (sa > 0.2 && age < 0.6 && (n.grade === "danger" || n.isNew)) {
       c.strokeStyle = col(n.grade === "danger" ? "--danger" : "--ink"); c.globalAlpha = a * sa * (1 - age / 0.6); c.lineWidth = 1.5;
       c.beginPath(); c.arc(x, y, rp + 2 + age * 22, 0, TAU); c.stroke();
@@ -196,7 +184,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
   for (const it of vis) {
     if (it.type !== "g") continue;
     const a = alphaOf(it); if (a <= 0.01) continue;
-    const [x, y] = P(it), b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9)), r = hubRadius(it, sc) * (1 + 0.2 * k) * (it.id === S.focusId ? 1.12 : 1);
+    const [x, y] = P(it), b = S.phys.B.get(it.id), k = bumpOf(now - (b ? b.bump : -9)), r = hubRadius(it, sc) * (1 + 0.2 * k) * (it.id === S.focusId ? 1.12 : 1) * (0.35 + 0.65 * grow(S, now, it));
     const shut = S.collapsed.has(it.id), filled = !!it.token && !it.hollow;
     c.globalAlpha = a;
     hubPath(c, x, y, r, it.level);
@@ -233,8 +221,9 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now }: Frame) {
 
 // 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 확대하면 더. 겹치면 건너뛴다
 function leafLabels({ c, S, vis, P, sc, now }: Frame) {
+  const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
-    || (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : sc > 1.6 || it.node.mine || it.node.grade === "danger" || (sc > 1 && it.node.isNew))));
+    || (!quiet && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : sc > 1.6 || it.node.mine || it.node.grade === "danger" || (sc > 1 && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : 3);
   want.sort((a, b) => rank(a) - rank(b));
   const boxes: number[][] = [];
@@ -296,7 +285,8 @@ const STARS = (() => {
   return [0.3, 0.6].map((f) => ({ f, pts: Array.from({ length: 46 }, () => [r() * STAR_TILE, r() * STAR_TILE, r()] as const) }));
 })();
 const mod = (a: number, n: number) => ((a % n) + n) % n;
-function endless({ c, S, sc }: Frame, [ox, oy]: Pt) {
+function endless(F: Frame, [ox, oy]: Pt) {
+  const { c, S, sc } = F;
   const { W, H } = S;
   c.fillStyle = col("--faint");
   for (const { f, pts } of STARS) { // 움직임 줄이기면 시차 없이 고정
@@ -320,10 +310,13 @@ function endless({ c, S, sc }: Frame, [ox, oy]: Pt) {
   c.strokeStyle = col("--line"); c.lineWidth = 1;
   const near = Math.hypot(Math.max(0, -ox, ox - W), Math.max(0, -oy, oy - H));
   let n = 0;
+  const inner = groupOf(S.view).length + 1;
   for (let r = S.L.leafR + step; r * sc < far && n < 300; r += step, n++) {
     if (r * sc < near) continue;
-    c.globalAlpha = Math.max(0.12, 0.7 - n * 0.05);
-    c.beginPath(); c.arc(ox, oy, r * sc, 0, TAU); c.stroke();
+    const g = ringGrow(S, F.now, inner + 1 + n); // 처음 열 때 안쪽 고리 다음 차례로 퍼짐
+    if (g <= 0) continue;
+    c.globalAlpha = Math.max(0.12, 0.7 - n * 0.05) * g;
+    c.beginPath(); c.arc(ox, oy, r * sc * g, 0, TAU); c.stroke();
   }
   c.globalAlpha = 0.45; c.beginPath(); c.moveTo(0, oy); c.lineTo(W, oy); c.moveTo(ox, 0); c.lineTo(ox, H); c.stroke(); c.globalAlpha = 1;
 }

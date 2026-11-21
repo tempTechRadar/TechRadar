@@ -12,10 +12,24 @@ export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; ri
 /** scope = "이 분류만 보기"로 들어간 경로(바깥부터). 들어간 기준은 묶기에서 빠진다 */
 export type Scope = { dim: Dim; value: string };
 export type ViewConfig = { group: Dim[]; color: Dim; filter: ViewFilter; scope: Scope[] };
+/** 기본 보기(11-21 사용자 결정): 첫 고리 = 종류(MCP · 스킬 · 플러그인 · 패키지 · 개념), 둘째 = 하는 일. 부트캠프 교육생 · 나 같은 사용자가
+ *  "스킬이 뭐지, MCP가 뭐지"부터 바로 보게. 색은 첫 고리를 따른다(종류마다 한 색 부채꼴) */
 export const DEFAULT_VIEW: ViewConfig = {
-  group: ["field", "kind"], color: "field", scope: [],
+  group: ["kind", "field"], color: "kind", scope: [],
   filter: { kinds: [], fields: [], subs: [], risky: false, mineOnly: false, newOnly: false, err: false, project: "" },
 };
+
+/** 종류가 하나뿐인 카탈로그(11-21 운영은 공개 목록이 MCP뿐)면 첫 고리가 한 덩어리라 하는 일 먼저로(사용자 결정 "자동") */
+export function defaultFor(kindCount: number): ViewConfig {
+  return kindCount >= 2 ? DEFAULT_VIEW : { ...DEFAULT_VIEW, group: ["field", "kind"], color: "field" };
+}
+/** 주소에 묶기(g)가 없을 때만 모델에 맞는 기본 묶기 · 색으로(주소로 고른 보기는 그대로) */
+export function withDefault(v: ViewConfig, query: string, kindCount: number): ViewConfig {
+  const q = new URLSearchParams(query);
+  if (q.has("g")) return v;
+  const d = defaultFor(kindCount);
+  return { ...v, group: d.group, color: isDim(q.get("c") ?? "") ? v.color : d.color }; // 잘못된 c는 없는 것으로
+}
 
 const isDim = (v: string): v is Dim => (DIMS as readonly string[]).includes(v);
 const values = (raw: string | null) => (raw ? raw.split(",").map((v) => v.trim().slice(0, 60)).filter(Boolean).slice(0, 20) : []);
@@ -44,9 +58,10 @@ export function parseView(query: string | URLSearchParams): ViewConfig {
 export const groupOf = (v: ViewConfig): Dim[] => v.group.filter((d) => !v.scope.some((s) => s.dim === d));
 
 /** 기본값과 다른 것만 주소에 싣는다 */
-export function viewQuery(v: ViewConfig): string {
+/** base = 이 지도의 기본 보기(defaultFor): 그와 같은 묶기는 주소에 싣지 않는다 — 되살릴 때 withDefault가 같은 기본을 넣으므로 고른 보기가 그대로 돌아온다 */
+export function viewQuery(v: ViewConfig, base: ViewConfig = DEFAULT_VIEW): string {
   const q = new URLSearchParams();
-  if (v.group.join() !== DEFAULT_VIEW.group.join()) q.set("g", v.group.join(","));
+  if (v.group.join() !== base.group.join()) q.set("g", v.group.join(","));
   if (v.color !== (v.group[0] ?? DEFAULT_VIEW.color)) q.set("c", v.color);
   if (v.filter.kinds.length) q.set("fk", v.filter.kinds.join(","));
   if (v.filter.fields.length) q.set("ff", v.filter.fields.join(","));

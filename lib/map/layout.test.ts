@@ -6,6 +6,8 @@ import { connected, defaultCollapsed, hiddenOf, layoutMap, type GroupItem, type 
 import { DEFAULT_VIEW, parseView, type ViewConfig } from "./view-config.ts";
 
 const NOW = new Date("2026-11-19T00:00:00Z");
+/** 하는 일 › 종류(11-21 전 기본 보기): 고리 · 색 규칙 시험은 이 보기로 고정(기본 보기가 바뀌어도 규칙 시험은 그대로) */
+const FIELD_VIEW = parseView("g=field,kind&c=field");
 const categories = [
   { id: "data", name: "백엔드·데이터", parentId: null }, { id: "db", name: "DB", parentId: "data" },
   { id: "design", name: "디자인", parentId: null }, { id: "ui", name: "컴포넌트", parentId: "design" },
@@ -20,7 +22,7 @@ const leaves = (l: MapLayout) => l.items.filter((x): x is TechItem => x.type ===
 const names = (l: MapLayout) => leaves(l).map((x) => x.node.name);
 
 test("묶기 1단계·2단계: 고리 1 = 1단계 묶음, 고리 2 = 2단계 묶음, 맨 바깥 = 기술. 분류 전은 맨 뒤", () => {
-  const l = layoutMap(buildTechMap(catalog, NOW), DEFAULT_VIEW); // 하는 일 › 종류
+  const l = layoutMap(buildTechMap(catalog, NOW), FIELD_VIEW); // 하는 일 › 종류
   assert.deepEqual(groups(l).filter((g) => g.level === 1).map((g) => [g.value, g.count]), [["디자인", 1], ["백엔드·데이터", 2], ["분류 전", 1]]);
   assert.deepEqual(groups(l).filter((g) => g.level === 2 && g.parent?.endsWith("백엔드·데이터")).map((g) => g.value), ["스킬", "MCP"], "한국어 이름 먼저(ko 정렬)");
   const r = (x: number, y: number) => Math.hypot(x, y);
@@ -38,7 +40,7 @@ test("묶기 기준을 바꾸면 같은 기술이 다른 묶음으로(종류만)
 });
 
 test("색: 많은 값부터 범주 토큰, 분류 전은 회색 빈 점. 색 기준과 같은 단계의 묶음만 색을 가진다", () => {
-  const l = layoutMap(buildTechMap(catalog, NOW), DEFAULT_VIEW);
+  const l = layoutMap(buildTechMap(catalog, NOW), FIELD_VIEW);
   assert.deepEqual(l.legend.map((x) => [x.value, x.count, x.token]), [["백엔드·데이터", 2, "--cat-1"], ["디자인", 1, "--cat-2"], ["분류 전", 1, "--unknown"]]);
   const d = leaves(l).find((x) => x.node.name === "d")!;
   assert.deepEqual([d.token, d.hollow], ["--unknown", true]);
@@ -75,7 +77,7 @@ test("이 분류만 보기: 그 안만 원반 전체로, 들어간 기준은 묶
 
 test("올리면 이어진 것: 묶음 → 위로 가는 길 + 아래 전부, 기술 → 위로 가는 길 + 비교군", () => {
   const model = buildTechMap({ ...catalog, mine: [mine("m1", "a")], relations: [{ a: "a", b: "c", quote: null }] }, NOW);
-  const l = layoutMap(model, DEFAULT_VIEW);
+  const l = layoutMap(model, FIELD_VIEW);
   const top = groups(l).find((g) => g.level === 1 && g.value === "백엔드·데이터")!;
   const lit = connected(l, top.id);
   assert.ok(lit.has("tech:a") && !lit.has("tech:c"));
