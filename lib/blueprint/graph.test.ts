@@ -197,6 +197,10 @@ test("그래프: parseGraph — 믿지 않는 값은 이유와 함께 거절", (
   assert.match(reason((r) => { r.stages[1].id = "a"; }), /id가 겹쳐요/);
   assert.match(reason((r) => { r.stages[0].id = ""; }), /id는 1~64자/);
   assert.match(reason((r) => { r.stages[0].id = "x".repeat(65); }), /id는 1~64자/);
+  assert.match(reason((r) => { r.stages[0].id = "기획"; }), /id는 1~64자의 영문/);
+  assert.match(reason((r) => { r.stages[0].id = "a b"; }), /id는 1~64자의 영문/);
+  assert.equal(reason((r) => { r.stages[0].id = "Aa0_-".repeat(12) + "abcd"; }), "OK", "64자 · 영문 숫자 _ - 는 통과");
+  assert.match(createStage("x", 0, 0).id, /^[A-Za-z0-9_-]{1,64}$/, "만드는 id는 늘 이 모양");
   assert.match(reason((r) => { r.stages[0].name = "   "; }), /이름은 1~20자/);
   assert.match(reason((r) => { r.stages[0].name = "가".repeat(21); }), /이름은 1~20자/);
   assert.match(reason((r) => { r.stages[0].x = Number.NaN; }), /위치가 맞지 않아요/);

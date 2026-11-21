@@ -46,6 +46,8 @@ export type Graph = { v: 2; stages: Stage[]; edges: Edge[] };
 /** 확정 조건(서버 · DB 함수 blueprint_graph_clean과 같은 값). 단계 이름 1~20자 · id 1~64자는 parseGraph가 본다 */
 export const LIMITS = { depth: 12, parallel: 4, stages: 48, techs: MAX_TECHS, edges: 200 } as const;
 export const STAGE_ID_MAX = 64;
+/** ASCII만: DB(COLLATE "C" 바이트 순)와 JS 글자 순이 같아지는 모양(같은 깊이 정렬의 마지막 기준이 id) */
+const STAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** 화면 좌표 한도(이 밖은 잘못 온 값) */
 export const COORD_MAX = 100000;
 
@@ -269,7 +271,7 @@ const bad = (message: string): ParsedGraph => ({ ok: false, message });
 type StageIn = { id?: unknown; name?: unknown; x?: unknown; y?: unknown; techs?: unknown };
 function parseStage(s: unknown, seen: Set<string>): Stage | string {
   const v = (s ?? {}) as StageIn;
-  if (typeof v.id !== "string" || v.id.length < 1 || v.id.length > STAGE_ID_MAX) return `단계 id는 1~${STAGE_ID_MAX}자여야 해요.`;
+  if (typeof v.id !== "string" || !STAGE_ID.test(v.id)) return `단계 id는 1~${STAGE_ID_MAX}자의 영문·숫자·_·-여야 해요.`;
   if (seen.has(v.id)) return "단계 id가 겹쳐요.";
   const name = typeof v.name === "string" ? v.name.trim() : "";
   if (!name || name.length > STAGE_NAME_MAX) return `단계 이름은 1~${STAGE_NAME_MAX}자여야 해요.`;
