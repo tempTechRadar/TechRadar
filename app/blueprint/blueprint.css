@@ -10,7 +10,6 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bp-page .btn.bp-sm { min-height: 32px; padding: 0 8px; font-size: var(--fs-cap); }
 .bp-page .btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
-.bp-page .btn:disabled { opacity: .45; cursor: not-allowed; }
 
 .bp-opts { display: grid; gap: 6px; margin: 10px 0; }
 .c-dialog .bp-opt { justify-content: space-between; gap: var(--sp-2); text-align: left; min-height: 48px; padding: 6px var(--sp-3); }
@@ -18,6 +17,3 @@ body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .bp-field { display: grid; gap: 4px; margin: var(--sp-3) 0; font-weight: 600; }
 .bp-field select { min-height: var(--hit); font: inherit; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); }
 
-.bp-toast { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
-.bp-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
-@media (max-width: 640px) { .bp-toast { bottom: calc(64px + env(safe-area-inset-bottom)); } }

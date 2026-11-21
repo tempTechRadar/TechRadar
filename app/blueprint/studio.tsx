@@ -256,7 +256,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       </div>
       {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={guest ? () => toLogin("확정하려면") : () => { done.reset(); setConfirming(true); }} /> : null}
       <Dock {...panel} />
-      <ToastLine toast={toast} clear={clear} className="bp-toast" />
+      <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}

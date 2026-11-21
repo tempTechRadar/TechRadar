@@ -1,5 +1,5 @@
 "use client";
-// 저장 뒤 잠깐 뜨는 알림 + "되돌리기"(지도 사이드바 · 내 레이더 칸반이 같이 씀). 되돌리기가 있으면 6초, 없으면 2.6초 뒤 사라진다
+// 공용 토스트(P-12f ④ c-toast): 저장 뒤 잠깐 뜨는 알림 + "되돌리기"(지도 · 청사진이 같이 씀). 되돌리기가 있으면 6초(누를 시간), 없으면 3.5초 뒤 사라진다
 import { useEffect, useState } from "react";
 import type { MarkStatus } from "@/lib/map/build-map";
 import { canUndoMark } from "@/lib/map/undo-mark";
@@ -11,14 +11,14 @@ const FAILED = { ok: false as const, message: "저장하지 못했어요. 다시
 
 export function useToast() {
   const [toast, setToast] = useState<Toast>(null);
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 2600); return () => clearTimeout(t); }, [toast]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), toast.undo ? 6000 : 3500); return () => clearTimeout(t); }, [toast]);
   const say: Say = (text, undo) => setToast({ text, undo });
   return { toast, say, clear: () => setToast(null) };
 }
 
-/** 늘 있는 알림 칸(비어 있으면 안 보임): 화면 읽기 프로그램이 바뀐 글을 읽어 준다 */
+/** 늘 있는 알림 칸(비어 있으면 안 보임): 화면 읽기 프로그램이 바뀐 글을 읽어 준다. 모양은 .c-toast, className은 놓는 자리(c-toast-float = 화면 아래 가운데) */
 export function ToastLine({ toast, clear, className }: { toast: Toast; clear: () => void; className: string }) {
-  return <p className={className} role="status" aria-live="polite">{toast?.text}{toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; clear(); u(); }}>되돌리기</button> : null}</p>;
+  return <p className={`c-toast ${className}`} role="status" aria-live="polite">{toast?.text}{toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; clear(); u(); }}>되돌리기</button> : null}</p>;
 }
 
 type Prev = { status: MarkStatus; reason: string | null } | null;
