@@ -57,10 +57,15 @@ begin
   select to_jsonb(t) into row_json from public.public_blueprint_templates('combo') t where t.id = combo;
   msg := msg || 'nickname=' || (row_json ->> 'author_nickname') || '(템플릿작가);';
   msg := msg || 'no_author_id=' || (not (row_json ? 'author_id')) || '(true);';
-  -- u2는 tA를 고른 적 없지만 공개 조합 템플릿으로 시작하면 그 기술은 받는다. 템플릿에 없는 고른 적 없는 기술은 막힘, 남의 비공개 템플릿은 못 씀
-  -- 템플릿 없이는 tA를 못 넣는다(템플릿으로 확정하면 그 뒤로는 내 이력이 되므로 먼저 본다)
+  -- 남의 공개 조합으로 시작해도 기술은 u2의 관문만(사용자 결정 "고르기 칩", ADR 0034 1): tA를 고르기 전엔 템플릿이 있든 없든 막힘
   begin r := public.confirm_blueprint_v2(gen_random_uuid(), '템플릿 없이', null, g); msg := msg || 'no_template_gate=OPEN;';
   exception when raise_exception then msg := msg || 'no_template_gate=blocked;'; end;
+  begin r := public.confirm_blueprint_v2(gen_random_uuid(), '템플릿 기술', null, g, combo); msg := msg || 'template_tech_gate=OPEN;';
+  exception when raise_exception then msg := msg || 'template_tech_gate=' || case when sqlerrm like '%고른 적 없는%' then 'blocked' else sqlerrm end || ';'; end;
+  -- 칩의 "적용 후보로 고르기"를 한 뒤에는 들어간다. 템플릿에 없는 고른 적 없는 기술은 막힘, 남의 비공개 템플릿은 못 씀
+  execute 'reset role';
+  insert into public.tech_marks (user_id, tech_id, status, updated_at) values (u2, tA, 'candidate', now());
+  execute 'set local role authenticated';
   r := public.confirm_blueprint_v2(gen_random_uuid(), '템플릿으로', null, g, combo); msg := msg || 'confirm_with_template=' || r || '(saved);';
   begin r := public.confirm_blueprint_v2(gen_random_uuid(), '템플릿 밖', null, jsonb_set(g, '{stages,0,techs}', jsonb_build_array(jsonb_build_object('id', tA), jsonb_build_object('id', tC))), combo); msg := msg || 'outside_template=OPEN;';
   exception when raise_exception then msg := msg || 'outside_template=' || case when sqlerrm like '%고른 적 없는%' then 'blocked' else sqlerrm end || ';'; end;
@@ -99,6 +104,16 @@ begin
   execute 'set local role authenticated';
   begin b := public.set_template_public(combo, true); msg := msg || 'republish_hidden=OPEN;';
   exception when raise_exception then msg := msg || 'republish_hidden=blocked;'; end;
+  -- 숨긴 뒤 작가가 비공개로 돌려도 관리자는 되돌릴 수 있고, 그 뒤 작가는 다시 공개할 수 있다(굳지 않음)
+  b := public.set_template_public(combo, false); msg := msg || 'unpublish_hidden=' || b || '(false);';
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  b := public.hide_blueprint_template(combo, false); msg := msg || 'admin_unhide_private=' || b || '(false);';
+  execute 'reset role';
+  perform set_config('request.jwt.claims', json_build_object('sub', u1, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  b := public.set_template_public(combo, true); msg := msg || 'republish_after_unhide=' || b || '(true);';
   execute 'reset role';
   update public.profiles set is_public = false where id = u1;
   execute 'set local role authenticated';
@@ -117,5 +132,5 @@ begin
   execute 'reset role';
 
   raise exception 'ROLLBACK_OK %', msg;
-  -- 기대: save_combo=saved(saved);again=exists(exists);combo_gate=blocked;combo_danger=blocked;frame=saved,techs=0(saved,techs=0);bad_kind=blocked;direct_insert=blocked;direct_update=blocked;publish=true(true);u2_sees_rows=0(0);other_publish=blocked;gallery=2(2);nickname=템플릿작가(템플릿작가);no_author_id=true(true);no_template_gate=blocked;confirm_with_template=saved(saved);outside_template=blocked;private_template=blocked;uses=1(1);open_public=1(1);open_private=0(0);user_hide=blocked;demo_in_gallery=0(0);demo_template_use=blocked;admin_sees_private=0(0);admin_hide_private=blocked;admin_hide=true(true);hidden_in_gallery=0(0);republish_hidden=blocked;private_profile_nickname=익명(익명);over_100=blocked;anon_gallery=blocked;anon_read=blocked;
+  -- 기대: save_combo=saved(saved);again=exists(exists);combo_gate=blocked;combo_danger=blocked;frame=saved,techs=0(saved,techs=0);bad_kind=blocked;direct_insert=blocked;direct_update=blocked;publish=true(true);u2_sees_rows=0(0);other_publish=blocked;gallery=2(2);nickname=템플릿작가(템플릿작가);no_author_id=true(true);no_template_gate=blocked;template_tech_gate=blocked;confirm_with_template=saved(saved);outside_template=blocked;private_template=blocked;uses=1(1);open_public=1(1);open_private=0(0);user_hide=blocked;demo_in_gallery=0(0);demo_template_use=blocked;admin_sees_private=0(0);admin_hide_private=blocked;admin_hide=true(true);hidden_in_gallery=0(0);republish_hidden=blocked;unpublish_hidden=false(false);admin_unhide_private=false(false);republish_after_unhide=true(true);private_profile_nickname=익명(익명);over_100=blocked;anon_gallery=blocked;anon_read=blocked;
 end $$;

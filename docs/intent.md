@@ -59,11 +59,11 @@
 |---|---|
 | 문제 | 청사진을 다시 쓰거나 남과 나눌 길이 없다(사용자 요청: 템플릿 공유) |
 | 기대 결과 | 내 청사진을 틀(단계 · 연결)이나 조합(기술까지)으로 저장하고, 공개를 누르면 갤러리에 별명과 함께 보인다. 남의 공개 템플릿으로 시작할 수 있다 |
-| 영향 범위 | 새 마이그레이션 202611221100(blueprint_templates · save_blueprint_template · set_template_public · hide_blueprint_template · public_blueprint_templates · blueprint_template_for_use, blueprints.template_id 외래 키, confirm_blueprint_v2 교체), M1 blueprint_graph_clean에 p_extra, 권한 시험 SQL, `lib/server/blueprint-templates.ts`, `app/blueprint/actions.ts`, `app/blueprint/gallery/` |
+| 영향 범위 | 새 마이그레이션 202611221100(blueprint_templates · save_blueprint_template · set_template_public · hide_blueprint_template · public_blueprint_templates · blueprint_template_for_use, blueprints.template_id 외래 키, confirm_blueprint_v2 교체), 권한 시험 SQL, `lib/server/blueprint-templates.ts`, `app/blueprint/actions.ts`, `app/blueprint/gallery/` |
 | 제약 | ADR 0036 그대로. 운영 적용은 M1 뒤 사용자 승인. 스튜디오 화면이 `?template=`을 받는 것과 템플릿 탭은 FrontLead · DevAssi1 |
 | 열린 질문 | 숨긴 템플릿을 다시 보이게 할 관리자 목록 화면(지금은 숨긴 그 자리에서만 되돌림) |
 
-**결과(커밋 전):** 위 마이그레이션 · 서버 · 갤러리. 남의 공개 조합으로 시작하면 그 조합의 기술은 관문에 더해 받는다(사람이 고른 템플릿, 위험 등급은 그래도 거절, 시연 계정 템플릿은 안 됨). uses = 확정한 사람 수(작가 · 시연 빼고), 설정에서 공개를 끈 작가는 "익명". 관리자도 남의 비공개는 못 보고 공개된 것만 숨긴다. 시험 1,389 통과, 빌드 통과, code-review 1번(10건 모두 반영). 권한 시험 SQL 33항목 미실행. 갤러리 화면은 로그인이 필요해 브라우저로 보지 못함.
+**결과(커밋 전):** 위 마이그레이션 · 서버 · 갤러리. 남의 공개 조합으로 시작해도 기술은 내 관문만 거친다(**11-21 사용자 결정 "고르기 칩"으로 바꿈**: 처음엔 조합 기술을 관문에 더해 받았는데 ADR 0034 1항과 어긋나고, 확정 뒤 "내 이력"이 돼 계속 통과하는 구멍이라 뺌. 관문 밖 기술은 readTemplateForUse의 outsideGate로 화면이 후보 칩으로 보이고 "적용 후보로 고르기" 뒤에 들어감. 시연 계정 템플릿은 안 됨). 관리자 숨김 풀기는 공개 여부와 무관(QA 관찰: 숨긴 뒤 작가가 비공개로 돌리면 굳던 것). uses = 확정한 사람 수(작가 · 시연 빼고), 설정에서 공개를 끈 작가는 "익명". 관리자도 남의 비공개는 못 보고 공개된 것만 숨긴다. M1 blueprint_graph_clean의 p_extra 인자는 이제 아무도 안 넘김(사용자 실행 권한 없음) → M5에서 지움. 시험 1,389 통과(관문 변경 뒤 1,390), 빌드 통과, code-review 1번(10건 모두 반영). 권한 시험 SQL 37항목(관문 변경 뒤) 미실행, M2 운영 적용은 바뀐 내용으로 다시 승인 뒤. 갤러리 화면은 로그인이 필요해 브라우저로 보지 못함.
 
 ## I-P-12e-blueprint-db · 2026-11-22 · 청사진 스튜디오 DB(M1 그래프 v2 · 관문) — 조각 B (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12e-blueprint-db` (origin `feat/P-12d-alerts-history` 21dbfdb 위 + graph.ts 타입 fe7c8ae)

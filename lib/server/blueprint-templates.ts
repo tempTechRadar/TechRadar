@@ -1,11 +1,12 @@
 // 청사진 템플릿(틀 · 조합)과 공개 갤러리(P-12e, ADR 0035 · 0036). 로그인한 사용자의 토큰으로 부른다(불변 5).
 // 쓰기는 DB 함수로만(save_blueprint_template · set_template_public · hide_blueprint_template, M2 202611221100): 그래프 검사 · 관문 · 공개 규칙은 DB가 본다.
-// 갤러리는 public_blueprint_templates가 별명과 수만 준다(author_id 없음). 내 템플릿은 표를 직접 읽는다(RLS = 본인 · 관리자).
+// 갤러리는 public_blueprint_templates가 별명과 수만 준다(author_id 없음). 내 템플릿은 표를 직접 읽는다(RLS = 본인만, 관리자도 남의 것은 못 읽음).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseGraph, type Graph, type TemplateKind } from "../blueprint/graph.ts";
 import { readStored, type StoredBoard } from "../blueprint/stored.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
 import type { Row } from "./alert-db.ts";
+import { readAllowedTechIds } from "./blueprints.ts";
 
 export type TemplateResult = { ok: true } | { ok: false; message: string };
 export type MyTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph; board: StoredBoard; isPublic: boolean; hidden: boolean; createdAt: string };
@@ -26,6 +27,7 @@ export const TEMPLATE_REFUSED: Record<string, string> = {
   "위험 등급 기술": "위험한 기술은 템플릿에 넣지 않아요. 빼고 다시 저장해 주세요.",
   "관리자만 숨길 수 있다": "관리자만 숨길 수 있어요.",
   "공개 템플릿을 찾지 못했다": "공개된 템플릿만 숨길 수 있어요.",
+  "숨긴 템플릿을 찾지 못했다": "이미 다시 보이는 템플릿이에요. 새로 고쳐 확인해 주세요.",
 };
 
 function refused(error: { message: string }, fallback: string): TemplateResult {
@@ -85,13 +87,19 @@ export async function readPublicTemplates(db: SupabaseClient, kind: TemplateKind
   return (r.data as Row[]).flatMap((x) => { const c = toCommon(x); return c ? [{ ...c, authorNickname: String(x.author_nickname ?? "익명"), uses: Number(x.uses ?? 0) }] : []; });
 }
 
+/** 템플릿 열기 결과. outsideGate = 내 관문(내 기술 · 적용 후보 · 내 이력) 밖 기술 id: 화면은 옅은 후보 칩으로만 보이고 "적용 후보로 고르기" 뒤에 넣는다(ADR 0034 1) */
+export type TemplateForUse = { id: string; kind: TemplateKind; name: string; graph: Graph; outsideGate: string[] };
+
 /** "이 템플릿으로 시작": 내 것이거나 공개(숨김 · 시연 계정 아님)인 템플릿의 그래프. 쓸 수 없거나 없으면 null. 못 읽으면 던진다 */
-export async function readTemplateForUse(db: SupabaseClient, id: unknown): Promise<{ id: string; kind: TemplateKind; name: string; graph: Graph } | null> {
+export async function readTemplateForUse(db: SupabaseClient, id: unknown): Promise<TemplateForUse | null> {
   if (!isUuid(id)) return null;
   const r = await db.rpc("blueprint_template_for_use", { p_id: id });
   if (r.error || !Array.isArray(r.data)) throw new Error(`템플릿을 읽지 못함: ${r.error?.message ?? "빈 응답"}`);
   const row = (r.data as Row[])[0];
   if (!row) return null;
   const parsed = parseGraph(row.graph);
-  return parsed.ok && KINDS.includes(row.kind) ? { id: row.id, kind: row.kind as TemplateKind, name: row.name, graph: parsed.graph } : null;
+  if (!parsed.ok || !KINDS.includes(row.kind)) return null;
+  const techIds = [...new Set(parsed.graph.stages.flatMap((s) => s.techs.map((t) => t.id)))];
+  const allowed = techIds.length ? await readAllowedTechIds(db) : new Set<string>();
+  return { id: row.id, kind: row.kind as TemplateKind, name: row.name, graph: parsed.graph, outsideGate: techIds.filter((t) => !allowed.has(t)) };
 }
