@@ -3,11 +3,18 @@ import assert from "node:assert/strict";
 import type { GradeResult } from "./grade.ts";
 import { causeIdsOf, evidenceIds, groupTargets, isChanged, planDanger, type LatestChange, type MyTechRow } from "./osv-daily.ts";
 
-const row = (over: Partial<MyTechRow> = {}): MyTechRow => ({ techId: "t1", techKey: "npm:zod", version: "1.0.0", grade: "unknown", gradedAt: null, evidence: null, checkedAt: null, ...over });
+const repo = { status: "active", activityAt: "2026-11-18T00:00:00Z", checkedAt: "2026-11-20T00:00:00Z", missedCount: 0 };
+const row = (over: Partial<MyTechRow> = {}): MyTechRow => ({ techId: "t1", techKey: "npm:zod", version: "1.0.0", grade: "unknown", gradedAt: null, evidence: null, checkedAt: null, repo, ...over });
 
 test("groupTargets: 같은 기술·같은 버전은 사람이 여럿이어도 한 번만 묻는다. 버전이 다르거나 버전을 모르면 따로", () => {
   const targets = groupTargets([row(), row(), row(), row({ version: "2.0.0" }), row({ version: null }), row({ techId: "t2", techKey: "npm:other" })]);
   assert.deepEqual(targets.map((t) => [t.techId, t.version]).sort(), [["t1", null], ["t1", "1.0.0"], ["t1", "2.0.0"], ["t2", "1.0.0"]]);
+});
+
+test("groupTargets: 저장소 확인 값은 기술의 것이라 묶은 대상에 그대로 실린다", () => {
+  const stale = { status: "active", activityAt: null, checkedAt: null, missedCount: 0 };
+  assert.deepEqual(groupTargets([row(), row()])[0].repo, repo);
+  assert.deepEqual(groupTargets([row({ repo: stale })])[0].repo, stale);
 });
 
 test("groupTargets: npm·pypi 키만 OSV 생태계와 이름으로 바꾼다(스코프 패키지·PyPI 정규화 이름 포함). 다른 종류는 뺀다", () => {

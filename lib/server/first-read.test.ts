@@ -23,7 +23,7 @@ const steps = (calls: Call[]) => ops(calls, "run_steps", "insert").map(arg0);
 const updates = (calls: Call[]) => ops(calls, "my_technologies", "update").map(arg0);
 
 /** 실제 DB 대신 "무엇을 읽고 쓰려 했는지"를 모으는 가짜 클라이언트. 물음 한 줄(from…끝)이 Call 하나. */
-function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?: Row; modelRows?: Row[]; changeKind?: string } = {}) {
+function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?: Row; modelRows?: Row[]; changeKind?: string; repoCols?: Row } = {}) {
   const calls: Call[] = [];
   let alertsWritten = false; // 알림을 쓴 뒤에는 내 알림 수가 1
   const respond = (c: Call): { data?: unknown; count?: number } => {
@@ -46,6 +46,8 @@ function fakeDb(existingProject = false, opts: { changeExists?: boolean; latest?
       case "runs.insert": return { data: { id: "run-1" } };
       case "technologies.select": {
         const keys = ops(calls, "technologies", "upsert").flatMap((u) => (u.chain[0].args[0] as Row[]).map((r) => r.tech_key as string));
+        // 저장소 확인 값을 읽는 조회(통과 판단): 시험이 정한 값을 돌려준다. 안 정하면 확인한 적 없는 기술
+        if (String(c.chain[0].args[0]).includes("missed_count")) return { data: keys.map((k) => ({ id: `t-${k}`, ...opts.repoCols })) };
         return { data: keys.map((k) => ({ id: `t-${k}`, tech_key: k })) };
       }
       case "sources.select": return { data: { id: "s1" } };
@@ -120,6 +122,23 @@ test("OSV가 실패하면 그 기술만 수집 오류: 등급은 그대로, 변�
   assert.equal(osvStep?.status, "failed");
   assert.equal(osvStep?.error_kind, "http_status");
   assert.equal(ops(calls, "runs", "update").map(arg0).at(-1)?.status, "partial");
+});
+
+test("다시 읽을 때도 저장소 확인이 신선하면 통과를 매긴다: 정기 확인이 매긴 통과가 '찾지 못함'으로 되돌아가지 않는다(SPEC-1)", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG } });
+  const fresh = { status: "active", last_activity_at: new Date().toISOString(), last_checked_ok_at: new Date().toISOString(), missed_count: 0 };
+  const { db, calls } = fakeDb(false, { repoCols: fresh });
+  await registerAndRead(USER, REPO, { db });
+  const grades = updates(calls).filter((p) => "grade" in p).map((p) => p.grade);
+  assert.ok(grades.length > 0 && grades.every((g) => g === "pass"), String(grades));
+});
+
+test("저장소 확인 값이 없으면(읽은 적 없는 기술) 취약점이 없어도 찾지 못함: 통과는 처음 읽기에서도 확인이 있어야 한다", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG } });
+  const { db, calls } = fakeDb();
+  await registerAndRead(USER, REPO, { db });
+  const grades = updates(calls).filter((p) => "grade" in p).map((p) => p.grade);
+  assert.ok(grades.length > 0 && grades.every((g) => g === "unknown"), String(grades));
 });
 
 test("OSV가 404여도 '알려진 취약점 없음'이 아니라 수집 오류다: 등급은 그대로, 실행은 일부 성공(불변 2)", async (t) => {
