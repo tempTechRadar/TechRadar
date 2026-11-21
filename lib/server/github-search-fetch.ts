@@ -15,7 +15,10 @@ export function searchUrl(q: SearchQuery): string {
   return `https://api.github.com/search/repositories?q=${encodeURIComponent(`topic:${q.tag} stars:${stars}`)}&sort=stars&order=desc&per_page=${PER_PAGE}&page=${q.page}`;
 }
 
-/** 검색 한 쪽. 404·모양이 다른 응답·GitHub가 "결과가 다 안 나왔다"고 한 것(incomplete_results)은 "후보 없음"이 아니라 수집 오류(불변 2). 403·429·422는 fetchText가 던진다 */
+/**
+ * 검색 한 쪽. 404·모양이 다른 응답은 "후보 없음"이 아니라 수집 오류(불변 2). 403·429·422는 fetchText가 던진다.
+ * GitHub가 "결과가 다 안 나왔다"고 한 쪽(incomplete_results)은 던지지 않고 incomplete로 돌려준다: 다시 읽을지·건너뛸지는 수집기가 정한다
+ */
 export async function fetchSearchPage(q: SearchQuery, token: string): Promise<SearchPage> {
   const url = searchUrl(q);
   const text = await fetchText(url, {
@@ -24,6 +27,5 @@ export async function fetchSearchPage(q: SearchQuery, token: string): Promise<Se
   if (text === null) throw new CollectError("http_status", `${url}: 404`, 404);
   const page = readSearchPage(text);
   if (page === null) throw new CollectError("parse", `${url}: 응답의 모양이 달라 해석하지 못함`);
-  if (page.incomplete) throw new CollectError("timeout", `${url}: GitHub 검색이 시간 안에 다 찾지 못했다고 답함(incomplete_results)`);
   return page;
 }

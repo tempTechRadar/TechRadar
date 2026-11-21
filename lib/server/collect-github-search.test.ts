@@ -257,22 +257,104 @@ test("쓸 내용이 지금 줄과 같으면 쓰지 않는다. 묶음 시간이 �
   assert.match(out.summary!, /시간이 모자라 \d+곳은 다 저장 못 함/);
 });
 
-test("clone_cluster ④ 우리 수집기가 전에 만든 github: 줄은 알려진 원본으로 치지 않고, 레지스트리·사용자 줄(github: 아님)만 원본으로 뺀다", async () => {
-  const pairOf = () => fakes({ mcp: [repo("orig/tool", { createdAt: ago(900), stars: 2000 }), repo("copy/tool", { createdAt: ago(60), stars: 1990 })] });
-  const ours = tech("github:orig/tool", { repo_url: "https://github.com/orig/tool", depth: "thick", thick_reasons: ["stars"], signals: { stars: 2000, candidate_flags: [] } });
-  const t1 = world([ours]);
-  await run(t1, pairOf());
-  assert.deepEqual([sig(ours).candidate_flags, sig(byKey(t1, "github:copy/tool")).candidate_flags], [["clone_cluster"], ["clone_cluster"]]);
-  const user = tech("npm:orig-tool", { repo_url: "https://github.com/orig/tool" });
-  const t2 = world([user]);
-  await run(t2, pairOf());
-  assert.deepEqual([sig(user).candidate_flags, user.depth, sig(byKey(t2, "github:copy/tool")).candidate_flags], [[], "thick", ["clone_cluster"]]);
+test("clone_cluster ④·보안: 원본은 저장소 주인이 증명한 줄만 — 공식 조직(is_official)이거나 mcp:io.github.<주인>/…의 주인이 저장소 주인과 같을 때", async () => {
+  const flagsWith = async (row: Row) => {
+    const t = world([row]);
+    await run(t, fakes({ mcp: [repo("orig/tool", { createdAt: ago(900), stars: 2000 }), repo("copy/tool", { createdAt: ago(60), stars: 1990 })] }));
+    const of = (key: string, url: string) => sig(byKey(t, key) ?? t.technologies.find((r) => r.repo_url === url)).candidate_flags;
+    return [of("github:orig/tool", "https://github.com/orig/tool"), of("github:copy/tool", "https://github.com/copy/tool")];
+  };
+  const orig = "https://github.com/orig/tool";
+  const copy = "https://github.com/copy/tool";
+  const both = [["clone_cluster"], ["clone_cluster"]];
+  assert.deepEqual(await flagsWith(tech("github:orig/tool", { repo_url: orig, depth: "thick", thick_reasons: ["stars"], signals: { stars: 2000, candidate_flags: [] } })), both, "우리가 전에 만든 github: 줄은 증거가 아님");
+  assert.deepEqual(await flagsWith(tech("npm:orig-tool", { repo_url: orig })), both, "npm: 줄의 repo_url은 검증되지 않음");
+  assert.deepEqual(await flagsWith(tech("mcp:io.github.attacker/tool", { repo_url: copy })), both, "남의 이름공간이 복제본 주소를 적어도 원본이 못 됨");
+  assert.deepEqual(await flagsWith(tech("mcp:com.attacker/tool", { repo_url: copy })), both, "io.github 밖 이름공간도 증거가 아님");
+  assert.deepEqual(await flagsWith(tech("mcp:io.github.orig/tool", { repo_url: orig })), [[], ["clone_cluster"]], "주인 이름공간이면 원본");
+  assert.deepEqual(await flagsWith(tech("npm:orig-tool", { repo_url: orig, is_official: true })), [[], ["clone_cluster"]], "공식 조직 줄이면 원본");
 });
 
-test("공식 레지스트리 줄과 합쳐지는 저장소는 신뢰 점수를 더 받는다(같은 저장소를 가리키는 github: 줄이 따로 있어도)", async () => {
-  const reg = tech("npm:a-one", { repo_url: "https://github.com/a/one", signals: { registry_backfill: true } });
-  const ours = tech("github:a/one", { repo_url: "https://github.com/a/one", signals: { stars: 2000, candidate_flags: [] } });
-  const t = world([reg, ours]);
-  await run(t, fakes({ mcp: [repo("a/one"), repo("b/two")] }));
-  assert.ok((sig(ours).candidate_score as number) > (sig(byKey(t, "github:b/two")).candidate_score as number));
+test("신뢰 점수의 '레지스트리 줄과 합쳐짐'도 주인이 증명한 줄로만 센다(검증 안 된 repo_url로는 점수를 못 얻음)", async () => {
+  const scores = async (row: Row) => {
+    const t = world([row]);
+    await run(t, fakes({ mcp: [repo("a/one"), repo("b/two")] }));
+    return [sig(row).candidate_score as number, sig(byKey(t, "github:b/two")).candidate_score as number];
+  };
+  const [vouched, other] = await scores(tech("mcp:io.github.a/one", { repo_url: "https://github.com/a/one", signals: { registry_backfill: true } }));
+  assert.ok(vouched > other);
+  const [unverified, other2] = await scores(tech("npm:a-one", { repo_url: "https://github.com/a/one", signals: { registry_backfill: true } }));
+  assert.equal(unverified, other2);
+});
+
+// claude-skills 쪽이 다시 읽어도 결과가 다 안 나오는 검색(나머지 태그는 그대로)
+const cutAt = (byTag: Record<string, SearchRepo[]>, cut: string, opts: { now?: () => number } = {}) =>
+  fakes(byTag, { ...opts, page: (q) => ({ total: (byTag[q.tag] ?? []).length, incomplete: q.tag === cut, items: q.tag === cut ? [] : byTag[q.tag] ?? [] }) });
+
+test("다 못 읽은 실행은 지난 의심 표시를 지우지 않는다: 짝을 못 읽은 복제본의 clone_cluster가 그대로, 두껍게도 안 올림", async () => {
+  const t = world();
+  const byTag = { "mcp-server": [repo("copy/tool", { createdAt: ago(60), stars: 2000 })], "claude-skills": [repo("other/tool", { createdAt: ago(90), stars: 1990 })] };
+  await run(t, fakes(byTag));
+  const copy = byKey(t, "github:copy/tool")!;
+  assert.deepEqual(sig(copy).candidate_flags, ["clone_cluster"]);
+  const out = await run(t, cutAt(byTag, "claude-skills"));
+  assert.deepEqual([sig(copy).candidate_flags, copy.depth], [["clone_cluster"], "thin"]);
+  // 상위·의심 밖(관문 탈락)으로 빠진 줄의 지난 표시도 다 못 읽은 실행에서는 맞추지 않는다
+  await run(t, fakes({ "mcp-server": [repo("young/x", { createdAt: ago(3), stars: 1000 })] }));
+  const young = byKey(t, "github:young/x")!;
+  await run(t, cutAt({ "mcp-server": [repo("young/x", { createdAt: ago(3), stars: 1000, archived: true })] }, "claude-skills"));
+  assert.deepEqual(sig(young).candidate_flags, ["new_spike"]);
+  assert.match(out.summary!, /결과가 다 안 나와 나머지를 건너뛴 태그: claude-skills/);
+  assert.match(out.summary!, /다 못 읽어 의심 표시를 지우거나 점수를 바꾸지 않음/);
+});
+
+test("다 못 읽은 실행은 이미 있는 점수를 바꾸지 않고 새 줄에만 점수를 쓴다", async () => {
+  const t = world();
+  await run(t, fakes({ mcp: [repo("a/one", { stars: 3000 }), repo("b/two", { stars: 1000 })] }));
+  const before = sig(byKey(t, "github:b/two")).candidate_score;
+  // c/three가 b/two보다 별이 적어 다 읽은 실행이었다면 b/two의 백분위가 올라갔을 것
+  await run(t, cutAt({ mcp: [repo("a/one", { stars: 3000 }), repo("b/two", { stars: 1000 }), repo("c/three", { stars: 500 })] }, "claude-skills"));
+  assert.equal(sig(byKey(t, "github:b/two")).candidate_score, before);
+  assert.equal(typeof sig(byKey(t, "github:c/three")).candidate_score, "number");
+});
+
+test("결과가 다 안 나온 쪽은 1초 뒤 한 번만 다시 읽고, 그래도 그러면 그 태그만 건너뛰고 나머지로 진행. 한 쪽도 다 못 읽었으면 수집 오류", async () => {
+  let tries = 0;
+  const flaky = fakes({}, { page: (q) => {
+    if (q.tag !== "agent-skills") return { total: 0, incomplete: false, items: [] };
+    return { total: 1, incomplete: ++tries === 1, items: [repo("s/skill")] };
+  } });
+  const t = world();
+  const out = await run(t, flaky);
+  assert.deepEqual([tries, flaky.calls.filter((c) => c.tag === "agent-skills").length, byKey(t, "github:s/skill")?.depth], [2, 2, "thick"]);
+  assert.doesNotMatch(out.summary!, /건너뛴 태그/);
+  const t2 = world();
+  await run(t2, cutAt({ mcp: [repo("a/one")] }, "claude-skills"));
+  assert.ok(byKey(t2, "github:a/one"), "다른 태그는 저장");
+  const allBad = fakes({}, { page: () => ({ total: 1, incomplete: true, items: [] }) });
+  await assert.rejects(run(world(), allBad), (e: unknown) => e instanceof CollectError && e.kind === "timeout");
+});
+
+test("수집기 전체 몫(시작 + 90초)이 다하면 묶음 마감 전이라도 저장을 멈추고 요약에 적는다", async () => {
+  let clock = NOW;
+  const slowSearch = fakes({}, {
+    now: () => clock,
+    page: (q) => {
+      if (q.tag === "claude-skills") clock += 95_000; // 마지막 검색이 끝나자 수집기 몫(90초)을 넘김
+      return { total: 1, incomplete: false, items: [repo(`o/${q.tag}`)] };
+    },
+  });
+  const t = world();
+  const out = await run(t, slowSearch);
+  assert.equal(t.technologies.length, 0);
+  assert.match(out.summary!, /시간이 모자라 4곳은 다 저장 못 함/);
+});
+
+test("저장 실패 뒤 단계 기록마저 실패하면 삼키지 않고 로그에 남긴 뒤 원래 오류를 던진다", async (t) => {
+  const logged = t.mock.method(console, "error", () => {});
+  const tables = world();
+  const db = fakeDb(tables, { failObservations: true });
+  const failingSteps = { from: (name: string) => (name === "run_steps" ? { insert: () => Promise.resolve({ error: { message: "단계 저장 실패" } }) } : db.from(name)) } as unknown as SupabaseClient;
+  await assert.rejects(githubSearchCollector(fakes({ mcp: [repo("a/one")] }).deps).run({ db: failingSteps, runId: "run-1", deadlineMs: Number.MAX_SAFE_INTEGER }), /수집 자료를 저장하지 못함/);
+  assert.ok(logged.mock.calls.some((c) => String(c.arguments[0]).includes("별 후보 단계")));
 });

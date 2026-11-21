@@ -89,10 +89,17 @@ test("clone_cluster는 관문을 통과한 저장소끼리만 묶는다: 보관�
   assert.deepEqual([plan.top.map((t) => t.key), plan.suspects.map((s) => [s.key, s.flags])], [["github:orig/tool"], [["github:copy/tool", ["clone_cluster"]]]]);
 });
 
-test("백분위: 같은 값은 같은 자리, 하나뿐이면 1", () => {
+test("백분위: 같은 값은 같은 자리, 하나뿐이면 중립 0.5", () => {
   assert.deepEqual(percentiles([10, 20, 30]), [0, 0.5, 1]);
   assert.deepEqual(percentiles([5, 5, 9]), [0.25, 0.25, 1]);
-  assert.deepEqual(percentiles([7]), [1]);
+  assert.deepEqual(percentiles([7]), [0.5]);
+});
+
+test("혼자 남은 태그의 저장소가 모든 항목 만점(100)을 받아 큰 태그의 강한 저장소를 앞지르지 않는다", () => {
+  const strong = cand("big/strong", { stars: 90_000, forks: 9000, pushedAt: ago(1) });
+  const s = scoreByTag([strong, cand("big/mid", { stars: 5000 }), cand("big/low", { stars: 1000, forks: 1 }), cand("solo/one", { tags: ["claude-skills"], stars: 1000, forks: 1 })], NOW);
+  assert.equal(s.get("github:solo/one"), 50);
+  assert.ok(s.get("github:big/strong")! > s.get("github:solo/one")!);
 });
 
 test("점수는 같은 태그 안 백분위에 가중치: 모든 항목이 가장 높으면 100, 가장 낮으면 0. 성장의 나이 하한은 30일", () => {
@@ -142,6 +149,8 @@ test("종류 추정·키·한 줄 설명", () => {
   assert.equal(oneLinerOf("  a \n b  "), "a b");
   assert.equal(oneLinerOf("   "), null);
   assert.equal(oneLinerOf("x".repeat(300))!.length, 200);
+  assert.equal(oneLinerOf("a\u0000b\u202ec\u200d"), "a b c", "NUL·양방향 제어·제로폭은 지운다(clean-text.ts)");
+  assert.equal(oneLinerOf("\u0000\u200b"), null);
 });
 
 test("한 줄 설명은 코드 포인트로 자른다: 199·200번째 자리의 이모지(대리쌍)를 반으로 자르지 않는다", () => {
