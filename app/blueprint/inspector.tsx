@@ -70,7 +70,7 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
   );
 }
 
-function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId }: PanelProps & { stageId: string; techId: string }) {
+function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, guest = false }: PanelProps & { stageId: string; techId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const inStage = s.techs.find((t) => t.id === techId);
   const t = pool.find((x) => x.id === techId);
@@ -89,9 +89,11 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId }:
       <Card title="보안">{t ? <p>{SEC_TEXT[t.grade]}</p> : <p className="muted">내 기술 · 적용 후보가 아니라 등급을 여기서 읽지 않았어요. 기술 상세에서 보세요.</p>}</Card>
       <Card title="내 태그">
         {tags === null ? <p className="notice notice-error" role="alert">내 태그를 읽지 못했어요. 없다는 뜻이 아니에요.</p>
+          : guest ? <p className="muted">로그인하면 나만 보는 태그를 붙일 수 있어요.</p>
           : <TagEditor key={techId} techId={techId} tags={tags[techId] ?? []} login onChange={(next) => onTags(techId, next)} />}
       </Card>
-      <Card title="사용기"><SideNotes techId={techId} login all={null} /></Card>
+      {/* 손님(P-12f): 사용기 요약은 로그인 액션이라 안내만. 사용기는 기술 상세 /tech/[id]에서 로그인 없이 읽는다 */}
+      <Card title="사용기"><SideNotes techId={techId} login={!guest} all={null} /></Card>
       <p className="insp-row insp-actions">
         {inStage ? <button type="button" className="btn insp-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick({ kind: "stage", stageId: s.id }); apply(removeTech(graph, s.id, techId), `${s.name}에서 ${name}을(를) 뺐어요.`); box?.focus(); }}>이 단계에서 빼기</button> : null}
         <Link className="btn insp-sm" href={`/tech/${techId}`}>기술 상세</Link>
