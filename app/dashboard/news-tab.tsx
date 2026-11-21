@@ -15,7 +15,8 @@ export function NewsTab({ feed }: { feed: NewsFeedResult | null | "preview" }) {
     <section aria-labelledby="news-title">
       <h2 id="news-title">소식 <span className="muted">최근 30일</span></h2>
       <p className="muted">알림이 아니에요. 판단 대기 수에 들어가지 않아요. 원문은 출처 사이트에서 읽어요.</p>
-      {feed.failed.length ? <p className="notice notice-error" role="alert">일부 소식을 읽지 못했어요: {feed.failed.join(", ")}. 그 소식이 없다는 뜻이 아니에요.</p> : null}
+      {/* 보여 줄 소식이 하나도 없는데 실패가 있으면 "일부"가 아니라 "불러오지 못했어요"(전부 실패를 줄여 말하지 않게) */}
+      {feed.failed.length ? <p className="notice notice-error" role="alert">{feed.items.length ? "일부 소식을 읽지 못했어요" : "소식을 불러오지 못했어요"}: {feed.failed.join(", ")}. 그 소식이 없다는 뜻이 아니에요.</p> : null}
       {feed.items.length === 0 ? (feed.failed.length ? null : <p className="notice notice-empty">최근 30일 소식이 아직 없어요.</p>) : (
         <ul className="alert-list">{feed.items.map((n) => {
           const kind = n.kind ?? "external";
