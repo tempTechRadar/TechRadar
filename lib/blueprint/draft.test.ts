@@ -27,6 +27,7 @@ test("같은 확정: 위치만 옮기면 같은 키, 나란히 순서 · 기술 
   assert.notEqual(contentKey(["이름", null], swapped), k);
   assert.notEqual(contentKey(["이름", null], { ...g, stages: g.stages.map((s) => (s.id === "b" ? { ...s, techs: [{ id: "t", name: "x" }] } : s)) }), k);
   assert.notEqual(contentKey(["다른 이름", null], g), k);
+  assert.equal(contentKey(["이름", null], { ...g, edges: [...g.edges].reverse() }), k); // 끊었다 다시 이어 선 순서만 바뀜
 });
 
 test("질문으로 틀 만들기: 답 → 열 · 행 판 → 그래프에서 단계 깊이가 열 번호와 같다(나란히는 같은 깊이)", () => {

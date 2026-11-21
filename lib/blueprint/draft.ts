@@ -21,4 +21,4 @@ export function readDraft(v2: string | null, v1: string | null): { saved: Saved 
 
 /** 같은 내용이면 같은 글자. 위치는 빼되, 나란히 순서(이력 · 내보내기에 나오는 y → x 순서)는 넣는다 */
 export const contentKey = (head: unknown[], g: Graph): string =>
-  JSON.stringify([...head, g.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]).sort(), g.edges, toBoardView(g)?.map((c) => c.map((s) => s.id)) ?? null]);
+  JSON.stringify([...head, g.stages.map((s) => [s.id, s.name, s.techs.map((t) => t.id)]).sort(), g.edges.map((e) => `${e.from}>${e.to}`).sort(), toBoardView(g)?.map((c) => c.map((s) => s.id)) ?? null]);

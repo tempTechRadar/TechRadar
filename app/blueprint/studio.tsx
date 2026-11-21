@@ -70,27 +70,35 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
   // "이 템플릿으로 시작": 초안을 읽은 뒤 한 번 펼친다(되돌리기 한 칸 = 전에 만들던 판). 새로 고쳐도 다시 펼치지 않게 주소에서 뺀다
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const inflight = useRef(new Set<string>()); // 지금 서버에 보내는 "적용 후보로 고르기"
   const started = useRef(false);
   useEffect(() => {
     if (!graph || started.current) return;
     started.current = true;
     if (template) {
-      push(applyTemplate(template.graph, template.kind)); setName(template.name); setTemplateId(template.id);
+      push(applyTemplate(template.graph, template.kind), template.name); setTemplateId(template.id);
       say(`"${template.name}" ${template.kind === "frame" ? "틀" : "조합"}로 시작했어요. 되돌리기를 누르면 전에 만들던 판으로 돌아가요.`);
     } else if (templateMissing) say("템플릿을 열지 못했어요. 지워졌거나 비공개로 바뀌었을 수 있어요.");
     if (template || templateMissing) { const q = new URLSearchParams(location.search); q.delete("template"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
-  }, [graph, template, templateMissing, push, setName, say]);
+  }, [graph, template, templateMissing, push, say]);
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
-  const apply = (next: Graph, message?: string) => { if (next === g) return; push(next); if (message) say(message); else clear(); };
+  /** name을 주면 다른 곳에서 판을 통째로 가져온 일(이력 불러오기 등): 이름도 함께 되돌리기 칸에 넣고, 시작한 템플릿 표시는 지운다 */
+  const apply = (next: Graph, message?: string, nm?: string) => {
+    if (next === g && (nm === undefined || nm === name)) return;
+    push(next, nm);
+    if (nm !== undefined) setTemplateId(null);
+    if (message) say(message); else clear();
+  };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
 
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
-    setMarking(techId);
+    if (inflight.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
+    inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
-    setMarking(null);
+    inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
     if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); router.refresh(); } else say(r.message);
   }
   function dropTech(stageId: string, techId: string) {

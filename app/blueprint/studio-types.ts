@@ -10,7 +10,8 @@ export type Step = 1 | 2 | 3;
 /** 고른 것: 단계 하나 또는 단계 안의 기술 하나 */
 export type Picked = { kind: "stage"; stageId: string } | { kind: "tech"; stageId: string; techId: string } | null;
 /** graph.ts 편집 함수의 결과를 넘긴다. 같은 그래프(===)면 아무 일도 없다. say가 있으면 알림 */
-export type Apply = (next: Graph, say?: string) => void;
+/** name = 판과 함께 이름도 바꾼 일(이력 불러오기 등): 이름도 되돌리기 칸에 들어가고 시작한 템플릿 표시가 지워진다 */
+export type Apply = (next: Graph, say?: string, name?: string) => void;
 
 export type PanelProps = {
   graph: Graph; step: Step; picked: Picked; onPick: (p: Picked) => void; apply: Apply;
