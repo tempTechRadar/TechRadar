@@ -35,6 +35,9 @@ export const TEMPLATE_REFUSED: Record<string, string> = {
 
 function refused(error: { message: string }, fallback: string): TemplateResult {
   console.error("템플릿 처리 실패", error.message);
+  // 공개 목록 밖 기술이 든 조합은 공개 거절(202611221320). 이름은 작가 본인에게만 오는 문구라 그대로 보인다
+  const off = /공개 목록에 없는 기술 (\d+)개: (.+)/.exec(error.message);
+  if (off) return { ok: false, message: `공개할 수 없어요: 공개 목록에 없는 기술 ${off[1]}개(${off[2]})를 빼 주세요. 그 기술을 뺀 조합이나 틀로 새로 저장하면 공개할 수 있어요.` };
   const known = Object.entries(TEMPLATE_REFUSED).find(([k]) => error.message.includes(k));
   return { ok: false, message: known?.[1] ?? fallback };
 }

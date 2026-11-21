@@ -60,6 +60,12 @@ test("공개 · 숨김: DB가 돌려준 값이 바라던 값일 때만 성공, �
   assert.match((await hideTemplate(fakeDb({ error: "관리자만 숨길 수 있다" }).db, ID, true) as { message: string }).message, /관리자만/);
 });
 
+test("공개 거절(공개 목록 밖 기술): 개수 · 이름을 쉬운 말로, DB 문구는 마이그레이션과 같다", async () => {
+  const r = await setTemplatePublic(fakeDb({ error: "공개 목록에 없는 기술 2개: my-private-pkg, old-lib" }).db, ID, true);
+  assert.equal(r.ok ? "" : r.message, "공개할 수 없어요: 공개 목록에 없는 기술 2개(my-private-pkg, old-lib)를 빼 주세요. 그 기술을 뺀 조합이나 틀로 새로 저장하면 공개할 수 있어요.");
+  assert.match(readFileSync("supabase/migrations/202611221320_P-12f_template_public_gate.sql", "utf8"), /공개 목록에 없는 기술 %개: %/);
+});
+
 test("갤러리: 별명 · 쓰인 수만(사람 id 칸이 와도 옮기지 않음), 모양이 틀린 줄은 뺀다, 못 읽으면 던진다(불변 2)", async () => {
   const row = { id: ID, kind: "combo", name: "조합", graph, board, author_nickname: "작가", uses: 3, created_at: "2026-11-22T00:00:00Z", author_id: "leak" };
   const { db, calls } = fakeDb({ data: [row, { ...row, id: "bad", graph: { v: 9 } }] });
