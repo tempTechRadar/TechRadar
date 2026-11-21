@@ -13,3 +13,11 @@ export function gateDecision(path: string, search: string, seen: boolean): GateD
 
 /** 키 하나로 관문을 닫을지: 새로 고침 · 탭 이동 같은 단축키(Ctrl · ⌘ · Alt 조합)는 닫지 않는다 */
 export const closesGate = (key: { ctrlKey: boolean; metaKey: boolean; altKey: boolean }) => !(key.ctrlKey || key.metaKey || key.altKey);
+
+/** 관문(덮개) 상태: 스크립트가 window.__techradarGate에 남긴다. 없음 = 관문을 띄우지 않음(이미 봄 · 다른 주소 · 스크립트 실패) */
+export type GateState = "open" | "closed" | undefined;
+/** 지도 첫 연출을 미룰지(P-12f 사용자 결정 "덮개 = 로딩"): 덮개가 떠 있는 동안만. 움직임이 꺼져 있으면(움직임 줄이기 · 끄기) 기다리지 않고 바로 다 보인다 */
+export const introWaits = (gate: GateState, moving: boolean): boolean => gate === "open" && moving;
+/** 관문 ↔ 지도 신호 이름: 지도가 그릴 준비가 되면 READY_MAP, 관문을 닫으면 GATE_CLOSED */
+export const READY_MAP = "techradar:map-ready";
+export const GATE_CLOSED = "techradar:ready";

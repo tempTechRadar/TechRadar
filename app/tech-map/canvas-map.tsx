@@ -14,6 +14,7 @@ import { RadarSettings } from "./radar-settings";
 import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import { ViewTabs } from "./view-tabs";
+import { READY_MAP } from "@/lib/map/ready-gate";
 import "./map.css";
 
 /** top = 지도 위에 뜨는 첫 줄(판단 대기 · 최근 변경 · 로그인 유도 등, 페이지가 정함) */
@@ -65,6 +66,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   useEffect(() => {
     const st = stage.current!, cv = canvas.current!;
     const detach = ctl.attach(cv);
+    requestAnimationFrame(() => window.dispatchEvent(new Event(READY_MAP))); // 첫 장을 그린 뒤 첫 화면 덮개의 "지도 보기"를 켠다
     const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); };
     const ro = new ResizeObserver(measure);
     ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);

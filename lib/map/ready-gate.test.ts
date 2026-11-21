@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { closesGate, gateDecision } from "./ready-gate.ts";
+import { closesGate, gateDecision, introWaits } from "./ready-gate.ts";
 
 test("관문은 지도(/)에 주소 값 없이 처음 들어올 때만, 세션당 한 번", () => {
   assert.equal(gateDecision("/", "", false), "show");
@@ -16,4 +16,11 @@ test("링크로 들어오거나 다른 화면으로 먼저 들어온 세션은 �
 test("단축키 조합은 관문을 닫지 않고, 그 밖의 키는 닫는다", () => {
   assert.equal(closesGate({ ctrlKey: false, metaKey: false, altKey: false }), true);
   for (const k of ["ctrlKey", "metaKey", "altKey"] as const) assert.equal(closesGate({ ctrlKey: false, metaKey: false, altKey: false, [k]: true }), false, k);
+});
+
+test("덮개가 떠 있으면 지도 첫 연출을 기다리고, 닫거나 안 띄웠거나 움직임이 꺼져 있으면 바로 시작한다", () => {
+  assert.equal(introWaits("open", true), true, "덮개 뒤에서 연출이 혼자 끝나지 않게");
+  assert.equal(introWaits("closed", true), false, "닫으면 그때 시작");
+  assert.equal(introWaits(undefined, true), false, "이미 봤거나 다른 주소면 덮개가 없다");
+  assert.equal(introWaits("open", false), false, "움직임 줄이기 · 끄기면 연출 없이 바로 다 보인다");
 });
