@@ -44,6 +44,7 @@ test("손님 초안: 처음 판에서 고친 것만 가져오자고 묻는다(�
   const edited = fromV1(fromNames([["리서치"], ["개발", "검증"]]));
   assert.equal(guestOffer(null, blank), null);
   assert.equal(guestOffer("{깨짐", blank), null);
-  assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: blank }), blank), null);
+  // 손님이 아무것도 안 고친 처음 판: 다시 만든 처음 판과 단계 id가 달라도 묻지 않는다(코드 리뷰 지적)
+  assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: fromV1(fromNames([["리서치"], ["개발"]])) }), blank), null);
   assert.equal(guestOffer(JSON.stringify({ name: "손님 판", graph: edited }), blank)?.name, "손님 판");
 });
