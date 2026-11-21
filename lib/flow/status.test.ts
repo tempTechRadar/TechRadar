@@ -12,7 +12,7 @@ test("실행이 없으면 아무것도 칠하지 않는다(꺼 둔 상자가 없
   const { states, activeStart, boldEdges } = colorize(flow, null, []);
   assert.equal(activeStart, null);
   assert.equal(boldEdges.size, 0);
-  assert.ok(Object.values(states).every((s) => s === "off")); // fetch_popularity는 11-21(ADR 0030)에 HN으로 켰다. "꺼짐"을 칠하는 길은 아래에서 따로 본다
+  assert.ok(Object.values(states).every((s) => s === "off")); // fetch_popularity는 11-21(ADR 0030)에 HN으로 켜서 지금 flow.json에는 꺼 둔 상자가 없다
 });
 
 test("누른 시작 상자만 켜지고 그 시작의 길이 굵어진다", () => {
@@ -49,4 +49,10 @@ test("실패한 실행의 시작 상자는 빨강, 판단 대기 뒤 조치가 �
   const done = colorize(flow, run("simulator"), [step("human_judgment", "succeeded"), step("action_record", "succeeded")]);
   assert.equal(done.states.human_judgment, "ok");
   assert.equal(done.states.action_record, "ok");
+});
+
+test("enabled:false 상자는 실행이 없을 때 '꺼짐', 그 상자의 단계가 있으면 단계 상태를 따른다(지금 flow.json에는 꺼 둔 상자가 없어서 합성 흐름으로 본다)", () => {
+  const synthetic: Flow = { ...flow, nodes: [...flow.nodes, { id: "fetch_later", type: "api", name: "나중에", enabled: false }] };
+  assert.equal(colorize(synthetic, null, []).states.fetch_later, "disabled");
+  assert.equal(colorize(synthetic, run("manual"), [step("fetch_later", "succeeded")]).states.fetch_later, "ok");
 });
