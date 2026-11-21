@@ -209,3 +209,34 @@ test("같은 키의 가짜 줄이 있으면 만들지 않고 건너뜀으로 센
   assert.equal(t.technologies[0].signals, null);
   assert.match(r.summary ?? "", /같은 키가 이미 있어 건너뛴 저장소 1개/);
 });
+
+test("모노레포: 같은 저장소를 가리키는 줄이 여럿이면 github: 키 줄 하나에만, 다시 읽어도 안 늘어남", async () => {
+  const repo = "https://github.com/acme/mono";
+  const t = world([tech("p1", "npm:@acme/a", { repo_url: repo }), tech("p2", "npm:@acme/b", { repo_url: `${repo}.git` }), tech("p3", "github:Acme/Mono"), tech("p4", "npm:@acme/c", { repo_url: repo })]);
+  const f = fakes({ mcp: [story("1", "MCP monorepo", repo)] });
+  await run(t, f).result;
+  assert.deepEqual(t.technologies.filter((r) => r.signals).map((r) => r.id), ["p3"]);
+  assert.equal(t.observations.length, 1);
+  const second = run(t, f);
+  await second.result;
+  assert.equal(t.observations.length, 1);
+  assert.equal(second.stats.writes, 0);
+});
+
+test("모노레포에 github: 키 줄이 없으면 id가 가장 작은 줄 하나에만", async () => {
+  const repo = "https://github.com/acme/mono";
+  const t = world([tech("p1", "npm:@acme/a", { repo_url: repo }), tech("p2", "npm:@acme/b", { repo_url: repo })]);
+  await run(t, fakes({ mcp: [story("1", "MCP monorepo", repo)] })).result;
+  assert.deepEqual(t.technologies.filter((r) => r.signals).map((r) => r.id), ["p1"]);
+});
+
+test("저장 중 시간 한도를 넘으면 멈추고 요약에 남긴다(다음 실행이 이어 감)", async () => {
+  const t = world([tech("a", "npm:mcp-remote"), tech("b", "npm:other-mcp")]);
+  let clock = NOW;
+  const f = fakes({ "agent skills": [], mcp: [story("1", "MCP remote", "https://npmjs.com/package/mcp-remote"), story("2", "MCP other", "https://npmjs.com/package/other-mcp")] });
+  const deps = { ...f.deps, now: () => clock, fetchHits: async (k: string, n: number) => { const r = await f.deps.fetchHits(k); if (k === "agent skills") clock = NOW + 60_000; return r; } };
+  const { db } = fakeDb(t);
+  const r = await hnCollector(deps).run({ db, runId: "run-1", deadlineMs: Number.MAX_SAFE_INTEGER });
+  assert.equal(t.observations.length, 0);
+  assert.match(r.summary ?? "", /시간 한도로 대상 2개는 다음 실행으로/);
+});
