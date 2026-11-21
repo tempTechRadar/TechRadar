@@ -6,6 +6,26 @@
 
 ---
 
+## I-P-12f-app-structure · 2026-11-22 · 앱 구조 개편 FrontLead 몫: ① 메뉴 · 주소 ② 첫 화면 = 준비 ③ 판단 칩 · 요즘 뜨는 칩 ④ 화면 일관성 (FrontLead 세션, 김영식)
+- 브랜치: 통합 `feat/P-12e-blueprint-studio`(P-12e와 한 PR, 로컬 커밋, 미푸시)
+- 출처: 사용자 승인 계획 P-12f(앱 구조 개편) 1 · 2 · 3 · 10, Maestro 배정. IA-1 · IA-5, PRD-NF5(글자 대비), 불변 2 · 4 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 메뉴가 기준 문장 "지키고, 고르고, 옮긴다"와 맞지 않고, 화면마다 색 · 단추 · 토스트 · 대화상자 · 빈 상태 · 오류 문구가 제각각이다(단추 4벌 · 토스트 3벌 · 대화상자 2벌, 브라우저 기본 확인 창). 로그인 전 내 프로젝트 · 설정은 로그인 화면으로 튕기고, 실행 기록은 DB 오류 원문을 보인다 |
+| 기대 결과 | 메뉴 현황 · 지도 · 청사진(옛 주소는 보냄). 공용 페이지 틀 `app/page.css`(.page), 상태 색 토큰, 공용 대화상자 `app/c-dialog.tsx` · 토스트 `.c-toast`(3.5초) · 막힌 단추 한 벌, 빈 상태 점선 + 할 일 링크, 저장 안내 `.notice-ok`, 오류 동사 "불러오지 못했어요", 현황 · 알림 · 내 프로젝트 · 설정 읽는 동안 뼈대 |
+| 영향 범위 | `app/{layout,page,c-dialog,undo-toast,error}.tsx` · `app/{tokens,page}.css`, `app/nav/*`, `lib/nav/moved.ts`, `app/tech-map/{ready-gate,controller,controls,canvas-map,judge}.*`, `lib/map/{view-config,build-map,ready-gate}.ts`, `lib/server/map-queries.ts`, 문서형 화면 전부(.alerts → .page), `app/{dashboard,alerts,projects,settings}/loading.tsx`, `app/admin/*` · `app/projects/install/*` 색, `lib/a11y/contrast.test.ts` |
+| 제약 | 새 라이브러리 없음. 갤러리 · 기술 상세 · 소식 탭은 그 조각이 들어온 뒤 마지막에(Maestro). 지우기(죽은 코드)는 ④ 끝에 사용자 확인 한 번에. 푸시 · PR은 사용자 승인 |
+| 열린 질문 | 캡처 대화상자(찾기 · 넣기)는 .page 밖이라 자기 단추 · 대화상자 모양을 따로 둔다 — 동결 뒤 c-dialog로. 소식 탭(DevAssi1)은 들어오면 맞춘다 |
+
+**결정 · 이유:**
+- 대화상자의 Esc · ✕는 onClose만 부르고, 닫기는 사라질 때 정리에서 한 번: 브라우저 close 이벤트에 onClose를 걸면 정리의 close가 다시 불러 개발 모드(두 번 실행)에서 바로 닫혔고, 열린 모달이 남은 채로는 연 단추로 초점이 가지 않았다.
+- 막힌 단추는 흐린 글자 + 흰 바탕 한 벌(opacity .45 대신): 주 단추가 막혀도 눌리는 단추처럼 보이지 않게.
+- 대비 시험은 화면 글자색이 토큰이면 tokens.css 값으로 읽게 고침(색을 화면에 직접 적지 않으니까).
+
+**결과:** ④ 됨(95bd72b · 8c64418 · 0e04717 · 9ef6a33 · aaee406), ①②③은 앞선 커밋. 시험 1,661개 통과, `tsc` 통과. 3110 포트로 청사진 손님 "로그인할까요?"(첫 초점 · 취소 뒤 초점 복귀) · 막힌 단추 · 토스트 위치 · 빈 갤러리 확인, QA Pass(3e6fcf1 · 7f5cc08: 손님 개인 데이터 0, 대비 4.79~5.91, 390px 대화상자 354px · 넘침 0).
+**확인하지 못함:** 관리자 갤러리 "숨기기" 대화상자(관리자 화면), 설정 저장 안내 · 실행 기록 오류 화면을 눈으로(미리보기는 DB를 안 읽음), 개발 화면 오른쪽 아래 "1 Issue" 표시 내용, 다크 모드, 실제 휴대폰.
+
 ## I-P-12f-status-board · 2026-11-22 · 현황(개요 · 일지 · 소식 탭) + 청사진 하단 패널 "후보" 탭(보드 녹이기) (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12f-status-board`(통합 `feat/P-12e-blueprint-studio` 83da891 위 + 머리 2f377b5 · 2f140f9 합침, 로컬, 미푸시 — FrontLead가 합침)
 - 출처: 사용자 승인 계획 P-12f(앱 구조 개편) ④ 현황 · ⑤ 보드 녹이기, Maestro 배정. IA-5 · IA-9, PRD-F20 · F22 · F32, 불변 2 · 5
