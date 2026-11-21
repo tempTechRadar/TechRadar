@@ -30,4 +30,5 @@
 .dock-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
 .dock-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); color: var(--ink); }
 .dock-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; align-items: start; }
-@media (max-width: 860px) { .dock-cols { grid-template-columns: 1fr; } }
+.dock-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 860px) { .dock-cols, .dock-cols-3 { grid-template-columns: 1fr; } }

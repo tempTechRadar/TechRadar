@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "../alerts/filter-select";
 import { filterHistory, parseHistoryFilter } from "@/lib/alerts/filter-history";
-import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
 import { listTime, toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { isPreviewUser } from "@/lib/dev/login-preview";
-import { SAMPLE_DASHBOARD, SAMPLE_MARK_EVENTS } from "@/lib/dev/preview-data";
+import { SAMPLE_ALERTS, SAMPLE_MARK_EVENTS } from "@/lib/dev/preview-data";
 import { listMyAlerts } from "@/lib/server/alert-queries";
-import { readDashboardData, type DashboardData } from "@/lib/server/dashboard-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { SpaceSwitch } from "../nav/space-switch";
+import { StatusTabs } from "../dashboard/status-tabs";
 import "../alerts/alerts.css";
 
-// 일지(IA-9, PRD-F20 · 11-21 화면 개편 B): 숫자 요약(대시보드와 같은 계산) → 판단 대기 알림 → 알림 · 판단을 시간순 한 흐름 + 찾기.
+// 일지(IA-9, PRD-F20 · 11-21 화면 개편 B → P-12f ④ 현황의 탭): 판단 대기 알림 → 알림 · 판단을 시간순 한 흐름 + 찾기. 숫자 4칸은 현황 개요에만.
 // 흐름의 "알림"은 내 기술의 변경이 알림으로 온 것(대시보드 "최근 변경"과 같은 기준), "판단"은 알림 판단과 지도에서 남긴 판단(관심 · 적용 후보 · 보류).
 // 본인 기록만(조회가 user_id로 막고 RLS가 한 번 더).
 type Params = { q?: string; kind?: string; decision?: string; period?: string };
@@ -26,47 +24,32 @@ const MARK_TONE = { interest: "neutral", candidate: "success", hold: "warning" }
 // shortcut: 지도 판단은 최근 200건만 읽는다. 기록이 그보다 많아지면 찾기 조건을 DB 조회로 옮긴다
 const MARK_LIMIT = 200;
 
+export const metadata = { title: "일지 · 현황 · TechRadar" };
+
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
-  if (!user) return <LoginNeeded title="일지" why="로그인하면 내 숫자 요약, 판단을 기다리는 알림, 지금까지 온 알림과 내 판단(관심 · 적용 후보 · 보류)을 이유와 함께 여기에서 다시 찾을 수 있어요." next={backTo("/history", await searchParams)} />;
+  if (!user) return <LoginNeeded title="일지" why="로그인하면 판단을 기다리는 알림, 지금까지 온 알림과 내 판단(관심 · 적용 후보 · 보류)을 이유와 함께 여기에서 다시 찾을 수 있어요." next={backTo("/history", await searchParams)} />;
   const params = await searchParams;
   // 미리보기(개발용)는 DB를 부르지 않고 샘플로
   const supabase = isPreviewUser(user) ? null : (await getServerSupabase())!;
-  const [dash, marks] = !supabase ? [SAMPLE_DASHBOARD, { data: SAMPLE_MARK_EVENTS, error: null }] : await Promise.all([
-    readDashboardData(supabase, user.id).catch((e) => { console.error("일지 조회 실패", e instanceof Error ? e.message : e); return null; }),
+  const [records, marks] = !supabase ? [SAMPLE_ALERTS, { data: SAMPLE_MARK_EVENTS, error: null }] : await Promise.all([
+    listMyAlerts(supabase, user.id).catch((e) => { console.error("일지 알림 조회 실패", e instanceof Error ? e.message : e); return null; }),
     supabase.from("tech_mark_events").select("id, created_at, tech_id, new_status, reason, technologies(display_name)").eq("user_id", user.id)
       .order("created_at", { ascending: false }).limit(MARK_LIMIT),
   ]);
   if (marks.error) console.error("지도 판단 기록 조회 실패", marks.error.message);
-  // 숫자 묶음 읽기는 내 기술 · 프로젝트도 읽어 그쪽만 실패할 수 있다: 그때는 알림만 다시 읽어 흐름 · 판단 대기는 살린다
-  const records = dash?.alerts ?? (supabase ? await listMyAlerts(supabase, user.id).catch((e) => { console.error("일지 알림 조회 실패", e instanceof Error ? e.message : e); return null; }) : null);
   const events = (marks.data ?? []) as unknown as MarkEvent[];
 
   return (
     <main className="alerts">
-      <SpaceSwitch />
-      <h1>일지</h1>
-      <Numbers dash={dash} />
+      <h1>현황</h1>
+      <StatusTabs now="journal" />
       <Pending records={records} />
       <h2>흐름</h2>
       {records && !marks.error && events.length === MARK_LIMIT ? <p className="notice" role="status">지도 판단은 최근 {MARK_LIMIT}건에서만 찾아요. 더 오래된 판단은 여기에서 보이지 않아요(없는 게 아니에요).</p> : null}
       {/* 하나라도 못 읽었으면 "기록 없음"이 아니라 "읽지 못함"(불변 2) */}
       {records === null || marks.error ? <LoadError /> : records.length + events.length === 0 ? <Empty /> : <Results records={records} events={events} params={params} />}
     </main>
-  );
-}
-
-/** 숫자 요약(대시보드와 같은 계산, ADR 0028 3). 못 읽으면 0이 아니라 "읽지 못함"(불변 2) */
-function Numbers({ dash }: { dash: DashboardData | null }) {
-  if (!dash) return <div className="notice notice-error" role="alert"><strong>숫자를 읽지 못했어요.</strong> 0이라는 뜻이 아니에요. <Link href="/dashboard">대시보드</Link>에서 다시 보세요.</div>;
-  const sum = summarizeDashboard({ alerts: dash.alerts, techs: dash.techs, params: {}, now: new Date() });
-  return (
-    <div className="stat-grid">
-      <Link className="stat" href={sum.links.techs}><span className="muted">내 기술</span><strong>{sum.techCount}</strong></Link>
-      <Link className="stat" href={sum.links.changes}><span className="muted">최근 변경</span><strong>{sum.changeCount}</strong></Link>
-      <Link className="stat" href={sum.links.pending}><span className="muted">판단 대기</span><strong>{sum.pendingCount}</strong></Link>
-      <Link className="stat" href={sum.links.done}><span className="muted">판단 완료</span><strong>{sum.doneCount}</strong></Link>
-    </div>
   );
 }
 
