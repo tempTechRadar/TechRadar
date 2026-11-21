@@ -32,7 +32,7 @@ export function githubCollector(deps: Partial<Deps> = {}): Collector {
 }
 
 /** 토큰이 없거나 모양이 이상하면 호출 없이 수집 오류. 값은 문구에 넣지 않는다. */
-function readToken(d: Deps): string {
+export function readToken(d: Deps): string {
   const token = d.token()?.trim();
   if (!token) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN이 없어 GitHub를 부르지 않았어요(Vercel·.env에 넣어야 함)");
   if (!TOKEN_SHAPE.test(token)) throw new CollectError("http_status", "서버 환경변수 GITHUB_TOKEN의 모양이 이상해 GitHub를 부르지 않았어요(공백·줄바꿈·따옴표가 섞였는지 확인, 값은 기록하지 않음)");
