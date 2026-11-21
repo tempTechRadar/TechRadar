@@ -1,5 +1,5 @@
 "use client";
-// 오른쪽 아래 ⚙ 레이더 설정(11-21 사용자 "전부 추천대로"): 방식(선 · 파동 · 끄기)과 분위기(잔잔하게 · 기본 · 생생하게).
+// 오른쪽 아래 ⚙ 지도 설정(P-12f에서 이름 바꿈)(11-21 사용자 "전부 추천대로"): 방식(선 · 파동 · 끄기)과 분위기(잔잔하게 · 기본 · 생생하게).
 // 보기 창에 있던 '움직임'을 옮겨 왔다. 값은 컨트롤러가 이 브라우저에 기억한다(techradar-map-motion · techradar-map-tune).
 import { useEffect, useId, useRef, useState } from "react";
 import type { Tune } from "@/lib/map/motion";
@@ -31,9 +31,9 @@ export function RadarSettings({ motion, tune, still, onMotion, onTune }: {
 
   return (
     <div ref={root} className="radar-set">
-      <button ref={btn} type="button" className="radar-set-btn" aria-label="레이더 설정" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>⚙</button>
+      <button ref={btn} type="button" className="radar-set-btn" aria-label="지도 설정" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>⚙</button>
       {open ? (
-        <div id={id} className="radar-set-panel" role="group" aria-label="레이더 설정">
+        <div id={id} className="radar-set-panel" role="group" aria-label="지도 설정">
           <fieldset disabled={still}><legend>방식</legend>
             {MOTION_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : motion) === v} onChange={() => onMotion(v)} /> {k}</label>)}
           </fieldset>

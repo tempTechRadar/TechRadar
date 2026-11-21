@@ -55,8 +55,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
             <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
-            {/* 11-21 화면 개편 A: 보는 곳은 지도 · 청사진 둘. 보드 · 일지는 지도 공간이라 "지도"가 현재 표시, 그 안은 보는 곳 줄(SpaceSwitch)로. 새 기술 주소는 살려 둠 */}
-            <NavLink href="/" also={["/views", "/history"]}>지도</NavLink>
+            {/* P-12f 사용자 결정: 현황(지키고) · 지도(고르고) · 청사진(옮긴다). 일지(/history)는 현황의 탭이라 "현황"이 현재 */}
+            <NavLink href="/dashboard" also={["/history"]}>현황</NavLink>
+            <NavLink href="/">지도</NavLink>
             <NavLink href="/blueprint">청사진</NavLink>
           </div>
           <div className="site-nav-side">
