@@ -39,14 +39,15 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
   // 판단 표시 · 쓰고 있어요는 못 읽어도 상세는 보이고 그 칸만 "읽지 못했어요"(불변 2)
   const [mark, using, notes] = await Promise.all([
     user ? readMarkForTech(db, user.id, id).catch((e) => { console.error("내 판단 표시 조회 실패", e instanceof Error ? e.message : e); return null; }) : null,
-    readUsingNow(db, id),
+    // "쓰고 있어요"(별명 · 수)는 로그인한 사람에게만(using_now는 anon에 닫혀 있다): 서버 키로 손님에게 돌려 열지 않는다
+    user ? readUsingNow(db, id) : null,
     own ? readTopUsageNotes(own, id).catch((e) => { console.error("사용기 조회 실패", e instanceof Error ? e.message : e); return null; }) : null,
   ]);
-  if (!using.ok) console.error(using.error);
+  if (using && !using.ok) console.error(using.error);
   const markBar = !user ? <p className="muted">판단(관심 · 적용 후보 · 보류)은 <Link href={`/login?next=${encodeURIComponent(`/tech/${id}`)}`}>로그인</Link>하면 남길 수 있어요.</p>
     : mark ? <MarkBar techId={d.tech.id} grade={mark.grade} initial={mark.mark} />
     : <p className="notice notice-error" role="alert">내 판단 표시를 읽지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
-  return <CatalogTechView d={d} markBar={markBar} usingText={usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
+  return <CatalogTechView d={d} markBar={markBar} usingText={!using ? "로그인하면 이 기술을 쓰고 있는 사람 수가 보여요." : usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
 }
 
 function LoadError({ id }: { id: string }) {
