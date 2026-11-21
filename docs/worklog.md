@@ -10,6 +10,7 @@
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
 | I-P-21-criteria | 수집 기준 문서 먼저(사용자 "별 개수 컷·소스 다양화" 제안 → 계획 승인): GitHub 검색으로 태그별 별 개수를 재고(1만 이상 수백 곳, 지난 7일 새 저장소 상위에 같은 이름 복제본 5곳), 문서 6곳과 ADR 0030을 고침 | 사용자 = 방향·범위 결정 / Claude = 조사·계획·문서 초안 | ADR 0030, 데이터설계 8절 "별 후보", data-sources 0-1절, prd F8, spec 3.2 조건 4, plan P-21a·b·c |
+| I-P-21c-opportunity-stars | 적용 기회 알림 조건 4: 새 기술의 별 수가 알려져 있고 100 미만이거나 의심 표시가 있으면 알림 0건, 별 수를 모르면 통과, 시뮬레이터 변경은 적용 안 함(SPEC-3.2·ADR 0030). 시험 먼저·일부러 틀리게 한 12곳 모두 잡힘, 새 시험 11개(`npm test` 1271→1282), 정답 사례 5개(`npm run eval` 38→43, 결과 다름 0). 조사: 적용 기회 알림은 관리자 같은 역할 확정(`/admin/classify`)과 시뮬레이터에서만 시작 → 별 후보·HN이 들인 줄만으로는 알림이 안 생김 | Claude(add-star-candidate-scoring 요청, 사용자 승인 작업) | `lib/alerts/decide-opportunity-alerts.ts`, `lib/domain/star-signals.ts`, `lib/server/opportunity-alerts.ts`, `eval/gold.json`, `docs/intent.md` |
 
 ### 정한 일과 이유
 - **별 하나로 자르지 않고 관문 + 의심 거르기 + 점수로(ADR 0030):** 별은 누적이라 오래된 것이 유리하고 가짜로 부풀릴 수 있다. 새로 생긴 가짜·미끼 저장소가 "뜨는 기술"로 올라오면 보안 서비스의 신뢰가 깨진다.
