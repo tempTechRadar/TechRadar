@@ -68,3 +68,12 @@ test("템플릿 사용기 읽기: 내 글 · 누름 · 신고 표시, 쓴 사람
   assert.deepEqual(calls[0].filters, [["template_id", TPL]]);
   await assert.rejects(readTemplateNotes(fakeDb({ template_notes: fail() }).db, TPL, "u1"), /읽지 못함/);
 });
+
+test("손님(viewerId null)은 사용기 줄만 읽고 내 글 · 누른 기록은 묻지 않는다(anon엔 그 권한이 없음), 못 읽으면 던진다", async () => {
+  const row = { id: NOTE, used_for: "a", result: "b", tip: "c", helpful_count: 2, created_at: "2026-11-22T00:00:00Z" };
+  const { db, calls } = fakeDb({ template_notes: ok([row]) });
+  const [v] = await readTemplateNotes(db, TPL, null);
+  assert.deepEqual([v.mine, v.voted, v.reported, v.helpfulCount], [false, false, false, 2]);
+  assert.deepEqual(calls.map((c) => c.table), ["template_notes"]);
+  await assert.rejects(readTemplateNotes(fakeDb({ template_notes: fail() }).db, TPL, null), /읽지 못함/);
+});
