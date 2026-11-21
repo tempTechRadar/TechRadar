@@ -6,6 +6,27 @@
 
 ---
 
+## I-P-12f-status-board · 2026-11-22 · 현황(개요 · 일지 · 소식 탭) + 청사진 하단 패널 "후보" 탭(보드 녹이기) (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12f-status-board`(통합 `feat/P-12e-blueprint-studio` 83da891 위 + 머리 2f377b5 · 2f140f9 합침, 로컬, 미푸시 — FrontLead가 합침)
+- 출처: 사용자 승인 계획 P-12f(앱 구조 개편) ④ 현황 · ⑤ 보드 녹이기, Maestro 배정. IA-5 · IA-9, PRD-F20 · F22 · F32, 불변 2 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 대시보드와 일지가 같은 숫자 4칸을 따로 보이고, 보드(칸반)는 지도 · 청사진과 다른 세 번째 모양이다. 로그인 전에는 대시보드가 로그인 화면으로 튕긴다 |
+| 기대 결과 | /dashboard = "현황" 탭 개요 \| 일지 \| 소식. 개요 = 숫자 4칸 → 내 레포 현황 → 적용한 기술(등급 · 내 태그, 누르면 지도) → 판단 대기 → 이번 주 · 회고 → 추천. 일지(/history)는 현황 탭 모양, 숫자 4칸 뺌. 로그인 전엔 소식만 + 로그인 안내. 청사진 하단 패널 "후보" 탭(관심 · 적용 후보 · 보류, 적용 후보만 넣기) |
+| 영향 범위 | `app/dashboard/{page,overview,status-tabs,news-tab}.tsx` · `status.css`, `app/history/page.tsx`, `lib/dashboard/status-view.ts`, `lib/server/{status-queries,candidate-queries}.ts`, `app/blueprint/{candidate-tab.tsx,candidate-actions.ts,dock.tsx,dock.css}`, `lib/dev/preview-data.ts` |
+| 제약 | 메뉴 · 탭 바 · 옛 주소 보냄 · 지도 판단 칩(controls.tsx)은 FrontLead 몫(지도 칩은 같은 줄이라 그쪽이 넣기로 정함). views 파일은 안 건드림. 소식 내용은 DataCollector(readNewsFeed). 로컬 커밋만 |
+| 열린 질문 | 현황이 projects · my_technologies를 두 번 읽음(숫자 묶음 + 레포 카드), 후보 탭 읽기가 서랍 풀 읽기와 겹침 — 동결 뒤 합치기 |
+
+**결정 · 이유:**
+- 일지 탭은 주소 /history를 그대로 두고 같은 탭 줄(StatusTabs)만 얹는다: 안내서 필수 "기록과 찾기"의 주소 · 찾기를 그대로 두려고.
+- 숫자 묶음 읽기가 실패해도 판단 대기 알림은 알림만 다시 읽어 살린다(일지와 같은 대비). 레포 · 태그 · 숫자는 따로 실패하고 각자 "읽지 못함"(불변 2).
+- 후보 탭의 "넣기"는 서랍(pool)에 있는 것만: 끌어 놓기 검사(studio)와 같게 맞춤(방금 고른 후보는 새로 고치면 들어옴).
+- 로그인 전 후보 탭 · 현황은 오류가 아니라 안내 + 로그인 링크.
+
+**결과:** 됨(로컬 커밋 1970610 · 900000c · 2ebaf8b · a73059d · a49561c · 739770d · ecbfe90, 머리 합침 54ae583). 시험 1,606개 모두 통과, `tsc` · `next build --webpack` 통과. 3107 포트 미리보기 · 손님으로 1280 · 390px 확인: 현황 탭 개요* · 일지 · 소식, 개요 섹션 5개 · 숫자 4칸, 레포 카드(기술 수 · 수집 오류 · 마지막 읽기), 적용한 기술 10(위험 먼저 · 태그), 일지는 숫자 없이 판단 대기 · 흐름, 손님은 소식 + "로그인하면 내 레포와 알림이 보여요", 청사진 후보 탭 3칸(적용 후보 1 · 관심 1 · 보류 1) · 단계 고르면 "넣기", 가로 넘침 0. code-review 10건 중 7건 반영, 3건은 열린 질문 · FrontLead 몫. 통합 머리를 합칠 때 app/dashboard/page.tsx 충돌 1곳(그쪽은 제목만 바꿈 → 내 새 화면으로).
+**확인하지 못함:** 실계정 현황 화면, 소식 탭 실제 내용(readNewsFeed가 통합에 들어온 뒤 연결), 실제 휴대폰 터치, 다크 모드, 화면 읽기 프로그램. 점검 중 브라우저 쿠키 값(로그인 흐름의 일회용 확인 값)이 터미널 출력에 찍혔음 — 파일 · 커밋에는 없음.
+
 ## I-P-12e-studio-panels · 2026-11-22 · 청사진 스튜디오 하단 패널 · 속성 패널 · 목록 모드 (조각 K) (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12e-studio-panels`(통합 `feat/P-12e-blueprint-studio` dba6d5d 위 + DataCollector `ecad6d0` + 통합 머리 `9a824fa` 합침, 로컬, 미푸시 — FrontLead가 합침)
 - 출처: 사용자 승인 계획 P-12e(청사진 스튜디오) 조각 K, Maestro 배정 · FrontLead 밑. PRD NF(접근성: 키보드 · 대비 · 390px), 불변 1 · 2 · 4
