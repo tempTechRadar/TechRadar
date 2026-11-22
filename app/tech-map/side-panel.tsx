@@ -3,8 +3,8 @@
 // 주 단추 "청사진에 담기" → 구역 카드(비교군 · 출처) → 사용기 요약. 묶음은 목록 · 이 분류만 보기 · 접기.
 // P-12h U1(11-22 사용자): 관심 = 별 토글, 담기 = 적용 후보 저장(DB 그대로), 보류는 지도에서 빼고 알림 상세에서만.
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
-import { GRADE_KO, isConcept, UNSORTED, type MapNode, type MarkStatus } from "@/lib/map/build-map";
+import type { ReactNode } from "react";
+import { GRADE_KO, isConcept, UNSORTED, type MapNode } from "@/lib/map/build-map";
 import { describeKo } from "@/lib/map/describe";
 import type { GroupItem, TechItem } from "@/lib/map/layout";
 import { SideNotes } from "./side-notes";
@@ -12,7 +12,7 @@ import { TagEditor } from "./tag-editor";
 import { DIM_KO } from "@/lib/map/view-config";
 import "./side-panel.css";
 import { listTime } from "@/lib/alerts/to-alert-view";
-import { CartIn, GuestPick, useCartFocus } from "./guest-pick";
+import { Cart, Star, type OnCartMark } from "./guest-pick";
 
 // 위험 · 주의는 맨 위 띠로, 나머지는 출처 카드 한 줄로(평소엔 보안 구역을 길게 두지 않음)
 const SEC_SHORT: Record<string, string> = { pass: "알려진 취약점 없음", unknown: "정보를 찾지 못함(위험하지 않다는 뜻이 아니에요)" };
@@ -27,19 +27,10 @@ const Dot = ({ token, hollow }: { token: string | null; hollow?: boolean }) => (
 const Card = ({ title, children }: { title: ReactNode; children: ReactNode }) => <section className="side-card"><h3>{title}</h3>{children}</section>;
 
 type Compare = { item: TechItem | null; node: MapNode; quote: string | null };
-/** text = 저장 뒤 토스트 글(담기 · 빼기 · 별은 판단 이름 대신 하는 일로 말한다) */
-export type OnCartMark = (status: MarkStatus | null, text: string) => void;
 type TechProps = {
   item: TechItem; compare: Compare[]; login: boolean; busy: boolean;
   onMark: OnCartMark; onGo: (key: string) => void; onTags: (tags: string[]) => void;
 };
-
-/** 관심 별: 담은 기술(적용 후보)도 관심이 들어 있는 것으로 채워 보인다. 끄면 표시를 지운다(담은 것도 빠짐 → 토스트가 말함) */
-function Star({ n, busy, onMark }: { n: MapNode; busy: boolean; onMark: OnCartMark }) {
-  const s = n.mark?.status, on = s === "interest" || s === "candidate";
-  const off = s === "candidate" ? "관심을 풀고 청사진에서도 뺐어요." : "관심을 풀었어요.";
-  return <button type="button" className="side-star" aria-label="관심 표시" aria-pressed={on} disabled={busy} onClick={() => onMark(on ? null : "interest", on ? off : "관심으로 남겼어요.")}>{on ? "★" : "☆"}</button>;
-}
 
 function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
   const [what, facts] = describeKo(n);
@@ -87,40 +78,18 @@ function SecurityBand({ n }: { n: MapNode & { grade: "danger" | "caution" } }) {
   );
 }
 
-/** 청사진 장바구니(11-22 사용자): 담기 = 적용 후보 저장(DB 그대로), 단추는 늘 켜 둔다. 위험 등급은 누르면 이유만(DB도 막음).
- *  빼기 = 관심으로 낮춤(별은 남김). 다시 담기는 그 사이 온 알림까지 판단할 수 있어 토스트 되돌리기가 없다(canUndoMark, 불변 1) */
-function Cart({ n, login, busy, onMark }: { n: MapNode; login: boolean; busy: boolean; onMark: OnCartMark }) {
-  const [why, setWhy] = useState<string | null>(null);
-  useEffect(() => setWhy(null), [n.key]);
-  const focus = useCartFocus(`${n.mark?.status}:${busy}`); // 저장 중 단추가 꺼져도 초점이 떨어진다: 끝나면(실패 포함) 되돌림
-  if (!n.techId) return <p className="muted side-to-bp">이름만 넣은 기술이라 청사진에 담을 수 없어요.</p>;
-  if (!login) return <GuestPick techId={n.techId} />; // 손님(P-12h-2 T3): 이 브라우저 담은 목록 → 청사진 "지도에서 담은 기술"
-  const s = n.mark?.status;
-  const put = () => (n.catalogGrade === "danger" ? setWhy(DANGER_CART) : onMark("candidate", "청사진에 담았어요."));
-  return (
-    <div className="side-to-bp" {...focus}>
-      {s === "candidate" ? <CartIn busy={busy} onOut={() => onMark("interest", "청사진에서 뺐어요. 관심은 남겨 뒀어요.")} />
-        : <button type="button" className="btn btn-primary" disabled={busy} onClick={put}>청사진에 담기</button>}
-      <p role="status">{why}</p>
-      {s === "hold" ? <p className="muted">지금 보류예요{n.mark?.reason ? `(${n.mark.reason})` : ""}. 담거나 별을 누르면 보류가 풀려요.</p> : null}
-      <p className="muted">{s === "candidate" ? "" : "담으면 '적용 후보'로 남고, 이 기술의 판단 대기 알림도 함께 판단돼요. "}설치는 Claude Code에서 직접 해요.</p>
-    </div>
-  );
-}
-const DANGER_CART = "보안 위험 등급이라 바로 담을 수 없어요. 보안 경고 알림에서 고친 버전과 함께 판단해 주세요.";
-
 export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: TechProps) {
   const n = item.node;
   const none = n.collectErrorKind ? "수집 오류로 못 읽었어요" : "아직 없음"; // 불변 2: 수집 오류를 "없음"으로 보이지 않게
   const myDetail = n.mine && n.myTechIds[0] ? `/projects/tech/${n.myTechIds[0]}` : null;
   return (
     <>
-      <TechHead n={n} star={login && n.techId ? <Star n={n} busy={busy} onMark={onMark} /> : null} />
+      <TechHead n={n} star={login && n.techId ? <Star status={n.mark?.status} busy={busy} onMark={onMark} /> : null} />
       <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
       {isRisky(n) ? <SecurityBand n={n} /> : null}
       {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <section className="side-decide" aria-label="청사진">
-        <Cart n={n} login={login} busy={busy} onMark={onMark} />
+        <Cart techId={n.techId} mark={n.mark} danger={n.catalogGrade === "danger"} login={login} busy={busy} onMark={onMark} />
       </section>
       <Card title={`비교군 ${compare.length}`}><CompareList n={n} compare={compare} onGo={onGo} /></Card>
       <Card title="출처">

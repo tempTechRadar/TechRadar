@@ -13,15 +13,15 @@ const MARK_KO = { interest: "관심", candidate: "적용 후보", hold: "보류"
 const STATUS_KO: Record<string, string> = { deprecated: "지원 종료", dormant: "활동 멈춤", gone: "사라짐" };
 const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 
-/** markBar = 판단 줄(못 읽었으면 그 안내), usingText = 쓰고 있어요 한 줄, notes = 사용기 요약(null = 읽지 못함), guest = 로그인 전(P-12f) */
-export function CatalogTechView({ d, markBar, usingText, notes, guest = false }: { d: CatalogTechDetail; markBar: ReactNode; usingText: string; notes?: NoteSummary | null; guest?: boolean }) {
+/** star = 이름 옆 관심 별, markBar = 청사진 담기 줄(못 읽었으면 그 안내), usingText = 쓰고 있어요 한 줄, notes = 사용기 요약(null = 읽지 못함), guest = 로그인 전(P-12f) */
+export function CatalogTechView({ d, star, markBar, usingText, notes, guest = false }: { d: CatalogTechDetail; star?: ReactNode; markBar: ReactNode; usingText: string; notes?: NoteSummary | null; guest?: boolean }) {
   const t = d.tech;
   const note = t.oneLiner ? null : fixedNote(t.techKey);
   return (
     <main className="page tech-detail">
       <header className="td-head">
         <p className="muted"><a href={`/?sel=${encodeURIComponent(`tech:${t.id}`)}`}>← 지도에서 보기</a></p>
-        <h1>{t.name}</h1>
+        <div className="td-title"><h1>{t.name}</h1>{star}</div>
         <p>
           <span className={`badge badge-${GRADE_TONE[t.grade]}`}>{gradeText(t.grade, t.techKey, t.type)}</span>{" "}
           {t.collectErrorKind ? <span className="badge badge-warning">수집 오류</span> : null}{" "}
