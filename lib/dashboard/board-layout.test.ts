@@ -4,8 +4,8 @@ import { COLS, defaultLayout, MIN_H, MIN_W, parseLayout, pushDown, reveal, snapB
 
 const IDS = ["repos", "radar", "add"];
 
-test("기본 배치(K1): 왼쪽 진행 중 프로젝트 · 직접 추가, 오른쪽 지도 · 소식 · 청사진이 27줄 안, 서로 안 겹침, 레포 관리 큰 표는 뺀 채, 기본 자리가 없는 판은 맨 아래", () => {
-  const all = ["repos", "radar", "blueprint", "add", "manage"];
+test("기본 배치(K1): 왼쪽 진행 중 프로젝트 · 직접 추가, 오른쪽 지도 · 소식 · 청사진이 27줄 안, 서로 안 겹침, 기본 자리가 없는 판은 맨 아래", () => {
+  const all = ["repos", "radar", "blueprint", "add"];
   const d = defaultLayout(all);
   assert.deepEqual(stackOrder(d), ["repos", "radar", "blueprint", "add"]);
   assert.deepEqual(pushDown(d, "repos"), d, "기본 배치는 겹침이 없어 밀 것이 없다");
@@ -16,10 +16,10 @@ test("기본 배치(K1): 왼쪽 진행 중 프로젝트 · 직접 추가, 오른
 });
 
 test("링크로 온 빠진 판은 다시 걸고 겹치는 판을 밀어낸다, 걸려 있으면 그대로", () => {
-  const d = defaultLayout(["repos", "manage"]);
-  const shown = reveal(d, "manage");
-  assert.equal(shown.find((b) => b.id === "manage")!.hidden, undefined);
-  assert.equal(reveal(shown, "manage"), shown);
+  const d = parseLayout(JSON.stringify([{ id: "repos", x: 0, y: 0, w: 30, h: 20 }, { id: "add", x: 0, y: 21, w: 30, h: 6, hidden: true }]), ["repos", "add"]);
+  const shown = reveal(d, "add");
+  assert.equal(shown.find((b) => b.id === "add")!.hidden, undefined);
+  assert.equal(reveal(shown, "add"), shown);
   assert.equal(reveal(d, "nope"), d);
   const over = reveal([{ id: "a", x: 0, y: 0, w: 10, h: 5 }, { id: "b", x: 0, y: 2, w: 10, h: 5, hidden: true }], "b");
   assert.equal(over.find((b) => b.id === "a")!.y, 7, "다시 건 판과 겹치던 판은 아래로");
