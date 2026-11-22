@@ -173,13 +173,19 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 이어 붙였어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
     setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
+  /** 옅은 블록 열기: 그 자리 순서에 맞는 추천 이름(gap = 그 번호 열 앞), 지금 초점 자리(끝나면 돌아감) */
+  const openGhost = (gh: Omit<Ghost, "hints" | "from">, gap: number | null) => setGhost({ ...gh,
+    hints: board ? recommendAt(board, gap ?? board.length).slice(0, 4) : [], from: document.activeElement instanceof HTMLElement ? document.activeElement : null });
+  const depthOf = (id: string) => (lay?.ok ? lay.depth.get(id) ?? null : null);
   /** 블록 위 · 아래 +: 같은 순서(앞 단계 선 복사)에 옅은 블록. 같은 순서가 이미 가득이면 띄우지 않고 이유 */
   function besideGhost(id: string, dir: -1 | 1) {
     const s = stageOf(id), why = parallelProblem(g, id);
     if (!s) return;
     if (why) return say(why);
-    setGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] });
+    openGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
   }
+  /** Enter · Esc 뒤 초점: 연 곳(+ 단추)이 아직 있으면 거기, 아니면 캔버스 */
+  const ghostBack = (gh: Ghost) => (gh.from?.isConnected && gh.from !== document.body ? gh.from : canvasBox.current)?.focus();
   /** 반동 자동 정렬: 판은 바로, 화면은 튕겨 간 뒤 맞춰 보기. 움직임 줄이기면 바로 맞춤 */
   function arrange() {
     const next = autoLayout(g);
@@ -203,7 +209,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
     return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 },
       data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
-        onCut: readOnly ? undefined : () => { setHoverEdge(null); onDelete({ nodes: [], edges: [{ source: e.from, target: e.to }] }); } } };
+        // 속성 패널 "끊기"와 같게: 고른 단계는 그대로, 사라지는 단추 대신 캔버스로 초점
+        onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
+          apply(disconnect(g, e.from, e.to), `${stageOf(e.from)?.name} → ${stageOf(e.to)?.name} 연결을 끊었어요.`); } } };
   });
   const near = assist.near;
   if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
@@ -246,7 +254,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       const pt = "changedTouches" in ev ? ev.changedTouches[0] : ev;
       if (!pt) return;
       const p = flow.screenToFlowPosition({ x: pt.clientX, y: pt.clientY }), back = st.fromHandle?.type === "target", of = st.fromNode.id;
-      setGhost({ at: { x: back ? p.x - NODE_SIZE.w : p.x, y: p.y - NODE_SIZE.h / 2 }, kind: back ? "before" : "after", of: stageOf(of)?.name ?? "", before: back ? [] : [of], after: back ? [of] : [] });
+      const d = depthOf(of);
+      openGhost({ at: { x: back ? p.x - NODE_SIZE.w : p.x, y: p.y - NODE_SIZE.h / 2 }, kind: back ? "before" : "after", of: stageOf(of)?.name ?? "", before: back ? [] : [of], after: back ? [of] : [] },
+        d === null ? null : back ? d : d + 1);
       return;
     }
     if (st.isValid !== false || !st.fromNode || !st.toNode) return;
@@ -337,7 +347,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
-              {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} hints={hints} back={() => canvasBox.current?.focus()}
+              {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
               {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>

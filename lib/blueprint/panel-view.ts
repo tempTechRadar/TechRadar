@@ -77,6 +77,9 @@ export function addStageLinked(g: Graph, name: string, at: Pos, link: { before: 
   const base = graph.edges.length, want = link.before.length + link.after.length;
   for (const b of link.before) graph = connect(graph, b, stage.id);
   for (const a of link.after) graph = connect(graph, stage.id, a);
+  // 어느 길(선 끌기 · ＋ 단계 · 목록)로 더해도 같은 순서 4개를 넘기지 않는다(확정 때서야 알지 않게)
+  const l = layers(graph), d = l.ok ? l.depth.get(stage.id) : undefined;
+  if (l.ok && d !== undefined && l.levels[d].length > LIMITS.parallel) return { problem: fullOrder(d) };
   return { graph, stage, linked: want > 0 && graph.edges.length === base + want };
 }
 
@@ -92,8 +95,9 @@ export function addStageAfter(g: Graph, name: string, after: Stage | undefined):
 export function parallelProblem(g: Graph, id: string): string | null {
   const l = layers(g);
   const d = l.ok ? l.depth.get(id) : undefined;
-  return l.ok && d !== undefined && l.levels[d].length >= LIMITS.parallel ? `${d + 1}번째 순서에 이미 ${LIMITS.parallel}개예요(동시에 ${LIMITS.parallel}개까지).` : null;
+  return l.ok && d !== undefined && l.levels[d].length >= LIMITS.parallel ? fullOrder(d) : null;
 }
+const fullOrder = (d: number) => `${d + 1}번째 순서에 이미 ${LIMITS.parallel}개예요(동시에 ${LIMITS.parallel}개까지).`;
 
 /** 같은 순서에 더하기(P-12h S3): 그 단계 위(-1) · 아래(1)로 한 칸(겹치면 더 그쪽), 앞 단계 선을 그대로 복사해 같은 깊이가 되게 */
 export function addStageBeside(g: Graph, name: string, of: Stage, dir: -1 | 1): Added {

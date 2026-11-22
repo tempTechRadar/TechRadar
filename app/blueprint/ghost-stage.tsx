@@ -6,14 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { Pos } from "@/lib/blueprint/graph";
 
-/** kind: 어느 쪽에 붙는지(알림 글), of: 기준 단계 이름, before · after: 새 단계로 이을 단계 id */
-export type Ghost = { at: Pos; kind: "after" | "before" | "beside"; of: string; before: string[]; after: string[] };
+/** kind: 어느 쪽에 붙는지(알림 글), of: 기준 단계 이름, before · after: 새 단계로 이을 단계 id, hints: 그 자리(순서)에 맞는 추천 이름,
+ *  from: 열 때 초점이 있던 곳(+ 단추 등, Enter · Esc 뒤 돌아갈 곳) */
+export type Ghost = { at: Pos; kind: "after" | "before" | "beside"; of: string; before: string[]; after: string[]; hints: string[]; from: HTMLElement | null };
 const LABEL: Record<Ghost["kind"], (of: string) => string> = {
   after: (of) => `"${of}" 다음 단계 이름`, before: (of) => `"${of}" 앞 단계 이름`, beside: (of) => `"${of}"와(과) 같은 순서 단계 이름`,
 };
 
 /** back = Enter · Esc로 끝낼 때 초점을 돌려놓을 곳(입력이 사라지며 body로 떨어지지 않게). blur로 끝나면 초점은 이미 간 곳 그대로 */
-export function GhostStage({ ghost, hints, back, onCommit, onCancel }: { ghost: Ghost; hints: string[]; back: () => void; onCommit: (name: string) => void; onCancel: () => void }) {
+export function GhostStage({ ghost, back, onCommit, onCancel }: { ghost: Ghost; back: () => void; onCommit: (name: string) => void; onCancel: () => void }) {
   const [name, setName] = useState("");
   const input = useRef<HTMLInputElement>(null), ended = useRef(false);
   // 놓는 순간(mouseup)에 초점을 주면 바로 blur돼 취소되므로 다음 프레임에
@@ -27,12 +28,13 @@ export function GhostStage({ ghost, hints, back, onCommit, onCancel }: { ghost: 
   return (
     <ViewportPortal>
       <form className="sn sn-ghost nodrag nopan" style={{ transform: `translate(${ghost.at.x}px, ${ghost.at.y}px)` }}
+        onClick={(e) => e.stopPropagation()} // 입력을 누른 것이 캔버스 빈 곳 누름(취소)으로 올라가지 않게
         onSubmit={(e) => { e.preventDefault(); if (name.trim()) end(true, true); }}>
         <label className="sn-ghost-label">{LABEL[ghost.kind](ghost.of)}
           <input ref={input} value={name} maxLength={STAGE_NAME_MAX} list="studio-ghost-hints" placeholder="이름 적고 Enter" onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); end(false, true); } }} onBlur={() => end(false, false)} />
         </label>
-        <datalist id="studio-ghost-hints">{hints.map((h) => <option key={h} value={h} />)}</datalist>
+        <datalist id="studio-ghost-hints">{ghost.hints.map((h) => <option key={h} value={h} />)}</datalist>
       </form>
     </ViewportPortal>
   );

@@ -7,14 +7,14 @@ import { BaseEdge, EdgeToolbar, getBezierPath, type Edge, type EdgeProps } from 
 export type SeqData = { label: string; hover: boolean; onCut?: () => void; onKeep: () => void; onLeave: () => void };
 export type SeqEdgeType = Edge<SeqData, "seq">;
 
-export function SeqEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, interactionWidth, data }: EdgeProps<SeqEdgeType>) {
+export function SeqEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, interactionWidth, data, selected }: EdgeProps<SeqEdgeType>) {
   const [path, x, y] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   return (
     <>
       <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} interactionWidth={interactionWidth} />
       {data?.onCut ? (
-        <EdgeToolbar edgeId={id} x={x} y={y} isVisible={data.hover}>
-          <button type="button" className="se-cut nodrag nopan" aria-label={`${data.label} 연결 끊기`} onMouseEnter={data.onKeep} onMouseLeave={data.onLeave} onClick={data.onCut}>✕ 끊기</button>
+        <EdgeToolbar edgeId={id} x={x} y={y} isVisible={data.hover || Boolean(selected)}>{/* 고른 선에도(터치는 마우스 올리기가 없어 눌러 고르면 보임) */}
+          <button type="button" className="se-cut nodrag nopan" aria-label={`${data.label} 연결 끊기`} onMouseEnter={data.onKeep} onMouseLeave={data.onLeave} onClick={(e) => { e.stopPropagation(); data.onCut!(); }}>✕ 끊기</button>{/* 누름이 캔버스 빈 곳(onPaneClick = 고른 것 풀기)까지 올라가지 않게 */}
         </EdgeToolbar>
       ) : null}
     </>
