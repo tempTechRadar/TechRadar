@@ -27,6 +27,7 @@
 
 **결과:** tsc 통과, 고친 곳 시험 80개 통과(tech-links 7 · graph · panel-view · draft · stored · blueprints · blueprint-templates · migration-numbers).
 **확인하지 못함:** 마이그레이션 · 권한 시험 SQL 실제 실행(운영 적용은 사용자 승인 뒤, 시험도 그때), 화면(H2는 DevAssi2), 전체 시험 · 빌드(마지막에 몰아서).
+**H3 준비(같은 브랜치):** `lib/server/inspector-tech.ts` readInspectorTech — Inspector 개요 · 관계 · 검증 · 이력 탭용 읽기. 기술 상세의 getCatalogTechDetail(등급 · 보안 이유 · 수집 오류 · 마지막 확인 · 출처 · 지도 비교군 · 내 판단 이력)을 그대로 쓰고 청사진 관문 상태(in · out, 손님 null)만 더함(새 쿼리 없음, 같은 읽기 두 벌을 만들지 않으려고). 못 읽으면 던져 화면이 "읽지 못함". tsc · 고친 시험 7개 통과. 화면 연결(서버 액션)은 DevAssi2.
 
 ## I-P-12j-hybrid-editor · 2026-11-22 · 청사진 Hybrid Editor H1: 에디터 레이아웃 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12j-hybrid-editor`(#206 `feat/P-12h-blueprint-revamp` dee2c96 + origin/main, worktree `p12h-map-cart`, 로컬, 미푸시)
