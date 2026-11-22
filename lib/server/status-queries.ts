@@ -7,10 +7,13 @@ import { readMyTechTagMap } from "./my-tech-tags.ts";
 
 export type StatusData = { projects: StatusProjectRow[]; tags: Map<string, string[]> | null };
 
+/** 보드 진행 중 프로젝트 판 · 레포 상세(repo-detail.ts, + memo)가 같이 쓰는 칸. last_checked_ok_at = 수집 오류 줄의 "마지막 정상 확인"(레포 상세 표) */
+export const PROJECT_COLUMNS = "id, name, kind, repo_url, repo_description, repo_language, repo_pushed_at, repo_meta_at, repo_meta_error, my_technologies(id, tech_id, manual_name, hidden_at, read_at, collect_error_kind, grade, source_file, last_checked_ok_at, technologies(display_name, tech_key, type)), runs!runs_project_id_fkey(status, created_at)";
+
 export async function readStatusData(db: SupabaseClient, userId: string): Promise<StatusData> {
   const [res, tags] = await Promise.all([
     db.from("projects")
-      .select("id, name, kind, repo_url, repo_description, repo_language, repo_pushed_at, repo_meta_at, repo_meta_error, my_technologies(id, tech_id, manual_name, hidden_at, read_at, collect_error_kind, grade, source_file, technologies(display_name, tech_key, type)), runs!runs_project_id_fkey(status, created_at)")
+      .select(PROJECT_COLUMNS)
       .eq("owner_id", userId).is("archived_at", null).order("created_at"),
     readMyTechTagMap(db, userId).catch((e: unknown) => { console.error("현황: 내 태그를 읽지 못함", e instanceof Error ? maskSecrets(e.message) : e); return null; }),
   ]);

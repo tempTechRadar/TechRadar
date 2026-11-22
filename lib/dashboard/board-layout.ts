@@ -51,13 +51,13 @@ export function parseLayout(raw: string | null, ids: string[]): Box[] {
   return ids.map((id) => got.get(id) ?? { ...base.find((b) => b.id === id)!, y: bottom + 1 });
 }
 
-/** 좁은 화면(≤860)에서 한 줄로 쌓는 차례: 위에서 아래, 같은 줄이면 왼쪽부터. 뺀 위젯은 없음 */
 /** 주소 #w-<id>로 온 판이 빠져 있으면 다시 걸고 겹치는 판을 밀어낸다(링크가 판을 빼도 깨지지 않게). 이미 걸렸거나 모르는 판이면 그대로 */
 export function reveal(boxes: Box[], id: string): Box[] {
   if (!boxes.some((b) => b.id === id && b.hidden)) return boxes;
   return pushDown(boxes.map((b) => (b.id === id ? { id: b.id, x: b.x, y: b.y, w: b.w, h: b.h } : b)), id);
 }
 
+/** 좁은 화면(≤860)에서 한 줄로 쌓는 차례: 위에서 아래, 같은 줄이면 왼쪽부터. 뺀 판은 없음 */
 export const stackOrder = (boxes: Box[]): string[] => boxes.filter((b) => !b.hidden).sort((a, b) => a.y - b.y || a.x - b.x).map((b) => b.id);
 
 /** 캔버스 높이(px): 가장 아래 위젯 + 두 칸 */

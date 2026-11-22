@@ -37,7 +37,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
   if (isPreviewUser(user)) { // 미리보기(개발용)는 DB를 부르지 않고 샘플(id p1 · p2)로
     const p = SAMPLE_STATUS.projects.find((x) => x.id === id);
     repo = p ? { ...p, memo: null } : null;
-    [alerts, move, marks] = [SAMPLE_DASHBOARD.alerts, { candidates: 3, blueprints: [], exports: 1 }, new Map(SAMPLE_MARK_EVENTS.map((e) => [e.tech_id, e.new_status]))];
+    [alerts, move, marks] = [SAMPLE_DASHBOARD.alerts, { candidates: 3, blueprints: [] }, new Map(SAMPLE_MARK_EVENTS.map((e) => [e.tech_id, e.new_status]))];
   } else {
     if (!isUuid(id)) notFound();
     const db = (await getServerSupabase())!;

@@ -26,7 +26,9 @@ export function RepoTechTable({ techs, alerts, marks, from, caption }: { techs: 
           <td><span className={`badge badge-${GRADE_TONE[t.grade]}`}>{gradeText(t.grade, t.technologies?.tech_key, type)}</span>{t.collect_error_kind ? <span className="board-warn"> 수집 오류(지난 값)</span> : null}</td>
           <td>{marks === null ? <span className="board-warn">못 읽음</span> : t.tech_id ? MARK_KO[marks.get(t.tech_id) ?? ""] ?? "—" : "—"}</td>
           <td>{alerts === null ? <span className="board-warn">못 읽음</span> : changed.has(t.id) ? when(changed.get(t.id)!) : "—"}</td>
-          <td>{t.read_at ? when(t.read_at) : <span className="muted">기록 없음</span>}</td>
+          {/* 수집 오류 줄은 읽은 때가 아니라 마지막으로 확인에 성공한 때(방금 확인한 것처럼 보이지 않게, 불변 2) */}
+          <td>{t.collect_error_kind ? (t.last_checked_ok_at ? `${when(t.last_checked_ok_at)}(성공)` : <span className="board-warn">성공한 확인 없음</span>)
+            : t.read_at ? when(t.read_at) : <span className="muted">기록 없음</span>}</td>
           <td><form action={toggleHidden}>
             <input type="hidden" name="id" value={t.id} /><input type="hidden" name="hide" value={t.hidden_at ? "0" : "1"} /><input type="hidden" name="from" value={from} />
             <button className="btn btn-sm" type="submit" aria-label={`${name} ${action}`}>{action}</button>

@@ -3,10 +3,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { maskSecrets } from "../domain/redact.ts";
 import type { StatusProjectRow } from "../dashboard/status-view.ts";
+import { PROJECT_COLUMNS } from "./status-queries.ts";
 
 export type RepoDetailRow = StatusProjectRow & { memo: string | null };
-// 보드 진행 중 프로젝트 판(readStatusData)과 같은 칸 + 메모
-const COLUMNS = "id, name, kind, repo_url, memo, repo_description, repo_language, repo_pushed_at, repo_meta_at, repo_meta_error, my_technologies(id, tech_id, manual_name, hidden_at, read_at, collect_error_kind, grade, source_file, technologies(display_name, tech_key, type)), runs!runs_project_id_fkey(status, created_at)";
+// 보드 진행 중 프로젝트 판(readStatusData)과 같은 칸 + 메모(같은 레포가 두 화면에서 다르게 보이지 않게 한 상수)
+const COLUMNS = `${PROJECT_COLUMNS}, memo`;
 
 /** 내 것 · 보관 안 한 레포 하나. 없거나 남의 것 · 보관한 것이면 null */
 export async function readRepoDetail(db: SupabaseClient, userId: string, id: string): Promise<RepoDetailRow | null> {

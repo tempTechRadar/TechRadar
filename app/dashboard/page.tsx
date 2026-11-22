@@ -47,10 +47,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const fail = <T,>(what: string) => (e: unknown): T | null => { console.error(`보드: ${what} 조회 실패`, e instanceof Error ? e.message : e); return null; };
   const alerts: Promise<AlertRecord[] | null> = !supabase ? Promise.resolve(SAMPLE_DASHBOARD.alerts) : listMyAlerts(supabase, user.id).catch(fail("알림"));
   const status: Promise<StatusData | null> = !supabase ? Promise.resolve(SAMPLE_STATUS) : readStatusData(supabase, user.id).catch(fail("내 레포"));
-  const move: Promise<MoveProgress | null> = !supabase ? Promise.resolve({ candidates: 3, blueprints: [], exports: 1 }) : readMoveProgress(supabase, user.id).catch(fail("청사진"));
+  const move: Promise<MoveProgress | null> = !supabase ? Promise.resolve({ candidates: 3, blueprints: [] }) : readMoveProgress(supabase, user.id).catch(fail("청사진"));
   const archived: Promise<ArchivedRepo[] | null> = !supabase ? Promise.resolve([]) : readArchivedRepos(supabase, user.id).catch(fail("보관함"));
   const service = getServiceSupabase();
-  const newToday = preview ? Promise.resolve(3) : newTechsToday();
+  const newToday = preview ? Promise.resolve(3) : newTechsToday(user.isDemo);
   const trend: Promise<{ items: Trending[] } | null> = !supabase ? Promise.resolve({ items: [] })
     : !service ? Promise.resolve(null) : status.then((s) => readTrendingForMe(service, supabase, (s?.projects ?? []).flatMap((p) => p.my_technologies.flatMap((t) => (t.tech_id ? [t.tech_id] : []))))).catch(fail("요즘 뜨는 것"));
   const news: Promise<NewsFeedResult | null | "preview"> = preview ? Promise.resolve("preview") : readNews(user.id);
@@ -82,7 +82,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 /** 로그인 전: 내 데이터 판 자리는 로그인 안내, 공개 값(오늘의 새 기술 수 · 뜨는 것 · 소식)만 실제 값(내 취약점은 빠짐) */
 async function Guest({ period }: { period: string }) {
-  const newToday = newTechsToday(), feed = await readNews(null);
+  const newToday = newTechsToday(false), feed = await readNews(null);
   const widgets: Widget[] = [
     { id: "repos", title: "진행 중 프로젝트", body: <LoginFirst /> },
     { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={null} trend={guestTrend()} feed={feed} period={period} /></Suspense> },
@@ -97,11 +97,11 @@ async function Guest({ period }: { period: string }) {
   );
 }
 
-/** 오늘(24시간 안)의 새 기술 수: 지도 NEW와 같은 규칙, 서비스 연결(공개 값). 못 읽으면 null */
-function newTechsToday(): Promise<number | null> {
+/** 오늘(24시간 안)의 새 기술 수: 지도 NEW와 같은 규칙(시연 계정은 지도처럼 시뮬레이터 기술 포함), 서비스 연결. 못 읽으면 null */
+function newTechsToday(isDemo: boolean): Promise<number | null> {
   const service = getServiceSupabase();
   if (!service) return Promise.resolve(null);
-  return countNewTechs(service, new Date(Date.now() - 86_400_000).toISOString()).catch((e) => { console.error("보드: 새 기술 수 조회 실패", e instanceof Error ? e.message : e); return null; });
+  return countNewTechs(service, new Date(Date.now() - 86_400_000).toISOString(), isDemo).catch((e) => { console.error("보드: 새 기술 수 조회 실패", e instanceof Error ? e.message : e); return null; });
 }
 
 /** 로그인 전 "요즘 뜨는 것": 공개 목록에서 뜨는 것(서비스 연결, 공개 목록 규칙은 readTrending). 못 읽으면 null */
