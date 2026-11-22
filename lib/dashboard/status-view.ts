@@ -7,7 +7,9 @@ export type StatusTechRow = {
   id: string; tech_id: string | null; manual_name: string | null; hidden_at: string | null; read_at: string | null;
   collect_error_kind: string | null; grade: Grade; technologies: { display_name: string; tech_key?: string | null; type?: string | null } | null;
 };
-export type StatusProjectRow = { id: string; name: string; kind: "repo" | "local"; my_technologies: StatusTechRow[]; runs?: ReadRun[] };
+/** repo_*: 레포 기본 정보(P-12i). repo_meta_at = 마지막으로 읽은 때, repo_meta_error = 마지막 읽기의 수집 오류(있으면 값은 그 전 것) */
+export type StatusProjectRow = { id: string; name: string; kind: "repo" | "local"; my_technologies: StatusTechRow[]; runs?: ReadRun[];
+  repo_description?: string | null; repo_language?: string | null; repo_pushed_at?: string | null; repo_meta_at?: string | null; repo_meta_error?: string | null };
 
 export type RepoCard = { id: string; name: string; techCount: number; errorCount: number; lastReadAt: string | null; notice: string | null };
 /** tags: null = 내 태그를 읽지 못함(태그 없음과 다르게). concept = 작업 방식(설치물이 아님): 등급 대신 "등급 없음"(ADR 0008 2항, 지도와 같게) */

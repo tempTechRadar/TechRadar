@@ -20,6 +20,7 @@ import { detectConcepts, detectServices } from "../domain/services.ts";
 import { GRADE_RULE_VERSION, gradeFromOsv, type GradeResult, type RepoFacts } from "../domain/grade.ts";
 import { causeIdsOf } from "../domain/osv-daily.ts";
 import { readRepoFacts } from "./osv-store.ts";
+import type { RepoMeta } from "../domain/github-repo.ts";
 
 // shortcut: 사용자당 등록 횟수 제한·백그라운드 실행은 없음. 정기 실행(P-17)에서 OSV 반복을 옮길 때 함께
 const MAX_TECHS = 50; // 저장소 하나에서 읽는 기술 수 한도
@@ -37,8 +38,10 @@ export async function registerAndRead(user: CurrentUser, repo: RepoRef, deps: { 
   const existingId = await findProject(db, user.id, repo.url);
   // 새 등록만 막는다(PRD-F4): GitHub가 "열 수 없다"고 답한 저장소는 프로젝트·실행을 만들지 않는다. 다시 읽기는 readRepo가 확인한다.
   // shortcut: 확인 자체가 안 되면(한도·연결) 막지 않는다 — 파일도 못 열면 readRepo가 수집 오류로 남긴다. 서버 토큰(P-9)이 붙으면 막는 쪽으로
-  if (!existingId) await assertRepoPublic(repo).catch((e) => { if (e instanceof RepoNotPublicError) throw e; });
+  // 같은 응답이 레포 기본 정보(P-12i)다: 다시 읽기도 한 번 불러 정보를 새로 하고, 실패는 정보 칸의 수집 오류로만 남긴다
+  const meta = await assertRepoPublic(repo).catch((e: unknown) => { if (!existingId && e instanceof RepoNotPublicError) throw e; return e instanceof Error ? e : new Error(String(e)); });
   const projectId = existingId ?? (await insertProject(db, user.id, repo));
+  await saveRepoMeta(db, projectId, meta);
   const trigger: RunTrigger = existingId ? "user_reread" : "first_read";
   const runId = await startRun(db, { trigger, startedBy: user.id, projectId });
   try {
@@ -324,6 +327,16 @@ async function findProject(db: SupabaseClient, ownerId: string, repoUrl: string)
   const existing = await db.from("projects").select("id").eq("owner_id", ownerId).eq("repo_url", repoUrl).maybeSingle();
   if (existing.error) throw new Error(`프로젝트를 찾지 못함: ${existing.error.message}`);
   return (existing.data?.id as string | undefined) ?? null;
+}
+
+/** 레포 기본 정보 저장. 못 읽었으면(오류 · 모양이 다름) 예전 값을 지우지 않고 오류 종류만(불변 2 · 4), 읽었으면 오류를 비운다.
+ *  저장 실패(칸이 아직 없는 운영 DB 등)는 읽기 전체를 막지 않게 로그만 남긴다 */
+async function saveRepoMeta(db: SupabaseClient, projectId: string, got: RepoMeta | null | Error) {
+  const row = got && !(got instanceof Error)
+    ? { repo_description: got.description, repo_language: got.language, repo_pushed_at: got.pushedAt, repo_meta_at: new Date().toISOString(), repo_meta_error: null }
+    : { repo_meta_error: got instanceof Error ? errorKindOf(got) : "parse" };
+  const r = await db.from("projects").update(row).eq("id", projectId);
+  if (r.error) console.error("레포 기본 정보를 저장하지 못함", r.error.message);
 }
 
 async function insertProject(db: SupabaseClient, ownerId: string, repo: { repo: string; url: string }): Promise<string> {
