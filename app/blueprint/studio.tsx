@@ -24,7 +24,8 @@ import { loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
 import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
-import { Dock } from "./dock";
+import { Library } from "./dock";
+import { VerifyDock, type VerifyTab } from "./verify-dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
@@ -79,21 +80,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [ghost, setGhost] = useState<Ghost | null>(null); // 옅은 새 단계 블록(S3: 선을 빈 곳에 놓음 · 위아래 +)
   const [hoverEdge, setHoverEdge] = useState<string | null>(null), edgeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bounce = useBounce();
-  // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드 "자세히"로 열림. 열면 초점이 서랍으로, 닫으면 연 자리로
-  const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
+  // 오른쪽 Inspector(P-12j H1): 고정 패널, 기본 펼침 · 접기. 고르면 접혀 있어도 펼침. 열면 초점이 패널로, 접으면 연 자리로
+  const [drawer, setDrawer] = useState(true), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
+  const [check, setCheck] = useState<{ open: boolean; tab: VerifyTab }>({ open: false, tab: "result" }); // 아래 검증 독
   // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김. at = 초점 갈 곳(카드를 눌러 연 것은 초점을 캔버스에 둠: Delete · 화살표가 그대로 되게)
-  const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "insp" });
+  const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "stay" }); // 처음엔 펼쳐 있어도 초점을 뺏지 않게
   useEffect(() => { if (drawer && drawerAt.at !== "stay") drawerBox.current?.querySelector<HTMLElement>(drawerAt.at === "note" ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
-  // 고른 카드가 서랍에 가리면 화면을 그만큼 옮긴다(U2, 움직임 줄이기면 바로)
-  const pickedStage = picked?.stageId ?? null;
-  useEffect(() => {
-    if (!drawer || !pickedStage) return;
-    const card = document.querySelector(`.react-flow__node[data-id="${CSS.escape(pickedStage)}"]`)?.getBoundingClientRect(), box = drawerBox.current?.getBoundingClientRect();
-    const over = card && box ? card.right + 24 - box.left : 0;
-    if (over <= 0) return;
-    const vp = flow.getViewport();
-    void flow.setViewport({ ...vp, x: vp.x - over }, { duration: calm() ? 0 : 200 });
-  }, [drawer, pickedStage, flow]);
   const [editing, setEditing] = useState<string | null>(null); // 카드 위에서 이름 바꾸는 단계
   const now = useRef(graph); // 지우기 토스트의 되돌리기: 그 뒤에 판이 바뀌었는지 본다
   now.current = graph;
@@ -365,7 +357,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     setAsking(false); unpick(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
-  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
+  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); }; // 빈 곳 누르기 · Esc. Inspector는 고정이라 그대로(빈 안내)
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
     // 카드에 초점이 있을 때 F2 · Enter = 카드 위 이름 바꾸기(React Flow는 Enter로 고르기도 한다)
@@ -421,18 +413,22 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
         <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
-          : null}{/* 넓은 화면의 목록 편집 켜기는 하단 패널 탭 줄 끝 작은 링크로(11-22 사용자: 기능은 두고 단추만 내리기) */}
+          : null}{/* 넓은 화면의 목록 편집 켜기는 Library 탭 줄 끝 작은 링크로(11-22 사용자: 기능은 두고 단추만 내리기) */}
         <span className="studio-grow" />
+        <button type="button" className="btn" aria-expanded={check.open} onClick={() => setCheck({ open: true, tab: "result" })}>검증</button>
         <button type="button" className="btn btn-primary" onClick={() => { done.reset(); setConfirming(true); }}>확정 · 내보내기</button>
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
-      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 지도에서 &quot;청사진에 담기&quot;로 고른 것을 아래 기술 탭에서 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
+      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 지도에서 &quot;청사진에 담기&quot;로 고른 것을 왼쪽 기술 탭에서 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
       {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
         <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
+      <div className="studio-body">
+      <Library {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} />
+      <div className="studio-center">
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
-          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요">
+          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 키보드 · 화면 읽기는 왼쪽 Library의 '키보드로 편집'을 쓰세요">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
@@ -443,18 +439,20 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
+              {narrow ? null : <MiniMap position="bottom-right" pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>
           </div>
         )}
-        {narrow || !drawer ? null : (
-          <section ref={drawerBox} className="studio-insp" aria-label="속성 서랍" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
-            <div className="studio-insp-bar"><button type="button" className="btn btn-sm" onClick={closeDrawer}>닫기 ✕</button></div>
-            <Inspector {...panel} />
-          </section>
-        )}
       </div>
-      <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} />
+      <VerifyDock state={check} onState={setCheck} problems={problems} />
+      </div>
+      {narrow ? null : drawer ? (
+        <section ref={drawerBox} className="studio-insp" aria-label="Inspector" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
+          <div className="studio-insp-bar"><button type="button" className="dock-tab" aria-expanded onClick={closeDrawer}>접기 ▶</button></div>
+          <Inspector {...panel} />
+        </section>
+      ) : <aside className="studio-insp studio-insp-shut" aria-label="Inspector"><button type="button" className="dock-tab" aria-expanded={false} onClick={() => openDrawer()}>◀ 속성</button></aside>}
+      </div>
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} projects={projects} busy={done.busy} error={done.error} guest={guest}

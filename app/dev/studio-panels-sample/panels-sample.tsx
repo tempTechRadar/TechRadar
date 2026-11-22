@@ -4,7 +4,7 @@ import { useState } from "react";
 import { fromV1, type Graph } from "@/lib/blueprint/graph";
 import { toBoard, type BlueprintRecord } from "@/lib/blueprint/stored";
 import type { PoolTech } from "@/lib/server/blueprints";
-import { Dock } from "../../blueprint/dock";
+import { Library } from "../../blueprint/dock";
 import { Inspector } from "../../blueprint/inspector";
 import { ListMode } from "../../blueprint/list-mode";
 import type { PanelProps, Picked } from "../../blueprint/studio-types";
@@ -31,7 +31,7 @@ export function PanelsSample({ pool, history, tags: start }: { pool: PoolTech[];
         <ListMode {...p} />
         <Inspector {...p} />
       </div>
-      <Dock {...p} />
+      <Library {...p} />
       <style>{"@media (max-width: 860px) { .sample-cols { grid-template-columns: 1fr !important; } }"}</style>
     </div>
   );

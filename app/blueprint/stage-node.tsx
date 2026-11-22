@@ -69,7 +69,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
               onRemove={data.readOnly ? undefined : () => data.onRemoveTech(stage.id, t.id)} />
           ))}
         </div>
-      ) : <p className="sn-empty">아래에서 기술을 끌어 놓아요</p>}
+      ) : <p className="sn-empty">왼쪽에서 기술을 끌어 놓아요</p>}
       {/* 단계 메모(T2): 칩 아래 두 줄로 줄여 옅게. 누르면 서랍 메모 칸. 읽기 전용이면 글만 */}
       {stage.note ? (data.edit ? <button type="button" className="sn-note nodrag nopan" aria-label={`${stage.name} 메모: ${stage.note} (고치기)`} onClick={() => data.edit!.onNote(stage.id)}>{stage.note}</button>
         : <p className="sn-note">{stage.note}</p>) : null}
