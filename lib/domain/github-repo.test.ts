@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { afterFound, afterMissing, desiredStatus, readRepoInfo, repoApiUrl, repoKey, repoRefOf, type MissContext, type RepoInfo } from "./github-repo.ts";
+import { afterFound, afterMissing, desiredStatus, parseRepoMeta, readRepoInfo, repoApiUrl, repoKey, repoRefOf, type MissContext, type RepoInfo } from "./github-repo.ts";
 import { parseGithubRepo } from "./manifest.ts";
 
 const NOW = Date.parse("2026-11-18T00:00:00Z");
@@ -9,6 +9,20 @@ const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
 const body = (over: Record<string, unknown> = {}) =>
   JSON.stringify({ full_name: "o/r", private: false, archived: false, pushed_at: "2026-11-01T00:00:00Z", stargazers_count: 12, license: { spdx_id: "MIT" }, ...over });
 const info = (over: Partial<RepoInfo> = {}): RepoInfo => ({ fullName: "o/r", isPrivate: false, archived: false, pushedAt: ago(3), stars: 12, license: "MIT", ...over });
+
+test("parseRepoMeta: 빈 설명 · null 언어는 null, 앞뒤 공백 없앰, 긴 설명은 300자(글자 단위)로 자른다", () => {
+  assert.deepEqual(parseRepoMeta({ description: "  ", language: null, pushed_at: "2026-11-20T01:02:03Z" }), { description: null, language: null, pushedAt: "2026-11-20T01:02:03Z" });
+  assert.deepEqual(parseRepoMeta({ pushed_at: null }), { description: null, language: null, pushedAt: null }, "설명 · 언어 칸이 없으면 null");
+  const long = parseRepoMeta({ description: ` ${"가".repeat(299)}😀😀 `, language: "Rust", pushed_at: null });
+  assert.equal([...long!.description!].length, 300);
+  assert.ok(long!.description!.endsWith("😀"), "이모지를 반으로 자르지 않는다");
+});
+
+test("parseRepoMeta: 날짜가 깨졌거나 · 글이 아닌 칸 · 객체가 아닌 응답은 null(예전 값을 덮지 않게)", () => {
+  for (const bad of [{ pushed_at: "어제" }, { pushed_at: "2026-13-45T00:00:00Z" }, {}, { description: 3, pushed_at: null }, { language: ["Go"], pushed_at: null }, null, [], "x"]) {
+    assert.equal(parseRepoMeta(bad), null, JSON.stringify(bad));
+  }
+});
 
 test("repoRefOf: github: 키가 있으면 그것, 없으면 repo_url(GitHub 주소)에서 소유자/저장소를 읽는다", () => {
   assert.deepEqual(repoRefOf({ tech_key: "github:acme/tool", repo_url: null }), { owner: "acme", repo: "tool" });
