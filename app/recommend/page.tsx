@@ -5,6 +5,7 @@ import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readRecommendations } from "@/lib/server/recommend-queries";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { MarkButton } from "./mark-button";
 
 // 추천(IA-20, PRD-F32): 취향의 관심 분야 안에서 주간 다운로드가 많은 기술. 알림·판단과 따로이고 알림 수·판단 대기 수에 들어가지 않는다.
 export default async function RecommendPage() {
@@ -30,6 +31,7 @@ export default async function RecommendPage() {
               <Link href={`/tech/${r.techId}`}><strong>{r.name}</strong></Link>
               {r.oneLiner ? <p>{r.oneLiner}</p> : null}
               <p className="muted">이유: {r.reason}{r.source ? ` · 출처: ${r.source}` : ""}</p>
+              <MarkButton techId={r.techId} mark={r.mark} />
             </li>
           ))}
         </ul>

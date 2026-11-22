@@ -5,11 +5,11 @@ import { buildComparison, buildComparisonTable, type ComparableTech } from "./bu
 // PRD-F42 비교 모드: 기술 2–3개를 나란히. 적용 기회 비교표(F16)와 같은 5항목·출처 규칙.
 const full = (name: string): ComparableTech => ({
   oneLiner: `${name} 설명`, oneLinerSource: `https://registry.example/${name}`, grade: "pass", gradeReason: "알려진 문제가 없어요", gradeEvidenceUrl: null,
-  lastActivityAt: "2026-11-10T15:00:00Z", lastActivityKind: "release", repoUrl: `https://github.com/o/${name}`, license: "MIT", signals: { weekly_downloads: 12000 },
+  lastActivityAt: "2026-11-10T15:00:00Z", lastActivityKind: "release", repoUrl: `https://github.com/o/${name}`, license: "MIT", signals: { weekly_downloads: 12000 }, techKey: `npm:${name}`,
 });
 const empty: ComparableTech = {
   oneLiner: null, oneLinerSource: null, grade: "unknown", gradeReason: null, gradeEvidenceUrl: null,
-  lastActivityAt: null, lastActivityKind: null, repoUrl: null, license: null, signals: null,
+  lastActivityAt: null, lastActivityKind: null, repoUrl: null, license: null, signals: null, techKey: null,
 };
 
 test("기술 2–3개를 같은 5항목으로 나란히 만든다: 칸 순서는 고른 순서", () => {
