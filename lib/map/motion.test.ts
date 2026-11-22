@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { grow, GROW, introducing, RECENT_HOURS, recentlyChecked, REVEAL, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, touchAge, type MotionState } from "./motion.ts";
+import { grow, GROW, introducing, RECENT_HOURS, recentlyChecked, REVEAL, rippleR, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, touchAge, type MotionState } from "./motion.ts";
 import type { Item } from "./layout.ts";
 
 const item = (id: string, x: number, y: number, parent: string | null = null) => ({ id, x, y, parent, type: "t" }) as unknown as Item;
@@ -48,4 +48,12 @@ test("최근 확인(선이 지날 때 빛남): 수집 오류 없이 36시간 안
   assert.equal(recentlyChecked({ lastCheckedOkAt: null, collectErrorKind: null }, now), false, "확인한 적 없음");
   assert.equal(recentlyChecked({ lastCheckedOkAt: hours(1), collectErrorKind: "timeout" }, now), false, "수집 오류면 최근이라도 아님(불변 2)");
   assert.equal(recentlyChecked({ lastCheckedOkAt: "읽을 수 없음", collectErrorKind: null }, now), false);
+});
+
+test("파동은 한 번: 펼침 끝에서 가운데로 돌아가지 않고 화면 끝까지 옅어지며 퍼진 뒤 사라진다", () => {
+  const s = { ...S(), motion: "ripple" as const }, end = s.sweepStart + REVEAL, far = 900;
+  assert.ok(rippleR(s, end + 0.01, far).r >= rippleR(s, end - 0.01, far).r, "지도 끝에서 바깥으로 이어짐");
+  assert.ok(rippleR(s, end + SLOWDOWN / 2, far).fade < 1);
+  assert.equal(rippleR(s, end + SLOWDOWN, far).r, -1, "감속이 끝나면 없음");
+  assert.equal(rippleR(s, end + 30, far).r, -1, "다시 생기지 않음");
 });

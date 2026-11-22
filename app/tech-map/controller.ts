@@ -46,7 +46,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasRevealing = false;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
@@ -74,6 +74,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
 
   // ---- 배치
+  /** 판단을 저장하기 전 decided(되돌리기 때 알림 판단에서 온 값까지 그대로 돌리려고) */
+  const decidedBefore = new Map<string, MapNode["decided"]>();
   /** 사람이 직접 펼치거나 접은 묶음(true = 펼침). 처음 접기는 판이 바뀔 때마다(필터 · 되살린 보기) 새로 정하고, 이것만 그 위에 남긴다 */
   const manual = new Map<string, boolean>();
   const arriving = new Map<string, [number, number]>(); // 새로 들어온 것 보기: 날아오는 점 → 제자리. 처음 닿을 때 한 번 튕김(bump)
@@ -274,9 +276,11 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (S.stamp && now - S.stamp.t < 0.2) anim = true;
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
-    const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
-    const finishing = wasRevealing && !revealing; wasRevealing = revealing; // 연출이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선이 그대로 굳는다
-    if (ctx && (needDraw || anim || revealing || finishing || S.leaving.size)) { draw(ctx, S, now); needDraw = false; }
+    const revealing = on && started && now - S.sweepStart < REVEAL + Math.max(SLOWDOWN, GROW); // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
+    const active = anim || revealing || S.leaving.size > 0;
+    // 움직임이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선 · 굵은 착지 이름표 · 찍히던 꼬리표가 도중 모습으로 굳는다
+    if (ctx && (needDraw || active || wasActive)) { draw(ctx, S, now); needDraw = false; }
+    wasActive = active;
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");
@@ -308,9 +312,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     /** 판단 저장이 성공한 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로). stamp = 꼬리표를 찍는 움직임(되돌리기는 false) */
     setMark(key: string, mark: MapNode["mark"], stamp = true) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
+      const was = n.decided;
       n.mark = mark;
-      n.decided = mark?.status ?? null; // 방금 지도에서 한 판단이 가장 최근(알림 판단보다 뒤)
-      S.stamp = stamp && mark ? { id: key, t: S.now } : null;
+      // 방금 지도에서 한 판단이 가장 최근(알림 판단보다 뒤). 되돌리기는 저장 전 값으로(알림 판단에서 온 것까지).
+      // shortcut: 판단을 지우면 알림 판단이 있어도 꼬리표가 빠진다(새로 고치면 서버 decidedMarks대로 돌아옴) — 알림 판단을 지도 입력에 따로 실으면 맞춘다
+      if (stamp) decidedBefore.set(key, was);
+      n.decided = !stamp && decidedBefore.has(key) ? decidedBefore.get(key)! : mark?.status ?? null;
+      if (!stamp) decidedBefore.delete(key);
+      S.stamp = stamp && mark && n.decided !== was ? { id: key, t: S.now } : null; // 보이는 판단이 바뀔 때만 찍는다(같은 판단을 다시 저장하면 그대로, 불변 3)
       dirty(); // 판단 칩을 안 켰어도 캔버스 꼬리표를 다시 그린다(연출 뒤에는 손댈 때만 그림)
       if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },

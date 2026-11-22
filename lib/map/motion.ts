@@ -14,13 +14,12 @@ type MapState = MotionState;
 
 const TAU = Math.PI * 2;
 export const SWEEP_DELAY = 0.5, REVEAL = 2, GROW = 0.45, SLOWDOWN = 0.8, GLOW = 0.7;
-/** 펼친 뒤 감속이 닿는 속도(한 바퀴 초) · 파동 간격 초 · 파동이 화면 끝까지 번지는 초 · 선 뒤 잔광(여운) 각도(라디안). 11-21의 "잔잔하게" 값 */
-export const TUNE = { ambient: 22, ripple: 10, rippleGrow: 3.4, trail: 1.5 };
+
 /** "이번 주" 다시 보기로 날아와 닿은 점의 이름표를 진하게 두는 초(P-12g map-10) */
 export const LAND_SEC = 1.5;
 /** 처음 화면 배율(집 보기의 몇 배로 가까이 시작하는지)과 물러나는 시간 */
 export const INTRO_ZOOM = 2.4, INTRO_FLY = 1.8, INTRO_FLY_DELAY = 0.3;
-const W_FAST = TAU / REVEAL, W_SLOW = TAU / TUNE.ambient;
+const W_FAST = TAU / REVEAL, W_SLOW = TAU / 22; // 감속이 닿는 속도(한 바퀴 22초, 11-21의 "잔잔하게")
 
 export const ease = (t: number) => 1 - (1 - t) ** 3;
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -52,12 +51,12 @@ export function sweepAlpha(S: MapState, now: number): number {
   return t < REVEAL ? 1 : 1 - Math.min(1, (t - REVEAL) / SLOWDOWN);
 }
 
-/** 파동 반지름(세계 좌표): 펼침 동안 가운데 → 지도 끝(점이 나타나는 거리와 같게), 그 뒤 rippleGrow초에 걸쳐 화면 끝까지(감속 동안 옅어져 사라짐) */
+/** 파동 반지름(세계 좌표): 펼침 동안 가운데 → 지도 끝(점이 나타나는 거리와 같게), 그 뒤 감속(SLOWDOWN초) 동안 화면 끝까지 옅어지며 한 번으로 끝 */
 export function rippleR(S: MapState, now: number, far: number): { r: number; fade: number } {
   const t = since(S, now);
   if (t < REVEAL) return { r: S.L.radius * Math.max(0, t / REVEAL), fade: 1 };
-  const { ripple, rippleGrow } = TUNE, p = ((t - REVEAL) % ripple) / rippleGrow;
-  return p >= 1 ? { r: -1, fade: 0 } : { r: far * p, fade: 1 - p };
+  const p = (t - REVEAL) / SLOWDOWN;
+  return p >= 1 ? { r: -1, fade: 0 } : { r: S.L.radius + (far - S.L.radius) * p, fade: 1 - p };
 }
 
 /** 이 점이 처음 떠오르는 순간: 선이면 각도 순, 파동이면 가운데에서 거리 순. 부모 묶음보다 먼저 나오지 않는다(이어지는 선이 빈 곳을 가리키지 않게) */
@@ -91,7 +90,7 @@ export function farWorld(S: MapState): number {
 export function touchAge(S: MapState, now: number, it: Item): number {
   if (S.motion === "ripple") {
     const far = farWorld(S), t = since(S, now), { r } = rippleR(S, now, far), d = r - Math.hypot(it.x, it.y);
-    const speed = t < REVEAL ? S.L.radius / REVEAL : far / TUNE.rippleGrow;
+    const speed = t < REVEAL ? S.L.radius / REVEAL : Math.max(1, far - S.L.radius) / SLOWDOWN;
     return r >= 0 && d >= 0 ? d / speed : 99;
   }
   return ((((sweepAngle(S, now) - (angleOf(it.x, it.y) - Math.PI / 2)) % TAU) + TAU) % TAU) / sweepSpeed(S, now);
