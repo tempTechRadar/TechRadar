@@ -175,7 +175,7 @@ export function snap(r: Rect, others: Rect[], reach = GUIDE_REACH): Snapped {
 }
 
 /** 단계 크기는 화면이 잰다(sizeOf로 넘김). 못 재면 이 값 */
-export const NODE_SIZE: Size = { w: 240, h: 96 };
+export const NODE_SIZE: Size = { w: 288, h: 112 }; // P-12h-2 T1: 카드 폭 260~320
 /** 붙을 자리를 보여 주는 가장자리 사이 거리(px) */
 export const LINK_REACH = 160;
 const edgeGap = (a: Rect, b: Rect) =>
@@ -234,8 +234,9 @@ export const putTech = (g: Graph, id: string, tech: BlueprintTech): Graph =>
   mapStage(g, id, (s) => (s.techs.some((t) => t.id === tech.id) || s.techs.length >= LIMITS.techs ? s : { ...s, techs: [...s.techs, tech] }));
 export const removeTech = (g: Graph, id: string, techId: string): Graph => mapStage(g, id, (s) => (s.techs.some((t) => t.id === techId) ? { ...s, techs: s.techs.filter((t) => t.id !== techId) } : s));
 
-/** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수 */
-export const LAYOUT = { x: 320, y: 160 } as const;
+/** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수.
+ *  P-12h-2 T1: 카드를 키워 320 · 160 → 384 · 192. DB의 v1 → v2 변환(SQL 202611221000)은 옛 값 그대로 둔다(이미 바뀐 판을 다시 옮기지 않게) */
+export const LAYOUT = { x: 384, y: 192 } as const;
 function placeLevels(levels: string[][]): Map<string, Pos> {
   const tallest = Math.max(0, ...levels.map((c) => c.length));
   const at = new Map<string, Pos>();

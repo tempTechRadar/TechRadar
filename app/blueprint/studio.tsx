@@ -7,12 +7,12 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
+  applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, renameStage, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { BLUEPRINT_GATE, recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, linkSaid, neighbors, parallelProblem, putProblem, putSaid, removeSaid } from "@/lib/blueprint/panel-view";
+import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -40,6 +40,8 @@ const posOf = (g: Graph) => new Map(g.stages.map((s) => [s.id, { x: s.x, y: s.y 
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** 확정 선 긋기(B2) 한 번의 길이: studio.css se-draw(--dur × 2)보다 조금 길게 두고 클래스를 뗀다 */
 const DRAW_MS = 600;
+/** 화면 맞춤(P-12h-2 T1): 단계가 많아도 너무 작게 줄이지 않고(0.75 아래로 안 감) 끌어서 본다 */
+const FIT = { padding: 0.15, minZoom: 0.75, maxZoom: 1.2 };
 const READ_ONLY = "그림으로 보기에서는 고칠 수 없어요. 그림으로 보기를 끄고 목록으로 고쳐 주세요.";
 const NO_CANVAS = "목록으로 편집하는 중에는 캔버스가 없어요. 그림으로 돌아가면 쓸 수 있어요.";
 
@@ -72,6 +74,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [ghost, setGhost] = useState<Ghost | null>(null); // 옅은 새 단계 블록(S3: 선을 빈 곳에 놓음 · 위아래 +)
   const [hoverEdge, setHoverEdge] = useState<string | null>(null), edgeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bounce = useBounce();
+  // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드 "자세히"로 열림. 열면 초점이 서랍으로, 닫으면 연 자리로
+  const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
+  useEffect(() => { if (drawer) drawerBox.current?.querySelector<HTMLElement>(".insp")?.focus(); }, [drawer]);
+  const [editing, setEditing] = useState<string | null>(null); // 카드 위에서 이름 바꾸는 단계
+  const now = useRef(graph); // 지우기 토스트의 되돌리기: 그 뒤에 판이 바뀌었는지 본다
+  now.current = graph;
   const [loginAsk, setLoginAsk] = useState<string | null>(null); // 손님이 저장 · 판단을 누름: 무엇을 하려는지(묻는 대화상자 글)
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
@@ -188,6 +196,34 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (why) return say(why);
     openGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
   }
+  /** 카드 왼쪽 · 오른쪽 +: 앞 · 다음 단계 옅은 블록(선 끌기와 같은 addStageLinked) */
+  function sideGhost(id: string, dir: -1 | 1) {
+    const s = stageOf(id), d = depthOf(id);
+    if (!s) return;
+    openGhost({ at: sideSpot(g, s, dir), kind: dir < 0 ? "before" : "after", of: s.name, before: dir < 0 ? [] : [id], after: dir < 0 ? [id] : [] }, d === null ? null : dir < 0 ? d : d + 1);
+  }
+  const focusNode = (id: string) => document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`)?.focus();
+  /** 카드 "✕": 확인 창 없이 지우고 토스트에 되돌리기. 그 뒤에 판이 바뀌었으면 되돌리지 않고 위 되돌리기를 안내 */
+  function removeFromCard(id: string) {
+    const s = stageOf(id);
+    if (!s) return;
+    const next = removeStage(g, id);
+    canvasBox.current?.focus(); // 누른 단추가 카드와 함께 사라지므로
+    if (picked?.stageId === id) unpick();
+    apply(next);
+    say(removedStageSaid(s.name), () => { if (now.current === next) { bounce.stop(); undo(); say(`"${s.name}" 단계를 살렸어요.`); } else say("그 뒤에 판이 바뀌어 여기서는 되돌릴 수 없어요. 위 \"되돌리기\"를 써 주세요."); });
+  }
+  /** 카드 위 이름 칸이 끝남: 검사는 서랍 · 목록과 같은 nameProblem, 초점은 그 카드로 */
+  function renameOnCard(id: string, nm: string | null) {
+    focusNode(id); setEditing(null);
+    const s = stageOf(id);
+    if (nm === null || !s || nm.trim() === s.name) return;
+    const why = nameProblem(nm);
+    if (why) return say(why);
+    apply(renameStage(g, id, nm), renamedSaid(nm));
+  }
+  const openDrawer = () => { if (!drawer) drawerFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setDrawer(true); };
+  const closeDrawer = () => { const f = drawerFrom.current; (f?.isConnected && f !== document.body ? f : canvasBox.current)?.focus(); setDrawer(false); };
   /** Enter · Esc 뒤 초점: 연 곳(+ 단추)이 아직 있으면 거기, 아니면 캔버스 */
   const ghostBack = (gh: Ghost) => (gh.from?.isConnected && gh.from !== document.body ? gh.from : canvasBox.current)?.focus();
   /** 반동 자동 정렬: 판은 바로, 화면은 튕겨 간 뒤 맞춰 보기. 움직임 줄이기면 바로 맞춤 */
@@ -195,7 +231,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     const next = autoLayout(g);
     if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요.");
     apply(next, "순서대로 정렬했어요.");
-    const fit = () => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 });
+    const fit = () => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 });
     if (calm()) requestAnimationFrame(fit); else bounce.start(posOf(g), posOf(next), fit);
   }
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
@@ -203,8 +239,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
-      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost },
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: (p) => { setPicked(p); if (p?.kind === "tech") openDrawer(); }, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
+      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
+      edit: readOnly ? undefined : { onSide: sideGhost, onDetail: (id) => { pick({ kind: "stage", stageId: id }); openDrawer(); }, onRemove: removeFromCard,
+        editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
   // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다
   const leaveEdge = () => { clearTimeout(edgeTimer.current); edgeTimer.current = setTimeout(() => setHoverEdge(null), 150); };
@@ -283,6 +321,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
+    // 카드에 초점이 있을 때 F2 · Enter = 카드 위 이름 바꾸기(React Flow는 Enter로 고르기도 한다)
+    const node = e.target instanceof HTMLElement && e.target.classList.contains("react-flow__node") ? e.target.dataset.id : undefined;
+    if (!readOnly && node && (e.key === "F2" || e.key === "Enter")) { e.preventDefault(); setEditing(node); return; }
     if (readOnly || (e.key !== "Delete" && e.key !== "Backspace") || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (!sel.size && !selEdges.size) return;
     e.preventDefault();
@@ -301,7 +342,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     : history === null ? "unknown"
     : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
-  const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
+  function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열림(단계만 고르면 안 열림)
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
@@ -329,7 +370,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
           ) : null}
         </span>
         <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
-        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
+        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : null}{/* 넓은 화면의 목록 편집 켜기는 하단 패널 탭 줄 끝 작은 링크로(11-22 사용자: 기능은 두고 단추만 내리기) */}
         <span className="studio-grow" />
@@ -348,7 +389,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
               onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
-              minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
+              minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
@@ -357,7 +398,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
             </ReactFlow>
           </div>
         )}
-        {narrow ? null : <aside className="studio-insp" aria-label="속성 패널"><Inspector {...panel} /></aside>}
+        {narrow || !drawer ? null : (
+          <section ref={drawerBox} className="studio-insp" aria-label="속성 서랍" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
+            <div className="studio-insp-bar"><button type="button" className="btn btn-sm" onClick={closeDrawer}>닫기 ✕</button></div>
+            <Inspector {...panel} />
+          </section>
+        )}
       </div>
       <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} />
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />

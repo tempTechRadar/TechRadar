@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageAfter, addStageBeside, linkSaid, listRows, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid } from "@/lib/blueprint/panel-view";
+import { CONNECT_KO, addStageAfter, addStageBeside, linkSaid, listRows, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
 import { StageChips } from "./stage-chips";
 import "./list-mode.css";
@@ -83,7 +83,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
   const rename = () => {
     const why = nameProblem(name);
     if (why) { say(why); return; }
-    if (name.trim() !== s.name) apply(renameStage(graph, s.id, name), `단계 이름을 "${name.trim()}"(으)로 바꿨어요.`);
+    if (name.trim() !== s.name) apply(renameStage(graph, s.id, name), renamedSaid(name));
   };
   return (
     <li ref={card} className={`lm-card${chosen ? " chosen" : ""}`} aria-label={`${s.name} 단계`}>

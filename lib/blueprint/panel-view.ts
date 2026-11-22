@@ -40,6 +40,10 @@ export function neighbors(g: Graph, id: string): { before: Stage[]; after: Stage
 
 /** 같은 일은 같은 말(P-12h S4): 캔버스 · 속성 패널 · 목록 모드 · 하단 패널이 넣기 · 빼기 · 잇기 · 끊기에 같은 토스트 */
 export const putSaid = (stage: string, tech: string) => `${stage}에 ${tech}을(를) 넣었어요.`;
+/** 이름 바꾸기(카드 · 서랍 · 목록 같은 말). 검사는 nameProblem */
+export const renamedSaid = (name: string) => `단계 이름을 "${name.trim()}"(으)로 바꿨어요.`;
+/** 카드 "✕ 지우기"(확인 창 없음, 토스트의 되돌리기로 살림) */
+export const removedStageSaid = (stage: string) => `"${stage}" 단계를 지웠어요. 6초 안에 되돌리기로 살릴 수 있어요.`;
 export const removeSaid = (stage: string, tech: string) => `${stage}에서 ${tech}을(를) 뺐어요.`;
 export function linkSaid(g: Graph, from: string, to: string, cut: boolean): string {
   const name = (id: string) => g.stages.find((s) => s.id === id)?.name ?? "없는 단계";
@@ -94,9 +98,14 @@ export function addStageLinked(g: Graph, name: string, at: Pos, link: { before: 
 /** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
  *  고른 단계 → 새 단계로 잇는다. 없으면 맨 오른쪽 단계 옆, 잇지 않음 */
 export function addStageAfter(g: Graph, name: string, after: Stage | undefined): Added {
-  let at = after ? { x: after.x + LAYOUT.x, y: after.y } : newStageSpot(g);
-  for (let i = 0; after && taken(g, at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
-  return addStageLinked(g, name, at, { before: after ? [after.id] : [], after: [] });
+  return addStageLinked(g, name, after ? sideSpot(g, after, 1) : newStageSpot(g), { before: after ? [after.id] : [], after: [] });
+}
+
+/** 앞(-1) · 다음(1) 단계 자리(P-12h-2 T1 카드 왼쪽 · 오른쪽 +, ＋ 단계): 그 단계 왼쪽 · 오른쪽 한 칸, 차 있으면 아래로 */
+export function sideSpot(g: Graph, of: Stage, dir: -1 | 1): Pos {
+  let at = { x: of.x + dir * LAYOUT.x, y: of.y };
+  for (let i = 0; taken(g, at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
+  return at;
 }
 
 /** 같은 순서(병렬)에 단계를 더하지 못하는 이유: 그 단계와 같은 순서에 이미 LIMITS.parallel개. 고리가 있어 순서를 모르면 막지 않는다(확정 때 막힘) */

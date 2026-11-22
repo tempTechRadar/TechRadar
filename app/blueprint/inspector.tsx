@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, type Stage } from "@/lib/blueprint/graph";
-import { linkSaid, nameProblem, neighbors, removeSaid } from "@/lib/blueprint/panel-view";
+import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { SideNotes } from "../tech-map/side-notes";
@@ -43,7 +43,7 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
     const name = String(form.get("name") ?? "");
     const why = nameProblem(name);
     if (why) { say(why); return; }
-    if (name.trim() !== s.name) apply(renameStage(graph, s.id, name), `단계 이름을 "${name.trim()}"(으)로 바꿨어요.`);
+    if (name.trim() !== s.name) apply(renameStage(graph, s.id, name), renamedSaid(name));
   };
   return (
     <>

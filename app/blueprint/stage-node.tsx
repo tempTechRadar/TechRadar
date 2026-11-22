@@ -3,6 +3,7 @@
 // 하단 패널에서 끈 기술(TECH_DRAG)을 놓으면 붙인다. 칩 빼기(✕)는 읽기 전용이 아니면 늘(P-12h S1: 단계 칸이 없어짐).
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
+import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { LIMITS, type Stage } from "@/lib/blueprint/graph";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { TECH_DRAG, type Picked } from "./studio-types";
@@ -13,6 +14,9 @@ export type StageData = {
   onPick: (p: Picked) => void; onDropTech: (stageId: string, techId: string) => void; onRemoveTech: (stageId: string, techId: string) => void;
   /** 관문 밖 기술(info에 없음)을 적용 후보로 고르기 · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
   /** 위 · 아래 +(S3): 같은 순서에 단계 더하기(읽기 전용이면 없음), 막힌 이유(같은 순서가 가득) */ onBeside?: (stageId: string, dir: -1 | 1) => void; besideBlocked: string | null;
+  /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 왼쪽 · 오른쪽 + = 앞 · 다음 단계, 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기) */
+  edit?: { onSide: (stageId: string, dir: -1 | 1) => void; onDetail: (stageId: string) => void; onRemove: (stageId: string) => void;
+    /** 이름 칸으로 바뀜(두 번 누르기 · F2 · Enter) · 끝(name = null이면 취소) */ editing: boolean; onEdit: (stageId: string) => void; onRename: (stageId: string, name: string | null) => void };
 };
 export type StageNodeType = Node<StageData, "stage">;
 
@@ -43,9 +47,18 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           aria-label={`${stage.name} ${dir < 0 ? "위" : "아래"}에 같은 순서 단계 더하기${data.besideBlocked ? ` (못 함: ${data.besideBlocked})` : ""}`} title={data.besideBlocked ?? undefined}
           onClick={() => data.onBeside!(stage.id, dir)}>+</button>
       )) : null}
+      {data.edit ? ([-1, 1] as const).map((dir) => (
+        <button key={`s${dir}`} type="button" className={`sn-plus nodrag nopan ${dir < 0 ? "sn-plus-left" : "sn-plus-right"}`}
+          aria-label={`${stage.name} ${dir < 0 ? "앞" : "다음"} 단계 더하기`} onClick={() => data.edit!.onSide(stage.id, dir)}>+</button>
+      )) : null}
       <header className="sn-head">
         <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : data.order + 1}</span>
-        <b className="sn-name">{stage.name}</b>
+        {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
+          : <b className="sn-name" onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? "두 번 누르면 이름 바꾸기(F2)" : undefined}>{stage.name}</b>}
+        {data.edit && !data.edit.editing ? <span className="sn-tools">
+          <button type="button" className="sn-tool nodrag nopan" aria-label={`${stage.name} 자세히`} onClick={() => data.edit!.onDetail(stage.id)}>자세히</button>
+          <button type="button" className="sn-tool nodrag nopan" aria-label={`${stage.name} 단계 지우기`} onClick={() => data.edit!.onRemove(stage.id)}>✕</button>
+        </span> : null}
         <span className="sn-count">{stage.techs.length}/{LIMITS.techs}</span>
       </header>
       {stage.techs.length ? (
@@ -62,5 +75,15 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       {over && full ? <p className="sn-full">가득 참 {stage.techs.length}/{LIMITS.techs}</p> : null}
       <Handle type="source" position={Position.Right} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}에서 나가는 선`} />
     </div>
+  );
+}
+
+/** 카드 위 이름 칸: Enter = 저장, Esc = 취소, 다른 곳 누르기(blur) = 저장. 20자까지. 끝은 한 번만(Enter 뒤 사라지며 오는 blur가 또 돌지 않게) */
+function NameInput({ name, onDone }: { name: string; onDone: (v: string | null) => void }) {
+  const ended = useRef(false);
+  const end = (v: string | null) => { if (ended.current) return; ended.current = true; onDone(v); };
+  return (
+    <input className="sn-name-input nodrag nopan" defaultValue={name} maxLength={STAGE_NAME_MAX} aria-label="단계 이름" autoFocus onFocus={(e) => e.currentTarget.select()}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") end(e.currentTarget.value); if (e.key === "Escape") end(null); }} onBlur={(e) => end(e.currentTarget.value)} />
   );
 }
