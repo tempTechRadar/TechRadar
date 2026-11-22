@@ -6,6 +6,25 @@
 
 ---
 
+## I-P-12j-hybrid-editor · 2026-11-22 · 청사진 Hybrid Editor H1: 에디터 레이아웃 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12j-hybrid-editor`(#206 `feat/P-12h-blueprint-revamp` dee2c96 + origin/main, worktree `p12h-map-cart`, 로컬, 미푸시)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12j-hybrid-editor.md` H1 + Maestro 데이터 정직성 규칙 5가지, Maestro 배정. 단계마다 사용자 점검(H1 → H5)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기술 Library가 아래 패널, 속성은 캔버스를 덮는 서랍이라 고르고 · 넣고 · 보는 자리가 흩어짐. 검증을 볼 자리가 없음 |
+| 기대 결과 | 왼쪽 Library(250, 접기, 탭 기술 · 불러오기, 카드 끌기 · [+]로 단계 고르기, 판에 넣음 ✓ / 후보 점선) · 오른쪽 Inspector 고정(300, 접기) · 아래 검증 독(높이 조절, 탭 4개 자리) · 에디터 막대에 "검증". 좁은 화면 목록 모드 그대로 |
+| 영향 범위 | `app/blueprint/{studio.tsx,dock.tsx,verify-dock.tsx(새),tech-tree-tab.tsx,studio.css,dock.css,inspector.tsx,stage-node.tsx}`, `app/dev/studio-panels-sample/panels-sample.tsx`(이름만) |
+| 제약 | 새 라이브러리 · 색 없음, Claude API 없음, 고친 시험 · tsc만. 다크 테마 · 단축키 추가 없음(H5) |
+| 열린 질문 | 검증 독의 변경 이력 · 구성 요약 · 실행 로그 내용(H4) |
+
+**결정 · 이유:**
+- 검증 독의 "검증 결과" 탭은 H4 전까지 확정 창과 같은 "고칠 것"(이미 있는 계산)을 보인다: 빈 자리보다 사실대로 셀 수 있는 것부터. 나머지 세 탭은 "다음 단계(H4)에서 채워요".
+- 서랍이 캔버스를 덮을 때 화면을 옮기던 코드는 고정 패널이라 필요 없어 지웠다. 빈 곳을 눌러도 Inspector는 닫히지 않고 빈 안내로.
+
+**결과:** 됨(로컬 커밋). `tsc` 오류 0, 고친 곳 시험(lib/a11y · lib/blueprint) 98개 통과. 3013 헤드리스 Edge(손님): Library 250 · Inspector 300 · 접으면 각 40(캔버스 860 → 1330), "검증" → 독 열림(201px) · "확정을 막는 것이 없어요", 카드 [+] → 단계 고르기 → 넣기 → 토스트 · "✓ 판에 넣음", 400px 폭은 목록 모드 + Library 아래.
+**확인하지 못함:** 로그인 화면(내 기술 · 담은 기술 · 후보 카드 · 불러오기 이력), 끌어 놓기(헤드리스에서 HTML 끌기 안 해 봄), 독 높이 끌기 · 화면 읽기.
+
 ## I-P-12h-map-cart · 2026-11-22 · U1 지도 사이드 패널 개편: 관심 별 · 청사진 장바구니 · 보류 빼기 · 담은 수 배지 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12h-map-cart`(`feat/P-12h-blueprint-revamp` e896454 위, worktree `p12h-map-cart`, 로컬, 미푸시)
 - 출처: 사용자 결정(11-22, Maestro 전달) U1 1~6. 같은 시간 청사진 쪽 U2는 DevAssi1(app/blueprint/* 안 건드림). 불변 1 · 2 · 4 · 5, ADR 0028(지도 판단), 0012(위험 등급)
