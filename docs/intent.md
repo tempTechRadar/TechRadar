@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-12k-pegboard · 2026-11-23 · P-12k K4 문서: ADR 0043 · 용어 · PRD-F22 · IA · UJ · design (DocsChecker 세션)
+- 브랜치: `docs/P-12k-pegboard`(feat/P-12i-project-board dc2cf87에서 갈라짐, 로컬. DevAssi1이 #208 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` K4, Maestro 요청(11-23)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | K1 · K1' · K2 · K3로 보드 · 메뉴 · 용어가 바뀌었는데 ADR 0041 · PRD-F22 · IA · UJ · GLOSSARY는 11-22 밤 기준이다. 특히 거르기 폼을 없앤 것은 안내서 필수 대시보드 문구와 어긋나 보여 대응을 적어야 한다 |
+| 기대 결과 | ADR 0043(컴팩트 타공보드 · 필수 대시보드 대응표 · 찾기 · 넣기 제거 · "사용 중인 항목"), ADR 0028 · 0041 개정 표시, GLOSSARY 4개 말, PRD-F22 · F7, IA-2 · 3 · 5 · 26(새) · 1절 메뉴, UJ-8, design.md 13절 5번. 위키는 반영 계획만 |
+| 영향 범위 | docs만(앱 코드 · qa 문서 · wiki 안 고침) |
+| 제약 | 로컬 커밋만, 푸시 안 함, Claude API 안 씀. 대응표의 숫자 · 경로는 브랜치 코드(`app/dashboard/widgets.tsx` 띠, `board-client.tsx` 기간)와 맞춤 |
+| 열린 질문 | 안내서 "변경 수": 띠의 "위험 발생"은 보안 변경만 센다. 모든 종류 변경 수 칸이 없는 것을 받아들일지(ADR 0043 표에 차이를 적음) |
+
+**결과:** 로컬 커밋 1개(docs, 이 브랜치). 기록 검사 8/8 통과. 위키 "내 기술" 15파일 50줄은 고치지 않고 반영 계획을 Maestro에 보고(팀 규칙 4절). **확인하지 못함:** 화면 눈 확인, K4 전체 검사 결과(DevAssi1).
+
+---
+
 ## I-P-12k-term-rename · 2026-11-23 · "내 기술" → "사용 중인 항목" 앱 전체 용어 변경 (P-12k K3, FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12k-term-rename`(feat/P-12i-project-board 1ca5e4f에서 갈라짐, 로컬. 끝나면 #208 브랜치로 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "앱 전체 정리"(사용자: "내 기술"은 내가 만든 기술처럼 들린다), Maestro 배정. IA-5 · 메뉴(K2 보고에서 넘어온 /projects/[id] 메뉴 켜짐)
