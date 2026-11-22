@@ -6,13 +6,13 @@ const mine: ComparableTech = {
   oneLiner: "원격 MCP 서버에 연결해 줘요", oneLinerSource: "https://registry.example/mcp-mine",
   grade: "caution", gradeReason: "덜 심각한 알려진 문제가 1건 있어요", gradeEvidenceUrl: "https://osv.dev/GHSA-1",
   lastActivityAt: "2026-11-10T15:00:00Z", lastActivityKind: "release", repoUrl: "https://github.com/o/mine",
-  license: "MIT", signals: { weekly_downloads: 12000 },
+  license: "MIT", signals: { weekly_downloads: 12000 }, techKey: "npm:mcp-mine",
 };
 const theirs: ComparableTech = {
   oneLiner: "원격 MCP 연결 프록시", oneLinerSource: "https://registry.example/mcp-new",
   grade: "pass", gradeReason: "알려진 문제가 없어요", gradeEvidenceUrl: null,
   lastActivityAt: "2026-11-17T20:00:00Z", lastActivityKind: "commit", repoUrl: "https://github.com/o/new",
-  license: "Apache-2.0", signals: { weekly_downloads: 800 },
+  license: "Apache-2.0", signals: { weekly_downloads: 800 }, techKey: "pypi:Mcp_New",
 };
 
 test("항목 5개(하는 일·보안 등급과 이유·최근 업데이트·사용량·라이선스)를 내 기술과 새 기술 값, 출처와 함께 만든다", () => {
@@ -34,7 +34,7 @@ test("항목 5개(하는 일·보안 등급과 이유·최근 업데이트·사�
 test("값이 없는 칸은 '찾지 못함'과 출처 없음(null)으로 채우고, 값이 있어도 출처가 없으면 출처만 null", () => {
   const empty: ComparableTech = {
     oneLiner: null, oneLinerSource: null, grade: "unknown", gradeReason: null, gradeEvidenceUrl: null,
-    lastActivityAt: null, lastActivityKind: null, repoUrl: null, license: null, signals: null,
+    lastActivityAt: null, lastActivityKind: null, repoUrl: null, license: null, signals: null, techKey: null,
   };
 
   const rows = buildComparison(empty, { ...theirs, gradeEvidenceUrl: null });
@@ -55,4 +55,23 @@ test("라이선스: 알아본 이름(MIT)은 그대로, 못 읽은 값(null)은 
 
   assert.deepEqual(rows[4].mine, { value: "MIT", source: "https://github.com/o/mine" });
   assert.deepEqual(rows[4].theirs, { value: "찾지 못함", source: null });
+});
+
+test("사용량 칸: 값이 있으면 출처도 있다 — 기술 키로 만든 패키지 소개 페이지 (항목마다 출처, PRD-F16)", () => {
+  const usage = buildComparison(mine, theirs).find((r) => r.item === "사용량")!;
+  assert.deepEqual(usage.mine, { value: "주간 12,000회 다운로드", source: "https://www.npmjs.com/package/mcp-mine" });
+  assert.deepEqual(usage.theirs, { value: "주간 800회 다운로드", source: "https://pypi.org/project/mcp-new/" });
+});
+
+test("사용량 칸: 다운로드 수가 없는 종류(키가 npm·pypi가 아님)나 키를 모르면 값은 보이되 출처는 비운다 (지어내지 않음)", () => {
+  const rows = buildComparison({ ...mine, techKey: "mcp:registry-thing" }, { ...theirs, techKey: null });
+  const usage = rows.find((r) => r.item === "사용량")!;
+  assert.equal(usage.mine.value, "주간 12,000회 다운로드");
+  assert.equal(usage.mine.source, null);
+  assert.equal(usage.theirs.source, null);
+});
+
+test("사용량 칸: 값이 없으면 키가 있어도 출처를 붙이지 않는다", () => {
+  const usage = buildComparison({ ...mine, signals: null }, theirs).find((r) => r.item === "사용량")!;
+  assert.deepEqual(usage.mine, { value: "찾지 못함", source: null });
 });

@@ -26,6 +26,13 @@ const npmPath = (name: string) =>
 // `.`·`..` 조각은 인코딩해도 그대로라 주소가 같은 호스트의 다른 경로로 접힌다. packageOf를 거치지 않은 값도 막는다.
 const hasDotSegment = (name: string) => name.split("/").some((part) => part === "." || part === "..");
 
+/** 사람이 보는 패키지 소개 페이지(비교표 "사용량"의 출처). npm·pypi 키만, 아니면 null: 다운로드 수가 없는 종류에 출처를 지어내지 않는다. */
+export function packagePageUrl(techKey: string): string | null {
+  const ref = packageOf(techKey);
+  if (!ref) return null;
+  return ref.ecosystem === "npm" ? `https://www.npmjs.com/package/${npmPath(ref.name)}` : `https://pypi.org/project/${encodeURIComponent(ref.name)}/`;
+}
+
 export function downloadsUrl({ ecosystem, name }: PackageRef): string {
   if (hasDotSegment(name)) throw new RangeError(`주소에 쓸 수 없는 이름: ${name}`);
   if (ecosystem === "pypi") return `https://pypistats.org/api/packages/${encodeURIComponent(name)}/recent`;

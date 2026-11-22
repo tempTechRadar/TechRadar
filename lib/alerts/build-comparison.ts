@@ -1,6 +1,8 @@
 // 적용 기회 비교표(SPEC-5.3): 내 기술과 새 기술을 5개 항목으로 견주고, 항목마다 출처를 붙인다. DB·화면을 모르는 순수 함수.
 // 값이 없으면 "찾지 못함"(추측하지 않는다, 불변 2). 알림을 만들 때 이 결과를 alerts.comparison에 저장한다.
 
+import { packagePageUrl } from "../domain/downloads.ts";
+
 export type ComparableTech = {
   oneLiner: string | null;
   oneLinerSource: string | null;
@@ -13,6 +15,8 @@ export type ComparableTech = {
   repoUrl: string | null;
   license: string | null;
   signals: { weekly_downloads?: number } | null;
+  /** 기술 키(`npm:이름`·`pypi:이름`…). 사용량의 출처(패키지 소개 페이지)를 만드는 데 쓴다 */
+  techKey: string | null;
 };
 
 export type ComparisonCell = { value: string; source: string | null };
@@ -41,10 +45,11 @@ function lastActivity(t: ComparableTech): ComparisonCell {
   return { value: `${koreanDate.format(new Date(t.lastActivityAt))}${kind}`, source: t.repoUrl };
 }
 
-// shortcut: 사용량은 signals.weekly_downloads(숫자)만 읽는다. 키 이름은 P-9(수집 확장)가 정하면 맞춘다.
+// 사용량은 signals.weekly_downloads(숫자, P-9 수집기가 쓰는 키)를 읽는다. 출처는 기술 키로 만든 패키지 소개 페이지(npm·pypi만, 그 밖은 null).
 function usage(t: ComparableTech): ComparisonCell {
   const downloads = t.signals?.weekly_downloads;
-  return typeof downloads === "number" ? { value: `주간 ${downloads.toLocaleString("en-US")}회 다운로드`, source: null } : missing;
+  if (typeof downloads !== "number") return missing;
+  return { value: `주간 ${downloads.toLocaleString("en-US")}회 다운로드`, source: t.techKey ? packagePageUrl(t.techKey) : null };
 }
 
 // GitHub 수집기가 저장하는 표시용 낱말(P-9b): none = 라이선스 없음, other = 파일은 있는데 못 알아봄. 그 밖은 SPDX 이름 그대로.
