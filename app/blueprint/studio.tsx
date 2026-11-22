@@ -124,6 +124,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }, [guest]);
   const found = useMemo(() => pickedTechs ?? [], [pickedTechs]);
   const info = useMemo(() => new Map([...found, ...pool].map((t) => [t.id, t])), [pool, found]);
+  const [log, setLog] = useState<string[]>([]); // 이 화면에서 판을 바꾼 일(알림 글)
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   // B2 확정 = 설계선 긋기: 실제 선은 그대로 두고 덧칠 선만 한 번 그었다가 사라진다. 같은 확정 id(같은 내용 다시 확정, 불변 3)면 긋지 않는다
   const [drawing, setDrawing] = useState(false);
@@ -179,7 +180,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
     push(next, nm, merge);
     if (nm !== undefined) setTemplateId(null);
-    if (message) say(message); else clear();
+    if (message) { say(message); setLog((l) => [...l.slice(-49), message]); } else clear();
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
   /** 막힌 단추 한 벌(P-12h S4, page.css): aria-disabled + 누르면 이유 글. disabled와 달리 Tab으로 닿아 이유를 들을 수 있다 */
@@ -313,6 +314,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         picked: picked?.kind === "tech" && picked.stageId === s.id && picked.techId === t.id,
         onPick: () => { setPicked({ kind: "tech", stageId: s.id, techId: t.id }); openDrawer(); },
         onRemove: () => apply(removeTech(g, s.id, t.id), removeSaid(s.name, t.name)),
+        onOpen: () => router.push(`/tech/${t.id}`), // 같은 탭(초안은 바뀔 때마다 이 브라우저에 저장돼 있음)
         onCandidate: info.has(t.id) ? undefined : () => void markCandidate(t.id, t.name) } });
   });
   const techName = (end: string) => { const { techId, stageId } = splitEnd(end); return stageOf(stageId)?.techs.find((t) => t.id === techId)?.name ?? ""; };
@@ -467,7 +469,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>

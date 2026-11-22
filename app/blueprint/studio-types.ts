@@ -25,6 +25,7 @@ export type PanelProps = {
   /** 손님 서랍 = 지도에서 담은 기술(P-12h-2 T3, 이 브라우저 목록). techs undefined = 읽는 중, null = 못 읽음. ids = 담은 수(공개 목록에서 빠진 것 세기) */
   guestPicks?: { ids: string[]; techs: PoolTech[] | null | undefined; remove: (techId: string) => void };
   /** 선 사이에 단계 넣기(U2, 캔버스 선 위 +의 키보드 짝): 옅은 블록을 연다. 캔버스가 없으면(목록 모드) 없음 */ onInsert?: (from: string, to: string) => void;
+  /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[];
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

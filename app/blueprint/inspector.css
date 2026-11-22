@@ -12,3 +12,6 @@
 .insp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .insp-note textarea { box-sizing: border-box; width: 100%; min-height: 72px; padding: var(--sp-2); font: inherit; font-size: var(--fs-sm); border: 1px solid var(--ink-2); border-radius: var(--r-md); resize: vertical; }
 .insp-links { list-style: none; margin: var(--sp-1) 0; padding: 0; display: grid; gap: var(--sp-1); } /* 앞 · 다음 단계 + 끊기(P-12h S3) */
+/* 기술 탭(P-12j H3): 하단 패널 탭과 같은 모양(.dock-tab), 칸은 지도 사이드 패널 .side-facts */
+.insp-tabs { display: grid; gap: var(--sp-2); margin: 0 0 var(--sp-3); }
+.insp-tabs .side-facts { margin: 0; }

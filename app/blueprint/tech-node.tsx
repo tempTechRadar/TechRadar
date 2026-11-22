@@ -8,14 +8,14 @@ import { TechChip, TYPE_KO } from "./tech-chip";
 
 export type TechData = {
   tech: BlueprintTech; info?: PoolTech; picked: boolean; fresh: boolean; readOnly: boolean; busy: boolean;
-  onPick: () => void; onRemove: () => void; onCandidate?: () => void;
+  onPick: () => void; onRemove: () => void; onCandidate?: () => void; /** 두 번 누르기 = 기술 상세(H3) */ onOpen?: () => void;
 };
 export type TechNodeType = Node<TechData, "tech">;
 
 export function TechNode({ data }: NodeProps<TechNodeType>) {
   const { tech, info, readOnly } = data, type = info?.type ?? "";
   return (
-    <div className="tn">
+    <div className="tn" onDoubleClick={readOnly ? undefined : data.onOpen} title={readOnly ? undefined : "두 번 누르면 기술 상세"}>
       <Handle type="target" position={Position.Left} className="tn-handle" isConnectable={!readOnly} aria-label={`${tech.name}로 오는 관계 표시`} />
       <TechChip tech={tech} info={info} fresh={data.fresh} picked={data.picked} busy={data.busy} drag
         onPick={readOnly ? undefined : data.onPick} onRemove={readOnly ? undefined : data.onRemove} onCandidate={readOnly ? undefined : data.onCandidate} />
