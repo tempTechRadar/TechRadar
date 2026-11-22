@@ -1,5 +1,5 @@
 "use client";
-// 청사진 에디터 왼쪽 Library(P-12j H1, 전엔 하단 패널 P-12e 조각 K): 폭 250 · 접기, 탭 = 기술 | 불러오기(P-12h S1: 단계 칸이 없어져 탭을 둘로).
+// 청사진 스튜디오 하단 패널(P-12e 조각 K, 유니티 Project 창식): 높이 조절 · 접기, 탭 = 기술 | 불러오기 | 검증 | 변경 이력(P-12j: H1의 좌우 고정 패널을 되돌리고 검증만 아래 탭으로, 11-22 사용자).
 // 기술 = 기술 트리(tech-tree-tab.tsx, S2: 폴더 · 카드 — 관문 · 단계 거르기 · 내 태그 · ?add= 강조 · 끌기 · 넣기는 그쪽). 불러오기 = 템플릿(template-tab) · 내 이력 · 질문으로 틀 만들기.
 // AI 점검은 위 막대 "확정 · 내보내기" 창으로 옮김. 그래프는 apply로만 바꾼다.
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -11,27 +11,41 @@ import { TemplateTab } from "./template-tab";
 import type { PanelProps } from "./studio-types";
 import "./dock.css";
 
-type Tab = "tech" | "load";
-const TABS: [Tab, string][] = [["tech", "기술"], ["load", "불러오기"]];
+export type DockTab = "tech" | "load" | "check" | "changes";
+const TABS: [DockTab, string][] = [["tech", "기술"], ["load", "불러오기"], ["check", "검증"], ["changes", "변경 이력"]];
+const H = { min: 120, start: 260, step: 24, max: 560 };
+/** 높이 한도 = 화면 높이의 70%. 서버는 화면을 몰라 기본값으로 그리고, 붙은 뒤(useEffect) 맞춘다(하이드레이션 어긋남 없게) */
+function useMaxH() {
+  const [max, setMax] = useState(H.max);
+  useEffect(() => {
+    const fit = () => setMax(Math.max(H.min, Math.round(window.innerHeight * 0.7)));
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+  return max;
+}
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
-/** listEdit = 넓은 화면의 목록 편집 켜기(탭 줄 끝 작은 링크). 좁은 화면은 늘 목록이라 없음 */
-export function Library({ listEdit, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void } }) {
-  const [tab, setTab] = useState<Tab>("tech");
+/** listEdit = 넓은 화면의 목록 편집 켜기(탭 줄 끝 작은 링크). 좁은 화면은 늘 목록이라 없음.
+ *  check = 검증 탭 내용(확정 창과 같은 "고칠 것"), ask = 위 막대 "검증"을 누른 횟수(늘면 펼쳐 검증 탭으로) */
+export function Dock({ listEdit, check, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void }; check?: { problems: string[]; ask: number } }) {
+  const [tab, setTab] = useState<DockTab>("tech");
   const [open, setOpen] = useState(true);
-  // 접기 · 펼치기 단추는 서로 바뀌어 사라진다: 누른 뒤에만 새 단추로 초점(처음 그릴 때는 안 뺏음)
-  const box = useRef<HTMLElement>(null), flipped = useRef(false);
-  useEffect(() => { if (flipped.current) { flipped.current = false; box.current?.querySelector<HTMLElement>(".dock-tab[aria-expanded]")?.focus(); } }, [open]);
-  const flip = (v: boolean) => { flipped.current = true; setOpen(v); };
+  const ask = check?.ask ?? 0;
+  useEffect(() => { if (ask) { setTab("check"); setOpen(true); } }, [ask]);
+  const [h, setH] = useState(H.start);
   const usage = useMemo(() => usageOf(p.history ?? []), [p.history]);
   const [extras, setExtras] = useState<TreeExtras | undefined>(undefined);
   // 기술 트리의 관심 · 보류: 탭을 바꾸거나 접어도 다시 읽지 않고, 서랍을 다시 읽을 때(고르기 뒤 새로 고침)만 다시 읽는다
   useEffect(() => { if (!p.guest) treeExtrasAction().then(setExtras, () => setExtras({ kind: "error" })); }, [p.guest, p.pool]);
-  if (!open) return <aside ref={box} className="dock dock-shut" aria-label="Library"><button type="button" className="dock-tab" aria-expanded={false} onClick={() => flip(true)}>기술 ▶</button></aside>;
+  const max = useMaxH();
+  const clamp = (v: number) => Math.min(max, Math.max(H.min, Math.round(v)));
   return (
-    <section ref={box} className="dock" aria-label="Library">
+    <section className="dock" aria-label="하단 패널" style={{ height: open ? Math.min(h, max) : undefined }}>
+      {open ? <Resizer h={Math.min(h, max)} max={max} onH={(v) => setH(clamp(v))} /> : null}
       <div className="dock-bar">
-        <div className="dock-tabs" role="group" aria-label="Library 보기">
+        <div className="dock-tabs" role="group" aria-label="하단 패널 보기">
           {TABS.map(([k, name]) => (
             <button key={k} type="button" className="dock-tab" aria-pressed={tab === k} onClick={() => { setTab(k); setOpen(true); }}>
               {name}
@@ -40,13 +54,30 @@ export function Library({ listEdit, ...p }: PanelProps & { listEdit?: { on: bool
         </div>
         <span className="dock-end">
           {listEdit ? <ListEditLink {...listEdit} /> : null}
-          <button type="button" className="dock-tab" aria-expanded onClick={() => flip(false)}>◀ 접기</button>
+          <button type="button" className="dock-tab" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "접기 ▼" : "펼치기 ▲"}</button>
         </span>
       </div>
-      <div className="dock-body">
-        {tab === "tech" ? <TechTreeTab {...p} usage={usage} extras={extras} /> : <LoadTab {...p} usage={usage} />}
-      </div>
+      {open ? (
+        <div className="dock-body">
+          {tab === "tech" ? <TechTreeTab {...p} usage={usage} extras={extras} /> : tab === "load" ? <LoadTab {...p} usage={usage} />
+            : tab === "changes" || !check ? <p className="muted">다음 단계(H4)에서 채워요.</p>
+            : check.problems.length ? <ul className="dock-list">{check.problems.map((x) => <li key={x}>{x}</li>)}</ul> : <p>확정을 막는 것이 없어요.</p>}
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+/** 높이 조절 막대: 끌거나(포인터) ↑ ↓ 키로 24px씩 */
+function Resizer({ h, max, onH }: { h: number; max: number; onH: (v: number) => void }) {
+  const from = useRef<{ y: number; h: number } | null>(null);
+  return (
+    <div className="dock-resize" role="separator" aria-orientation="horizontal" aria-label="하단 패널 높이" tabIndex={0}
+      aria-valuenow={h} aria-valuemin={H.min} aria-valuemax={max}
+      onKeyDown={(e) => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); onH(h + (e.key === "ArrowUp" ? H.step : -H.step)); } }}
+      onPointerDown={(e) => { from.current = { y: e.clientY, h }; e.currentTarget.setPointerCapture(e.pointerId); }}
+      onPointerMove={(e) => { if (from.current) onH(from.current.h + from.current.y - e.clientY); }}
+      onPointerUp={() => { from.current = null; }} onPointerCancel={() => { from.current = null; }} />
   );
 }
 

@@ -180,7 +180,7 @@ export function snap(r: Rect, others: Rect[], reach = GUIDE_REACH): Snapped {
 }
 
 /** 단계 크기는 화면이 잰다(sizeOf로 넘김). 못 재면 이 값 */
-export const NODE_SIZE: Size = { w: 288, h: 112 }; // P-12h-2 T1: 카드 폭 260~320
+export const NODE_SIZE: Size = { w: 208, h: 112 }; // P-12j(11-22 사용자): 글자는 크게 · 폭과 간격은 좁게 → 1440 화면에 단계 6개가 0.9배 이상
 /** 붙을 자리를 보여 주는 가장자리 사이 거리(px) */
 export const LINK_REACH = 160;
 const edgeGap = (a: Rect, b: Rect) =>
@@ -299,18 +299,18 @@ export function removeLink(g: Graph, from: string, to: string): Graph {
 
 /** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수.
  *  P-12h-2 T1: 카드를 키워 320 · 160 → 384 · 192. DB의 v1 → v2 변환(SQL 202611221000)은 옛 값 그대로 둔다(이미 바뀐 판을 다시 옮기지 않게) */
-export const LAYOUT = { x: 384, y: 192 } as const;
+export const LAYOUT = { x: 248, y: 160 } as const; // 열 사이 40(폭 208). 같은 열은 상자 높이 + 32, 적어도 160
 /** 단계 = 컨테이너(P-12j H2): 머리 아래 기술 노드가 한 줄에 하나씩. 화면(stage-node · tech-node CSS)이 같은 값을 쓴다 */
-export const BOX = { head: 40, row: 46, pad: 12, note: 40, tech: { x: 12, w: NODE_SIZE.w - 24, h: 40 } } as const;
+export const BOX = { head: 48, row: 54, pad: 12, note: 40, tech: { x: 10, w: NODE_SIZE.w - 20, h: 48 } } as const;
 /** 단계 상자 높이: 기술이 없어도 한 줄(놓을 자리 안내), 메모가 있으면 두 줄 더 */
 export const stageHeight = (s: Pick<Stage, "techs" | "note">): number => BOX.head + Math.max(1, s.techs.length) * BOX.row + BOX.pad + (s.note ? BOX.note : 0);
 /** 단계 안 i번째 기술 노드 자리(단계 왼쪽 위 기준) */
 export const techSlot = (i: number): Pos => ({ x: BOX.tech.x, y: BOX.head + i * BOX.row });
 /** 단계 안 y(단계 기준)에 놓으면 몇 번째 자리인지(0 ~ n) */
 export const slotAt = (y: number, n: number): number => Math.max(0, Math.min(n, Math.round((y - BOX.head) / BOX.row)));
-/** 깊이마다 열. 같은 열은 상자 높이만큼 쌓되(사이 48) 적어도 LAYOUT.y 칸, 열마다 가운데 맞춤. 모든 값이 8의 배수 */
+/** 깊이마다 열. 같은 열은 상자 높이만큼 쌓되(사이 32) 적어도 LAYOUT.y 칸, 열마다 가운데 맞춤. 모든 값이 8의 배수 */
 function placeLevels(levels: string[][], heightOf: (id: string) => number): Map<string, Pos> {
-  const step = (id: string) => Math.max(LAYOUT.y, Math.ceil((heightOf(id) + 48) / GRID) * GRID);
+  const step = (id: string) => Math.max(LAYOUT.y, Math.ceil((heightOf(id) + 32) / GRID) * GRID);
   const total = (col: string[]) => col.reduce((n, id) => n + step(id), 0);
   const tallest = Math.max(0, ...levels.map(total));
   const at = new Map<string, Pos>();

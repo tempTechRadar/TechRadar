@@ -50,7 +50,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       </header>
       {/* 기술 노드(자식)가 놓일 자리: 높이는 graph.ts stageHeight와 같다. 끄는 동안 다음 자리에 점선 윤곽(B4) */}
       <div className="sn-slots" style={{ height: Math.max(1, stage.techs.length + (over && !full && stage.techs.length ? 1 : 0)) * BOX.row }}>
-        {stage.techs.length ? null : <p className="sn-empty">왼쪽에서 기술을 끌어 놓아요</p>}
+        {stage.techs.length ? null : <p className="sn-empty">아래에서 기술을 끌어 놓아요</p>}
         {over && !full ? <i className="sn-slot-ghost" aria-hidden="true" style={{ top: stage.techs.length * BOX.row }} /> : null}
       </div>
       {/* 단계 메모(T2): 칩 아래 두 줄로 줄여 옅게. 누르면 서랍 메모 칸. 읽기 전용이면 글만 */}
