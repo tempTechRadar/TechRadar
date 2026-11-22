@@ -572,6 +572,10 @@
 | 열린 질문 | ① `night-rls-more`의 RLS 시험 SQL(미실행)을 살려 운영에서 돌릴지는 사용자 허가 필요. ② 루트 `supabase/seed/`는 버림 후보, P-2 "시드" 남은 것을 닫을지 팀 결정 |
 
 **결과:** 점검 ✅58·🟡18·❌2·➖1·❔7을 Maestro에 보고(고치지 않음). 승인 뒤 README·plan(리뷰어 28행·P-21·P-22·P-2)·체크리스트·erd 2.7절·`sim/README.md`·data-sources 약관·인터뷰 A 동의 칸·위키 7쪽(사용자 확인한 계획대로)·wiki-chat Q5 판정 칸을 고침. cherry-pick 1(#194·#199 운영 점검), 루트 기록 11줄 살림. 기록 검사 8/8, 단위 시험 1270 통과. 열린 질문 ①②는 그대로(사람 결정). 푸시는 DataCollector가 #203 묶음에 얹을 때
+
+**11-22 덧붙임(문서 PR):** 사용자가 문서 PR을 승인(Maestro 전달 11-22 19:40). origin/main f1d091f를 합침(ia.md 충돌 1곳: IA-20은 main, IA-21은 이 브랜치가 바꿔 양쪽을 살림, 바뀐 기록은 두 줄 모두). ADR 0039(움직임은 기록이 생긴 순간에 한 번) · ADR 0040(청사진 한 화면 · 기술 트리 · 장바구니 담기)을 더하고 ADR 0030 · 0035에 개정 표시, GLOSSARY 4개 말, 데이터설계 · erd 단계 메모와 M5, design.md 4절, IA-10 · IA-24 · UJ-C5 · 짧은 여정 D · PRD-F46 한 줄씩, agents 4줄 · connectors 1줄. 운영 SELECT로 M5 · 메모 마이그레이션 적용을 확인. U1 · U2는 #206(열림)이라 문서에 "#206"으로 표시. 시험은 몰아서 한 번(11-22 사용자 규칙).
+
+**11-22 밤 덧붙임(문서 미리 준비, 로컬 커밋만):** Maestro 요청으로 ADR 0041(프로젝트 관리 보드, ADR 0037 개정) · ADR 0042(청사진 Hybrid Editor, ADR 0040 2 · 4항과 ADR 0035 단축키 개정)을 계획 기준으로 씀. GLOSSARY 5개 말, IA-2 · 5 · 9, PRD-F22, UJ-8, 데이터설계 · erd `projects` 5칸. 운영 마이그레이션 목록 SELECT로 `p12i_project_repo_meta` 적용 · `P-12j_tech_links` 미적용 확인. 구현 결과 칸은 비움. 푸시는 Maestro가 사용자 승인을 받아 알려 줄 때. 이어서 ADR 0041 결과(PR #208), P-12j 관계선 운영 적용 · 권한 시험 13항목, ADR 0042 결과(PR #209, 사용자 점검 뒤 레이아웃을 아래 패널 · 서랍으로 되돌린 것)를 채움. 푸시는 두 번 다 사용자에게 직접 확인받음.
 ## I-qa-final · 2026-11-21 · 제출 전 QA — 남은 Fail·No Run 나누기, 직접 돌리기, 사람 실행표 (QA 세션)
 - 브랜치: `docs/qa-final`(origin/main `8adb2f7`에서, `docs/qa-no-run-cleanup` 커밋 2개 cherry-pick). 코드·운영 DB 쓰기 없음, 푸시 안 함
 - 출처: Maestro 지시(11-21), `rules/qa.md`, `docs/qa.md`·`docs/qa-c.md`, 사전 허가 D(운영 DB 읽기)
