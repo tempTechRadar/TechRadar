@@ -58,7 +58,7 @@ test("내 기술 카드는 프로젝트로 거르면 그 프로젝트만 거는 
 
     assert.equal(listed, summary.techCount, JSON.stringify(params));
   }
-  assert.equal(summarizeDashboard({ alerts, techs, params: {}, now }).links.techs, "/projects");
+  assert.equal(summarizeDashboard({ alerts, techs, params: {}, now }).links.techs, "/dashboard#techs");
 });
 
 test("내 기술 카드 주소에는 프로젝트만 싣고(기간·상태·종류는 안 싣고), 주소에 쓰는 글자가 섞여도 값이 그대로 간다", () => {
@@ -66,7 +66,7 @@ test("내 기술 카드 주소에는 프로젝트만 싣고(기간·상태·종�
   const odd = "a&b#c d%e+f";
   const oddProject = summarizeDashboard({ alerts, techs, params: { project: odd }, now });
 
-  assert.equal(manyFilters.links.techs, "/projects?project=proj-a");
+  assert.equal(manyFilters.links.techs, "/dashboard?project=proj-a#techs");
   assert.equal(new URL(oddProject.links.techs, "http://x").searchParams.get("project"), odd);
 });
 
