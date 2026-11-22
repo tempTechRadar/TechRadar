@@ -57,3 +57,17 @@ test("이력의 graph 칸: v2 겉모양이면 그대로, 옛 확정본(null)·�
   assert.deepEqual(readStoredGraph(g), g);
   for (const bad of [null, undefined, { v: 1, stages: [], edges: [] }, { v: 2, stages: {} }, "x"]) assert.equal(readStoredGraph(bad), null);
 });
+
+test("내보내기에 단계 메모(T2): 프롬프트 · 메타는 번호 줄 아래 '메모:', 같은 순서 여럿이면 이름, CLAUDE.md는 메모 칸", () => {
+  const b = fromNames([["기획"], ["디자인", "개발"]]);
+  b[0][0].note = "인터뷰\n먼저";
+  b[1][1].note = "타입 먼저";
+  const p = exportText("prompt", "x", b);
+  assert.match(p, /1\. 기획\n   메모: 인터뷰 먼저\n2\./);
+  assert.match(p, /동시에 진행\n   메모\(개발\): 타입 먼저/);
+  assert.match(exportText("meta", "x", b), /메모: 인터뷰 먼저/);
+  const md = exportText("md", "x", b);
+  assert.match(md, /\| 순서 \| 단계 \| 쓸 도구 \| 메모 \|/);
+  assert.match(md, /\| 1 \| 기획 \| - \| 메모: 인터뷰 먼저 \|/);
+  assert.match(md, /\| 2 \| 디자인 \| - \| - \|/);
+});

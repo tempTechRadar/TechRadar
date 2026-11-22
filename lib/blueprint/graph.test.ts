@@ -278,3 +278,19 @@ test("초안 읽기: 단계 0개도 읽고, 모양 · id · 연결선 · 개수 
   assert.match(reason({ ...base(), edges: [{ from: "s0", to: "s1" }, { from: "s1", to: "s0" }] }), /고리를 이뤄요: s[01] → s[01] → s[01]/);
   assert.equal(reason({ ...base(), edges: [{ from: "s0", to: "s1" }] }), "OK");
 });
+
+test("단계 메모(T2): 읽을 때 200자 · 앞뒤 공백, 비거나 글이 아니면 키 없음 · 판은 그대로, setStageNote · toBoardView가 나름", async () => {
+  const { setStageNote, STAGE_NOTE_MAX } = await import("./graph.ts");
+  const st = (note: unknown) => ({ v: 2, stages: [{ id: "s1", name: "기획", x: 0, y: 0, techs: [], note }], edges: [] });
+  const read = (note: unknown) => { const r = parseGraph(st(note)); assert.ok(r.ok); return r.graph.stages[0]; };
+  assert.equal(read("  사용자 인터뷰 먼저  ").note, "사용자 인터뷰 먼저");
+  assert.equal(read("가".repeat(250)).note?.length, STAGE_NOTE_MAX);
+  assert.equal("note" in read("   "), false);
+  assert.equal("note" in read(42), false);
+  const g = { v: 2 as const, stages: [read(undefined)], edges: [] };
+  const withNote = setStageNote(g, "s1", " 메모 ");
+  assert.equal(withNote.stages[0].note, "메모");
+  assert.equal(setStageNote(withNote, "s1", "메모"), withNote, "같으면 같은 판(되돌리기 칸이 안 생김)");
+  assert.equal("note" in setStageNote(withNote, "s1", "").stages[0], false);
+  assert.equal(toBoardView(withNote)?.[0][0].note, "메모");
+});

@@ -48,3 +48,8 @@ test("손님 초안: 처음 판에서 고친 것만 가져오자고 묻는다(�
   assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: fromV1(fromNames([["리서치"], ["개발"]])) }), blank), null);
   assert.equal(guestOffer(JSON.stringify({ name: "손님 판", graph: edited }), blank)?.name, "손님 판");
 });
+
+test("초안 contentKey(T2): 메모만 바뀌어도 다른 내용", () => {
+  const g: Graph = { v: 2, stages: [{ id: "a", name: "기획", x: 0, y: 0, techs: [] }], edges: [] };
+  assert.notEqual(contentKey(["이름"], g), contentKey(["이름"], { ...g, stages: [{ ...g.stages[0], note: "먼저 인터뷰" }] }));
+});
