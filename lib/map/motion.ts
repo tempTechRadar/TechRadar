@@ -16,6 +16,8 @@ const TAU = Math.PI * 2;
 export const SWEEP_DELAY = 0.5, REVEAL = 2, GROW = 0.45, SLOWDOWN = 0.8, GLOW = 0.7;
 /** 펼친 뒤 감속이 닿는 속도(한 바퀴 초) · 파동 간격 초 · 파동이 화면 끝까지 번지는 초 · 선 뒤 잔광(여운) 각도(라디안). 11-21의 "잔잔하게" 값 */
 export const TUNE = { ambient: 22, ripple: 10, rippleGrow: 3.4, trail: 1.5 };
+/** "이번 주" 다시 보기로 날아와 닿은 점의 이름표를 진하게 두는 초(P-12g map-10) */
+export const LAND_SEC = 1.5;
 /** 처음 화면 배율(집 보기의 몇 배로 가까이 시작하는지)과 물러나는 시간 */
 export const INTRO_ZOOM = 2.4, INTRO_FLY = 1.8, INTRO_FLY_DELAY = 0.3;
 const W_FAST = TAU / REVEAL, W_SLOW = TAU / TUNE.ambient;

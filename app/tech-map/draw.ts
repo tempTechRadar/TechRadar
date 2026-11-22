@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { GLOW, grow, introducing, moving, recentlyChecked, REVEAL, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
+import { GLOW, grow, introducing, LAND_SEC, moving, recentlyChecked, REVEAL, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
@@ -264,7 +264,8 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   // 주변이 빈 점은 한 단계 낮은 배율에서도 이름(묶음만 보는 가장 먼 배율은 빼고) · 이름 단계에서는 설명까지(11-21 사용자 결정 F③)
   const alone = det < 0.4 && z >= TIER.far && !quiet ? aloneOnScreen(vis, P) : null;
   const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
-  const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
+  const justLanded = (it: Item) => now - (S.landed.get(it.id) ?? -99) < LAND_SEC; // "이번 주" 다시 보기로 방금 닿은 점: 이름(들어온 날)을 잠깐 진하게
+  const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel || justLanded(it)
     || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
@@ -284,7 +285,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) || alone?.has(it.id) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
     if (a < 0.3) continue;
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
-    label(c, name, box[0], y, 12, col("--ink"));
+    label(c, name, box[0], y, 12, col("--ink"), "left", justLanded(it) ? 700 : 400);
     if (!what) continue;
     c.globalAlpha *= solo ? 1 : Math.min(1, (det - 0.4) / 0.4 + 0.3);
     label(c, what, box[0], y + 14, 11, col("--ink-2"));

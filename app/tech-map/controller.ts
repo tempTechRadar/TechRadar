@@ -6,7 +6,7 @@ import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, 
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
 import { draw } from "./draw";
-import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
+import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
 import { introWaits, type GateState } from "@/lib/map/ready-gate";
 
 declare global { interface Window { __techradarGate?: GateState } } // 첫 화면 덮개 스크립트(ready-gate.tsx)가 남김
@@ -25,6 +25,7 @@ export type MapState = {
   handles: { id: string; x: number; y: number }[]; homeArrow: { x: number; y: number } | null; scale: () => number; base: () => number;
   /** 찾아간 기술 · 펼친 묶음 자리에 한 번 퍼지는 물결(t = 시작 시각, 카메라가 도착할 때) */ ping: { id: string; t: number } | null;
   /** 처음 보기 배율(homeCam이 정할 때 기억). 배율 단계(draw)가 이것 대비로 본다: 펼침 · 거르기만으로 단계가 바뀌지 않게 */ homeK: number;
+  /** "이번 주" 다시 보기로 날아와 제자리에 닿은 점 → 닿은 시각(이름표를 LAND_SEC 동안 진하게, P-12g map-10). 끌다 부딪혀 튕긴 점(bump)과 따로 */ landed: Map<string, number>;
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
@@ -54,7 +55,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1,
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1, landed: new Map(),
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
     base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
@@ -85,7 +86,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function rebuild(from: ((it: Item) => [number, number] | null) | null) {
     S.L = layoutMap(model, S.view);
     S.collapsed = collapsedFor(S.L);
-    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear(); arriving.clear();
+    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear(); arriving.clear(); S.landed.clear();
     if (S.sel && !S.L.byId.has(S.sel)) S.sel = "";
     const vis = visible();
     phys.sync(vis, from ? (it) => from(it as Item) : undefined);
@@ -151,8 +152,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const list = visible().filter((it): it is TechItem => it.type === "t");
     const cam = homeCam(); flyTo(cam, false);
     if (!moving(S) || !list.length) return list.length; // 움직임 줄이기 · ⚙ 끄기면 걸러 보여 주기만
-    const half = Math.hypot(S.W, S.H) / 2 / (cam.k * S.base()), ang = (it: Item) => Math.atan2(it.y, it.x);
-    [...list].sort((a, b) => ang(a) - ang(b)).forEach((it, i, all) => { // 각도 순으로 조금씩 멀리서: 레이더가 도는 차례로 꽂힌다
+    const half = Math.hypot(S.W, S.H) / 2 / (cam.k * S.base()), ang = (it: Item) => Math.atan2(it.y, it.x), at = (it: TechItem) => Date.parse(it.node.addedAt ?? "") || 0;
+    [...list].sort((a, b) => at(a) - at(b) || ang(a) - ang(b)).forEach((it, i, all) => { // 실제로 들어온 순서(오래된 것 먼저)로 조금씩 멀리서: 다시 보기가 사실 순서대로 꽂힌다(P-12g map-10)
       const b = phys.B.get(it.id), r = half * (1.15 + (0.9 * i) / all.length);
       if (b) Object.assign(b, { x: cam.x + Math.cos(ang(it)) * r, y: cam.y + Math.sin(ang(it)) * r, vx: 0, vy: 0 });
       arriving.set(it.id, [it.x, it.y]);
@@ -163,7 +164,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function landArrivals(now: number) {
     for (const [id, [x, y]] of arriving) {
       const b = phys.B.get(id);
-      if (!b || Math.hypot(b.x - x, b.y - y) < 4) { if (b) b.bump = now; arriving.delete(id); }
+      if (!b || Math.hypot(b.x - x, b.y - y) < 4) { if (b) { b.bump = now; S.landed.set(id, now); } arriving.delete(id); }
     }
   }
   /** 보기 초기화: 맨 처음 화면으로(묶기·색·필터·분류만 보기·펼침·카메라 모두, 사용자 11-20) */
@@ -267,6 +268,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (phys.busy()) { if (S.still) for (let i = 0; i < 40 && phys.busy(); i++) phys.step(1 / 60, now, true); else phys.step(dt, now, false); anim = true; }
     if (arriving.size) landArrivals(now);
     if (S.ping && now - S.ping.t < 1.4) anim = true;
+    for (const t of S.landed.values()) if (now - t < LAND_SEC) { anim = true; break; } // 진한 이름표가 제 세기로 돌아올 때까지
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
     const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
