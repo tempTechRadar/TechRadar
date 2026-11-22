@@ -6,6 +6,28 @@
 
 ---
 
+## I-P-12j-links-core · 2026-11-22 · 청사진 Hybrid Editor H2 미리 준비: 기술 관계선 · 순서 · 옮기기 순수 함수 + DB (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12j-links-core`(`feat/P-12j-hybrid-editor` b729a1c에서 갈라짐, 나중에 DevAssi2 쪽으로 합침)
+- 출처: 계획 `p12j-hybrid-editor.md` H2(사용자 결정 "제출 전 전부") · 데이터 정직성 규칙 1 · 5, Maestro 배정, 불변 2 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | H2 캔버스(DevAssi2)가 단계 안 기술 순서 · 단계 사이 옮기기 · 기술 관계선을 쓰려면 그래프 함수와 저장(DB가 links를 버리지 않게)이 먼저 있어야 한다 |
+| 기대 결과 | graph에 `links: [{from, to}]`(끝 = "기술id@단계id"), 없는 기술 · 자기 자신 · 겹침을 빼고 100개까지. 순서 바꾸기 · 옮기기(putProblem 재사용) · 긋기 · 끊기 순수 함수, 내보내기 "사용자 표시 관계: A → B". DB `blueprint_graph_clean`이 같은 규칙으로 links를 지킴 |
+| 영향 범위 | `lib/blueprint/{graph,panel-view,export-text,draft}.ts`, 새 시험 `lib/blueprint/tech-links.test.ts`, `supabase/migrations/202611232200_P-12j_tech_links.sql`, `supabase/tests/tech_links_p12j.sql`. `app/blueprint/*`는 건드리지 않음 |
+| 제약 | 관계선은 사용자가 그은 표시라 "검증 · 호환"으로 부르지 않는다. 새 라이브러리 없음. 운영 적용 안 함(사용자 승인 뒤 Maestro). 시험은 고친 곳만 |
+| 열린 질문 | 지난 확정과 달라진 것(graph-diff)에 관계선 바뀜도 보일지 — H4 변경 이력과 함께 |
+
+**결정 · 이유:**
+- 맞지 않는 관계선은 판을 거절하지 않고 그 선만 뺀다(화면 · DB 같음): 기술이 관문에서 빠지거나 단계가 지워져도 확정이 막히지 않게, 단계 메모와 같은 방식.
+- 관계선이 없으면 `links` 키를 두지 않는다: 옛 판 · 옛 시험 · 초안 비교 키(contentKey)가 그대로.
+- 템플릿: 조합은 관계선을 남기고(개인 글 아님, 계획 추천), 틀은 기술을 비우므로 끝이 없어 빠진다. `save_blueprint_template`은 이미 graph_clean을 거치므로 고치지 않음.
+- 기술을 다른 단계로 옮기면 그 기술 끝의 관계선이 새 단계로 따라간다(사용자가 그은 표시를 잃지 않게). 템플릿 적용은 새 단계 id로 바꿔 단다.
+- 내보내기 프롬프트 · CLAUDE.md는 `exportText(..., rel = linkLines(g))`로 줄을 붙이고, Mermaid는 그 기술이 든 단계끼리 점선 `-.->|"사용자 표시 관계: A → B"|`.
+
+**결과:** tsc 통과, 고친 곳 시험 80개 통과(tech-links 7 · graph · panel-view · draft · stored · blueprints · blueprint-templates · migration-numbers).
+**확인하지 못함:** 마이그레이션 · 권한 시험 SQL 실제 실행(운영 적용은 사용자 승인 뒤, 시험도 그때), 화면(H2는 DevAssi2), 전체 시험 · 빌드(마지막에 몰아서).
+
 ## I-P-12j-hybrid-editor · 2026-11-22 · 청사진 Hybrid Editor H1: 에디터 레이아웃 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12j-hybrid-editor`(#206 `feat/P-12h-blueprint-revamp` dee2c96 + origin/main, worktree `p12h-map-cart`, 로컬, 미푸시)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12j-hybrid-editor.md` H1 + Maestro 데이터 정직성 규칙 5가지, Maestro 배정. 단계마다 사용자 점검(H1 → H5)
