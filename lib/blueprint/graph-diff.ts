@@ -5,6 +5,7 @@ import type { Graph, Stage } from "./graph.ts";
 export type GraphDiff = {
   addedStages: string[]; removedStages: string[]; renamed: { from: string; to: string }[];
   techs: { stage: string; added: string[]; removed: string[] }[]; addedEdges: string[]; removedEdges: string[]; notes: string[];
+  /** 기술 관계 표시(P-12j H4, 사용자가 그은 선): "A → B" */ addedLinks: string[]; removedLinks: string[];
 };
 
 /** next 단계 id → 맞는 prev 단계 */
@@ -24,7 +25,7 @@ export function graphDiff(prev: Graph, next: Graph): GraphDiff {
   const prevToNext = new Map([...m].map(([n, p]) => [p.id, n]));
   const nameOf = (g: Graph) => new Map(g.stages.map((s) => [s.id, s.name]));
   const pn = nameOf(prev), nn = nameOf(next);
-  const d: GraphDiff = { addedStages: [], removedStages: [], renamed: [], techs: [], addedEdges: [], removedEdges: [], notes: [] };
+  const d: GraphDiff = { addedStages: [], removedStages: [], renamed: [], techs: [], addedEdges: [], removedEdges: [], notes: [], addedLinks: [], removedLinks: [] };
   for (const s of next.stages) {
     const p = m.get(s.id);
     if (!p) { d.addedStages.push(s.name); continue; }
@@ -44,6 +45,16 @@ export function graphDiff(prev: Graph, next: Graph): GraphDiff {
     const a = prevToNext.get(e.from), b = prevToNext.get(e.to);
     if (!a || !b || !nextEdges.has(key(a, b))) d.removedEdges.push(`${pn.get(e.from)} → ${pn.get(e.to)}`);
   }
+  // 관계선 끝 "기술id@단계id": 옛 끝의 단계 id를 맞춘 새 단계 id로 바꿔 비교, 글은 기술 이름
+  const techName = (g: Graph, end: string) => { const at = end.lastIndexOf("@"); return g.stages.find((s) => s.id === end.slice(at + 1))?.techs.find((t) => t.id === end.slice(0, at))?.name ?? "이름 모름"; };
+  const toNext = (end: string) => { const at = end.lastIndexOf("@"), s = prevToNext.get(end.slice(at + 1)); return s ? `${end.slice(0, at)}@${s}` : null; };
+  const prevLinks = new Set((prev.links ?? []).flatMap((l) => { const a = toNext(l.from), b = toNext(l.to); return a && b ? [key(a, b)] : []; }));
+  const nextLinks = new Set((next.links ?? []).map((l) => key(l.from, l.to)));
+  for (const l of next.links ?? []) if (!prevLinks.has(key(l.from, l.to))) d.addedLinks.push(`${techName(next, l.from)} → ${techName(next, l.to)}`);
+  for (const l of prev.links ?? []) {
+    const a = toNext(l.from), b = toNext(l.to);
+    if (!a || !b || !nextLinks.has(key(a, b))) d.removedLinks.push(`${techName(prev, l.from)} → ${techName(prev, l.to)}`);
+  }
   return d;
 }
 
@@ -58,5 +69,7 @@ export function diffLines(d: GraphDiff): string[] {
     ...(d.addedEdges.length ? [`이음: ${list(d.addedEdges)}`] : []),
     ...(d.removedEdges.length ? [`끊음: ${list(d.removedEdges)}`] : []),
     ...(d.notes.length ? [`메모 바뀜: ${list(d.notes)}`] : []),
+    ...(d.addedLinks.length ? [`관계 표시 그음: ${list(d.addedLinks)}`] : []),
+    ...(d.removedLinks.length ? [`관계 표시 지움: ${list(d.removedLinks)}`] : []),
   ];
 }

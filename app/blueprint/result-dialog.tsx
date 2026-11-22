@@ -16,7 +16,7 @@ const flow = (b: Board) => b.map((c) => c.map((s) => s.name).join(" + ")).join("
  *  null = 확정한 적 없음, "unknown" = 이력을 읽지 못함(확정한 적 없음과 다르게, 불변 2) */
 export type CheckTarget = { id: string; label: string } | null | "unknown";
 type Props = {
-  name: string; board: Board | null; graph: Graph; problems: string[]; projects: { id: string; name: string }[];
+  name: string; board: Board | null; graph: Graph; problems: string[]; /** 확정은 막지 않고 알려만 주는 것(검증, P-12j H4) */ notices: string[]; projects: { id: string; name: string }[];
   /** 지난 확정과 달라진 것(T4): 줄 목록(빈 배열 = 같음), null = 처음 확정, "unknown" = 이력을 못 읽음(불변 2) */ changes: string[] | null | "unknown";
   busy: boolean; error: string; guest: boolean; check: CheckTarget;
   onConfirm: (projectId: string | null) => void; onLogin: () => void; say: (m: string) => void; onClose: () => void;
@@ -35,6 +35,7 @@ export function ResultDialog(p: Props) {
       <div className="rd">
         <p><b>{p.name}</b>{p.board ? <> · {flow(p.board)}</> : null}</p>
         {p.problems.length ? <div className="notice notice-error" role="status"><strong>확정하려면 고칠 것</strong><ul>{p.problems.map((x) => <li key={x}>{x}</li>)}</ul></div> : null}
+        {p.notices.length ? <div className="notice" role="status"><strong>알아 둘 것(확정은 돼요)</strong><ul>{p.notices.map((x) => <li key={x}>{x}</li>)}</ul></div> : null}
 
         <section aria-labelledby="rd-export">
           <h3 id="rd-export" className="rd-h">내보내기</h3>

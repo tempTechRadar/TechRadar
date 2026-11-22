@@ -36,7 +36,7 @@ const Row = ({ k, children }: { k: string; children: ReactNode }) => <><dt>{k}</
 
 export function TechTabs(p: PanelProps & { techId: string; name: string }) {
   const { techId, graph, apply, guest, guestPicks, pool, onCandidate, marking, log = [] } = p;
-  const [tab, setTab] = useState<Tab>("info");
+  const [tab, setTab] = useState<Tab>(p.checkFor?.techId === techId ? "check" : "info");
   const inPool = pool.some((t) => t.id === techId);
   const got = useInspectorTech(techId, `${techId}:${inPool}`);
   const tech = got?.ok ? got.tech : null;

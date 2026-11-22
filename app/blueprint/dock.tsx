@@ -8,6 +8,8 @@ import { fromV1 } from "@/lib/blueprint/graph";
 import { TechTreeTab } from "./tech-tree-tab";
 import { treeExtrasAction, type TreeExtras } from "./tree-actions";
 import { TemplateTab } from "./template-tab";
+import { TYPE_KO } from "./tech-chip";
+import type { Issue } from "@/lib/blueprint/validate";
 import type { PanelProps } from "./studio-types";
 import "./dock.css";
 
@@ -27,9 +29,10 @@ function useMaxH() {
 }
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
+type Check = { issues: Issue[]; ask: number; go: (t: Issue["target"]) => void };
 /** listEdit = 넓은 화면의 목록 편집 켜기(탭 줄 끝 작은 링크). 좁은 화면은 늘 목록이라 없음.
- *  check = 검증 탭 내용(확정 창과 같은 "고칠 것"), ask = 위 막대 "검증"을 누른 횟수(늘면 펼쳐 검증 탭으로) */
-export function Dock({ listEdit, check, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void }; check?: { problems: string[]; ask: number } }) {
+ *  check = 검증 항목(validateGraph, 확정 창과 같은 함수) · ask = 위 막대 "검증"을 누른 횟수(늘면 펼쳐 검증 탭으로) · go = 항목 · 이름을 눌러 고르기 */
+export function Dock({ listEdit, check, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void }; check?: Check }) {
   const [tab, setTab] = useState<DockTab>("tech");
   const [open, setOpen] = useState(true);
   const ask = check?.ask ?? 0;
@@ -60,11 +63,41 @@ export function Dock({ listEdit, check, ...p }: PanelProps & { listEdit?: { on: 
       {open ? (
         <div className="dock-body">
           {tab === "tech" ? <TechTreeTab {...p} usage={usage} extras={extras} /> : tab === "load" ? <LoadTab {...p} usage={usage} />
-            : tab === "changes" || !check ? <p className="muted">다음 단계(H4)에서 채워요.</p>
-            : check.problems.length ? <ul className="dock-list">{check.problems.map((x) => <li key={x}>{x}</li>)}</ul> : <p>확정을 막는 것이 없어요.</p>}
+            : !check ? null : tab === "changes" ? <ChangesTab {...p} go={check.go} /> : <CheckTab {...p} check={check} />}
         </div>
       ) : null}
     </section>
+  );
+}
+
+/** 검증 탭(P-12j H4): 위 작은 줄 = 구성 요약, 아래 = 항목(막음 먼저). 항목을 누르면 그 단계 · 기술로 */
+function CheckTab({ graph, pool, guestPicks, check }: PanelProps & { check: Check }) {
+  const known = [...pool, ...(guestPicks?.techs ?? [])]; // 손님 기술은 이 브라우저 담은 목록에서
+  const kinds = new Map<string, number>();
+  for (const s of graph.stages) for (const t of s.techs) { const k = known.find((x) => x.id === t.id)?.type; const label = k ? TYPE_KO[k] ?? k : "종류 모름(서랍 밖)"; kinds.set(label, (kinds.get(label) ?? 0) + 1); }
+  const sorted = [...check.issues].sort((a, b) => Number(b.blocks) - Number(a.blocks));
+  return (
+    <>
+      <p className="muted">구성: {graph.stages.length ? graph.stages.map((s) => `${s.name} ${s.techs.length}`).join(" · ") : "단계 없음"}{kinds.size ? ` / ${[...kinds].map(([k, n]) => `${k} ${n}`).join(" · ")}` : ""}</p>
+      {sorted.length ? <ul className="dock-list dock-issues">{sorted.map((i, n) => (
+        <li key={n}>{i.target ? <button type="button" className="bp-link" onClick={() => check.go(i.target)}>{i.message}</button> : i.message}
+          {" "}<span className={i.blocks ? "dock-risky" : "muted"}>{i.blocks ? "확정을 막음" : "알림"}</span></li>
+      ))}</ul> : <p>확정을 막는 것도, 알릴 것도 없어요.</p>}
+      <p className="muted">실제로 셀 수 있는 것만 봐요(등급 · 담기 · 수집 오류 · 한도 · 고리 · 빈 단계). 호환 · 의존성은 데이터가 없어 판단하지 않아요.</p>
+    </>
+  );
+}
+
+/** 변경 이력 탭(P-12j H4): 이 화면에서 판을 바꾼 일(알림 글, 되돌린 것 포함)을 처음부터. 글에 든 단계 · 기술 이름은 눌러 고른다 */
+function ChangesTab({ graph, log = [], go }: PanelProps & { go: Check["go"] }) {
+  if (!log.length) return <p className="muted">이 화면에서 아직 판을 바꾸지 않았어요. 새로 고치면 비어요(판은 그대로).</p>;
+  const names = [...graph.stages.map((s) => ({ name: s.name, t: { stageId: s.id } })),
+    ...graph.stages.flatMap((s) => s.techs.map((x) => ({ name: x.name, t: { stageId: s.id, techId: x.id } })))];
+  return (
+    <ol className="dock-list">{log.map((m, i) => {
+      const hits = names.filter((x) => m.includes(x.name)).filter((x, j, a) => a.findIndex((y) => y.name === x.name) === j);
+      return <li key={i}>{m}{hits.map((x) => <span key={x.name}> <button type="button" className="bp-link" onClick={() => go(x.t)}>{x.name} 고르기</button></span>)}</li>;
+    })}</ol>
   );
 }
 

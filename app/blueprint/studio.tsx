@@ -7,12 +7,13 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, renameStage, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
+  applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, renameStage, fromV1, connectProblem, disconnect, layers, putTech, removeStage, removeTech, toBoardView,
   addLink, removeLink, moveTechInStage, linkEnd, slotAt, stageHeight, techSlot, BOX,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
+import { validateGraph, type Issue } from "@/lib/blueprint/validate";
 import { toBoard } from "@/lib/blueprint/stored";
 import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
 import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
@@ -93,6 +94,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드를 고르면 열림. 열면 초점이 서랍으로, 닫으면 연 자리로(P-12j H1 고정 패널은 11-22 사용자 요청으로 되돌림)
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
   const [checkAsk, setCheckAsk] = useState(0); // 위 막대 "검증"을 누른 횟수: 하단 패널을 검증 탭으로
+  const [checkFor, setCheckFor] = useState<{ techId: string; n: number } | null>(null); // 검증 항목을 누름: 그 기술의 서랍을 검증 탭으로
   // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김. at = 초점 갈 곳(카드를 눌러 연 것은 초점을 캔버스에 둠: Delete · 화살표가 그대로 되게)
   const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "insp" });
   useEffect(() => { if (drawer && drawerAt.at !== "stay") drawerBox.current?.querySelector<HTMLElement>(drawerAt.at === "note" ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
@@ -451,10 +453,17 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     e.preventDefault();
     onDelete({ nodes: [...sel].map((id) => ({ id })), edges: edges.filter((x) => selEdges.has(x.id)) });
   }
-  // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
-  const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
-  // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
-  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`아직 담지 않은 기술 ${outside.size}개 — "청사진에 담기"를 누르거나 빼 주세요.`] : [])];
+  // 검증(P-12j H4): 검증 탭과 확정 창 "고칠 것"이 같은 함수. 관문 밖 기술은 막고(DB도 거절, 손님은 관문이 없어 안 막음), 위험 · 수집 오류 · 빈 단계는 알리기만
+  const issues = validateGraph(g, info, { guest });
+  const problems = issues.filter((i) => i.blocks).map((i) => i.message), notices = issues.filter((i) => !i.blocks).map((i) => i.message);
+  /** 검증 항목 · 변경 이력 이름을 누름: 그 단계 · 기술을 고르고, 화면을 그쪽으로, 서랍을 연다(기술이면 검증 탭). 초점은 서랍으로(키보드) */
+  function goTo(t: Issue["target"]) {
+    if (!t || !stageOf(t.stageId)) return;
+    setPicked(t.techId ? { kind: "tech", stageId: t.stageId, techId: t.techId } : { kind: "stage", stageId: t.stageId }); setSel(new Set([t.stageId]));
+    if (t.techId) setCheckFor((x) => ({ techId: t.techId!, n: (x?.n ?? 0) + 1 }));
+    if (!listMode) void flow.fitView({ nodes: [{ id: t.stageId }], padding: 0.6, maxZoom: 1.1, duration: calm() ? 0 : 200 });
+    openDrawer();
+  }
   // AI 점검할 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 "먼저 확정해 주세요"로 막히지 않게, P-12h S1)
   // 새로 고친 뒤에는 이 판의 확정 id를 모르므로(확정 id는 이 화면에서만 기억) 최근 확정본이 지금 판과 같은 내용인지(단계 순서 · 이름 · 기술)를 보고 알린다
   const latest = history?.[0];
@@ -469,7 +478,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, checkFor };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -530,10 +539,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
           </section>
         )}
       </div>
-      <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} check={{ problems, ask: checkAsk }} />
+      <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} check={{ issues, ask: checkAsk, go: goTo }} />
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
-      {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} projects={projects} busy={done.busy} error={done.error} guest={guest}
+      {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} notices={notices} projects={projects} busy={done.busy} error={done.error} guest={guest}
         check={checkTarget} say={say} onLogin={() => { setConfirming(false); toLogin("확정하려면"); }}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
       {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => { setLoginAsk(null); router.push(`/login?next=${encodeURIComponent("/blueprint")}`); }} onClose={() => setLoginAsk(null)}>
