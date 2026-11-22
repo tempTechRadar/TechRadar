@@ -241,7 +241,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
-  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
+  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
 

@@ -123,7 +123,7 @@ export const SAMPLE_STATUS: StatusData = {
 };
 
 const pool = (id: string, name: string, field: string, extra: Partial<PoolTech> = {}): PoolTech =>
-  ({ id: uuid(Number(id) + 500), name, type: "mcp", grade: "pass", field, sub: null, oneLiner: `${name} 한 줄 소개`, projects: 1, mark: null, ...extra });
+  ({ id: uuid(Number(id) + 500), name, type: "mcp", grade: "pass", field, sub: null, oneLiner: `${name} 한 줄 소개`, projects: 1, mark: null, projectIds: (extra.projects ?? 1) > 0 ? ["p1"] : [], ...extra });
 const POOL = [
   pool("1", "Context7", "기획·문서"), pool("2", "Playwright MCP", "프론트엔드", { sub: "브라우저 자동화" }), pool("3", "Supabase MCP", "백엔드·데이터", { projects: 2 }),
   pool("4", "Vercel", "배포·운영"), pool("5", "mcp-remote", "업무·서비스 연동", { grade: "danger" }), pool("6", "Figma MCP", "디자인", { mark: "candidate", projects: 0 }),

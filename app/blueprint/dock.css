@@ -31,8 +31,17 @@
 .dock-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
 .dock-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); color: var(--ink); }
 .dock-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; align-items: start; }
-.dock-group { border-top: 1px solid var(--line); padding-top: 8px; }
-.dock-group > summary { min-height: var(--hit-sm); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
-.dock-group > summary:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* 기술 트리(P-12h S2, 유니티 프로젝트 창): 왼쪽 폴더 · 오른쪽 카드. 고른 폴더는 색만이 아니라 굵게 + 왼쪽 막대, 판단 전 카드는 점선 */
+.tt { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.tt-tree { list-style: none; margin: 0; padding: 4px 0; display: grid; gap: 1px; border-right: 1px solid var(--line); }
+.tt-item { display: flex; align-items: center; gap: 4px; min-height: var(--hit-sm); padding-right: 8px; border-radius: var(--r-sm); cursor: pointer; overflow-wrap: anywhere; }
+.tt-item:hover { background: var(--sunken); }
+.tt-item[aria-selected="true"] { background: var(--sunken); box-shadow: inset 3px 0 0 var(--ink); font-weight: 700; }
+.tt-item:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.tt-caret { display: inline-block; width: 1em; flex: none; color: var(--ink-2); }
+.tt-cards { min-width: 0; }
+.tt-dim { display: inline-flex; gap: 4px; align-items: center; font-size: var(--fs-sm); }
+.dock-tech.tt-out { border-style: dashed; border-color: var(--ink-2); background: var(--sunken); }
+@media (max-width: 860px) { .tt { grid-template-columns: 1fr; } .tt-tree { border-right: 0; border-bottom: 1px solid var(--line); } }
 .dock-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 860px) { .dock-cols, .dock-cols-3 { grid-template-columns: 1fr; } }

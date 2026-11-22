@@ -13,7 +13,8 @@ export type Apply = (next: Graph, say?: string, name?: string) => void;
 
 export type PanelProps = {
   graph: Graph; picked: Picked;
-  /** "질문으로 틀 만들기" 창 열기(하단 패널 불러오기 탭, P-12h S1) */ onAsk: () => void; onPick: (p: Picked) => void; apply: Apply;
+  /** "질문으로 틀 만들기" 창 열기(하단 패널 불러오기 탭, P-12h S1) */ onAsk: () => void;
+  /** 내 프로젝트(기술 트리 "프로젝트" 묶기의 폴더 이름, P-12h S2) */ projects: { id: string; name: string }[]; onPick: (p: Picked) => void; apply: Apply;
   /** 서랍 후보(내 기술 · 적용 후보 · 이력) */ pool: PoolTech[];
   /** 내 태그(기술 id → 태그). null = 읽지 못함 */ tags: Record<string, string[]> | null;
   onTags: (techId: string, tags: string[]) => void;

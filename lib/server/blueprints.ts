@@ -12,7 +12,8 @@ import { buildKanban } from "../views/kanban.ts";
 import { like } from "./capture.ts";
 import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 
-export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null };
+/** projectIds = 이 기술을 쓰는 내 프로젝트(기술 트리 "프로젝트" 묶기, P-12h S2). 카탈로그 찾기 결과에는 없음 */
+export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null; projectIds?: string[] };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 /** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 템플릿에 든 기술도 내 관문만 거친다(DB, ADR 0034 1) */
 export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown; templateId?: unknown };
@@ -21,7 +22,7 @@ export type ConfirmResult = { ok: true } | { ok: false; message: string };
 const TECH_COLUMNS = "id, display_name, type, grade, category_id, one_liner";
 const SEARCH_LIMIT = 20;
 
-const toPool = (r: Row, cats: Map<string, Category>, extra: Pick<PoolTech, "projects" | "mark">): PoolTech => {
+const toPool = (r: Row, cats: Map<string, Category>, extra: Pick<PoolTech, "projects" | "mark" | "projectIds">): PoolTech => {
   const c = categoryNames(r.category_id ?? null, cats);
   return { id: r.id, name: r.display_name, type: r.type, grade: r.grade as Grade, field: r.category_id ? c.field : null, sub: r.category_id ? c.sub : null, oneLiner: r.one_liner ?? null, ...extra };
 };
@@ -59,7 +60,7 @@ export async function readBlueprintPage(db: SupabaseClient, userId: string): Pro
   const used = (history ?? []).flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => t.id)));
   const ids = [...new Set([...perTech.keys(), ...candidates, ...used])].filter(isUuid);
   const map = catMap(cats);
-  const pool = (await readTechs(db, ids)).map((r) => toPool(r, map, { projects: perTech.get(r.id)?.size ?? 0, mark: candidates.has(r.id) ? "candidate" : null }));
+  const pool = (await readTechs(db, ids)).map((r) => toPool(r, map, { projects: perTech.get(r.id)?.size ?? 0, mark: candidates.has(r.id) ? "candidate" : null, projectIds: [...(perTech.get(r.id) ?? [])] }));
   const projects = rowsOrThrow(projRes, "프로젝트를 읽지 못함").map((p) => ({ id: p.id as string, name: p.name as string }));
   return { pool, history, projects };
 }
@@ -73,6 +74,16 @@ export function candidateIds(marks: Row[], alerts: Row[]): Set<string> {
   });
   const k = buildKanban({ mine: [], marks: marks.map((m) => ({ techId: m.tech_id, name: "", grade: "unknown", status: m.status, reason: null, updatedAt: m.updated_at })), judged });
   return new Set(k.candidate.map((c) => c.techId!));
+}
+
+/** 기술 트리(P-12h S2)의 관심 · 보류 카드에 붙일 정보(하는 일 · 세부 갈래 · 종류 · 등급): 넣을 수 있는 기술이 아니라 판단 보기용이라 projects 0 · mark null.
+ *  갈래를 못 읽으면 하는 일 · 세부 갈래만 비우고("아직 분류 안 됨") 나머지는 보인다. 기술 줄을 못 읽으면 던진다 */
+export async function readTechDetails(db: SupabaseClient, ids: string[]): Promise<PoolTech[]> {
+  const ok = ids.filter(isUuid);
+  if (!ok.length) return [];
+  const [rows, cats] = await Promise.all([readTechs(db, ok), readCategories(db).catch((e: unknown) => { console.error("기술 트리: 갈래를 읽지 못함", e instanceof Error ? e.message : e); return [] as Category[]; })]);
+  const map = catMap(cats);
+  return rows.map((r) => toPool(r, map, { projects: 0, mark: null }));
 }
 
 /** 서랍의 "카탈로그에서 찾기": 공개 목록에서 그 글자로 시작하는 이름 먼저, 그다음 들어 있는 이름(각각 이름순)으로 20개. 못 읽으면 null(빈 결과와 다르게, 불변 2) */
