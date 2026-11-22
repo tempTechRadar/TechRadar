@@ -71,6 +71,14 @@ export function grow(S: MapState, now: number, it: Item): number {
   return p <= 0 ? 0 : p >= 1 ? 1 : ease(p);
 }
 
+/** "최근 확인" 기준(팀 추정, spec 11절): 정기 확인이 하루 한 번(06:00)이라 하루 반 */
+export const RECENT_HOURS = 36;
+/** 선이 지날 때 밝아지는 점 = 수집 오류 없이 RECENT_HOURS 안에 실제로 확인한 기술(ADR 0032 3항, P-12g map-2). 확인한 적 없음 · 오래됨 · 오류는 빛나지 않는다 */
+export function recentlyChecked(n: { lastCheckedOkAt: string | null; collectErrorKind: string | null }, nowMs: number): boolean {
+  if (n.collectErrorKind || !n.lastCheckedOkAt) return false;
+  return nowMs - Date.parse(n.lastCheckedOkAt) <= RECENT_HOURS * 3_600_000; // 읽을 수 없는 시각(NaN)은 거짓
+}
+
 /** 지도 가운데에서 화면 끝까지의 거리(세계 좌표): 선 · 파동은 지도 끝이 아니라 화면 끝까지 */
 export function farWorld(S: MapState): number {
   const sc = S.scale(), ox = S.W / 2 - S.cam.x * sc, oy = S.H / 2 - S.cam.y * sc;

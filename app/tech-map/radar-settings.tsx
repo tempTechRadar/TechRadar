@@ -33,6 +33,7 @@ export function RadarSettings({ motion, still, onMotion }: { motion: Motion; sti
             {MOTION_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : motion) === v} onChange={() => onMotion(v)} /> {k}</label>)}
           </fieldset>
           {still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
+          <p className="muted">처음 연출에서 선이 지날 때 밝아지는 점은 36시간 안에 실제로 확인한 기술이에요.</p>
         </div>
       ) : null}
     </div>

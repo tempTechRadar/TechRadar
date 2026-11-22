@@ -114,6 +114,9 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
   };
 }
 
+/** 여러 프로젝트에서 쓰는 기술의 확인 시각은 가장 오래된 것(하나라도 확인한 적 없으면 없음): 지도가 "최근 확인"으로 부풀리지 않게(P-12g map-2) */
+const olderCheck = (a: string | null, b: string | null) => (!a || !b ? null : Date.parse(a) <= Date.parse(b) ? a : b);
+
 /** 내 기술을 기술마다 하나로 합친다. 등급은 가장 나쁜 것(여러 프로젝트·버전 중), 이름만 추가한 것은 이름으로 합친다 */
 function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Map<string, Category>, now: Date): Map<string, MapNode> {
   const out = new Map<string, MapNode>();
@@ -129,6 +132,7 @@ function mergeMine(input: MapInput, techById: Map<string, CatalogTech>, cats: Ma
     const n = out.get(key) ?? { ...baseNode(key, t?.name ?? m.manualName ?? "(이름 없음)", t, cats, now, input.newSince), mine: true, grade: m.grade, gradeReason: m.gradeReason, collectErrorKind: null, lastCheckedOkAt: m.lastCheckedOkAt };
     if (GRADE_RANK[m.grade] > GRADE_RANK[n.grade]) Object.assign(n, { grade: m.grade, gradeReason: m.gradeReason });
     n.collectErrorKind = n.collectErrorKind ?? m.collectErrorKind ?? t?.collectErrorKind ?? null;
+    n.lastCheckedOkAt = olderCheck(n.lastCheckedOkAt, m.lastCheckedOkAt);
     n.myTechIds.push(m.id);
     // 카탈로그가 쓰는 곳을 정하지 않았을 때만 읽은 파일로 정한다. 다른 도구 파일에서도 쓰면 "여러 도구"
     const fromFile = hostOfSource(m.sourceFile);

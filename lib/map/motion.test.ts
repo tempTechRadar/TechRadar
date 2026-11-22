@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { grow, GROW, introducing, REVEAL, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, touchAge, type MotionState } from "./motion.ts";
+import { grow, GROW, introducing, RECENT_HOURS, recentlyChecked, REVEAL, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, touchAge, type MotionState } from "./motion.ts";
 import type { Item } from "./layout.ts";
 
 const item = (id: string, x: number, y: number, parent: string | null = null) => ({ id, x, y, parent, type: "t" }) as unknown as Item;
@@ -39,4 +39,13 @@ test("펼침: 선이 지나간 순서로 떠오르되 부모보다 먼저 나오
   assert.equal(sweepAlpha(S({ motion: "off" }), t), 0);
   assert.ok(ringGrow(s, 10.05, 1) < ringGrow(s, 10.3, 1), "고리는 안쪽부터 퍼져 나옴");
   assert.ok(ringGrow(s, 10.3, 1) > ringGrow(s, 10.3, 5), "바깥 고리는 늦게");
+});
+
+test("최근 확인(선이 지날 때 빛남): 수집 오류 없이 36시간 안에 확인한 것만, 확인한 적 없음 · 오래됨 · 오류는 아님", () => {
+  const now = Date.parse("2026-11-22T12:00:00Z"), hours = (h: number) => new Date(now - h * 3_600_000).toISOString();
+  assert.equal(recentlyChecked({ lastCheckedOkAt: hours(RECENT_HOURS), collectErrorKind: null }, now), true, "36시간 딱 맞으면 최근");
+  assert.equal(recentlyChecked({ lastCheckedOkAt: hours(RECENT_HOURS + 0.01), collectErrorKind: null }, now), false, "넘으면 아님");
+  assert.equal(recentlyChecked({ lastCheckedOkAt: null, collectErrorKind: null }, now), false, "확인한 적 없음");
+  assert.equal(recentlyChecked({ lastCheckedOkAt: hours(1), collectErrorKind: "timeout" }, now), false, "수집 오류면 최근이라도 아님(불변 2)");
+  assert.equal(recentlyChecked({ lastCheckedOkAt: "읽을 수 없음", collectErrorKind: null }, now), false);
 });

@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
+import { GLOW, grow, introducing, moving, recentlyChecked, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 export const PULSE_SEC = 10;
@@ -150,6 +150,7 @@ function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
 }
 
 function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
+  const wall = Date.now(); // 최근 확인은 벽시계로(캔버스의 now는 화면이 뜬 뒤 흐른 초)
   for (const it of vis) {
     if (it.type !== "t") continue;
     const n = it.node, keep = n.mine || n.grade === "danger" || it.id === S.sel || it.id === S.focusId;
@@ -175,8 +176,8 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
     if (it.id === S.sel) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 6, 0, TAU); c.stroke(); }
-    const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 모든 점은 옅게 빛나고, 위험 · NEW는 한 번 울림
-    if (age < GLOW) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
+    const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 36시간 안에 실제로 확인한 점만 옅게 빛나고(ADR 0032), 위험 · NEW는 한 번 울림
+    if (age < GLOW && recentlyChecked(n, wall)) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
     if (sa > 0.2 && age < 0.6 && (n.grade === "danger" || n.isNew)) {
       c.strokeStyle = col(n.grade === "danger" ? "--danger" : "--ink"); c.globalAlpha = a * sa * (1 - age / 0.6); c.lineWidth = 1.5;
       c.beginPath(); c.arc(x, y, rp + 2 + age * 22, 0, TAU); c.stroke();
