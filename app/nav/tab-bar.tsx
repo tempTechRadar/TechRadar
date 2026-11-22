@@ -1,4 +1,5 @@
 // 휴대폰 아래 탭 바(11-21 사용자 결정, 화면 개편 A: 지도 · 보드 · 일지 · 청사진): 좁은 화면에서는 보는 곳 메뉴를 아래로(엄지가 닿는 곳). 넓은 화면에서는 숨김(위 메뉴와 같은 링크)
+import type { ReactNode } from "react";
 import { NavLink } from "./nav-link";
 
 const I = ({ d }: { d: string }) => (
@@ -11,12 +12,13 @@ const ICON = {
   bell: "M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4",
 };
 
-export function TabBar() {
+/** cart = 청사진 담은 수 배지(레이아웃이 만든 CartBadge) */
+export function TabBar({ cart }: { cart?: ReactNode }) {
   return (
     <nav aria-label="아래 메뉴" className="tab-bar">
       <NavLink href="/dashboard" also={["/history"]}><I d={ICON.history} />현황</NavLink>
       <NavLink href="/"><I d={ICON.map} />지도</NavLink>
-      <NavLink href="/blueprint"><I d={ICON.blueprint} />청사진</NavLink>
+      <NavLink href="/blueprint"><I d={ICON.blueprint} /><span>청사진{cart}</span></NavLink>
       <NavLink href="/alerts"><I d={ICON.bell} />알림</NavLink>
     </nav>
   );

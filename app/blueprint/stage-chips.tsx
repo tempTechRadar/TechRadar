@@ -29,7 +29,7 @@ export function StageChips({ techs, pool, marking, className, pickedTech, onPick
         );
       })}</ul>
       {/* 고르기 단추의 뜻을 마우스 풍선(title)에만 두지 않는다: 키보드 · 터치 · 화면 읽기도 누르기 전에 알게 */}
-      {out.length ? <p className="muted">점선 칩은 아직 적용 후보로 고르지 않은 기술이에요. 고르면 그 기술의 판단 대기 알림도 함께 판단되고, 고르기 전에는 확정할 수 없어요.</p> : null}
+      {out.length ? <p className="muted">점선 칩은 아직 청사진에 담지 않은 기술이에요. 담으면 그 기술의 판단 대기 알림도 함께 판단되고, 담기 전에는 확정할 수 없어요.</p> : null}
     </>
   );
 }

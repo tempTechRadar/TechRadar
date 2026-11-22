@@ -11,7 +11,8 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { readTopUsageNotes, readUsageNoteCount } from "@/lib/server/usage-notes";
 import { usingNowText } from "@/lib/views/using-now-text";
-import { MarkBar } from "../../projects/tech/[id]/mark-bar";
+import { MarkBar, MarkScope, MarkStar } from "../../projects/tech/[id]/mark-bar";
+import { GuestPick } from "@/app/tech-map/guest-pick";
 import { CatalogTechView } from "./catalog-tech-view";
 
 // 카탈로그 기술 상세(design.md 17절 2차 "지도의 모든 기술에 상세가 열림", IA-4). 머리 + 2단은 내 기술 상세와 같은 틀.
@@ -44,10 +45,12 @@ export default async function CatalogTechPage({ params }: { params: Promise<{ id
       : readUsageNoteCount(own, id).then((total) => ({ total, top: [] }), (e) => { console.error("사용기 수 조회 실패", e instanceof Error ? e.message : e); return null; }),
   ]);
   if (using && !using.ok) console.error(using.error);
-  const markBar = !user ? <p className="muted">판단(관심 · 적용 후보 · 보류)은 <Link href={`/login?next=${encodeURIComponent(`/tech/${id}`)}`}>로그인</Link>하면 남길 수 있어요.</p>
-    : mark ? <MarkBar techId={d.tech.id} grade={mark.grade} initial={mark.mark} />
+  // 손님은 지도와 같게 이 브라우저 담은 목록에 담는다(GuestPick, 서버 저장 없음). 별(관심)은 로그인한 사람만
+  const markBar = !user ? <div className="td-judge"><GuestPick techId={d.tech.id} /></div>
+    : mark ? <MarkBar />
     : <p className="notice notice-error" role="alert">내 판단 표시를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
-  return <CatalogTechView d={d} markBar={markBar} usingText={!using ? "로그인하면 이 기술을 쓰고 있는 사람 수가 보여요." : usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
+  const view = <CatalogTechView d={d} star={mark ? <MarkStar /> : null} markBar={markBar} usingText={!using ? "로그인하면 이 기술을 쓰고 있는 사람 수가 보여요." : usingNowText(using.ok ? { count: using.count, nicknames: using.nicknames } : null)} notes={notes} guest={!user} />;
+  return mark ? <MarkScope techId={d.tech.id} grade={mark.grade} initial={mark.mark}>{view}</MarkScope> : view;
 }
 
 function LoadError({ id }: { id: string }) {

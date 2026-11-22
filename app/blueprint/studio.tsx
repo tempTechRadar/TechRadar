@@ -13,14 +13,15 @@ import {
 import { fromNames } from "@/lib/blueprint/board";
 import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
 import { toBoard } from "@/lib/blueprint/stored";
-import { BLUEPRINT_GATE, recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
+import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
+import { addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
 import { pickedTechsAction } from "./actions";
 import { loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
+import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
@@ -80,8 +81,19 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const bounce = useBounce();
   // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드 "자세히"로 열림. 열면 초점이 서랍으로, 닫으면 연 자리로
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
-  const [drawerAt, setDrawerAt] = useState<{ n: number; note: boolean }>({ n: 0, note: false }); // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김
-  useEffect(() => { if (drawer) drawerBox.current?.querySelector<HTMLElement>(drawerAt.note ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
+  // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김. at = 초점 갈 곳(카드를 눌러 연 것은 초점을 캔버스에 둠: Delete · 화살표가 그대로 되게)
+  const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "insp" });
+  useEffect(() => { if (drawer && drawerAt.at !== "stay") drawerBox.current?.querySelector<HTMLElement>(drawerAt.at === "note" ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
+  // 고른 카드가 서랍에 가리면 화면을 그만큼 옮긴다(U2, 움직임 줄이기면 바로)
+  const pickedStage = picked?.stageId ?? null;
+  useEffect(() => {
+    if (!drawer || !pickedStage) return;
+    const card = document.querySelector(`.react-flow__node[data-id="${CSS.escape(pickedStage)}"]`)?.getBoundingClientRect(), box = drawerBox.current?.getBoundingClientRect();
+    const over = card && box ? card.right + 24 - box.left : 0;
+    if (over <= 0) return;
+    const vp = flow.getViewport();
+    void flow.setViewport({ ...vp, x: vp.x - over }, { duration: calm() ? 0 : 200 });
+  }, [drawer, pickedStage, flow]);
   const [editing, setEditing] = useState<string | null>(null); // 카드 위에서 이름 바꾸는 단계
   const now = useRef(graph); // 지우기 토스트의 되돌리기: 그 뒤에 판이 바뀌었는지 본다
   now.current = graph;
@@ -165,23 +177,23 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function unpickGuest(techId: string) {
     const next = removePicked(loadPicked(), techId);
     if (!savePicked(next)) return say("이 브라우저에 저장하지 못했어요. 목록은 그대로예요.");
-    setPickedIds(next); setPickedTechs((x) => x?.filter((t) => t.id !== techId) ?? x);
-    say("담은 목록에서 뺐어요. 지도에서 다시 담을 수 있어요.");
+    setPickedIds(next); setPickedTechs((x) => x?.filter((t) => t.id !== techId) ?? x); cartChanged(); // 메뉴 "청사진" 담은 수도 다시 셈(U1 배지)
+    say("청사진에서 뺐어요. 지도에서 다시 담을 수 있어요.");
   }
   /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
   const toLogin = (what: string) => setLoginAsk(what);
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
-    if (guest) return toLogin("적용 후보로 고르려면");
+    if (guest) return toLogin("청사진에 담으려면");
     if (inflight.current.has(techId) || settled.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
-    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
+    if (r.ok) { say(`${techName}을(를) 청사진에 담았어요.`); cartChanged(); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
-    if (!t || !s) return say(BLUEPRINT_GATE);
+    if (!t || !s) return say(STUDIO_GATE);
     const why = putProblem(s, t);
     if (why) return say(why);
     apply(putTech(g, stageId, { id: t.id, name: t.name }), putSaid(s.name, t.name));
@@ -199,11 +211,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** 옅은 블록에 이름을 적고 Enter: 단계 + 선을 한 번의 apply로(되돌리기 한 칸). 더한 단계를 고른 채로 */
   function commitGhost(gh: Ghost, nm: string) {
     setGhost(null);
-    const r = addStageLinked(g, nm, gh.at, gh);
+    const r = gh.cut ? insertBetween(g, nm, gh.cut.from, gh.cut.to) : addStageLinked(g, nm, gh.at, gh);
     if ("problem" in r) return say(r.problem);
     const n = r.stage.name, want = gh.before.length + gh.after.length;
     apply(r.graph, want && !r.linked ? `"${n}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).`
-      : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 더하고 이었어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
+      : gh.kind === "between" ? `${gh.of} 사이에 "${n}" 단계를 넣었어요.` : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 더하고 이었어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
     setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
   /** 옅은 블록 열기: 그 자리 순서에 맞는 추천 이름(gap = 그 번호 열 앞), 지금 초점 자리(끝나면 돌아감) */
@@ -245,10 +257,16 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (why) return say(why);
     apply(renameStage(g, id, nm), renamedSaid(nm));
   }
-  const openDrawer = (note = false) => {
+  const openDrawer = (at: "insp" | "note" | "stay" = "insp") => {
     if (!drawer) drawerFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setDrawer(true); setDrawerAt((x) => ({ n: x.n + 1, note }));
+    setDrawer(true); setDrawerAt((x) => ({ n: x.n + 1, at }));
   };
+  /** 선 사이에 단계 넣기(U2): 두 단계 가운데에 옅은 블록, 커밋하면 선을 바꿔 끼움 */
+  function insertGhost(from: string, to: string) {
+    const a = stageOf(from), b = stageOf(to), d = depthOf(to);
+    if (!a || !b) return;
+    openGhost({ at: betweenSpot(g, a, b), kind: "between", of: `"${a.name}" → "${b.name}"`, before: [from], after: [to], cut: { from, to } }, d);
+  }
   const closeDrawer = () => { const f = drawerFrom.current; (f?.isConnected && f !== document.body ? f : canvasBox.current)?.focus(); setDrawer(false); };
   /** Enter · Esc 뒤 초점: 연 곳(+ 단추)이 아직 있으면 거기, 아니면 캔버스 */
   const ghostBack = (gh: Ghost) => (gh.from?.isConnected && gh.from !== document.body ? gh.from : canvasBox.current)?.focus();
@@ -267,8 +285,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: (p) => { setPicked(p); if (p?.kind === "tech") openDrawer(); }, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
       onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
-      edit: readOnly ? undefined : { onSide: sideGhost, onDetail: (id) => { pick({ kind: "stage", stageId: id }); openDrawer(); }, onRemove: removeFromCard,
-        onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer(true); },
+      edit: readOnly ? undefined : { onSide: sideGhost, onRemove: removeFromCard, hasIn: g.edges.some((e) => e.to === s.id), hasOut: g.edges.some((e) => e.from === s.id),
+        onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
   // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다
@@ -279,6 +297,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 },
       data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
         // 속성 패널 "끊기"와 같게: 고른 단계는 그대로, 사라지는 단추 대신 캔버스로 초점
+        onInsert: readOnly ? undefined : () => { setHoverEdge(null); insertGhost(e.from, e.to); },
         onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
           apply(disconnect(g, e.from, e.to), linkSaid(g, e.from, e.to, true)); } } };
   });
@@ -307,6 +326,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       setSel(nextSel);
       const one = nextSel.size === 1 ? [...nextSel][0] : null;
       setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : null));
+      if (one && !readOnly) openDrawer("stay"); // U2(11-22 사용자): 카드를 고르면 서랍이 열림(초점은 캔버스에 남음)
     }
     if (ended) { const r = assist.drop(g, moved); apply(r.next, r.linked ? "가까이 둔 단계와 이었어요." : undefined); setDrag(null); } else if (moved !== drag) setDrag(moved);
   }
@@ -345,7 +365,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     setAsking(false); unpick(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
-  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); };
+  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
     // 카드에 초점이 있을 때 F2 · Enter = 카드 위 이름 바꾸기(React Flow는 Enter로 고르기도 한다)
@@ -359,7 +379,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
   const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
   // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
-  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
+  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`아직 담지 않은 기술 ${outside.size}개 — "청사진에 담기"를 누르거나 빼 주세요.`] : [])];
   // AI 점검할 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 "먼저 확정해 주세요"로 막히지 않게, P-12h S1)
   // 새로 고친 뒤에는 이 판의 확정 id를 모르므로(확정 id는 이 화면에서만 기억) 최근 확정본이 지금 판과 같은 내용인지(단계 순서 · 이름 · 기술)를 보고 알린다
   const latest = history?.[0];
@@ -371,10 +391,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     : history === null ? "unknown"
     : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
-  function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열림(단계만 고르면 안 열림)
+  function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>

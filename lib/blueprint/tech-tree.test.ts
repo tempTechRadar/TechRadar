@@ -5,16 +5,16 @@ import { buildTechTree, judgeTechs, pathTo, secondDims, type TreeItem } from "./
 const it = (id: string, o: Partial<TreeItem> = {}): TreeItem => ({ id, judgment: "other", field: null, sub: null, tags: [], projectNames: [], ...o });
 const names = (fs: { name: string; count: number }[]) => fs.map((f) => `${f.name} ${f.count}`);
 
-test("내 판단 폴더는 적용 후보 → 관심 → 보류 → 내 기술 → 그 외 순서 고정, 빈 폴더는 없음", () => {
+test("내 판단 폴더는 담은 기술(적용 후보) → ★ 관심 → 보류 → 내 기술 → 그 외 순서 고정, 빈 폴더는 없음", () => {
   const items = [it("a", { judgment: "mine" }), it("b", { judgment: "other" }), it("c", { judgment: "candidate" }), it("d", { judgment: "mine" })];
-  assert.deepEqual(names(buildTechTree(items, ["judgment"])), ["적용 후보 1", "내 기술 2", "그 외 1"]);
+  assert.deepEqual(names(buildTechTree(items, ["judgment"])), ["담은 기술 1", "내 기술 2", "그 외 1"]);
 });
 
 test("2단 묶기: 1단 폴더 안에 2단 폴더, 폴더 안 차례는 넘겨받은 그대로, 2단이 1단과 같으면 무시", () => {
   const items = [it("a", { judgment: "candidate", field: "프론트엔드" }), it("b", { judgment: "candidate", field: "검사·보안" }), it("c", { judgment: "mine", field: "프론트엔드" })];
   const tree = buildTechTree(items, ["judgment", "field"]);
   assert.deepEqual(names(tree[0].children), ["검사·보안 1", "프론트엔드 1"]);
-  assert.deepEqual(tree[0].children[1].path, ["적용 후보", "프론트엔드"]);
+  assert.deepEqual(tree[0].children[1].path, ["담은 기술", "프론트엔드"]);
   assert.deepEqual(tree[0].items.map((x) => x.id), ["a", "b"]);
   assert.deepEqual(buildTechTree(items, ["field", "field"])[0].children, []);
 });

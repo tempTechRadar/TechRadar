@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { putTech } from "@/lib/blueprint/graph";
-import { BLUEPRINT_GATE, stageFields } from "@/lib/blueprint/knowledge";
+import { STUDIO_GATE, stageFields } from "@/lib/blueprint/knowledge";
 import { filterPool, poolTags, putProblem, putSaid } from "@/lib/blueprint/panel-view";
 import type { TechUsage } from "@/lib/blueprint/stored";
 import { buildTechTree, DIM_KO, judgeTechs, pathTo, secondDims, type Folder, type Judged, type TreeDim } from "@/lib/blueprint/tech-tree";
@@ -74,7 +74,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
   return (
     <>
       {add ? <p className={`notice ${target && target.grade !== "danger" ? "" : "notice-error"}`} role="status">
-        {!target ? `${BLUEPRINT_GATE} 지도나 알림에서 적용 후보로 고른 뒤 다시 와 주세요.`
+        {!target ? `${STUDIO_GATE} 지도에서 "청사진에 담기"를 누른 뒤 다시 와 주세요.`
           : target.grade === "danger" ? <><b>{target.name}</b>은(는) 위험 등급이라 청사진에 넣지 않아요.</>
           : <><b>{target.name}</b>: 아래에서 넣을 단계를 고르거나, 이 카드를 단계로 끌어 놓으세요.</>}
       </p> : null}
@@ -89,13 +89,13 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
         <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
         <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
       </form>
-      <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{guest ? GUEST_GATE : BLUEPRINT_GATE}</p>
+      <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{guest ? GUEST_GATE : STUDIO_GATE}</p>
       {guest ? <PicksNote picks={guestPicks} /> : <ExtrasNote extras={extras} />}
       {tree.length ? <Tree tree={tree} stage={stage?.name ?? null} placedIn={(id) => Boolean(stage?.techs.some((x) => x.id === id))} target={target?.id ?? null}
         usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} onUnpick={guestPicks?.remove} />
         : items.length ? <p className="muted">이 조건에 맞는 기술이 없어요.</p>
         : guest ? (found ? <p className="muted">지도에서 기술을 골라 &quot;청사진에 담기&quot;를 눌러 주세요. <Link href="/">지도 열기</Link></p> : null)
-        : extras?.kind === "ok" ? <p className="muted">지도에서 적용 후보로 고르면 여기 나와요. <Link href="/">지도 열기</Link></p> : null}
+        : extras?.kind === "ok" ? <p className="muted">지도에서 &quot;청사진에 담기&quot;를 누르면 여기 나와요. <Link href="/">지도 열기</Link></p> : null}
     </>
   );
 }
@@ -215,10 +215,10 @@ function Card({ t, use, stage, placed, added, busy, onPut, onCandidate, onUnpick
       {t.note ? <span className="muted">{t.judgment === "hold" ? `보류 이유: ${t.note}` : t.note}</span> : null}
       {t.tags.length ? <span className="dock-tags">{t.tags.map((x) => <span key={x} className="tag">{x}</span>)}</span> : null}
       {risky ? <span className="dock-risky">✕ 위험 등급이라 넣지 않아요</span>
-        : !t.droppable ? (onCandidate ? <button type="button" className="btn btn-sm" disabled={busy} /* 보내는 중: 두 번 보내지 않게 */ aria-label={busy ? undefined : `${t.name} 적용 후보로 고르기`} onClick={onCandidate}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button> : null)
+        : !t.droppable ? (onCandidate ? <button type="button" className="btn btn-sm" disabled={busy} /* 보내는 중: 두 번 보내지 않게 */ aria-label={busy ? undefined : `${t.name} 청사진에 담기`} onClick={onCandidate}>{busy ? "담는 중…" : "청사진에 담기"}</button> : null)
         : placed ? <span className="muted">✓ {stage}에 있어요</span>
         : stage ? <button type="button" className="btn btn-sm" onClick={onPut}>{stage}에 넣기</button> : null}
-      {onUnpick ? <button type="button" className="bp-link" aria-label={`${t.name} 담은 목록에서 빼기`} onClick={onUnpick}>목록에서 빼기</button> : null}
+      {onUnpick ? <button type="button" className="bp-link" aria-label={`${t.name} 청사진에서 빼기`} onClick={onUnpick}>청사진에서 빼기</button> : null}
     </li>
   );
 }

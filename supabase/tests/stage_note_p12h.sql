@@ -20,8 +20,8 @@ begin
   select graph -> 'stages' into gs from public.blueprints where id = bp;
   msg := msg || 'trim=' || (gs -> 0 ->> 'note') || '(인터뷰 먼저);';
   msg := msg || 'cut=' || char_length(gs -> 1 ->> 'note') || '(200);';
-  msg := msg || 'blank_gone=' || not (gs -> 2 ? 'note') || '(true);';
-  msg := msg || 'nonstring_gone=' || not (gs -> 3 ? 'note') || '(true);';
+  msg := msg || 'blank_gone=' || (not (gs -> 2 ? 'note')) || '(true);';
+  msg := msg || 'nonstring_gone=' || (not (gs -> 3 ? 'note')) || '(true);';
   select count(*) into c from public.blueprints b, jsonb_array_elements(b.board) col, jsonb_array_elements(col) s where b.id = bp and s ? 'note';
   msg := msg || 'board_no_note=' || c || '(0);';
   r := public.save_blueprint_template(tf, 'frame', '틀', g); r := public.save_blueprint_template(tc, 'combo', '조합', g);

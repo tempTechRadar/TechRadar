@@ -36,7 +36,7 @@ export function Inspector(p: PanelProps) {
   );
 }
 
-function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId }: PanelProps & { stageId: string }) {
+function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
   const rename = (form: FormData) => {
@@ -53,8 +53,8 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <button type="submit" className="btn btn-sm">이름 바꾸기</button>
       </form>
       <Card title="순서">
-        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} />
-        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} />
+        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(o.id, s.id) : undefined} />
+        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(s.id, o.id) : undefined} />
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
       <NoteField graph={graph} apply={apply} stage={s} />
@@ -89,11 +89,12 @@ function NoteField({ graph, apply, stage }: Pick<PanelProps, "graph" | "apply"> 
 }
 
 /** 앞 · 다음 단계 줄 + "끊기"(캔버스 선 위 끊기 단추의 키보드 짝, P-12h S3) */
-function Links({ label, list, onCut }: { label: string; list: Stage[]; onCut: (o: Stage) => void }) {
+function Links({ label, list, onCut, onInsert }: { label: string; list: Stage[]; onCut: (o: Stage) => void; onInsert?: (o: Stage) => void }) {
   if (!list.length) return <p>{label}: 없음</p>;
   return (
     <div>{label}:
-      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button></li>)}</ul>
+      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button>
+        {onInsert ? <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name}과(와) 사이에 단계 넣기`} onClick={() => onInsert(o)}>사이에 단계 넣기</button> : null}</li>)}</ul>
     </div>
   );
 }
@@ -103,7 +104,7 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
   const inStage = s.techs.find((t) => t.id === techId);
   const t = pool.find((x) => x.id === techId);
   const name = t?.name ?? inStage?.name ?? "이름 모름";
-  const facts = t ? [t.field, t.sub, t.mark ? "적용 후보" : null, t.projects ? `내 프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
+  const facts = t ? [t.field, t.sub, t.mark ? "담은 기술" : null, t.projects ? `내 프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
   return (
     <>
       <header className="insp-head">
@@ -114,7 +115,7 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
       {/* 서랍 밖 기술: 이력에서 불러온 판의 기술은 내 기술 · 적용 후보가 아닐 수 있어 등급을 모른다(모르는 것을 "통과"로 보이지 않게, 불변 2) */}
-      <Card title="보안">{t ? <p>{SEC_TEXT[t.grade]}</p> : <p className="muted">내 기술 · 적용 후보가 아니라 등급을 여기서 읽지 않았어요. 기술 상세에서 보세요.</p>}</Card>
+      <Card title="보안">{t ? <p>{SEC_TEXT[t.grade]}</p> : <p className="muted">내 기술 · 담은 기술이 아니라 등급을 여기서 읽지 않았어요. 기술 상세에서 보세요.</p>}</Card>
       <Card title="내 태그">
         {tags === null ? <p className="notice notice-error" role="alert">내 태그를 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : guest ? <p className="muted">로그인하면 나만 보는 태그를 붙일 수 있어요.</p>

@@ -10,6 +10,9 @@
 .map-side h2 { margin: 0; padding-right: 52px; font-size: var(--fs-h1); }
 .side-head { display: grid; gap: 4px; margin-bottom: var(--sp-3); }
 .side-head p { margin: 0; }
+/* 이름 옆 관심 별(P-12h U1): 닫기 단추 자리(52px)는 줄 전체에서 비운다. 별 글자 색은 읽는 색(새 색 없음) */
+.side-title { display: flex; align-items: center; gap: 2px; padding-right: 52px; }
+.map-side .side-title h2 { padding-right: 0; }
 /* 상태 색은 테두리(표시)에만, 글자는 읽는 색(tokens.css 규칙) */
 .side-tags .tag-danger { border-color: var(--danger); color: var(--ink-danger); font-weight: 700; }
 .side-tags .tag-caution { border-color: var(--caution); color: var(--ink); font-weight: 700; }
@@ -29,8 +32,6 @@
 .side-band summary { min-height: var(--hit-sm); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-sm); }
 .side-err { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
 .side-decide { display: grid; gap: 10px; padding: var(--sp-3); border-radius: var(--r-lg); background: var(--sunken); }
-.side-to-bp { display: grid; gap: 4px; justify-items: start; }
-.side-to-bp p { margin: 0; font-size: var(--fs-sm); }
 .side-notes { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 8px; }
 .side-notes li { padding-top: 8px; border-top: 1px solid var(--line); overflow-wrap: anywhere; white-space: pre-wrap; }
 .side-notes li:first-child { padding-top: 0; border-top: 0; }

@@ -9,7 +9,7 @@
 .site-nav button { cursor: pointer; background: none; border: 1px solid var(--line); border-radius: var(--r-md); }
 .site-nav form { display: flex; gap: var(--sp-2); align-items: center; margin: 0; color: var(--muted); }
 /* 메뉴의 판단 대기 수(design.md 17절). 글자색은 --ink 계열 규칙대로 검은 바탕에 흰 글자 */
-.site-nav .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: var(--fs-cap); line-height: 20px; text-align: center; }
+.site-nav .nav-badge, .tab-bar .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: var(--fs-cap); line-height: 20px; text-align: center; }
 /* 11-21 메뉴 줄이기: 로고 = 기술 지도, 계정 펼침(내 프로젝트 · 설정 · 관리자 · 로그아웃) */
 .site-nav .site-nav-logo { font-weight: 800; letter-spacing: -0.01em; margin-right: var(--sp-2); }
 .site-nav-account { position: relative; }

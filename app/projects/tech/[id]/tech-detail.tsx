@@ -7,13 +7,13 @@ import { usingNowText, type UsingNowView } from "@/lib/views/using-now-text";
 import { fixedNote } from "@/lib/domain/services";
 
 // 기술 상세 본문(IA-4, PRD-F10). 읽기만 하는 화면 조각이라 page.tsx와 개발용 샘플 화면이 같이 쓴다.
-// 틀은 머리 + 2단(design.md 18절): 머리 = 돌아가기 · 이름 · 배지 · 판단 줄(markBar), 왼쪽 = 보안 · 수집 상태와 사용기(children), 오른쪽 = 핵심 정보 · 내 목록 상태 · 쓰고 있어요.
+// 틀은 머리 + 2단(design.md 18절): 머리 = 돌아가기 · 이름(옆에 관심 별 star) · 배지 · 청사진 담기 줄(markBar), 왼쪽 = 보안 · 수집 상태와 사용기(children), 오른쪽 = 핵심 정보 · 내 목록 상태 · 쓰고 있어요.
 // 아직 없는 것: 같은 역할의 기술(P-14·P-18 확정 뒤), 이 기술에 대한 내 판단 기록, 3순위 칸(사용기·비교 모드). 쓰고 있어요는 using_now 함수로(P-12a2).
 const NONE = "확인하지 못함";
 const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 
 // using: 공개한 사람의 수·별명(null = 못 읽음, undefined = 카탈로그에 이어지지 않은 기술이라 해당 없음)
-export function TechDetail({ d, using, markBar, children }: { d: MyTechDetail; using?: UsingNowView | null; markBar?: ReactNode; children?: ReactNode }) {
+export function TechDetail({ d, using, markBar, star, children }: { d: MyTechDetail; using?: UsingNowView | null; markBar?: ReactNode; star?: ReactNode; children?: ReactNode }) {
   const info = d.technologies;
   const note = fixedNote(info?.tech_key); // 연동 서비스 · 개념은 정해 둔 설명(카탈로그에 쓰지 않음)
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
@@ -25,7 +25,7 @@ export function TechDetail({ d, using, markBar, children }: { d: MyTechDetail; u
           <Link href="/projects">← 내 프로젝트로</Link>
           {info ? <> · <a href={`/?sel=${encodeURIComponent(`tech:${info.id}`)}`}>지도에서 보기</a></> : null}
         </p>
-        <h1>{name}</h1>
+        <div className="td-title"><h1>{name}</h1>{star}</div>
         <p>
           <span className={`badge badge-${GRADE_TONE[d.grade]}`}>{gradeText(d.grade, info?.tech_key, info?.type)}</span>{" "}
           {d.collect_error_kind && <span className="badge badge-warning">수집 오류</span>}{" "}

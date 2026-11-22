@@ -4,6 +4,7 @@ import { unstable_rethrow } from "next/navigation";
 import { AccountMenu } from "@/app/account-menu";
 import { LoginLink } from "@/app/login-link";
 import { AlertBell } from "@/app/nav/alert-bell";
+import { CartBadge } from "@/app/nav/cart-badge";
 import { NavLink } from "@/app/nav/nav-link";
 import { TabBar } from "@/app/nav/tab-bar";
 import { CaptureDialog } from "@/app/capture/capture-dialog";
@@ -12,6 +13,7 @@ import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
 import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
 import { SAMPLE_RECENT } from "@/lib/dev/preview-data";
 import { getCurrentUser, type CurrentUser } from "@/lib/server/current-user";
+import { countCandidates } from "@/lib/server/marks";
 import { getServerSupabase } from "@/lib/supabase/server";
 import "./tokens.css";
 import "./page.css"; // 공용 페이지 틀: 화면마다 다시 불러오지 않는다(P-12f ④)
@@ -46,6 +48,10 @@ async function pendingCount(userId: string): Promise<number | null> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await menuUser();
   const pending = isPreviewUser(user) ? SAMPLE_RECENT.pending : user ? await pendingCount(user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
+  // 청사진에 담은 수(P-12h U1). 손님은 브라우저가 센다. 미리보기 · 못 읽음 · 로그인 모름(undefined)은 null = 배지 없음(불변 2)
+  const db = user && !isPreviewUser(user) ? await getServerSupabase() : null;
+  const cart = user && db ? await countCandidates(db, user.id).catch((e) => { unstable_rethrow(e); return null; }) : null;
+  const cartBadge = <CartBadge initial={cart} login={user !== null} />;
   return (
     <html lang="ko">
       <body>
@@ -59,7 +65,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             {/* P-12f 사용자 결정: 현황(지키고) · 지도(고르고) · 청사진(옮긴다). 일지(/history)는 현황의 탭이라 "현황"이 현재 */}
             <NavLink href="/dashboard" also={["/history"]}>현황</NavLink>
             <NavLink href="/">지도</NavLink>
-            <NavLink href="/blueprint">청사진</NavLink>
+            <NavLink href="/blueprint">청사진{cartBadge}</NavLink>
           </div>
           <div className="site-nav-side">
             {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}
@@ -71,7 +77,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           </div>
         </nav>
         {children}
-        <TabBar />
+        <TabBar cart={cartBadge} />
         {loginPreviewAllowed(process.env) ? <LoginPreviewToggle on={isPreviewUser(user)} /> : null}
       </body>
     </html>

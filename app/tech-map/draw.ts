@@ -8,7 +8,7 @@ import { GLOW, grow, introducing, LAND_SEC, moving, recentlyChecked, REVEAL, rin
 
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
-const MARK_TAG = { interest: "관심", candidate: "후보", hold: "보류" } as const;
+const MARK_TAG = { interest: "관심", candidate: "담음", hold: "보류" } as const;
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
 let css: Record<string, string> = {};
 const col = (token: string) => css[token] ?? (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || "#888");
