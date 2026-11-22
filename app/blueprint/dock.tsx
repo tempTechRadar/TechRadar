@@ -27,7 +27,8 @@ function useMaxH() {
 }
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
-export function Dock(p: PanelProps) {
+/** listEdit = 넓은 화면의 목록 편집 켜기(탭 줄 끝 작은 링크). 좁은 화면은 늘 목록이라 없음 */
+export function Dock({ listEdit, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void } }) {
   const [tab, setTab] = useState<Tab>("tech");
   const [open, setOpen] = useState(true);
   const [h, setH] = useState(H.start);
@@ -48,7 +49,10 @@ export function Dock(p: PanelProps) {
             </button>
           ))}
         </div>
-        <button type="button" className="dock-tab" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "접기 ▼" : "펼치기 ▲"}</button>
+        <span className="dock-end">
+          {listEdit ? <ListEditLink {...listEdit} /> : null}
+          <button type="button" className="dock-tab" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "접기 ▼" : "펼치기 ▲"}</button>
+        </span>
       </div>
       {open ? (
         <div className="dock-body">
@@ -70,6 +74,12 @@ function Resizer({ h, max, onH }: { h: number; max: number; onH: (v: number) => 
       onPointerMove={(e) => { if (from.current) onH(from.current.h + from.current.y - e.clientY); }}
       onPointerUp={() => { from.current = null; }} onPointerCancel={() => { from.current = null; }} />
   );
+}
+
+/** 목록 편집 켜기 · 끄기: 눈에 덜 띄는 글자 링크. 화면 읽기 이름에 보이는 글 + 무엇인지(목록 = 키보드 · 화면 읽기) */
+function ListEditLink({ on, flip }: { on: boolean; flip: () => void }) {
+  const text = on ? "그림으로 편집" : "키보드로 편집";
+  return <button type="button" className="bp-link" aria-pressed={on} aria-label={`${text} (목록으로 편집: 키보드 · 화면 읽기)`} onClick={flip}>{text}</button>;
 }
 
 /** 불러오기 탭: 질문으로 틀 만들기(손님도 됨, 이 브라우저 판) · 템플릿 · 내 이력(로그인) */

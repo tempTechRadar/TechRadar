@@ -9,6 +9,8 @@
 .dock-tabs { display: flex; flex-wrap: wrap; gap: 2px; }
 .dock-tab { min-height: var(--hit-sm); padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
 .dock-tab:hover { background: var(--sunken); }
+.dock-end { display: inline-flex; align-items: center; gap: var(--sp-3); }
+.dock-end .bp-link { font-size: var(--fs-sm); color: var(--ink-2); }
 .dock-tab:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .dock-body { overflow: auto; padding: var(--sp-2) var(--sp-3) var(--sp-3); display: grid; gap: var(--sp-2); align-content: start; font-size: var(--fs-sm); }
 .dock-body p { margin: 0; }
