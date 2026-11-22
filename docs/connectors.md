@@ -4,6 +4,7 @@
 
 | 날짜 | 서비스 | 목적 | 실제로 한 일 | 결과 링크·캡처 | 앱 실행에도 쓰나 |
 |---|---|---|---|---|---|
+| 2026-11-22 | Supabase (MCP 커넥터) | P-12j 기술 관계선 운영 적용(I-P-12j-links-core · I-P-12j-hybrid-editor) | Supabase MCP로 운영 마이그레이션 p12j_tech_links 적용 + 권한 시험 tech_links_p12j.sql 13항목 기대값 · 되돌림, 11-22 Maestro, 사용자 승인 | Maestro 세션 보고(DevAssi2가 대신 기록) | 예(확정 · 템플릿 저장이 links를 지킴) |
 | 2026-11-22 | Supabase (MCP 커넥터) | U1 손님 담기 흐름 점검에 쓸 공개 목록 기술 id 찾기(I-P-12h-map-cart) | `execute_sql` 읽기(SELECT) 3번(앞 2번은 표 · 칸 이름이 틀려 오류): `technologies`에서 공개 목록 기준(gone 아님 · 한 줄 출처 있음 · 시뮬레이션 아님) id 2개. 쓰기 없음 | 로컬 3013 헤드리스 Edge 점검(담기 → 배지 1 → 빼기, 초점 빼기 · 담기 단추로) | 아니요 |
 | 2026-11-22 | Supabase (MCP 커넥터) | 통합 PR(P-12e + P-12f) 설명의 "운영 DB" 절 확인: 병합 전 마이그레이션(M1 · M2 · M3 · M4 · M6 · M7 · 공개 거절)이 모두 들어간 뒤 보안 점검 다시 보기(I-P-12f-app-structure, 읽기만) | `get_advisors`(security) 1번 → ERROR 0 · WARN 29(SECURITY DEFINER 함수 실행 권한 anon 5 · authenticated 23 — 공개 갤러리 · 사용기 수 등 의도한 함수, 유출 비밀번호 보호 꺼짐 1). 고친 것 없음 | PR 설명 초안 "운영 DB" 절 | 아니요 |
 | 2026-11-21 | Supabase (MCP 커넥터) | P-12e M4(`blueprint_checks`)를 운영에 적용(사용자 "지금 적용", 앞서 롤백 시험은 "롤백 시험만"으로 따로 승인) | 읽기로 기준값(표 없음 · 옛 제약 · blueprints에 graph · template_id 있음 · 최신 마이그레이션 20261121135023) → **`apply_migration`(`p12e_blueprint_checks`)** → 읽어서 확인: 칸 9 · RLS 켜짐 · 정책 2 · 색인 기본키 외 3 · authenticated는 SELECT와 두 칸 INSERT뿐 · anon 없음 · 줄 0 · 제약에 blueprint_check 있음 · 기록 20261121135511. 보안 점검(advisors)은 안 돌림 | `docs/erd.md` 2.5절 · 7절, `docs/intent.md` I-P-12e-graph | 예(적용 뒤 서버 액션이 씀) |
