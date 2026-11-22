@@ -210,6 +210,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     const next = removeStage(g, id);
     canvasBox.current?.focus(); // 누른 단추가 카드와 함께 사라지므로
     if (picked?.stageId === id) unpick();
+    setSel((x) => { const n = new Set(x); n.delete(id); return n; }); // 여럿 고른 채 지워도 사라진 단계가 남지 않게
+    setSelEdges((x) => new Set([...x].filter((e) => !e.split(">").includes(id))));
     apply(next);
     say(removedStageSaid(s.name), () => { if (now.current === next) { bounce.stop(); undo(); say(`"${s.name}" 단계를 살렸어요.`); } else say("그 뒤에 판이 바뀌어 여기서는 되돌릴 수 없어요. 위 \"되돌리기\"를 써 주세요."); });
   }
@@ -394,7 +396,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
+              {narrow ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>
           </div>
         )}

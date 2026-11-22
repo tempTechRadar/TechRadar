@@ -57,7 +57,7 @@
 .sn { position: relative; }
 .sn-plus { position: absolute; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; padding: 0; border: 1px solid var(--ink-2); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; line-height: 1; cursor: pointer; opacity: 0; }
 .sn-plus-up { top: -12px; } .sn-plus-down { bottom: -12px; }
-.sn-plus-left, .sn-plus-right { top: 50%; transform: translateY(-50%); } /* 왼쪽 · 오른쪽 점(선 손잡이) 바깥: 앞 · 다음 단계 */
+.sn-plus-left, .sn-plus-right { top: 0; transform: translateY(-50%); } /* 앞 · 다음 단계: 위 모서리 바깥(가운데 손잡이에서 나가는 선을 가리지 않게) */
 .sn-plus-left { left: -30px; } .sn-plus-right { left: auto; right: -30px; }
 .sn:hover .sn-plus, .sn:focus-within .sn-plus { opacity: 1; }
 .sn-plus[aria-disabled] { color: var(--faint); border-color: var(--line); cursor: not-allowed; } /* 막힌 단추 한 벌(page.css)과 같은 색 */
