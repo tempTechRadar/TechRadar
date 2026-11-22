@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -89,4 +89,17 @@ test("저장 id 만들기: randomUUID가 없는 http 주소에서도 UUID v4 모
     assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     assert.notEqual(uuid(), id);
   } finally { Object.defineProperty(crypto, "randomUUID", { value: real, configurable: true }); }
+});
+
+test("단계 더하기(＋ 단계 · 목록 모드 같은 규칙): 고른 단계가 있으면 그 오른쪽에 두고 이어 붙임, 자리가 차면 아래로, 없으면 맨 오른쪽 옆 · 안 이음", async () => {
+  const { LAYOUT } = await import("./graph.ts");
+  const g: Graph = { ...emptyGraph(), stages: [st("a", 0, 0), st("b", LAYOUT.x, 0)], edges: [{ from: "a", to: "b" }] };
+  const r = addStageAfter(g, "새 단계", g.stages[0]);
+  assert.ok("graph" in r);
+  assert.deepEqual([r.stage.x, r.stage.y], [LAYOUT.x, LAYOUT.y]); // a 오른쪽은 b가 차지 → 아래로
+  assert.ok(r.graph.edges.some((e) => e.from === "a" && e.to === r.stage.id));
+  const free = addStageAfter(g, "끝", undefined);
+  assert.ok("graph" in free);
+  assert.equal(free.graph.edges.length, 1); // 잇지 않음
+  assert.ok("problem" in addStageAfter(g, "  ", g.stages[0]));
 });
