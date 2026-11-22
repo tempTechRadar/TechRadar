@@ -4,13 +4,15 @@
 // 지도는 관문 뒤에서 이미 그려지고 있어 첫 표시 속도(PRD-NF3)를 늦추지 않는다. 보일지는 gateDecision(시험 있음)이 정한다.
 // P-12f(사용자 결정 "덮개 = 로딩"): 지도가 그릴 준비가 되면(READY_MAP) 단추가 켜지고, 닫으면 window.__techradarGate = "closed"가 되어
 // 지도 컨트롤러가 다음 장에 첫 연출을 시작한다(introWaits). 지도를 그리지 않는 화면(조회 실패 · 빈 지도)이면 바로 켜고, 그래도 8초 뒤에는 켠다.
-import { closesGate, gateDecision, READY_MAP } from "@/lib/map/ready-gate";
+// P-12g: 단추 글은 켜진 이유대로(gateText), 닫으면 덮개가 --dur 동안 옅어지며 그 아래에서 지도 연출이 시작된다.
+import { closesGate, gateDecision, gateText, READY_MAP } from "@/lib/map/ready-gate";
 import "./ready-gate.css";
 
 const SCRIPT = `(function () {
   var KEY = "techradar-ready";
   var decide = ${gateDecision.toString()};
   var closes = ${closesGate.toString()};
+  var text = ${gateText.toString()};
   function remember() { try { sessionStorage.setItem(KEY, "1"); } catch (e) { /* 저장을 막은 브라우저: 다음에 다시 보일 뿐 지도는 그대로 */ } }
   var seen = false;
   try { seen = sessionStorage.getItem(KEY) === "1"; } catch (e) { return; } // 읽을 수도 없으면 띄우지 않는다(닫은 걸 기억 못 해 매번 뜨지 않게)
@@ -30,13 +32,15 @@ const SCRIPT = `(function () {
   hint.id = "ready-hint"; hint.className = "ready-hint"; hint.setAttribute("role", "status"); hint.textContent = "지도를 불러오고 있어요";
   gate.append(title, go, hint);
   var done = false, armed = false;
-  function arm() {
-    if (armed) return; armed = true;
-    go.disabled = false; go.textContent = "지도 보기"; hint.textContent = "아무 키나 누르거나 화면을 누르세요";
+  function arm(reason) { // 켜진 이유대로 글을 쓴다(P-12g gate-2)
+    var t = text(reason);
+    if (armed) { if (reason === "ready") { go.textContent = t.go; hint.textContent = t.hint; } return; } // 시간 초과 뒤에 준비되면 글만 바꾼다(초점은 다시 옮기지 않음)
+    armed = true;
+    go.disabled = false; go.textContent = t.go; hint.textContent = t.hint;
     if (gate.open) go.focus();
   }
-  window.addEventListener("${READY_MAP}", arm);
-  setTimeout(arm, 8000);
+  window.addEventListener("${READY_MAP}", function () { arm("ready"); });
+  setTimeout(function () { arm("timeout"); }, 8000);
   function enter(e) {
     if (!armed) { if (e && e.type === "cancel") e.preventDefault(); return; } // 준비 전에는 닫지 않는다(Esc도)
     if (e && e.type === "keydown") { if (!closes(e)) return; e.preventDefault(); } // 닫는 키는 여기서 끝(Tab이 포커스를 페이지 끝으로 보내지 않게)
@@ -44,12 +48,13 @@ const SCRIPT = `(function () {
     if (done) return; done = true;
     remember();
     document.removeEventListener("keydown", enter, true);
-    if (gate.open && gate.close) gate.close();
-    gate.remove();
-    window.__techradarGate = "closed"; // 지도: 다음 장에 첫 연출
+    if (gate.open && gate.close) gate.close(); // 먼저 닫는다: 모달이 열린 채로는 뒤 화면이 막혀 찾기 칸으로 초점을 옮길 수 없다
+    gate.inert = true; gate.classList.add("leaving"); // 사라지는 동안(CSS opacity --dur, 움직임 줄이기면 0초) 누르기 · 초점 · 화면 읽기에서 빠진다(P-12g gate-3)
+    window.__techradarGate = "closed"; // 지도: 다음 장에 첫 연출(덮개가 걷히는 동안 이어서 시작)
     var touch = e && e.pointerType === "touch"; // 휴대폰에서 탭으로 닫으면 입력 칸에 초점을 주지 않는다(화상 키보드가 지도를 덮지 않게)
     var to = (!touch && document.querySelector(".map-search input")) || document.querySelector("main");
     if (to) { if (to.tagName === "MAIN") to.tabIndex = -1; to.focus({ preventScroll: true }); } // 지도 찾기 칸으로(없으면 본문)
+    setTimeout(function () { gate.remove(); }, 300); // transitionend는 움직임 줄이기에서 오지 않을 수 있어 기대지 않는다
   }
   function open() {
     document.body.append(gate);
@@ -60,7 +65,7 @@ const SCRIPT = `(function () {
     document.addEventListener("keydown", enter, true);
     try { gate.showModal(); } catch (e) { gate.setAttribute("open", ""); } // 모달: 뒤 화면은 브라우저가 막는다(화면 읽기 · Tab이 관문 뒤로 가지 않게)
     go.focus();
-    if (!document.querySelector(".map-wrap")) arm(); // 지도를 그리지 않는 화면(조회 실패 · 빈 지도): 기다릴 것이 없다
+    if (!document.querySelector(".map-wrap")) arm("no-map"); // 지도를 그리지 않는 화면(조회 실패 · 빈 지도): 기다릴 것이 없다
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", open); else open();
 })();`;
