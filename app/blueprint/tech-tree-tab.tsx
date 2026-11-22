@@ -9,16 +9,18 @@ import { putTech } from "@/lib/blueprint/graph";
 import { BLUEPRINT_GATE, stageFields } from "@/lib/blueprint/knowledge";
 import { filterPool, poolTags, putProblem } from "@/lib/blueprint/panel-view";
 import type { TechUsage } from "@/lib/blueprint/stored";
-import { buildTechTree, DIM_KO, secondDims, type Folder, type Judgment, type TreeDim, type TreeItem } from "@/lib/blueprint/tech-tree";
+import { buildTechTree, DIM_KO, judgeTechs, pathTo, secondDims, type Folder, type Judged, type TreeDim } from "@/lib/blueprint/tech-tree";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
 import { TECH_DRAG, type PanelProps } from "./studio-types";
 import { TechChip } from "./tech-chip";
-import { treeExtrasAction, type JudgedTech, type TreeExtras } from "./tree-actions";
+import type { TreeExtras } from "./tree-actions";
 
-/** 트리 카드: 기술 정보 + 판단 + 넣을 수 있는지(서랍에 있음) */
-type Item = PoolTech & TreeItem & { droppable: boolean; note: string | null };
+/** 트리 카드: 기술 정보 + 판단 + 넣을 수 있는지(서랍에 있음, judgeTechs) */
+type Item = Judged<PoolTech> & { tags: string[]; projectNames: string[] };
+/** 오른쪽 칸이 따라갈 기술(?add= · 찾은 첫 결과 · 방금 고른 것). focus면 초점 잃었을 때 그 카드로 */
+type Follow = { id: string; focus: boolean } | null;
 const SAVE_KEY = "techradar-bp-tree"; // 고른 묶기 기준(이 브라우저만, 지도 보기 저장과 같은 방식)
 const DIMS = Object.keys(DIM_KO) as TreeDim[];
 const GUEST_FOLDER = "찾은 기술";
@@ -31,37 +33,36 @@ function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
   return [dims, (d) => { setDims(d); try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch { /* 저장 못 해도 이번 화면에선 그대로 */ } }];
 }
 
-export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
-  const { graph, picked, apply, pool, tags, say, usage, guest, onFound, projects, onCandidate, marking } = p;
+/** extras = 관심 · 보류(Dock이 읽어 탭을 바꿔도 다시 읽지 않음, undefined = 읽는 중) */
+export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; extras: TreeExtras | undefined }) {
+  const { graph, picked, apply, pool, tags, say, usage, guest, onFound, projects, onCandidate, marking, extras } = p;
   const add = useSearchParams()?.get("add") ?? null;
   const [dims, setDims] = useDims();
   const [term, setTerm] = useState(""), [tag, setTag] = useState<string | null>(null);
   const [found, setFound] = useState<PoolTech[] | null | undefined>(undefined); // undefined = 안 찾음, null = 찾기 실패
   const [busy, setBusy] = useState(false);
-  const [extras, setExtras] = useState<TreeExtras | undefined>(undefined);
+  const [follow, setFollow] = useState<Follow>(null);
   const ask = useRef(0); // 찾기 차례: 글자를 바꾸면 늘려서 앞선 응답을 버린다
-  useEffect(() => { if (!guest) treeExtrasAction().then(setExtras, () => setExtras({ kind: "error" })); }, [guest]);
+  const last = useRef(marking);
+  useEffect(() => { if (last.current && !marking) setFollow({ id: last.current, focus: true }); last.current = marking; }, [marking]); // 고르기 · 다시 읽기가 끝나면 옮겨 간 폴더로
   const stage = picked ? graph.stages.find((s) => s.id === picked.stageId) ?? null : null;
   const projectName = useMemo(() => new Map(projects.map((x) => [x.id, x.name])), [projects]);
 
-  const items = useMemo(() => {
-    const seen = new Set<string>(), out: Item[] = [];
-    const push = (t: PoolTech | JudgedTech, judgment: Judgment, droppable: boolean) => {
-      if (seen.has(t.id)) return; // 서랍 > 관심 · 보류 > 찾은 것(같은 기술은 한 번, 앞의 것이 이김: 고르면 서랍에 들어와 실선이 됨)
-      seen.add(t.id);
-      out.push({ ...t, judgment, droppable, note: "note" in t ? t.note : null, tags: tags?.[t.id] ?? [], projectNames: (t.projectIds ?? []).map((id) => projectName.get(id) ?? "이름 모름") });
-    };
-    for (const t of pool) push(t, t.mark === "candidate" ? "candidate" : t.projects > 0 ? "mine" : "other", true);
-    if (extras?.kind === "ok") { for (const t of extras.interest) push(t, "interest", false); for (const t of extras.hold) push(t, "hold", false); }
-    for (const t of found ?? []) push(t, "other", Boolean(guest)); // 손님은 찾은 기술을 그대로 넣는다(서랍 = 찾은 것)
-    return out;
+  const items: Item[] = useMemo(() => {
+    const ok = extras?.kind === "ok" ? extras : null;
+    return judgeTechs<PoolTech>({ pool, interest: ok?.interest ?? [], hold: ok?.hold ?? [], found: found ?? [], guest: Boolean(guest) })
+      .map((t) => ({ ...t, tags: tags?.[t.id] ?? [], projectNames: (t.projectIds ?? []).map((id) => projectName.get(id) ?? "이름 모름") }));
   }, [pool, extras, found, tags, projectName, guest]);
+  // 태그를 못 읽었으면 "내 태그" 묶기를 쓰지 않는다("태그 없음"으로 보이면 못 읽은 것이 없는 것처럼 보임, 불변 2)
+  const usable = tags === null ? dims.filter((d) => d !== "tag") : dims;
+  const by: TreeDim[] = usable.length ? usable : ["judgment"];
 
   const options = poolTags(items, tags);
   const tagNow = tag && options.includes(tag) ? tag : null;
   const target = add ? items.find((t) => t.id === add && t.droppable) : undefined;
+  useEffect(() => { if (target) setFollow({ id: target.id, focus: false }); }, [target?.id]); // target은 매번 새 객체라 id로만
   const shown = filterPool(items, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: target ? add : null, usage });
-  const tree: Folder<Item>[] = guest ? (shown.length ? [{ key: GUEST_FOLDER, name: GUEST_FOLDER, count: shown.length, items: shown, children: [] }] : []) : buildTechTree(shown, dims);
+  const tree: Folder<Item>[] = guest ? (shown.length ? [{ key: GUEST_FOLDER, path: [GUEST_FOLDER], name: GUEST_FOLDER, count: shown.length, items: shown, children: [] }] : []) : buildTechTree(shown, by);
 
   const put = (t: Item) => {
     if (!stage) return;
@@ -73,7 +74,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
     const n = ++ask.current;
     setBusy(true);
     const got = await searchAction(term).catch(() => null);
-    if (n === ask.current) { setFound(got); setBusy(false); if (got) onFound?.(got); }
+    if (n === ask.current) { setFound(got); setBusy(false); if (got) onFound?.(got); if (got?.length) setFollow({ id: got[0].id, focus: false }); }
   };
   const fields = stage ? stageFields(stage.name) : undefined;
   return (
@@ -85,10 +86,10 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
       </p> : null}
       <form className="dock-row" role="search" onSubmit={(e) => { e.preventDefault(); if (!busy && term.trim().length >= 2) void search(); }}>
         {guest ? null : <>
-          <label className="tt-dim">묶기 <select value={dims[0]} onChange={(e) => { const d = e.target.value as TreeDim; setDims(dims[1] && dims[1] !== d ? [d, dims[1]] : [d]); }}>
-            {DIMS.map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}</select></label>
-          <label className="tt-dim">2단 <select value={dims[1] ?? ""} onChange={(e) => setDims(e.target.value ? [dims[0], e.target.value as TreeDim] : [dims[0]])}>
-            <option value="">없음</option>{secondDims(dims[0]).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}</select></label>
+          <label className="tt-dim">묶기 <select value={by[0]} onChange={(e) => { const d = e.target.value as TreeDim; setDims(by[1] && by[1] !== d ? [d, by[1]] : [d]); }}>
+            {DIMS.map((d) => <DimOption key={d} d={d} off={d === "tag" && tags === null} />)}</select></label>
+          <label className="tt-dim">2단 <select value={by[1] ?? ""} onChange={(e) => setDims(e.target.value ? [by[0], e.target.value as TreeDim] : [by[0]])}>
+            <option value="">없음</option>{secondDims(by[0]).map((d) => <DimOption key={d} d={d} off={d === "tag" && tags === null} />)}</select></label>
         </>}
         <input type="search" value={term} onChange={(e) => { setTerm(e.target.value); setFound(undefined); ask.current++; setBusy(false); }} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
         <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
@@ -97,13 +98,25 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
       <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾은 결과를 불러오지 못했어요" : found ? `카탈로그에서 ${found.length}개 찾았어요` : ""}</p>
       {found === null ? <p className="notice notice-error" role="alert">찾은 결과를 불러오지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
-      {extras?.kind === "error" ? <p className="notice notice-error" role="alert">관심 · 보류를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 나머지 기술은 그대로 보여요.</p> : null}
+      {guest ? null : <ExtrasNote extras={extras} />}
       {tree.length ? <Tree tree={tree} stage={stage?.name ?? null} placedIn={(id) => Boolean(stage?.techs.some((x) => x.id === id))} target={target?.id ?? null}
-        usage={usage} marking={marking} onPut={put} onCandidate={guest ? undefined : onCandidate} />
-        : <p className="muted">{items.length ? "이 조건에 맞는 기술이 없어요." : guest ? "로그인 전에는 위 \"카탈로그에서 찾기\"로 기술을 찾아 넣어요." : "아직 내 기술 · 적용 후보가 없어요. 지도에서 적용 후보로 고르면 여기에 와요."}</p>}
+        usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} />
+        : items.length ? <p className="muted">이 조건에 맞는 기술이 없어요.</p>
+        : guest ? <p className="muted">로그인 전에는 위 &quot;카탈로그에서 찾기&quot;로 기술을 찾아 넣어요.</p>
+        : extras?.kind === "ok" ? <p className="muted">아직 내 기술 · 적용 후보 · 관심 · 보류가 없어요. 지도에서 고르면 여기에 와요.</p> : null}
       {guest || found ? null : <p className="muted">그 외 기술은 위 &quot;카탈로그에서 찾기&quot;로 찾으면 &quot;그 외&quot; 폴더에 보여요.</p>}
     </>
   );
+}
+
+const DimOption = ({ d, off }: { d: TreeDim; off: boolean }) => <option value={d} disabled={off}>{off ? `${DIM_KO[d]}(못 읽음)` : DIM_KO[d]}</option>;
+
+/** 관심 · 보류를 읽는 중 · 못 읽음(빈 것과 다르게, 불변 2) */
+function ExtrasNote({ extras }: { extras: TreeExtras | undefined }) {
+  if (!extras) return <p className="muted" role="status">관심 · 보류를 읽는 중…</p>;
+  if (extras.kind === "login") return <p className="notice notice-error" role="alert">로그인이 끝나 관심 · 보류를 읽지 못했어요. 다시 로그인해 주세요.</p>;
+  if (extras.kind === "error") return <p className="notice notice-error" role="alert">관심 · 보류를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 나머지 기술은 그대로 보여요.</p>;
+  return null;
 }
 
 /** 내 태그로 거르기. 태그를 못 읽었으면 고르지 못하게 하고 이유를 말한다(없는 것과 다르게, 불변 2) */
@@ -120,16 +133,26 @@ function TagPick({ tags, options, value, onChange }: { tags: Record<string, stri
 
 type TreeProps = {
   tree: Folder<Item>[]; stage: string | null; placedIn: (id: string) => boolean; target: string | null; usage: Map<string, TechUsage>;
-  marking: string | null; onPut: (t: Item) => void; onCandidate?: (techId: string, name: string) => void;
+  marking: string | null; follow: Follow; onPut: (t: Item) => void; onCandidate?: (techId: string, name: string) => void;
 };
 
 /** 펼쳐 보이는 폴더를 위에서부터 한 줄로(키보드 이동 차례) */
-const visible = (fs: Folder<Item>[], open: Set<string>, depth = 1, parent: string | null = null): { f: Folder<Item>; depth: number; parent: string | null }[] =>
-  fs.flatMap((f) => [{ f, depth, parent }, ...(open.has(f.key) ? visible(f.children, open, depth + 1, f.key) : [])]);
+type Row = { f: Folder<Item>; depth: number; parent: string | null; pos: number; size: number };
+const visible = (fs: Folder<Item>[], open: Set<string>, depth = 1, parent: string | null = null): Row[] =>
+  fs.flatMap((f, i) => [{ f, depth, parent, pos: i + 1, size: fs.length }, ...(open.has(f.key) ? visible(f.children, open, depth + 1, f.key) : [])]);
 
-function Tree({ tree, stage, placedIn, target, usage, marking, onPut, onCandidate }: TreeProps) {
+function Tree({ tree, stage, placedIn, target, usage, marking, follow, onPut, onCandidate }: TreeProps) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<string | null>(null);
+  const [seen, setSeen] = useState<Follow>(null);
+  if (follow !== seen) { // 따라갈 기술이 바뀌면 그 폴더를 펼치고 고른다(그리는 중 상태 맞추기, React 문서 방식)
+    setSeen(follow);
+    const path = follow ? pathTo(tree, follow.id) : [];
+    if (path.length) { setSel(path[path.length - 1]); setOpen((o) => new Set([...o, ...path.slice(0, -1)])); }
+  }
+  useEffect(() => { // 고른 카드가 다른 폴더로 옮겨 가 초점을 잃었으면(body) 그 카드로
+    if (follow?.focus && document.activeElement === document.body) document.querySelector<HTMLElement>(`.tt-cards [data-tech="${CSS.escape(follow.id)}"] button`)?.focus();
+  }, [follow]);
   const rows = visible(tree, open);
   const current = rows.find((r) => r.f.key === sel)?.f ?? tree[0];
   const refs = useRef(new Map<string, HTMLLIElement>());
@@ -149,7 +172,7 @@ function Tree({ tree, stage, placedIn, target, usage, marking, onPut, onCandidat
         {rows.map((r, i) => {
           const has = r.f.children.length > 0, here = r.f.key === current.key;
           return (
-            <li key={r.f.key} ref={(el) => { if (el) refs.current.set(r.f.key, el); else refs.current.delete(r.f.key); }} role="treeitem" aria-level={r.depth}
+            <li key={r.f.key} ref={(el) => { if (el) refs.current.set(r.f.key, el); else refs.current.delete(r.f.key); }} role="treeitem" aria-level={r.depth} aria-posinset={r.pos} aria-setsize={r.size}
               aria-selected={here} aria-expanded={has ? open.has(r.f.key) : undefined} tabIndex={here ? 0 : -1} className="tt-item" style={{ paddingLeft: 8 + (r.depth - 1) * 16 }}
               onClick={() => { setSel(r.f.key); if (has) toggle(r.f.key, !open.has(r.f.key)); }} onKeyDown={(e) => onKey(e, i)}>
               <span aria-hidden="true" className="tt-caret">{has ? (open.has(r.f.key) ? "▾" : "▸") : ""}</span>{r.f.name} <span className="muted">{r.f.count}</span>
@@ -158,7 +181,7 @@ function Tree({ tree, stage, placedIn, target, usage, marking, onPut, onCandidat
         })}
       </ul>
       <section className="tt-cards" aria-label={`${current.name} 기술`}>
-        <h3 className="dock-h">{current.key.split("/").join(" › ")} <span className="muted">{current.count}</span></h3>
+        <h3 className="dock-h">{current.path.join(" › ")} <span className="muted">{current.count}</span></h3>
         <ul className="dock-techs">{current.items.map((t) => <Card key={t.id} t={t} use={usage.get(t.id)} stage={stage} placed={placedIn(t.id)} added={t.id === target}
           busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} />)}</ul>
       </section>
@@ -171,14 +194,14 @@ function Card({ t, use, stage, placed, added, busy, onPut, onCandidate }: { t: I
   const risky = t.grade === "danger", can = t.droppable && !risky;
   const facts = [t.field, t.projects ? `내 프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
   return (
-    <li className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}${t.droppable ? "" : " tt-out"}`} draggable={can}
+    <li data-tech={t.id} className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}${t.droppable ? "" : " tt-out"}`} draggable={can}
       onDragStart={(e) => { if (!can) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
       <span className="dock-chip"><TechChip tech={t} info={t} />{t.grade !== "pass" ? <span className={`dock-grade g-${t.grade}`}>{GRADE_KO[t.grade]}</span> : null}</span>
       {facts ? <span className="muted">{facts}</span> : null}
       {t.note ? <span className="muted">{t.judgment === "hold" ? `보류 이유: ${t.note}` : t.note}</span> : null}
       {t.tags.length ? <span className="dock-tags">{t.tags.map((x) => <span key={x} className="tag">{x}</span>)}</span> : null}
       {risky ? <span className="dock-risky">✕ 위험 등급이라 넣지 않아요</span>
-        : !t.droppable ? (onCandidate ? <button type="button" className="btn dock-sm" disabled={busy} onClick={onCandidate}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button> : null)
+        : !t.droppable ? (onCandidate ? <button type="button" className="btn dock-sm" disabled={busy} aria-label={busy ? undefined : `${t.name} 적용 후보로 고르기`} onClick={onCandidate}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button> : null)
         : placed ? <span className="muted">✓ {stage}에 있어요</span>
         : stage ? <button type="button" className="btn dock-sm" onClick={onPut}>{stage}에 넣기</button> : null}
     </li>

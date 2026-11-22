@@ -77,11 +77,11 @@ export function candidateIds(marks: Row[], alerts: Row[]): Set<string> {
 }
 
 /** 기술 트리(P-12h S2)의 관심 · 보류 카드에 붙일 정보(하는 일 · 세부 갈래 · 종류 · 등급): 넣을 수 있는 기술이 아니라 판단 보기용이라 projects 0 · mark null.
- *  갈래를 못 읽으면 하는 일 · 세부 갈래만 비우고("아직 분류 안 됨") 나머지는 보인다. 기술 줄을 못 읽으면 던진다 */
+ *  기술 줄이나 갈래를 못 읽으면 던진다(갈래만 비우면 "아직 분류 안 됨"으로 보여 못 읽은 것이 분류 안 된 것처럼 됨, 불변 2) */
 export async function readTechDetails(db: SupabaseClient, ids: string[]): Promise<PoolTech[]> {
   const ok = ids.filter(isUuid);
   if (!ok.length) return [];
-  const [rows, cats] = await Promise.all([readTechs(db, ok), readCategories(db).catch((e: unknown) => { console.error("기술 트리: 갈래를 읽지 못함", e instanceof Error ? e.message : e); return [] as Category[]; })]);
+  const [rows, cats] = await Promise.all([readTechs(db, ok), readCategories(db)]);
   const map = catMap(cats);
   return rows.map((r) => toPool(r, map, { projects: 0, mark: null }));
 }

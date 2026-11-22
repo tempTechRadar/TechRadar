@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toBoard, usageOf, HISTORY_LIMIT, type BlueprintRecord, type TechUsage } from "@/lib/blueprint/stored";
 import { fromV1 } from "@/lib/blueprint/graph";
 import { TechTreeTab } from "./tech-tree-tab";
+import { treeExtrasAction, type TreeExtras } from "./tree-actions";
 import { TemplateTab } from "./template-tab";
 import type { PanelProps } from "./studio-types";
 import "./dock.css";
@@ -31,6 +32,9 @@ export function Dock(p: PanelProps) {
   const [open, setOpen] = useState(true);
   const [h, setH] = useState(H.start);
   const usage = useMemo(() => usageOf(p.history ?? []), [p.history]);
+  const [extras, setExtras] = useState<TreeExtras | undefined>(undefined);
+  // 기술 트리의 관심 · 보류: 탭을 바꾸거나 접어도 다시 읽지 않고, 서랍을 다시 읽을 때(고르기 뒤 새로 고침)만 다시 읽는다
+  useEffect(() => { if (!p.guest) treeExtrasAction().then(setExtras, () => setExtras({ kind: "error" })); }, [p.guest, p.pool]);
   const max = useMaxH();
   const clamp = (v: number) => Math.min(max, Math.max(H.min, Math.round(v)));
   return (
@@ -48,7 +52,7 @@ export function Dock(p: PanelProps) {
       </div>
       {open ? (
         <div className="dock-body">
-          {tab === "tech" ? <TechTreeTab {...p} usage={usage} /> : <LoadTab {...p} usage={usage} />}
+          {tab === "tech" ? <TechTreeTab {...p} usage={usage} extras={extras} /> : <LoadTab {...p} usage={usage} />}
         </div>
       ) : null}
     </section>
