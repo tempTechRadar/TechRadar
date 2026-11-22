@@ -98,8 +98,10 @@ test("단계 더하기(＋ 단계 · 목록 모드 같은 규칙): 고른 단계
   assert.ok("graph" in r);
   assert.deepEqual([r.stage.x, r.stage.y], [LAYOUT.x, LAYOUT.y]); // a 오른쪽은 b가 차지 → 아래로
   assert.ok(r.graph.edges.some((e) => e.from === "a" && e.to === r.stage.id));
+  assert.equal(r.linked, true);
   const free = addStageAfter(g, "끝", undefined);
   assert.ok("graph" in free);
   assert.equal(free.graph.edges.length, 1); // 잇지 않음
+  assert.equal(free.linked, false);
   assert.ok("problem" in addStageAfter(g, "  ", g.stages[0]));
 });
