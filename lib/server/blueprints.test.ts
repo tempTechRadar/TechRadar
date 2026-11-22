@@ -79,7 +79,7 @@ test("v2 확정: 겉모양이 틀리면(단계 없음 · v2 아님 · 잘못된 
 
 test("v2 확정: DB 거절 문구를 쉬운 말로(관문 · 위험 · 고리 · 한도), 모르는 오류·이상한 답은 실패(불변 4)", async () => {
   const say = async (error: string) => { const r = await confirmBlueprintGraph(fakeDb({ error }).db, { id: ID, name: "판", projectId: null, graph: graph([SAFE]) }); return r.ok ? "" : r.message; };
-  assert.match(await say("고른 적 없는 기술은 청사진에 넣지 않는다(내 기술 · 적용 후보 · 내 이력만)"), /적용 후보로 고른 뒤/);
+  assert.match(await say("고른 적 없는 기술은 청사진에 넣지 않는다(내 기술 · 적용 후보 · 내 이력만)"), /청사진에 담기/);
   assert.match(await say("위험 등급 기술은 청사진에 넣지 않는다"), /위험한 기술/);
   assert.match(await say("연결선이 돌아 순서를 정할 수 없다(사이클)"), /연결 하나를 끊어/);
   assert.match(await say("같은 깊이의 단계는 4개까지"), /4개까지/);

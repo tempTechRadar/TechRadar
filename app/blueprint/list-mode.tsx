@@ -120,11 +120,11 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
           <div className="lm-row">
             <label>기술 넣기 <select value={tech} onChange={(e) => setTech(e.target.value)}>
               <option value="">고르기</option>
-              {canPut.map((t) => <option key={t.id} value={t.id}>{t.name}{t.mark ? " · 적용 후보" : ""}</option>)}
+              {canPut.map((t) => <option key={t.id} value={t.id}>{t.name}{t.mark ? " · 담은 기술" : ""}</option>)}
             </select></label>
             <button type="button" className="btn btn-sm" aria-disabled={tech ? undefined : true} onClick={put}>넣기</button>
           </div>
-        ) : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술 · 적용 후보가 없어요." : "넣을 기술이 없어요. 지도에서 적용 후보로 고르면 생겨요."}</p>}
+        ) : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술 · 담은 기술이 없어요." : "넣을 기술이 없어요. 지도에서 \"청사진에 담기\"를 누르면 생겨요."}</p>}
       </div>
     </li>
   );

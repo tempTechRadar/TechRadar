@@ -104,7 +104,7 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
   const inStage = s.techs.find((t) => t.id === techId);
   const t = pool.find((x) => x.id === techId);
   const name = t?.name ?? inStage?.name ?? "이름 모름";
-  const facts = t ? [t.field, t.sub, t.mark ? "적용 후보" : null, t.projects ? `내 프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
+  const facts = t ? [t.field, t.sub, t.mark ? "담은 기술" : null, t.projects ? `내 프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
   return (
     <>
       <header className="insp-head">
@@ -115,7 +115,7 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
       {/* 서랍 밖 기술: 이력에서 불러온 판의 기술은 내 기술 · 적용 후보가 아닐 수 있어 등급을 모른다(모르는 것을 "통과"로 보이지 않게, 불변 2) */}
-      <Card title="보안">{t ? <p>{SEC_TEXT[t.grade]}</p> : <p className="muted">내 기술 · 적용 후보가 아니라 등급을 여기서 읽지 않았어요. 기술 상세에서 보세요.</p>}</Card>
+      <Card title="보안">{t ? <p>{SEC_TEXT[t.grade]}</p> : <p className="muted">내 기술 · 담은 기술이 아니라 등급을 여기서 읽지 않았어요. 기술 상세에서 보세요.</p>}</Card>
       <Card title="내 태그">
         {tags === null ? <p className="notice notice-error" role="alert">내 태그를 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : guest ? <p className="muted">로그인하면 나만 보는 태그를 붙일 수 있어요.</p>

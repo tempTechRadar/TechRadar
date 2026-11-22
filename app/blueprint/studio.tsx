@@ -13,7 +13,7 @@ import {
 import { fromNames } from "@/lib/blueprint/board";
 import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
 import { toBoard } from "@/lib/blueprint/stored";
-import { BLUEPRINT_GATE, recommendAt } from "@/lib/blueprint/knowledge";
+import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
 import { addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
@@ -183,16 +183,16 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const toLogin = (what: string) => setLoginAsk(what);
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
-    if (guest) return toLogin("적용 후보로 고르려면");
+    if (guest) return toLogin("청사진에 담으려면");
     if (inflight.current.has(techId) || settled.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
-    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
+    if (r.ok) { say(`${techName}을(를) 청사진에 담았어요.`); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
-    if (!t || !s) return say(BLUEPRINT_GATE);
+    if (!t || !s) return say(STUDIO_GATE);
     const why = putProblem(s, t);
     if (why) return say(why);
     apply(putTech(g, stageId, { id: t.id, name: t.name }), putSaid(s.name, t.name));
@@ -378,7 +378,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // 관문 밖 기술(서랍 = 내 기술 · 적용 후보 · 이력에 없음, 남의 조합 템플릿에서 온 것)이 남아 있으면 확정을 막는다(DB도 거절)
   const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
   // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
-  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
+  const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`아직 담지 않은 기술 ${outside.size}개 — "청사진에 담기"를 누르거나 빼 주세요.`] : [])];
   // AI 점검할 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 "먼저 확정해 주세요"로 막히지 않게, P-12h S1)
   // 새로 고친 뒤에는 이 판의 확정 id를 모르므로(확정 id는 이 화면에서만 기억) 최근 확정본이 지금 판과 같은 내용인지(단계 순서 · 이름 · 기술)를 보고 알린다
   const latest = history?.[0];
