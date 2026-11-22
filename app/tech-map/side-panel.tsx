@@ -12,7 +12,7 @@ import { TagEditor } from "./tag-editor";
 import { DIM_KO } from "@/lib/map/view-config";
 import "./side-panel.css";
 import { listTime } from "@/lib/alerts/to-alert-view";
-import { CartIn, GuestPick } from "./guest-pick";
+import { CartIn, GuestPick, useCartFocus } from "./guest-pick";
 
 // 위험 · 주의는 맨 위 띠로, 나머지는 출처 카드 한 줄로(평소엔 보안 구역을 길게 두지 않음)
 const SEC_SHORT: Record<string, string> = { pass: "알려진 취약점 없음", unknown: "정보를 찾지 못함(위험하지 않다는 뜻이 아니에요)" };
@@ -92,12 +92,13 @@ function SecurityBand({ n }: { n: MapNode & { grade: "danger" | "caution" } }) {
 function Cart({ n, login, busy, onMark }: { n: MapNode; login: boolean; busy: boolean; onMark: OnCartMark }) {
   const [why, setWhy] = useState<string | null>(null);
   useEffect(() => setWhy(null), [n.key]);
+  const focus = useCartFocus(`${n.mark?.status}:${busy}`); // 저장 중 단추가 꺼져도 초점이 떨어진다: 끝나면(실패 포함) 되돌림
   if (!n.techId) return <p className="muted side-to-bp">이름만 넣은 기술이라 청사진에 담을 수 없어요.</p>;
   if (!login) return <GuestPick techId={n.techId} />; // 손님(P-12h-2 T3): 이 브라우저 담은 목록 → 청사진 "지도에서 담은 기술"
   const s = n.mark?.status;
   const put = () => (n.catalogGrade === "danger" ? setWhy(DANGER_CART) : onMark("candidate", "청사진에 담았어요."));
   return (
-    <div className="side-to-bp">
+    <div className="side-to-bp" {...focus}>
       {s === "candidate" ? <CartIn busy={busy} onOut={() => onMark("interest", "청사진에서 뺐어요. 관심은 남겨 뒀어요.")} />
         : <button type="button" className="btn btn-primary" disabled={busy} onClick={put}>청사진에 담기</button>}
       <p role="status">{why}</p>
