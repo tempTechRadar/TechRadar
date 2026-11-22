@@ -218,7 +218,7 @@ function Card({ t, use, stage, placed, added, busy, onPut, onCandidate, onUnpick
         : !t.droppable ? (onCandidate ? <button type="button" className="btn btn-sm" disabled={busy} /* 보내는 중: 두 번 보내지 않게 */ aria-label={busy ? undefined : `${t.name} 청사진에 담기`} onClick={onCandidate}>{busy ? "담는 중…" : "청사진에 담기"}</button> : null)
         : placed ? <span className="muted">✓ {stage}에 있어요</span>
         : stage ? <button type="button" className="btn btn-sm" onClick={onPut}>{stage}에 넣기</button> : null}
-      {onUnpick ? <button type="button" className="bp-link" aria-label={`${t.name} 담은 목록에서 빼기`} onClick={onUnpick}>목록에서 빼기</button> : null}
+      {onUnpick ? <button type="button" className="bp-link" aria-label={`${t.name} 청사진에서 빼기`} onClick={onUnpick}>청사진에서 빼기</button> : null}
     </li>
   );
 }

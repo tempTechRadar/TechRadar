@@ -21,6 +21,7 @@ import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
 import { pickedTechsAction } from "./actions";
 import { loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
+import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
@@ -176,8 +177,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function unpickGuest(techId: string) {
     const next = removePicked(loadPicked(), techId);
     if (!savePicked(next)) return say("이 브라우저에 저장하지 못했어요. 목록은 그대로예요.");
-    setPickedIds(next); setPickedTechs((x) => x?.filter((t) => t.id !== techId) ?? x);
-    say("담은 목록에서 뺐어요. 지도에서 다시 담을 수 있어요.");
+    setPickedIds(next); setPickedTechs((x) => x?.filter((t) => t.id !== techId) ?? x); cartChanged(); // 메뉴 "청사진" 담은 수도 다시 셈(U1 배지)
+    say("청사진에서 뺐어요. 지도에서 다시 담을 수 있어요.");
   }
   /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
   const toLogin = (what: string) => setLoginAsk(what);
@@ -188,7 +189,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
-    if (r.ok) { say(`${techName}을(를) 청사진에 담았어요.`); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
+    if (r.ok) { say(`${techName}을(를) 청사진에 담았어요.`); cartChanged(); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
