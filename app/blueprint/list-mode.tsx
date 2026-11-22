@@ -124,7 +124,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
             </select></label>
             <button type="button" className="btn btn-sm" aria-disabled={tech ? undefined : true} onClick={put}>넣기</button>
           </div>
-        ) : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술 · 담은 기술이 없어요." : "넣을 기술이 없어요. 지도에서 \"청사진에 담기\"를 누르면 생겨요."}</p>}
+        ) : <p className="muted">{pool.length ? "이 단계에 맞는 사용 중인 항목 · 담은 기술이 없어요." : "넣을 기술이 없어요. 지도에서 \"청사진에 담기\"를 누르면 생겨요."}</p>}
       </div>
     </li>
   );

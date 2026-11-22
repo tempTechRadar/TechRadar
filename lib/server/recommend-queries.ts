@@ -34,7 +34,7 @@ export async function readRecommendations(db: SupabaseClient, userId: string, is
     categoryId: (r.category_id ?? null) as string | null, grade: r.grade as string, status: r.status as string,
     signals: (r.signals ?? null) as Record<string, unknown> | null,
   }));
-  const ownedIds = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map((r) => r.tech_id as string);
+  const ownedIds = rowsOrThrow(mineRes, "사용 중인 항목을 읽지 못함").map((r) => r.tech_id as string);
   const picked = pickRecommendations({ interests: taste.interests, categories, techs, ownedIds });
   return { taste, items: await withMarks(db, userId, picked) };
 }

@@ -23,7 +23,7 @@ export default function AlertsPage(props: { searchParams: Promise<Params> }) {
 
 async function AlertsBody({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
-  if (!user) return <LoginNeeded title="알림" why="로그인하고 내 프로젝트를 등록하면, 내가 쓰는 기술에 위험이 생기거나 대안이 나왔을 때 여기에서 알려 드려요." next={backTo("/alerts", await searchParams)} />;
+  if (!user) return <LoginNeeded title="알림" why="로그인하고 프로젝트를 등록하면, 내가 쓰는 기술에 위험이 생기거나 대안이 나왔을 때 여기에서 알려 드려요." next={backTo("/alerts", await searchParams)} />;
   const params = await searchParams;
   const records = isPreviewUser(user) ? SAMPLE_ALERTS // 미리보기(개발용)는 샘플
     : await listMyAlerts((await getServerSupabase())!, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
@@ -92,7 +92,7 @@ function projectOptions(records: Awaited<ReturnType<typeof listMyAlerts>>): [str
 }
 
 function Empty() {
-  return <div className="notice notice-empty"><strong>아직 알림이 없어요.</strong> 내 기술에 위험이 생기면 여기에서 알려 드려요.</div>;
+  return <div className="notice notice-empty"><strong>아직 알림이 없어요.</strong> 사용 중인 항목에 위험이 생기면 여기에서 알려 드려요.</div>;
 }
 
 function LoadError() {

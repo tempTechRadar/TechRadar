@@ -26,7 +26,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <h1>설정</h1>
       {welcome ? (
         <div className="notice notice-empty">
-          <strong>가입을 마치려면 별명을 정해 주세요.</strong> 아래 &apos;쓰고 있어요&apos;에 내 별명 보이기를 켜면 기술 상세의 &apos;쓰고 있어요 n명&apos;에 내 별명이 들어가요. 끄면 수에서도 빠져요. 내 프로젝트·판단·기록은 켜도 꺼도 다른 사용자에게 보이지 않아요.
+          <strong>가입을 마치려면 별명을 정해 주세요.</strong> 아래 &apos;쓰고 있어요&apos;에 내 별명 보이기를 켜면 기술 상세의 &apos;쓰고 있어요 n명&apos;에 내 별명이 들어가요. 끄면 수에서도 빠져요. 프로젝트·판단·기록은 켜도 꺼도 다른 사용자에게 보이지 않아요.
         </div>
       ) : null}
       {error || !data ? (

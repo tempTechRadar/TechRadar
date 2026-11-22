@@ -44,7 +44,7 @@ function Star({ n, busy, onMark }: { n: MapNode; busy: boolean; onMark: OnCartMa
 function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
   const [what, facts] = describeKo(n);
   // "왜 여기"(소속 · 쓰는 곳)를 기본 정보 줄과 같은 자리로(11-22 사용자)
-  const where = `${pathOf(n)} · 쓰는 곳 ${n.attrs.host}${n.hostGuessed ? "(추정)" : ""}${n.mine ? ` · 내 프로젝트 ${n.projectNames.join(", ")}` : ""}`;
+  const where = `${pathOf(n)} · 쓰는 곳 ${n.attrs.host}${n.hostGuessed ? "(추정)" : ""}${n.mine ? ` · 프로젝트 ${n.projectNames.join(", ")}` : ""}`;
   return (
     <header className="side-head">
       <div className="side-title"><h2 id="map-side-title" tabIndex={-1}>{n.name}</h2>{star}</div>
@@ -56,14 +56,14 @@ function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
         {n.isNew ? <span className="tag">NEW</span> : null}
         {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
         {n.collectErrorKind ? <span className="tag">수집 오류</span> : null}
-        {n.mine ? <span className="tag strong">내 기술 · 쓰는 중</span> : null}{n.nearMine ? <span className="tag">내 기술의 비교군</span> : null}
+        {n.mine ? <span className="tag strong">사용 중</span> : null}{n.nearMine ? <span className="tag">사용 중인 항목의 비교군</span> : null}
       </p>
     </header>
   );
 }
 
 function CompareList({ n, compare, onGo }: { n: MapNode; compare: Compare[]; onGo: (key: string) => void }) {
-  if (!compare.length) return <p className="muted">{n.mine ? "확인된 비교군이 아직 없어요." : "비교군은 내 기술 둘레에만 보여요."}</p>;
+  if (!compare.length) return <p className="muted">{n.mine ? "확인된 비교군이 아직 없어요." : "비교군은 사용 중인 항목 둘레에만 보여요."}</p>;
   return (
     <ul className="map-near">{compare.map(({ item: ci, node: m, quote }) => (
       <li key={m.key}><Dot token={ci?.token ?? null} hollow={ci?.hollow} /><div>
@@ -151,7 +151,7 @@ export function GroupPanel({ g, members, shut, onDrill, onToggle, onGo }: { g: G
     <>
       <header className="side-head">
         <h2 id="map-side-title" tabIndex={-1}>{g.value}</h2>
-        <p className="muted">{g.level}단계 · {DIM_KO[g.dim]} · {g.count}개{g.mine ? ` · 내 기술 ${g.mine}` : ""}{g.danger ? ` · 위험 ${g.danger}` : ""}{g.caution ? ` · 주의 ${g.caution}` : ""}{g.err ? ` · 수집 오류 ${g.err}` : ""}</p>
+        <p className="muted">{g.level}단계 · {DIM_KO[g.dim]} · {g.count}개{g.mine ? ` · 사용 중 ${g.mine}` : ""}{g.danger ? ` · 위험 ${g.danger}` : ""}{g.caution ? ` · 주의 ${g.caution}` : ""}{g.err ? ` · 수집 오류 ${g.err}` : ""}</p>
       </header>
       <p className="map-row"><button type="button" className="btn btn-primary" onClick={onDrill}>이 분류만 보기</button><button type="button" className="btn" onClick={onToggle}>{shut ? "펼치기" : "접기"}</button></p>
       <Card title={`기술 ${list.length}${list.length > 50 ? " (위험·주의 먼저 50개)" : ""}`}>

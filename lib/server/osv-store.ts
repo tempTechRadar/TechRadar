@@ -46,7 +46,7 @@ export async function readOsvTargets(db: SupabaseClient): Promise<OsvTarget[]> {
     const { data, error } = await db.from("my_technologies").select(SELECT)
       .is("hidden_at", null).eq("technologies.depth", "thick").eq("technologies.is_simulated", false).is("projects.archived_at", null)
       .order("id").range(from, from + PAGE - 1);
-    if (error) throw new Error(`내 기술 목록을 읽지 못함: ${error.message}`);
+    if (error) throw new Error(`사용 중인 항목 목록을 읽지 못함: ${error.message}`);
     const page = (data ?? []) as unknown as Raw[];
     rows.push(...page.map(toRow));
     if (page.length < PAGE) break;

@@ -206,7 +206,7 @@ function Tree({ tree, stage, placedIn, target, usage, marking, follow, onPut, on
 /** 넣을 수 있는 카드(실선, 끌기 · 넣기) 또는 판단 전 카드(점선, "적용 후보로 고르기"만). 등급은 점 색만이 아니라 글자로도 */
 function Card({ t, use, stage, placed, added, busy, onPut, onCandidate, onUnpick }: { t: Item; use?: TechUsage; stage: string | null; placed: boolean; added: boolean; busy: boolean; onPut: () => void; onCandidate?: () => void; onUnpick?: () => void }) {
   const risky = t.grade === "danger", can = t.droppable && !risky;
-  const facts = [t.field, t.projects ? `내 프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
+  const facts = [t.field, t.projects ? `프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
   return (
     <li data-tech={t.id} className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}${t.droppable ? "" : " tt-out"}`} draggable={can}
       onDragStart={(e) => { if (!can) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>

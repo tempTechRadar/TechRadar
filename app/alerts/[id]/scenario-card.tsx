@@ -35,7 +35,7 @@ export function ScenarioCard({ alertId, card }: { alertId: string; card: Card | 
               <thead><tr><th scope="col">항목</th><th scope="col">{card.comparison.headers.mine}</th><th scope="col">{card.comparison.headers.theirs}</th></tr></thead>
               <tbody>
                 {card.comparison.rows.map((row) => (
-                  <tr key={row.item}><th scope="row">{row.item}</th><Cell label="내 기술" cell={row.mine} /><Cell label="대체" cell={row.theirs} /></tr>
+                  <tr key={row.item}><th scope="row">{row.item}</th><Cell label="사용 중인 항목" cell={row.mine} /><Cell label="대체" cell={row.theirs} /></tr>
                 ))}
               </tbody>
             </table>

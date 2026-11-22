@@ -47,7 +47,7 @@ export function toScenarioView(latest: ScenarioRecord | null, usedToday: number,
     state: "done",
     createdAtLabel: time.format(new Date(latest.createdAt)),
     comparison: body.comparison && {
-      headers: { mine: `내 기술 ${body.comparison.techName}`, theirs: `대체 ${body.comparison.altName}` },
+      headers: { mine: `사용 중인 항목 ${body.comparison.techName}`, theirs: `대체 ${body.comparison.altName}` },
       rows: body.comparison.rows.map((row) => ({ item: row.item, mine: cellOf(row.mine), theirs: cellOf(row.theirs) })),
     },
     steps: body.steps,

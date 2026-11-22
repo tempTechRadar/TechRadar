@@ -123,7 +123,7 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
     db.from("tech_marks").select("tech_id, status, reason, updated_at").eq("user_id", userId),
     db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"), // 알림에서 한 판단(지도 판단 칩도 후보 탭과 같은 계산)
   ]);
-  const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);
+  const mine = rowsOrThrow(mineRes, "사용 중인 항목을 읽지 못함").map(toMine);
   const markRows = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함");
   const marks: Mark[] = markRows.map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
   const decided = decidedMarks(markRows, rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));

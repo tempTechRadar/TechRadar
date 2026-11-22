@@ -35,7 +35,7 @@ export async function getCatalogTechDetail(db: SupabaseClient, user: { id: strin
     user ? db.from("tech_mark_events").select("created_at, new_status, reason").eq("user_id", user.id).eq("tech_id", techId).order("created_at", { ascending: false }).limit(20) : none,
   ]);
   const isDemo = user?.isDemo ?? false;
-  for (const [r, what] of [[t, "기술을 읽지 못함"], [mine, "내 기술을 읽지 못함"], [ev, "내 판단 기록을 읽지 못함"]] as const) if (r.error) throw fail(what, r.error);
+  for (const [r, what] of [[t, "기술을 읽지 못함"], [mine, "사용 중인 항목을 읽지 못함"], [ev, "내 판단 기록을 읽지 못함"]] as const) if (r.error) throw fail(what, r.error);
   const row = t.data as Row | null;
   if (!row) return null;
   const mineRows = (mine.data ?? []) as Row[];

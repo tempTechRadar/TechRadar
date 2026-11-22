@@ -14,7 +14,7 @@ export async function readStatusData(db: SupabaseClient, userId: string): Promis
       .eq("owner_id", userId).is("archived_at", null).order("created_at"),
     readMyTechTagMap(db, userId).catch((e: unknown) => { console.error("현황: 내 태그를 읽지 못함", e instanceof Error ? maskSecrets(e.message) : e); return null; }),
   ]);
-  if (res.error || !res.data) throw new Error(`내 프로젝트를 읽지 못함: ${maskSecrets(res.error?.message ?? "빈 응답")}`);
+  if (res.error || !res.data) throw new Error(`프로젝트를 읽지 못함: ${maskSecrets(res.error?.message ?? "빈 응답")}`);
   // DB 타입을 생성하기 전이라 다대일(technologies)도 배열로 추론된다. 실제 응답은 한 줄 객체
   return { projects: res.data as unknown as StatusProjectRow[], tags };
 }

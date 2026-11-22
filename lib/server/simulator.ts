@@ -135,7 +135,7 @@ export async function assertSimulatedChange(db: SupabaseClient, changeId: string
 function describe(changeCreated: boolean, alertsCreated: number): string {
   if (alertsCreated > 0) return `가짜 변경 ${changeCreated ? "1건 새로 만듦" : "은 이미 있음"}, 시연 계정 알림 ${alertsCreated}건`;
   const base = `가짜 변경 ${changeCreated ? "1건 새로 만듦" : "은 이미 있음"}`;
-  return `${base}. 알림 0건: 시연 계정이 ${G1.name}을(를) 내 기술로 쓰지 않거나, 이 변경의 알림이 이미 만들어져 있어요.`;
+  return `${base}. 알림 0건: 시연 계정이 ${G1.name}을(를) 사용 중인 항목으로 쓰지 않거나, 이 변경의 알림이 이미 만들어져 있어요.`;
 }
 
 export async function runSimulator(deps: SimulatorDeps, input: { adminId: string }): Promise<SimulatorResult> {

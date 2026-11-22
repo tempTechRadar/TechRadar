@@ -55,7 +55,7 @@ export async function clearSimulatedAction(): Promise<void> {
   let text: string;
   try {
     const r = await clearSimulated({ db }, { adminId: user.id });
-    text = `변경 ${r.changes}건, 알림 ${r.alerts}건, 판단 ${r.judgments}건, 시나리오 ${r.scenarios}건, 수집 자료 ${r.observations}건, 같은 역할 관계 ${r.relations}건, 기술 ${r.technologies}건을 지웠어요(내 기술이 쓰는 가짜 기술 ${r.keptTechnologies}건은 남김).`;
+    text = `변경 ${r.changes}건, 알림 ${r.alerts}건, 판단 ${r.judgments}건, 시나리오 ${r.scenarios}건, 수집 자료 ${r.observations}건, 같은 역할 관계 ${r.relations}건, 기술 ${r.technologies}건을 지웠어요(사용 중인 항목에 걸린 가짜 기술 ${r.keptTechnologies}건은 남김).`;
   } catch (error) {
     return back("error", error instanceof Error ? error.message : String(error));
   }

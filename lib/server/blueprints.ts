@@ -56,7 +56,7 @@ export async function readBlueprintPage(db: SupabaseClient, userId: string): Pro
     readHistory(db, userId),
   ]);
   const perTech = new Map<string, Set<string>>();
-  for (const m of rowsOrThrow(mineRes, "내 기술을 읽지 못함")) perTech.set(m.tech_id, (perTech.get(m.tech_id) ?? new Set()).add(m.project_id));
+  for (const m of rowsOrThrow(mineRes, "사용 중인 항목을 읽지 못함")) perTech.set(m.tech_id, (perTech.get(m.tech_id) ?? new Set()).add(m.project_id));
   const used = (history ?? []).flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => t.id)));
   const ids = [...new Set([...perTech.keys(), ...candidates, ...used])].filter(isUuid);
   const map = catMap(cats);
@@ -127,7 +127,7 @@ export const DB_REFUSED: Record<string, string> = {
   "이미 쓰인 확정 id": "확정을 다시 눌러 주세요.",
   // v2(M1 202611221000 blueprint_graph_clean)의 거절 문구
   "위험 등급 기술": "위험한 기술은 넣지 않아요. 빼고 다시 확정해 주세요.",
-  "고른 적 없는 기술": "청사진에는 내 기술 · 담은 기술 · 내 이력의 기술만 넣을 수 있어요. 지도에서 \"청사진에 담기\"를 누른 뒤 넣어 주세요.",
+  "고른 적 없는 기술": "청사진에는 사용 중인 항목 · 담은 기술 · 내 이력의 기술만 넣을 수 있어요. 지도에서 \"청사진에 담기\"를 누른 뒤 넣어 주세요.",
   "기술을 찾지 못했다": "찾지 못한 기술이 있어요. 빼고 다시 넣어 주세요.",
   "사이클": "연결선이 돌고 있어 순서를 정할 수 없어요. 연결 하나를 끊어 주세요.",
   "단계 깊이는 12": "단계는 12단계 깊이까지예요.",

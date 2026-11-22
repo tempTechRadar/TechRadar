@@ -52,7 +52,7 @@ export default async function MyTechSamplePage({ searchParams }: { searchParams:
   if (view === "detail") return <TechDetail d={DETAIL} />;
   return (
     <main className="page">
-      <h1>내 기술 목록 샘플 (실제 기록 아님)</h1>
+      <h1>사용 중인 항목 목록 샘플 (실제 기록 아님)</h1>
       <p className="notice notice-empty" role="note">개발 컴퓨터에서만 보이는 화면이에요. <a href="?view=detail">기술 상세 샘플</a> · <a href="?hidden=1">숨긴 기술도 보기</a></p>
       {PROJECTS.map((p) => { const notice = readStatusNotice(p.kind, p.runs, new Date(NOW)), techs = p.my_technologies.filter((t) => hidden === "1" || !t.hidden_at).map((t) => ({ ...t, tech_id: null })); return (
         <section key={p.id} className="card"><h2>{p.name}</h2>{notice ? <p className="notice notice-error" role="status">{notice}</p> : null}

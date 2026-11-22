@@ -19,7 +19,7 @@ export const COLLECT_ERROR_TEXT: Record<string, string> = {
 
 /** 화면에 보이는 실패 문구. 주소에는 코드만 싣고 글은 여기서만 꺼낸다(주소로 문구를 바꿔 끼우지 못하게). */
 export const TECH_ERROR_TEXT: Record<string, string> = {
-  not_found: "내 기술 목록에서 찾을 수 없어요.",
+  not_found: "사용 중인 항목 목록에서 찾을 수 없어요.",
   failed: "저장하지 못했어요. 아무것도 바뀌지 않았어요. 잠시 뒤 다시 해 주세요.",
   duplicate: "이미 이 프로젝트 목록에 있어요. 숨겨 둔 기술이면 '숨긴 기술도 보기'에서 되돌려 주세요.",
   no_target: "목록에서 기술을 고르거나 이름을 써 주세요.",

@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className="page">
       <h1>로그인</h1>
       {/* design.md 18절 로그인(IA-1): 서비스 한 줄 설명과 개인정보 안내 */}
-      <p>내 프로젝트에 깐 AI 코딩 도구를 지키고, 고르고, 옮겨요. 위험·새 버전·대안을 한 지도에서 보고, 내가 승인한 것만 바꿔요.</p>
+      <p>프로젝트에 깐 AI 코딩 도구를 지키고, 고르고, 옮겨요. 위험·새 버전·대안을 한 지도에서 보고, 내가 승인한 것만 바꿔요.</p>
       {error && <p role="alert" className="notice notice-error">{ERROR_TEXT[error] ?? ERROR_TEXT.google}</p>}
       <GoogleLoginButton next={next} />
       <ul className="muted">

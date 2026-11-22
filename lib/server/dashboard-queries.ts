@@ -29,7 +29,7 @@ export async function readDashboardData(db: SupabaseClient, userId: string): Pro
   ]);
   return {
     alerts,
-    techs: rowsOrThrow(techs, "내 기술을 읽지 못함").filter((row) => !archivedIds.has(row.project_id as string)).map((row) => ({ projectId: row.project_id })),
+    techs: rowsOrThrow(techs, "사용 중인 항목을 읽지 못함").filter((row) => !archivedIds.has(row.project_id as string)).map((row) => ({ projectId: row.project_id })),
     projects: rowsOrThrow(projects, "프로젝트를 읽지 못함").map((row) => ({ id: row.id, name: row.name })),
   };
 }

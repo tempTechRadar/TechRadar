@@ -37,7 +37,7 @@ export async function readNewsFeed({ db, serviceDb, userId, nowMs = Date.now(), 
     { name: "요즘 뜨는 기술", run: async () => { if (!serviceDb) throw new Error("서버 연결이 없어요"); return trendingNews(await readTrending(serviceDb, nowMs)); } },
   ];
   if (userId) {
-    parts.push({ name: "내 기술의 새 취약점", run: async () => vulnNews(await readMyVulns(db, userId, sinceIso)) });
+    parts.push({ name: "사용 중인 항목의 새 취약점", run: async () => vulnNews(await readMyVulns(db, userId, sinceIso)) });
   }
   const settled = await Promise.allSettled(parts.map((p) => p.run()));
   const failed: string[] = [];

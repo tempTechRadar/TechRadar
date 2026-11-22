@@ -16,7 +16,7 @@ const ICON = {
 export function TabBar({ cart }: { cart?: ReactNode }) {
   return (
     <nav aria-label="아래 메뉴" className="tab-bar">
-      <NavLink href="/dashboard" also={["/history"]}><I d={ICON.history} />프로젝트</NavLink>
+      <NavLink href="/dashboard" also={["/history", "/projects"]}><I d={ICON.history} />프로젝트</NavLink>
       <NavLink href="/"><I d={ICON.map} />지도</NavLink>
       <NavLink href="/blueprint"><I d={ICON.blueprint} /><span>청사진{cart}</span></NavLink>
       <NavLink href="/alerts"><I d={ICON.bell} />알림</NavLink>

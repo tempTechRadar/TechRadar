@@ -372,7 +372,7 @@ async function saveMyTechnologies(db: SupabaseClient, at: { ownerId: string; pro
   for (const [conflict, rows] of [["project_id,tech_id", mine.filter((m) => "tech_id" in m)], ["project_id,manual_name", mine.filter((m) => !("tech_id" in m))]] as const) {
     if (!rows.length) continue;
     const r = await db.from("my_technologies").upsert(rows, { onConflict: conflict });
-    if (r.error) throw new Error(`내 기술을 저장하지 못함: ${r.error.message}`);
+    if (r.error) throw new Error(`사용 중인 항목을 저장하지 못함: ${r.error.message}`);
   }
   return ids;
 }
@@ -420,7 +420,7 @@ async function saveSkillScans(db: SupabaseClient, projectId: string, run: { scan
 /** 등급 저장. 근거가 바뀌었을 때만 수집 자료(observations, "바뀐 값만")를 남긴다. */
 async function applyGrade(db: SupabaseClient, runId: string, t: Target, r: GradeResult) {
   const prev = await db.from("my_technologies").select("grade, grade_evidence").eq("project_id", t.projectId).eq("tech_id", t.techId).single();
-  if (prev.error) throw new Error(`내 기술을 읽지 못함: ${prev.error.message}`);
+  if (prev.error) throw new Error(`사용 중인 항목을 읽지 못함: ${prev.error.message}`);
   const curr = r.evidence.map((e) => ({ id: e.id, severity: e.severity, fixed: e.fixed }));
   const prevIds = ((prev.data.grade_evidence as { id: string }[] | null) ?? []).map((e) => e.id).join(",");
   if (prevIds !== curr.map((e) => e.id).join(",") || prev.data.grade !== r.grade) {
