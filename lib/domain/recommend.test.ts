@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { pickRecommendations, type Candidate } from "./recommend.ts";
+import { markUi, pickRecommendations, type Candidate } from "./recommend.ts";
 
 // 큰 갈래 둘, 작은 갈래 셋
 const categories = [
@@ -61,4 +61,18 @@ test("최대 개수를 넘기지 않는다 (기본 10)", () => {
   const many = Array.from({ length: 15 }, (_, i) => tech(`t${i}`, { signals: { weekly_downloads: i } }));
   assert.equal(pick(many).length, 10);
   assert.equal(pickRecommendations({ interests: ["리서치"], categories, techs: many, ownedIds: [], limit: 3 }).length, 3);
+});
+
+// 추천 화면의 관심 버튼(IA-20, ADR 0028): 알림 없는 판단(tech_marks)의 "관심"으로 합친다. 이미 적용 후보·보류로 정한 기술은 관심으로 낮추지 않는다.
+test("표시가 없으면 관심 버튼을 보인다", () => {
+  assert.deepEqual(markUi(null), { kind: "mark" });
+});
+
+test("이미 관심이면 표시했다고 보이고 지울 수 있다", () => {
+  assert.deepEqual(markUi("interest"), { kind: "interested" });
+});
+
+test("이미 적용 후보·보류로 정했으면 그 판단만 보이고 관심 버튼은 없다 (낮추거나 덮어쓰지 않는다)", () => {
+  assert.deepEqual(markUi("candidate"), { kind: "decided", label: "적용 후보" });
+  assert.deepEqual(markUi("hold"), { kind: "decided", label: "보류" });
 });

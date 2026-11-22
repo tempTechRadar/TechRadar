@@ -7,6 +7,7 @@ import test from "node:test";
 const FILES = [
   "app/taste/actions.ts", "app/taste/page.tsx", "app/taste/taste-form.tsx", "app/recommend/page.tsx",
   "lib/server/taste-store.ts", "lib/server/recommend-queries.ts", "lib/domain/recommend.ts", "lib/domain/taste.ts",
+  "app/recommend/actions.ts", "app/recommend/mark-button.tsx", "lib/server/recommend-mark.ts",
 ];
 
 test("취향·추천 코드는 서비스 키 클라이언트를 쓰지 않는다", () => {
@@ -15,7 +16,7 @@ test("취향·추천 코드는 서비스 키 클라이언트를 쓰지 않는다
 });
 
 test("취향·추천 화면은 로그인 확인 없이 열리지 않는다", () => {
-  for (const f of ["app/taste/page.tsx", "app/recommend/page.tsx", "app/taste/actions.ts"]) {
+  for (const f of ["app/taste/page.tsx", "app/recommend/page.tsx", "app/taste/actions.ts", "app/recommend/actions.ts"]) {
     assert.match(readFileSync(f, "utf8"), /getCurrentUser\(\)[\s\S]*if \(!user\) redirect\("\/login/, f);
   }
 });
@@ -23,4 +24,12 @@ test("취향·추천 화면은 로그인 확인 없이 열리지 않는다", () 
 test("추천은 Claude에 넣지 않는다 (SPEC: 취향·추천은 Claude 밖)", () => {
   const bad = FILES.filter((f) => /anthropic|generateDraft|generateScenario|ai_calls/i.test(readFileSync(f, "utf8")));
   assert.deepEqual(bad, []);
+});
+
+test("추천 화면은 관심(interest)만 저장한다: 적용 후보·보류는 알림 판단을 건드리므로 추천에서 남기지 않는다", () => {
+  for (const f of ["app/recommend/actions.ts", "app/recommend/mark-button.tsx", "lib/server/recommend-mark.ts"]) {
+    const code = readFileSync(f, "utf8").replace(/\/\/.*$/gm, "");
+    assert.doesNotMatch(code, /status:\s*"(candidate|hold)"/, f);
+    assert.doesNotMatch(code, /"(candidate|hold)"\s*[,)}]/, f);
+  }
 });

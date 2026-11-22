@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { describeChange, downloadsUrl, packageOf, readNpmWeekly, readPypiWeekly } from "./downloads.ts";
+import { describeChange, downloadsUrl, packageOf, packagePageUrl, readNpmWeekly, readPypiWeekly } from "./downloads.ts";
 
 test("packageOf: npm·pypi 키만 패키지로 읽고, pypi 이름은 PEP 503 모양(소문자·-)으로 맞춘다", () => {
   assert.deepEqual(packageOf("npm:zod"), { ecosystem: "npm", name: "zod" });
@@ -59,4 +59,14 @@ test("describeChange: 처음 읽음·0에서 시작·늘고 줄어든 폭을 쉬
   // 값은 달라졌는데 비율로는 0.0%면 "0%"로 쓰면 안 바뀐 것처럼 읽힌다: 값을 그대로 보인다
   assert.equal(describeChange(100000, 99999), "주간 100,000 → 99,999회");
   assert.equal(describeChange(1000000, 1000001), "주간 1,000,000 → 1,000,001회");
+});
+
+test("packagePageUrl: 비교표 사용량의 출처 — npm은 @와 /를 살린 소개 페이지, pypi는 소문자·- 모양의 프로젝트 페이지", () => {
+  assert.equal(packagePageUrl("npm:mcp-proxy"), "https://www.npmjs.com/package/mcp-proxy");
+  assert.equal(packagePageUrl("npm:@modelcontextprotocol/server-filesystem"), "https://www.npmjs.com/package/@modelcontextprotocol/server-filesystem");
+  assert.equal(packagePageUrl("pypi:Some_Pkg"), "https://pypi.org/project/some-pkg/");
+});
+
+test("packagePageUrl: 다운로드 수가 없는 종류와 주소에 쓸 수 없는 이름은 null (출처를 지어내지 않는다)", () => {
+  for (const key of ["mcp:foo", "github:o/r", "skill:x", "npm:../etc", "npm:a b", "pypi:", "", "npm:"]) assert.equal(packagePageUrl(key), null, key);
 });
