@@ -112,7 +112,7 @@ function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<str
         <h3 id="dock-top" className="dock-h">자주 쓴 기술</h3>
         {top.length ? <ul className="dock-techs">{top.map(([id, x]) => (
           <li key={id} className="dock-tech"><span><b>{names.get(id) ?? "이름 모름"}</b><span className="muted"> · {x.n}번 · 프로젝트 {x.projects}개 · {x.stages.join(", ")}</span></span></li>
-        ))}</ul> : <p className="muted">확정한 청사진에 붙인 기술이 아직 없어요.</p>}
+        ))}</ul> : <p className="muted">확정한 청사진에 넣은 기술이 아직 없어요.</p>}
       </section>
     </div>
   );

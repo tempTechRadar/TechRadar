@@ -47,7 +47,7 @@ export function ResultDialog(p: Props) {
         <section aria-labelledby="rd-confirm">
           <h3 id="rd-confirm" className="rd-h">확정</h3>
           {p.guest ? <p className="muted">확정하면 내 이력에 남아요. 로그인이 필요해요. <button type="button" className="btn" onClick={p.onLogin}>로그인하러 가기</button></p> : <>
-            <p className="muted">확정하면 내 이력에 남고, 붙인 기술 {techCount}개의 &quot;내가 쓴 횟수&quot;에 더해져요. 확정한 것은 고치지 않고 쌓여요(다음엔 불러와서 새로 확정).</p>
+            <p className="muted">확정하면 내 이력에 남고, 넣은 기술 {techCount}개의 &quot;내가 쓴 횟수&quot;에 더해져요. 확정한 것은 고치지 않고 쌓여요(다음엔 불러와서 새로 확정).</p>
             <div className="rd-row">
               <label>어느 프로젝트에 쓸 건가요?
                 <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>

@@ -60,7 +60,7 @@ export function TemplateTab({ graph, say }: PanelProps) {
         <label>템플릿 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required placeholder="예: 웹앱 기본 흐름" /></label>
         <button type="submit" className="btn btn-sm" aria-disabled={busy}>{busy ? "저장하는 중…" : `지금 판을 ${KIND_RO[kind]} 저장`}</button>
       </form>
-      {kind === "frame" ? <p className="muted">틀은 기술을 빼고 단계와 연결만 저장해요.</p> : <p className="muted">조합은 단계에 붙인 기술까지 저장해요. 공개하면 다른 사람이 같은 조합으로 시작할 수 있어요.</p>}
+      {kind === "frame" ? <p className="muted">틀은 기술을 빼고 단계와 연결만 저장해요.</p> : <p className="muted">조합은 단계에 넣은 기술까지 저장해요. 공개하면 다른 사람이 같은 조합으로 시작할 수 있어요.</p>}
       <p className="muted">&quot;이 템플릿으로 시작&quot;을 누르면 화면을 새로 열어 펼쳐요. 지금 판은 되돌리기 한 번으로 돌아와요.</p>
       {lists === undefined ? <p className="muted" role="status">템플릿을 읽는 중…</p>
         : "message" in lists ? <p className="notice notice-error" role="alert">{lists.message}</p>

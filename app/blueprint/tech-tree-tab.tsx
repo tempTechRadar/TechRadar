@@ -24,6 +24,7 @@ type Follow = { id: string; focus: boolean } | null;
 const SAVE_KEY = "techradar-bp-tree"; // 고른 묶기 기준(이 브라우저만, 지도 보기 저장과 같은 방식)
 const DIMS = Object.keys(DIM_KO) as TreeDim[];
 const GUEST_FOLDER = "찾은 기술";
+const GUEST_GATE = "로그인 전에는 카탈로그에서 찾은 기술을 넣어요. 실제 설치는 Claude Code에서 직접 해요."; // 손님은 관문(내 기술 · 적용 후보 · 확정 이력)이 없다
 
 function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
   const [dims, setDims] = useState<TreeDim[]>(["judgment"]);
@@ -84,7 +85,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
           : target.grade === "danger" ? <><b>{target.name}</b>은(는) 위험 등급이라 청사진에 넣지 않아요.</>
           : <><b>{target.name}</b>: 넣을 단계를 캔버스에서 고르거나, 이 카드를 단계로 끌어 놓으세요.</>}
       </p> : null}
-      <form className="dock-row" role="search" onSubmit={(e) => { e.preventDefault(); if (!busy && term.trim().length >= 2) void search(); }}>
+      <form className="dock-row" role="search" onSubmit={(e) => { e.preventDefault(); if (busy) return; if (term.trim().length >= 2) void search(); else say("기술 이름을 두 글자 이상 적어 주세요."); }}>
         {guest ? null : <>
           <label className="tt-dim">묶기 <select value={by[0]} onChange={(e) => { const d = e.target.value as TreeDim; setDims(by[1] && by[1] !== d ? [d, by[1]] : [d]); }}>
             {DIMS.map((d) => <DimOption key={d} d={d} off={d === "tag" && tags === null} />)}</select></label>
@@ -95,7 +96,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
         <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
         <button type="submit" className="btn btn-sm" aria-disabled={busy || term.trim().length < 2}>{busy ? "찾는 중…" : "카탈로그에서 찾기"}</button>
       </form>
-      <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
+      <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{guest ? GUEST_GATE : BLUEPRINT_GATE}</p>
       <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾은 결과를 불러오지 못했어요" : found ? `카탈로그에서 ${found.length}개 찾았어요` : ""}</p>
       {found === null ? <p className="notice notice-error" role="alert">찾은 결과를 불러오지 못했어요. 기술이 없다는 뜻이 아니에요. 잠시 뒤 다시 찾아 주세요.</p> : null}
       {guest ? null : <ExtrasNote extras={extras} />}
