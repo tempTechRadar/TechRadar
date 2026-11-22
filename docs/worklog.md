@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-submit-check | 문서 PR 준비: origin/main 합침(ia.md 충돌은 양쪽 살림), ADR 0039 · 0040 새로, ADR 0030 · 0035 개정 표시, GLOSSARY(청사진에 담기 · 담은 기술 · 단계 메모 · 바뀌는 것 미리보기), 데이터설계 · erd(단계 메모 · M5 운영 적용, 운영 SELECT로 확인), design.md 4절, IA · UJ · PRD 한 줄씩, agents(테마 탐색 Workflow 54 · Explore 6 · C 리뷰 2 · 디자인 조사 1). 정한 일: 지도 보류 빼기 · 로그인 담기는 #206이 아직 열려 있어 "#206"으로 표시, 기술 상세에는 보류가 남아 있어 "적용 후보" 말은 알림 · 기술 상세 쪽에 남는다고 적음 | DocsChecker(Claude) | `docs/adr/0039-*` · `0040-*` |
 | I-P-23-recommend-interest | 추천 화면에 "관심" 단추(ADR 0028·IA-20과 어긋나 있던 것). 시험 먼저(표시 읽기 4·관심 저장 7·화면 상태 3·소스 훑기 1), 망가뜨려 보기 3곳 모두 잡음. 기존 RPC `set_tech_mark` 사용·마이그레이션 없음. 11-22 결정 표의 "반응은 plan 밖" 정정. 화면 모양은 사람 확인 | 황재웅 / Claude | `lib/domain/recommend.ts`, `lib/server/recommend-queries.ts`·`recommend-mark.ts`, `app/recommend/` |
 | I-a11y-b-screens | 영역 B 화면 탭 크기 44px 3곳 고침 + B 화면 8개 폴더 정적 시험 5개(망가뜨려 4곳 잡음). 375px 실제 확인은 사람(NF4) | 황재웅 / Claude | `lib/a11y/b-screens-scan.test.ts`, `usage-note-buttons.tsx`, `report-card.tsx` |
 | I-B-decisions-1122 | 영역 B에서 팀 합의를 기다리던 항목을 추천대로 확정(사용자가 전한 팀 의견): P-7 계약 정리·색 배지·새 기술 유입 호출은 하지 않음, 종료 6쌍 status는 수집기에, 비슷한 지난 판단은 시연에서 제외 등. plan·qa·intent 문구 정리(문서만) | 황재웅 / Claude | `docs/plan.md`, `docs/qa.md`, `docs/intent.md` |
