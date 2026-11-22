@@ -4,14 +4,12 @@ export const CELL = 24, COLS = 48;
 export const MIN_W = 8, MIN_H = 4, MAX_X = 200;
 export type Box = { id: string; x: number; y: number; w: number; h: number; hidden?: boolean };
 
-/** 기본 배치(P-12k K1 컴팩트 타공보드): 1440×900 첫 화면에 판 4개가 다 들어오게(27줄 ≈ 650px). 왼쪽 진행 중 프로젝트 · 아래 직접 추가, 오른쪽 지도 · 소식 · 아래 청사진.
- *  레포 관리 큰 표(manage)는 K2 레포 상세로 옮기기 전까지 "+ 판"에서만 켠다(기본은 뺌, /projects · #w-manage 링크로 오면 reveal이 켬) */
+/** 기본 배치(P-12k K1 컴팩트 타공보드): 1440×900 첫 화면에 판 4개가 다 들어오게(27줄 ≈ 650px). 왼쪽 진행 중 프로젝트 · 아래 직접 추가, 오른쪽 지도 · 소식 · 아래 청사진 */
 const DEFAULTS: Record<string, Omit<Box, "id">> = {
   repos: { x: 0, y: 0, w: 30, h: 20 },
   radar: { x: 31, y: 0, w: 17, h: 17 },
   blueprint: { x: 31, y: 18, w: 17, h: 9 },
   add: { x: 0, y: 21, w: 30, h: 6 },
-  manage: { x: 0, y: 28, w: 48, h: 30, hidden: true },
 };
 export function defaultLayout(ids: string[]): Box[] {
   let bottom = 0;

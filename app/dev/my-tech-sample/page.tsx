@@ -3,11 +3,16 @@
 import { notFound } from "next/navigation";
 import type { MyTechDetail } from "@/lib/server/my-tech";
 import { AddTech } from "../../projects/add-tech";
-import { ProjectTechs, type ProjectRow } from "../../projects/tech-table";
+import type { StatusProjectRow, StatusTechRow } from "@/lib/dashboard/status-view";
+import { readStatusNotice } from "@/lib/domain/my-tech-view";
+import { RepoTechTable } from "../../projects/tech-table";
 import { TechDetail } from "../../projects/tech/[id]/tech-detail";
 
 const NOW = "2026-11-18T05:00:00Z";
 const tech = (tech_key: string, display_name: string) => ({ tech_key, display_name });
+// 샘플 줄은 기술 상세(DETAIL)도 쓰려고 칸이 더 많다(origin · version · grade_reason · last_checked_ok_at)
+type SampleTech = Omit<StatusTechRow, "tech_id"> & { origin: string; version: string | null; grade_reason: string | null; last_checked_ok_at: string | null };
+type ProjectRow = Omit<StatusProjectRow, "my_technologies"> & { my_technologies: SampleTech[] };
 const PROJECTS: ProjectRow[] = [
   {
     id: "p1", name: "demo-repo", kind: "repo", repo_url: "https://github.com/o/demo-repo", runs: [{ status: "succeeded", created_at: NOW }],
@@ -49,7 +54,10 @@ export default async function MyTechSamplePage({ searchParams }: { searchParams:
     <main className="page">
       <h1>내 기술 목록 샘플 (실제 기록 아님)</h1>
       <p className="notice notice-empty" role="note">개발 컴퓨터에서만 보이는 화면이에요. <a href="?view=detail">기술 상세 샘플</a> · <a href="?hidden=1">숨긴 기술도 보기</a></p>
-      {PROJECTS.map((p) => <ProjectTechs key={p.id} project={p} filter={{ showHidden: hidden === "1" }} back="" />)}
+      {PROJECTS.map((p) => { const notice = readStatusNotice(p.kind, p.runs, new Date(NOW)), techs = p.my_technologies.filter((t) => hidden === "1" || !t.hidden_at).map((t) => ({ ...t, tech_id: null })); return (
+        <section key={p.id} className="card"><h2>{p.name}</h2>{notice ? <p className="notice notice-error" role="status">{notice}</p> : null}
+          {techs.length ? <RepoTechTable techs={techs} alerts={[]} marks={new Map()} from="" caption={p.name} /> : <p>{notice ? "" : "읽은 AI 코딩 도구가 없어요."}</p>}</section>
+      ); })}
       <AddTech projects={PROJECTS} q="mcp" searchFailed={false} back="" carry="" hits={[{ id: "t1", tech_key: "npm:mcp-remote", display_name: "mcp-remote", type: "mcp" }, { id: "t2", tech_key: "pypi:mcp-server-time", display_name: "mcp-server-time", type: "mcp" }]} />
     </main>
   );

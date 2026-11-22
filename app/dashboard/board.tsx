@@ -16,7 +16,7 @@ const onNarrow = (f: () => void) => { const m = matchMedia(NARROW); m.addEventLi
 const useNarrow = () => useSyncExternalStore(onNarrow, () => matchMedia(NARROW).matches, () => false);
 const TITLE_H = 2; // 접은 위젯 높이(칸)
 // 판 밖 링크가 가리키는 자리 → 그 자리가 든 판(판을 빼도 링크가 깨지지 않게 reveal). #w-<id>는 그 판
-const HOME: Record<string, string> = { "repo-register": "repos", "add-title": "add", techs: "manage" };
+const HOME: Record<string, string> = { "repo-register": "repos", "add-title": "add", techs: "repos" };
 const hashPanel = (h: string) => (h.startsWith("w-") ? h.slice(2) : HOME[h]);
 
 /** 위젯 틀: 제목 막대(이름 · 접기 · 최대화 · ⋯) + 본문. 편집 모드면 크기 손잡이 */

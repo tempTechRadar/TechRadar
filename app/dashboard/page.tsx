@@ -14,19 +14,20 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { searchTerm } from "@/lib/domain/my-tech-view";
 import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { ManageNotices, RepoManageBody, type ManageQuery } from "./repo-manage";
+import { ManageNotices, type ManageQuery } from "./repo-manage";
 import "./status.css"; // 공용 모양(옛 현황 탭 줄은 없앰, P-12i D3)
 import { Board, type Widget } from "./board";
 import { Band, LoginFirst, Reading, ReposBody } from "./widgets";
 import { AddBody, BlueprintBody, RadarBody } from "./widgets-more";
-import { countNewTechs, readMarkMap, readMoveProgress, readTrendingForMe, type MoveProgress } from "@/lib/server/board-queries";
-import { SAMPLE_MARK_EVENTS } from "@/lib/dev/preview-data";
+import { countNewTechs, readMoveProgress, readTrendingForMe, type MoveProgress } from "@/lib/server/board-queries";
+import { readArchivedRepos, type ArchivedRepo } from "@/lib/server/repo-detail";
 import type { Trending } from "@/lib/domain/trending";
 import { readTrending } from "@/lib/server/trending";
 import "./board.css";
 
 // 프로젝트 관리(P-12i · P-12k K1, 옛 현황 · 대시보드 IA-5 · PRD-F22, 주소 /dashboard 유지) = 컴팩트 타공보드: 고정 숫자 띠 + 걸린 판 4개(배치는 이 브라우저에만).
-// 띠 = 안내서 필수 대시보드(기간 하나로 거르기 · 판단 대기 / 완료로 상태 · 숫자 = 목록 · 없음 ≠ 읽지 못함). 판: ① 진행 중 프로젝트 ② 지도 · 소식 ③ 청사진 ④ 직접 추가 (+ 레포 관리 큰 표는 "+ 판"에서만, K2까지).
+// 띠 = 안내서 필수 대시보드(기간 하나로 거르기 · 판단 대기 / 완료로 상태 · 숫자 = 목록 · 없음 ≠ 읽지 못함). 판: ① 진행 중 프로젝트(+ 보관함) ② 지도 · 소식 ③ 청사진 ④ 직접 추가.
+// 레포 하나의 항목 표 · 숨기기 · 이름 · 보관은 레포 상세 /projects/[id](K2, 프로젝트 거르기를 대신).
 // 판마다 따로 읽고(Suspense) 읽는 중 · 없음 · 읽지 못함을 나눠 보인다(불변 2). 로그인 전에는 공개 값(새 기술 수 · 뜨는 것 · 소식)만. 본인 데이터만(user_id · owner_id 조건 + RLS, 불변 5)
 export const metadata = { title: "프로젝트 관리 · TechRadar" };
 type Params = { period?: string } & ManageQuery;
@@ -47,7 +48,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const alerts: Promise<AlertRecord[] | null> = !supabase ? Promise.resolve(SAMPLE_DASHBOARD.alerts) : listMyAlerts(supabase, user.id).catch(fail("알림"));
   const status: Promise<StatusData | null> = !supabase ? Promise.resolve(SAMPLE_STATUS) : readStatusData(supabase, user.id).catch(fail("내 레포"));
   const move: Promise<MoveProgress | null> = !supabase ? Promise.resolve({ candidates: 3, blueprints: [], exports: 1 }) : readMoveProgress(supabase, user.id).catch(fail("청사진"));
-  const marks: Promise<Map<string, string> | null> = !supabase ? Promise.resolve(new Map(SAMPLE_MARK_EVENTS.map((e) => [e.tech_id, e.new_status]))) : readMarkMap(supabase, user.id).catch(fail("판단 표시"));
+  const archived: Promise<ArchivedRepo[] | null> = !supabase ? Promise.resolve([]) : readArchivedRepos(supabase, user.id).catch(fail("보관함"));
   const service = getServiceSupabase();
   const newToday = preview ? Promise.resolve(3) : newTechsToday();
   const trend: Promise<{ items: Trending[] } | null> = !supabase ? Promise.resolve({ items: [] })
@@ -58,14 +59,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const band = supabase ? await readRecentFirstReads(supabase, user.id).then(async (runs) => buildFirstCheckBand(runs, parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value)))
     .catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; }) : null; // 띠는 덧붙이는 요약이라 못 읽으면 숨김
   const widgets: Widget[] = [
-    { id: "repos", title: "진행 중 프로젝트", body: <Suspense fallback={<Reading what="내 레포" />}><ReposBody status={status} alerts={alerts} marks={marks} move={move} /></Suspense> },
+    { id: "repos", title: "진행 중 프로젝트", body: <Suspense fallback={<Reading what="내 레포" />}><ReposBody status={status} alerts={alerts} archived={archived} /></Suspense> },
     { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={alerts} trend={trend} feed={news} /></Suspense> },
     { id: "blueprint", title: "청사진", body: <Suspense fallback={<Reading what="청사진" />}><BlueprintBody move={move} status={status} who={user.id} /></Suspense> },
     { id: "add", title: "직접 추가", body: preview ? <p className="board-empty">미리보기(개발용)에서는 넣지 않아요.</p>
       : <Suspense fallback={<Reading what="넣을 레포 목록" />}><AddBody status={status} q={q} hits={hits} /></Suspense> },
-    // 옛 "내 프로젝트" 목록(P-12i D3): 내 기술 표 · 숨기기 · 이름 고치기 · 보관 · 되살리기. 기본 배치에선 빠짐(K2 레포 상세로 옮김). 미리보기는 DB를 안 불러 안내만
-    { id: "manage", title: "레포 관리 · 내 기술", body: preview ? <p className="board-empty">미리보기(개발용)에서는 레포 관리를 쓰지 않아요.</p>
-      : <Suspense fallback={<Reading what="내 기술 목록" />}><RepoManageBody user={user} query={params} /></Suspense> },
   ];
   return (
     <Shell>
@@ -90,7 +88,6 @@ async function Guest({ period }: { period: string }) {
     { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={null} trend={guestTrend()} feed={feed} /></Suspense> },
     { id: "blueprint", title: "청사진", body: <BlueprintBody move={null} status={null} who="guest" /> },
     { id: "add", title: "직접 추가", body: <LoginFirst /> },
-    { id: "manage", title: "레포 관리 · 내 기술", body: <LoginFirst /> },
   ];
   return (
     <Shell>

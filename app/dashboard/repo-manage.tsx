@@ -1,22 +1,11 @@
-import Link from "next/link";
-import { Fragment } from "react";
-import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
-import { GRADE_OPTIONS, keepView, ownText, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
+import { ownText, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
-import type { CurrentUser } from "@/lib/server/current-user";
-import { getServerSupabase } from "@/lib/supabase/server";
-import { FilterSelect } from "../alerts/filter-select";
-import "../views/views.css";
 import { registerProject } from "../projects/actions";
-import { ArchivedProjects, type ArchivedProject } from "../projects/archived-projects";
-import { ProjectManage } from "../projects/project-manage";
-import { ProjectTechs, type ProjectRow } from "../projects/tech-table";
 
-// 프로젝트 관리 보드의 "레포 관리 · 내 기술" 판(P-12i D3, 옛 /projects 목록 화면을 흡수 — /projects는 /dashboard#w-manage로 보낸다).
-// 다시 읽기 · 내 기술 표(숨기기 · 되돌리기) · 이름 · 메모 고치기 · 보관 · 되살리기(IA-2 · 3, PRD-F4)가 이 자리에서 돈다. K1부터 기본 배치에서 빠져 "+ 판"에서만 켜고(K2 레포 상세로 옮김),
-// 레포 등록은 "진행 중 프로젝트" 판, 직접 추가(PRD-F7)는 "직접 추가" 판이 맡는다.
+// 레포 동작 결과 알림(보드 맨 위 · 레포 상세 맨 위)과 레포 등록 한 줄. 옛 "레포 관리 · 내 기술" 큰 표(P-12i D3)는 K2에서 레포 상세 /projects/[id]로 옮겨 지움:
+// 내 기술 표 · 숨기기 · 이름 · 메모 · 보관은 레포 상세, 되살리기는 보드 보관함, 등록은 "진행 중 프로젝트" 판, 직접 추가(PRD-F7)는 "직접 추가" 판.
 // 등록 · 숨기기 등의 결과는 주소 ?error= · ?notice=로 오고, 보드 맨 위 ManageNotices가 말한다(아래에 있어도 놓치지 않게).
-export type ManageQuery = { error?: string; notice?: string; audit?: string; grade?: string; project?: string; hidden?: string; q?: string };
+export type ManageQuery = { error?: string; notice?: string; audit?: string; q?: string };
 
 const NOTICE_TEXT: Record<string, string> = { hidden: "숨겼어요. 다시 읽어도 되살아나지 않아요.", restored: "되돌렸어요.", added: "목록에 추가했어요.", ...PROJECT_NOTICE_TEXT };
 const URL_ERROR_TEXT: Record<string, string> = {
@@ -32,7 +21,7 @@ export function ManageNotices({ query }: { query: ManageQuery }) {
   return (
     <>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
-      {noticeText && <p className="notice notice-ok" role="status">{noticeText} <a href="#w-manage">레포 관리 판으로</a></p>}
+      {noticeText && <p className="notice notice-ok" role="status">{noticeText}</p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 &quot;누가·언제 바꿨는지&quot; 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
     </>
   );
@@ -46,72 +35,5 @@ export function RegisterForm() {
       <label>+ 레포 등록 <input name="repoUrl" type="url" required placeholder="https://github.com/owner/repo (공개 저장소)" size={36} /></label>
       <button className="btn btn-sm btn-primary" type="submit">등록하고 읽기</button>
     </form>
-  );
-}
-
-export async function RepoManageBody({ user, query }: { user: CurrentUser; query: ManageQuery }) {
-  const supabase = await getServerSupabase();
-  if (!supabase) return <p>Supabase 연결 전이에요.</p>;
-  const { data, error: loadError } = await supabase
-    .from("projects")
-    .select("id, name, kind, repo_url, memo, my_technologies(id, origin, version, source_file, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, last_checked_ok_at, technologies(tech_key, display_name)), runs!runs_project_id_fkey(status, created_at)")
-    .eq("owner_id", user.id)
-    .is("archived_at", null)
-    .order("created_at");
-  // runs: 마지막 읽기 상태 안내용(본인의 첫 읽기 · 다시 읽기만 RLS로 보임). 외래키 이름을 적어 projects↔runs 연결이 늘어도 목록이 깨지지 않게.
-  // shortcut: runs에 project_id 인덱스가 없어 행이 수만 개가 되면 느려진다. 그때 runs(project_id, created_at) 인덱스를 더하거나 프로젝트별 최신 1개만 읽는다.
-  const projects = (data ?? []) as unknown as ProjectRow[];
-  // 보관한 프로젝트(되살릴 목록). 못 읽으면 "없음"이 아니라 "불러오지 못함"(불변 2)
-  const archivedRes = await supabase.from("projects").select("id, name, repo_url, archived_at").eq("owner_id", user.id).eq("kind", "repo").not("archived_at", "is", null).order("archived_at", { ascending: false });
-  if (archivedRes.error) console.error("보관한 프로젝트 조회 실패", archivedRes.error.message);
-  const archived = (archivedRes.data ?? []) as ArchivedProject[];
-  const filter = { grade: query.grade, showHidden: query.hidden === "1" };
-  const back = keepView(query); // 숨기기 · 추가 뒤에 같은 거르기로 돌아오게 폼에 싣는다
-  const shown = projects.filter((p) => !query.project || p.id === query.project);
-  // 보관했거나 없는 프로젝트로 걸린 주소(북마크 · 옛 링크)는 빈 목록이 아니라 이유를 말한다
-  const staleProject = Boolean(query.project) && !projects.some((p) => p.id === query.project);
-
-  return (
-    <div className="manage">
-      <nav className="views-tabs" aria-label="레포 관리 바로가기">
-        <a href="#techs">내 기술</a>
-        <Link href="/projects/runs">실행 기록</Link>
-        <Link href="/projects/install">설치 프롬프트 · 가져오기</Link>
-        <a href="#w-add">직접 추가</a>
-      </nav>
-      {staleProject && <p className="notice notice-empty" role="status">그 프로젝트는 보관했거나 없어서 보여 줄 수 없어요. <Link href="/dashboard">전체 보기</Link></p>}
-      <div id="techs" />
-      {loadError ? (
-        <p className="notice notice-error" role="alert">목록을 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
-      ) : projects.length === 0 ? (
-        <p>{archived.length > 0 ? "보관하지 않은 프로젝트가 없어요. 아래 '보관한 프로젝트'에서 되살릴 수 있어요." : "아직 등록한 프로젝트가 없어요."}</p>
-      ) : (
-        <>
-          <form method="get" action="/dashboard" className="filters" aria-label="내 기술 거르기">
-            <FilterSelect label="등급" name="grade" value={query.grade} options={GRADE_OPTIONS} />
-            <FilterSelect label="프로젝트" name="project" value={query.project} options={[["", "전체"], ...projects.map((p): [string, string] => [p.id, p.name])]} />
-            <label style={{ alignSelf: "end" }}>
-              <input type="checkbox" name="hidden" value="1" defaultChecked={filter.showHidden} /> 숨긴 기술도 보기
-            </label>
-            <button className="btn" type="submit" style={{ alignSelf: "end" }}>거르기</button>
-          </form>
-          {shown.map((p) => (
-            <Fragment key={p.id}>
-              <ProjectTechs project={p} filter={filter} back={back} />
-              {p.kind === "repo" && <ProjectManage project={{ id: p.id, name: p.name, memo: p.memo ?? null }} />}
-            </Fragment>
-          ))}
-        </>
-      )}
-      {/* "프로젝트 밖(내 컴퓨터)" 칸은 처음부터 보인다(design.md 18절): 저장소 없이 쓰는 도구를 넣는 곳 */}
-      {!loadError && !projects.some((p) => p.kind === "local") && (!query.project) ? (
-        <section className="card" aria-labelledby="p-local">
-          <h2 id="p-local">{LOCAL_PROJECT_NAME}</h2>
-          <p>저장소 없이 내 컴퓨터에서 쓰는 도구를 넣는 곳이에요. 아직 넣은 기술이 없어요.</p>
-          <p><a href="#w-add">직접 추가</a>하거나 <Link href="/projects/install">설치 프롬프트에서 가져오기</Link>로 넣을 수 있어요.</p>
-        </section>
-      ) : null}
-      {!loadError && <ArchivedProjects projects={archived} failed={Boolean(archivedRes.error)} />}
-    </div>
   );
 }

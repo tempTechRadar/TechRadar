@@ -13,7 +13,7 @@
 .board-canvas { position: relative; width: 100%; border-radius: var(--r-md); background-color: var(--sunken);
   background-image: radial-gradient(circle at 50% 50%, var(--line) 0 2px, transparent 2.5px); background-size: var(--cw, 24px) 24px; }
 .board-canvas > .react-flow { background: transparent; }
-.board-canvas .react-flow__node-widget { padding: 0; border: 0; background: none; cursor: default; }
+.board-canvas .react-flow__node-widget { padding: 0; border: 0; background: none; cursor: default; pointer-events: all !important; } /* 보기 모드(끌기 · 고르기 끔)에서 React Flow가 노드 인라인 style에 pointer-events: none을 줘 판 안 링크 · 단추를 마우스로 못 누름 */
 .board-canvas[data-edit] .react-flow__node-widget { cursor: grab; }
 .board-canvas .react-flow__node-widget:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .board-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); } /* 판 안 넓은 표가 페이지를 밀지 않게 */
@@ -93,14 +93,24 @@
 .board-lib-pop { position: absolute; left: 0; top: calc(100% + 4px); z-index: 10; display: grid; gap: 2px; min-width: 14em; margin: 0; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .board-lib-pop label { display: flex; gap: var(--sp-2); align-items: center; min-height: 28px; }
 
-/* 레포 서랍(K2에서 레포 상세 페이지로) */
-.repo-open { min-height: 24px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--ink); text-decoration: underline; cursor: pointer; }
-.repo-open:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.page.repo-drawer { max-width: none; margin: 0; font-size: 13px; } /* .page: 배지 · 단추 공용 모양이 .page 아래에만 걸려 있어 서랍(문서 맨 위)에도 붙임 */
-.repo-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 40; width: min(720px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); }
-.repo-drawer .bw-bar { padding: 0 8px 0 12px; min-height: 40px; }
-.repo-drawer-body { overflow: auto; padding: var(--sp-3); }
-.repo-drawer-h { margin: var(--sp-4) 0 var(--sp-2); font-size: 13px; }
+/* 보관함 · 숨긴 항목 펼치기 */
+.archive-box { margin-top: 8px; }
+.archive-box > summary { min-height: 28px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); }
+.archive-box .board-lines li > form { flex: none; }
+
+/* 레포 상세 /projects/[id](K2): 보드와 같은 판 모양, 끌기 없이 위에서 아래로 */
+.repo-page .bw { height: auto; margin-bottom: var(--sp-2); }
+.repo-page h1 { margin-bottom: 4px; }
+.repo-head { display: grid; gap: 2px; margin: 0 0 var(--sp-2); }
+.repo-head p { margin: 0; }
+.repo-head .board-actions { align-items: flex-start; }
+.repo-tool > summary { list-style: none; cursor: pointer; }
+.repo-tool > summary::-webkit-details-marker { display: none; }
+.repo-tool[open] { flex-basis: 100%; }
+.repo-tool[open] > summary { margin-bottom: 6px; }
+.repo-tool p { margin: 0 0 6px; }
+.repo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+@media (max-width: 860px) { .repo-grid { grid-template-columns: minmax(0, 1fr); } }
 .repo-table a, .board-list a { color: var(--ink); }
 
 /* 좁은 폭: 띠는 3칸씩 두 줄(≤860은 판도 한 줄로 쌓음, board.tsx) */

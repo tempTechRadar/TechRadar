@@ -1,5 +1,4 @@
 // 내 기술 목록(IA-3)·기술 상세(IA-4) 화면이 쓰는 순수 함수와 문구. 주인: 김영식(A).
-import { SKILLS_DIR } from "./skills.ts";
 import type { Grade } from "./grade.ts";
 import { isConcept, NO_GRADE } from "../map/build-map.ts";
 export { isConcept, NO_GRADE };
@@ -9,7 +8,6 @@ export const GRADE_LABEL: Record<Grade, string> = { danger: "위험", caution: "
 export const GRADE_TONE: Record<Grade, string> = { danger: "danger", caution: "warning", pass: "success", unknown: "neutral" };
 export const gradeText = (grade: Grade, techKey?: string | null, type?: string | null) => (isConcept(techKey, type) ? NO_GRADE : GRADE_LABEL[grade]);
 export const ORIGIN_LABEL: Record<string, string> = { repo: "저장소에서 읽음", manual: "직접 추가", import: "내 컴퓨터 목록 가져오기" };
-export const GRADE_OPTIONS: [string, string][] = [["", "전체"], ["danger", "위험"], ["caution", "주의"], ["pass", "통과"], ["unknown", "찾지 못함"]];
 
 export const COLLECT_ERROR_TEXT: Record<string, string> = {
   timeout: "응답이 늦어 시간이 지났어요",
@@ -38,14 +36,6 @@ export const ownText = (map: Record<string, string>, key?: string): string | und
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** uuid 모양인지(주소 값 · 화면에서 온 값 검사 공용) */
 export const isUuid = (v: unknown): v is string => typeof v === "string" && UUID.test(v);
-
-export type TechFilter = { grade?: string; showHidden?: boolean };
-
-/** 숨긴 기술은 기본으로 빼고, 등급을 고르면 그 등급만 */
-export function filterTechs<T extends { grade: string; hidden_at: string | null; technologies?: { tech_key: string } | null }>(techs: T[], f: TechFilter): T[] {
-  // 등급으로 거르면 개념(등급 없음)은 "찾지 못함"에 섞이지 않게 뺀다
-  return techs.filter((t) => (f.showHidden || !t.hidden_at) && (!f.grade || (t.grade === f.grade && !isConcept(t.technologies?.tech_key))));
-}
 
 export type ReadRun = { status: string; created_at: string };
 // shortcut: 읽기 한 번은 서버 한도(maxDuration 300초) 안에 끝나므로 10분 넘게 running이면 멈춘 것으로 본다. 한도를 늘리면 같이 올린다
@@ -85,6 +75,9 @@ export function searchTerm(raw: string): string | null {
  * 거르기·검색 상태를 주소 글(?뒤)로 다시 만든다. 값은 모두 검사해서 쓰므로, 폼에 실려 온 글을 그대로 믿지 않는다.
  * 숨기기·추가 뒤에 보던 화면으로 돌아가고, 거르기 폼과 검색 폼이 서로의 상태를 지우지 않게 하는 데 쓴다.
  */
+/** 동작(다시 읽기 · 숨기기 · 이름 고치기) 뒤 돌아갈 곳: 폼의 from이 레포 id(uuid)면 그 레포 상세(P-12k K2), 아니면 보드 */
+export const backPath = (from: unknown): string => (typeof from === "string" && isUuid(from) ? `/projects/${from}` : "/dashboard");
+
 export function keepView(q: { grade?: string; project?: string; hidden?: string; q?: string }): string {
   const p = new URLSearchParams();
   if (q.grade && Object.hasOwn(GRADE_LABEL, q.grade)) p.set("grade", q.grade);
@@ -107,24 +100,4 @@ export function evidenceLinks(raw: unknown): EvidenceLink[] {
     const url = textOr(e.url);
     return [{ id: e.id, severity: textOr(e.severity), fixed: textOr(e.fixed), url: url?.startsWith(OSV_URL) ? url : null }];
   });
-}
-
-export type ReadFile = { path: string; count: number; errors: number };
-/**
- * 읽은 결과를 파일마다(design.md 18절): 저장소에서 온 내 기술 줄(숨기지 않은 것)을 읽은 파일로 묶어 기술 수와 "확인에 실패한 기술 수"를 센다.
- * 파일을 읽었는지 · 못 읽었는지는 말하지 않는다: 수집 오류 칸은 파일을 못 읽었을 때뿐 아니라 그 기술의 보안 확인이 실패했을 때도 채워지고,
- * 한 기술은 프로젝트에 한 줄이라 마지막에 읽은 파일로만 남기 때문이다(불변 2: 근거 없이 "읽음"이라고 하지 않음).
- * 스킬 폴더(SKILLS_DIR/<이름>)는 폴더 하나로. 직접 추가 · 가져오기 줄은 파일이 없어 뺀다. 확인 실패가 있는 파일 먼저, 그다음 이름순
- */
-export function filesOf(techs: { origin: string; source_file: string | null; collect_error_kind: string | null; hidden_at: string | null }[]): ReadFile[] {
-  const by = new Map<string, ReadFile>();
-  for (const t of techs) {
-    if (t.origin !== "repo" || !t.source_file || t.hidden_at) continue;
-    const path = t.source_file.startsWith(`${SKILLS_DIR}/`) ? `${SKILLS_DIR}/` : t.source_file;
-    const f = by.get(path) ?? { path, count: 0, errors: 0 };
-    f.count++;
-    if (t.collect_error_kind) f.errors++;
-    by.set(path, f);
-  }
-  return [...by.values()].sort((a, b) => Number(!a.errors) - Number(!b.errors) || a.path.localeCompare(b.path));
 }
