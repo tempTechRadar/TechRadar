@@ -38,6 +38,18 @@
 - 브랜치: `feat/P-12i-repo-meta`(`feat/P-12h-blueprint-revamp` dee2c96 + origin/main, 로컬, 미푸시 → DevAssi1 D1 브랜치로 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md` "레포 기본 정보", Maestro 배정. 불변 2 · 4 · 5
 
+**P-12k K1 컴팩트 타공보드(덧붙임, 11-23, 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "화면" 절, Maestro 배정):** 사용자 말 "전체가 너무 크다, 컴팩트하게 · 기간 · 상태 · 프로젝트 거르기는 치워 · 숫자는 끽해야 오늘의 새 기술 · 진행 중 프로젝트 · 위험 발생 · 활용 기술", 테마 블루프린트 워크벤치 레이더 → 이 보드는 타공보드.
+| 칸 | 내용 |
+|---|---|
+| 문제 | 글자 15px · 단추 44px · 제목 막대 40px, 기본 배치가 1440×900의 2.9배. 같은 정보가 여러 번(판단 대기 5곳 등), 거르기가 위젯마다 다르게 걸림, 861~1199px에서 오른쪽 잘림, h2 안에 h2, 위젯을 빼면 #add-title · #w-manage 링크가 깨짐 |
+| 기대 결과 | 타공 판(구멍 = 스냅 칸) · 판 머리 고리 2개 · 이 화면만 컴팩트(13px · 28px). 고정 숫자 띠 6칸(오늘의 새 기술 · 진행 중 프로젝트 · 사용 중인 항목 · 위험 발생 · 판단 대기 · 완료) + [기간 ▾] — 안내서 필수(기간 · 상태로 거르기 · 숫자 = 목록 · 없음 ≠ 읽지 못함)를 띠가 맡음. 걸린 판 4개(① 진행 중 프로젝트 ② 지도 · 소식 ③ 청사진 ④ 직접 추가)가 1440×900 첫 화면에. 칸 폭 = 판 폭 ÷ 48, ≤860 한 줄 |
+| 영향 범위 | app/dashboard(page · board · board-client · widgets · widgets-more · repo-manage · board.css), app/projects(add-tech 컴팩트 · reread-button ⟳), lib/dashboard/board-layout(기본 배치 · reveal · COLS), lib/server/board-queries(countNewTechs, 안 쓰는 읽기 둘 뺌), lib/server/map-queries(listedTechs 개수만 읽기), lib/alerts/parse-alert-filter · app/alerts/filter-select(기간 1d "오늘"), 판 밖 링크(지도 · 비교 · 설치 · 실행 기록 · 기술 상세) |
+| 제약 | 새 라이브러리 · DB 변경 없음, Claude API · Workflow 없음, 고친 시험 · tsc만(전체는 K4). "내 기술" → "사용 중인 항목"은 보드 화면 글자만(앱 전체는 K3 FrontLead), 찾기 · 넣기 제거는 K1'(FrontLead). 레포 관리 큰 표 · 서랍은 K2까지 둠 |
+| 열린 질문 | 지도는 새 기술을 최근 100개(NEW_QUOTA)까지만 올려, 오늘 새 기술이 100을 넘으면 띠 숫자(11-23 운영 1,297)와 지도 목록 수가 다름 → 띠에 "지도엔 최근 100"을 적음, 지도 쪽 전체 목록은 FrontLead · Maestro 판단. 기간은 알림 칸(위험 · 판단 대기 · 완료)에만 걸리고 새 기술은 "오늘" 고정 |
+
+- 결과: 판 = h2 · 안은 h3, "없음" 모양 하나(`Empty`) · "읽지 못함" 하나(`Failed`, 판마다 따로 Suspense). 거르기 폼 · 숫자 · 판단함 · 바뀐 것 · 옮기기 · 점검 비율 · 뜨는 대안 · 기록 찾기 위젯을 뺌(라이브러리 "+ 판"은 4개 + 레포 관리 큰 표). 배치 키 `project-board-v2`(판이 바뀌어 옛 배치는 안 읽음). 주소 `#w-<판>` · `#repo-register` · `#add-title` · `#techs`로 오면 빠진 판을 다시 걸고 그 자리로(`reveal`, 시험). 보드는 판단 대기 목록을 안 보이므로 "새로 옴" 기준(SeenMarker)을 앞당기지 않음(기록 찾기의 새로 옴을 잃지 않게). 안 쓰게 된 `news-tab.tsx` · `board-stats.ts`(+시험)는 사용자 확인으로 지움. tsc 통과, 고친 시험 51개 통과(board-layout 6 · parse-alert-filter · project-wiring · guest-pages · 미리보기 막기 · a11y 등). 3108 미리보기: 1440×900 띠 + 판 4개 맨 아래 865px, 1024px 칸 20px · 오른쪽 판 985px(안 잘림), 390px 한 줄 · 페이지 폭 390(표는 판 안에서만 옆으로), 기간 "오늘" → 위험 2 · 판단 대기 2 · 완료 0, 링크 `/alerts?…&period=1d`, `/dashboard#w-manage`로 오면 레포 관리 판이 다시 걸림. 손님: 오늘의 새 기술 1,297(운영 읽기로 규칙 대조: 하루 20,082 중 대량 채우기 18,785 뺌) · 나머지 칸 "로그인 필요" · 뜨는 것 3 · 기간 고르기 없음.
+- 확인 못 함: 실계정(레포 여럿 · 읽지 못함 칸 · 직접 추가 · 등록 실제 동작 · 확정 청사진 · 초안 "이어서 하기"), 화면 읽기 · 실제 휴대폰, 띠 "읽지 못함" 모양은 실패를 만들 수 없어 코드로만.
+
 | 칸 | 내용 |
 |---|---|
 | 문제 | 레포 카드(W3)에 레포가 무엇인지(설명 · 언어 · 마지막 푸시)가 없음 |
