@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-12k-no-capture · 2026-11-22 · 찾기 · 넣기 앱 전체에서 지우기 (P-12k K1', FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12k-no-capture`(feat/P-12i-project-board e933dee에서 갈라짐, 로컬. 끝나면 #208 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "앱 전체 정리"(사용자: "찾기 넣기 버튼 아예 프로젝트 전체에서 지워, 나중에 커스텀 기술 추가 같은 걸로 넣을 거야"), Maestro 배정. IA-3 · PRD-F7(직접 입력은 보드에 남음)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기술을 넣는 입구가 메뉴 "찾기 · 넣기" 대화상자 · 지도 찾기 칸 "직접 추가" · 보드 직접 추가로 세 군데라 헷갈린다. 사용자가 앞의 둘을 지우라고 했다 |
+| 기대 결과 | 메뉴 단추(로그인 전 로그인 링크 포함)와 대화상자 · 그 서버 코드 · 시험이 없다. 지도 찾기 칸은 "기술 찾기": 지도 · 카탈로그 찾기와 "지도에 올리기"만 남고, 카탈로그에 없으면 "찾지 못했어요"까지. 직접 입력(안내서 필수)은 보드의 직접 추가 판에만 |
+| 영향 범위 | 지움: app/capture/*, lib/capture/*, lib/server/capture(.test).ts. 고침: app/layout.tsx · site-nav.css · page.css(주석) · tech-map(map-search · controls · actions의 addMapTechAction · map.css의 .map-add · 메뉴 숨김 줄), lib/server/blueprints.ts(like를 capture.ts에서 옮김), login-preview-guard 시험(findCapture) |
+| 제약 | 보드 파일(app/dashboard/*)은 K1(DevAssi1)이라 안 건드림. DB · 새 라이브러리 없음. Claude API 없음. 고친 시험 · tsc만(전체는 K4) |
+| 열린 질문 | 나중의 "커스텀 기술 추가"는 따로 정함. design.md 13절 5의 "+ 기술 넣기" 행 · ADR은 K4(ADR 0043)에서 함께 |
+
+**결과:** 로컬 커밋(feat 1 · 이 docs). 지운 파일 7개, 고친 파일 9개(18줄 더함 · 75줄 뺌). tsc 통과, 고친 곳 시험 39개 통과(미리보기 막기 · 청사진 서버 · 접근성 스캔 · 대비 · 누르는 크기). `capture` 글자는 포인터 잡기(setPointerCapture · onClickCapture) 말고 app · lib에 없음.
+**확인하지 못함:** 화면 눈 확인(로컬 서버 안 띄움 — 메뉴 단추 자리 · 지도 찾기 칸 "찾지 못했어요" 줄), 전체 시험 · 빌드(K4).
+
 ## I-P-12i-project-board · 2026-11-22 · 프로젝트 관리 보드 D1: 캔버스 틀 · 배치 · W1 숫자 · W2 판단함 · W3 레포 보드 · 메뉴 이름 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12i-project-board`(feat/P-12h-blueprint-revamp dee2c96 위 + origin/main 병합, 로컬)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md`(11-22 20시 인터뷰) D1, Maestro 배정. IA-5 · PRD-F22(숫자 4칸 · 거르기 · 없음과 실패 구분) · 불변 2 · 5

@@ -7,9 +7,7 @@ import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { saveMark, type MarkResult, type MarkStatus } from "@/lib/server/marks";
 import { findPoolTechs, type PoolTech } from "@/lib/server/blueprints";
 import { readTopUsageNotes, type NoteSummary } from "@/lib/server/usage-notes";
-import { resolveProjectId } from "@/lib/server/local-import";
-import { addTech } from "@/lib/server/my-tech";
-import { searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
+import { searchTerm } from "@/lib/domain/my-tech-view";
 import { maskSecrets } from "@/lib/domain/redact";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -57,7 +55,7 @@ const guestSearch = unstable_cache(async (term: string) => {
   return r;
 }, ["guest-catalog-search"], { revalidate: 600 });
 
-/** 지도 찾기에서 지도에 안 올린 기술 찾기(11-21 사용자: 찾기는 지도 찾기 칸 하나로). null = 찾지 못함(조회 실패, 불변 2). 빈 배열 = 찾았지만 없음 → 화면이 "직접 추가"를 보인다 */
+/** 지도 찾기에서 지도에 안 올린 기술 찾기(11-21 사용자: 찾기는 지도 찾기 칸 하나로). null = 찾지 못함(조회 실패, 불변 2). 빈 배열 = 찾았지만 없음 */
 export async function searchCatalogAction(query: string): Promise<PoolTech[] | null> {
   const term = searchTerm(String(query ?? ""));
   if (!term) return null; // 화면이 같은 규칙으로 먼저 거른다(여기 오면 잘못 부른 것)
@@ -72,18 +70,3 @@ export async function searchCatalogAction(query: string): Promise<PoolTech[] | n
   }
 }
 
-/** 카탈로그에도 없는 이름(고유명사 등)을 내 기술로 직접 추가. 프로젝트 "local" = 프로젝트 밖(내 컴퓨터) 칸, 처음 쓸 때 만든다(내 프로젝트 화면과 같은 규칙) */
-export async function addMapTechAction(name: string, projectId: string): Promise<{ ok: true } | { ok: false; message: string }> {
-  if (await isLoginPreview()) return { ok: false, message: PREVIEW_NO_SAVE };
-  const user = await getCurrentUser();
-  const db = user ? await getServerSupabase() : null;
-  if (!user || !db) return { ok: false, message: "로그인하면 직접 추가할 수 있어요." };
-  let target: string;
-  try { target = await resolveProjectId(db, user.id, String(projectId ?? "")); }
-  catch (e) { console.error("프로젝트 밖 칸 준비 실패", maskSecrets(String(e))); return { ok: false, message: TECH_ERROR_TEXT.failed }; }
-  const r = await addTech({ db, audit: getServiceSupabase(), userId: user.id }, { projectId: target, techId: null, name: String(name ?? ""), version: "" });
-  if (!r.ok) return { ok: false, message: TECH_ERROR_TEXT[r.code] ?? TECH_ERROR_TEXT.failed };
-  if (r.auditFailed) console.error("지도 직접 추가: 감사 기록을 남기지 못함(추가는 됨)");
-  revalidatePath("/"); revalidatePath("/dashboard");
-  return { ok: true };
-}

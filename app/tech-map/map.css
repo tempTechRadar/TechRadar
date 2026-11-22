@@ -16,14 +16,6 @@
 .map-search input { box-sizing: border-box; width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
 .map-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 7; margin: 0; padding: 4px; list-style: none; max-height: 50vh; overflow: auto; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .map-results button { display: grid; width: 100%; min-height: 40px; padding: 4px 8px; text-align: left; background: none; border: 0; border-radius: var(--r-sm); font: inherit; cursor: pointer; }
-/* 카탈로그에도 없을 때 "직접 추가"(11-21): 이름 그대로 내 기술로 */
-.map-add { display: grid; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); margin-top: 4px; }
-.map-add > button:not(.btn), .map-add > a { font-weight: 700; text-align: left; background: none; border: 0; padding: 6px 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }
-.map-add label { display: grid; gap: 4px; font-size: var(--fs-sm); }
-.map-add select { min-height: 36px; font: inherit; border: 1px solid var(--ink-2); border-radius: var(--r-sm); background: var(--surface); }
-.map-add-error { color: var(--ink-danger); font-size: var(--fs-sm); }
-/* 지도 화면에서는 메뉴 바의 "찾기 · 넣기"를 숨긴다: 지도 찾기 칸이 같은 일을 한다(두 군데 있지 않게) */
-body:has(.map-page) .site-nav .site-nav-add { display: none; }
 .map-results button:hover, .map-results button:focus-visible { background: var(--sunken); }
 .map-results li.muted { padding: 8px; }
 .map-pop { position: relative; }

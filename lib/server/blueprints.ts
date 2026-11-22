@@ -4,13 +4,15 @@
 // 확정(v2, P-12e)은 쉬운 실패 문구를 위해 여기서 먼저 보고(parseGraph), 진짜 막기 · 관문 · 기술 이름 다시 읽기 · 같은 id 한 줄은 DB 함수 confirm_blueprint_v2가 한다. 옛 v1 확정은 지움(M5에서 DB 실행 권한도 회수).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { categoryNames, type Category, type Grade } from "../map/build-map.ts";
-import { isUuid } from "../domain/my-tech-view.ts";
+import { isUuid, searchTerm } from "../domain/my-tech-view.ts";
 import { HISTORY_LIMIT, readStored, readStoredGraph, type BlueprintRecord } from "../blueprint/stored.ts";
 import { parseGraph, type Graph } from "../blueprint/graph.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { buildKanban } from "../views/kanban.ts";
-import { like } from "./capture.ts";
 import { chunks, publicTechs, readCategories } from "./map-queries.ts";
+
+/** 사용자 글은 허용 글자만(searchTerm) 남기고, LIKE의 한 글자 자리표(_)는 글자 그대로 찾게 */
+const like = (s: string) => (searchTerm(s) ?? "").replace(/_/g, "\\_");
 
 /** projectIds = 이 기술을 쓰는 내 프로젝트(기술 트리 "프로젝트" 묶기, P-12h S2). 카탈로그 찾기 결과에는 없음 */
 export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null; projectIds?: string[] };

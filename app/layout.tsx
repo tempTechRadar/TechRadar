@@ -7,7 +7,6 @@ import { AlertBell } from "@/app/nav/alert-bell";
 import { CartBadge } from "@/app/nav/cart-badge";
 import { NavLink } from "@/app/nav/nav-link";
 import { TabBar } from "@/app/nav/tab-bar";
-import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
 import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
@@ -68,8 +67,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <NavLink href="/blueprint">청사진{cartBadge}</NavLink>
           </div>
           <div className="site-nav-side">
-            {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}
-            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">찾기 · 넣기</LoginLink>}
             <AlertBell pending={pending} login={user !== null} />
             {user !== null
               ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />
