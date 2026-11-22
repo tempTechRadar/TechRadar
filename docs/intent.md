@@ -6,6 +6,25 @@
 
 ---
 
+## I-P-12h-detail-marks · 2026-11-22 · 기술 상세 판단 줄을 지도와 같게: 이름 옆 별 · 청사진에 담기 (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12h-detail-marks`(#206 `feat/P-12h-blueprint-revamp` dee2c96 위)
+- 출처: Maestro 배정(사용자 선택), I-P-12h-map-cart(U1 지도 사이드 패널), ADR 0028, 불변 1 · 4, IA-4
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 사이드 패널은 별 = 관심 · "청사진에 담기"로 바뀌었는데 기술 상세(/tech/[id] · /projects/tech/[id])는 아직 관심 · 적용 후보 · 보류 세 단추와 보류 이유 칸이라 같은 판단이 화면마다 다르게 보인다 |
+| 기대 결과 | 상세 이름 옆 ☆/★ = 관심, 머리 아래 "청사진에 담기 / 담김 ✓ · 빼기 · 청사진 열기", 보류 단추 없음. 문구 · 되돌리기(canUndoMark) · 실패 토스트는 지도와 같다. 손님은 지도처럼 이 브라우저 담은 목록에 담는다 |
+| 영향 범위 | `app/tech-map/{guest-pick,side-panel}.tsx` · `cart.css`(별 · 담기 줄 CSS를 옮김) · `side-panel.css`, `app/projects/tech/[id]/{mark-bar,page,tech-detail}.tsx`, `app/tech/[id]/{page,catalog-tech-view}.tsx`, `app/page.css` 두 줄(.td-title) |
+| 제약 | DB 변경 0, 새 라이브러리 · 새 색 없음. 로컬 커밋만. 시험은 고친 곳만(11-22 사용자 규칙) |
+| 열린 질문 | 이제 안 쓰는 `app/tech-map/judge.tsx` · `judge.css`(세 단추 판단 줄)를 지울지 — 삭제라 사용자 확인 뒤 |
+
+**결정 · 이유:**
+- 지도의 Star · Cart를 `guest-pick.tsx`(담기 부품 모음)로 옮겨 원시 값(status · techId · danger)으로 받게 하고 지도와 상세가 같이 쓴다: 문구 · 위험 등급 안내 · 보류 상태 안내가 한 곳.
+- 별(이름 옆)과 담기 줄(머리 아래)이 떨어져 있어 한 표시를 함께 쓰도록 `MarkScope`(context)가 상세 전체를 감싼다. 저장 · 알림은 지도와 같은 `saveMarkWithToast` · 토스트(c-toast-float)로: 상세의 줄 안 문구 · 되돌리기 단추는 없앰.
+
+**결과:** tsc 통과, 고친 곳 시험 4개(tap-targets · undo-mark) 통과.
+**확인하지 못함:** 화면(로그인 상세는 미리보기 계정이 DB를 안 불러 실계정 필요, 로컬 서버는 한 곳만 규칙이라 띄우지 않음), 전체 시험 · 빌드(마지막에 몰아서).
+
 ## I-P-12h-map-cart · 2026-11-22 · U1 지도 사이드 패널 개편: 관심 별 · 청사진 장바구니 · 보류 빼기 · 담은 수 배지 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12h-map-cart`(`feat/P-12h-blueprint-revamp` e896454 위, worktree `p12h-map-cart`, 로컬, 미푸시)
 - 출처: 사용자 결정(11-22, Maestro 전달) U1 1~6. 같은 시간 청사진 쪽 U2는 DevAssi1(app/blueprint/* 안 건드림). 불변 1 · 2 · 4 · 5, ADR 0028(지도 판단), 0012(위험 등급)
