@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12g-motion-devassi2 | 움직임 단계 C: C1 판단 실패 상자 매번 다시 읽힘 · 이미 판단함은 완료 카드로 · C2 저장 첫 화면 판단 도장 · 카드 초점 · C3 종 배지 수가 실제로 바뀔 때 한 번 · C4 토스트 올라옴 · 되돌리기 6초 막대(멈춤 가능, 시계 하나) · C5 흐름 실행 바꿀 때 색 전환 · C6 시연 · 실행 단추 진행 표시 · 겹쳐 누름 막기. 덤: 기술 상세 되돌리기 canUndoMark. 시험 1,671 통과 · tsc · 빌드 · precheck 통과, code-review는 사용자가 멈춤(미완) | DevAssi2 세션(Claude), 김영식 | `feat/P-12g-motion-devassi2` 로컬 커밋 15fcb69 · 643aac0 · 6e468a2 → 사용자 점검 → 통합 PR |
 | I-P-12g-motion-devassi1 | 움직임 단계 B: B1 청사진 카메라가 움직임 줄이기를 따름(버그) · B2 확정 성공 때 덧칠 선 한 번 · B3 후보 칩은 다시 읽는 동안 "고르는 중…" 뒤 실선 · B4 빈 자리 윤곽 · 가득 참 · 읽기 전용 놓기 막기(버그) · 새 칩 한 번 · B5 현황 · 일지 판단 대기 "새로 옴" · B6 뼈대 두 번만. 시험 1,669 통과 · 빌드 · precheck 통과, 리뷰 9건 반영 | DevAssi1 세션(Claude), 김영식 | `feat/P-12g-motion-devassi1` 로컬 커밋 → 사용자 점검 → FrontLead |
 | I-P-12f-template-notes | 템플릿 열기 화면 /blueprint/gallery/[id] + "이 조합 써봤어요" 사용기(PRD-F48): 도움 순 위 3개 · 모두 보기 · 도움이 됐어요 · 신고 · 쓰기(확정해 본 사람만, can_note_template), 손님은 읽기만, 숨긴 글 빼기. 시험 1,662 통과 · 빌드 통과, 리뷰 9건 반영 | DevAssi1 세션(Claude), 김영식 | `feat/P-12f-template-notes` 로컬 커밋 → FrontLead |
 | I-P-12g-motion-frontlead | 움직임 묶음 단계 A(지도 · 덮개 9가지): 선은 첫 연출 뒤 멈춤 · ⚙ 분위기 지움, 36시간 안에 확인한 점만 빛남, 위험은 멈춘 이중 고리, NEW · 위험 울림 첫 바퀴만 · 다시 보기는 들어온 순서, 거를 때 가운데서 안 튀어나옴, 판단 꼬리표 도장, 덮개 페이드 · 켜진 이유대로 글, 잔광 색 토큰화. 연출 끝 장을 못 그려 선이 굳던 것도 고침 | FrontLead(Claude) 구현, 김영식(계획 승인) | `feat/P-12g-motion-frontlead`, 시험 1,666, code-review 14건 반영 |
