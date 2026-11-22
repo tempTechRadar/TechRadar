@@ -1,6 +1,7 @@
 // 프로젝트 관리 타공보드 판 ② 지도 · 소식 · ③ 청사진 · ④ 직접 추가(P-12k K1). 각자 데이터를 기다리고(Suspense = 읽는 중) 못 읽으면 "읽지 못함", 비었으면 "없음"(불변 2).
 import Link from "next/link";
 import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
+import { changeCount } from "@/lib/dashboard/change-count";
 import type { Trending } from "@/lib/domain/trending";
 import type { CatalogHit } from "@/lib/server/my-tech";
 import type { MoveProgress } from "@/lib/server/board-queries";
@@ -13,16 +14,16 @@ import { Empty, Failed, short } from "./widgets";
 const LINES = 3; // 판 안 목록은 갈래마다 세 줄
 const When = ({ iso }: { iso: string }) => <time className="muted" dateTime={iso}>{short.format(new Date(iso))}</time>;
 
-/** ② 지도 · 소식: 머리(오늘의 새 기술 · 지도 열기) + 내 항목에 생긴 변경(위험 · 적용 기회 · 모델 종료) · 요즘 뜨는 것 · 공식 소식, 한 줄씩 출처 글자.
+/** ② 지도 · 소식: 머리(오늘의 새 기술 · 바뀐 것 n = 띠 [기간]의 알림 목록 수(안내서 필수 "변경 수", K4) · 지도 열기) + 내 항목에 생긴 변경(위험 · 적용 기회 · 모델 종료) · 요즘 뜨는 것 · 공식 소식, 한 줄씩 출처 글자.
  *  alerts = null: 로그인 전(내 항목 칸 없음). feed "preview" = 미리보기(DB를 안 부름) */
-export async function RadarBody({ newToday, alerts, trend, feed }: { newToday: Promise<number | null>; alerts: Promise<AlertRecord[] | null> | null;
+export async function RadarBody({ newToday, alerts, trend, feed, period }: { newToday: Promise<number | null>; alerts: Promise<AlertRecord[] | null> | null; period: string;
   trend: Promise<{ items: Trending[] } | null>; feed: Promise<NewsFeedResult | null | "preview"> | NewsFeedResult | null }) {
   const [nt, al, tr, fd] = await Promise.all([newToday, alerts, trend, feed]);
   const recent = al ? [...al].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, LINES) : null;
   const news = fd && fd !== "preview" ? fd.items.filter((n) => n.kind === "external" || n.kind === "official_new").slice(0, LINES) : [];
   return (
     <>
-      <p className="board-head">오늘의 새 기술 {nt === null ? <span className="board-warn">— 읽지 못함</span> : <b>{nt}</b>} · <Link href="/?t=day">지도 열기</Link></p>
+      <p className="board-head">오늘의 새 기술 {nt === null ? <span className="board-warn">— 읽지 못함</span> : <b>{nt}</b>} · {alerts === null ? null : <ChangeHead alerts={al} period={period} />}<Link href="/?t=day">지도 열기</Link></p>
       {alerts === null ? null : <>
         <h3>내 항목의 변경</h3>
         {!recent ? <Failed what="내 항목의 변경" /> : recent.length ? <ul className="board-lines">{recent.map((r) => { const a = toAlertView(r); return (
@@ -44,6 +45,12 @@ export async function RadarBody({ newToday, alerts, trend, feed }: { newToday: P
   );
 }
 
+/** 머리 "바뀐 것 n": 누르면 같은 기간의 알림 목록. 못 읽으면 "— 읽지 못함"(0과 다르게, 불변 2) */
+function ChangeHead({ alerts, period }: { alerts: AlertRecord[] | null; period: string }) {
+  const c = changeCount(alerts, period, new Date());
+  return <>{c.n === null ? <>바뀐 것 <span className="board-warn">— 읽지 못함</span></> : <Link href={c.href}>바뀐 것 <b>{c.n}</b></Link>} · </>;
+}
+
 /** ③ 청사진: 담은 기술 → 확정한 청사진(최근 3, 레포 이름) → 청사진 열기, 이 브라우저에 초안이 있으면 "이어서 하기". move = null: 로그인 전 */
 export async function BlueprintBody({ move, status, who }: { move: Promise<MoveProgress | null> | null; status: Promise<StatusData | null> | null; who: string }) {
   const [m, st] = await Promise.all([move, status]);
@@ -56,7 +63,7 @@ export async function BlueprintBody({ move, status, who }: { move: Promise<MoveP
       <p className="board-head"><Link href="/blueprint">담은 기술 <b>{m.candidates}</b></Link></p>
       <h3>확정한 청사진</h3>
       {m.blueprints.length ? <ul className="board-lines">{m.blueprints.slice(0, LINES).map((b) => (
-        <li key={b.id}><span className="board-src">{b.projectId ? names.get(b.projectId) ?? "보관한 레포" : "레포 없이"}</span><span>{b.name}</span><When iso={b.createdAt} /></li>
+        <li key={b.id}><span className="board-src">{b.projectId ? names.get(b.projectId) ?? (st ? "보관한 레포" : "레포 모름") : "레포 없이"}</span><span>{b.name}</span><When iso={b.createdAt} /></li>
       ))}</ul> : <Empty>아직 확정한 청사진이 없어요.</Empty>}
       {open}
     </>

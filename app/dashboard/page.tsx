@@ -60,7 +60,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; }) : null; // 띠는 덧붙이는 요약이라 못 읽으면 숨김
   const widgets: Widget[] = [
     { id: "repos", title: "진행 중 프로젝트", body: <Suspense fallback={<Reading what="내 레포" />}><ReposBody status={status} alerts={alerts} archived={archived} /></Suspense> },
-    { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={alerts} trend={trend} feed={news} /></Suspense> },
+    { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={alerts} trend={trend} feed={news} period={period} /></Suspense> },
     { id: "blueprint", title: "청사진", body: <Suspense fallback={<Reading what="청사진" />}><BlueprintBody move={move} status={status} who={user.id} /></Suspense> },
     { id: "add", title: "직접 추가", body: preview ? <p className="board-empty">미리보기(개발용)에서는 넣지 않아요.</p>
       : <Suspense fallback={<Reading what="넣을 레포 목록" />}><AddBody status={status} q={q} hits={hits} /></Suspense> },
@@ -85,7 +85,7 @@ async function Guest({ period }: { period: string }) {
   const newToday = newTechsToday(), feed = await readNews(null);
   const widgets: Widget[] = [
     { id: "repos", title: "진행 중 프로젝트", body: <LoginFirst /> },
-    { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={null} trend={guestTrend()} feed={feed} /></Suspense> },
+    { id: "radar", title: "지도 · 소식", body: <Suspense fallback={<Reading what="지도 · 소식" />}><RadarBody newToday={newToday} alerts={null} trend={guestTrend()} feed={feed} period={period} /></Suspense> },
     { id: "blueprint", title: "청사진", body: <BlueprintBody move={null} status={null} who="guest" /> },
     { id: "add", title: "직접 추가", body: <LoginFirst /> },
   ];
