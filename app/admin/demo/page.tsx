@@ -6,6 +6,7 @@ import { isDemoSwitchEnabled } from "@/lib/demo/demo-switch";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { runSimulatorAction } from "../simulator/actions";
 import { EvalPanel } from "./eval-panel";
+import { SubmitButton } from "../submit-button";
 import { armSaveFailureAction, demoCollectErrorAction, demoNoChangeAction, disarmSaveFailureAction } from "./actions";
 import { readFlash } from "@/lib/server/admin-flash";
 
@@ -47,7 +48,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
           <p style={{ margin: "4px 0" }}>{d.how}</p>
           <p style={{ margin: "4px 0", color: "var(--muted)" }}>보이는 것: {d.see}</p>
           <form action={d.action}>
-            <button type="submit" style={btn} disabled={d.needsSwitch && !on}>{d.label}</button>
+            <SubmitButton label={d.label} style={btn} disabled={d.needsSwitch && !on} />
           </form>
         </section>
       ))}

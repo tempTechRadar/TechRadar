@@ -3,6 +3,7 @@
 // 실패하면 표시는 그대로 두고 이유를 보인다(불변 4). 함께 판단된 알림이 있으면 되돌릴 수 없다고 알린다.
 import { useState } from "react";
 import type { Grade, Mark, MarkStatus } from "@/lib/map/build-map";
+import { canUndoMark } from "@/lib/map/undo-mark";
 import { markTech } from "../../../tech-map/actions";
 import { Judge, markedText } from "../../../tech-map/judge";
 
@@ -21,7 +22,7 @@ export function MarkBar({ techId, grade, initial }: { techId: string; grade: Gra
     const before = mark;
     setMark(status ? { techId, status, reason: status === "hold" ? reason.trim() : null } : null);
     if (r.judgedAlerts.length) setMsg(`${markedText(status)} 판단 대기 알림 ${r.judgedAlerts.length}개도 함께 판단했어요(알림 판단은 되돌릴 수 없어요). 설치하거나 바꾼 것은 없어요.`);
-    else { setMsg(`${markedText(status)} 설치하거나 바꾼 것은 없어요.`); setUndo(before); }
+    else { setMsg(`${markedText(status)} 설치하거나 바꾼 것은 없어요.`); if (canUndoMark(before?.status ?? null)) setUndo(before); } // 지도와 같게: 되돌려 적용 후보 · 보류가 되면 그 사이 온 알림까지 판단될 수 있어 되돌리기를 주지 않는다(불변 1)
     return true;
   }
   async function back() {

@@ -37,6 +37,25 @@
 - 정한 것: 새 단계 + 선은 `addStageLinked` 한 번(되돌리기 한 칸)이고, 어느 길로 더해도 같은 순서 4개를 넘기지 않는다(+는 미리 흐리게 · 이유, 선 끌기 · ＋ 단계는 더할 때 이유). 판은 바로 바꾸고 화면만 튕긴다(되돌리기 · 초안이 정확). 순수 계산(`addStageLinked` · `addStageBeside` · `parallelProblem` · `easeOutBack` · `tween`)은 lib + 시험. 위 막대 "＋ 단계" 팝오버는 그대로 둠(목록 모드엔 캔버스가 없어 옅은 블록을 못 띄움).
 - 결과: 로컬 커밋 c761ebc feat · 300cf42 test · a2dc07f 리뷰 반영 · 95a6740 test · 이 docs. 시험 1,680개 모두 통과, `tsc` · `next build --webpack` · `npm run precheck`(main과 충돌 없음) 통과. 3108 미리보기로 확인: 배포 오른쪽 점 → 빈 곳 → "회고" Enter → 단계 7 · 선 6, 되돌리기 한 번에 6 · 5, 문제정의 왼쪽 점 → "앞 단계 이름" → Esc 취소, 기획 아래 + → "자료 조사" 같은 순서 2, 같은 순서 4개면 + 8개 흐림 + 이유, 선 위 끊기 → 선 −1 · 고른 단계 유지, 고른 선에도 끊기 단추, 속성 패널 끊기 단추, 자동 정렬 중간 자리 → 끝 자리, 블록 입력을 눌러도 안 닫힘, + 단추 Enter → Esc면 초점이 + 단추로. code-review 6건 중 5건 반영.
 - 확인하지 못함: 실제 터치(태블릿) · iOS Safari에서 블록 입력, 한글 입력 중 Enter · Esc, 휴대폰 "그림으로 보기"(읽기 전용) 화면, 화면 읽기 프로그램, 반동 세기 체감. `studio.tsx` 369줄(권장 300, 최대 500 안)은 나누지 않음.
+## I-P-12g-motion-devassi2 · 2026-11-22 · 움직임 단계 C: 판단 · 종 배지 · 토스트 · 흐름 · 시연 단추 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12g-motion-devassi2`(DevAssi1 `feat/P-12g-motion-devassi1` 20a7136 위, 로컬, 미푸시)
+- 출처: 사용자 결정 P-12g(시안집의 움직임만, 단계마다 사용자 점검), Maestro 배정. 계획 `.claude/plans-share/p12g-motion-plan.md` 공통 원칙 + C절, `p12g-motion-bundle.md` DevAssi2(검증안이 원안보다 우선). 불변 1 · 3 · 4 · 6, NF(움직임 줄이기 · 화면 읽기)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 판단 실패 문구가 같은 글이면 다시 안 읽힘 · 이미 판단한 알림에 오류 상자, 저장 뒤 첫 화면에 "방금 판단함" 신호 · 초점이 없음, 종 배지가 첫 그림 · 종 펼침 보정에도 바뀌어 보임, 토스트가 툭 나타나고 되돌리기 남은 시간이 안 보이며 멈출 수 없음(WCAG 2.2.1), 흐름 실행을 바꿀 때 색이 툭 바뀜, 시연 · 실행 단추가 몇 분 걸리는 동안 아무 표시 없고 겹쳐 누를 수 있음. 덤: 기술 상세 판단 줄 되돌리기가 지도와 달리 canUndoMark를 안 봄 |
+| 기대 결과 | C1 실패 상자 매번 다시 붙음(n 키) · 이미 판단함은 완료 카드로 이동 · C2 `?saved=1` 첫 화면만 도장(이중 테) + 카드 초점, 주소는 바로 지움 · C3 보이는 수가 실제로 바뀔 때만 위/아래로 한 번, 늘면 화면 읽기에 한 번 · C4 토스트 올라옴 + 되돌리기 6초 막대(시계 하나, 올리기 · 초점 · 누르고 있기면 멈춤), 실패는 다음 토스트까지 남음 · C5 실행 바꿀 때 색 전환 · C6 "실행 중… 기록을 남기는 중" + 다시 누르기 막음 |
+| 영향 범위 | `app/alerts/[id]/{actions.ts,judgment-form.tsx,page.tsx,saved-focus.tsx}`, `lib/server/judgments.ts`, `app/nav/alert-bell.tsx`, `lib/nav/badge-move.ts`, `app/undo-toast.tsx`, `app/projects/tech/[id]/mark-bar.tsx`, `app/admin/{flow/flow-diagram.tsx,submit-button.tsx,demo,simulator,run-now}`, `app/page.css` · `app/site-nav.css`(끝에 좁은 선택자로 덧붙임) + 시험 |
+| 제약 | 새 라이브러리 · 색 · 토큰 없음(tokens.css 안 고침), 시간은 --dur 바탕, 움직임 줄이기면 0s(되돌리기 막대는 숨기고 글로 대신), flow.json 안 건드림. 로컬 커밋만 |
+| 열린 질문 | 판단 뒤 종 배지가 바로 줄어드는지(레이아웃 다시 읽기) — 실계정으로 확인한 뒤 필요하면 `revalidatePath("/", "layout")` |
+
+**결정 · 이유:**
+- C2 도장은 오른쪽 위가 아니라 늘 제목 아래(좁은 화면에서 제목과 겹치지 않게). 첫 화면 표시는 쿠키 대신 `?saved=1` 한 번 + 바로 주소에서 지움(새로 고침 · 뒤로 가기에 다시 안 돎).
+- C4 되돌리기는 JS 타이머 없이 CSS 막대 하나가 시계(멈추면 둘이 어긋날 일이 없음). 그래서 계획의 "JS 타이머 멈춤"은 필요 없어 뺐다.
+- C3 `revalidatePath` 레이아웃 추가는 배지가 안 줄어드는 것을 실제로 본 뒤에만(계획대로). 이 작업 폴더엔 DB 설정이 없어 못 봄 → 넣지 않음.
+
+**결과:** 됨(로컬 커밋 15fcb69 덤 고침 · 643aac0 C1~C6 · 6e468a2 시험 · 이 docs). 시험 1,671개 모두 통과(실패 0), `tsc` · `next build --webpack` 통과, `precheck` 마이그레이션 번호 겹침 경고 없음. 로컬 3012에서 /blueprint · /blueprint/gallery 200 확인. code-review는 돌리던 중 사용자가 멈춤 → 반영할 지적 없음(리뷰 미완).
+**확인하지 못함:** 로그인 · 저장이 필요한 화면 전부(알림 판단 실패 상자 · 도장 · 초점, 종 배지 움직임, 지도 · 청사진 토스트 막대, 시연 · 시뮬레이터 · 지금 실행 단추, 흐름 실행 바꾸기 — /admin/flow는 로그인 없이 307), 실제 휴대폰 터치로 막대 멈춤, 화면 읽기 프로그램 낭독, 판단 뒤 배지가 바로 줄어드는지.
 
 ## I-P-12g-motion-devassi1 · 2026-11-22 · 움직임 단계 B: 청사진 · 현황 · 로딩 뼈대 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12g-motion-devassi1`(FrontLead `feat/P-12g-motion-frontlead` b6dec27 위, 로컬, 미푸시)

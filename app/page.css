@@ -162,3 +162,21 @@
 .page .read-files li { padding: 2px 0; overflow-wrap: anywhere; }
 /* 알림 · 기록 행 태그(하는 일 갈래 · 종류, design.md 19절). 태그 모양은 tokens.css의 .tag */
 .page .alert-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-top: 2px; }
+/* 판단 저장 피드백(P-12g C1 · C2). 시간은 --dur(움직임 줄이기면 0s라 처음부터 놓인 모양), 이동은 translate(transform과 겹치지 않게) */
+@keyframes rise-in { from { opacity: 0; translate: 0 4px; } }
+.alert-head form .notice-error { animation: rise-in var(--dur) var(--ease) 1; } /* 판단 폼 안 오류 상자만(다른 화면 오류 상자는 그대로) */
+.page .judged-card:focus { outline: none; } .page .judged-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.page .judge-stamp { display: inline-block; max-width: 100%; margin: 0 0 var(--sp-2); padding: 2px var(--sp-2); border: 3px double var(--ink); border-radius: var(--r-sm); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@keyframes stamp-in { from { opacity: 0; scale: 1.08; } }
+.page .judged-card[data-fresh] .judge-stamp { animation: stamp-in var(--dur) var(--ease) 1; transform-origin: left center; }
+/* 토스트(P-12g C4): 비었다가 글이 들어올 때 한 번 8px 올라옴(translate: 가운데 맞춤 transform과 겹치지 않게, --dur라 움직임 줄이기면 0s) */
+@keyframes toast-in { from { opacity: 0; translate: 0 8px; } }
+.c-toast:not(:empty) { animation: toast-in var(--dur) var(--ease) 1; }
+.c-toast:not(.c-toast-float) { position: relative; } /* 막대 자리. float는 이미 fixed */
+/* 되돌리기 남은 시간 막대 = 시계(6초 고정: --dur로 만들면 움직임 줄이기에서 0초라 바로 닫힘). 올림 · 초점 · 누르고 있음에서 멈춤 */
+@keyframes toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.c-toast-time { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 0 0 var(--r-md) var(--r-md); background: color-mix(in srgb, var(--on-ink) 50%, transparent); transform-origin: left center; animation: toast-time 6s linear 1 forwards; }
+.c-toast:focus-within .c-toast-time, .c-toast[data-hold] .c-toast-time { animation-play-state: paused; }
+@media (hover: hover) { .c-toast:hover .c-toast-time { animation-play-state: paused; } } /* 터치는 탭 뒤 :hover가 남아 계속 멈춰 있으니 빼고 [data-hold]로 */
+.c-toast-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* .sr-only와 같음: 화면 읽기에는 늘 읽힘 */
+@media (prefers-reduced-motion: reduce) { .c-toast-time { visibility: hidden; } .c-toast-note { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; } }

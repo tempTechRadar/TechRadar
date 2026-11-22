@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { clearSimulatedAction, runOpportunityAction, runSimulatorAction } from "./actions";
+import { SubmitButton } from "../submit-button";
 import { readFlash } from "@/lib/server/admin-flash";
 
 export default async function SimulatorPage({ searchParams }: { searchParams: Promise<{ error?: string; cleared?: string; info?: string; run?: string; sig?: string }> }) {
@@ -27,15 +28,15 @@ export default async function SimulatorPage({ searchParams }: { searchParams: Pr
       {cleared ? <p role="status">{cleared}</p> : null}
       {info ? <p role="status">{info}{run ? <> <Link href={`/admin/flow?run=${encodeURIComponent(run)}`}>방금 실행 보기</Link></> : null}</p> : null}
       <form action={runSimulatorAction} style={{ marginBottom: 16 }}>
-        <button type="submit" style={{ minHeight: 44 }}>가짜 변경 1건 만들기</button>
+        <SubmitButton label="가짜 변경 1건 만들기" />
       </form>
       <form action={runOpportunityAction} style={{ marginBottom: 16 }}>
         <p>적용 기회: 시연 계정이 쓰는 기술과 같은 역할로 확정된 가짜 새 기술 1개를 넣어 &quot;적용 기회&quot; 알림까지 보여 줘요(가짜 표시, 시연 계정에만).</p>
-        <button type="submit" style={{ minHeight: 44 }}>적용 기회 1건 만들기</button>
+        <SubmitButton label="적용 기회 1건 만들기" />
       </form>
       <form action={clearSimulatedAction}>
         <p>지우기는 가짜 표시가 붙은 줄만 지우고, 실행 기록은 증거라 남겨요. 바꾼 기록(audit_logs)에 한 줄이 남습니다.</p>
-        <button type="submit" style={{ minHeight: 44 }}>시뮬레이터 지우기</button>
+        <SubmitButton label="시뮬레이터 지우기" />
       </form>
       <p><Link href="/admin/flow">흐름 화면으로</Link></p>
     </main>

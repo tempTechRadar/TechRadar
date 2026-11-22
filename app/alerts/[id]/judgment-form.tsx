@@ -7,7 +7,7 @@ import { judge, type JudgeState } from "./actions";
 
 // 판단하기 카드(와이어프레임 alerts.html). 저장하기 전에는 아무것도 바뀌지 않는다(PRD-F17).
 export function JudgmentForm({ alertId, canCandidate, kind, candidateLabel }: { alertId: string; canCandidate: boolean; kind: string; candidateLabel: string }) {
-  const [state, action, pending] = useActionState<JudgeState, FormData>(judge, { message: null });
+  const [state, action, pending] = useActionState<JudgeState, FormData>(judge, { message: null, n: 0 });
   const [reason, setReason] = useState("");
   return (
     <form action={action} className="card" aria-labelledby="judge-title">
@@ -23,7 +23,8 @@ export function JudgmentForm({ alertId, canCandidate, kind, candidateLabel }: { 
       </div>
       <p id="hold-help" className="muted">이유가 {MIN_HOLD_REASON}자 미만이면 보류 버튼이 눌리지 않아요.</p>
       {!canCandidate && <p className="muted">{NO_FIXED_VERSION_MESSAGE}</p>}
-      {state.message && <div className="notice notice-error" role="alert">{state.message}</div>}
+      {/* key = 실패 횟수: 같은 문구라도 새로 붙어 다시 읽히고 등장이 한 번 돈다(P-12g C1) */}
+      {state.message && <div key={state.n} className="notice notice-error" role="alert">{state.message}</div>}
       <div className="actions">
         <button type="submit" name="decision" value="candidate" className="btn btn-primary" disabled={pending || !canCandidate}>{candidateLabel}</button>
         <button type="submit" name="decision" value="hold" className="btn" disabled={pending || holdReasonProblem(reason) !== null}>보류</button>
