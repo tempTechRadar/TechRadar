@@ -1,13 +1,8 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
+import { Suspense } from "react";
 import { buildFirstCheckBand, FIRST_CHECK_COOKIE, parseSeenRunIds } from "@/lib/alerts/first-check-band";
 import { readRecentFirstReads } from "@/lib/server/first-check-queries";
 import { FirstCheckBanner } from "./first-check-banner";
-import { FilterSelect, PERIOD_OPTIONS } from "../alerts/filter-select";
-import { countRecentChanges } from "@/lib/alerts/count-recent-changes";
-import { findReviewDue } from "@/lib/alerts/find-review-due";
-import { summarizeDashboard } from "@/lib/alerts/summarize-dashboard";
-import { appliedTechs, repoCards } from "@/lib/dashboard/status-view";
 import { readDashboardData, type DashboardData } from "@/lib/server/dashboard-queries";
 import { readStatusData, type StatusData } from "@/lib/server/status-queries";
 import { readNewsFeed, type NewsFeedResult } from "@/lib/server/news-feed";
@@ -18,17 +13,18 @@ import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_DASHBOARD, SAMPLE_STATUS } from "@/lib/dev/preview-data";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { ReviewCard, WeekCard } from "./extra-cards";
 import { NewsTab } from "./news-tab";
-import { Applied, Pending, Repos, RecommendCard } from "./overview";
 import { StatusTabs } from "./status-tabs";
 import { SeenMarker } from "./seen-marker";
+import { Board, type Widget } from "./board";
+import { BoardFilter, InboxBody, LoginFirst, NumbersBody, Reading, ReposBody } from "./widgets";
 import { parseSeen, SEEN_COOKIE, seenValue } from "@/lib/dashboard/since-last-visit";
+import "./board.css";
 
-// 현황(P-12f ④, 옛 대시보드 IA-5 · PRD-F22, 주소 /dashboard 유지) = 탭 개요 | 일지(/history) | 소식(?tab=news).
-// 개요 = 안내서 필수 숫자 4칸(누르면 같은 조건의 목록) → 내 레포 현황 → 적용한 기술 → 판단 대기 → 이번 주 · 보류 회고 → 추천. 숫자는 모든 프로젝트 합계.
-// 로그인 전에는 소식만(공개), 나머지는 로그인 안내. 본인 데이터만(user_id · owner_id 조건 + RLS, 불변 5)
-export const metadata = { title: "현황 · TechRadar" };
+// 프로젝트 관리(P-12i, 옛 현황 · 대시보드 IA-5 · PRD-F22, 주소 /dashboard 유지) = 위젯 캔버스 보드(Monday식, 배치는 이 브라우저에만).
+// D1 위젯: W1 숫자 4칸(안내서 필수, 누르면 같은 조건의 목록) · W2 판단함 · W3 레포 보드. 위젯마다 따로 읽고(Suspense) 읽는 중 · 없음 · 읽지 못함을 나눠 보인다(불변 2).
+// 보드 전체 거르기(기간 · 상태 · 프로젝트)가 모든 위젯에 걸린다. 로그인 전에는 소식만 실제 값, 나머지는 로그인 안내. 본인 데이터만(user_id · owner_id 조건 + RLS, 불변 5)
+export const metadata = { title: "프로젝트 관리 · TechRadar" };
 type Params = { tab?: string; status?: string; period?: string; project?: string };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -41,37 +37,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // B5 "새로 옴": 지난번 기준을 읽고, 이번 기준 시각은 알림을 읽기 시작하기 직전에 잡는다(그 사이에 온 알림이 "본 것"이 되지 않게)
   const visitAt = new Date();
   const seen = parseSeen((await cookies()).get(SEEN_COOKIE)?.value, user.id, visitAt);
-  const [data, status, band] = !supabase ? [SAMPLE_DASHBOARD, SAMPLE_STATUS, null] : await Promise.all([
-    readDashboardData(supabase, user.id).catch((e) => { console.error("현황 조회 실패", e); return null; }),
-    readStatusData(supabase, user.id).catch((e) => { console.error("현황: 내 레포 조회 실패", e); return null; }),
-    // 띠를 못 읽어도 현황은 그대로 보여 준다(띠는 덧붙이는 요약이라 숫자를 단정하지 않고 숨길 뿐, 로그는 남김)
-    readRecentFirstReads(supabase, user.id).then(async (runs) => buildFirstCheckBand(runs, parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value)))
-      .catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; }),
-  ]);
-  // 숫자 묶음은 내 기술 · 프로젝트도 읽어 그쪽만 실패할 수 있다: 그때는 알림만 다시 읽어 판단 대기는 살린다(일지와 같은 대비)
-  const alerts = data?.alerts ?? (supabase ? await listMyAlerts(supabase, user.id).catch((e) => { console.error("현황 알림 조회 실패", e); return null; }) : null);
+  // 위젯마다 기다릴 약속을 한 번만 만든다(같은 표를 두 번 읽지 않게). 못 읽으면 null
+  const data: Promise<DashboardData | null> = !supabase ? Promise.resolve(SAMPLE_DASHBOARD) : readDashboardData(supabase, user.id).catch((e) => { console.error("보드: 숫자 조회 실패", e); return null; });
+  const status: Promise<StatusData | null> = !supabase ? Promise.resolve(SAMPLE_STATUS) : readStatusData(supabase, user.id).catch((e) => { console.error("보드: 내 레포 조회 실패", e); return null; });
+  // 숫자 묶음은 내 기술 · 프로젝트도 읽어 그쪽만 실패할 수 있다: 그때는 알림만 다시 읽어 판단함은 살린다
+  const alerts: Promise<AlertRecord[] | null> = data.then((d) => d?.alerts ?? (supabase ? listMyAlerts(supabase, user.id).catch((e) => { console.error("보드: 알림 조회 실패", e); return null; }) : null));
+  const band = supabase ? await readRecentFirstReads(supabase, user.id).then(async (runs) => buildFirstCheckBand(runs, parseSeenRunIds((await cookies()).get(FIRST_CHECK_COOKIE)?.value)))
+    .catch((e) => { console.error("첫 점검 띠 조회 실패", e); return null; }) : null; // 띠는 덧붙이는 요약이라 못 읽으면 숨김
+  const widgets: Widget[] = [
+    { id: "numbers", title: "숫자", body: <Suspense fallback={<Reading what="숫자" />}><NumbersBody data={data} params={params} /></Suspense> },
+    { id: "inbox", title: "판단함", body: <Suspense fallback={<Reading what="판단 대기" />}><InboxBody alerts={alerts} params={params} seen={seen} /></Suspense> },
+    { id: "repos", title: "레포 보드", body: <Suspense fallback={<Reading what="내 레포" />}><ReposBody status={status} alerts={alerts} params={params} /></Suspense> },
+  ];
   return (
     <Shell now="overview">
       {band ? <FirstCheckBanner band={band} /> : null}
-      <Overview data={data} alerts={alerts} status={status} params={params} seen={seen} />
+      <Suspense fallback={<p className="muted">거르기를 준비하는 중…</p>}><BoardFilter data={data} params={params} /></Suspense>
+      <Board widgets={widgets} storeKey={`project-board-v1:${user.id.slice(0, 8)}`} />
       {/* 알림을 읽었을 때만 기준을 앞당긴다(못 읽으면 못 본 알림이 "새로 옴"을 잃지 않게, 불변 2 · 4). 미리보기는 쓰지 않음 */}
-      {alerts && !preview ? <SeenMarker value={seenValue(user.id, visitAt)} /> : null}
+      {preview ? null : <Suspense fallback={null}><Seen alerts={alerts} value={seenValue(user.id, visitAt)} /></Suspense>}
     </Shell>
   );
+}
+
+async function Seen({ alerts, value }: { alerts: Promise<AlertRecord[] | null>; value: string }) {
+  return (await alerts) ? <SeenMarker value={value} /> : null;
 }
 
 function Shell({ now, children }: { now: "overview" | "news"; children: React.ReactNode }) {
-  return <main className="page"><h1>현황</h1><StatusTabs now={now} />{children}</main>;
+  return <main className="page board-page"><h1>프로젝트 관리</h1><StatusTabs now={now} />{children}</main>;
 }
 
-/** 로그인 전: 소식만(공개 값: 바깥 소식 · 뜨는 기술 · 새 공식, 내 취약점은 빠짐). 내 레포 · 알림은 로그인 안내 */
+/** 로그인 전: 내 데이터 위젯 자리는 로그인 안내, 소식만 실제 값(공개 값: 바깥 소식 · 뜨는 기술 · 새 공식, 내 취약점은 빠짐) */
 function Guest({ feed }: { feed: NewsFeedResult | null }) {
-  return (
-    <Shell now="news">
-      <p className="notice notice-empty"><strong>로그인하면 내 레포와 알림이 보여요.</strong> <Link href={`/login?next=${encodeURIComponent("/dashboard")}`}>로그인</Link></p>
-      <NewsTab feed={feed} />
-    </Shell>
-  );
+  const widgets: Widget[] = [
+    { id: "numbers", title: "숫자", body: <LoginFirst /> },
+    { id: "inbox", title: "판단함", body: <LoginFirst /> },
+    { id: "repos", title: "레포 보드", body: <LoginFirst /> },
+    { id: "news", title: "소식", body: <NewsTab feed={feed} /> },
+  ];
+  return <Shell now="overview"><Board widgets={widgets} storeKey="project-board-v1:guest" /></Shell>;
 }
 
 /** 소식(DataCollector readNewsFeed): 로그인 전은 사용자 없이(공개 값만, RLS), 로그인하면 내 기술 취약점이 더해짐. 연결이 없거나 통째로 실패하면 null(출처별 실패는 feed.failed) */
@@ -79,57 +84,4 @@ async function readNews(userId: string | null): Promise<NewsFeedResult | null> {
   const db = await getServerSupabase();
   if (!db) return null;
   return readNewsFeed({ db, serviceDb: getServiceSupabase(), userId }).catch((e) => { console.error("소식 조회 실패", e instanceof Error ? e.message : e); return null; });
-}
-
-function Overview({ data, alerts, status, params, seen }: { data: DashboardData | null; alerts: AlertRecord[] | null; status: StatusData | null; params: Params; seen: number | null }) {
-  const now = new Date();
-  const repos = status ? repoCards(status.projects, now) : null;
-  return (
-    <>
-      {data === null ? <LoadError /> : <Numbers data={data} params={params} />}
-      <Repos repos={repos} />
-      <Applied techs={status ? appliedTechs(status.projects, status.tags) : []} failed={status === null} />
-      {alerts ? <>
-        <Pending alerts={alerts} seen={seen} />
-        <WeekCard count={countRecentChanges(alerts, now)} />
-        <ReviewCard items={findReviewDue(alerts, now)} />
-      </> : null}
-      <RecommendCard />
-    </>
-  );
-}
-
-/** 안내서 필수 숫자 4칸(대시보드와 같은 계산). 거르기는 숫자와 그 목록 링크에만 걸린다 */
-function Numbers({ data, params }: { data: DashboardData; params: Params }) {
-  const summary = summarizeDashboard({ alerts: data.alerts, techs: data.techs, params, now: new Date() });
-  const projectOptions: [string, string][] = [["", "전체"], ...data.projects.map((p): [string, string] => [p.id, p.name])];
-  const cards: [string, number, string][] = [
-    ["내 기술", summary.techCount, summary.links.techs],
-    ["변경", summary.changeCount, summary.links.changes],
-    ["판단 대기", summary.pendingCount, summary.links.pending],
-    ["완료", summary.doneCount, summary.links.done],
-  ];
-  return (
-    <>
-      <form className="filters" aria-label="숫자 거르기">
-        <FilterSelect label="기간" name="period" value={params.period} options={PERIOD_OPTIONS} />
-        <FilterSelect label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
-        <FilterSelect label="프로젝트" name="project" value={params.project} options={projectOptions} />
-        <button type="submit" className="btn">거르기</button>
-      </form>
-      <div className="stat-grid">
-        {cards.map(([label, value, href]) => (
-          <Link key={label} className="stat" href={href}><span className="muted">{label}</span><strong>{value}</strong></Link>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function LoadError() {
-  return (
-    <div className="notice notice-error" role="alert">
-      <strong>숫자와 알림을 불러오지 못했어요.</strong> 데이터가 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요. <Link href="/dashboard">다시 불러오기</Link>
-    </div>
-  );
 }

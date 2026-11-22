@@ -7,7 +7,7 @@ const TABS: [StatusTab, string, string][] = [["overview", "개요", "/dashboard"
 
 export function StatusTabs({ now }: { now: StatusTab }) {
   return (
-    <nav aria-label="현황 보기" className="status-tabs">
+    <nav aria-label="프로젝트 관리 보기" className="status-tabs">
       {TABS.map(([k, name, href]) => <Link key={k} href={href} aria-current={k === now ? "page" : undefined}>{name}</Link>)}
     </nav>
   );

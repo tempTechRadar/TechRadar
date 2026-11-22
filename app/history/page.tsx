@@ -27,7 +27,7 @@ const MARK_TONE = { interest: "neutral", candidate: "success", hold: "warning" }
 // shortcut: 지도 판단은 최근 200건만 읽는다. 기록이 그보다 많아지면 찾기 조건을 DB 조회로 옮긴다
 const MARK_LIMIT = 200;
 
-export const metadata = { title: "일지 · 현황 · TechRadar" };
+export const metadata = { title: "일지 · 프로젝트 관리 · TechRadar" };
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
@@ -48,7 +48,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page">
-      <h1>현황</h1>
+      <h1>프로젝트 관리</h1>
       <StatusTabs now="journal" />
       {records && supabase ? <SeenMarker value={seenValue(user.id, visitAt)} /> : null}{/* 알림을 읽었을 때만, 미리보기는 안 씀 */}
       <Pending records={records} seen={seen} />

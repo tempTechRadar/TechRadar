@@ -5,9 +5,9 @@ import { GRADE_RANK, isConcept, type Grade } from "../map/build-map.ts";
 
 export type StatusTechRow = {
   id: string; tech_id: string | null; manual_name: string | null; hidden_at: string | null; read_at: string | null;
-  collect_error_kind: string | null; grade: Grade; technologies: { display_name: string; tech_key?: string | null; type?: string | null } | null;
+  collect_error_kind: string | null; grade: Grade; /** 읽은 파일(package.json · .mcp.json 등). 보드 W3 출처 파일 */ source_file?: string | null; technologies: { display_name: string; tech_key?: string | null; type?: string | null } | null;
 };
-export type StatusProjectRow = { id: string; name: string; kind: "repo" | "local"; my_technologies: StatusTechRow[]; runs?: ReadRun[] };
+export type StatusProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url?: string | null; my_technologies: StatusTechRow[]; runs?: ReadRun[] };
 
 export type RepoCard = { id: string; name: string; techCount: number; errorCount: number; lastReadAt: string | null; notice: string | null };
 /** tags: null = 내 태그를 읽지 못함(태그 없음과 다르게). concept = 작업 방식(설치물이 아님): 등급 대신 "등급 없음"(ADR 0008 2항, 지도와 같게) */

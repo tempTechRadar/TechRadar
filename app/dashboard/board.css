@@ -1,0 +1,53 @@
+/* 프로젝트 관리 보드(P-12i D1): 위젯 캔버스. 값은 공용 토큰, 누르는 칸 24px 이상, 상태는 색만이 아니라 글자로 */
+.page.board-page { max-width: 1200px; }
+.board-filter { margin-bottom: var(--sp-3); }
+.board { display: grid; gap: var(--sp-3); }
+.board-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.board-bar .muted { font-size: var(--fs-sm); }
+.board-hidden { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; font-size: var(--fs-sm); }
+.board-canvas { position: relative; width: 100%; }
+.board-canvas > .react-flow { background: transparent; }
+.board-canvas[data-edit] > .react-flow { background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 24px 24px; } /* 편집 모드에서만 칸 점 */
+.board-canvas .react-flow__node-widget { padding: 0; border: 0; background: none; cursor: default; }
+.board-canvas[data-edit] .react-flow__node-widget { cursor: grab; }
+.board-canvas .react-flow__node-widget:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.board-stack { display: grid; gap: var(--sp-3); }
+
+/* 위젯 틀 */
+.bw { box-sizing: border-box; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.bw[data-folded] { grid-template-rows: auto; }
+.bw-bar { display: flex; align-items: center; gap: var(--sp-2); min-height: 40px; padding: 0 var(--sp-2) 0 var(--sp-3); border-bottom: 1px solid var(--line); background: var(--sunken); }
+.bw-title { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw-tools { display: inline-flex; gap: 2px; }
+.bw-tool { min-width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
+.bw-tool:hover { background: var(--surface); color: var(--ink); }
+.bw-tool:focus-visible, .bw-menuitem:focus-visible { outline: var(--focus); outline-offset: 1px; }
+.bw-menuwrap { position: relative; }
+.bw-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: grid; min-width: 9em; padding: var(--sp-1); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.bw-menuitem { min-height: 32px; padding: 0 var(--sp-2); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.bw-menuitem:hover { background: var(--sunken); }
+.bw-body { min-height: 0; overflow: auto; padding: var(--sp-3); cursor: auto; }
+.board-stack .bw-body { max-height: 70vh; }
+.bw-body .stat-grid { margin: 0; }
+/* 판단함이 좁은 위젯에 들어가도 제목이 한 글자씩 꺾이지 않게: 배지 · 시각은 제목 아래 한 줄 */
+.page .bw-body .alert-row { display: grid; grid-template-columns: 1fr; gap: 2px; justify-items: start; }
+.bw-edit-hint { display: none; }
+.bw-resize-handle { width: 10px; height: 10px; border-radius: 2px; background: var(--surface); border: 1px solid var(--ink); }
+.bw-resize-line { border-color: var(--ink-2); }
+
+/* 크게 보기 */
+.bw-max { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--sp-4); background: rgba(0, 0, 0, .35); }
+.bw-max-box { width: min(1100px, 100%); max-height: 90vh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border-radius: var(--r-md); overflow: hidden; }
+
+/* W3 레포 카드 · 등급 배터리 */
+.repo-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--sp-3); }
+.repo-card { display: grid; gap: var(--sp-1); align-content: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); overflow-wrap: anywhere; }
+.repo-card h3 { margin: 0; font-size: var(--fs-body); }
+.repo-card p { margin: 0; font-size: var(--fs-sm); }
+.repo-card a { display: inline-flex; align-items: center; min-height: var(--hit-sm); }
+.repo-reread { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.battery { display: grid; gap: 2px; }
+.battery-bar { display: flex; height: 10px; overflow: hidden; border-radius: var(--r-pill); background: var(--sunken); }
+.battery-bar i { display: block; min-width: 4px; }
+.battery-danger { background: var(--danger); } .battery-warning { background: var(--caution); } .battery-success { background: var(--pass); } .battery-neutral { background: var(--unknown); }
+.battery-text { font-size: var(--fs-cap); color: var(--ink-2); }
