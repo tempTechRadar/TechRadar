@@ -3,10 +3,13 @@ import type { Board } from "./board.ts";
 
 export type ExportKind = "prompt" | "md" | "meta";
 const techs = (t: { name: string }[]) => t.map((x) => x.name).join(", ");
+/** 단계 메모(P-12h-2 T2): 번호 줄 아래 "   메모: …"(같은 순서에 여럿이면 단계 이름을 붙임). 줄바꿈은 한 줄로 */
+const notes = (col: Board[number]) => col.filter((s) => s.note).map((s) => `\n   메모${col.length > 1 ? `(${s.name})` : ""}: ${oneLine(s.note!)}`).join("");
 const steps = (b: Board) =>
-  b.map((col, i) => `${i + 1}. ${col.map((s) => `${s.name}${s.techs.length ? `(${techs(s.techs)})` : ""}`).join(" + ")}${col.length > 1 ? " — 동시에 진행" : ""}`).join("\n");
+  b.map((col, i) => `${i + 1}. ${col.map((s) => `${s.name}${s.techs.length ? `(${techs(s.techs)})` : ""}`).join(" + ")}${col.length > 1 ? " — 동시에 진행" : ""}${notes(col)}`).join("\n");
 /** 표 칸 · 태그 속성 안에서 형식이 깨지지 않게 */
-const cell = (s: string) => s.replace(/\|/g, "/").replace(/\r?\n/g, " ");
+const oneLine = (s: string) => s.replace(/\r?\n/g, " ");
+const cell = (s: string) => oneLine(s.replace(/\|/g, "/"));
 const attr = (s: string) => s.replace(/["<>]/g, "");
 
 const META_RULES = [
@@ -20,8 +23,8 @@ const META_RULES = [
 
 export function exportText(kind: ExportKind, name: string, b: Board): string {
   if (kind === "md") {
-    const rows = b.flatMap((col, i) => col.map((s) => `| ${i + 1} | ${cell(s.name)} | ${cell(techs(s.techs)) || "-"} |`));
-    return `## 작업 단계와 쓸 도구\n\n| 순서 | 단계 | 쓸 도구 |\n|---|---|---|\n${rows.join("\n")}\n\n같은 순서 번호의 단계는 동시에 진행한다.\n`;
+    const rows = b.flatMap((col, i) => col.map((s) => `| ${i + 1} | ${cell(s.name)} | ${cell(techs(s.techs)) || "-"} | ${s.note ? `메모: ${cell(s.note)}` : "-"} |`));
+    return `## 작업 단계와 쓸 도구\n\n| 순서 | 단계 | 쓸 도구 | 메모 |\n|---|---|---|---|\n${rows.join("\n")}\n\n같은 순서 번호의 단계는 동시에 진행한다.\n`;
   }
   if (kind === "meta") return `${META_RULES}\n\n<청사진 이름="${attr(name)}">\n${steps(b)}\n</청사진>\n`;
   return `아래 청사진대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${steps(b)}\n`;

@@ -36,12 +36,12 @@ async function readTechs(db: SupabaseClient, ids: string[]): Promise<Row[]> {
 /** 확정 이력(최근 HISTORY_LIMIT개). 표가 아직 없거나(마이그레이션 전) 못 읽으면 null: 판 만들기는 그대로 쓰고 이력만 "읽지 못함"(불변 2).
  *  모양이 틀린 줄은 빼고 센다(줄 하나가 화면 전체를 깨지 않게) */
 async function readHistory(db: SupabaseClient, userId: string): Promise<BlueprintRecord[] | null> {
-  const r = await db.from("blueprints").select("id, name, project_id, board, created_at, projects(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(HISTORY_LIMIT);
+  const r = await db.from("blueprints").select("id, name, project_id, board, graph, created_at, projects(name)").eq("user_id", userId).order("created_at", { ascending: false }).limit(HISTORY_LIMIT);
   if (r.error) { console.error("블루프린트 이력을 읽지 못함", r.error.message); return null; }
   return (r.data as Row[]).flatMap((h) => {
     const board = readStored(h.board);
     if (!board) { console.error("블루프린트 이력 한 줄의 모양이 맞지 않아 뺌", h.id); return []; }
-    return [{ id: h.id, name: h.name, projectId: h.project_id, projectName: h.projects?.name ?? null, createdAt: h.created_at, board }];
+    return [{ id: h.id, name: h.name, projectId: h.project_id, projectName: h.projects?.name ?? null, createdAt: h.created_at, board, graph: readStoredGraph(h.graph ?? null) }];
   });
 }
 

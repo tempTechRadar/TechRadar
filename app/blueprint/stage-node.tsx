@@ -16,6 +16,7 @@ export type StageData = {
   /** 위 · 아래 +(S3): 같은 순서에 단계 더하기(읽기 전용이면 없음), 막힌 이유(같은 순서가 가득) */ onBeside?: (stageId: string, dir: -1 | 1) => void; besideBlocked: string | null;
   /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 왼쪽 · 오른쪽 + = 앞 · 다음 단계, 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기) */
   edit?: { onSide: (stageId: string, dir: -1 | 1) => void; onDetail: (stageId: string) => void; onRemove: (stageId: string) => void;
+    /** 메모(T2): 서랍을 열고 메모 칸으로 */ onNote: (stageId: string) => void;
     /** 이름 칸으로 바뀜(두 번 누르기 · F2 · Enter) · 끝(name = null이면 취소) */ editing: boolean; onEdit: (stageId: string) => void; onRename: (stageId: string, name: string | null) => void };
 };
 export type StageNodeType = Node<StageData, "stage">;
@@ -56,6 +57,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
         {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
           : <b className="sn-name" onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? "두 번 누르면 이름 바꾸기(F2)" : undefined}>{stage.name}</b>}
         {data.edit && !data.edit.editing ? <span className="sn-tools">
+          <button type="button" className="sn-tool nodrag nopan" aria-label={`${stage.name} 메모`} onClick={() => data.edit!.onNote(stage.id)}>메모</button>
           <button type="button" className="sn-tool nodrag nopan" aria-label={`${stage.name} 자세히`} onClick={() => data.edit!.onDetail(stage.id)}>자세히</button>
           <button type="button" className="sn-tool nodrag nopan" aria-label={`${stage.name} 단계 지우기`} onClick={() => data.edit!.onRemove(stage.id)}>✕</button>
         </span> : null}
@@ -72,6 +74,9 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           ))}
         </div>
       ) : <p className="sn-empty">아래에서 기술을 끌어 놓아요</p>}
+      {/* 단계 메모(T2): 칩 아래 두 줄로 줄여 옅게. 누르면 서랍 메모 칸. 읽기 전용이면 글만 */}
+      {stage.note ? (data.edit ? <button type="button" className="sn-note nodrag nopan" aria-label={`${stage.name} 메모: ${stage.note} (고치기)`} onClick={() => data.edit!.onNote(stage.id)}>{stage.note}</button>
+        : <p className="sn-note">{stage.note}</p>) : null}
       {over && full ? <p className="sn-full">가득 참 {stage.techs.length}/{LIMITS.techs}</p> : null}
       <Handle type="source" position={Position.Right} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}에서 나가는 선`} />
     </div>

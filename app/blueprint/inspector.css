@@ -10,4 +10,5 @@
 .insp-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; overflow-wrap: anywhere; }
 .insp-actions { margin-top: var(--sp-1); }
 .insp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.insp-note textarea { box-sizing: border-box; width: 100%; min-height: 72px; padding: var(--sp-2); font: inherit; font-size: var(--fs-sm); border: 1px solid var(--ink-2); border-radius: var(--r-md); resize: vertical; }
 .insp-links { list-style: none; margin: var(--sp-1) 0; padding: 0; display: grid; gap: var(--sp-1); } /* 앞 · 다음 단계 + 끊기(P-12h S3) */

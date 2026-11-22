@@ -9,7 +9,8 @@ import type { Say } from "../undo-toast";
 export type Picked = { kind: "stage"; stageId: string } | { kind: "tech"; stageId: string; techId: string } | null;
 /** graph.ts 편집 함수의 결과를 넘긴다. 같은 그래프(===)면 아무 일도 없다. say가 있으면 알림 */
 /** name = 판과 함께 이름도 바꾼 일(이력 불러오기 등): 이름도 되돌리기 칸에 들어가고 시작한 템플릿 표시가 지워진다 */
-export type Apply = (next: Graph, say?: string, name?: string) => void;
+/** merge = 되돌리기 칸을 새로 만들지 않고 지금 칸을 바꿈(메모 입력 중) */
+export type Apply = (next: Graph, say?: string, name?: string, merge?: boolean) => void;
 
 export type PanelProps = {
   graph: Graph; picked: Picked;

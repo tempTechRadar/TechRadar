@@ -50,9 +50,11 @@ export function useStudioGraph(who: string) {
     try { localStorage.setItem(key(who), JSON.stringify({ name: h.now.name, graph: h.now.graph })); } catch { /* 저장을 막은 브라우저: 이번 화면에서만 */ }
   }, [who, h, unread]);
 
-  /** 바꾸기 하나 = 되돌리기 한 칸. 같은 그래프(못 바꿈)는 쌓지 않는다. name을 주면 이름도 함께 바꾼 일 */
-  const push = useCallback((next: Graph, name?: string) => setH((x) => {
+  /** 바꾸기 하나 = 되돌리기 한 칸. 같은 그래프(못 바꿈)는 쌓지 않는다. name을 주면 이름도 함께 바꾼 일.
+   *  merge = 지금 칸을 바꿔 끼움(메모를 쓰는 동안 글자마다 칸이 생기지 않게, 입력칸에 들어와 처음 바꾼 것만 새 칸, P-12h-2 T2) */
+  const push = useCallback((next: Graph, name?: string, merge?: boolean) => setH((x) => {
     if (!x || (next === x.now.graph && (name === undefined || name === x.now.name))) return x;
+    if (merge && x.past.length) return { ...x, now: { ...x.now, graph: next }, future: [] };
     return { past: [...x.past, x.now].slice(-UNDO_MAX), now: { graph: next, name: name ?? x.now.name, renamed: name !== undefined && name !== x.now.name }, future: [] };
   }), []);
   const undo = useCallback(() => setH((x) => {

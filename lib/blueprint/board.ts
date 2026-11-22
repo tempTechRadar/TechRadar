@@ -1,7 +1,8 @@
 // 청사진 판(v1, 열 · 행): 왼쪽 → 오른쪽 = 순서, 같은 열 = 동시에(나란히). DB · 화면을 모르는 순수 함수.
 // P-12e 스튜디오부터 편집은 그래프(graph.ts)로 하고, 판은 저장 · 내보내기 · 이력용 투영(toBoardView)과 옛 판 읽기(fromV1)에만 쓴다.
 export type BlueprintTech = { id: string; name: string };
-export type Stage = { id: string; name: string; techs: BlueprintTech[] };
+/** note = 단계 메모(P-12h-2 T2, 200자, 앞뒤 공백 없음, 비면 키 자체가 없음) */
+export type Stage = { id: string; name: string; techs: BlueprintTech[]; note?: string };
 export type Board = Stage[][];
 
 export const STAGE_NAME_MAX = 20;

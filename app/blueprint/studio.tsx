@@ -76,7 +76,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const bounce = useBounce();
   // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드 "자세히"로 열림. 열면 초점이 서랍으로, 닫으면 연 자리로
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
-  useEffect(() => { if (drawer) drawerBox.current?.querySelector<HTMLElement>(".insp")?.focus(); }, [drawer]);
+  const [drawerAt, setDrawerAt] = useState<{ n: number; note: boolean }>({ n: 0, note: false }); // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김
+  useEffect(() => { if (drawer) drawerBox.current?.querySelector<HTMLElement>(drawerAt.note ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
   const [editing, setEditing] = useState<string | null>(null); // 카드 위에서 이름 바꾸는 단계
   const now = useRef(graph); // 지우기 토스트의 되돌리기: 그 뒤에 판이 바뀌었는지 본다
   now.current = graph;
@@ -136,10 +137,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
   /** name을 주면 다른 곳에서 판을 통째로 가져온 일(이력 불러오기 등): 이름도 함께 되돌리기 칸에 넣고, 시작한 템플릿 표시는 지운다 */
-  const apply = (next: Graph, message?: string, nm?: string) => {
+  const apply = (next: Graph, message?: string, nm?: string, merge?: boolean) => {
     if (next === g && (nm === undefined || nm === name)) return;
     bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
-    push(next, nm);
+    push(next, nm, merge);
     if (nm !== undefined) setTemplateId(null);
     if (message) say(message); else clear();
   };
@@ -224,7 +225,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (why) return say(why);
     apply(renameStage(g, id, nm), renamedSaid(nm));
   }
-  const openDrawer = () => { if (!drawer) drawerFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setDrawer(true); };
+  const openDrawer = (note = false) => {
+    if (!drawer) drawerFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDrawer(true); setDrawerAt((x) => ({ n: x.n + 1, note }));
+  };
   const closeDrawer = () => { const f = drawerFrom.current; (f?.isConnected && f !== document.body ? f : canvasBox.current)?.focus(); setDrawer(false); };
   /** Enter · Esc 뒤 초점: 연 곳(+ 단추)이 아직 있으면 거기, 아니면 캔버스 */
   const ghostBack = (gh: Ghost) => (gh.from?.isConnected && gh.from !== document.body ? gh.from : canvasBox.current)?.focus();
@@ -244,6 +248,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: (p) => { setPicked(p); if (p?.kind === "tech") openDrawer(); }, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
       onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
       edit: readOnly ? undefined : { onSide: sideGhost, onDetail: (id) => { pick({ kind: "stage", stageId: id }); openDrawer(); }, onRemove: removeFromCard,
+        onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer(true); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
   // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다

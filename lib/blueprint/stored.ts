@@ -6,7 +6,8 @@ import { parseGraph, type Graph } from "./graph.ts";
 
 export type StoredStage = { name: string; techs: BlueprintTech[] };
 export type StoredBoard = StoredStage[][];
-export type BlueprintRecord = { id: string; name: string; projectId: string | null; projectName: string | null; createdAt: string; board: StoredBoard };
+/** graph = v2 확정본(선 · 메모 포함, 옛 확정본은 null → board로 연다) */
+export type BlueprintRecord = { id: string; name: string; projectId: string | null; projectName: string | null; createdAt: string; board: StoredBoard; graph?: Graph | null };
 export type TechUsage = { n: number; projects: number; stages: string[] };
 
 /** 내 이력으로 읽는 확정 수(쓴 횟수도 이만큼에서 센다. 넘으면 화면이 "최근 n개만"이라고 알림) */

@@ -3,9 +3,9 @@
 // 단계 = 이름 바꾸기 · 앞 / 다음 단계 · 붙은 기술(빼기) · 지우기. 기술 = 등급 · 보안 띠 · 내 태그(TagEditor) · 사용기 상위 3개(SideNotes) — 지도 사이드 패널 구획을 그대로 씀.
 // 그래프는 apply로만 바꾼다(되돌리기 · 저장은 studio).
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
-import { disconnect, removeStage, removeTech, renameStage, type Stage } from "@/lib/blueprint/graph";
+import { disconnect, removeStage, removeTech, renameStage, setStageNote, STAGE_NOTE_MAX, type Stage } from "@/lib/blueprint/graph";
 import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
@@ -57,6 +57,7 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} />
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
+      <NoteField graph={graph} apply={apply} stage={s} />
       <Card title={`넣은 기술 ${s.techs.length}`}>
         {s.techs.length ? <StageChips className="insp-chips" techs={s.techs} pool={pool} marking={marking} pickedTech={null}
           onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), removeSaid(s.name, t.name)); focusPanel(); }}
@@ -66,6 +67,24 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <button type="button" className="btn btn-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
       </p>
     </>
+  );
+}
+
+/** 단계 메모(P-12h-2 T2): 쓰는 대로 판에 남기고(초안 저장), 되돌리기는 칸에 들어와 처음 바꾼 것만 새 칸 → 칸을 벗어나면 한 번에 되돌림 */
+function NoteField({ graph, apply, stage }: Pick<PanelProps, "graph" | "apply"> & { stage: Stage }) {
+  const [text, setText] = useState(stage.note ?? "");
+  const typed = useRef(false), box = useRef<HTMLTextAreaElement>(null);
+  // 되돌리기 · 다른 곳에서 바뀌면 칸도 따라간다(쓰는 중이 아닐 때만, 글자 사이 공백이 판에서 잘려도 칸은 그대로)
+  useEffect(() => { if (document.activeElement !== box.current) setText(stage.note ?? ""); }, [stage.note]);
+  return (
+    <Card title="메모">
+      <label className="insp-note"><span className="sr-only">{stage.name} 메모</span>
+        <textarea id="insp-note" ref={box} value={text} maxLength={STAGE_NOTE_MAX} rows={3} placeholder="이 단계에서 챙길 것 · 끝났다고 볼 기준 등"
+          onFocus={() => { typed.current = false; }} onBlur={() => { typed.current = false; }}
+          onChange={(e) => { setText(e.target.value); apply(setStageNote(graph, stage.id, e.target.value), undefined, undefined, typed.current); typed.current = true; }} />
+      </label>
+      <p className="muted" aria-live="polite">{text.length}/{STAGE_NOTE_MAX}자 · 내보내기에 &quot;메모:&quot;로 들어가요. 템플릿에는 저장되지 않아요.</p>
+    </Card>
   );
 }
 

@@ -106,7 +106,7 @@ export function toBoardView(g: Graph): Board | null {
   const l = layers(g);
   if (!l.ok) return null;
   const by = new Map(g.stages.map((s) => [s.id, s]));
-  return l.levels.map((col) => col.map((id) => ({ id, name: by.get(id)!.name, techs: [...by.get(id)!.techs] })));
+  return l.levels.map((col) => col.map((id) => { const s = by.get(id)!; return { id, name: s.name, techs: [...s.techs], ...(s.note ? { note: s.note } : {}) }; }));
 }
 
 const cycleText = (g: Graph, cycle: string[]) => {
@@ -232,6 +232,17 @@ export function disconnect(g: Graph, from: string, to: string): Graph {
 /** 기술 붙이기: 같은 기술은 한 번, 단계마다 최대 8개. 위험 등급 막기는 부르는 쪽(서랍 · 서버)이 한다 */
 export const putTech = (g: Graph, id: string, tech: BlueprintTech): Graph =>
   mapStage(g, id, (s) => (s.techs.some((t) => t.id === tech.id) || s.techs.length >= LIMITS.techs ? s : { ...s, techs: [...s.techs, tech] }));
+/** 단계 메모(P-12h-2 T2): 200자 · 앞뒤 공백 없앰, 비면 키를 지움. DB(202611232000 blueprint_graph_clean)도 같은 규칙 */
+export const STAGE_NOTE_MAX = 200;
+export const cleanNote = (v: unknown): string => (typeof v === "string" ? v.trim().slice(0, STAGE_NOTE_MAX).trim() : "");
+export function setStageNote(g: Graph, id: string, note: string): Graph {
+  const n = cleanNote(note);
+  return mapStage(g, id, (s) => {
+    if ((s.note ?? "") === n) return s;
+    const { note: _old, ...rest } = s;
+    return n ? { ...rest, note: n } : rest;
+  });
+}
 export const removeTech = (g: Graph, id: string, techId: string): Graph => mapStage(g, id, (s) => (s.techs.some((t) => t.id === techId) ? { ...s, techs: s.techs.filter((t) => t.id !== techId) } : s));
 
 /** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수.
@@ -272,7 +283,7 @@ export function applyTemplate(t: Graph, kind: TemplateKind): Graph {
 }
 
 const bad = (message: string): ParsedGraph => ({ ok: false, message });
-type StageIn = { id?: unknown; name?: unknown; x?: unknown; y?: unknown; techs?: unknown };
+type StageIn = { id?: unknown; name?: unknown; x?: unknown; y?: unknown; techs?: unknown; note?: unknown };
 function parseStage(s: unknown, seen: Set<string>): Stage | string {
   const v = (s ?? {}) as StageIn;
   if (typeof v.id !== "string" || !STAGE_ID.test(v.id)) return `단계 id는 1~${STAGE_ID_MAX}자의 영문·숫자·_·-여야 해요.`;
@@ -285,7 +296,8 @@ function parseStage(s: unknown, seen: Set<string>): Stage | string {
   if (!raw || raw.length > LIMITS.techs || !raw.every((t) => isUuid(t?.id))) return `"${name}" 단계의 기술이 맞지 않아요(단계마다 ${LIMITS.techs}개까지).`;
   const techs: BlueprintTech[] = [];
   for (const t of raw) if (!techs.some((x) => x.id === t.id)) techs.push({ id: t.id as string, name: typeof t.name === "string" ? t.name.slice(0, 80) : "" });
-  return { id: v.id, name, x: Math.round(v.x), y: Math.round(v.y), techs };
+  const note = cleanNote(v.note); // 메모는 맞지 않아도 판을 버리지 않고 뺀다(글 · 길이만 다름)
+  return { id: v.id, name, x: Math.round(v.x), y: Math.round(v.y), techs, ...(note ? { note } : {}) };
 }
 function parseEdge(e: unknown, ids: Set<string>, seen: Set<string>): Edge | string {
   const { from, to } = (e ?? {}) as { from?: unknown; to?: unknown };

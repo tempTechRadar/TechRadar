@@ -49,6 +49,11 @@
 .sn-tool { min-width: 24px; min-height: 24px; padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: none; font: inherit; font-size: var(--fs-cap); color: var(--ink-2); text-decoration: underline; cursor: pointer; }
 .sn-tool:hover { color: var(--ink); background: var(--sunken); }
 .sn-tool:focus-visible { outline: var(--focus); outline-offset: 1px; }
+/* 단계 메모(T2): 칩 아래 옅은 글 두 줄까지 */
+.sn-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; width: 100%; margin: 6px 0 0; padding: 0; border: 0; background: none; font: inherit; font-size: var(--fs-cap); line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-line; overflow-wrap: anywhere; }
+button.sn-note { cursor: pointer; }
+button.sn-note:hover { color: var(--ink-2); text-decoration: underline; }
+button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
 .studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
