@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter, addStageBeside, addStageLinked, parallelProblem } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -104,4 +104,32 @@ test("단계 더하기(＋ 단계 · 목록 모드 같은 규칙): 고른 단계
   assert.equal(free.graph.edges.length, 1); // 잇지 않음
   assert.equal(free.linked, false);
   assert.ok("problem" in addStageAfter(g, "  ", g.stages[0]));
+});
+
+test("선 끌어 새 블록(S3): 놓은 자리에 두고 앞 단계 → 새 단계 또는 새 단계 → 다음 단계로 한 번에, 못 이으면 linked=false", () => {
+  const g: Graph = { ...emptyGraph(), stages: [st("a", 0, 0), st("b", 320, 0)], edges: [{ from: "a", to: "b" }] };
+  const out = addStageLinked(g, "다음", { x: 640, y: 40 }, { before: ["b"], after: [] });
+  assert.ok("graph" in out);
+  assert.deepEqual([out.stage.x, out.stage.y, out.linked], [640, 40, true]);
+  assert.ok(out.graph.edges.some((e) => e.from === "b" && e.to === out.stage.id));
+  const back = addStageLinked(g, "앞", { x: -320, y: 0 }, { before: [], after: ["a"] });
+  assert.ok("graph" in back && back.graph.edges.some((e) => e.from === back.stage.id && e.to === "a"));
+  const ghost = addStageLinked(g, "없는 곳", { x: 0, y: 300 }, { before: ["없음"], after: [] });
+  assert.ok("graph" in ghost && ghost.linked === false && ghost.graph.stages.length === 3);
+});
+
+test("같은 순서에 더하기(S3): 앞 단계 선을 복사해 같은 깊이, 위 · 아래 한 칸(차면 더), 이미 4개면 미리 막음", () => {
+  const g: Graph = { ...emptyGraph(), stages: [st("a", 0, 0), st("b", 320, 0), st("c", 320, 160)], edges: [{ from: "a", to: "b" }, { from: "a", to: "c" }] };
+  const down = addStageBeside(g, "옆", g.stages[1], 1);
+  assert.ok("graph" in down);
+  assert.deepEqual([down.stage.x, down.stage.y], [320, 320]); // b 아래는 c가 차지 → 한 칸 더
+  assert.ok(down.graph.edges.some((e) => e.from === "a" && e.to === down.stage.id) && down.linked);
+  const up = addStageBeside(g, "위", g.stages[1], -1);
+  assert.ok("graph" in up && up.stage.y === -160);
+  const first = addStageBeside(g, "처음 옆", g.stages[0], 1); // 앞 단계가 없으면 잇지 않아도 같은 처음
+  assert.ok("graph" in first && first.graph.edges.length === 2);
+  const full: Graph = { ...g, stages: [...g.stages, st("d", 320, 320), st("e", 320, 480)], edges: [...g.edges, { from: "a", to: "d" }, { from: "a", to: "e" }] };
+  assert.match(parallelProblem(full, "b") ?? "", /2번째 순서에 이미 4개/);
+  assert.ok("problem" in addStageBeside(full, "넘침", full.stages[1], 1));
+  assert.equal(parallelProblem(full, "a"), null);
 });
