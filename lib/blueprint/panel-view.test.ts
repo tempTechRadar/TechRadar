@@ -131,5 +131,6 @@ test("같은 순서에 더하기(S3): 앞 단계 선을 복사해 같은 깊이,
   const full: Graph = { ...g, stages: [...g.stages, st("d", 320, 320), st("e", 320, 480)], edges: [...g.edges, { from: "a", to: "d" }, { from: "a", to: "e" }] };
   assert.match(parallelProblem(full, "b") ?? "", /2번째 순서에 이미 4개/);
   assert.ok("problem" in addStageBeside(full, "넘침", full.stages[1], 1));
+  assert.match((addStageLinked(full, "끌어 넘침", { x: 640, y: 0 }, { before: ["a"], after: [] }) as { problem: string }).problem, /2번째 순서/); // 선 끌기 · ＋ 단계도 같은 한도
   assert.equal(parallelProblem(full, "a"), null);
 });
