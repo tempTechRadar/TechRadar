@@ -59,16 +59,16 @@ export function Pending({ alerts, seen }: { alerts: AlertRecord[]; seen: number 
     <section aria-labelledby="pending-title">
       <h2 id="pending-title">판단 대기 <span className="muted">{pending.length}{fresh ? ` · 새로 옴 ${fresh}` : ""}</span></h2>
       {pending.length === 0 ? <p className="muted">판단을 기다리는 알림이 없어요.</p> : (
-        <ul className="alert-list">{pending.slice(0, PENDING_LIMIT).map((a) => (
+        <ul className="alert-list">{pending.slice(0, PENDING_LIMIT).map((a) => { const fresh = isNew(a.createdAt, seen); return (
           <li key={a.id}>
-            <Link className="alert-row" href={`/alerts/${a.id}`} data-new={isNew(a.createdAt, seen) ? "" : undefined}>
+            <Link className="alert-row" href={`/alerts/${a.id}`} data-new={fresh ? "" : undefined}>
               <span className={`badge badge-${a.kindTone}`}>{a.kindLabel}</span>
-              <span className="alert-main"><strong>{isNew(a.createdAt, seen) ? <span className="tag status-new">새로 옴</span> : null}{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
+              <span className="alert-main"><strong>{fresh ? <span className="tag status-new">새로 옴</span> : null}{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
               <span className={`badge badge-${a.statusTone}`}>{a.statusLabel}</span>
               <time className="alert-time" dateTime={a.createdAt}>{a.createdAtLabel}</time>
             </Link>
           </li>
-        ))}</ul>
+        ); })}</ul>
       )}
       {pending.length > PENDING_LIMIT ? <p className="status-more"><Link href="/history">일지에서 {pending.length}건 모두 보기</Link></p> : null}
     </section>

@@ -15,7 +15,7 @@ const GRADE_KO: Record<PoolTech["grade"], string> = { danger: "보안 위험", c
 export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandidate, busy = false, fresh = false }: {
   tech: BlueprintTech; info?: PoolTech; picked?: boolean; onPick?: () => void; onRemove?: () => void; onCandidate?: () => void; busy?: boolean; fresh?: boolean;
 }) {
-  const [pop] = useState(fresh);
+  const [pop] = useState(fresh && !onCandidate); // 후보 칩으로 태어나 나중에 보통 칩이 될 때는 돌지 않게(B3는 색만 바뀜)
   const grade = info?.grade ?? "unknown", type = info?.type ?? "";
   const label = `${tech.name}${type ? `, ${TYPE_KO[type] ?? type}` : ""}, ${onCandidate ? "아직 판단 안 함" : GRADE_KO[grade]}`;
   const stop = (f?: () => void) => (e: MouseEvent) => { e.stopPropagation(); f?.(); }; // 노드 고르기 · 끌기와 겹치지 않게

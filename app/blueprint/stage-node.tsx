@@ -21,14 +21,19 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
   const accepts = (types: readonly string[]) => types.includes(TECH_DRAG);
   // B4: 끄는 동안 어떤 기술인지는 브라우저가 안 알려 줘서(dragover 보호) 확실히 아는 "가득 참"만 미리 막는다. 이미 있는 기술은 놓은 뒤 이유 토스트
   const full = stage.techs.length >= LIMITS.techs;
-  // 노드가 처음 그려진 뒤에 붙은 칩만 톡 나온다(페이지 열기 · 템플릿 · 이력 불러오기 때는 안 돎)
-  const born = useRef(false);
-  useEffect(() => { born.current = true; }, []);
+  // 노드가 처음 그려진 뒤, 칩이 딱 하나 더 붙었을 때만 그 칩이 톡 나온다(놓기 · 넣기). 페이지 열기 · 템플릿 · 이력 불러오기처럼
+  // 여러 칩이 한꺼번에 바뀌면 안 돎. 정한 값은 칩이 생길 때 한 번(TechChip useState)이라 크기를 다시 재 그려도 다시 안 돎
+  const seen = useRef<Set<string> | null>(null);
+  const prev = seen.current;
+  const added = prev ? stage.techs.filter((t) => !prev.has(t.id)) : [];
+  const popId = added.length === 1 && stage.techs.length === prev!.size + 1 ? added[0].id : null;
+  useEffect(() => { seen.current = new Set(stage.techs.map((t) => t.id)); });
   return (
     <div className="sn" data-selected={selected ? "" : undefined} data-step={step} data-over={over ? "" : undefined} data-full={over && full ? "" : undefined}
       // 읽기 전용(휴대폰 "그림으로 보기")이면 놓기를 아예 받지 않는다(전에는 판이 바뀔 수 있던 버그)
       onDragOver={(e) => { if (data.readOnly || !accepts(e.dataTransfer.types)) return; e.preventDefault(); e.dataTransfer.dropEffect = full ? "none" : "copy"; setOver(true); }}
-      onDragLeave={() => setOver(false)}
+      // 단계 안의 칩 위로 지나갈 때도 dragleave가 와서 윤곽이 꺼졌다 켜지며 노드 크기가 흔들리지 않게: 노드 밖으로 나갈 때만 끈다
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null)) setOver(false); }}
       onDrop={(e) => { setOver(false); if (data.readOnly || full) return; const id = e.dataTransfer.getData(TECH_DRAG); if (!id) return; e.preventDefault(); data.onDropTech(stage.id, id); }}>
       <Handle type="target" position={Position.Left} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}로 들어오는 선`} />
       <header className="sn-head">
@@ -39,7 +44,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       {stage.techs.length ? (
         <div className="sn-techs">
           {stage.techs.map((t) => (
-            <TechChip key={t.id} tech={t} info={data.info.get(t.id)} fresh={born.current}
+            <TechChip key={t.id} tech={t} info={data.info.get(t.id)} fresh={t.id === popId}
               picked={picked?.kind === "tech" && picked.stageId === stage.id && picked.techId === t.id}
               onPick={data.readOnly ? undefined : () => data.onPick({ kind: "tech", stageId: stage.id, techId: t.id })}
               onCandidate={data.info.has(t.id) || data.readOnly ? undefined : () => data.onCandidate(t.id, t.name)} busy={data.marking === t.id}

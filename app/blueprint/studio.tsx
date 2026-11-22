@@ -74,6 +74,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   useEffect(() => () => clearTimeout(drawTimer.current), []);
   // B3 후보 칩: 판단이 저장된 뒤 서랍을 다시 읽는 동안에도 "고르는 중…"을 지킨다(그 틈에 "안 고른" 모양으로 돌아가 보이지 않게)
   const [settling, setSettling] = useState<{ id: string; name: string } | null>(null);
+  const settled = useRef(new Set<string>()); // 저장은 됐고 서랍을 다시 읽는 중인 기술(같은 기술을 또 보내지 않게, 불변 3)
   const [refreshing, startRefresh] = useTransition();
   // 실패 문구는 확정 창이 열려 있으면 창 안에만, 창을 닫은 뒤 왔으면 알림으로(같은 말을 두 번 보이지 않게)
   const confirmOpen = useRef(false);
@@ -93,7 +94,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   useEffect(() => {
     if (refreshing || !settling) return;
     const name = settling.name;
-    setSettling(null);
+    settled.current.clear(); setSettling(null);
     if (document.activeElement !== document.body) return;
     document.querySelector<HTMLElement>(`.sn button.tc-main[aria-label^="${CSS.escape(name)},"]`)?.focus();
   }, [refreshing, settling]);
@@ -129,11 +130,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
   async function markCandidate(techId: string, techName: string) {
     if (guest) return toLogin("적용 후보로 고르려면");
-    if (inflight.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
+    if (inflight.current.has(techId) || settled.current.has(techId)) return; // 같은 기술을 겹쳐 보내지 않게(다른 기술을 고르는 사이 단추가 다시 켜져도)
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
-    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
+    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);

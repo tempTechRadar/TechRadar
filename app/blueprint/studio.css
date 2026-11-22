@@ -55,8 +55,9 @@
 .react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
 /* P-12g B2 확정 = 설계선 긋기: 실제 선(edge-path)과 화살촉은 그대로 두고, React Flow가 이미 그리는 두 번째 path(넓은 누름 영역, 보통 투명)를
    잠깐 먹 1.5px로 덧칠해 한 번 긋고 사라진다. 클래스는 studio.tsx가 600ms 뒤 뗀다(움직임 줄이기면 아예 안 붙임 + 아래 none) */
-.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--ink); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 3000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
-@keyframes se-draw { 0% { stroke-dashoffset: 3000; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+/* 덧칠 길이 8000px: 넓게 자동 정렬된 판의 긴 선도 처음부터 그어지게(선 길이를 CSS가 몰라서 넉넉한 고정값) */
+.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--ink); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 8000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
+@keyframes se-draw { 0% { stroke-dashoffset: 8000; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .react-flow__edge.se-draw .react-flow__edge-interaction { animation: none; stroke-opacity: 0; } }
 /* 미니맵: 작게 · 테두리로 판과 구분(빈 흰 상자로 단계를 덮지 않게). 목록 모드(좁은 화면)에는 캔버스가 없어 미니맵도 없다 */
 .react-flow__minimap.studio-mini { width: 160px; height: 100px; margin: 8px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
