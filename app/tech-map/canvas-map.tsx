@@ -170,7 +170,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
         <div ref={dock} className="map-dock">
-          <RadarSettings motion={S.motion} tune={S.tune} still={S.still} onMotion={ctl.setMotion} onTune={ctl.setTune} />
+          <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />

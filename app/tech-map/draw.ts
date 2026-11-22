@@ -133,13 +133,13 @@ function ripple({ c, S, sc, now }: Frame, o: Pt, sa: number) {
   c.globalAlpha = 1;
 }
 
-/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 잔광 각도(분위기) 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛 */
+/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 잔광 각도 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛. 처음 연출과 감속 동안만 */
 function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
-  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink"), TRAIL = TUNE[S.tune].trail;
+  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink"), TRAIL = TUNE.trail;
   if ("createConicGradient" in c && !introducing(S, now)) { // 잔광은 처음 연출이 끝난 뒤(고리가 다 퍼진 뒤, 시안처럼)
-    const f = TRAIL / TAU, g = c.createConicGradient(ang - TRAIL, ox, oy), a = 0.35 * sa;
-    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(f * 0.6, `rgba(26,26,26,${(a * 0.25).toFixed(3)})`); g.addColorStop(f, `rgba(26,26,26,${a.toFixed(3)})`); g.addColorStop(Math.min(1, f + 0.001), "rgba(0,0,0,0)");
-    c.strokeStyle = g; c.lineWidth = 1.2; c.beginPath();
+    const f = TRAIL / TAU, g = c.createConicGradient(ang - TRAIL, ox, oy); // 색은 --ink(6자리 hex, 대비 시험이 지킴) + 끝 두 자리 투명도, 진하기는 globalAlpha
+    g.addColorStop(0, `${ink}00`); g.addColorStop(f * 0.6, `${ink}40`); g.addColorStop(f, ink); g.addColorStop(Math.min(1, f + 0.001), `${ink}00`);
+    c.globalAlpha = 0.35 * sa; c.strokeStyle = g; c.lineWidth = 1.2; c.beginPath();
     for (const r of ringRadii(S, sc, far / sc)) { c.moveTo(ox + r * sc * Math.cos(ang - TRAIL), oy + r * sc * Math.sin(ang - TRAIL)); c.arc(ox, oy, r * sc, ang - TRAIL, ang); }
     c.stroke();
   }
