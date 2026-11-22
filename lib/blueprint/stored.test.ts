@@ -71,3 +71,12 @@ test("내보내기에 단계 메모(T2): 프롬프트 · 메타는 번호 줄 �
   assert.match(md, /\| 1 \| 기획 \| - \| 메모: 인터뷰 먼저 \|/);
   assert.match(md, /\| 2 \| 디자인 \| - \| - \|/);
 });
+
+test("Mermaid 내보내기(T4): flowchart LR, 단계 · 선, 따옴표 · 꺾쇠 escape, 기술은 <br/>, 메모는 넣지 않음", async () => {
+  const { exportMermaid } = await import("./export-text.ts");
+  const g = { v: 2 as const, edges: [{ from: "a-1", to: "b" }], stages: [
+    { id: "a-1", name: '기획 "초안" <b>', x: 0, y: 0, techs: [], note: "비밀 메모" },
+    { id: "b", name: "개발", x: 384, y: 0, techs: [{ id: T1, name: "Vite" }, { id: T2, name: "React" }] }] };
+  assert.equal(exportMermaid(g), 'flowchart LR\n  n1["기획 #quot;초안#quot; #lt;b#gt;"]\n  n2["개발<br/>Vite, React"]\n  n1 --> n2\n');
+  assert.doesNotMatch(exportMermaid(g), /비밀 메모/);
+});
