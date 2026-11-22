@@ -1,12 +1,13 @@
 "use server";
-// 블루프린트 화면의 서버 액션: 확정(DB 함수가 본인 이름으로 한 줄, 같은 id는 한 번) · 카탈로그 찾기. 사용자 토큰으로 부른다(불변 5).
-import { revalidatePath } from "next/cache";
-import { confirmBlueprintGraph, findPoolTechs, type ConfirmGraphInput, type ConfirmResult, type PoolTech } from "@/lib/server/blueprints";
+// 블루프린트 화면의 서버 액션: 확정(DB 함수가 본인 이름으로 한 줄, 같은 id는 한 번) · 손님이 담은 기술 읽기(공개 칸만). 사용자 토큰으로 부른다(불변 5).
+import { revalidatePath, unstable_cache } from "next/cache";
+import { confirmBlueprintGraph, readPublicPoolTechs, type ConfirmGraphInput, type ConfirmResult, type PoolTech } from "@/lib/server/blueprints";
+import { maskSecrets } from "@/lib/domain/redact";
+import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
 import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { hideTemplate, saveTemplate, setTemplatePublic, type TemplateInput, type TemplateResult } from "@/lib/server/blueprint-templates";
-import { searchCatalogAction } from "../tech-map/actions";
 import { markTemplateNoteHelpful, reportTemplateNote, saveTemplateNote } from "@/lib/server/template-notes";
 import type { ActionResult } from "@/lib/server/usage-notes";
 import type { NoteInput } from "@/lib/domain/usage-note";
@@ -23,13 +24,20 @@ export async function confirmGraphAction(input: ConfirmGraphInput): Promise<Conf
   return r;
 }
 
-/** null = 찾지 못함(조회 실패). 빈 배열 = 찾았지만 없음 */
-export async function searchAction(query: string): Promise<PoolTech[] | null> {
-  const user = await getCurrentUser();
-  // 손님(P-12f): 지도 찾기와 같은 길 — 공개 목록 · 공개 칸만, 같은 글자는 10분에 한 번만 DB(누구나 부를 수 있는 주소라 캐시, 보안 검토)
-  if (!user) return searchCatalogAction(query);
-  const db = await getServerSupabase();
-  return db ? findPoolTechs(db, String(query ?? "")) : null;
+/** 같은 담은 목록이면 10분 동안 한 번만 DB에(누구나 부를 수 있는 주소라, 지도 손님 찾기와 같은 방식). 실패는 기억하지 않는다(던지면 캐시 안 됨) */
+const guestPicked = unstable_cache(async (key: string) => {
+  const db = getServiceSupabase();
+  const r = db ? await readPublicPoolTechs(db, key.split(",")) : null;
+  if (r === null) throw new Error("담은 기술 읽기 실패");
+  return r;
+}, ["guest-picked-techs"], { revalidate: 600 });
+/** 손님이 지도에서 담은 기술(P-12h-2 T3, id 30개까지)의 이름 · 종류 · 등급: 공개 목록 · 공개 칸만, 개인 데이터 없음. null = 못 읽음(불변 2) */
+export async function pickedTechsAction(ids: string[]): Promise<PoolTech[] | null> {
+  if (await isLoginPreview()) return []; // 미리보기(개발용)는 DB를 부르지 않는다
+  const key = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 30).sort().join(",");
+  if (!key) return [];
+  try { const got = await guestPicked(key); const by = new Map(got.map((t) => [t.id, t])); return ids.flatMap((id) => by.get(id) ?? []); } // 담은 차례대로
+  catch (e) { console.error("담은 기술 읽기 실패", maskSecrets(e instanceof Error ? e.message : String(e))); return null; }
 }
 
 /** 템플릿 액션 공통: 미리보기 막기는 각 액션이 먼저 한다(글자 검사가 그 순서를 본다). 로그인 → 연결. 못 하면 문구 */

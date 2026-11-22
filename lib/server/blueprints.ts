@@ -86,7 +86,17 @@ export async function readTechDetails(db: SupabaseClient, ids: string[]): Promis
   return rows.map((r) => toPool(r, map, { projects: 0, mark: null }));
 }
 
-/** 서랍의 "카탈로그에서 찾기": 공개 목록에서 그 글자로 시작하는 이름 먼저, 그다음 들어 있는 이름(각각 이름순)으로 20개. 못 읽으면 null(빈 결과와 다르게, 불변 2) */
+/** 손님이 지도에서 담은 기술(P-12h-2 T3): 공개 목록 · 공개 칸만(지도 손님 찾기와 같은 길), 담은 차례 그대로. 공개 목록에서 빠진 것은 뺀다. 못 읽으면 null(불변 2) */
+export async function readPublicPoolTechs(db: SupabaseClient, ids: string[]): Promise<PoolTech[] | null> {
+  const ok = [...new Set(ids.filter(isUuid))].slice(0, 30);
+  if (!ok.length) return [];
+  const [r, cats] = await Promise.all([publicTechs(db, TECH_COLUMNS).in("id", ok), readCategories(db).catch(() => null)]);
+  if (r.error || !cats) { console.error("담은 기술 읽기 실패", r.error?.message ?? "갈래를 읽지 못함"); return null; }
+  const map = catMap(cats), by = new Map((r.data as unknown as Row[]).map((x) => [x.id as string, toPool(x, map, { projects: 0, mark: null })]));
+  return ok.flatMap((id) => by.get(id) ?? []);
+}
+
+/** 지도 찾기(searchCatalogAction)가 쓰는 공개 목록 찾기: 공개 목록에서 그 글자로 시작하는 이름 먼저, 그다음 들어 있는 이름(각각 이름순)으로 20개. 못 읽으면 null(빈 결과와 다르게, 불변 2) */
 export async function findPoolTechs(db: SupabaseClient, query: string): Promise<PoolTech[] | null> {
   const term = like(query);
   if (!term) return [];

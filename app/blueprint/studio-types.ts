@@ -21,7 +21,9 @@ export type PanelProps = {
   onTags: (techId: string, tags: string[]) => void;
   history: BlueprintRecord[] | null; say: Say;
   /** 관문 밖 기술을 적용 후보로 고르기(markTech) · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
-  /** 로그인 전(P-12f 손님): 서랍 = 카탈로그 찾기(찾은 것을 onFound로 서랍에 더함), 이력 · 템플릿 · AI 점검은 로그인 안내 */ guest?: boolean; onFound?: (techs: PoolTech[]) => void;
+  /** 로그인 전(P-12f 손님): 이력 · 템플릿 · AI 점검은 로그인 안내 */ guest?: boolean;
+  /** 손님 서랍 = 지도에서 담은 기술(P-12h-2 T3, 이 브라우저 목록). techs undefined = 읽는 중, null = 못 읽음. ids = 담은 수(공개 목록에서 빠진 것 세기) */
+  guestPicks?: { ids: string[]; techs: PoolTech[] | null | undefined; remove: (techId: string) => void };
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

@@ -12,6 +12,7 @@ import { TagEditor } from "./tag-editor";
 import { DIM_KO } from "@/lib/map/view-config";
 import "./side-panel.css";
 import { listTime } from "@/lib/alerts/to-alert-view";
+import { GuestPick } from "./guest-pick";
 
 // 위험 · 주의는 맨 위 띠로, 나머지는 출처 카드 한 줄로(평소엔 보안 구역을 길게 두지 않음)
 const SEC_SHORT: Record<string, string> = { pass: "알려진 취약점 없음", unknown: "정보를 찾지 못함(위험하지 않다는 뜻이 아니에요)" };
@@ -77,7 +78,8 @@ function SecurityBand({ n }: { n: MapNode & { grade: "danger" | "caution" } }) {
 
 /** 판단 = 청사진으로 가는 관문(11-21 사용자 결정 C): 적용 후보만 넣을 수 있다. 실제 설치는 사람이 Claude Code에서 */
 function ToBlueprint({ n, login }: { n: MapNode; login: boolean }) {
-  if (!login || !n.techId) return null;
+  if (!n.techId) return null;
+  if (!login) return <GuestPick techId={n.techId} />; // 손님(P-12h-2 T3): 이 브라우저 담은 목록 → 청사진 "지도에서 담은 기술"
   const ok = n.mark?.status === "candidate";
   return (
     <div className="side-to-bp">

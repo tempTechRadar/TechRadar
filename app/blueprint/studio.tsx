@@ -17,6 +17,8 @@ import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
+import { pickedTechsAction } from "./actions";
+import { loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
@@ -85,7 +87,16 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
   const assist = useDragAssist();
-  const [found, setFound] = useState<PoolTech[]>([]); // 손님이 카탈로그에서 찾은 기술: 끌어 놓을 수 있게 info에만 더한다(손님 서랍)
+  // 손님 서랍 = 지도에서 담은 기술(P-12h-2 T3): 이 브라우저 목록 → 공개 칸만 읽는 액션. 끌어 놓을 수 있게 info에도 더한다
+  const [pickedIds, setPickedIds] = useState<string[]>([]), [pickedTechs, setPickedTechs] = useState<PoolTech[] | null | undefined>(undefined);
+  useEffect(() => {
+    if (!guest) return;
+    const ids = loadPicked();
+    setPickedIds(ids);
+    if (!ids.length) { setPickedTechs([]); return; }
+    pickedTechsAction(ids).then(setPickedTechs, () => setPickedTechs(null));
+  }, [guest]);
+  const found = useMemo(() => pickedTechs ?? [], [pickedTechs]);
   const info = useMemo(() => new Map([...found, ...pool].map((t) => [t.id, t])), [pool, found]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   // B2 확정 = 설계선 긋기: 실제 선은 그대로 두고 덧칠 선만 한 번 그었다가 사라진다. 같은 확정 id(같은 내용 다시 확정, 불변 3)면 긋지 않는다
@@ -148,6 +159,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** 막힌 단추 한 벌(P-12h S4, page.css): aria-disabled + 누르면 이유 글. disabled와 달리 Tab으로 닿아 이유를 들을 수 있다 */
   const gate = (why: string | null, run: () => void) => ({ "aria-disabled": why ? true : undefined, title: why ?? undefined, onClick: () => (why ? say(why) : run()) });
 
+  /** 손님 "목록에서 빼기": 이 브라우저 목록에서만 뺀다(판에 이미 넣은 칩은 그대로) */
+  function unpickGuest(techId: string) {
+    const next = removePicked(loadPicked(), techId);
+    if (!savePicked(next)) return say("이 브라우저에 저장하지 못했어요. 목록은 그대로예요.");
+    setPickedIds(next); setPickedTechs((x) => x?.filter((t) => t.id !== techId) ?? x);
+    say("담은 목록에서 뺐어요. 지도에서 다시 담을 수 있어요.");
+  }
   /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
   const toLogin = (what: string) => setLoginAsk(what);
   /** 후보 칩의 "적용 후보로 고르기": 지도와 같은 판단 저장(markTech). 성공하면 서랍(관문 목록)을 다시 읽어 보통 칩이 된다 */
@@ -352,7 +370,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열림(단계만 고르면 안 열림)
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -385,7 +403,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
-      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 아래 기술 탭의 &quot;카탈로그에서 찾기&quot;로 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
+      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 지도에서 &quot;청사진에 담기&quot;로 고른 것을 아래 기술 탭에서 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
       {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
         <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
