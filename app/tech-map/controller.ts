@@ -26,6 +26,7 @@ export type MapState = {
   /** 찾아간 기술 · 펼친 묶음 자리에 한 번 퍼지는 물결(t = 시작 시각, 카메라가 도착할 때) */ ping: { id: string; t: number } | null;
   /** 처음 보기 배율(homeCam이 정할 때 기억). 배율 단계(draw)가 이것 대비로 본다: 펼침 · 거르기만으로 단계가 바뀌지 않게 */ homeK: number;
   /** "이번 주" 다시 보기로 날아와 제자리에 닿은 점 → 닿은 시각(이름표를 LAND_SEC 동안 진하게, P-12g map-10). 끌다 부딪혀 튕긴 점(bump)과 따로 */ landed: Map<string, number>;
+  /** 방금 판단을 저장한 점(꼬리표가 0.2초 동안 꾹 찍힘, P-12g map-5). 되돌리기 · 판단 지우기는 찍지 않는다 */ stamp: { id: string; t: number } | null;
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
@@ -55,7 +56,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1, landed: new Map(),
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1, landed: new Map(), stamp: null,
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
     base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
@@ -269,6 +270,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (arriving.size) landArrivals(now);
     if (S.ping && now - S.ping.t < 1.4) anim = true;
     for (const t of S.landed.values()) if (now - t < LAND_SEC) { anim = true; break; } // 진한 이름표가 제 세기로 돌아올 때까지
+    if (S.stamp && now - S.stamp.t < 0.2) anim = true;
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
     const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
@@ -300,11 +302,13 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     },
     subscribe(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; },
     version: () => version,
-    /** 판단을 남긴 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로) */
-    setMark(key: string, mark: MapNode["mark"]) {
+    /** 판단 저장이 성공한 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로). stamp = 꼬리표를 찍는 움직임(되돌리기는 false) */
+    setMark(key: string, mark: MapNode["mark"], stamp = true) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
       n.mark = mark;
       n.decided = mark?.status ?? null; // 방금 지도에서 한 판단이 가장 최근(알림 판단보다 뒤)
+      S.stamp = stamp && mark ? { id: key, t: S.now } : null;
+      dirty(); // 판단 칩을 안 켰어도 캔버스 꼬리표를 다시 그린다(연출 뒤에는 손댈 때만 그림)
       if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },
     /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */

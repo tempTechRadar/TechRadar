@@ -7,6 +7,8 @@ import type { MapState } from "./controller";
 import { GLOW, grow, introducing, LAND_SEC, moving, recentlyChecked, REVEAL, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
+/** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
+const MARK_TAG = { interest: "관심", candidate: "후보", hold: "보류" } as const;
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
 let css: Record<string, string> = {};
 const col = (token: string) => css[token] ?? (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || "#888");
@@ -172,6 +174,10 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
+    if (n.decided && (z >= TIER.far || S.lit || it.id === S.sel)) { // 내 판단(칩과 같은 기준 decided): 저장 성공 순간 0.2초 동안 1.15 → 1로 꾹 찍힘, 움직임 줄이기면 바로
+      const st = S.stamp?.id === it.id && moving(S) ? Math.max(0, 1 - (now - S.stamp.t) / 0.2) : 0;
+      label(c, MARK_TAG[n.decided], x - rp - 2, y + rp + 5, 9 * (1 + 0.15 * st), col("--ink"), "right", 700);
+    }
     if (it.id === S.sel) { const sr = rp + (n.grade !== "danger" ? 6 : n.collectErrorKind ? 11 : 8.5); c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
     const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 36시간 안에 실제로 확인한 점만 옅게 빛나고(ADR 0032), 위험 · NEW는 한 번 울림
     if (age < GLOW && recentlyChecked(n, wall)) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }

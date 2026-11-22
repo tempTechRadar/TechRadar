@@ -34,6 +34,7 @@ export function RadarSettings({ motion, still, onMotion }: { motion: Motion; sti
           </fieldset>
           {still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
           <p className="muted">처음 연출에서 선이 지날 때 밝아지는 점은 36시간 안에 실제로 확인한 기술이에요.</p>
+          <p className="muted">점 왼쪽 아래 꼬리표(관심 · 후보 · 보류)는 내 판단이에요.</p>
         </div>
       ) : null}
     </div>
