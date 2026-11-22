@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { holdReasonProblem, NO_FIXED_VERSION_MESSAGE } from "../alerts/validate-judgment.ts";
 import { maskSecrets } from "../domain/redact.ts";
+import { readCandidateIds } from "./blueprints.ts";
 
 export type MarkStatus = "interest" | "candidate" | "hold";
 /** status null = 표시 지우기 */
@@ -50,7 +51,7 @@ export async function readMarkForTech(db: SupabaseClient, userId: string, techId
 
 /** 메뉴 "청사진" 배지: 청사진에 담은(적용 후보) 기술 수(P-12h U1). 못 읽으면 null(배지를 빼고 0으로 보이지 않게, 불변 2) */
 export async function countCandidates(db: SupabaseClient, userId: string): Promise<number | null> {
-  const r = await db.from("tech_marks").select("tech_id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "candidate");
-  if (r.error || r.count === null) { if (r.error) console.error("메뉴: 담은 기술 수를 읽지 못함", maskSecrets(r.error.message)); return null; }
-  return r.count;
+  // 청사진 "담은 기술" 폴더와 같은 셈(표시 · 알림 판단 중 늦은 것이 이김, P-12h U1 · U2 사용자 결정). 못 읽으면 null → 배지를 숨김(불변 2)
+  try { return (await readCandidateIds(db, userId)).size; }
+  catch (e) { console.error("메뉴: 담은 기술 수를 읽지 못함", maskSecrets(e instanceof Error ? e.message : String(e))); return null; }
 }

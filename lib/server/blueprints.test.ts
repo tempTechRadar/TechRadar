@@ -59,6 +59,15 @@ test("서랍의 적용 후보 = 보드 칸과 같은 계산: 관심은 빼고, �
   assert.deepEqual([...candidateIds(marks, alerts)].sort(), ["c", "d"]);
 });
 
+test("메뉴 담은 수 배지(countCandidates)도 같은 셈: 알림에서만 고른 것은 들어가고 담은 뒤 알림 보류는 빠짐, 못 읽으면 null", async () => {
+  const { countCandidates } = await import("./marks.ts");
+  const marks = [{ tech_id: "b", status: "candidate", updated_at: "2026-11-18" }, { tech_id: "c", status: "candidate", updated_at: "2026-11-20" }];
+  const alerts = [{ changes: { tech_id: "b" }, judgments: { decision: "hold", judged_at: "2026-11-19" } }, { changes: { tech_id: "d" }, judgments: [{ decision: "candidate", judged_at: "2026-11-19" }] }];
+  const db = (fail = false) => ({ from: (t: string) => { const r = fail ? { data: null, error: { message: "x" } } : { data: t === "tech_marks" ? marks : alerts, error: null }; const q = { select: () => q, eq: () => q, then: (ok: (v: unknown) => unknown) => Promise.resolve(r).then(ok) }; return q; } });
+  assert.equal(await countCandidates(db() as never, "u"), 2);
+  assert.equal(await countCandidates(db(true) as never, "u"), null);
+});
+
 const graph = (techIds: string[]) => ({ v: 2, stages: [{ id: "s1", name: "개발", x: 0, y: 0, techs: techIds.map((id) => ({ id, name: "화면이 보낸 이름" })) }], edges: [] });
 
 test("v2 확정: 그래프를 DB 함수 confirm_blueprint_v2 하나로 보낸다(모양 · 한도 · 고리 · 이름 · 위험 · 관문은 DB가 본다)", async () => {

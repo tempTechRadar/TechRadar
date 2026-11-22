@@ -46,23 +46,30 @@ async function readHistory(db: SupabaseClient, userId: string): Promise<Blueprin
 }
 
 export async function readBlueprintPage(db: SupabaseClient, userId: string): Promise<BlueprintPage> {
-  const [mineRes, markRes, judgedRes, projRes, cats, history] = await Promise.all([
+  const [mineRes, candidates, projRes, cats, history] = await Promise.all([
     db.from("my_technologies").select("tech_id, project_id, projects!inner(archived_at)").eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).not("tech_id", "is", null),
-    db.from("tech_marks").select("tech_id, status, updated_at").eq("user_id", userId),
-    db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"),
+    readCandidateIds(db, userId),
     db.from("projects").select("id, name").eq("owner_id", userId).is("archived_at", null).order("created_at"),
     readCategories(db),
     readHistory(db, userId),
   ]);
   const perTech = new Map<string, Set<string>>();
   for (const m of rowsOrThrow(mineRes, "내 기술을 읽지 못함")) perTech.set(m.tech_id, (perTech.get(m.tech_id) ?? new Set()).add(m.project_id));
-  const candidates = candidateIds(rowsOrThrow(markRes, "내 판단 표시를 읽지 못함"), rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));
   const used = (history ?? []).flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => t.id)));
   const ids = [...new Set([...perTech.keys(), ...candidates, ...used])].filter(isUuid);
   const map = catMap(cats);
   const pool = (await readTechs(db, ids)).map((r) => toPool(r, map, { projects: perTech.get(r.id)?.size ?? 0, mark: candidates.has(r.id) ? "candidate" : null, projectIds: [...(perTech.get(r.id) ?? [])] }));
   const projects = rowsOrThrow(projRes, "프로젝트를 읽지 못함").map((p) => ({ id: p.id as string, name: p.name as string }));
   return { pool, history, projects };
+}
+
+/** 내 적용 후보(= 화면의 "담은 기술") id: 표시 · 알림 판단을 읽어 candidateIds로. 청사진 서랍 · 메뉴 담은 수 배지(marks.countCandidates)가 같은 셈을 쓴다. 못 읽으면 던진다 */
+export async function readCandidateIds(db: SupabaseClient, userId: string): Promise<Set<string>> {
+  const [markRes, judgedRes] = await Promise.all([
+    db.from("tech_marks").select("tech_id, status, updated_at").eq("user_id", userId),
+    db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"),
+  ]);
+  return candidateIds(rowsOrThrow(markRes, "내 판단 표시를 읽지 못함"), rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));
 }
 
 /** 적용 후보인 기술 id: 보드 칸과 같은 계산(buildKanban)을 그대로 쓴다. 이름 · 등급은 이 계산에 쓰이지 않아 비워 둔다.
