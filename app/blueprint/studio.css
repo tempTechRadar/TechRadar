@@ -16,6 +16,10 @@
 .rd-row select { min-height: var(--hit); font: inherit; }
 .rd-preview { max-height: 30vh; overflow: auto; margin: 6px 0 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 .rd ul { margin: 4px 0 0; padding-left: 1.2em; }
+.rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
+.rd-diff p { margin: 0; }
+.rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
+.rd-diff p { margin: 0; }
 /* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 하단 패널(결과물은 "확정 · 내보내기" 창) */
 /* P-12h-2 T1: 속성 패널 = 캔버스 위 오른쪽 서랍(겹침, 기본 닫힘). 캔버스는 전체 폭 */
 .studio-main { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }

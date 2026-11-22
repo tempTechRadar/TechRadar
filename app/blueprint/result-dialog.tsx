@@ -4,18 +4,20 @@
 // 확정 · 점검은 서버가 다시 본다(불변 1 · 4 · 5): 실패하면 판은 그대로, 창 안에 이유.
 import { useState } from "react";
 import type { Board } from "@/lib/blueprint/board";
-import { exportText, type ExportKind } from "@/lib/blueprint/export-text";
+import { exportMermaid, exportText, type ExportKind } from "@/lib/blueprint/export-text";
+import type { Graph } from "@/lib/blueprint/graph";
 import { Dialog } from "../c-dialog";
 import { CheckPanel } from "./check-panel";
 
-const KINDS: [ExportKind, string][] = [["prompt", "프롬프트"], ["md", "CLAUDE.md 글"], ["meta", "다듬기용 메타프롬프트"]];
+const KINDS: [ExportKind, string][] = [["prompt", "프롬프트"], ["md", "CLAUDE.md 글"], ["meta", "다듬기용 메타프롬프트"], ["mermaid", "Mermaid 흐름도(README용, 메모 빼고)"]];
 const flow = (b: Board) => b.map((c) => c.map((s) => s.name).join(" + ")).join(" → ");
 
 /** AI 점검에 쓸 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 점검할 수 있게). label은 어느 확정본 · 지금 판과 같은지 사람에게 보이는 말.
  *  null = 확정한 적 없음, "unknown" = 이력을 읽지 못함(확정한 적 없음과 다르게, 불변 2) */
 export type CheckTarget = { id: string; label: string } | null | "unknown";
 type Props = {
-  name: string; board: Board | null; problems: string[]; projects: { id: string; name: string }[];
+  name: string; board: Board | null; graph: Graph; problems: string[]; projects: { id: string; name: string }[];
+  /** 지난 확정과 달라진 것(T4): 줄 목록(빈 배열 = 같음), null = 처음 확정, "unknown" = 이력을 못 읽음(불변 2) */ changes: string[] | null | "unknown";
   busy: boolean; error: string; guest: boolean; check: CheckTarget;
   onConfirm: (projectId: string | null) => void; onLogin: () => void; say: (m: string) => void; onClose: () => void;
 };
@@ -23,7 +25,7 @@ type Props = {
 export function ResultDialog(p: Props) {
   const [kind, setKind] = useState<ExportKind>("prompt");
   const [projectId, setProjectId] = useState(p.projects[0]?.id ?? "");
-  const text = p.board ? exportText(kind, p.name, p.board) : "";
+  const text = !p.board ? "" : kind === "mermaid" ? exportMermaid(p.graph) : exportText(kind, p.name, p.board);
   const techCount = p.board ? p.board.flat().reduce((n, s) => n + s.techs.length, 0) : 0;
   const copy = () => (navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("보안 연결이 아니면 클립보드가 없음")))
     .then(() => p.say("복사했어요. Claude Code에 붙여 넣어 쓰세요."), () => p.say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
@@ -47,6 +49,7 @@ export function ResultDialog(p: Props) {
         <section aria-labelledby="rd-confirm">
           <h3 id="rd-confirm" className="rd-h">확정</h3>
           {p.guest ? <p className="muted">확정하면 내 이력에 남아요. 로그인이 필요해요. <button type="button" className="btn" onClick={p.onLogin}>로그인하러 가기</button></p> : <>
+            <Changes changes={p.changes} />
             <p className="muted">확정하면 내 이력에 남고, 넣은 기술 {techCount}개의 &quot;내가 쓴 횟수&quot;에 더해져요. 확정한 것은 고치지 않고 쌓여요(다음엔 불러와서 새로 확정).</p>
             <div className="rd-row">
               <label>어느 프로젝트에 쓸 건가요?
@@ -56,7 +59,7 @@ export function ResultDialog(p: Props) {
                 </select>
               </label>
               <button type="button" className="btn btn-primary" aria-disabled={blocked || p.busy}
-                onClick={() => { if (!blocked && !p.busy) p.onConfirm(projectId || null); }}>{p.busy ? "확정하는 중…" : "이 조합으로 확정"}</button>
+                onClick={() => { if (!blocked && !p.busy) p.onConfirm(projectId || null); }}>{p.busy ? "확정하는 중…" : "이대로 확정"}</button>
             </div>
             {blocked && !p.busy ? <p className="muted">위의 고칠 것을 먼저 고치면 확정할 수 있어요.</p> : null}
             {p.error ? <p className="notice notice-error" role="alert">{p.error}</p> : null}
@@ -74,5 +77,18 @@ export function ResultDialog(p: Props) {
         </section>
       </div>
     </Dialog>
+  );
+}
+
+/** 확정 전 "지난 확정과 달라진 것"(Terraform plan처럼, T4). 위치만 옮긴 것은 내용이 같아 넣지 않는다 */
+function Changes({ changes }: { changes: string[] | null | "unknown" }) {
+  if (changes === "unknown") return <p className="notice notice-error" role="status">확정 이력을 읽지 못해 지난 확정과 비교하지 못했어요. 확정은 그대로 할 수 있어요.</p>;
+  if (changes === null) return <p className="muted">처음 확정이에요.</p>;
+  if (!changes.length) return <p className="muted">지난 확정과 달라진 것이 없어요 · 같은 확정으로 남아요.</p>;
+  return (
+    <div className="rd-diff">
+      <p><b>지난 확정과 달라진 것</b></p>
+      <ul>{changes.map((c) => <li key={c}>{c}</li>)}</ul>
+    </div>
   );
 }

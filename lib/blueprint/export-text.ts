@@ -1,7 +1,9 @@
 // 블루프린트 내보내기(design.md 14절 ⑤): 프롬프트 · CLAUDE.md 글 · 다듬기용 메타프롬프트. 글만 만든다(설치 · 저장소 변경 · AI 호출 없음).
 import type { Board } from "./board.ts";
+import type { Graph } from "./graph.ts";
 
-export type ExportKind = "prompt" | "md" | "meta";
+/** mermaid = README 등에 붙이는 흐름도(P-12h-2 T4, 선 그대로라 graph로 만든다) */
+export type ExportKind = "prompt" | "md" | "meta" | "mermaid";
 const techs = (t: { name: string }[]) => t.map((x) => x.name).join(", ");
 /** 단계 메모(P-12h-2 T2): 번호 줄 아래 "   메모: …"(같은 순서에 여럿이면 단계 이름을 붙임). 줄바꿈은 한 줄로 */
 const notes = (col: Board[number]) => col.filter((s) => s.note).map((s) => `\n   메모${col.length > 1 ? `(${s.name})` : ""}: ${oneLine(s.note!)}`).join("");
@@ -28,4 +30,14 @@ export function exportText(kind: ExportKind, name: string, b: Board): string {
   }
   if (kind === "meta") return `${META_RULES}\n\n<청사진 이름="${attr(name)}">\n${steps(b)}\n</청사진>\n`;
   return `아래 청사진대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${steps(b)}\n`;
+}
+
+/** Mermaid 글 안에서 형식이 깨지지 않게(따옴표 · 꺾쇠는 Mermaid 엔티티로, 줄바꿈은 한 칸) */
+const mm = (s: string) => oneLine(s).replace(/"/g, "#quot;").replace(/</g, "#lt;").replace(/>/g, "#gt;");
+/** flowchart LR: 단계마다 n1["이름<br/>기술"], 선마다 n1 --> n2. 단계 메모는 넣지 않는다(README에 개인 글이 새지 않게). id는 차례 번호(단계 id의 - 가 화살표와 헷갈리지 않게) */
+export function exportMermaid(g: Graph): string {
+  const at = new Map(g.stages.map((s, i) => [s.id, `n${i + 1}`]));
+  const nodes = g.stages.map((s) => `  ${at.get(s.id)}["${mm(s.name)}${s.techs.length ? `<br/>${mm(techs(s.techs))}` : ""}"]`);
+  const edges = g.edges.flatMap((e) => (at.has(e.from) && at.has(e.to) ? [`  ${at.get(e.from)} --> ${at.get(e.to)}`] : []));
+  return `${["flowchart LR", ...nodes, ...edges].join("\n")}\n`;
 }

@@ -11,6 +11,8 @@ import {
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
+import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
+import { toBoard } from "@/lib/blueprint/stored";
 import { BLUEPRINT_GATE, recommendAt } from "@/lib/blueprint/knowledge";
 import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
@@ -363,6 +365,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const latest = history?.[0];
   const sameAsBoard = (h: NonNullable<typeof latest>) => board !== null && JSON.stringify(h.board.map((c) => c.map((s) => [s.name, s.techs.map((t) => t.id)])))
     === JSON.stringify(board.map((c) => c.map((s) => [s.name, s.techs.map((t) => t.id)])));
+  // 지난 확정과 달라진 것(T4): 최근 확정본(graph가 있으면 graph, 옛 확정본은 board → 판)과 지금 판. 창이 열려 있을 때만 센다
+  const changes = !confirming ? null : history === null ? "unknown" as const : latest ? diffLines(graphDiff(latest.graph ?? fromV1(toBoard(latest.board)), g)) : null;
   const checkTarget: CheckTarget = confirmedId ? { id: confirmedId, label: "방금 확정한 것" }
     : history === null ? "unknown"
     : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
@@ -433,7 +437,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} />
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
-      {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} projects={projects} busy={done.busy} error={done.error} guest={guest}
+      {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} projects={projects} busy={done.busy} error={done.error} guest={guest}
         check={checkTarget} say={say} onLogin={() => { setConfirming(false); toLogin("확정하려면"); }}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
       {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => { setLoginAsk(null); router.push(`/login?next=${encodeURIComponent("/blueprint")}`); }} onClose={() => setLoginAsk(null)}>
