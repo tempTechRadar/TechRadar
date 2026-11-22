@@ -46,7 +46,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasRevealing = false;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
@@ -240,6 +240,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   /** 첫 장: 가운데를 크게 본 채 시작해 화면이 물러난다(손댄 카메라 · 고른 점이 있으면 그대로). 움직임이 꺼져 있으면 연출 없이 바로 다 보임 */
   function startIntro(now: number) {
+    dirty(); // 덮개를 닫은 그 장부터 그린다
     S.introAt = now; S.sweepStart = now + SWEEP_DELAY;
     if (!moving(S)) { S.sweepStart = now - REVEAL - GROW; return; }
     if (S.userCam || S.sel || S.fly) return;
@@ -274,7 +275,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
     const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
-    if (ctx && (needDraw || anim || revealing || S.leaving.size)) { draw(ctx, S, now); needDraw = false; }
+    const finishing = wasRevealing && !revealing; wasRevealing = revealing; // 연출이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선이 그대로 굳는다
+    if (ctx && (needDraw || anim || revealing || finishing || S.leaving.size)) { draw(ctx, S, now); needDraw = false; }
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");
@@ -283,9 +285,10 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     // 테마(어두운 모드 · data-theme)가 바뀌면 다음 장을 새 색으로: 연출 뒤에는 손댈 때만 그려서 옛 색이 남는다(P-12g map-13)
     const scheme = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null, theme = new MutationObserver(dirty);
     scheme?.addEventListener("change", dirty);
+    document.addEventListener("visibilitychange", dirty); // 숨은 탭에서 연출 시간이 지나갔으면 돌아왔을 때 끝난 모습으로
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); scheme?.removeEventListener("change", dirty); theme.disconnect(); ctx = null; };
+    return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); scheme?.removeEventListener("change", dirty); document.removeEventListener("visibilitychange", dirty); theme.disconnect(); ctx = null; };
   }
 
   rebuild(null);
