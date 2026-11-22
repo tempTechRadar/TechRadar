@@ -8,7 +8,10 @@ import { flowTextAlt } from "@/lib/flow/text-alt";
 import type { Flow } from "@/lib/flow/types";
 
 // SVG 안의 링크는 브라우저 기본 초점 테두리가 잘 안 보여서 상자 테두리를 굵고 파랗게 바꾼다
-const FOCUS_CSS = `a.flow-node:focus { outline: none; } a.flow-node:focus-visible > g > rect:first-of-type { stroke: ${FLOW_INK.focus}; stroke-width: 5; stroke-dasharray: none; }`;
+// 실행을 바꿔 볼 때 상자 · 선의 색만 --dur 동안 건너간다(P-12g C5, 자리는 flow.json 그대로). 선택자는 .flow-svg 안으로만(다른 SVG 아이콘은 그대로),
+// 초점 테두리는 늦게 나타나지 않게 전환 없음. /projects/runs도 같은 그림이라 함께 적용된다
+const FOCUS_CSS = `a.flow-node:focus { outline: none; } a.flow-node:focus-visible > g > rect:first-of-type { stroke: ${FLOW_INK.focus}; stroke-width: 5; stroke-dasharray: none; }
+.flow-svg rect, .flow-svg path { transition: fill var(--dur), stroke var(--dur), stroke-width var(--dur); } a.flow-node:focus-visible rect { transition: none; }`;
 
 
 /** 이름을 한 줄 11자 안팎, 최대 두 줄로 나눈다. */
@@ -102,7 +105,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
   return (
     <>
     <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: FLOW_INK.canvas }}>
-      <svg {...svgRole} width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+      <svg {...svgRole} className="flow-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
         <style>{FOCUS_CSS}</style>
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">

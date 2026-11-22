@@ -5,6 +5,7 @@ import { SCHEDULE_COLLECTORS } from "@/lib/schedule/collectors";
 import { readSourceHistory } from "@/lib/schedule/history";
 import { HIGHLIGHT_AFTER, sourcesToHighlight } from "@/lib/schedule/retry";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { SubmitButton } from "../submit-button";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { runNowAction } from "./actions";
 import { readFlash } from "@/lib/server/admin-flash";
@@ -45,7 +46,7 @@ export default async function RunNowPage({ searchParams }: { searchParams: Promi
       <h2>등록된 수집기 ({sources.length}개)</h2>
       {sources.length === 0 ? <p>아직 없어요. 수집 확장(P-9)이 합쳐지면 생겨요. 지금 누르면 실행 기록을 만들지 않고 이유만 알려 줘요.</p> : <ul>{sources.map((s) => <li key={s}>{s}</li>)}</ul>}
       <form action={runNowAction}>
-        <button type="submit" style={{ minHeight: 44 }}>지금 한 번 실행</button>
+        <SubmitButton label="지금 한 번 실행" pendingNote="최대 4분" />
       </form>
       <p style={{ fontSize: 14, color: "var(--muted)" }}>재시도: 실패하면 2·4·8분 뒤로 다음 시도 시각을 실행 기록에 적어요(최대 3번). 무료 플랜 예약은 하루 한 번이라 다시 돌리는 건 이 버튼으로 해요.</p>
     </main>
