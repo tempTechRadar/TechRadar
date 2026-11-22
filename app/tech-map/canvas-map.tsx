@@ -9,7 +9,7 @@ import { saveMarkWithToast, ToastLine, useToast } from "../undo-toast";
 import { Crumbs, Legend, QuickChips, Status, Toolbar } from "./controls";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
-import { markedText } from "./judge";
+import { cartChanged } from "@/lib/blueprint/cart-event";
 import { RadarSettings } from "./radar-settings";
 import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
@@ -118,13 +118,15 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
       .map((n) => ({ key: n.key, label: n.name, sub: pathOf(n) }));
     return [...cats, ...hits];
   }
-  async function mark(item: TechItem, status: MarkStatus | null, reason: string) {
+  // 사이드 패널의 별 · 담기 · 빼기(P-12h U1). 보류는 지도에서 남기지 않는다(알림 상세에서만)
+  async function mark(item: TechItem, status: MarkStatus | null, text: string) {
     const n = item.node, prev = n.mark;
     if (!n.techId) return;
     setBusy(true);
-    await saveMarkWithToast({ techId: n.techId, status, reason, prev, text: markedText(status), say,
+    await saveMarkWithToast({ techId: n.techId, status, reason: "", prev, text, say,
       onSaved: (restored) => {
-        ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null, !restored); // 되돌리기는 도장 없이 표시만
+        ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: null } : null, !restored); // 되돌리기는 도장 없이 표시만
+        if (prev?.status === "candidate" || status === "candidate") cartChanged(); // 메뉴 "청사진" 담은 수 다시 세기
         // 판단 칩으로 거르는 중이면 판단을 바꾼 기술이 지도에서 빠지며 패널이 닫힌다: 초점이 사라지지 않게 열기 전 자리로
         if (!ctl.S.sel && lastFocus.current instanceof HTMLElement && document.contains(lastFocus.current)) lastFocus.current.focus({ preventScroll: true });
       } });
@@ -165,7 +167,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         ) : null}
         <aside ref={side} className="map-side" aria-labelledby="map-side-title" data-open={sel ? "" : undefined} inert={!sel}>
           <button type="button" className="btn map-close" onClick={close} aria-label="닫기">✕</button>
-          {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, r) => mark(shown, s, r)} onGo={go} onTags={(tags) => ctl.setTags(shown.node.key, tags)} /> : null}
+          {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, t) => mark(shown, s, t)} onGo={go} onTags={(tags) => ctl.setTags(shown.node.key, tags)} /> : null}
           {shown?.type === "g" ? <GroupPanel g={shown} members={ctl.groupMembers(shown)} shut={S.collapsed.has(shown.id)} onDrill={() => drill(shown.id)} onToggle={() => ctl.toggle(shown.id)} onGo={go} /> : null}
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}

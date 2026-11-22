@@ -47,3 +47,10 @@ export async function readMarkForTech(db: SupabaseClient, userId: string, techId
   if (t.error || !t.data) throw new Error(`기술 등급을 읽지 못함: ${maskSecrets(t.error?.message ?? "없음")}`);
   return { mark: m.data ? { techId, status: m.data.status as MarkStatus, reason: (m.data.reason as string | null) ?? null } : null, grade: t.data.grade };
 }
+
+/** 메뉴 "청사진" 배지: 청사진에 담은(적용 후보) 기술 수(P-12h U1). 못 읽으면 null(배지를 빼고 0으로 보이지 않게, 불변 2) */
+export async function countCandidates(db: SupabaseClient, userId: string): Promise<number | null> {
+  const r = await db.from("tech_marks").select("tech_id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "candidate");
+  if (r.error || r.count === null) { if (r.error) console.error("메뉴: 담은 기술 수를 읽지 못함", maskSecrets(r.error.message)); return null; }
+  return r.count;
+}

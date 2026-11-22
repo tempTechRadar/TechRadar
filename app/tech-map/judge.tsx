@@ -1,5 +1,5 @@
 "use client";
-// 내 판단 줄(관심 · 적용 후보 · 보류, ADR 0028): 지도 사이드바와 기술 상세가 함께 쓴다. 저장은 부르는 쪽(onMark)이 한다.
+// 내 판단 줄(관심 · 적용 후보 · 보류, ADR 0028): 기술 상세가 쓴다(지도 사이드 패널은 P-12h U1부터 별 · 담기). 저장은 부르는 쪽(onMark)이 한다.
 // 같은 단추를 다시 누르면 지우고, 보류는 이유 5자 이상, 위험 등급은 적용 후보가 막힌다(ADR 0012, DB도 같은 규칙).
 import Link from "next/link";
 import { useState } from "react";
@@ -15,11 +15,10 @@ export function markedText(status: MarkStatus | null): string {
   return `${w}${jong === 0 || jong === 8 ? "로" : "으로"} 남겼어요.`;
 }
 export type OnMark = (status: MarkStatus | null, reason: string) => void;
-/** compact = 지도 사이드 패널의 한 줄 고르기(11-21 사용자 결정 G: 주 단추는 "청사진에 넣기"라 판단은 작게) */
-type Props = { techId: string | null; grade: Grade; mark: Mark | null; login: boolean; busy: boolean; onMark: OnMark; compact?: boolean };
+type Props = { techId: string | null; grade: Grade; mark: Mark | null; login: boolean; busy: boolean; onMark: OnMark };
 
 /** 저장에 성공해 표시가 바뀌면 부르는 쪽이 key를 바꿔 새로 그린다(보류 칸은 성공할 때까지 열려 있다) */
-export function Judge({ techId, grade, mark, login, busy, onMark, compact }: Props) {
+export function Judge({ techId, grade, mark, login, busy, onMark }: Props) {
   const [holding, setHolding] = useState(false);
   const [reason, setReason] = useState(mark?.reason ?? "");
   if (!login) return <p className="muted">로그인하면 관심 · 적용 후보 · 보류를 남길 수 있어요. <Link href="/login?next=/">로그인</Link></p>;
@@ -27,11 +26,10 @@ export function Judge({ techId, grade, mark, login, busy, onMark, compact }: Pro
   const now = mark?.status ?? null, danger = grade === "danger";
   const pick = (s: MarkStatus) => (s === now ? onMark(null, "") : s === "hold" ? setHolding(true) : onMark(s, "")); // 같은 단추 다시 = 지우기
   return (
-    <div className={`map-judge${compact ? " map-judge-compact" : ""}`}>
+    <div className="map-judge">
       <div className="map-row" role="group" aria-label="내 판단">
-        {compact ? <span className="muted">내 판단</span> : null}
         {(["interest", "candidate", "hold"] as const).map((s) => (
-          <button key={s} type="button" className={compact ? "chip" : `btn${now === s ? " btn-primary" : ""}`} aria-pressed={now === s} disabled={busy || (s === "candidate" && danger && now !== s)} onClick={() => pick(s)}>{MARK_KO[s]}</button>
+          <button key={s} type="button" className={`btn${now === s ? " btn-primary" : ""}`} aria-pressed={now === s} disabled={busy || (s === "candidate" && danger && now !== s)} onClick={() => pick(s)}>{MARK_KO[s]}</button>
         ))}
       </div>
       {danger ? <p className="muted">위험한 버전은 바로 적용 후보로 둘 수 없어요. 보안 경고 알림에서 고친 버전과 함께 판단해 주세요.</p> : null}
