@@ -20,7 +20,7 @@ const TITLE_H = 2; // 접은 위젯 높이(칸)
 function Frame({ w, edit, folded, onFold, onMax, onHide, children }: Omit<WData, "onResized"> & { children?: ReactNode }) {
   const [menu, setMenu] = useState(false);
   return (
-    <section className="bw" aria-labelledby={`bw-${w.id}`} data-folded={folded ? "" : undefined}>
+    <section className="bw" id={`w-${w.id}`} aria-labelledby={`bw-${w.id}`} data-folded={folded ? "" : undefined}>
       <header className="bw-bar">
         <h2 id={`bw-${w.id}`} className="bw-title">{w.title}</h2>
         <span className="bw-tools nodrag">

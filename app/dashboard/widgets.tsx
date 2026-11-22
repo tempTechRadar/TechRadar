@@ -94,7 +94,7 @@ export async function ReposBody({ status, alerts, params, marks, move }: { statu
   if (!st) return <Failed what="내 레포" />;
   const project = typeof params.project === "string" ? params.project : undefined;
   const rows = st.projects.filter((p) => !project || p.id === project);
-  if (!st.projects.length) return <p className="notice notice-empty"><strong>아직 등록한 레포가 없어요.</strong> <Link href="/projects">레포 등록하기</Link></p>;
+  if (!st.projects.length) return <p className="notice notice-empty"><strong>아직 등록한 레포가 없어요.</strong> <a href="#repo-register">아래 레포 관리에서 등록하기</a></p>;
   if (!rows.length) return <p className="muted">거른 프로젝트가 없어요.</p>;
   const now = new Date(), cards = new Map(repoCards(rows, now).map((c) => [c.id, c]));
   return (

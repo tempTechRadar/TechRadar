@@ -15,6 +15,7 @@ const DEFAULTS: Record<string, Omit<Box, "id">> = {
   news: { x: 0, y: 48, w: 16, h: 16 },
   trending: { x: 16, y: 48, w: 16, h: 16 },
   history: { x: 32, y: 48, w: 16, h: 16 },
+  manage: { x: 0, y: 65, w: 48, h: 30 }, // 옛 내 프로젝트(등록 · 내 기술 표 · 보관 · 직접 추가, P-12i D3)
 };
 export function defaultLayout(ids: string[]): Box[] {
   let bottom = 0;

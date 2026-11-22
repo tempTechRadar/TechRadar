@@ -14,7 +14,8 @@ import { SAMPLE_DASHBOARD, SAMPLE_STATUS } from "@/lib/dev/preview-data";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { NewsTab } from "./news-tab";
-import { StatusTabs } from "./status-tabs";
+import { ManageNotices, RepoManageBody, type ManageQuery } from "./repo-manage";
+import "./status.css"; // 판단함 "새로 옴" 등 공용 모양(옛 현황 탭 줄은 없앰, P-12i D3)
 import { SeenMarker } from "./seen-marker";
 import { Board, type Widget } from "./board";
 import { BoardFilter, InboxBody, LoginFirst, NumbersBody, Reading, ReposBody } from "./widgets";
@@ -30,14 +31,16 @@ import "./board.css";
 // D1 위젯: W1 숫자 4칸(안내서 필수, 누르면 같은 조건의 목록) · W2 판단함 · W3 레포 보드. 위젯마다 따로 읽고(Suspense) 읽는 중 · 없음 · 읽지 못함을 나눠 보인다(불변 2).
 // 보드 전체 거르기(기간 · 상태 · 프로젝트)가 모든 위젯에 걸린다. 로그인 전에는 소식만 실제 값, 나머지는 로그인 안내. 본인 데이터만(user_id · owner_id 조건 + RLS, 불변 5)
 export const metadata = { title: "프로젝트 관리 · TechRadar" };
-type Params = { tab?: string; status?: string; period?: string; project?: string };
+type Params = { status?: string; period?: string; project?: string } & ManageQuery;
+
+// 등록 · 다시 읽기(서버 액션)가 이 화면의 레포 관리 위젯에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간(옛 /projects와 같음). Hobby 최대
+export const maxDuration = 300;
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) return <Guest feed={await readNews(null)} trend={guestTrend()} />;
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB를 부르지 않고 샘플로
-  if (params.tab === "news") return <Shell now="news"><NewsTab feed={preview ? "preview" : await readNews(user.id)} /></Shell>;
   const supabase = preview ? null : (await getServerSupabase())!;
   // B5 "새로 옴": 지난번 기준을 읽고, 이번 기준 시각은 알림을 읽기 시작하기 직전에 잡는다(그 사이에 온 알림이 "본 것"이 되지 않게)
   const visitAt = new Date();
@@ -70,9 +73,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { id: "news", title: "소식", body: <Suspense fallback={<Reading what="소식" />}><NewsBody feed={news} /></Suspense> },
     { id: "trending", title: "요즘 뜨는 대안", body: <Suspense fallback={<Reading what="요즘 뜨는 대안" />}><TrendingBody trend={trend} /></Suspense> },
     { id: "history", title: "기록 찾기", body: <Suspense fallback={<Reading what="기록" />}><HistoryBody alerts={alerts} marks={recentMarks} /></Suspense> },
+    // 옛 "내 프로젝트" 목록(P-12i D3): 레포 등록 · 내 기술 표 · 숨기기 · 이름 고치기 · 보관 · 되살리기 · 직접 추가. 미리보기는 DB를 안 불러 안내만
+    { id: "manage", title: "레포 관리 · 내 기술", body: preview ? <p className="muted">미리보기(개발용)에서는 레포 관리를 쓰지 않아요. 실제 계정으로 로그인하면 등록 · 숨기기 · 보관 · 직접 추가가 여기서 돼요.</p>
+      : <Suspense fallback={<Reading what="내 기술 목록" />}><RepoManageBody user={user} query={params} /></Suspense> },
   ];
   return (
-    <Shell now="overview">
+    <Shell>
+      <ManageNotices query={params} />
       {band ? <FirstCheckBanner band={band} /> : null}
       <Suspense fallback={<p className="muted">거르기를 준비하는 중…</p>}><BoardFilter data={data} params={params} /></Suspense>
       <Board widgets={widgets} storeKey={`project-board-v1:${user.id.slice(0, 8)}`} />
@@ -86,8 +93,8 @@ async function Seen({ alerts, value }: { alerts: Promise<AlertRecord[] | null>; 
   return (await alerts) ? <SeenMarker value={value} /> : null;
 }
 
-function Shell({ now, children }: { now: "overview" | "news"; children: React.ReactNode }) {
-  return <main className="page board-page"><h1>프로젝트 관리</h1><StatusTabs now={now} />{children}</main>;
+function Shell({ children }: { children: React.ReactNode }) {
+  return <main className="page board-page"><h1>프로젝트 관리</h1>{children}</main>;
 }
 
 /** 로그인 전: 내 데이터 위젯 자리는 로그인 안내, 소식만 실제 값(공개 값: 바깥 소식 · 뜨는 기술 · 새 공식, 내 취약점은 빠짐) */
@@ -100,10 +107,11 @@ function Guest({ feed, trend }: { feed: NewsFeedResult | null; trend: Promise<{ 
     { id: "move", title: "옮기기 진행", body: <LoginFirst /> },
     { id: "checked", title: "점검한 비율", body: <LoginFirst /> },
     { id: "news", title: "소식", body: <NewsTab feed={feed} /> },
+    { id: "manage", title: "레포 관리 · 내 기술", body: <LoginFirst /> },
     { id: "trending", title: "요즘 뜨는 대안", body: <Suspense fallback={<Reading what="요즘 뜨는 대안" />}><TrendingBody trend={trend} /></Suspense> },
     { id: "history", title: "기록 찾기", body: <LoginFirst /> },
   ];
-  return <Shell now="overview"><Board widgets={widgets} storeKey="project-board-v1:guest" /></Shell>;
+  return <Shell><Board widgets={widgets} storeKey="project-board-v1:guest" /></Shell>;
 }
 
 /** 로그인 전 "요즘 뜨는 대안": 공개 목록에서 뜨는 것(서비스 연결, 공개 목록 규칙은 readTrending). 못 읽으면 null */

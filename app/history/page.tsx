@@ -8,7 +8,6 @@ import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { StatusTabs } from "../dashboard/status-tabs";
 import { SeenMarker } from "../dashboard/seen-marker";
 import { countNew, isNew, parseSeen, SEEN_COOKIE, seenValue } from "@/lib/dashboard/since-last-visit";
 import { cookies } from "next/headers";
@@ -27,7 +26,7 @@ const MARK_TONE = { interest: "neutral", candidate: "success", hold: "warning" }
 // shortcut: 지도 판단은 최근 200건만 읽는다. 기록이 그보다 많아지면 찾기 조건을 DB 조회로 옮긴다
 const MARK_LIMIT = 200;
 
-export const metadata = { title: "일지 · 프로젝트 관리 · TechRadar" };
+export const metadata = { title: "기록 찾기 · TechRadar" };
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
@@ -48,8 +47,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page">
-      <h1>프로젝트 관리</h1>
-      <StatusTabs now="journal" />
+      <h1>기록 찾기</h1>
+      <p className="muted"><Link href="/dashboard">← 프로젝트 관리</Link></p>
       {records && supabase ? <SeenMarker value={seenValue(user.id, visitAt)} /> : null}{/* 알림을 읽었을 때만, 미리보기는 안 씀 */}
       <Pending records={records} seen={seen} />
       <h2>흐름</h2>
