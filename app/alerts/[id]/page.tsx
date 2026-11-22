@@ -14,8 +14,8 @@ import { DraftCard } from "./draft-card";
 import { JudgmentForm } from "./judgment-form";
 import { ComparisonCard, ReasonCard } from "./opportunity-cards";
 import { ScenarioCard } from "./scenario-card";
+import { SavedFocus } from "./saved-focus";
 import { SimilarCard } from "./similar-card";
-import "../alerts.css";
 
 // 알림 상세(IA-7, PRD-F15). 적용 기회는 이유와 비교표(P-14), 대응안 초안(P-13), 적용 시나리오(P-15, IA-8).
 // 적용 시나리오 만들기는 Claude를 부르는 서버 액션이라 시간이 걸린다(Vercel 함수 한도를 늘림).
@@ -23,7 +23,7 @@ export const maxDuration = 60;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AlertDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/alerts/${(await params).id}`)}`); // 알림 링크로 왔다면 로그인 뒤 그 알림으로
   const { id } = await params;
@@ -36,12 +36,16 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
   if (loaded === null) return <LoadError id={id} />;
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
+  // 방금 저장한 첫 화면(judge가 ?saved=1로 보냄)에서만 판단 카드가 한 번 움직이고 초점을 받는다. 나중에 다시 열면 그냥 찍혀 있다(P-12g C2)
+  // saved=done: 이미 판단된 알림이라 도장 없이 초점만(화면 읽기가 완료 카드를 읽게)
+  const saved = (await searchParams).saved;
+  const fresh = saved === "1" && view.judgmentLine !== null;
   const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
   const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
   return (
-    <main className="alerts alert-detail">
+    <main className="page alert-detail">
       <header className="alert-head">
         <p className="muted"><Link href="/alerts">← 알림 목록으로</Link></p>
         <h1>{view.title}</h1>
@@ -50,9 +54,10 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           <span className={`badge badge-${view.statusTone}`}>{view.statusLabel}</span>
         </p>
         {view.judgmentLine ? (
-          <article className="card" aria-labelledby="judged-title">
+          <article id="judged-card" className="card judged-card" aria-labelledby="judged-title" tabIndex={-1} data-fresh={fresh ? "" : undefined}>
             <h2 id="judged-title">내 판단</h2>
-            <p>{view.judgmentLine}</p>
+            <p className="judge-stamp">{view.judgmentLine}{view.judgedAtLabel ? ` · ${view.judgedAtLabel}` : ""}</p>
+            {saved === "1" || saved === "done" ? <SavedFocus target="judged-card" /> : null}
             <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요. {BLUEPRINT_GATE}</p>
             {/* 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 적용 기회를 후보로 골랐으면 바로 넣으러 간다(보안 경고 · 모델 종료는 내가 쓰는 것이라 넣을 새 기술이 아님) */}
             {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <p className="actions"><Link className="btn" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link></p> : null}
@@ -122,7 +127,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function LoadError({ id }: { id: string }) {
   return (
-    <main className="alerts">
+    <main className="page">
       <div className="notice notice-error" role="alert">
         <strong>알림을 불러오지 못했어요.</strong> 알림이 없는 게 아니에요. 잠시 뒤에 다시 불러와 주세요. <Link href={`/alerts/${id}`}>다시 불러오기</Link>
       </div>

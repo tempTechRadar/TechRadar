@@ -5,6 +5,7 @@ import type { FirstCheckRun } from "@/lib/alerts/first-check-band";
 import type { BlueprintRecord } from "@/lib/blueprint/stored";
 import { categoryNames, type CatalogTech, type MapInput, type MyTechRow } from "@/lib/map/build-map";
 import type { DashboardData } from "@/lib/server/dashboard-queries";
+import type { StatusData } from "@/lib/server/status-queries";
 import type { PoolTech } from "@/lib/server/blueprints";
 import type { RecentAlert } from "@/lib/server/recent-alerts";
 import type { GalleryRow } from "@/lib/views/gallery";
@@ -109,9 +110,20 @@ export const SAMPLE_KANBAN: KanbanInput = {
 };
 /** 보드 "묶기: 내 태그"용 내 태그(기술 id → 태그들) */
 export const SAMPLE_TAGS: Record<string, string[]> = { [tech("mcp-remote").id]: ["시연", "바꿀 것"], [tech("deep-research").id]: ["시연"], [tech("@supabase/mcp-server").id]: ["매일 씀"] };
+/** 현황 개요의 내 레포 · 적용한 기술(P-12f ④). p2는 "내 컴퓨터"(로컬 묶음)라 읽기 실행이 없다. 내 태그는 SAMPLE_TAGS와 같은 값 */
+export const SAMPLE_STATUS: StatusData = {
+  projects: SAMPLE_PROJECTS.map((p) => ({
+    id: p.id, name: p.name, kind: p.id === "p2" ? "local" as const : "repo" as const, runs: p.id === "p2" ? [] : [{ status: "succeeded", created_at: ago(0.3) }],
+    my_technologies: MINE.filter((m) => m.projectId === p.id).map((m) => ({
+      id: m.id, tech_id: m.techId, manual_name: m.manualName, hidden_at: null, read_at: ago(0.3), collect_error_kind: m.collectErrorKind, grade: m.grade,
+      technologies: m.techId ? (({ name, techKey, type }) => ({ display_name: name, tech_key: techKey, type }))(TECHS.find((t) => t.id === m.techId)!) : null,
+    })),
+  })),
+  tags: new Map(Object.entries(SAMPLE_TAGS)),
+};
 
 const pool = (id: string, name: string, field: string, extra: Partial<PoolTech> = {}): PoolTech =>
-  ({ id: uuid(Number(id) + 500), name, type: "mcp", grade: "pass", field, sub: null, oneLiner: `${name} 한 줄 소개`, projects: 1, mark: null, ...extra });
+  ({ id: uuid(Number(id) + 500), name, type: "mcp", grade: "pass", field, sub: null, oneLiner: `${name} 한 줄 소개`, projects: 1, mark: null, projectIds: (extra.projects ?? 1) > 0 ? ["p1"] : [], ...extra });
 const POOL = [
   pool("1", "Context7", "기획·문서"), pool("2", "Playwright MCP", "프론트엔드", { sub: "브라우저 자동화" }), pool("3", "Supabase MCP", "백엔드·데이터", { projects: 2 }),
   pool("4", "Vercel", "배포·운영"), pool("5", "mcp-remote", "업무·서비스 연동", { grade: "danger" }), pool("6", "Figma MCP", "디자인", { mark: "candidate", projects: 0 }),

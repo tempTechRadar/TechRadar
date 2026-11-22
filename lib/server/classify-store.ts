@@ -12,6 +12,7 @@ type Row = { id: string; display_name: string; one_liner: string | null };
 
 export const CLASSIFY_STEP = "classify_category";
 export const CLASSIFY_BUDGET_MS = 45_000; // 정기 실행 한도 300초 중 수집 묶음(240초) 뒤 남는 시간 안
+export const CLASSIFY_NOW_BUDGET_MS = 40_000; // 관리자 "규칙으로 한 번에 분류"(P-12f ⑧): 화면 한도(maxDuration 60초) 안
 
 /** 수집 묶음 뒤 같은 실행(runId)에 분류 단계를 하나 남긴다. 실패도 이 단계의 실패로 실행 기록(run_steps)에 남고, 이미 끝난 수집 결과를 되돌리지 않는다 */
 export async function classifyAfterBatch(db: SupabaseClient, runId: string, now: () => number = Date.now): Promise<void> {

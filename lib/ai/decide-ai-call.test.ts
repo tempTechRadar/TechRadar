@@ -38,3 +38,13 @@ test("위키 챗봇은 사람당 하루 20번까지(20번째는 되고 21번째�
 test("위키 챗봇도 서비스 전체 하루 200번에 묶인다", () => {
   assert.deepEqual(decideAiCall("chatbot", { ...fresh, serviceCallsToday: 200 }), { allow: false, reason: "service_limit" });
 });
+
+test("청사진 점검은 사람당 하루 3번까지(3번째는 되고 4번째부터 막힌다, P-12e)", () => {
+  assert.deepEqual(decideAiCall("blueprint_check", { ...fresh, userCallsToday: 2 }), { allow: true });
+  assert.deepEqual(decideAiCall("blueprint_check", { ...fresh, userCallsToday: 3 }), { allow: false, reason: "user_limit" });
+});
+
+test("청사진 점검도 서비스 전체 하루 200번에 묶인다", () => {
+  assert.deepEqual(decideAiCall("blueprint_check", { ...fresh, serviceCallsToday: 199 }), { allow: true });
+  assert.deepEqual(decideAiCall("blueprint_check", { ...fresh, serviceCallsToday: 200 }), { allow: false, reason: "service_limit" });
+});

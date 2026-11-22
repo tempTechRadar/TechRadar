@@ -5,7 +5,7 @@ import { isConcept, NO_GRADE } from "../map/build-map.ts";
 export { isConcept, NO_GRADE };
 
 export const GRADE_LABEL: Record<Grade, string> = { danger: "위험", caution: "주의", pass: "통과", unknown: "찾지 못함" };
-// 배지 모양(색)은 alerts.css의 badge-* 이름을 따른다. 색만으로 알리지 않도록 글자(GRADE_LABEL)가 항상 함께 나온다.
+// 배지 모양(색)은 page.css(공용 페이지 틀)의 badge-* 이름을 따른다. 색만으로 알리지 않도록 글자(GRADE_LABEL)가 항상 함께 나온다.
 export const GRADE_TONE: Record<Grade, string> = { danger: "danger", caution: "warning", pass: "success", unknown: "neutral" };
 export const gradeText = (grade: Grade, techKey?: string | null, type?: string | null) => (isConcept(techKey, type) ? NO_GRADE : GRADE_LABEL[grade]);
 export const ORIGIN_LABEL: Record<string, string> = { repo: "저장소에서 읽음", manual: "직접 추가", import: "내 컴퓨터 목록 가져오기" };

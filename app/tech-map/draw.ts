@@ -1,13 +1,14 @@
 // 캔버스 그리기(시안 docs/wireframes/radar-draw.js). 색은 tokens.css 값을 읽어 쓴다(테마를 바꾸면 같이 바뀜). 크기·모양 = 단계, 색 = 색 기준 값,
-// 보안은 기호로(위험 = 빨간 고리 + 처음 10초 맥박, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
+// 보안은 기호로(위험 = 멈춘 빨간 이중 고리 + ✕, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
 import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/map/layout";
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { GLOW, grow, introducing, moving, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
+import { GLOW, grow, introducing, LAND_SEC, moving, recentlyChecked, REVEAL, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
-export const PULSE_SEC = 10;
+/** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
+const MARK_TAG = { interest: "관심", candidate: "후보", hold: "보류" } as const;
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
 let css: Record<string, string> = {};
 const col = (token: string) => css[token] ?? (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || "#888");
@@ -116,14 +117,6 @@ function ringLabels(F: Frame, [ox, oy]: Pt) {
 
 /** 화면 끝까지의 거리(화면 좌표): 선 · 파동은 지도 끝이 아니라 화면 끝까지(경계 없는 판) */
 const farOf = (S: MapState, [ox, oy]: Pt) => Math.max(Math.hypot(ox, oy), Math.hypot(S.W - ox, oy), Math.hypot(ox, S.H - oy), Math.hypot(S.W - ox, S.H - oy)) + 40;
-/** 고리 반지름들(세계 좌표): 묶기 고리 + 기술 고리 + 바깥으로 이어지는 고리(endless와 같은 간격) */
-function ringRadii(S: MapState, sc: number, farWorld: number): number[] {
-  const rs = [...groupOf(S.view).map((_, l) => FIRST_RING + l * LEVEL_GAP), S.L.leafR];
-  const step = LEVEL_GAP * 2 ** Math.max(0, Math.ceil(Math.log2(10 / (LEVEL_GAP * sc))));
-  for (let r = S.L.leafR + step, n = 0; r < farWorld && n < 120; r += step, n++) rs.push(r);
-  return rs;
-}
-
 /** 퍼지는 파동(시안처럼 얇은 고리 하나): 펼침 동안 가운데 → 지도 끝, 그 뒤 몇 초마다 화면 끝까지 번지며 옅어진다. 배경이라 얇고 옅게(11-21 사용자 "잔잔한 파동") */
 function ripple({ c, S, sc, now }: Frame, o: Pt, sa: number) {
   const { r, fade } = rippleR(S, now, farOf(S, o) / sc);
@@ -133,16 +126,10 @@ function ripple({ c, S, sc, now }: Frame, o: Pt, sa: number) {
   c.globalAlpha = 1;
 }
 
-/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 선 뒤 잔광 각도(분위기) 안의 고리만 잠깐 밝아지는 잔광 + 가는 선과 옅은 빛 */
-function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
-  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink"), TRAIL = TUNE[S.tune].trail;
-  if ("createConicGradient" in c && !introducing(S, now)) { // 잔광은 처음 연출이 끝난 뒤(고리가 다 퍼진 뒤, 시안처럼)
-    const f = TRAIL / TAU, g = c.createConicGradient(ang - TRAIL, ox, oy), a = 0.35 * sa;
-    g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(f * 0.6, `rgba(26,26,26,${(a * 0.25).toFixed(3)})`); g.addColorStop(f, `rgba(26,26,26,${a.toFixed(3)})`); g.addColorStop(Math.min(1, f + 0.001), "rgba(0,0,0,0)");
-    c.strokeStyle = g; c.lineWidth = 1.2; c.beginPath();
-    for (const r of ringRadii(S, sc, far / sc)) { c.moveTo(ox + r * sc * Math.cos(ang - TRAIL), oy + r * sc * Math.sin(ang - TRAIL)); c.arc(ox, oy, r * sc, ang - TRAIL, ang); }
-    c.stroke();
-  }
+/** 도는 선(시안처럼): 각진 부채꼴은 그리지 않고(11-21 사용자: "깔대기 같다"), 가는 선과 옅은 빛. 처음 연출과 감속 동안만.
+ *  선 뒤 잔광(고리가 잠깐 밝아짐)은 P-12g에서 지움: 연출 뒤 선이 멈춰 0.35초 동안 15% 이하로만 보였다(박아 둔 색 · hex 가정도 함께 사라짐) */
+function sweep({ c, S, now }: Frame, [ox, oy]: Pt, sa: number) {
+  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), ink = col("--ink");
   const line = (alpha: number, w: number) => { c.strokeStyle = ink; c.globalAlpha = alpha; c.lineWidth = w; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + far * Math.cos(ang), oy + far * Math.sin(ang)); c.stroke(); };
   line(0.05 * sa, 5); // 옅은 빛
   line(0.5 * sa, 1.1);
@@ -150,6 +137,7 @@ function sweep({ c, S, sc, now }: Frame, [ox, oy]: Pt, sa: number) {
 }
 
 function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
+  const wall = Date.now(); // 최근 확인은 벽시계로(캔버스의 now는 화면이 뜬 뒤 흐른 초)
   for (const it of vis) {
     if (it.type !== "t") continue;
     const n = it.node, keep = n.mine || n.grade === "danger" || it.id === S.sel || it.id === S.focusId;
@@ -161,12 +149,10 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
     if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (n.grade === "danger") { // 맥박: 처음 10초만(계속 움직이면 거슬리고 접근성 기준에도 걸림), 그 뒤·움직임 줄이기면 멈춘 굵은 고리
-      const pulse = !moving(S) || now - S.sweepStart > PULSE_SEC ? 0 : (now % 1.6) / 1.6; // 끄기 · 움직임 줄이기면 멈춘 고리만
-      c.strokeStyle = col("--danger"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.stroke();
-      if (pulse) { c.globalAlpha = a * (1 - pulse); c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, rp + 3 + pulse * 9, 0, TAU); c.stroke(); c.globalAlpha = a; }
+    if (n.grade === "danger") { // 멈춘 실선 이중 고리(맥박 없음, P-12g map-4). 선이 처음 지날 때 한 번 울리는 것은 아래. 점선은 수집 오류에만
+      c.strokeStyle = col("--danger"); c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.moveTo(x + rp + 5.5, y); c.arc(x, y, rp + 5.5, 0, TAU); c.stroke();
     }
-    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--muted"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (n.grade === "danger" ? 7 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
+    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--muted"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (n.grade === "danger" ? 8 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--surface"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(it.token); c.fill(); }
@@ -174,10 +160,11 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
-    if (it.id === S.sel) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 6, 0, TAU); c.stroke(); }
-    const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 모든 점은 옅게 빛나고, 위험 · NEW는 한 번 울림
-    if (age < GLOW) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (sa > 0.2 && age < 0.6 && (n.grade === "danger" || n.isNew)) {
+    if (it.id === S.sel) { const sr = rp + (n.grade !== "danger" ? 6 : n.collectErrorKind ? 11 : 8.5); c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
+    const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 36시간 안에 실제로 확인한 점만 옅게 빛나고(ADR 0032), 위험 · NEW는 한 번 울림
+    const first = now - age - S.sweepStart < REVEAL; // 닿은 시각이 첫 바퀴 안(감속 동안 더 도는 부채꼴은 두 번 빛나거나 울리지 않게)
+    if (age < GLOW && first && recentlyChecked(n, wall)) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
+    if (age < 0.6 && first && (n.grade === "danger" || n.isNew)) {
       c.strokeStyle = col(n.grade === "danger" ? "--danger" : "--ink"); c.globalAlpha = a * sa * (1 - age / 0.6); c.lineWidth = 1.5;
       c.beginPath(); c.arc(x, y, rp + 2 + age * 22, 0, TAU); c.stroke();
     }
@@ -266,11 +253,19 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
   // 주변이 빈 점은 한 단계 낮은 배율에서도 이름(묶음만 보는 가장 먼 배율은 빼고) · 이름 단계에서는 설명까지(11-21 사용자 결정 F③)
   const alone = det < 0.4 && z >= TIER.far && !quiet ? aloneOnScreen(vis, P) : null;
   const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
-  const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel
+  const justLanded = (it: Item) => now - (S.landed.get(it.id) ?? -99) < LAND_SEC; // "이번 주" 다시 보기로 방금 닿은 점: 이름(들어온 날)을 잠깐 진하게
+  const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel || justLanded(it)
     || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
-  const boxes: number[][] = [];
+  // 판단 꼬리표(점 왼쪽 아래, 칩과 같은 기준 decided): 자리를 먼저 잡아 이름표가 피해 가고, 이름표 테두리에 덮이지 않게 맨 나중에 그린다
+  const tags = vis.filter((it): it is TechItem => it.type === "t" && !!it.node.decided && (z >= TIER.far || !!S.lit || it.id === S.sel) && onScreen(it)).map((it) => {
+    const [x, y] = P(it), rp = dotRadius(it, sc) * (it.id === S.focusId ? 1.3 : 1) * (0.35 + 0.65 * grow(S, now, it)), text = MARK_TAG[it.node.decided!];
+    c.font = `700 9px ${col("--font")}`;
+    const w = c.measureText(text).width;
+    return { it, text, x: x - rp - 2, y: y + rp + 5, box: [x - rp - 4 - w, y + rp - 2, w + 4, 14] };
+  });
+  const boxes: number[][] = tags.map((t) => t.box);
   for (const it of want.slice(0, 160)) {
     const solo = alone?.has(it.id) && names > 0.4;
     const [x, y] = P(it), [what, facts] = det > 0.4 || solo ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
@@ -283,14 +278,19 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     const box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
     if (boxes.some((o) => box[0] < o[0] + o[2] && o[0] < box[0] + box[2] && box[1] < o[1] + o[3] && o[1] < box[1] + box[3])) continue;
     boxes.push(box);
-    const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) || alone?.has(it.id) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
+    const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) || alone?.has(it.id) || justLanded(it) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦
     if (a < 0.3) continue;
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
-    label(c, name, box[0], y, 12, col("--ink"));
+    label(c, name, box[0], y, 12, col("--ink"), "left", justLanded(it) ? 700 : 400);
     if (!what) continue;
     c.globalAlpha *= solo ? 1 : Math.min(1, (det - 0.4) / 0.4 + 0.3);
     label(c, what, box[0], y + 14, 11, col("--ink-2"));
     if (facts) label(c, facts, box[0], y + 27, 10, col("--muted"));
+  }
+  for (const { it, text, x, y } of tags) { // 저장 성공 순간 0.2초 동안 1.15 → 1로 꾹 찍힘(P-12g map-5), 움직임 줄이기면 바로
+    const st = S.stamp?.id === it.id && moving(S) ? Math.max(0, 1 - (now - S.stamp.t) / 0.2) : 0;
+    c.globalAlpha = (S.lit && !S.lit.has(it.id) ? 0.2 : 1) * Math.min(1, grow(S, now, it) * 1.6);
+    label(c, text, x, y, 9 * (1 + 0.15 * st), col("--ink"), "right", 700);
   }
   c.globalAlpha = 1;
 }

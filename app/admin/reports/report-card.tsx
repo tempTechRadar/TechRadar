@@ -7,7 +7,7 @@ import { HiddenNoteForm, VisibleNoteForm } from "./report-forms";
 const line = { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } as const;
 
 function NoteBody({ g }: { g: ReportGroup }) {
-  if (!g.note) return <p className="muted">글을 찾지 못했어요(지워졌거나 읽지 못했어요). 신고는 그대로 보여요.</p>;
+  if (!g.note) return <p className="muted">글을 찾지 못했어요(지워졌거나 불러오지 못했어요). 신고는 그대로 보여요.</p>;
   const body = (
     <div className="admin-notetext" style={line}>
       <div><b>무엇에 썼나</b> {g.note.usedFor}</div>
@@ -15,7 +15,7 @@ function NoteBody({ g }: { g: ReportGroup }) {
       <div><b>팁</b> {g.note.tip}</div>
     </div>
   );
-  return g.hidden ? <details><summary>숨긴 글 내용 펼쳐 보기</summary>{body}</details> : body;
+  return g.hidden ? <details><summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>숨긴 글 내용 펼쳐 보기</summary>{body}</details> : body;
 }
 
 export function ReportCard({ g }: { g: ReportGroup }) {

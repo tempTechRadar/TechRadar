@@ -101,3 +101,12 @@ test("지도 NEW 표시는 인기 상위만 남기고, 내 기술은 늘 NEW", a
   assert.deepEqual(capped.nodes.filter((n) => n.isNew).map((n) => n.name).sort(), ["a", "c", "d"]);
   assert.equal(m.nodes.filter((n) => n.isNew).length, 4); // 원래 모델은 그대로
 });
+
+test("여러 프로젝트에서 쓰는 내 기술의 확인 시각은 가장 오래된 것, 하나라도 확인한 적 없으면 없음(최근 확인으로 부풀리지 않게)", () => {
+  const two = (a: string | null, b: string | null) => buildTechMap(input({
+    mine: [mine("m1", "a", { lastCheckedOkAt: a }), mine("m2", "a", { projectId: "p2", projectName: "다른 앱", lastCheckedOkAt: b })], techs: [tech("a")],
+  }), NOW).nodes[0].lastCheckedOkAt;
+  assert.equal(two("2026-11-22T00:00:00Z", "2026-11-20T00:00:00Z"), "2026-11-20T00:00:00Z");
+  assert.equal(two("2026-11-20T00:00:00Z", "2026-11-22T00:00:00Z"), "2026-11-20T00:00:00Z", "순서와 상관없이");
+  assert.equal(two("2026-11-22T00:00:00Z", null), null);
+});

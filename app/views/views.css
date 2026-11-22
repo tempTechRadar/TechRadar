@@ -1,39 +1,5 @@
-/* 보드(칸반)와 보기 탭. 값은 공용 토큰(app/tokens.css), .alerts의 단추·숫자 카드를 함께 쓴다 */
-.views-page { max-width: 1200px; }
+/* 내 프로젝트의 화면 탭(내 프로젝트 · 실행 기록). 옛 보기(칸반 · 갤러리) 모양은 P-12f에서 지움. 값은 공용 토큰(app/tokens.css) */
 .views-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
 .views-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; }
 .views-tabs .muted { align-self: center; }
 .views-tabs a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
-.kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
-.kb-col { padding: var(--sp-3); border-radius: var(--r-lg); background: var(--sunken); }
-.kb-col h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-h2); }
-.kb-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
-.kb-group + .kb-group { margin-top: var(--sp-3); }
-.kb-group h3 { margin: 0 0 6px; font-size: var(--fs-sm); color: var(--ink); }
-.kb-card { display: grid; gap: 4px; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
-.kb-card .badge { justify-self: start; align-self: start; }
-.kb-links { display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: var(--fs-sm); }
-.kb-links a { display: inline-flex; align-items: center; min-height: 32px; }
-.kb-move { display: grid; gap: 6px; font-size: var(--fs-sm); }
-.kb-move label { display: grid; gap: 2px; }
-.kb-move form { display: grid; gap: 6px; }
-@media (max-width: 900px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .kanban { grid-template-columns: 1fr; } }
-/* 갤러리(PRD-F36): 칸반 카드와 같은 모양, 테두리 색만 등급(공용 상태 색) */
-.gallery { list-style: none; margin: 0 0 var(--sp-5); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: var(--sp-3); } /* 좁은 화면에서 칸이 화면보다 넓어지지 않게 */
-.gallery .kb-card { border-width: 2px; }
-.gallery .kb-card[data-grade="danger"] { border-color: var(--danger); }
-.gallery .kb-card[data-grade="caution"] { border-color: var(--caution); }
-.gallery .kb-card[data-grade="pass"] { border-color: var(--pass); }
-.gallery .kb-card h3 { margin: 0; font-size: var(--fs-body); overflow-wrap: anywhere; }
-.gallery .kb-card p { margin: 0; }
-.gallery .kb-card .badge { white-space: nowrap; }
-.gallery .kb-card[data-grade="unknown"] { border-color: var(--muted); }
-.gallery .kb-card[data-grade="none"] { border-color: var(--muted); border-style: dashed; } /* 개념: 등급 없음 */
-.views-page .notice h3 { margin-top: 0; }
-.views-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* 옮긴 뒤 알림 + 되돌리기(11-21): 화면 아래 가운데. 휴대폰은 아래 탭 바 위로 */
-.kb-toast { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
-.kb-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
-@media (max-width: 640px) { .kb-toast { bottom: calc(64px + env(safe-area-inset-bottom)); } }

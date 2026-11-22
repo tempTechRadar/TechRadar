@@ -50,3 +50,33 @@ test("내보내기: 프롬프트 · CLAUDE.md 표 · 메타프롬프트(같은 �
   assert.match(meta, /<청사진 이름="ab">/);
   assert.match(meta, /끝났다고 볼 기준/);
 });
+
+test("이력의 graph 칸: v2 겉모양이면 그대로, 옛 확정본(null)·모양이 다르면 null(board로 연다)", async () => {
+  const { readStoredGraph } = await import("./stored.ts");
+  const g = { v: 2, stages: [{ id: "s1", name: "a", x: 0, y: 0, techs: [] }], edges: [] };
+  assert.deepEqual(readStoredGraph(g), g);
+  for (const bad of [null, undefined, { v: 1, stages: [], edges: [] }, { v: 2, stages: {} }, "x"]) assert.equal(readStoredGraph(bad), null);
+});
+
+test("내보내기에 단계 메모(T2): 프롬프트 · 메타는 번호 줄 아래 '메모:', 같은 순서 여럿이면 이름, CLAUDE.md는 메모 칸", () => {
+  const b = fromNames([["기획"], ["디자인", "개발"]]);
+  b[0][0].note = "인터뷰\n먼저";
+  b[1][1].note = "타입 먼저";
+  const p = exportText("prompt", "x", b);
+  assert.match(p, /1\. 기획\n   메모: 인터뷰 먼저\n2\./);
+  assert.match(p, /동시에 진행\n   메모\(개발\): 타입 먼저/);
+  assert.match(exportText("meta", "x", b), /메모: 인터뷰 먼저/);
+  const md = exportText("md", "x", b);
+  assert.match(md, /\| 순서 \| 단계 \| 쓸 도구 \| 메모 \|/);
+  assert.match(md, /\| 1 \| 기획 \| - \| 메모: 인터뷰 먼저 \|/);
+  assert.match(md, /\| 2 \| 디자인 \| - \| - \|/);
+});
+
+test("Mermaid 내보내기(T4): flowchart LR, 단계 · 선, 따옴표 · 꺾쇠 escape, 기술은 <br/>, 메모는 넣지 않음", async () => {
+  const { exportMermaid } = await import("./export-text.ts");
+  const g = { v: 2 as const, edges: [{ from: "a-1", to: "b" }], stages: [
+    { id: "a-1", name: '기획 "초안" <b>', x: 0, y: 0, techs: [], note: "비밀 메모" },
+    { id: "b", name: "개발", x: 384, y: 0, techs: [{ id: T1, name: "Vite" }, { id: T2, name: "React" }] }] };
+  assert.equal(exportMermaid(g), 'flowchart LR\n  n1["기획 #quot;초안#quot; #lt;b#gt;"]\n  n2["개발<br/>Vite, React"]\n  n1 --> n2\n');
+  assert.doesNotMatch(exportMermaid(g), /비밀 메모/);
+});

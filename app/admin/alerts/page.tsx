@@ -29,12 +29,12 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
       <ul className="admin-counts" aria-label="전체 알림 건수">
         <li><b>{counts.total}</b><span>전체</span></li>
         <li><b>{counts.pending}</b><span>판단 대기</span></li>
-        <li><b>{counts.done}</b><span>처리됨</span></li>
+        <li><b>{counts.done}</b><span>완료</span></li>
         <li><b>{counts.candidate}</b><span>적용 후보</span></li>
         <li><b>{counts.hold}</b><span>보류</span></li>
       </ul>
       <FilterForm>
-        <Select name="status" label="상태" value={f.status ?? ""} options={[{ value: "", label: "모든 상태" }, { value: "pending", label: "판단 대기" }, { value: "done", label: "처리됨" }]} />
+        <Select name="status" label="상태" value={f.status ?? ""} options={[{ value: "", label: "모든 상태" }, { value: "pending", label: "판단 대기" }, { value: "done", label: "완료" }]} />
         <Select name="kind" label="종류" value={f.kind ?? ""} options={[{ value: "", label: "모든 종류" }, ...KINDS.map((k) => ({ value: k, label: KIND_LABEL[k].label }))]} />
         <Select name="period" label="기간" value={f.from ? String(sp.period) : ""} options={PERIOD_OPTIONS} />
       </FilterForm>
@@ -50,7 +50,7 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
                   <td>{a.member}</td>
                   <td><span className={`badge ${a.kind === "security" ? "danger" : "neutral"}`}>{KIND_LABEL[a.kind as keyof typeof KIND_LABEL]?.label ?? a.kind}</span></td>
                   <td>{a.techName} {a.isSimulated ? <span className="badge warning">가짜</span> : null}</td>
-                  <td>{a.status === "pending" ? <span className="badge warning">판단 대기</span> : <span className="badge success">처리됨</span>}</td>
+                  <td>{a.status === "pending" ? <span className="badge warning">판단 대기</span> : <span className="badge success">완료</span>}</td>
                   <td>{a.judgment ? DECISION_KO[a.judgment.decision] ?? a.judgment.decision : "—"}</td>
                   <td>{a.judgment ? `${a.judgment.judgedBy} · ${when(a.judgment.judgedAt)}` : "—"}</td>
                 </tr>

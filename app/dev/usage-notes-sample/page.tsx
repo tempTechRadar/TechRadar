@@ -3,7 +3,6 @@
 import { notFound } from "next/navigation";
 import type { UsageNoteView } from "@/lib/server/usage-notes";
 import { UsageNotes } from "../../projects/tech/[id]/usage-notes";
-import "../../alerts/alerts.css";
 
 const T = "00000000-0000-4000-8000-000000000001";
 const P = "00000000-0000-4000-8000-000000000002";
@@ -17,7 +16,7 @@ const TAG = '<script>alert(1)</script> **굵게** [링크](https://example.com)'
 export default function UsageNotesSample() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>사용기 샘플 (가짜 자료)</h1>
       <h2>목록: 남의 글 · 내 글 · 이미 누름 · 이미 신고 · 긴 글 · 태그처럼 보이는 글</h2>
       <UsageNotes techId={T} pathId={P} notes={[

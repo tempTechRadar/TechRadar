@@ -42,7 +42,7 @@ export function CaptureDialog() {
               <span className="muted capture-line">{line.text}</span>
               {line.kind === "media" ? <p>영상·SNS 링크예요. 거기서 본 기술 이름을 적어 주세요.</p>
                 : line.kind === "bad" ? <p>{line.reason}</p>
-                : hits === null ? <p className="notice-error">찾지 못했어요(조회 실패). 없다는 뜻이 아니에요. 다시 찾아 주세요.</p>
+                : hits === null ? <p className="notice-error">찾은 결과를 불러오지 못했어요. 없다는 뜻이 아니에요. 다시 찾아 주세요.</p>
                 : hits.length === 0 ? <p>모은 기술에서 찾지 못했어요. <Link href="/projects#add-title" onClick={close}>내 프로젝트에 직접 추가</Link>할 수 있어요.</p>
                 : <ul>{hits.map((h) => (
                     <li key={h.id} className="capture-hit">

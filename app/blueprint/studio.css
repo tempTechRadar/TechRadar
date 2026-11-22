@@ -1,0 +1,123 @@
+/* 청사진 스튜디오(P-12e): 메뉴 밑을 꽉 채우는 캔버스. 기술 칩이 주인공, 단계 머리는 작게, 연결선은 1px 옅게 · 화살촉 작게(고른 것만 진하게). 값은 공용 토큰 */
+.studio { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.studio-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
+.studio-grow { flex: 1; }
+/* P-12h S1 위 막대 "＋ 단계": 단추 바로 아래 작은 이름 칸(팝오버). S3에서 캔버스의 옅은 블록 입력으로 바뀜 */
+.studio-addwrap { position: relative; display: inline-flex; }
+.studio-addpop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; gap: 6px; min-width: 15em; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.studio-addpop label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.studio-addpop input { min-height: var(--hit); padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+/* 결과물 창(result-dialog): 고칠 것 → 내보내기 → 확정 → AI 점검 */
+.rd { display: grid; gap: var(--sp-3); }
+.rd p { margin: 0; }
+.rd-h { margin: 0 0 6px; font-size: var(--fs-h3); }
+.rd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; }
+.rd-row label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.rd-row select { min-height: var(--hit); font: inherit; }
+.rd-preview { max-height: 30vh; overflow: auto; margin: 6px 0 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rd ul { margin: 4px 0 0; padding-left: 1.2em; }
+.rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
+.rd-diff p { margin: 0; }
+.rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
+.rd-diff p { margin: 0; }
+/* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 하단 패널(결과물은 "확정 · 내보내기" 창) */
+/* P-12h-2 T1: 속성 패널 = 캔버스 위 오른쪽 서랍(겹침, 기본 닫힘). 캔버스는 전체 폭 */
+.studio-main { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.studio-insp { position: absolute; top: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-rows: auto minmax(0, 1fr); width: min(360px, 100%); background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); }
+.studio-insp-bar { display: flex; justify-content: flex-end; padding: var(--sp-1) var(--sp-2) 0; }
+.studio-insp .insp { border-left: 0; }
+.studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
+.studio-canvas { min-height: 320px; position: relative; background: var(--sunken); }
+/* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
+.studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
+
+/* 스텝퍼: 지금 단계만 진하게(색만이 아니라 굵기 · 밑줄) */
+
+/* 단계 노드 */
+.sn { box-sizing: border-box; min-width: 260px; max-width: 320px; padding: 6px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
+.sn[data-selected] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.sn[data-over] { outline: 2px dashed var(--ink); outline-offset: 2px; }
+/* P-12g B4 빈 자리 윤곽: 끄는 동안 칩 줄 끝(빈 단계는 안내 글 자리)에 다음 칩 자리. 가득 차면 윤곽 대신 글자(색에만 기대지 않음) */
+.sn[data-over]:not([data-full]) .sn-techs::after { content: ""; width: 72px; height: 28px; box-sizing: border-box; border: 1px dashed var(--ink-2); border-radius: var(--r-pill); }
+.sn[data-over]:not([data-full]) .sn-empty { padding: 4px 8px; border: 1px dashed var(--ink-2); border-radius: var(--r-pill); }
+.sn[data-full] { outline-color: var(--ink-2); }
+.sn-full { margin: 6px 0 0; font-size: var(--fs-cap); font-weight: 700; color: var(--ink); }
+.sn-head { display: flex; gap: 6px; align-items: center; font-size: var(--fs-cap); color: var(--ink-2); }
+.sn-order { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
+.sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; color: var(--ink); } /* P-12h-2 T1: 카드를 키움(이름 15 · 칩 14) */
+.sn .tc-main { font-size: 14px; }
+.sn-name-input { flex: 1; min-width: 0; min-height: 28px; padding: 0 var(--sp-1); font: inherit; font-size: 15px; font-weight: 700; border: 1px solid var(--ink); border-radius: var(--r-sm); }
+/* 카드 위 "자세히" · "✕": 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음) */
+.sn-tools { display: inline-flex; gap: 2px; opacity: 0; }
+.sn:hover .sn-tools, .sn:focus-within .sn-tools { opacity: 1; }
+.sn-tool { min-width: 24px; min-height: 24px; padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: none; font: inherit; font-size: var(--fs-cap); color: var(--ink-2); text-decoration: underline; cursor: pointer; }
+.sn-tool:hover { color: var(--ink); background: var(--sunken); }
+.sn-tool:focus-visible { outline: var(--focus); outline-offset: 1px; }
+/* 단계 메모(T2): 칩 아래 옅은 글 두 줄까지 */
+.sn-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; width: 100%; margin: 6px 0 0; padding: 0; border: 0; background: none; font: inherit; font-size: var(--fs-cap); line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-line; overflow-wrap: anywhere; }
+button.sn-note { cursor: pointer; }
+button.sn-note:hover { color: var(--ink-2); text-decoration: underline; }
+button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
+.studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
+.react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }
+/* P-12h S3 위 · 아래 +: 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 누르면 같은 순서에 옅은 블록. 막혔으면 흐리게 + 이유(title · 이름) */
+.sn { position: relative; }
+.sn-plus { position: absolute; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; padding: 0; border: 1px solid var(--ink-2); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; line-height: 1; cursor: pointer; opacity: 0; }
+.sn-plus-up { top: -12px; } .sn-plus-down { bottom: -12px; }
+.sn-plus-left, .sn-plus-right { top: 0; transform: translateY(-50%); } /* 앞 · 다음 단계: 위 모서리 바깥(가운데 손잡이에서 나가는 선을 가리지 않게) */
+.sn-plus-left { left: -30px; } .sn-plus-right { left: auto; right: -30px; }
+.sn:hover .sn-plus, .sn:focus-within .sn-plus { opacity: 1; }
+.sn-plus[aria-disabled] { color: var(--faint); border-color: var(--line); cursor: not-allowed; } /* 막힌 단추 한 벌(page.css)과 같은 색 */
+.sn-plus:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* 옅은 새 단계 블록(선을 빈 곳에 놓음 · +): 점선 테두리, 이름 입력 하나 */
+.sn-ghost { position: absolute; top: 0; left: 0; min-width: 200px; pointer-events: all; border-style: dashed; border-color: var(--ink-2); box-shadow: none; }
+.sn-ghost-label { display: grid; gap: 4px; font-size: var(--fs-cap); color: var(--muted); }
+.sn-ghost input { min-height: var(--hit-sm); font: inherit; font-size: var(--fs-sm); }
+/* 선 위 "끊기"(EdgeToolbar, 마우스를 올렸거나 선을 고르면) */
+.se-cut { min-height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-cap); cursor: pointer; }
+.se-cut:hover { border-color: var(--ink-2); }
+.se-cut:focus-visible { outline: var(--focus); outline-offset: 2px; }
+
+/* 연결선: 옅고 가늘게, 고른 단계 · 선만 진하게 */
+.react-flow__edge.se .react-flow__edge-path { stroke: var(--faint); stroke-width: 1; }
+.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.selected .react-flow__edge-path { stroke: var(--ink); stroke-width: 1.5; }
+/* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
+.react-flow__edge.se-near .react-flow__edge-path { stroke: var(--ink-2); stroke-dasharray: 4 3; }
+.react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
+/* P-12g B2 확정 = 설계선 긋기: 실제 선(edge-path)과 화살촉은 그대로 두고, React Flow가 이미 그리는 두 번째 path(넓은 누름 영역, 보통 투명)를
+   잠깐 먹 1.5px로 덧칠해 한 번 긋고 사라진다. 클래스는 studio.tsx가 600ms 뒤 뗀다(움직임 줄이기면 아예 안 붙임 + 아래 none) */
+/* 덧칠 길이 8000px: 넓게 자동 정렬된 판의 긴 선도 처음부터 그어지게(선 길이를 CSS가 몰라서 넉넉한 고정값) */
+.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--ink); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 8000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
+@keyframes se-draw { 0% { stroke-dashoffset: 8000; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .react-flow__edge.se-draw .react-flow__edge-interaction { animation: none; stroke-opacity: 0; } }
+/* 미니맵: 작게 · 테두리로 판과 구분(빈 흰 상자로 단계를 덮지 않게). 목록 모드(좁은 화면)에는 캔버스가 없어 미니맵도 없다 */
+.react-flow__minimap.studio-mini { width: 160px; height: 100px; margin: 8px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.react-flow__minimap.studio-mini svg { width: 160px; height: 100px; }
+.studio-note { margin: 0; border-radius: 0; }
+/* 정렬 보조선(캔버스 좌표) */
+.sg { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--ink); opacity: .45; }
+.sg-x { width: 1px; height: 100000px; }
+.sg-y { width: 100000px; height: 1px; }
+
+/* 기술 칩(주인공): 글자 아이콘 · 이름 · 등급 점 */
+.tc { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface);
+  transition: background-color var(--dur), border-color var(--dur); } /* B3: 후보 칩(점선)이 보통 칩이 될 때 바탕 · 테두리 색만 부드럽게(선 모양은 바로), 줄이기면 0s */
+/* B4: 노드가 이미 있던 뒤에 붙은 칩만 한 번 살짝 커지며 나타남(--dur 기반, 줄이기면 0) */
+.tc-pop { animation: tc-pop calc(var(--dur) * .6) ease-out; }
+@keyframes tc-pop { from { opacity: 0; transform: scale(.96); } }
+.tc[data-picked] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tc-main { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 0 8px 0 3px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
+.tc-icon { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; }
+.tc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--unknown); }
+.tc[data-grade="danger"] .tc-dot { background: var(--danger); }
+.tc[data-grade="caution"] .tc-dot { background: var(--caution); }
+.tc[data-grade="pass"] .tc-dot { background: var(--pass); }
+/* 후보 칩: 관문 밖 기술(남의 조합에서 옴). 점선 · 옅게, 고르기 단추를 붙여 판단을 사람이 하게 */
+.tc.tc-out { gap: 4px; padding-left: 8px; border-style: dashed; border-color: var(--ink-2); background: var(--sunken); color: var(--ink-2); font-size: var(--fs-sm); }
+.tc-pick { min-height: 28px; padding: 0 8px; border: 1px solid var(--ink); border-radius: var(--r-pill); background: var(--surface); font: inherit; font-size: var(--fs-cap); color: var(--ink); cursor: pointer; }
+.tc-pick:disabled { opacity: .6; cursor: progress; }
+.tc-x { min-width: 24px; min-height: 28px; padding: 0 6px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
+

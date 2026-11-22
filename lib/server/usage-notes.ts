@@ -62,6 +62,13 @@ export async function readUsageNotes(db: SupabaseClient, techId: string, viewerI
   }));
 }
 
+/** 숨기지 않은 사용기 수(손님에게도 공개되는 집계, P-12f M6 usage_note_count). 글은 읽지 않는다. 못 읽으면 던진다 */
+export async function readUsageNoteCount(db: SupabaseClient, techId: string): Promise<number> {
+  const { data, error } = await db.rpc("usage_note_count", { p_tech_id: techId });
+  if (error || typeof data !== "number") throw new Error(`사용기 수를 읽지 못함: ${maskSecrets(error?.message ?? "빈 응답")}`);
+  return data;
+}
+
 export type NoteSummary = { total: number; top: Pick<UsageNoteView, "id" | "usedFor" | "result" | "tip" | "helpfulCount">[] };
 /** 지도 사이드 패널의 사용기 요약(11-21 사용자 결정 G): "도움이 됐어요" 많은 순 몇 개 + 전체 수. 전체 글은 기술 상세에서. 읽지 못하면 던진다 */
 export async function readTopUsageNotes(db: SupabaseClient, techId: string, limit = 3): Promise<NoteSummary> {

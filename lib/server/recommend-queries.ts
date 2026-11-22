@@ -1,7 +1,7 @@
 // 추천 목록 읽기(PRD-F32, IA-20). 주인: 황재웅(B). 로그인한 사용자의 클라이언트로 부른다(취향은 RLS가 본인 줄만 열어 줌).
 // 읽기에 실패하면 던진다: 화면이 "추천 없음"과 "읽지 못함"을 다르게 보여 줘야 한다(불변 2).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { pickRecommendations, type Recommendation } from "../domain/recommend.ts";
+import { pickRecommendations, type MarkKind, type Recommendation, type RecommendedItem } from "../domain/recommend.ts";
 import type { Taste } from "../domain/taste.ts";
 import { rowsOrThrow } from "./alert-db.ts";
 import { readTaste } from "./taste-store.ts";
@@ -11,7 +11,7 @@ import { listedTechs } from "./map-queries.ts";
 export const CANDIDATE_LIMIT = 500;
 const COLUMNS = "id, tech_key, display_name, one_liner, category_id, grade, status, signals";
 
-export type RecommendView = { taste: Taste | null; items: Recommendation[] };
+export type RecommendView = { taste: Taste | null; items: RecommendedItem[] };
 
 export async function readRecommendations(db: SupabaseClient, userId: string, isDemo: boolean): Promise<RecommendView> {
   const taste = await readTaste(db, userId);
@@ -35,5 +35,14 @@ export async function readRecommendations(db: SupabaseClient, userId: string, is
     signals: (r.signals ?? null) as Record<string, unknown> | null,
   }));
   const ownedIds = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map((r) => r.tech_id as string);
-  return { taste, items: pickRecommendations({ interests: taste.interests, categories, techs, ownedIds }) };
+  const picked = pickRecommendations({ interests: taste.interests, categories, techs, ownedIds });
+  return { taste, items: await withMarks(db, userId, picked) };
+}
+
+// 내 표시도 못 읽으면 던진다: 없는 것으로 보이면 관심 버튼이 이미 정한 판단과 어긋나 보인다(불변 2)
+async function withMarks(db: SupabaseClient, userId: string, picked: Recommendation[]): Promise<RecommendedItem[]> {
+  if (picked.length === 0) return [];
+  const res = await db.from("tech_marks").select("tech_id, status").eq("user_id", userId).in("tech_id", picked.map((r) => r.techId));
+  const marks = new Map(rowsOrThrow(res, "내 표시를 읽지 못함").map((r) => [r.tech_id as string, r.status as MarkKind]));
+  return picked.map((r) => ({ ...r, mark: marks.get(r.techId) ?? null }));
 }

@@ -2,10 +2,12 @@
 // 화면에서 온 값 검사(경계: 서버 액션이 부른다), 내 이력의 기술별 쓴 횟수.
 import { isUuid } from "../domain/my-tech-view.ts";
 import { cleanName, MAX_COLUMNS, MAX_PARALLEL, MAX_TECHS, newStage, type Board, type BlueprintTech } from "./board.ts";
+import { parseGraph, type Graph } from "./graph.ts";
 
 export type StoredStage = { name: string; techs: BlueprintTech[] };
 export type StoredBoard = StoredStage[][];
-export type BlueprintRecord = { id: string; name: string; projectId: string | null; projectName: string | null; createdAt: string; board: StoredBoard };
+/** graph = v2 확정본(선 · 메모 포함, 옛 확정본은 null → board로 연다) */
+export type BlueprintRecord = { id: string; name: string; projectId: string | null; projectName: string | null; createdAt: string; board: StoredBoard; graph?: Graph | null };
 export type TechUsage = { n: number; projects: number; stages: string[] };
 
 /** 내 이력으로 읽는 확정 수(쓴 횟수도 이만큼에서 센다. 넘으면 화면이 "최근 n개만"이라고 알림) */
@@ -55,4 +57,14 @@ export function usageOf(history: BlueprintRecord[]): Map<string, TechUsage> {
     acc.set(t.id, x);
   }
   return new Map([...acc].map(([id, x]) => [id, { n: x.n, projects: x.projects.size, stages: [...x.stages] }]));
+}
+
+/**
+ * DB에서 읽은 graph 칸(확정본 하나를 열 때). 쓰는 곳은 DB 함수 confirm_blueprint_v2 하나뿐이지만, 경계라 parseGraph로 다시 본다.
+ * 비었거나(옛 v1 확정본) 모양이 다르면 null — 화면은 board를 fromV1로 바꿔 연다(화면 전체가 깨지지 않게)
+ */
+export function readStoredGraph(raw: unknown): Graph | null {
+  if (raw === null || raw === undefined) return null;
+  const parsed = parseGraph(raw);
+  return parsed.ok ? parsed.graph : null;
 }

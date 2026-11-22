@@ -1,17 +1,13 @@
 "use client";
-// 오른쪽 아래 ⚙ 레이더 설정(11-21 사용자 "전부 추천대로"): 방식(선 · 파동 · 끄기)과 분위기(잔잔하게 · 기본 · 생생하게).
-// 보기 창에 있던 '움직임'을 옮겨 왔다. 값은 컨트롤러가 이 브라우저에 기억한다(techradar-map-motion · techradar-map-tune).
+// 오른쪽 아래 ⚙ 지도 설정(P-12f에서 이름 바꿈): 처음 연출 방식(선 · 파동 · 끄기). 분위기 칸은 P-12g에서 지움(연출 뒤 선이 멈춰 고를 것이 없다, 사용자 승인).
+// 값은 컨트롤러가 이 브라우저에 기억한다(techradar-map-motion).
 import { useEffect, useId, useRef, useState } from "react";
-import type { Tune } from "@/lib/map/motion";
 import type { Motion } from "./controller";
 import "./radar-settings.css";
 
 const MOTION_KO: [Motion, string][] = [["sweep", "선"], ["ripple", "파동"], ["off", "끄기"]];
-const TUNE_KO: [Tune, string][] = [["calm", "잔잔하게"], ["base", "기본"], ["vivid", "생생하게"]];
 
-export function RadarSettings({ motion, tune, still, onMotion, onTune }: {
-  motion: Motion; tune: Tune; still: boolean; onMotion: (m: Motion) => void; onTune: (t: Tune) => void;
-}) {
+export function RadarSettings({ motion, still, onMotion }: { motion: Motion; still: boolean; onMotion: (m: Motion) => void }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null), btn = useRef<HTMLButtonElement>(null), id = useId();
   useEffect(() => {
@@ -27,20 +23,18 @@ export function RadarSettings({ motion, tune, still, onMotion, onTune }: {
     document.addEventListener("keydown", esc, true);
     return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc, true); };
   }, [open]);
-  const off = still || motion === "off";
 
   return (
     <div ref={root} className="radar-set">
-      <button ref={btn} type="button" className="radar-set-btn" aria-label="레이더 설정" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>⚙</button>
+      <button ref={btn} type="button" className="radar-set-btn" aria-label="지도 설정" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>⚙</button>
       {open ? (
-        <div id={id} className="radar-set-panel" role="group" aria-label="레이더 설정">
-          <fieldset disabled={still}><legend>방식</legend>
+        <div id={id} className="radar-set-panel" role="group" aria-label="지도 설정">
+          <fieldset disabled={still}><legend>처음 연출</legend>
             {MOTION_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : motion) === v} onChange={() => onMotion(v)} /> {k}</label>)}
           </fieldset>
           {still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
-          <fieldset disabled={off}><legend>분위기</legend>
-            {TUNE_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-t`} checked={tune === v} onChange={() => onTune(v)} /> {k}</label>)}
-          </fieldset>
+          <p className="muted">처음 연출에서 선이 지날 때 밝아지는 점은 36시간 안에 실제로 확인한 기술이에요.</p>
+          <p className="muted">점 왼쪽 아래 꼬리표(관심 · 후보 · 보류)는 내 판단이에요.</p>
         </div>
       ) : null}
     </div>

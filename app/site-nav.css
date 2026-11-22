@@ -62,3 +62,9 @@
   .nav-pop, .site-nav-account { position: static; }
   .site-nav-menu { max-width: calc(100vw - 32px); }
 }
+/* 판단 대기 수가 바뀐 순간 한 번(P-12g C3): 새 숫자가 4px 지나 제자리로, 늘었을 때만 한 번 살짝 커짐. --dur(움직임 줄이기면 0s), 색은 그대로 */
+@keyframes badge-from-above { from { translate: 0 -4px; opacity: 0; } }
+@keyframes badge-from-below { from { translate: 0 4px; opacity: 0; } 60% { scale: 1.12; } }
+.nav-badge[data-dir="down"] { animation: badge-from-above var(--dur) var(--ease) 1; }
+.nav-badge[data-dir="up"] { animation: badge-from-below calc(var(--dur) * 1.5) var(--ease) 1; }
+.nav-badge { font-variant-numeric: tabular-nums; }

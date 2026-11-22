@@ -3,7 +3,6 @@
 import { notFound } from "next/navigation";
 import type { ScenarioCard as Card } from "@/lib/alerts/to-scenario-view";
 import { ScenarioCard } from "../../alerts/[id]/scenario-card";
-import "../../alerts/alerts.css";
 
 const link = (value: string, source: string | null) => ({ value, source, sourceIsLink: source !== null && /^https?:\/\//i.test(source) });
 
@@ -36,7 +35,7 @@ const STATES: [string, Card | null][] = [
 export default function ScenarioSample() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <main className="alerts">
+    <main className="page">
       <p className="sample-banner" role="note">샘플 화면입니다. 이름과 숫자는 가짜 자료예요.</p>
       {STATES.map(([title, card]) => (
         <section key={title}>

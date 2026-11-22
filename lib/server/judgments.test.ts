@@ -98,7 +98,7 @@ test("이미 판단을 마친 알림은 다시 저장하지 않는다(v1은 판�
 
   const result = await saveJudgment(db, user, { alertId: "alert-1", decision: "hold", reason: "지금은 바꿀 시간이 없어요" });
 
-  assert.deepEqual(result, { ok: false, message: "이미 판단한 알림이에요.", saveAttempted: false });
+  assert.deepEqual(result, { ok: false, message: "이미 판단한 알림이에요.", saveAttempted: false, code: "done" }, "화면이 실패 대신 완료 카드를 보이도록 표시(P-12g C1)");
   assert.equal(rpcCalls.length, 0);
 });
 

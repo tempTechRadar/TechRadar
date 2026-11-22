@@ -48,15 +48,15 @@ export function InstallScreen({ rows, pins }: { rows: MyTechRow[]; pins: [string
                 {label(r)}{r.version ? `@${r.version}` : ""} · {GRADE_KO[r.grade]}{pinned.has(r.id) ? ` → ${pinned.get(r.id)}로 고정` : ""}
               </label>
               {r.grade === "danger" && !pinned.has(r.id) && picked.has(r.id) ? (
-                <span style={{ color: "#b3261e" }}>위험이라 프롬프트에 넣지 않아요</span>
+                <span style={{ color: "var(--ink-danger)" }}>위험이라 프롬프트에 넣지 않아요</span>
               ) : null}
             </li>
           ))}
         </ul>
       )}
-      {result.notIncluded.length > 0 ? <p style={{ fontSize: 14, color: "#5b564c" }}>넣지 못한 것 {result.notIncluded.length}개: 직접 이름만 쓴 기술이나 패키지 이름이 없는 기술이에요.</p> : null}
+      {result.notIncluded.length > 0 ? <p style={{ fontSize: 14, color: "var(--muted)" }}>넣지 못한 것 {result.notIncluded.length}개: 직접 이름만 쓴 기술이나 패키지 이름이 없는 기술이에요.</p> : null}
       <p>넣은 것 {result.includedCount}개 · 값 검사에서 뺀 것 {result.excluded.length}개</p>
-      <pre aria-label="설치 프롬프트 미리보기" style={{ whiteSpace: "pre-wrap", background: "#f6f5f1", border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>{result.text}</pre>
+      <pre aria-label="설치 프롬프트 미리보기" style={{ whiteSpace: "pre-wrap", background: "var(--sunken)", border: "1px solid var(--line)", borderRadius: 8, padding: 12 }}>{result.text}</pre>
       <button type="button" onClick={copy} style={{ minHeight: 44 }}>복사하기</button>
       {copied ? <p role="status">{copied}</p> : null}
     </section>

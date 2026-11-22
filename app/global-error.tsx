@@ -3,6 +3,7 @@
 // 레이아웃 대신 그려서 html · body · 공용 토큰을 직접 둔다. 안의 글은 error.tsx와 같다(원문 없음, 불변 2)
 import ErrorPage from "./error";
 import "./tokens.css";
+import "./page.css"; // 루트 레이아웃이 깨졌을 때도 같은 틀(레이아웃 대신 이 파일이 html을 그림)
 
 export default function GlobalError({ error, retry }: { error: unknown; retry: () => void }) {
   return (

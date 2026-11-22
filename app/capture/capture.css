@@ -1,4 +1,4 @@
-/* "+ 기술 넣기" 대화상자. 값은 공용 토큰. 메뉴에서 열지만 body에 그려져(포털) .alerts 밖이라 단추·배지 모양을 여기서 갖는다 */
+/* "+ 기술 넣기" 대화상자. 값은 공용 토큰. 메뉴에서 열지만 body에 그려져(포털) .page 밖이라 단추·배지 모양을 여기서 갖는다 */
 dialog.capture { width: min(640px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: var(--sp-4); border: 1px solid var(--ink); border-radius: var(--r-xl); box-shadow: var(--shadow-pop); color: var(--ink); background: var(--surface); }
 dialog.capture::backdrop { background: rgba(0, 0, 0, .35); }
 .capture-head { display: flex; justify-content: space-between; align-items: center; }
@@ -9,9 +9,9 @@ dialog.capture .btn { display: inline-flex; align-items: center; justify-content
 dialog.capture .btn-primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 dialog.capture .btn:disabled { color: var(--faint); border-color: var(--line); background: var(--surface); cursor: not-allowed; }
 dialog.capture .badge { font-size: var(--fs-cap); font-weight: 700; margin-left: 6px; }
-dialog.capture .badge-danger { color: var(--danger); } dialog.capture .badge-warning { color: #b45309; }
+dialog.capture .badge-danger { color: var(--danger); } dialog.capture .badge-warning { color: var(--ink-caution); }
 dialog.capture .muted { color: var(--muted); font-size: var(--fs-sm); }
-dialog.capture .notice-error { color: #b91c1c; }
+dialog.capture .notice-error { color: var(--ink-danger); }
 .capture-results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
 .capture-results ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: var(--sp-2); }
 .capture-results p { margin: 4px 0 0; }
