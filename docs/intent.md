@@ -28,6 +28,10 @@
 - 옛 개요 칸: 이번 주 요약 → W4 머리 "최근 7일 n건", 보류 회고 → W9 "30일 지난 보류 n건", 추천 → W8 "추천 보기", 적용한 기술 → 레포 서랍 표. 그래서 `app/dashboard/overview.tsx` · `extra-cards.tsx`는 이제 아무 곳에서도 안 씀(지우기는 사용자 확인 뒤).
 - 결과: 로컬 커밋 a608e5e feat · 733a4bb test · 이 docs. tsc 통과, 고친 시험(board-layout 5 · board-stats 2 · repo-summary 3 · status-view · status-queries · 미리보기 막기) 20개 통과. 3108 미리보기 확인: 위젯 9개 값, 추이 표, 레포 서랍(제목 초점 · 표 7칸 6행 · Esc → 초점 단추), "+ 위젯 9/9" 소식 끄기 → 8/9 · 켜기 → 9, 손님은 소식 · 뜨는 대안만 실제 값.
 - 확인 못 함: 실계정(레포 정보 실제 값 · 읽기 실패 · 확정 청사진 · 내보내기 · grade_views), 요즘 뜨는 대안(미리보기는 샘플이 없어 "없어요"), 화면 읽기 · 실제 휴대폰.
+
+**D3(덧붙임, 11-22, 사용자가 D2 확인 뒤 "다음(D3) + 옛 파일 삭제"):** 옛 /projects 목록 본문(레포 등록 · 내 기술 표 · 숨기기 · 되돌리기 · 이름 · 메모 고치기 · 보관 · 되살리기 · 프로젝트 밖 칸 · 직접 추가 = 안내서 "직접 입력")을 보드 10번째 위젯 "레포 관리 · 내 기술"(`app/dashboard/repo-manage.tsx`, 기본 배치 맨 아래 한 줄)로 옮김. `/projects`는 거르기 · 검색 · 결과 코드를 싣고 `/dashboard#w-manage`로 보냄(`/projects/install · runs · tech/[id]`는 그대로). 등록 · 다시 읽기 · 프로젝트 · 기술 동작이 `/dashboard`로 돌아오고 결과 알림은 보드 맨 위(`ManageNotices`). 계정 메뉴 "내 프로젝트" 뺌, 현황 탭(개요 | 일지 | 소식) 없앰 → `/history` 제목 "기록 찾기" + "← 프로젝트 관리". /projects 링크 정리: 지도 · 비교 · 찾기 대화상자 · 시작하기 · 숫자 "내 기술"(`/dashboard#techs`) · 옛 소식 주소. 위젯 틀에 id(`w-<위젯>`). 옛 파일 3개(overview · extra-cards · status-tabs)는 쓰는 곳 없음을 grep으로 본 뒤 사용자 확인으로 지움.
+- 결과: 로컬 커밋 97aa1a6 feat · ff5f93e test · 87caa42 chore(삭제) · 이 docs. tsc 통과, 고친 시험(project-wiring · guest-pages · summarize-dashboard · nav · dashboard · a11y · 미리보기 막기 · 기록 등) 통과(65 + 39). 3108 확인: /projects?project=p1&notice=hidden → /dashboard?notice=hidden&project=p1#w-manage, 맨 위 "숨겼어요…", 탭 줄 없음, 계정 메뉴 "알림 모두 보기 · 설정", /history 제목 "기록 찾기" · 뒤로 링크, 손님 레포 관리 자리는 로그인 안내.
+- 확인 못 함: 실계정으로 등록 · 다시 읽기 · 숨기기 · 보관 · 되살리기 · 직접 추가를 보드에서 실제로(미리보기는 DB를 안 불러 레포 관리를 안내만), 화면 읽기 · 실제 휴대폰.
 ## I-P-12i-repo-meta · 2026-11-22 · P-12i D1' 레포 기본 정보: 설명 · 주 언어 · 마지막 푸시 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12i-repo-meta`(`feat/P-12h-blueprint-revamp` dee2c96 + origin/main, 로컬, 미푸시 → DevAssi1 D1 브랜치로 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md` "레포 기본 정보", Maestro 배정. 불변 2 · 4 · 5
