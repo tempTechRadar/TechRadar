@@ -41,7 +41,7 @@ test("완료는 비교표(코드가 채운 값)·적용 단계·위험·출처�
   assert.equal(view.createdAtLabel, "11월 19일 14:02");
   assert.deepEqual(view.steps, ["버전을 올려요."]);
   assert.deepEqual(view.risks, ["연결이 달라질 수 있어요."]);
-  assert.deepEqual(view.comparison?.headers, { mine: "내 기술 mcp-remote", theirs: "대체 supergateway" });
+  assert.deepEqual(view.comparison?.headers, { mine: "사용 중인 항목 mcp-remote", theirs: "대체 supergateway" });
   assert.deepEqual(view.comparison?.rows[0].mine, { value: "원격 연결", source: "https://example.com/m", sourceIsLink: true });
   assert.deepEqual(view.comparison?.rows[0].theirs, { value: "찾지 못함", source: null, sourceIsLink: false });
   assert.deepEqual(view.sources, [{ text: "https://example.com/a", isLink: true }, { text: "mcp-registry", isLink: false }]); // 글자가 아닌 값은 버림

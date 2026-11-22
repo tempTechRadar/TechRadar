@@ -88,7 +88,7 @@ test("어느 하나라도 읽기에 실패하면 빈 지도로 삼키지 않고 
   const { db } = recordingDb({ my_technologies: [myRow] }, { tech_relations: "timeout" });
   await assert.rejects(readMapInput(db, "user-a", false), /같은 역할을 읽지 못함: timeout/);
   const { db: db2 } = recordingDb({}, { my_technologies: "denied" });
-  await assert.rejects(readMapInput(db2, "user-a", false), /내 기술을 읽지 못함/);
+  await assert.rejects(readMapInput(db2, "user-a", false), /사용 중인 항목을 읽지 못함/);
 });
 
 test("로그인 전 지도는 공용 표(technologies·categories)만, 시뮬레이터·사라진 기술 빼고 읽는다(ADR 0029, 불변 5)", async () => {

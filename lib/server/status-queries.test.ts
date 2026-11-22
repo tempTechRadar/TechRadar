@@ -43,5 +43,5 @@ test("내 태그만 못 읽으면 tags = null(태그 없음과 다르게), 프�
   const noTags = await readStatusData(fakeDb(tables(), { my_tech_tags: "timeout" }), "me");
   assert.equal(noTags.tags, null);
   assert.equal(noTags.projects.length, 1);
-  await assert.rejects(readStatusData(fakeDb(tables(), { projects: "timeout" }), "me"), /내 프로젝트를 읽지 못함/);
+  await assert.rejects(readStatusData(fakeDb(tables(), { projects: "timeout" }), "me"), /프로젝트를 읽지 못함/);
 });

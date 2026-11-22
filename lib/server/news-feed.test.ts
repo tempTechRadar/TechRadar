@@ -73,7 +73,7 @@ test("소식 읽기: 한 출처를 못 읽어도 나머지는 보여 주고, 못
   const t = fakeDb(tables(), ["news_items", "alerts"]);
   const r = await readNewsFeed({ db: t.db, serviceDb: t.db, userId: "u1", nowMs: NOW });
   assert.deepEqual(ids(r), ["official:off", "trending:hot"]);
-  assert.deepEqual(r.failed.sort(), ["내 기술의 새 취약점", "바깥 소식"]);
+  assert.deepEqual(r.failed.sort(), ["바깥 소식", "사용 중인 항목의 새 취약점"]);
 });
 
 test("소식 읽기: 서비스 연결이 없으면 기술 표를 읽는 두 출처(새 공식 · 요즘 뜨는)를 못 읽은 것으로 알린다", async () => {
