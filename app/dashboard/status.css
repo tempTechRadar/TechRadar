@@ -10,4 +10,7 @@
 /* 카드 안 이름 링크도 누르는 칸 --hit-sm(32px) 이상(WCAG 2.5.8, 접근성 점검 5번) */
 .status-repos a, .status-techs a { display: inline-flex; align-items: center; min-height: var(--hit-sm); }
 .status-techs .badge { justify-self: start; }
+/* P-12g B5 판단 대기 "새로 옴": 왼쪽 3px 띠(box-shadow라 자리가 밀리지 않음) + 글자 태그. 판단 대기 · 주의 배지 색(--bg-caution)은 뜻이 겹쳐 쓰지 않는다 */
+.page .alert-row[data-new] { box-shadow: inset 3px 0 0 var(--ink); }
+.status-new { margin-right: 6px; border-color: var(--ink); color: var(--ink); font-weight: 700; vertical-align: 1px; }
 .status-more { margin: calc(-1 * var(--sp-3)) 0 var(--sp-5); }

@@ -5,6 +5,7 @@ import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import type { AppliedTech, RepoCard } from "@/lib/dashboard/status-view";
 import { GRADE_KO, NO_GRADE } from "@/lib/map/build-map";
 import { koreanTime } from "@/lib/flow/run-list";
+import { countNew, isNew } from "@/lib/dashboard/since-last-visit";
 
 const TECH_LIMIT = 24; // 넘으면 "내 프로젝트에서 모두 보기"
 const PENDING_LIMIT = 5; // 넘으면 "일지에서 모두 보기"(개요가 목록으로 길게 밀리지 않게)
@@ -50,17 +51,19 @@ export function Applied({ techs, failed }: { techs: AppliedTech[]; failed: boole
   );
 }
 
-export function Pending({ alerts }: { alerts: AlertRecord[] }) {
+/** seen = 지난번에 판단 대기를 본 시각(P-12g B5). 그보다 늦게 온 줄에 "새로 옴"(글자 + 왼쪽 띠), 제목에 수(보이는 5줄 밖도 셈) */
+export function Pending({ alerts, seen }: { alerts: AlertRecord[]; seen: number | null }) {
   const pending = alerts.filter((a) => a.status === "pending").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).map(toAlertView);
+  const fresh = countNew(alerts, seen);
   return (
     <section aria-labelledby="pending-title">
-      <h2 id="pending-title">판단 대기 <span className="muted">{pending.length}</span></h2>
+      <h2 id="pending-title">판단 대기 <span className="muted">{pending.length}{fresh ? ` · 새로 옴 ${fresh}` : ""}</span></h2>
       {pending.length === 0 ? <p className="muted">판단을 기다리는 알림이 없어요.</p> : (
         <ul className="alert-list">{pending.slice(0, PENDING_LIMIT).map((a) => (
           <li key={a.id}>
-            <Link className="alert-row" href={`/alerts/${a.id}`}>
+            <Link className="alert-row" href={`/alerts/${a.id}`} data-new={isNew(a.createdAt, seen) ? "" : undefined}>
               <span className={`badge badge-${a.kindTone}`}>{a.kindLabel}</span>
-              <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
+              <span className="alert-main"><strong>{isNew(a.createdAt, seen) ? <span className="tag status-new">새로 옴</span> : null}{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
               <span className={`badge badge-${a.statusTone}`}>{a.statusLabel}</span>
               <time className="alert-time" dateTime={a.createdAt}>{a.createdAtLabel}</time>
             </Link>

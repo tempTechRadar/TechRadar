@@ -22,6 +22,8 @@ import { ReviewCard, WeekCard } from "./extra-cards";
 import { NewsTab } from "./news-tab";
 import { Applied, Pending, Repos, RecommendCard } from "./overview";
 import { StatusTabs } from "./status-tabs";
+import { SeenMarker } from "./seen-marker";
+import { parseSeen, SEEN_COOKIE, seenValue } from "@/lib/dashboard/since-last-visit";
 
 // 현황(P-12f ④, 옛 대시보드 IA-5 · PRD-F22, 주소 /dashboard 유지) = 탭 개요 | 일지(/history) | 소식(?tab=news).
 // 개요 = 안내서 필수 숫자 4칸(누르면 같은 조건의 목록) → 내 레포 현황 → 적용한 기술 → 판단 대기 → 이번 주 · 보류 회고 → 추천. 숫자는 모든 프로젝트 합계.
@@ -36,6 +38,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const preview = isPreviewUser(user); // 미리보기(개발용)는 DB를 부르지 않고 샘플로
   if (params.tab === "news") return <Shell now="news"><NewsTab feed={preview ? "preview" : await readNews(user.id)} /></Shell>;
   const supabase = preview ? null : (await getServerSupabase())!;
+  // B5 "새로 옴": 지난번 기준을 읽고, 이번 기준 시각은 알림을 읽기 시작하기 직전에 잡는다(그 사이에 온 알림이 "본 것"이 되지 않게)
+  const visitAt = new Date();
+  const seen = parseSeen((await cookies()).get(SEEN_COOKIE)?.value, user.id, visitAt);
   const [data, status, band] = !supabase ? [SAMPLE_DASHBOARD, SAMPLE_STATUS, null] : await Promise.all([
     readDashboardData(supabase, user.id).catch((e) => { console.error("현황 조회 실패", e); return null; }),
     readStatusData(supabase, user.id).catch((e) => { console.error("현황: 내 레포 조회 실패", e); return null; }),
@@ -48,7 +53,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <Shell now="overview">
       {band ? <FirstCheckBanner band={band} /> : null}
-      <Overview data={data} alerts={alerts} status={status} params={params} />
+      <Overview data={data} alerts={alerts} status={status} params={params} seen={seen} />
+      {/* 알림을 읽었을 때만 기준을 앞당긴다(못 읽으면 못 본 알림이 "새로 옴"을 잃지 않게, 불변 2 · 4). 미리보기는 쓰지 않음 */}
+      {alerts && !preview ? <SeenMarker value={seenValue(user.id, visitAt)} /> : null}
     </Shell>
   );
 }
@@ -74,7 +81,7 @@ async function readNews(userId: string | null): Promise<NewsFeedResult | null> {
   return readNewsFeed({ db, serviceDb: getServiceSupabase(), userId }).catch((e) => { console.error("소식 조회 실패", e instanceof Error ? e.message : e); return null; });
 }
 
-function Overview({ data, alerts, status, params }: { data: DashboardData | null; alerts: AlertRecord[] | null; status: StatusData | null; params: Params }) {
+function Overview({ data, alerts, status, params, seen }: { data: DashboardData | null; alerts: AlertRecord[] | null; status: StatusData | null; params: Params; seen: number | null }) {
   const now = new Date();
   const repos = status ? repoCards(status.projects, now) : null;
   return (
@@ -83,7 +90,7 @@ function Overview({ data, alerts, status, params }: { data: DashboardData | null
       <Repos repos={repos} />
       <Applied techs={status ? appliedTechs(status.projects, status.tags) : []} failed={status === null} />
       {alerts ? <>
-        <Pending alerts={alerts} />
+        <Pending alerts={alerts} seen={seen} />
         <WeekCard count={countRecentChanges(alerts, now)} />
         <ReviewCard items={findReviewDue(alerts, now)} />
       </> : null}
