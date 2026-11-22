@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-12i-project-board · 2026-11-22 · 프로젝트 관리 보드 D1: 캔버스 틀 · 배치 · W1 숫자 · W2 판단함 · W3 레포 보드 · 메뉴 이름 (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12i-project-board`(feat/P-12h-blueprint-revamp dee2c96 위 + origin/main 병합, 로컬)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md`(11-22 20시 인터뷰) D1, Maestro 배정. IA-5 · PRD-F22(숫자 4칸 · 거르기 · 없음과 실패 구분) · 불변 2 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | "현황"은 세로로 죽 늘어놓은 양산형 대시보드라, 내 레포가 안전한지 · 지금 판단할 것 · 바뀐 것을 한눈에 못 본다. 위젯을 원하는 자리에 둘 수 없다 |
+| 기대 결과 | 메뉴 "프로젝트"(화면 "프로젝트 관리", 주소 /dashboard). 위젯 캔버스(Monday식): 배치 바꾸기에서만 끌기 · 크기 · 키보드, 배치는 이 브라우저, 기본 배치로. W1 숫자 4칸(누르면 같은 조건 목록) · W2 판단함(오래된 순 · 레포 라벨 · 새로 옴) · W3 레포 보드(AI 도구 구성 · 등급 배터리 · 모델 종료 · 판단 대기 · 다시 읽기). 보드 전체 거르기. 위젯마다 읽는 중 · 없음 · 읽지 못함 |
+| 영향 범위 | app/dashboard(page · board · widgets · board.css · status-tabs), app/layout · nav/tab-bar · history(이름), lib/dashboard(board-layout · repo-summary · status-view), lib/server/status-queries(repo_url · source_file 더 읽음) |
+| 제약 | 새 라이브러리 · DB 변경 없음(React Flow 그대로, 배치는 localStorage). Claude API · Workflow 없음. 고친 시험 · tsc만, 전체는 D4. FrontLead 파일(layout · tab-bar)은 이름만 |
+| 열린 질문 | 설명 · 언어 · 마지막 푸시는 D1'(DevAssi2) 마이그레이션 뒤 채움. W4~W9 · 위젯 라이브러리 · 레포 서랍은 D2. "내 프로젝트" 흡수 · 현황 탭 정리는 D3 |
+
+**결과(D1):** 로컬 커밋 7e0baa6 feat · 3eec1e3 test · 이 docs. tsc 통과, 고친 시험(board-layout 5 · repo-summary 2 · status-view · status-queries · 미리보기 막기 등) 20개 통과. 3108 미리보기로 확인: 메뉴 "프로젝트" · 제목 "프로젝트 관리", 위젯 숫자 · 판단함 · 레포 보드(숫자 10 · 5 · 3 · 2, 판단함 3건 먼저 온 것부터 · 레포 라벨, 레포 카드 MCP 5 · 개념 1 · 배터리 "위험 1 · 주의 0 · 통과 4 · 찾지 못함 0"), 편집 모드에서 판단함에 Tab → ↓ 한 칸 · Shift+→ 넓힘, 숫자 위젯을 끌어 내리면 아래 위젯이 밀림, 새로 고쳐도 배치 유지(localStorage project-board-v1:00000000), "기본 배치로" 되돌림, Delete로 빼기 → "뺀 위젯: 레포 보드 다시 넣기", 크게 보기(닫기에 초점 · Esc), 390px 한 줄 쌓기(숫자 → 판단함 → 레포) 가로 넘침 0, 로그인 전 세 위젯 "로그인하면 내 레포가 보여요" + 소식 위젯 실제 값.
+**확인하지 못함:** 실계정 데이터(레포 여럿 · 수집 오류 · 모델 종료 알림), [다시 읽기] 실제 실행(누르면 /projects로 감 — D3에서 /dashboard로), 화면 읽기 프로그램 · 실제 휴대폰, 끌어서 크기 바꾸기(모서리 손잡이)는 눈으로만. 개요의 옛 칸(적용한 기술 · 이번 주 · 회고 · 추천)은 이번 보드에서 빠짐 → D2 위젯(W4~W9)으로. 배터리의 "모름"은 지도와 같은 "찾지 못함" 글자를 씀.
+
 ## I-P-12h-map-cart · 2026-11-22 · U1 지도 사이드 패널 개편: 관심 별 · 청사진 장바구니 · 보류 빼기 · 담은 수 배지 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12h-map-cart`(`feat/P-12h-blueprint-revamp` e896454 위, worktree `p12h-map-cart`, 로컬, 미푸시)
 - 출처: 사용자 결정(11-22, Maestro 전달) U1 1~6. 같은 시간 청사진 쪽 U2는 DevAssi1(app/blueprint/* 안 건드림). 불변 1 · 2 · 4 · 5, ADR 0028(지도 판단), 0012(위험 등급)
