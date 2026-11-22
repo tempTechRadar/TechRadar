@@ -37,24 +37,3 @@ export function InterviewDialog({ onMake, onClose, replacing = false }: { onMake
     </Dialog>
   );
 }
-
-export function ConfirmDialog({ name, board, projects, busy, error, onConfirm, onClose }: {
-  name: string; board: Board; projects: { id: string; name: string }[]; busy: boolean; error: string; onConfirm: (projectId: string | null) => void; onClose: () => void;
-}) {
-  const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
-  const techCount = board.flat().reduce((n, s) => n + s.techs.length, 0);
-  return (
-    <Dialog title="이 조합으로 확정" onClose={onClose}>
-      <p><b>{name}</b> · {flow(board.map((c) => c.map((s) => s.name)))}</p>
-      <p className="muted">확정하면 내 이력에 남고, 붙인 기술 {techCount}개의 "내가 쓴 횟수"에 더해져요. 확정한 것은 고치지 않고 쌓여요(다음엔 불러와서 새로 확정).</p>
-      <label className="bp-field">어느 프로젝트에 쓸 건가요?
-        <select value={projectId} onChange={(e) => setProjectId(e.target.value)} data-autofocus="">
-          {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          <option value="">프로젝트 없이</option>
-        </select>
-      </label>
-      {error ? <p className="notice notice-error" role="alert">{error}</p> : null}
-      <div className="bp-row"><button type="button" className="btn btn-primary" aria-disabled={busy} onClick={() => { if (!busy) onConfirm(projectId || null); }}>{busy ? "확정하는 중…" : "확정"}</button></div>
-    </Dialog>
-  );
-}

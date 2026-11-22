@@ -19,9 +19,8 @@ const KIND_RO: Record<TemplateKind, string> = { frame: "틀로", combo: "조합�
 const FAILED = "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 const flow = (b: StoredBoard) => b.map((c) => c.map((s) => s.name).join(" · ")).join(" → ");
 
-export function TemplateTab({ graph, step, say }: PanelProps) {
-  const [kind, setKind] = useState<TemplateKind>(step === 1 ? "frame" : "combo");
-  useEffect(() => { if (step === 1) setKind("frame"); }, [step]); // ① 단계 구축에서는 틀부터
+export function TemplateTab({ graph, say }: PanelProps) {
+  const [kind, setKind] = useState<TemplateKind>("frame");
   const [lists, setLists] = useState<TemplateLists | { message: string } | undefined>(undefined); // undefined = 읽는 중
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);

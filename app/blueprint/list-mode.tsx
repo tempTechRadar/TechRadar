@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageProblem, listRows, nameProblem, neighbors, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
+import { CONNECT_KO, addStageAfter, listRows, nameProblem, neighbors, putProblem } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
 import { StageChips } from "./stage-chips";
 import "./list-mode.css";
@@ -36,18 +36,20 @@ export function ListMode(p: PanelProps) {
 /** 단계마다 앞 단계로 이을 수 있는 단계(고리 · 겹침 · 한도면 빠짐). 판이 바뀔 때 한 번만 */
 const fromOptions = (g: Graph) => new Map(g.stages.map((s) => [s.id, g.stages.filter((x) => connectProblem(g, x.id, s.id) === null)]));
 
-function AddStage({ graph, apply, say }: PanelProps) {
+/** 캔버스 "＋ 단계"와 같은 규칙(addStageAfter): 고른 단계가 있으면 그 다음에 이어 붙이고 새 단계를 고른 채로 */
+function AddStage({ graph, apply, say, picked, onPick }: PanelProps) {
   const [name, setName] = useState("");
+  const after = picked ? graph.stages.find((s) => s.id === picked.stageId) : undefined;
   const add = () => {
-    const why = addStageProblem(graph, name);
-    if (why) { say(why); return; }
-    const spot = newStageSpot(graph);
-    apply(addStage(graph, createStage(name.trim(), spot.x, spot.y)), `"${name.trim()}" 단계를 더했어요. 앞 단계를 골라 순서를 이어 주세요.`);
+    const r = addStageAfter(graph, name, after);
+    if ("problem" in r) { say(r.problem); return; }
+    apply(r.graph, after ? `"${after.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : `"${r.stage.name}" 단계를 더했어요. 앞 단계를 골라 순서를 이어 주세요.`);
+    onPick({ kind: "stage", stageId: r.stage.id });
     setName("");
   };
   return (
     <form className="lm-row lm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-      <label>새 단계 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} placeholder="예: 기획, 개발, 테스트" /></label>
+      <label>{after ? `"${after.name}" 다음 단계 이름` : "새 단계 이름"} <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} placeholder="예: 기획, 개발, 테스트" /></label>
       <button type="submit" className="btn btn-primary lm-sm">단계 더하기</button>
     </form>
   );

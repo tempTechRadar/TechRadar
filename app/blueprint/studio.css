@@ -2,9 +2,20 @@
 .studio { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .studio-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
 .studio-grow { flex: 1; }
-.studio-add { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 8px var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--line); }
-.studio-add label { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); }
-.studio-add input { min-height: var(--hit); width: 12em; padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+/* P-12h S1 위 막대 "＋ 단계": 단추 바로 아래 작은 이름 칸(팝오버). S3에서 캔버스의 옅은 블록 입력으로 바뀜 */
+.studio-addwrap { position: relative; display: inline-flex; }
+.studio-addpop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; gap: 6px; min-width: 15em; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.studio-addpop label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.studio-addpop input { min-height: var(--hit); padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+/* 결과물 창(result-dialog): 고칠 것 → 내보내기 → 확정 → AI 점검 */
+.rd { display: grid; gap: var(--sp-3); }
+.rd p { margin: 0; }
+.rd-h { margin: 0 0 6px; font-size: var(--fs-h3); }
+.rd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; }
+.rd-row label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.rd-row select { min-height: var(--hit); font: inherit; }
+.rd-preview { max-height: 30vh; overflow: auto; margin: 6px 0 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rd ul { margin: 4px 0 0; padding-left: 1.2em; }
 /* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 결과물(③) · 하단 패널 */
 .studio-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; }
 .studio-insp { min-height: 0; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); }
@@ -15,16 +26,6 @@
 .studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
 
 /* 스텝퍼: 지금 단계만 진하게(색만이 아니라 굵기 · 밑줄) */
-.st { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-pill); }
-.st-step { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; }
-.st-step[aria-current="step"] { background: var(--ink); color: var(--on-ink); font-weight: 700; }
-.st-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border: 1px solid currentColor; border-radius: 50%; font-size: var(--fs-cap); }
-.st-result { display: grid; gap: var(--sp-2); max-height: 40vh; overflow: auto; padding: var(--sp-3) var(--sp-4); background: var(--surface); border-top: 1px solid var(--line); }
-.st-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.st-row select { min-height: var(--hit); font: inherit; }
-.st-grow { flex: 1; }
-.st-preview { margin: 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
-.st-result ul { margin: 4px 0 0; padding-left: 1.2em; }
 
 /* 단계 노드 */
 .sn { box-sizing: border-box; min-width: 200px; max-width: 260px; padding: 6px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
@@ -40,9 +41,6 @@
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--ink); }
 .sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 /* ① 단계 구축: 단계 설계에 집중. 투명도는 글자 대비가 2.9:1로 떨어져 옅은 바탕 + 흐린 글자(5:1 이상)로 */
-.studio[data-step="1"] .sn-techs .tc { background: var(--sunken); }
-.studio[data-step="1"] .sn-techs .tc-main { color: var(--muted); }
-.studio[data-step="1"] .sn-techs .tc-icon { background: var(--muted); }
 .sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
 .studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
 .react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }

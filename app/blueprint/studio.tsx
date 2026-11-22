@@ -7,24 +7,24 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  addStage, applyTemplate, autoLayout, connect, fromV1, connectProblem, createStage, disconnect, LAYOUT, layers, limitProblems, LIMITS, putTech, removeStage, removeTech, toBoardView,
+  applyTemplate, autoLayout, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageProblem, CONNECT_KO, newStageSpot, putProblem } from "@/lib/blueprint/panel-view";
+import { addStageAfter, CONNECT_KO, putProblem } from "@/lib/blueprint/panel-view";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
 import { AskDialog } from "../c-dialog";
-import { ConfirmDialog, InterviewDialog } from "./dialogs";
+import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
 import { StageNode, type StageNodeType } from "./stage-node";
-import { Stepper, StepResult } from "./stepper";
-import type { PanelProps, Picked, Step } from "./studio-types";
+import { ResultDialog } from "./result-dialog";
+import type { PanelProps, Picked } from "./studio-types";
 import { useStudioGraph } from "./use-studio-graph";
 import { useConfirm } from "./use-studio-save";
 import "./studio.css";
@@ -54,13 +54,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // 넓은 화면: 캔버스(목록 모드 단추로 바꿈). 좁은 화면: 목록으로 고치기가 기본, "그림으로 보기"는 확대 · 이동만 되는 읽기 전용 캔버스
   const narrow = useNarrow(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
   const listMode = narrow ? !phoneView : listOn, readOnly = narrow && phoneView;
-  const [step, setStep] = useState<Step>(add ? 2 : 1);
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
   // shortcut: 끄는 동안의 위치를 이 컴포넌트 상태에 둬서 포인터가 움직일 때마다 패널까지 다시 그린다. 단계가 수십 개를 넘어 끌기가 버벅이면 캔버스 자식으로 내리거나 패널을 memo한다
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
-  const [newName, setNewName] = useState("");
+  const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
   const [loginAsk, setLoginAsk] = useState<string | null>(null); // 손님이 저장 · 판단을 누름: 무엇을 하려는지(묻는 대화상자 글)
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
@@ -85,7 +84,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     lastConfirmed.current = id; setConfirmedId(id);
     // 저장이 성공해 onDone이 불렸을 때만(실패면 이 함수가 안 불림, 불변 4) · 처음 보는 확정 id · 고리 없는 판 · 움직임 줄이기 아님
     if (fresh && layOk.current && !calm()) { setDrawing(true); clearTimeout(drawTimer.current); drawTimer.current = setTimeout(() => setDrawing(false), DRAW_MS); }
-    say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh();
+    say("확정해서 내 이력에 남겼어요. \"확정 · 내보내기\"에서 AI 점검을 받을 수 있어요."); router.refresh();
   },
     (m) => { if (!confirmOpen.current) say(m); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
@@ -144,25 +143,19 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(putTech(g, stageId, { id: t.id, name: t.name }), `${s.name}에 ${t.name} 붙였어요.`);
   }
   const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
-  /** 새 단계: 고른 단계가 있으면 그 오른쪽 빈자리(아래로 내려가며 찾음)에 두고 선으로 잇는다, 없으면 맨 오른쪽 단계 옆 */
+  /** 새 단계: 고른 단계가 있으면 그 다음에 이어 붙인다(목록 모드와 같은 규칙, panel-view addStageAfter). 더한 단계를 고른 채로 둬서 연달아 이어 붙일 수 있게 */
   function addNamed(nm: string) {
-    const why = addStageProblem(g, nm);
-    if (why) return say(why);
-    let at = base ? { x: base.x + LAYOUT.x, y: base.y } : newStageSpot(g);
-    const taken = (p: Pos) => g.stages.some((o) => Math.abs(o.x - p.x) < LAYOUT.x / 2 && Math.abs(o.y - p.y) < LAYOUT.y / 2);
-    for (let i = 0; base && taken(at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
-    const s = createStage(nm, at.x, at.y);
-    let next = addStage(g, s);
-    if (base) next = connect(next, base.id, s.id);
-    apply(next, `"${s.name}" 단계를 더했어요.`);
-    setNewName(""); setPicked({ kind: "stage", stageId: s.id }); setSel(new Set([s.id]));
+    const r = addStageAfter(g, nm, base);
+    if ("problem" in r) return say(r.problem);
+    apply(r.graph, base ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : `"${r.stage.name}" 단계를 더했어요.`);
+    setNewName(""); setAdding(false); setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
       onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId },
   }));
   const edges: FlowEdge[] = g.edges.map((e) => {
@@ -234,39 +227,49 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const outside = new Set(g.stages.flatMap((s) => s.techs.filter((t) => !info.has(t.id)).map((t) => t.id)));
   // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
   const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
+  // AI 점검할 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 "먼저 확정해 주세요"로 막히지 않게, P-12h S1)
+  const latest = history?.[0];
+  const checkTarget = confirmedId ? { id: confirmedId, label: "방금 확정한 것" }
+    : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
-  const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
+  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
 
   return (
-    <div className="studio" data-step={step} onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
+    <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
       <div className="studio-bar">
         <label className="sr-only" htmlFor="bp-name">청사진 이름</label>
         <input id="bp-name" className="bp-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        <Stepper step={step} onStep={setStep} />
-        <span className="studio-grow" />
         <button type="button" className="btn" disabled={!canUndo} onClick={undo}>되돌리기</button>
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
+        {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
+        <span className="studio-addwrap">
+          <button type="button" className="btn" aria-expanded={adding} disabled={readOnly} onClick={() => setAdding(!adding)}>＋ 단계</button>
+          {adding ? (
+            <form className="studio-addpop" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}
+              onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setAdding(false); } }}>
+              <label>{base ? `"${base.name}" 다음 단계 이름` : "새 단계 이름"}
+                <input autoFocus value={newName} maxLength={20} list="studio-hints" placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} />
+              </label>
+              <datalist id="studio-hints">{hints.map((h) => <option key={h} value={h} />)}</datalist>
+              <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>더하기</button>
+            </form>
+          ) : null}
+        </span>
         <button type="button" className="btn" onClick={() => { const next = autoLayout(g); if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요."); apply(next, "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })); }}>자동 정렬</button>
         <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
+        <span className="studio-grow" />
+        <button type="button" className="btn btn-primary" onClick={() => { done.reset(); setConfirming(true); }}>확정 · 내보내기</button>
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
       {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 아래 기술 탭의 &quot;카탈로그에서 찾기&quot;로 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
       {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
         <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
-      {step === 1 ? (
-        <form className="studio-add" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}>
-          <label>새 단계 <input value={newName} maxLength={20} placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} /></label>
-          <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>{base ? "고른 단계 다음에 더하기" : "단계 더하기"}</button>
-          {hints.map((h) => <button key={h} type="button" className="chip" onClick={() => addNamed(h)}>+ {h}</button>)}
-          <button type="button" className="btn" onClick={() => setAsking(true)}>질문으로 틀 만들기</button>
-        </form>
-      ) : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
@@ -283,11 +286,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         )}
         {narrow ? null : <aside className="studio-insp" aria-label="속성 패널"><Inspector {...panel} /></aside>}
       </div>
-      {step === 3 ? <StepResult name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} say={say} onConfirm={guest ? () => toLogin("확정하려면") : () => { done.reset(); setConfirming(true); }} /> : null}
       <Dock {...panel} />
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
-      {confirming && board ? <ConfirmDialog name={name.trim() || "이름 없는 청사진"} board={board} projects={projects} busy={done.busy} error={done.error}
+      {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} problems={problems} projects={projects} busy={done.busy} error={done.error} guest={guest}
+        check={checkTarget} say={say} onLogin={() => { setConfirming(false); toLogin("확정하려면"); }}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
       {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => { setLoginAsk(null); router.push(`/login?next=${encodeURIComponent("/blueprint")}`); }} onClose={() => setLoginAsk(null)}>
         <p>{loginAsk} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요.</p>

@@ -1,7 +1,7 @@
 // 청사진 스튜디오 패널(P-12e 조각 K: 하단 패널 · 속성 패널 · 목록 모드)이 쓰는 순수 계산. 화면 · DB · xyflow를 모른다.
 // 그래프를 바꾸는 것은 graph.ts 편집 함수이고, 여기는 무엇을 보일지 · 왜 못 바꾸는지만 정한다.
 import { STAGE_NAME_MAX, cleanName } from "./board.ts";
-import { LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
+import { addStage, connect, createStage, LAYOUT, LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
 import { contentKey } from "./draft.ts";
 import { fitsStage } from "./knowledge.ts";
 import type { TechUsage } from "./stored.ts";
@@ -62,6 +62,19 @@ export const newStageSpot = (g: Graph): Pos => {
   const right = g.stages.reduce<Stage | null>((m, s) => (!m || s.x > m.x ? s : m), null);
   return right ? { x: right.x + 280, y: right.y } : { x: 0, y: 0 };
 };
+
+/** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
+ *  고른 단계 → 새 단계로 잇는다. 없으면 맨 오른쪽 단계 옆, 잇지 않음. 못 더하면 이유 글 */
+export function addStageAfter(g: Graph, name: string, after: Stage | undefined): { graph: Graph; stage: Stage } | { problem: string } {
+  const why = addStageProblem(g, name);
+  if (why) return { problem: why };
+  let at = after ? { x: after.x + LAYOUT.x, y: after.y } : newStageSpot(g);
+  const taken = (p: Pos) => g.stages.some((o) => Math.abs(o.x - p.x) < LAYOUT.x / 2 && Math.abs(o.y - p.y) < LAYOUT.y / 2);
+  for (let i = 0; after && taken(at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
+  const stage = createStage(name.trim(), at.x, at.y);
+  const added = addStage(g, stage);
+  return { graph: after ? connect(added, after.id, stage.id) : added, stage };
+}
 
 /** UUID v4. crypto.randomUUID는 https · localhost에서만 있어 http(휴대폰으로 PC 주소)에서는 getRandomValues로 만든다(use-studio-save.ts와 같은 방법) */
 export function uuid(): string {

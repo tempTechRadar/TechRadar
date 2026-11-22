@@ -31,5 +31,11 @@
 .dock-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
 .dock-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); color: var(--ink); }
 .dock-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; align-items: start; }
+.dock-group { border-top: 1px solid var(--line); padding-top: 8px; }
+.dock-group > summary { min-height: var(--hit-sm); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+.dock-group > summary:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .dock-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 860px) { .dock-cols, .dock-cols-3 { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .dock-cols, .dock-group { border-top: 1px solid var(--line); padding-top: 8px; }
+.dock-group > summary { min-height: var(--hit-sm); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+.dock-group > summary:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.dock-cols-3 { grid-template-columns: 1fr; } }

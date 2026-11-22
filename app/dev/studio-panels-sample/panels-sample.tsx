@@ -7,25 +7,23 @@ import type { PoolTech } from "@/lib/server/blueprints";
 import { Dock } from "../../blueprint/dock";
 import { Inspector } from "../../blueprint/inspector";
 import { ListMode } from "../../blueprint/list-mode";
-import type { PanelProps, Picked, Step } from "../../blueprint/studio-types";
+import type { PanelProps, Picked } from "../../blueprint/studio-types";
 import { ToastLine, useToast } from "../../undo-toast";
 
 export function PanelsSample({ pool, history, tags: start }: { pool: PoolTech[]; history: BlueprintRecord[]; tags: Record<string, string[]> }) {
   const [stack, setStack] = useState<Graph[]>(() => [fromV1(toBoard(history[0].board))]);
   const [picked, setPicked] = useState<Picked>(null);
-  const [step, setStep] = useState<Step>(2);
   const [tags, setTags] = useState(start);
   const { toast, say, clear } = useToast();
   const graph = stack[stack.length - 1];
   const p: PanelProps = {
-    graph, step, picked, onPick: setPicked, pool, tags, history, say, confirmedId: null, onCandidate: () => undefined, marking: null,
+    graph, picked, onPick: setPicked, onAsk: () => say("질문으로 틀 만들기는 청사진 화면에서 열려요."), pool, tags, history, say, confirmedId: null, onCandidate: () => undefined, marking: null,
     apply: (next, text) => { if (next === graph) return; setStack((s) => [...s.slice(-49), next]); if (text) say(text); },
     onTags: (id, t) => setTags((x) => ({ ...x, [id]: t })),
   };
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <p className="actions">
-        {([1, 2, 3] as Step[]).map((s) => <button key={s} type="button" className="btn" aria-pressed={step === s} onClick={() => setStep(s)}>{s}단계</button>)}
         <button type="button" className="btn" disabled={stack.length < 2} onClick={() => setStack((s) => s.slice(0, -1))}>되돌리기</button>
       </p>
       <ToastLine toast={toast} clear={clear} className="notice" />

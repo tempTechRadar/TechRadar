@@ -46,7 +46,7 @@ export function CheckPanel({ blueprintId }: { blueprintId: string | null }) {
     void refresh(blueprintId);
   }, [blueprintId]);
 
-  if (!blueprintId) return <p className="muted">확정한 청사진에서 점검을 받을 수 있어요. "③ 결과물"에서 먼저 확정해 주세요.</p>;
+  if (!blueprintId) return <p className="muted">확정한 청사진에서 점검을 받을 수 있어요. 위 "확정 · 내보내기"에서 먼저 확정해 주세요.</p>;
   if (load.kind === "loading") return <p role="status" className="muted">점검 내용을 읽는 중이에요…</p>;
   if (load.kind === "error") return <p className="notice" role="alert">{load.message}</p>;
   const { data } = load;

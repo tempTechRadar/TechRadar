@@ -1,6 +1,7 @@
 "use client";
-// 청사진 스튜디오 하단 패널(P-12e 조각 K, 유니티식): 높이 조절 · 접기, 탭 = 기술 | 내 이력 | 템플릿 | AI 점검.
-// 단계별 기본 탭: ① 단계 구축 → 템플릿(틀), ② 스킬 붙이기 → 기술, ③ 결과물 → AI 점검(CheckPanel, 조각 I). 템플릿 탭은 template-tab.tsx(서버는 조각 F).
+// 청사진 스튜디오 하단 패널(P-12e 조각 K, 유니티식): 높이 조절 · 접기, 탭 = 기술 | 불러오기(P-12h S1: 단계 칸이 없어져 탭을 둘로).
+// 기술 = 넣을 기술 + 관심 · 적용 후보 · 보류 묶음(옛 후보 탭, S2 기술 트리 전까지). 불러오기 = 템플릿(template-tab) · 내 이력 · 질문으로 틀 만들기.
+// AI 점검은 위 막대 "확정 · 내보내기" 창으로 옮김.
 // 기술 탭 = 옛 서랍(drawer.tsx) 로직: 관문(내 기술 · 적용 후보 · 이력만, candidateIds) · 고른 단계에 맞는 것(fitsStage) · 내 태그 · ?add= 강조.
 // 끌어서 캔버스 단계에 놓거나(TECH_DRAG, 놓기는 studio), 키보드로 "고른 단계에 넣기". 그래프는 apply로만 바꾼다.
 import { useSearchParams } from "next/navigation";
@@ -13,15 +14,13 @@ import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { searchAction } from "./actions";
 import { CandidateTab } from "./candidate-tab";
-import { CheckPanel } from "./check-panel";
 import { TemplateTab } from "./template-tab";
 import { TechChip } from "./tech-chip";
-import { TECH_DRAG, type PanelProps, type Step } from "./studio-types";
+import { TECH_DRAG, type PanelProps } from "./studio-types";
 import "./dock.css";
 
-type Tab = "tech" | "cand" | "hist" | "tpl" | "check";
-const TABS: [Tab, string][] = [["tech", "기술"], ["cand", "후보"], ["hist", "내 이력"], ["tpl", "템플릿"], ["check", "AI 점검"]];
-const STEP_TAB: Record<Step, Tab> = { 1: "tpl", 2: "tech", 3: "check" };
+type Tab = "tech" | "load";
+const TABS: [Tab, string][] = [["tech", "기술"], ["load", "불러오기"]];
 const H = { min: 120, start: 260, step: 24, max: 560 };
 /** 높이 한도 = 화면 높이의 70%. 서버는 화면을 몰라 기본값으로 그리고, 붙은 뒤(useEffect) 맞춘다(하이드레이션 어긋남 없게) */
 function useMaxH() {
@@ -37,8 +36,7 @@ function useMaxH() {
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
 export function Dock(p: PanelProps) {
-  const [tab, setTab] = useState<Tab>(STEP_TAB[p.step]);
-  useEffect(() => setTab(STEP_TAB[p.step]), [p.step]); // 단계를 바꾸면 그 단계에 쓰는 탭으로
+  const [tab, setTab] = useState<Tab>("tech");
   const [open, setOpen] = useState(true);
   const [h, setH] = useState(H.start);
   const usage = useMemo(() => usageOf(p.history ?? []), [p.history]);
@@ -51,7 +49,7 @@ export function Dock(p: PanelProps) {
         <div className="dock-tabs" role="group" aria-label="하단 패널 보기">
           {TABS.map(([k, name]) => (
             <button key={k} type="button" className="dock-tab" aria-pressed={tab === k} onClick={() => { setTab(k); setOpen(true); }}>
-              {name}{k === "hist" && p.history ? ` ${p.history.length}` : ""}
+              {name}
             </button>
           ))}
         </div>
@@ -59,15 +57,11 @@ export function Dock(p: PanelProps) {
       </div>
       {open ? (
         <div className="dock-body">
-          {/* 손님(P-12f): 기술 탭(카탈로그 찾기)만. 이력 · 템플릿 · AI 점검은 내 데이터라 로그인 안내 */}
-          {p.guest && tab !== "tech" ? <p className="notice" role="status">로그인하면 {tab === "hist" ? "확정한 청사진이 여기에 쌓여요" : tab === "tpl" ? "판을 템플릿으로 저장하고 공개할 수 있어요" : "확정한 청사진을 AI로 점검받을 수 있어요"}. <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> · 지금 판은 이 브라우저에 그대로 있어요.</p> : <>
-          {tab === "tech" ? <TechTab {...p} usage={usage} /> : null}
-          {tab === "cand" ? <CandidateTab {...p} /> : null}{/* P-12f ⑤ 보드 녹이기: 관심 · 적용 후보 · 보류 */}
-          {tab === "hist" ? <HistTab {...p} usage={usage} /> : null}
-          {tab === "tpl" ? <TemplateTab {...p} /> : null}
-          {/* 확정 전(null)이면 CheckPanel이 "③ 결과물에서 먼저 확정해 주세요"를 보인다(조각 I, DataCollector) */}
-          {tab === "check" ? <CheckPanel blueprintId={p.confirmedId} /> : null}
-          </>}
+          {tab === "tech" ? <>
+            <TechTab {...p} usage={usage} />
+            {/* 옛 후보 탭(P-12f ⑤ 보드 녹이기): S2 기술 트리 전까지 기술 탭 안의 묶음. 손님은 내 판단이 없어 뺀다 */}
+            {p.guest ? null : <details className="dock-group"><summary>관심 · 적용 후보 · 보류</summary><CandidateTab {...p} /></details>}
+          </> : <LoadTab {...p} usage={usage} />}
         </div>
       ) : null}
     </section>
@@ -166,6 +160,21 @@ function TechCard({ t, use, tags, stage, placed = false, added = false, gated = 
         : placed ? <span className="muted">✓ {stage}에 있어요</span>
         : stage ? <button type="button" className="btn dock-sm" onClick={onPut}>{stage}에 넣기</button> : null}
     </li>
+  );
+}
+
+/** 불러오기 탭: 질문으로 틀 만들기(손님도 됨, 이 브라우저 판) · 템플릿 · 내 이력(로그인) */
+function LoadTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
+  return (
+    <>
+      <p className="dock-row"><button type="button" className="btn dock-sm" onClick={p.onAsk}>질문으로 틀 만들기</button><span className="muted">몇 가지 물음에 답하면 단계 틀을 만들어 줘요.</span></p>
+      {p.guest ? <p className="notice" role="status">로그인하면 템플릿을 저장 · 공개하고, 확정한 청사진을 불러올 수 있어요. <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> · 지금 판은 이 브라우저에 그대로 있어요.</p> : <>
+        <h3 className="dock-h">템플릿</h3>
+        <TemplateTab {...p} />
+        <h3 className="dock-h">내 이력{p.history ? ` ${p.history.length}` : ""}</h3>
+        <HistTab {...p} />
+      </>}
+    </>
   );
 }
 
