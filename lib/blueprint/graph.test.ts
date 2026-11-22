@@ -5,7 +5,7 @@ import { fromNames } from "./board.ts";
 import { parseBoard, toStored } from "./stored.ts";
 import {
   addStage, applyTemplate, asFrame, autoLayout, connect, connectProblem, createStage, disconnect, emptyGraph, fromV1, layers, limitProblems, moveStages,
-  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, BOX, slotAt, stageHeight, techSlot, type Graph, type Stage,
+  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, BOX, NODE_SIZE, slotAt, stageHeight, techSlot, type Graph, type Stage,
 } from "./graph.ts";
 
 const T = (n: number) => ({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, name: `기술${n}` });
@@ -152,6 +152,15 @@ test("자동 정렬은 컨테이너 높이를 본다: 기술이 많은 단계 �
   const l = autoLayout(full), at = (id: string) => l.stages.find((s) => s.id === id)!;
   assert.ok(at("c").y >= at("b").y + stageHeight(at("b")), `${at("b").y} + ${stageHeight(at("b"))} <= ${at("c").y}`);
   assert.ok(l.stages.every((s) => s.y % 8 === 0));
+});
+
+test("자동 정렬 간격(11-22 사용자): 열 사이는 겹치지 않고(32 이상), 단계 6개 사슬이 1440 화면에 0.9배 이상으로 들어간다", () => {
+  assert.ok(LAYOUT.x - NODE_SIZE.w >= 32, `열 사이 ${LAYOUT.x - NODE_SIZE.w}`);
+  const ids = ["a", "b", "c", "d", "e", "f"];
+  const l = autoLayout(mk(ids, ids.slice(1).map((id, i) => [ids[i], id] as [string, string])));
+  const right = Math.max(...l.stages.map((s) => s.x)) + NODE_SIZE.w;
+  assert.ok(right * 0.9 <= 1440 * 0.94, `판 폭 ${right} × 0.9 = ${right * 0.9}`); // 화면 맞춤 여백 3%씩(studio FIT.padding)
+  assert.ok(LAYOUT.y >= stageHeight({ techs: [], note: undefined }) + 32, "빈 단계 사이도 32 이상");
 });
 
 test("그래프: 자동 정렬은 깊이마다 열, 같은 깊이는 y 순서 유지 · 가운데 맞춤 · 8의 배수 · 고리면 그대로", () => {
