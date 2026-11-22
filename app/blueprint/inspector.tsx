@@ -36,7 +36,7 @@ export function Inspector(p: PanelProps) {
   );
 }
 
-function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId }: PanelProps & { stageId: string }) {
+function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
   const rename = (form: FormData) => {
@@ -53,8 +53,8 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <button type="submit" className="btn btn-sm">이름 바꾸기</button>
       </form>
       <Card title="순서">
-        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} />
-        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} />
+        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(o.id, s.id) : undefined} />
+        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(s.id, o.id) : undefined} />
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
       <NoteField graph={graph} apply={apply} stage={s} />
@@ -89,11 +89,12 @@ function NoteField({ graph, apply, stage }: Pick<PanelProps, "graph" | "apply"> 
 }
 
 /** 앞 · 다음 단계 줄 + "끊기"(캔버스 선 위 끊기 단추의 키보드 짝, P-12h S3) */
-function Links({ label, list, onCut }: { label: string; list: Stage[]; onCut: (o: Stage) => void }) {
+function Links({ label, list, onCut, onInsert }: { label: string; list: Stage[]; onCut: (o: Stage) => void; onInsert?: (o: Stage) => void }) {
   if (!list.length) return <p>{label}: 없음</p>;
   return (
     <div>{label}:
-      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button></li>)}</ul>
+      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button>
+        {onInsert ? <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name}과(와) 사이에 단계 넣기`} onClick={() => onInsert(o)}>사이에 단계 넣기</button> : null}</li>)}</ul>
     </div>
   );
 }

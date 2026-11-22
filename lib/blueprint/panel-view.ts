@@ -1,7 +1,7 @@
 // 청사진 스튜디오 패널(P-12e 조각 K: 하단 패널 · 속성 패널 · 목록 모드)이 쓰는 순수 계산. 화면 · DB · xyflow를 모른다.
 // 그래프를 바꾸는 것은 graph.ts 편집 함수이고, 여기는 무엇을 보일지 · 왜 못 바꾸는지만 정한다.
 import { STAGE_NAME_MAX, cleanName } from "./board.ts";
-import { addStage, connect, createStage, LAYOUT, LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
+import { addStage, connect, createStage, disconnect, LAYOUT, LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
 import { contentKey } from "./draft.ts";
 import { fitsStage } from "./knowledge.ts";
 import type { TechUsage } from "./stored.ts";
@@ -93,6 +93,23 @@ export function addStageLinked(g: Graph, name: string, at: Pos, link: { before: 
   const l = layers(graph), d = l.ok ? l.depth.get(stage.id) : undefined;
   if (l.ok && d !== undefined && l.levels[d].length > LIMITS.parallel) return { problem: fullOrder(d) };
   return { graph, stage, linked: want > 0 && graph.edges.length === base + want };
+}
+
+/** 사이 단계 자리: 두 단계 가운데 x, 한 줄 아래(카드가 커서 가운데에 두면 양옆과 겹침). 차 있으면 더 아래로 */
+export function betweenSpot(g: Graph, a: Stage, b: Stage): Pos {
+  let at = { x: Math.round((a.x + b.x) / 2), y: Math.max(a.y, b.y) + LAYOUT.y };
+  for (let i = 0; taken(g, at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
+  return at;
+}
+
+/** 선 사이에 단계 끼우기(P-12h-2 U2, 선 위 +): from → to 선을 없애고 from → 새 · 새 → to를 한 번에(되돌리기 한 칸).
+ *  자리는 betweenSpot. 둘 다 잇지 못하면(연결 한도 등) 아무것도 바꾸지 않고 이유(선만 사라지지 않게, 불변 4) */
+export function insertBetween(g: Graph, name: string, from: string, to: string): Added {
+  const a = g.stages.find((s) => s.id === from), b = g.stages.find((s) => s.id === to);
+  if (!a || !b || !g.edges.some((e) => e.from === from && e.to === to)) return { problem: "없는 선이에요. 화면을 새로 고쳐 주세요." };
+  const r = addStageLinked(disconnect(g, from, to), name, betweenSpot(g, a, b), { before: [from], after: [to] });
+  if (!("problem" in r) && !r.linked) return { problem: `"${a.name}"와(과) "${b.name}" 사이에 잇지 못했어요(연결은 ${LIMITS.edges}개까지).` };
+  return r;
 }
 
 /** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
