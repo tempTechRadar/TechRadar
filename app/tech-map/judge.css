@@ -1,8 +1,5 @@
-/* 내 판단 줄(judge.tsx): 지도 사이드바와 기술 상세가 함께 쓴다. 단추 모양은 .page .btn(둘 다 .page 안) */
+/* 내 판단 줄(judge.tsx): 기술 상세가 쓴다. 단추 모양은 .page .btn */
 .map-judge { display: grid; gap: 6px; }
 .map-judge .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.map-judge-compact .map-row { gap: 6px; }
-.map-judge-compact .chip:disabled { color: var(--faint); cursor: not-allowed; }
-.map-judge-compact > p { margin: 0; font-size: var(--fs-sm); }
 .map-hold { display: grid; gap: 6px; }
 .map-hold label { display: grid; gap: 4px; }

@@ -6,7 +6,7 @@ import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
 import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
-const MARK_CHIP: Record<MarkPick, string> = { interest: "내 관심", candidate: "적용 후보", hold: "보류" };
+const MARK_CHIP: Record<MarkPick, string> = { interest: "★ 관심", candidate: "담은 기술", hold: "보류" }; // 사이드 패널 별 · 담기와 같은 말(P-12h U1)
 import { MapSearch, type FindHit } from "./map-search";
 
 type ListKey = "kinds" | "fields" | "subs";
