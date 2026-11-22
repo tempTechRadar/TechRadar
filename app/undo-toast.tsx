@@ -26,10 +26,10 @@ export function ToastLine({ toast, clear, className }: { toast: Toast; clear: ()
   const hold = (on: boolean) => (e: React.PointerEvent<HTMLParagraphElement>) => { if (on) e.currentTarget.dataset.hold = ""; else delete e.currentTarget.dataset.hold; }; // 터치: 누르고 있는 동안 멈춤
   return (
     <p className={`c-toast ${className}`} role="status" aria-live="polite" onPointerDown={hold(true)} onPointerUp={hold(false)} onPointerCancel={hold(false)} onPointerLeave={hold(false)}>
-      {toast ? <span key={toast.id}>{toast.text}{toast.undo ? <span className="c-toast-note"> 되돌리기 단추는 6초 뒤 사라져요.</span> : null}</span> : null}
+      {toast ? <span key={`t${toast.id}`}>{toast.text}{toast.undo ? <span className="c-toast-note"> 되돌리기 단추는 6초 뒤 사라져요.</span> : null}</span> : null}
       {toast?.undo ? <button type="button" className="btn" onClick={() => { const u = toast.undo!; clear(); u(); }}>되돌리기</button> : null}
       {/* 남은 시간 막대 = 되돌리기 시계(6초 고정, 움직임 줄이기면 숨기고 위 글로). 막대 자신의 끝만 받는다 */}
-      {toast?.undo ? <i key={toast.id} className="c-toast-time" aria-hidden="true" onAnimationEnd={(e) => { if (e.target === e.currentTarget) clear(); }} /> : null}
+      {toast?.undo ? <i key={`b${toast.id}`} className="c-toast-time" aria-hidden="true" onAnimationEnd={(e) => { if (e.target === e.currentTarget) clear(); }} /> : null}
     </p>
   );
 }

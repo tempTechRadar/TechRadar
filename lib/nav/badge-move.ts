@@ -7,7 +7,7 @@ export type Badge = { n: number | null; dir: BadgeDir | null };
 export const badgeLabel = (n: number | null): string | null => (n ? (n > 99 ? "99+" : String(n)) : null);
 
 export function nextBadge(prev: Badge, n: number | null, animate: boolean): Badge {
-  if (badgeLabel(prev.n) === badgeLabel(n)) return prev.n === n ? prev : { n, dir: prev.dir };
+  if (badgeLabel(prev.n) === badgeLabel(n)) return prev.n === n ? prev : { n, dir: null }; // 99+끼리: 움직임 · 낭독 없음
   const moved = animate && typeof prev.n === "number" && typeof n === "number" && badgeLabel(n) !== null;
   return { n, dir: moved ? (n > prev.n! ? "up" : "down") : null };
 }

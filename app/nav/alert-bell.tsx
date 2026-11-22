@@ -23,12 +23,10 @@ export function AlertBell({ pending: first, login }: { pending: number | null; l
   const [items, setItems] = useState<RecentAlert[] | null | undefined>(undefined); // undefined = 읽는 중, null = 못 읽음
   // 배지 = 판단 대기 수 + 한 번 움직일 방향(P-12g C3). 레이아웃이 준 새 수(판단 저장 · 새 사건)는 움직이고, 종을 펼쳐 바로잡은 수는 조용히
   const [badge, setBadge] = useState<Badge>({ n: first, dir: null });
-  const [said, setSaid] = useState(""); // 늘었을 때만 한 번 읽는다(줄어든 것은 판단 화면이 이미 말함)
-  const show = (n: number | null, animate: boolean) => setBadge((b) => {
-    const next = nextBadge(b, n, animate);
-    if (next.dir === "up") setSaid(`판단 대기 ${n}건으로 늘었어요`);
-    return next;
-  });
+  // 늘었을 때만 한 번 읽는다(줄어든 것은 판단 화면이 이미 말함). k: 같은 글이 다시 와도 새로 붙어 다시 읽히게
+  const [said, setSaid] = useState({ text: "", k: 0 });
+  const show = (n: number | null, animate: boolean) => setBadge((b) => nextBadge(b, n, animate));
+  useEffect(() => { if (badge.dir === "up") setSaid((s) => ({ text: `판단 대기 ${badge.n}건으로 늘었어요`, k: s.k + 1 })); }, [badge]);
   useEffect(() => show(first, true), [first]); // 레이아웃이 새 수를 주면 그것으로
   const pending = badge.n;
   useDismiss(box, login);
@@ -60,7 +58,7 @@ export function AlertBell({ pending: first, login }: { pending: number | null; l
       </div>
     </details>
     {/* details 바깥: 닫힌 details 안의 live 줄은 읽히지 않는다 */}
-    <span className="sr-only" role="status">{said}</span>
+    <span className="sr-only" role="status"><span key={said.k}>{said.text}</span></span>
     </>
   );
 }

@@ -46,6 +46,6 @@ export async function judge(previous: JudgeState, formData: FormData): Promise<J
   // 이미 판단된 알림(다른 탭 · 지도에서)은 실패가 아니라 완료: 상세를 다시 그려 실제 완료 카드를 보인다(불변 4 · 6, P-12g C1)
   if (!result.ok && result.code !== "done") return { message: result.message, n: previous.n + 1 };
   revalidatePath("/alerts");
-  // saved=1: 방금 저장한 첫 화면에서만 판단 카드가 한 번 움직인다(P-12g C2, saved-focus가 주소에서 지움)
-  redirect(result.ok ? `/alerts/${alertId}?saved=1` : `/alerts/${alertId}`);
+  // saved=1: 방금 저장한 첫 화면에서만 판단 카드가 한 번 움직인다. done: 초점만(P-12g C2, saved-focus가 주소에서 지움)
+  redirect(`/alerts/${alertId}?saved=${result.ok ? "1" : "done"}`);
 }

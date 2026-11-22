@@ -37,7 +37,9 @@ export default async function AlertDetailPage({ params, searchParams }: { params
   if (loaded.record === null) notFound();
   const view = toAlertView(loaded.record);
   // 방금 저장한 첫 화면(judge가 ?saved=1로 보냄)에서만 판단 카드가 한 번 움직이고 초점을 받는다. 나중에 다시 열면 그냥 찍혀 있다(P-12g C2)
-  const fresh = (await searchParams).saved === "1" && view.judgmentLine !== null;
+  // saved=done: 이미 판단된 알림이라 도장 없이 초점만(화면 읽기가 완료 카드를 읽게)
+  const saved = (await searchParams).saved;
+  const fresh = saved === "1" && view.judgmentLine !== null;
   const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
   const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
@@ -55,7 +57,7 @@ export default async function AlertDetailPage({ params, searchParams }: { params
           <article id="judged-card" className="card judged-card" aria-labelledby="judged-title" tabIndex={-1} data-fresh={fresh ? "" : undefined}>
             <h2 id="judged-title">내 판단</h2>
             <p className="judge-stamp">{view.judgmentLine}{view.judgedAtLabel ? ` · ${view.judgedAtLabel}` : ""}</p>
-            {fresh ? <SavedFocus target="judged-card" /> : null}
+            {saved === "1" || saved === "done" ? <SavedFocus target="judged-card" /> : null}
             <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요. {BLUEPRINT_GATE}</p>
             {/* 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 적용 기회를 후보로 골랐으면 바로 넣으러 간다(보안 경고 · 모델 종료는 내가 쓰는 것이라 넣을 새 기술이 아님) */}
             {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <p className="actions"><Link className="btn" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link></p> : null}
