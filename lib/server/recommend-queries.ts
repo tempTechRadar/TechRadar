@@ -5,6 +5,7 @@ import { pickRecommendations, type Recommendation } from "../domain/recommend.ts
 import type { Taste } from "../domain/taste.ts";
 import { rowsOrThrow } from "./alert-db.ts";
 import { readTaste } from "./taste-store.ts";
+import { listedTechs } from "./map-queries.ts";
 
 /** 고른 갈래 안에서 읽어 올 기술의 최대 수. shortcut: 고정 개수, 갈래 안 기술이 이보다 많아지면 다운로드 순으로 DB에서 나눠 읽는다 */
 export const CANDIDATE_LIMIT = 500;
@@ -22,8 +23,8 @@ export async function readRecommendations(db: SupabaseClient, userId: string, is
   const inScope = categories.filter((c) => bigIds.has(c.id) || (c.parentId !== null && bigIds.has(c.parentId))).map((c) => c.id);
   if (inScope.length === 0) return { taste, items: [] };
 
-  let q = db.from("technologies").select(COLUMNS).in("category_id", inScope).neq("status", "gone");
-  if (!isDemo) q = q.eq("is_simulated", false); // 시뮬레이터 기술은 시연 계정에만(SPEC-3.5)
+  // 공개 목록 기술만(남의 비공개 저장소에서 생긴 줄 이름이 추천으로 새지 않게, ADR 0029 4항). 시뮬레이터 기술은 시연 계정에만(SPEC-3.5)
+  const q = listedTechs(db, COLUMNS, isDemo).in("category_id", inScope);
   const [techRes, mineRes] = await Promise.all([
     q.order("id").limit(CANDIDATE_LIMIT),
     db.from("my_technologies").select("tech_id").eq("owner_id", userId).not("tech_id", "is", null),

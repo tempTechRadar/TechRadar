@@ -24,9 +24,9 @@ test("레이아웃의 메뉴는 이 스타일(site-nav)을 쓰고 인라인 높�
 });
 
 test("거르기·등록 폼의 입력칸은 44px, 체크박스는 라벨이 44px로 감싸고, 표 안 링크는 24px 이상", () => {
-  const css = read("app/alerts/alerts.css");
-  assert.match(rule(css, '.alerts .filters input:not([type="checkbox"]):not([type="hidden"])'), /min-height:\s*44px/);
-  assert.match(rule(css, '.alerts .filters label:has(> input[type="checkbox"])'), /min-height:\s*44px/);
-  assert.match(rule(css, '.alerts .filters input[type="checkbox"]'), /width:\s*20px/);
-  assert.match(rule(css, ".alerts table a"), /min-height:\s*24px/);
+  const css = read("app/page.css");
+  assert.match(rule(css, '.page .filters input:not([type="checkbox"]):not([type="hidden"])'), /min-height:\s*44px/);
+  assert.match(rule(css, '.page .filters label:has(> input[type="checkbox"])'), /min-height:\s*44px/);
+  assert.match(rule(css, '.page .filters input[type="checkbox"]'), /width:\s*20px/);
+  assert.match(rule(css, ".page table a"), /min-height:\s*24px/);
 });

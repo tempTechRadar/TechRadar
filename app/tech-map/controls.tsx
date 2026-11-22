@@ -1,24 +1,29 @@
 "use client";
 // 지도 위 도구 줄(시안 radar.html·radar-ui.js): 찾기(이름·설명·갈래) · 보기(묶기 1~3단계 · 색) · 필터(값마다 개수) · 보기 초기화,
-// 그 아래 경로 칩(이 분류만 보기)과 요약 칩(이번 주 NEW · 내 기술과 비교군), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
-import { useState } from "react";
+// 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
+import { useEffect, useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { LegendItem, MapLayout } from "@/lib/map/layout";
-import { DIMS, DIM_KO, filterCount, MAX_LEVELS, passes, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+
+const MARK_CHIP: Record<MarkPick, string> = { interest: "내 관심", candidate: "적용 후보", hold: "보류" };
+import { MapSearch, type FindHit } from "./map-search";
 
 type ListKey = "kinds" | "fields" | "subs";
 const LIST_DIM: Record<ListKey, Dim> = { kinds: "kind", fields: "field", subs: "sub" };
 const sortKo = (a: string, b: string) => a.localeCompare(b, "ko");
+/** 보기 창 펼침 기억(11-21 사용자 결정 F①: 다시 누를 때까지 펼친 채, 새로 고쳐도). 이 브라우저에만 */
+const VIEW_OPEN_KEY = "techradar-map-view-open";
 
-export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFind, onGo }: {
-  nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean;
-  onView: (v: ViewConfig) => void; onReset: () => void; onGo: (key: string) => void;
-  onFind: (q: string) => { key?: string; scope?: { dim: Dim; value: string }; label: string; sub: string }[];
+export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onView, onReset, onFind, onGo }: {
+  nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean; login: boolean; tagsFailed?: boolean;
+  onView: (v: ViewConfig) => void; onReset: () => void; onGo: (key: string) => void; onFind: (q: string) => FindHit[];
 }) {
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState<"" | "view" | "filter">("");
+  const [viewOpen, setViewOpen] = useState(false), [filterOpen, setFilterOpen] = useState(false);
+  useEffect(() => { try { setViewOpen(localStorage.getItem(VIEW_OPEN_KEY) === "1"); } catch { /* 저장소를 못 쓰면 닫힌 채로 */ } }, []);
+  const toggleView = () => { setViewOpen(!viewOpen); try { localStorage.setItem(VIEW_OPEN_KEY, viewOpen ? "0" : "1"); } catch { /* 이번 화면에서만 */ } };
+  const [resets, setResets] = useState(0); // 보기 초기화 때 찾기 칸도 비운다(새로 그림)
   const f = view.filter, n = filterCount(view);
-  const results = q.trim() ? onFind(q) : [];
   const setFilter = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
   const setLevel = (i: number, dim: Dim | "") => {
     const group = dim ? [...view.group.slice(0, i), dim] : view.group.slice(0, i);
@@ -29,25 +34,21 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
   const count = (fn: (x: MapNode) => boolean) => base.filter(fn).length;
   const values = (dim: Dim) => [...new Set(base.map((x) => x.attrs[dim]))].sort(sortKo);
   const toggleValue = (key: ListKey, v: string) => setFilter({ [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] });
+  // 태그는 대소문자를 같게 본다(passes와 같은 규칙). 주소로 온 태그도 끌 수 있게 목록에 넣는다
+  const same = (a: string) => (b: string) => a.toLowerCase() === b.toLowerCase();
+  const tags = [...f.tags, ...base.flatMap((x) => x.tags)].filter((t, i, all) => all.findIndex(same(t)) === i).sort(sortKo);
+  const tagOn = (t: string) => f.tags.some(same(t));
+  const toggleTag = (t: string) => setFilter({ tags: tagOn(t) ? f.tags.filter((x) => !same(t)(x)) : [...f.tags, t] });
   const box = (key: ListKey, v: string) => (
     <label key={v} className="check"><input type="checkbox" checked={f[key].includes(v)} onChange={() => toggleValue(key, v)} /> {v} <span className="muted">{count((x) => x.attrs[LIST_DIM[key]] === v)}</span></label>
   );
 
   return (
     <div className="map-hud">
-      <div className="map-search" role="search">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="기술·분류 찾기" aria-label="기술이나 분류 찾기"
-          onKeyDown={(e) => { if (e.key === "Escape") setQ(""); }} />
-        {q.trim() ? (
-          <ul className="map-results">{results.length ? results.map((r) => (
-            <li key={r.key ?? `${r.scope!.dim}:${r.scope!.value}`}><button type="button" onClick={() => { setQ(""); if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }}>
-              {r.label} <span className="muted">{r.sub}</span></button></li>
-          )) : <li className="muted">맞는 기술이나 분류가 없어요. 지도에 올린 기술 안에서 찾아요.</li>}</ul>
-        ) : null}
-      </div>
-      <div className="map-pop">
-        <button type="button" className="btn" aria-expanded={open === "view"} onClick={() => setOpen(open === "view" ? "" : "view")}>보기</button>
-        {open === "view" ? (
+      <MapSearch key={resets} onFind={onFind} login={login} projects={projects} onPick={(r) => { if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }} />
+      <div className="map-pop map-pop-view">
+        <button type="button" className="btn" aria-expanded={viewOpen} onClick={toggleView}>보기</button>
+        {viewOpen ? (
           <div className="map-pop-panel">
             <fieldset><legend>묶기(안쪽 고리부터)</legend>
               {Array.from({ length: Math.min(MAX_LEVELS, view.group.length + 1) }, (_, i) => (
@@ -66,15 +67,12 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
         ) : null}
       </div>
       <div className="map-pop">
-        <button type="button" className="btn" aria-expanded={open === "filter"} onClick={() => setOpen(open === "filter" ? "" : "filter")}>필터{n ? ` ${n}` : ""}</button>
-        {open === "filter" ? (
-          <div className="map-pop-panel">
+        <button type="button" className="btn" aria-expanded={filterOpen} onClick={() => setFilterOpen(!filterOpen)}>필터{n ? ` ${n}` : ""}</button>
+        {filterOpen ? (
+          <div className="map-pop-panel map-pop-top">
             <fieldset><legend>보안</legend>
               <label className="check"><input type="checkbox" checked={f.risky} onChange={(e) => setFilter({ risky: e.target.checked })} /> 위험·주의만 <span className="muted">{count((x) => x.grade === "danger" || x.grade === "caution")}</span></label>
               <label className="check"><input type="checkbox" checked={f.err} onChange={(e) => setFilter({ err: e.target.checked })} /> 수집 오류만 <span className="muted">{count((x) => !!x.collectErrorKind)}</span></label>
-            </fieldset>
-            <fieldset><legend>새로 들어옴</legend>
-              <label className="check"><input type="checkbox" checked={f.newOnly} onChange={(e) => setFilter({ newOnly: e.target.checked })} /> NEW만(7일) <span className="muted">{count((x) => x.isNew)}</span></label>
             </fieldset>
             <fieldset><legend>내 기술</legend>
               <label className="check"><input type="checkbox" checked={f.mineOnly} disabled={!canMine} onChange={(e) => setFilter({ mineOnly: e.target.checked })} /> 내 기술과 비교군(한 단계){canMine ? <span className="muted"> {count((x) => x.mine || x.nearMine)}</span> : " (로그인하고 프로젝트를 등록한 뒤)"}</label>
@@ -84,17 +82,22 @@ export function Toolbar({ nodes, view, projects, canMine, onView, onReset, onFin
                 </select></label>
               ) : null}
             </fieldset>
+            {login ? <fieldset><legend>내 태그</legend>
+              {tagsFailed ? <p className="muted">내 태그를 불러오지 못했어요(없다는 뜻이 아니에요).</p>
+                : tags.length ? tags.map((t) => <label key={t} className="check"><input type="checkbox" checked={tagOn(t)} onChange={() => toggleTag(t)} /> {t} <span className="muted">{count((x) => x.tags.some(same(t)))}</span></label>)
+                : <p className="muted">기술을 눌러 내 태그를 붙이면 여기서 거를 수 있어요.</p>}
+            </fieldset> : null}
             <fieldset><legend>종류</legend>{values("kind").map((v) => box("kinds", v))}</fieldset>
             <fieldset><legend>하는 일</legend>{values("field").map((v) => (
               <div key={v}>{box("fields", v)}{f.fields.includes(v) ? (
                 <div className="map-subf" role="group" aria-label={`${v}의 세부 갈래`}>{[...new Set(base.filter((x) => x.attrs.field === v).map((x) => x.attrs.sub))].sort(sortKo).map((s) => box("subs", s))}</div>
               ) : null}</div>
             ))}</fieldset>
-            {n ? <button type="button" className="btn" onClick={() => onView({ ...view, filter: { ...f, kinds: [], fields: [], subs: [], risky: false, mineOnly: false, newOnly: false, err: false, project: "" } })}>필터 모두 끄기</button> : null}
+            {n ? <button type="button" className="btn" onClick={() => onView({ ...view, filter: { ...DEFAULT_VIEW.filter } })}>필터 모두 끄기</button> : null}
           </div>
         ) : null}
       </div>
-      <button type="button" className="btn" onClick={() => { setQ(""); setOpen(""); onReset(); }}>보기 초기화</button>
+      <button type="button" className="btn" onClick={() => { setFilterOpen(false); setResets(resets + 1); onReset(); }}>보기 초기화</button>
     </div>
   );
 }
@@ -114,13 +117,38 @@ export function Crumbs({ view, onView }: { view: ViewConfig; onView: (v: ViewCon
   );
 }
 
-export function SummaryChips({ nodes, view, canMine, onView }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; onView: (v: ViewConfig) => void }) {
-  const nw = nodes.filter((x) => x.isNew).length, near = nodes.filter((x) => x.mine || x.nearMine).length;
-  const flip = (k: "newOnly" | "mineOnly") => onView({ ...view, filter: { ...view.filter, [k]: !view.filter[k] } });
+/** 늘 보이는 빠른 칩(11-21 사용자: 필터를 보기 창 밖으로): 들어온 때(오늘 · 이번 주 · 이번 달) · 위험·주의 · 내 관심 · 내 기술과 비교군 · 수집 오류.
+ *  다시 누르면 꺼진다. 수는 들어간 분류와 상관없이 지도 전체에서 센다 */
+/** trendFailed = 요즘 뜨는 기술을 읽지 못함("없음"과 다르게 보인다) */
+export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, onReplay }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; login: boolean; trendFailed?: boolean; onView: (v: ViewConfig) => void; onReplay: () => void }) {
+  const f = view.filter, set = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
+  const count = (fn: (x: MapNode) => boolean) => nodes.filter(fn).length;
+  // shortcut: "마지막 수집"은 정기 실행 기록(runs)을 읽어야 정확해서 아직 없음. 노드 하나의 확인 시각은 지도 전체가 최신인 것처럼 보이게 한다
+  const errs = count((x) => !!x.collectErrorKind), hots = count((x) => x.hot);
   return (
     <>
-      {canMine ? <button type="button" className="chip" aria-pressed={view.filter.mineOnly} onClick={() => flip("mineOnly")}>내 기술과 비교군 <b>{near}</b></button> : null}
-      <button type="button" className="chip" aria-pressed={view.filter.newOnly} onClick={() => flip("newOnly")}>이번 주 NEW <b>{nw}</b></button>
+      <span className="map-seg" role="group" aria-label="새 기술(들어온 때)">
+        <span className="map-seg-label" aria-hidden="true">새 기술</span>
+        {PERIODS.map((p) => { const n = count((x) => inPeriod(x, p)); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
+          <button key={p} type="button" className="chip" aria-pressed={f.period === p} disabled={!n && f.period !== p} onClick={() => set({ period: f.period === p ? "" : p })}>
+            {PERIOD_KO[p]} <b>{n}</b>
+          </button>
+        ); })}
+      </span>
+      {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
+      {trendFailed ? <span className="chip chip-note" role="status">요즘 뜨는 기술을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요</span>
+        : hots || f.hot ? <button type="button" className="chip" aria-pressed={f.hot} title="7일 사이 별이 크게 늘었거나 Hacker News에 오른 기술" onClick={() => set({ hot: !f.hot })}>요즘 뜨는 <b>{hots}</b></button>
+        : null /* 0개면 숨긴다(빈 칩이 시연에서 비어 보이지 않게). 못 읽음은 위처럼 따로 알린다(불변 2) */}
+      <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
+      {login ? <span className="map-seg" role="group" aria-label="내 판단">
+        {MARK_PICKS.map((m) => { const on = f.marks.includes(m); return ( // 옛 보드의 칸(관심 · 적용 후보 · 보류)을 지도 칩으로(P-12f)
+          <button key={m} type="button" className="chip" aria-pressed={on} onClick={() => set({ marks: on ? f.marks.filter((x) => x !== m) : [...f.marks, m] })}>
+            {MARK_CHIP[m]} <b>{count((x) => x.decided === m)}</b>
+          </button>
+        ); })}
+      </span> : null}
+      {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>내 기술과 비교군 <b>{count((x) => x.mine || x.nearMine)}</b></button> : null}
+      {errs > 0 || f.err ? <button type="button" className="chip" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 <b>{errs}</b></button> : null}
     </>
   );
 }
@@ -136,7 +164,6 @@ export function Legend({ L, view, onView }: { L: MapLayout; view: ViewConfig; on
         <button key={l.value} type="button" className="chip" aria-pressed={view.filter[key].includes(l.value)}
           onClick={() => onView({ ...view, filter: { ...view.filter, [key]: view.filter[key].includes(l.value) ? view.filter[key].filter((x) => x !== l.value) : [...view.filter[key], l.value] } })}>{dot(l)}{l.value} {l.count}</button>
       ) : <span key={l.value} className="chip">{dot(l)}{l.value} {l.count}</span>)}
-      <span className="muted">육각 · 마름모 · 네모 = 1 · 2 · 3단계 · 굵은 테두리 = 내 기술 · 빈 점 = 분류 전 · ✕ 위험 · ! 주의 · 점선 고리 = 수집 오류</span>
     </div>
   );
 }
@@ -144,5 +171,7 @@ export function Legend({ L, view, onView }: { L: MapLayout; view: ViewConfig; on
 export function Status({ L, collapsed, nodes, view }: { L: MapLayout; collapsed: number; nodes: MapNode[]; view: ViewConfig }) {
   const shown = nodes.filter((x) => passes(x, view));
   const d = shown.filter((x) => x.grade === "danger").length, w = shown.filter((x) => x.grade === "caution").length, e = shown.filter((x) => x.collectErrorKind).length;
-  return <p className="map-status" role="status">보이는 기술 {L.shown} / 지도에 올린 기술 {L.total}{collapsed ? ` · 접힌 묶음 ${collapsed}` : ""} · 위험 {d} · 주의 {w}{e ? ` · 수집 오류 ${e}(점선 고리)` : ""}</p>;
+  // 기간 보기(옛 /new 포함)는 지도에 올린 최근 새 기술 안에서만 보인다: 전부처럼 보이지 않게 한 줄(P-12f)
+  const capped = view.filter.period ? ` · 새 기술은 지도에 올린 최근 ${NEW_QUOTA}개 안에서만 보여요` : "";
+  return <p className="map-status" role="status">보이는 기술 {L.shown} / 지도에 올린 기술 {L.total}{collapsed ? ` · 접힌 묶음 ${collapsed}` : ""} · 위험 {d} · 주의 {w}{e ? ` · 수집 오류 ${e}(점선 고리)` : ""}{capped}</p>;
 }

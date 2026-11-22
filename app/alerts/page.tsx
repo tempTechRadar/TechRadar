@@ -1,27 +1,35 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { countPending, filterAlerts } from "@/lib/alerts/filter-alerts";
 import { parseAlertFilter } from "@/lib/alerts/parse-alert-filter";
 import { toAlertView } from "@/lib/alerts/to-alert-view";
+import { isPreviewUser } from "@/lib/dev/login-preview";
+import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { listMyAlerts } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
+import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { chipHref, currentOf } from "@/lib/alerts/alert-chips";
 import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
-import "./alerts.css";
+import { PageSkeleton } from "../page-skeleton";
 
 // 알림 목록(IA-6, PRD-F14). 판단 버튼은 P-8, 대응안 초안은 P-13에서 상세에 붙인다.
 type Params = { kind?: string; status?: string; period?: string; project?: string };
 
-export default async function AlertsPage({ searchParams }: { searchParams: Promise<Params> }) {
+/** 읽는 동안 뼈대는 목록 화면만 감싼다: 폴더에 loading.tsx를 두면 하위 화면(redirect · notFound)까지 감싸 404 · 이동이 200으로 나간다(P-12f ④, page-skeleton.tsx) */
+export default function AlertsPage(props: { searchParams: Promise<Params> }) {
+  return <Suspense fallback={<PageSkeleton title="알림" />}><AlertsBody {...props} /></Suspense>;
+}
+
+async function AlertsBody({ searchParams }: { searchParams: Promise<Params> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return <LoginNeeded title="알림" why="로그인하고 내 프로젝트를 등록하면, 내가 쓰는 기술에 위험이 생기거나 대안이 나왔을 때 여기에서 알려 드려요." next={backTo("/alerts", await searchParams)} />;
   const params = await searchParams;
-  const supabase = (await getServerSupabase())!;
-  const records = await listMyAlerts(supabase, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
+  const records = isPreviewUser(user) ? SAMPLE_ALERTS // 미리보기(개발용)는 샘플
+    : await listMyAlerts((await getServerSupabase())!, user.id).catch((e) => { console.error("알림 목록 조회 실패", e); return null; });
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>알림</h1>
       {records === null ? <LoadError /> : records.length === 0 ? <Empty /> : <List records={records} params={params} />}
     </main>
@@ -34,7 +42,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
   // 칩의 수는 지금 거르기(종류·프로젝트·기간) 안에서 센다: 누르면 보이는 줄 수와 같게
   const inScope = filterAlerts(records, parseAlertFilter({ ...params, status: "" }, new Date()));
   const scopedPending = countPending(inScope);
-  const now = { status: currentOf(params.status, ["pending", "done"]), kind: currentOf(params.kind, ["security", "opportunity"]) };
+  const now = { status: currentOf(params.status, ["pending", "done"]), kind: currentOf(params.kind, ["security", "opportunity", "model_eol"]) };
   const chip = (key: "status" | "kind", value: string, label: string) => (
     <Link className="chip" href={chipHref(params, key, value)} aria-current={now[key] === value ? "true" : undefined}>{label}</Link>
   );
@@ -46,7 +54,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
       </p>
       <nav className="alert-chips" aria-label="빠른 거르기">
         <div role="group" aria-label="상태">{chip("status", "pending", `판단 대기 ${scopedPending}`)}{chip("status", "done", `완료 ${inScope.length - scopedPending}`)}{chip("status", "", `상태 전체 ${inScope.length}`)}</div>
-        <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "", "종류 전체")}</div>
+        <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "model_eol", "모델 종료")}{chip("kind", "", "종류 전체")}</div>
       </nav>
       {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림) */}
       <form key={JSON.stringify(params)} className="filters" aria-label="알림 거르기">
@@ -64,7 +72,7 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
             <li key={a.id}>
               <Link className="alert-row" href={`/alerts/${a.id}`}>
                 <span className={`badge badge-${a.kindTone}`}>{a.kindLabel}</span>
-                <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span></span>
+                <span className="alert-main"><strong>{a.title}</strong><span className="muted">{a.subtitle}</span>{a.tags.length ? <span className="alert-tags">{a.tags.map((t) => <span key={t} className="tag">{t}</span>)}</span> : null}</span>
                 <span className={`badge badge-${a.statusTone}`}>{a.statusLabel}</span>
                 <time className="alert-time" dateTime={a.createdAt}>{a.createdAtLabel}</time>
               </Link>

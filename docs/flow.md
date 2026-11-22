@@ -52,7 +52,9 @@ flowchart LR
 | fetch_registry | API | MCP 레지스트리 | 지난번 시각 | 바뀐 서버 목록 | 공식 MCP 레지스트리 | 출처 수집 오류, 3번 연속이면 관리자 강조. 쪽 읽기가 실패하면 이 상자가 실패(앞서 읽은 쪽은 저장되고 읽은 자리가 남아 다음 실행이 이어 읽음). 한 실행에 다 못 읽어도 실패가 아니다(요약에 "이어 읽음") |
 | fetch_github | API | 저장소 정보 | 두꺼운 기술의 저장소 | 마지막 푸시·라이선스·별·보관·404(릴리스는 다음 조각). 저장소마다 1번 | GitHub(서버 토큰) | 그 저장소만 수집 오류. 서버 토큰이 없거나 모양이 이상하면 호출 없이 이 상자가 실패. 읽은 것이 하나도 없으면 이 상자가 실패 |
 | fetch_downloads | API | 다운로드 수 | 패키지 이름 | 주간 다운로드 | npm·PyPI | 인기 신호만 비움: 일부 기술이 실패하면 그 기술의 **이전 값을 그대로 두고** `collect_error`에 건수로 센다(불변 2·4). 한쪽 출처(npm 또는 PyPI)가 통째로 실패하면 이 상자가 실패(재시도·3번 연속 강조가 보게). 한도 초과(429)가 나면 그 출처는 그 실행에서 더 부르지 않는다. 404를 0으로 읽지 않는다 |
-| fetch_popularity | API | 인기 신호 (3순위) | 기술 목록 | HF·HN·skills.sh 신호 | HF·HN·Firecrawl | 인기 신호만 비움 |
+| fetch_stars | API | 별 많은 저장소 찾기 (11-21, ADR 0033) | GitHub 주제 태그(`mcp-server`·`agent-skills`·`claude-skills`) | 별 ≥ 1,000 저장소 목록 → 관문(보관·12개월·포크·의심 표시)·태그 안 점수로 상위 100곳을 `stars` 이유로 두껍게(누적 상한 150, 태그를 다 못 읽은 실행은 새 줄·두껍게 안 함), 같은 `repo_url` 줄은 합침 | GitHub 검색(서버 토큰) | 검색이 실패(403·429·422·모양 이상)하면 이 상자가 실패("후보 없음"으로 단정하지 않음, 불변 2). `incomplete_results`인 쪽은 1초 뒤 한 번 다시 읽고 그래도면 그 태그만 건너뛰며 못 읽은 태그는 `collect_error` 줄로 남김. 시간 몫(검색 40초·전체 90초)이 다하면 읽은 만큼만 쓰고 요약에 적음 |
+| fetch_popularity | API | 인기 신호 (11-21부터 HN만 켬, ADR 0033) | 최근 7일 Hacker News 글(키워드 `mcp`·`model context protocol`·`claude code`·`agent skills`) | 글이 GitHub 저장소·npm 패키지로 이어질 때만: 알려진 기술은 `signals.hn`(점수·댓글·글 링크), 모르는 저장소는 이름에 mcp·skill이 맞을 때만 얇게(한 실행 최대 30개). 점수 계산에는 아직 안 씀 | Hacker News(Algolia, 키 없음) | 429·5xx·모양이 다른 응답은 이 상자가 실패. 글이 하나도 없는 것과 읽지 못한 것을 구분(불변 2). HF·skills.sh는 여전히 꺼 둠 |
+| fetch_news | API | 바깥 소식 가져오기 (11-22, P-12f ⑥, ADR 0038) | 약관을 확인한 공식 피드 4곳(GitHub 변경 기록 · Google AI · Google 개발자 블로그 RSS/Atom, Claude Code 릴리스는 GitHub REST) | 제목 · 링크 · 날짜 · 짧은 요약만 `news_items`에 저장(같은 주소는 한 줄, 불변 3). 사건 · 알림 · 점수와 이어지지 않아 다른 상자로 가는 성공 화살표는 없음 | 공식 피드(키 없음, 릴리스만 GITHUB_TOKEN이 있으면 씀) | 피드마다 따로: 하나가 실패하면 그 피드만 `collect_error`에 세고 나머지는 저장(불변 2), 전부 실패하면 이 상자가 실패. 하루 1번(같은 날 "지금 한 번 실행"은 건너뜀) · 요청 사이 1초 · 몫 15초. 피드를 못 읽은 것과 소식이 없는 것을 구분 |
 | fetch_repo | API | 내 저장소 읽기 | 공개 저장소 주소 | 파일 내용: `package.json`·`.mcp.json`·`requirements.txt`와 `.claude/skills/<이름>/SKILL.md`(P-9e: 폴더 목록 1번 + 폴더마다 1번, 30개까지)(PRD-F6, SPEC-7.1, ADR 0020) | GitHub | 그 파일의 기술만 수집 오류(불변 2) |
 | extract_my_tech | 변환 | 내 기술 뽑기 | 파일 내용 | 기술 키와 버전(SPEC-7) | — | 형식이 이상한 줄은 건너뛰고 이유를 남김 |
 | normalize | 변환 | 같은 모양으로 | 출처마다 다른 응답 | 출처·대상·지표·이전 값·현재 값·**바뀐 정도**·시각 | — | 해석 실패 → 수집 오류 |
@@ -75,7 +77,8 @@ flowchart LR
 | 무엇 | 규칙 | 기록 칸 |
 |---|---|---|
 | 상자 색 | 회색 아직 안 켜짐 · 파랑 실행 중 · 초록 성공 · 빨강 실패 · 주황 점선 **판단 대기**. 단계로 남기지 않는 상자(처음 읽기·정기 수집의 `no_change`, 처음 읽기의 `collect_error`)는 실제 실행에서 늘 회색일 수 있다 | `run_steps.status` |
-| 시작 노드 | 누른 시작에서 출발한 길만 굵게, 그 시작 상자는 굵은 테두리 | `runs.trigger` |
+| 시작 노드 | 고른 실행의 시작에서 출발한 길만 굵게, 그 시작 상자는 굵은 테두리 | `runs.trigger` |
+| 시작 상자 누르기(길 보기) | 시작 상자(예약·지금 실행·시뮬레이터 등)를 누르면 그 시작에서 **갈 수 있는** 상자·화살표를 파란 점선으로 따로 보인다. 다시 누르면 풀림. 설계도 기준이라 실행의 굵은 선·색과 섞지 않는다(불변 6). 키보드(Tab·Enter)로도 고르고, 길의 화살표는 글로도 준다(2026-11-21, 안내서 요건 — stage-check) | `flow.json` |
 | 화살표 위 숫자 | 넘어간 건수. 분기는 갈래마다("사건 3 / 변화 없음 9 / 수집 오류 0") | `run_steps.count_in`·`count_out`·`branch_counts` |
 | 바깥 서비스 표시 | API 상자 위에 작은 표시(OSV, GitHub, Claude …) | `flow.json`의 `badge` |
 | 상자 누르기 | 설정(flow.json의 config) · 들어온 것 · 나간 것 · 호출(주소, 응답 코드, 걸린 시간, 받은 건수) · 오류. **비밀값·개인정보는 가림** | `run_steps` |
@@ -129,3 +132,7 @@ v1 알림은 **앱 안**(알림 목록·지도 띠)만 쓴다. 안내서 그림�
 - 2026-11-19 `summarize` 연결(작업 `I-P-13-claude-adapter`): `createAlertsForChange`가 보안 알림을 만들기 전에 초안을 부른다. 같은 입력은 하루 한 번만 보내고, 정기 OSV·첫 읽기는 실행 id가 없어 키가 없을 때 로그에만 남는다.
 - 2026-11-19 스킬 폴더 읽기(작업 `I-P-9e-skills`): `fetch_repo`가 읽는 것을 지금 코드에 맞춤. `requirements.txt`(P-9 조각, PR #99)와 `.claude/skills/`(P-9e)를 더함. 폴더 목록을 못 읽으면 그 아래 스킬 줄 모두 수집 오류(불변 2).
 - 2026-11-20 6절 캡처(작업 `I-prod-check-1120`): 운영 실제 실행 두 장(시뮬레이터 판단 대기 `3b74bd27`, 일부러 실패 `fa948804`)을 `docs/images/`에 넣음. "캡처는 아직 없다"를 지움.
+
+- 2026-11-21 수집 상자 둘 추가·켜기(작업 `I-P-21-criteria`, ADR 0033): `fetch_stars`(GitHub 검색, 출처 줄 `github_search`)를 더하고 `fetch_popularity`를 HN만으로 켰다(`enabled:false` 삭제, 소스 `["hn"]`). 시작 상자(정기·지금 실행) → 두 상자 → `normalize`(성공)·`collect_error`(실패) 화살표를 더했다. 이 상자가 꺼진 상태를 칠하는 시험(`lib/flow/status.test.ts`)은 "꺼 둔 상자 없음"으로 고침.
+
+- 2026-11-22 바깥 소식 상자 추가(작업 `I-P-12f-news`, ADR 0038, 마이그레이션 M7 `202611221700_P-12f_news_items.sql`): `fetch_news`를 더했다(출처 줄 `news`, `flow/flow.json`은 차세일 님 파일이라 리뷰 요청). 시작 상자(정기 · 지금 실행) → `fetch_news`, 실패 → `collect_error`. 성공 화살표는 없다: 소식은 사건이 아니라 `normalize`로 넘기지 않고 `news_items`에만 쌓인다. 일부 피드만 실패하면 `collect_error` 단계(피드 수)를 남긴다.

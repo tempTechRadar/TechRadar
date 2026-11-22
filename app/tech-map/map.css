@@ -1,10 +1,8 @@
 /* 캔버스 기술 지도(P-12d-canvas-map, 시안 docs/wireframes/radar.html). 값은 공용 토큰(app/tokens.css).
    지도 = 남은 화면 전체. 도구 줄은 지도 위에 뜨고, 사이드바도 지도 위에 덮는다(지도 크기 안 바뀜). 범례·상태·목록은 지도 아래 */
-.alerts.map-page { max-width: none; }
-.map-top { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-2); }
+.map-top { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0; }
 .map-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
 .map-chip strong { font-size: var(--fs-h2); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .map-stage { position: relative; height: max(520px, calc(100dvh - 210px)); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--surface); }
 .map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; }
@@ -13,17 +11,29 @@
 
 .map-top-hud { position: absolute; top: 10px; left: 12px; right: 12px; z-index: 3; display: grid; gap: var(--sp-2); pointer-events: none; }
 .map-top-hud > * { pointer-events: none; } .map-top-hud > * > * { pointer-events: auto; }
-.map-stage.open .map-top-hud { right: 392px; }
 .map-hud, .map-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .map-search { position: relative; flex: 0 1 280px; }
-.map-search input { width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
+.map-search input { box-sizing: border-box; width: 100%; min-height: var(--hit); padding: 0 12px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); font: inherit; }
 .map-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 7; margin: 0; padding: 4px; list-style: none; max-height: 50vh; overflow: auto; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .map-results button { display: grid; width: 100%; min-height: 40px; padding: 4px 8px; text-align: left; background: none; border: 0; border-radius: var(--r-sm); font: inherit; cursor: pointer; }
+/* 카탈로그에도 없을 때 "직접 추가"(11-21): 이름 그대로 내 기술로 */
+.map-add { display: grid; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); margin-top: 4px; }
+.map-add > button:not(.btn), .map-add > a { font-weight: 700; text-align: left; background: none; border: 0; padding: 6px 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }
+.map-add label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.map-add select { min-height: 36px; font: inherit; border: 1px solid var(--ink-2); border-radius: var(--r-sm); background: var(--surface); }
+.map-add-error { color: var(--ink-danger); font-size: var(--fs-sm); }
+/* 지도 화면에서는 메뉴 바의 "찾기 · 넣기"를 숨긴다: 지도 찾기 칸이 같은 일을 한다(두 군데 있지 않게) */
+body:has(.map-page) .site-nav .site-nav-add { display: none; }
 .map-results button:hover, .map-results button:focus-visible { background: var(--sunken); }
 .map-results li.muted { padding: 8px; }
 .map-pop { position: relative; }
 .map-pop > .btn[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .map-pop-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 6; width: min(320px, calc(100vw - 48px)); max-height: 60vh; overflow: auto; padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
+.map-seg-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-sm); color: var(--ink-2); }
+/* 보기 창은 펼친 채 두는 창(F①)이라 도구 줄 · 보기 묶음 · 칩을 덮지 않게 HUD 전체 아래 왼쪽에 띄운다(감싼 칸을 static으로 해 기준을 HUD로) */
+.map-pop-view { position: static; }
+.map-pop-view > .map-pop-panel { z-index: 5; max-height: 45vh; }
+.map-pop-panel.map-pop-top { z-index: 7; } /* 펼쳐 둔 보기 창 위로 필터 창 */
 .map-pop-panel fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
 .map-pop-panel legend { font-weight: 700; font-size: var(--fs-sm); margin-bottom: 2px; }
 .map-pop-panel label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
@@ -37,13 +47,7 @@
 .map-card .btn { justify-self: start; margin-top: 4px; }
 .map-empty { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); z-index: 2; display: grid; gap: 8px; justify-items: start; }
 
-.map-side { position: absolute; top: 0; right: 0; bottom: 0; z-index: 6; box-sizing: border-box; width: 380px; max-width: 100%; padding: 16px; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); }
-.map-side[hidden] { display: none; }
-.map-side h2 { margin: 0 0 4px; font-size: var(--fs-h1); }
-.map-side h3 { margin: 16px 0 6px; font-size: var(--fs-sm); color: var(--muted); }
-.map-close { float: right; }
 .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.map-wrap .tag { display: inline-block; padding: 0 var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); color: var(--ink-2); white-space: nowrap; }
 .map-wrap .tag.strong { border-color: var(--ink); color: var(--ink); font-weight: 700; }
 .map-near { list-style: none; margin: 0; padding: 0; }
 .map-near li { display: flex; gap: 8px; align-items: flex-start; min-height: 36px; padding: 4px 0; border-top: 1px solid var(--line); }
@@ -51,22 +55,75 @@
 .map-why { font-size: var(--fs-sm); }
 .map-dot { display: inline-block; flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; box-sizing: border-box; }
 .link { min-height: 32px; padding: 0; font: inherit; color: inherit; text-align: left; text-decoration: underline; background: none; border: 0; cursor: pointer; }
-.map-toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 8; margin: 0; display: flex; gap: 8px; align-items: center; }
-.map-toast:not(:empty) { padding: 6px 8px 6px 14px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
+.map-toast { justify-self: center; margin: 0 0 4px; } /* 아래 범례 위에 쌓인다(.map-dock 안). 모양은 공용 .c-toast */
 .map-toast .btn { min-height: 32px; }
 
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: var(--sp-2) 0 0; font-size: var(--fs-sm); }
 .map-legend .chip { min-height: 32px; padding: 0 10px; }
 .map-legend .map-dot { margin-top: 0; }
-.map-status { margin: 4px 0; font-size: var(--fs-sm); color: var(--muted); }
-.map-klist summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; font-size: var(--fs-sm); }
-.map-klist ul { margin: 0; padding-left: 18px; }
-.map-klist button { min-height: 32px; font: inherit; background: none; border: 0; text-align: left; cursor: pointer; text-decoration: underline; }
+/* 상태 줄(보이는 수 · 위험 수)은 화면에서 빼고 화면 읽기에만 알린다(11-21 사용자: 보면 아는 것) */
+.map-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (max-width: 640px) {
   .map-stage { height: max(480px, calc(100dvh - 180px)); }
-  .map-stage.open .map-top-hud { right: 12px; }
   .map-search { flex-basis: 100%; }
-  .map-side { width: 100%; top: auto; height: 70%; border-left: 0; border-top: 1px solid var(--line); }
 }
-.map-side h2 { padding-right: 52px; }
+
+/* 지도 페이지만 꽉 채움(A안, 11-20 사용자 결정, 시안 radar.html): 바깥 여백 · 테두리 없이 "화면 높이 − 메뉴 바".
+   다른 화면은 같은 메뉴 바 · 같은 토큰 그대로라 일맥은 유지된다. 메뉴 바는 늘 보인다(판단 대기 배지가 가려지지 않게) */
+/* 11-21 사용자: 지도 화면은 스크롤 없이 지도만(높이 = 화면, 넘치는 것은 지도 안에서 끌어 다님) */
+body:has(.map-page) { padding: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
+.page.map-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; }
+.map-page > .notice, .map-page > section, .map-page > div:not(.map-wrap) { margin: var(--sp-2) var(--sp-4) 0; }
+.map-page .map-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.map-page .map-stage { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; }
+.map-top > * { pointer-events: auto; }
+.map-chip-note { cursor: default; background: color-mix(in srgb, var(--surface) 90%, transparent); }
+
+/* 범례 · 상태는 지도 아래쪽에 뜬다(시안의 dock). 좁은 화면에서는 범례를 한 줄로 밀어 보게 해 지도를 덜 가린다 */
+.map-dock { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 3; display: grid; gap: 2px; pointer-events: none; }
+.map-dock > * { pointer-events: auto; justify-self: start; max-width: 100%; }
+.map-dock > .map-toast { justify-self: center; }
+.map-dock .map-legend { margin: 0; }
+@media (max-width: 640px) {
+  .map-chip-note { display: none; } /* 좁은 화면에서는 로그인 단추만 남겨 지도를 덜 가린다 */
+  .map-dock .map-legend { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+  .map-dock .map-legend > * { flex: none; white-space: nowrap; }
+}
+/* 지도를 못 읽었거나 비었을 때: 위 칩 줄을 지도 위가 아니라 본문에 한 줄로 */
+.map-page > .map-top-flat { margin: var(--sp-2) var(--sp-4) 0; }
+
+/* 지도 위 "시작하기 n/3"(11-21): 칩처럼 접혀 있다가 펼치면 할 일 3개 */
+.map-start { position: relative; }
+.map-start > summary { list-style: none; }
+.map-start > summary::-webkit-details-marker { display: none; }
+.map-start-body { position: absolute; top: calc(100% + 4px); right: 0; /* 보는 곳 줄 오른쪽에 붙어 있어 오른쪽 끝에 맞춘다(390px에서 화면 밖으로 나가지 않게) */ z-index: 5; min-width: 220px; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.map-start ol { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; }
+.map-start li { display: flex; gap: var(--sp-2); align-items: center; min-height: var(--hit); }
+.map-start li.done { color: var(--muted); text-decoration: line-through; }
+
+/* 보기 묶음 탭(노션 보기 탭처럼, 11-21): 테두리 없는 글자 탭, 고른 것만 밑줄. 빠른 칩의 "들어온 때"는 붙은 세 칸 */
+.map-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+.map-tab-wrap { display: inline-flex; align-items: center; border-radius: var(--r-md); background: color-mix(in srgb, var(--surface) 82%, transparent); }
+.map-tab { min-height: 36px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; }
+.map-tab:hover { color: var(--ink); }
+.map-tab[aria-pressed="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+.map-tab-x { min-width: 28px; min-height: 36px; border: 0; background: none; color: var(--muted); font-size: 11px; cursor: pointer; }
+.map-tab-x:hover { color: var(--ink); }
+.map-tab-add { color: var(--muted); }
+.map-tab-form { display: inline-flex; gap: 4px; align-items: center; }
+.map-tab-form input { min-height: 36px; width: 140px; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); background: var(--surface); }
+.map-seg { display: inline-flex; }
+.map-seg .chip { border-radius: 0; margin-left: -1px; }
+.map-seg .chip:first-of-type { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
+.map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }
+.map-replay { border-style: dashed; }
+.map-replay:hover { border-style: solid; border-color: var(--ink); }
+.map-seg .chip:disabled { color: var(--muted); cursor: default; }
+/* 좁은 화면: 탭 · 칩 줄이 여러 줄로 늘어 지도를 덮지 않게 한 줄로 두고 옆으로 밀어 본다 */
+@media (max-width: 640px) {
+  .map-tabs, .map-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .map-tabs > *, .map-chips > * { flex: none; }
+}
+.chip.chip-note { cursor: default; } /* 알림 글을 담은 칩: 눌러지는 칩처럼 보이지 않게 */

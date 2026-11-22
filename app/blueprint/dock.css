@@ -1,0 +1,46 @@
+/* 청사진 스튜디오 하단 패널(P-12e 조각 K). 값은 공용 토큰(app/tokens.css). 누르는 칸은 --hit-sm 이상, 상태는 색만이 아니라 글자로 */
+.dock { position: relative; display: grid; grid-template-rows: auto auto 1fr; min-height: 0; background: var(--surface); border-top: 1px solid var(--line); }
+/* 끌기 칸은 24px(WCAG 2.5.8 누르는 칸), 보이는 손잡이는 가운데 4px 막대 그대로. 위(캔버스 쪽)로만 12px 겹친다 — 아래 탭 단추를 덮지 않게 */
+.dock-resize { position: relative; z-index: 1; height: 24px; margin-top: -12px; cursor: ns-resize; touch-action: none; }
+.dock-resize::before { content: ""; display: block; width: 44px; height: 4px; margin: 10px auto 0; border-radius: var(--r-pill); background: var(--muted); } /* --faint는 흰 바탕에서 2.1:1이라 손잡이로 안 보임 */
+.dock-resize:hover::before, .dock-resize:focus-visible::before { background: var(--ink); }
+.dock-resize:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.dock-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); border-bottom: 1px solid var(--line); }
+.dock-tabs { display: flex; flex-wrap: wrap; gap: 2px; }
+.dock-tab { min-height: var(--hit-sm); padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
+.dock-tab:hover { background: var(--sunken); }
+.dock-end { display: inline-flex; align-items: center; gap: var(--sp-3); }
+.dock-end .bp-link { font-size: var(--fs-sm); color: var(--ink-2); }
+.dock-tab:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.dock-body { overflow: auto; padding: var(--sp-2) var(--sp-3) var(--sp-3); display: grid; gap: var(--sp-2); align-content: start; font-size: var(--fs-sm); }
+.dock-body p { margin: 0; }
+.dock-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dock-row input, .dock-row select { min-height: var(--hit-sm); font: inherit; }
+.dock-h { margin: var(--sp-1) 0 0; font-size: var(--fs-h3); }
+.dock-techs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 6px; }
+.dock-tech { display: grid; gap: 2px; justify-items: start; align-content: start; padding: var(--sp-2) 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
+.dock-tech[draggable="true"] { cursor: grab; }
+.dock-tech b { font-size: var(--fs-body); }
+.dock-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dock-tech.risky { background: var(--sunken); }
+.dock-tech.added { border: 2px solid var(--ink); } /* 보드에서 "청사진에 넣기"로 온 기술: 굵은 테두리 + 맨 앞 + 안내 글 */
+.dock-grade { font-size: var(--fs-cap); font-weight: 700; }
+.dock-grade.g-danger { color: var(--ink-danger); }
+.dock-grade.g-caution, .dock-grade.g-unknown { color: var(--ink-2); }
+.dock-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.dock-risky { color: var(--ink-danger); font-weight: 600; }
+.dock-cols { display: grid; grid-template-columns: 2fr 1fr; gap: var(--sp-3); align-items: start; }
+/* 기술 트리(P-12h S2, 유니티 프로젝트 창): 왼쪽 폴더 · 오른쪽 카드. 고른 폴더는 색만이 아니라 굵게 + 왼쪽 막대, 판단 전 카드는 점선 */
+.tt { display: grid; grid-template-columns: minmax(160px, 220px) minmax(0, 1fr); gap: var(--sp-3); align-items: start; }
+.tt-tree { list-style: none; margin: 0; padding: var(--sp-1) 0; display: grid; gap: 1px; border-right: 1px solid var(--line); }
+.tt-item { display: flex; align-items: center; gap: var(--sp-1); min-height: var(--hit-sm); padding-right: var(--sp-2); border-radius: var(--r-sm); cursor: pointer; overflow-wrap: anywhere; }
+.tt-item:hover { background: var(--sunken); }
+.tt-item[aria-selected="true"] { background: var(--sunken); box-shadow: inset 3px 0 0 var(--ink); font-weight: 700; }
+.tt-item:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.tt-caret { display: inline-block; width: 1em; flex: none; color: var(--ink-2); }
+.tt-cards { min-width: 0; }
+.tt-dim { display: inline-flex; gap: var(--sp-1); align-items: center; font-size: var(--fs-sm); }
+.dock-tech.tt-out { border-style: dashed; border-color: var(--ink-2); background: var(--sunken); }
+@media (max-width: 860px) { .tt { grid-template-columns: 1fr; } .tt-tree { border-right: 0; border-bottom: 1px solid var(--line); } }
+.dock-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 860px) { .dock-cols, .dock-cols-3 { grid-template-columns: 1fr; } }

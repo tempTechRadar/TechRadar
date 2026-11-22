@@ -26,8 +26,8 @@ const SERVICES: Service[] = [
 
 // 개념(작업 방식): 설치물이 아니라 등급 · 알림이 없다. 파일로 확실히 알 수 있는 것만
 // shortcut: 처음 목록은 팀 · 관리자가 정하기로 했다(데이터설계 18). 그 전까지 파일 셋으로만
-const CONCEPTS: { id: string; name: string; oneLiner: string; files: RegExp }[] = [
-  { id: "harness", name: "하네스(에이전트 지시 파일)", oneLiner: "AI 에이전트에게 규칙 · 절차를 적어 주는 파일로 일하는 방식", files: /^(CLAUDE|AGENTS|GEMINI)\.md$/ },
+export const CONCEPTS: { id: string; name: string; oneLiner: string; files: RegExp }[] = [
+  { id: "harness", name: "지침 파일(CLAUDE.md · AGENTS.md)", oneLiner: "AI 에이전트에게 규칙 · 절차를 적어 주는 파일로 일하는 방식", files: /^(CLAUDE|AGENTS|GEMINI)\.md$/ },
   { id: "subagents", name: "서브에이전트", oneLiner: "일을 나눠 맡는 보조 에이전트를 정의해 쓰는 방식", files: /^\.claude\/agents\/[^/]+\.md$/ },
   { id: "slash-commands", name: "슬래시 명령", oneLiner: "자주 하는 지시를 /명령으로 저장해 쓰는 방식", files: /^\.claude\/commands\/.+\.md$/ },
 ];
@@ -39,6 +39,7 @@ const serviceFound = (s: Service, sourceFile: string): FoundTech => ({ tech: { k
 /**
  * 연동 서비스 · 개념의 한 줄 설명과 근거 링크(화면용). 카탈로그 줄에는 쓰지 않는다: 쓰면 사용자 저장소에서 생긴 줄이 공개 목록 · 로그인 전 지도에
  * 나가고(ADR 0029 4항) NEW 판정(isBulkFilled)이 날짜에 따라 갈린다. 정해 둔 목록에서만 나오는 글이다
+ * (예외: 입문 세트 시드가 확인한 공식 출처로 개념 줄을 채워 공개한다, ADR 0031)
  */
 export function fixedNote(techKey: string | null | undefined): { text: string; source: string | null } | null {
   const [kind, id] = (techKey ?? "").split(":");

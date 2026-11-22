@@ -11,12 +11,13 @@ export type JudgmentRequest = { alertId: string; decision: string; reason: strin
  * saveAttempted: DB 저장(save_judgment)을 실제로 불러 봤다가 실패했을 때만 true.
  * 흐름 화면의 "조치" 상자를 칠하는 쪽(P-20c)은 글자 대신 이 값으로 "조치 실패"를 가린다.
  * 입력 검사·권한·읽기 실패로 저장까지 가지 못한 경우는 false.
+ * code "done": 이미 판단을 마친 알림(다른 탭 · 지도에서). 실패가 아니라 실제로 완료라서 화면은 완료 카드를 다시 보여 준다(P-12g C1).
  */
-export type JudgmentResult = { ok: true } | { ok: false; message: string; saveAttempted: boolean };
+export type JudgmentResult = { ok: true } | { ok: false; message: string; saveAttempted: boolean; code?: "done" };
 
 const SAVE_FAILED = "저장하지 못했어요. 다시 시도해 주세요. 알림은 아직 판단 대기예요.";
 
-const refused = (message: string): JudgmentResult => ({ ok: false, message, saveAttempted: false });
+const refused = (message: string, code?: "done"): JudgmentResult => ({ ok: false, message, saveAttempted: false, ...(code ? { code } : {}) });
 
 /** 고친 버전은 사용자가 넣는 값이 아니라 그 알림의 변경에서 가져온다(ADR 0012). */
 function fixedVersionOf(currValue: unknown): string | null {
@@ -32,7 +33,7 @@ export async function saveJudgment(db: SupabaseClient, actor: JudgmentActor, req
   });
   if (alert === "read-failed") return refused(SAVE_FAILED);
   if (alert === null) return refused("알림을 찾지 못했어요.");
-  if (alert.status === "done") return refused("이미 판단한 알림이에요.");
+  if (alert.status === "done") return refused("이미 판단한 알림이에요.", "done");
   const checked = validateJudgment({
     decision: request.decision,
     reason: request.reason,

@@ -32,7 +32,7 @@ export function TasteForm({ initial, onboarding, next }: { initial: Taste; onboa
       </fieldset>
       <p className="muted">추천에는 3번 관심 분야만 써요. 1·2번은 저장만 하고 아직 추천에 쓰지 않아요. 내 취향은 나만 볼 수 있어요(관리자도 못 봐요).</p>
       {state?.error ? <div className="notice notice-error" role="alert"><strong>{state.error}</strong></div> : null}
-      {state?.saved && !pending ? <div className="notice notice-empty" role="status"><strong>저장했어요.</strong> <Link href="/recommend">추천 보기</Link></div> : null}
+      {state?.saved && !pending ? <div className="notice notice-ok" role="status"><strong>저장했어요.</strong> <Link href="/recommend">추천 보기</Link></div> : null}
       <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "저장하는 중…" : onboarding ? "저장하고 시작" : "저장"}</button>
       {onboarding ? <Link href={next} className="muted"> 건너뛰기</Link> : null}
     </form>

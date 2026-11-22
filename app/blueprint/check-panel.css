@@ -1,0 +1,11 @@
+/* 하단 패널 "AI 점검" 탭(P-12e I). 값은 공용 토큰. 색만으로 구분하지 않는다: 무게는 늘 글자(위험 · 주의 · 확인 못 함)로도 적는다 */
+.bp-check { display: grid; gap: var(--sp-4); padding: var(--sp-3); }
+.bp-check h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-h3); }
+.bp-check h4 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--fs-body); }
+.bp-check p { margin: 0 0 var(--sp-2); }
+.bp-check-list { margin: 0; padding-left: var(--sp-4); display: grid; gap: var(--sp-2); font-size: var(--fs-sm); }
+.bp-check-tag { display: inline-block; padding: 0 6px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); font-size: var(--fs-cap); }
+.bp-check-tag.risk { border-width: 2px; border-color: var(--ink); }
+.bp-check-tag.info { border-style: dashed; }
+.bp-check-src { display: inline; color: var(--ink-2); font-size: var(--fs-cap); }
+.bp-check-src a { color: inherit; }

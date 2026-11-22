@@ -1,0 +1,10 @@
+/* 템플릿 갤러리(P-12e). 공용 토큰(app/tokens.css)만 쓴다 */
+.gl-page { max-width: 960px; margin: 0 auto; padding: var(--sp-5) var(--sp-4); }
+.gl-filters { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-4) 0; }
+.gl-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.gl-card { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2); }
+.gl-head { display: flex; align-items: center; gap: var(--sp-2); }
+.gl-name { margin: 0; font-size: var(--fs-h3); overflow-wrap: anywhere; }
+.gl-meta, .gl-techs { margin: 0; color: var(--ink-2); font-size: var(--fs-sm); }
+.gl-flow { margin: 0; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.gl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: auto; }

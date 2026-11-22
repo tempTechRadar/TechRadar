@@ -1,0 +1,21 @@
+/* 청사진 스튜디오 목록 모드(P-12e 조각 K): 휴대폰 · 키보드 편집. 누르는 칸은 --hit-sm 이상, 390px에서 가로로 넘치지 않게 한 줄씩 접힌다 */
+.lm { display: grid; gap: var(--sp-3); min-width: 0; font-size: var(--fs-sm); }
+.lm h2 { margin: 0; font-size: var(--fs-h2); }
+.lm p { margin: 0; }
+.lm-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.lm-step { margin: 0 0 6px; font-size: var(--fs-h3); }
+.lm-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: var(--sp-2); }
+.lm-card { display: grid; gap: var(--sp-2); padding: 10px var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow-wrap: anywhere; }
+.lm-card.chosen { border: 2px solid var(--ink); }
+.lm-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lm-row label { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.lm-row input, .lm-row select { min-height: var(--hit-sm); max-width: 100%; font: inherit; }
+.lm-head { justify-content: space-between; }
+.lm-name { min-height: var(--hit-sm); padding: 0 var(--sp-1); border: 0; background: none; font: inherit; font-size: var(--fs-body); font-weight: 700; color: var(--ink); text-align: left; cursor: pointer; }
+.lm-part { display: grid; gap: var(--sp-1); padding-top: 6px; border-top: 1px solid var(--line); }
+.lm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.lm-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.lm-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.lm-name:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.lm-part > .btn { justify-self: start; } /* "같은 순서에 단계 더하기"가 카드 폭으로 늘어나지 않게 */
+.lm-add { padding: 10px var(--sp-3); border: 1px dashed var(--faint); border-radius: var(--r-md); }

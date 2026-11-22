@@ -2,7 +2,7 @@
 import type { CategoryGroup } from "@/lib/admin/category-options";
 import { ADDABLE_KINDS } from "@/lib/admin/classify-input";
 import type { ClassifyAudit } from "@/lib/server/admin-queries";
-import { addRuleAction, confirmRelationAction, setCategoryAction, toggleRuleAction } from "./actions";
+import { addRuleAction, classifyNowAction, confirmRelationAction, setCategoryAction, toggleRuleAction } from "./actions";
 import { when } from "../admin-shell";
 
 const BTN = { minHeight: 44, minWidth: 44 } as const;
@@ -97,5 +97,16 @@ export function AuditList({ rows, me }: { rows: ClassifyAudit[]; me: string }) {
         </ul>
       )}
     </section>
+  );
+}
+
+/** "규칙으로 한 번에 분류"(P-12f ⑧): 갈래가 빈 기술을 지금 규칙으로 채운다. 관리자가 정한 것은 건드리지 않고, 못 정한 것은 아래 목록에 남는다 */
+export function ClassifyNowForm() {
+  return (
+    <form action={classifyNowAction} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+      <Reason id="reason-classify-now" />
+      <button type="submit" style={BTN}>규칙으로 한 번에 분류</button>
+      <span className="muted">매일 실행 뒤에 도는 것과 같은 규칙이에요. 관리자가 정한 갈래는 바꾸지 않아요.</span>
+    </form>
   );
 }

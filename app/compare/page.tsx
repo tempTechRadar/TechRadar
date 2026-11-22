@@ -2,22 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { parseCompareSelection } from "@/lib/alerts/parse-compare-selection";
 import { listCatalogTechs, readTechsForCompare } from "@/lib/server/compare-queries";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { CompareTable } from "./compare-table";
-import "../alerts/alerts.css";
 
 // 기술 비교(IA 메뉴 "비교", PRD-F42): 기술 2–3개를 골라 나란히. 와이어프레임 docs/wireframes/extras.html.
 export default async function ComparePage({ searchParams }: { searchParams: Promise<{ techs?: string | string[] }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="기술 비교" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const selection = parseCompareSelection((await searchParams).techs);
   const supabase = (await getServerSupabase())!;
   const catalog = await listCatalogTechs(supabase).catch((e) => { console.error("기술 목록 조회 실패", e); return null; });
   const found = selection.state === "ok" ? await readTechsForCompare(supabase, selection.ids).catch((e) => { console.error("비교할 기술 조회 실패", e); return null; }) : undefined;
 
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>기술 비교</h1>
       <p className="muted">비교할 기술을 2개에서 3개까지 골라 주세요. 값과 출처는 적용 기회 비교표와 같은 항목이에요.</p>
       {catalog === null ? <LoadError what="기술 목록" /> : <Picker catalog={catalog} selected={selection.state === "ok" ? selection.ids : []} />}

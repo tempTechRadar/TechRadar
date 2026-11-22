@@ -22,7 +22,7 @@ export function SettingsForm({ nickname, isPublic, welcome, next }: { nickname: 
       {/* 가입 안내(settings/page.tsx welcome)와 같은 말을 쓴다(design.md 18절 설정 IA-19) */}
       <p className="muted">켜면 기술 상세의 &apos;쓰고 있어요 n명&apos;에 내 별명이 들어가요. 끄면 수에서도 빠져요. 내 프로젝트·판단·기록은 켜도 꺼도 다른 사용자에게 보이지 않아요.</p>
       {state?.error ? <div id="settings-error" className="notice notice-error" role="alert"><strong>{state.error}</strong></div> : null}
-      {state?.saved && !pending ? <div className="notice notice-empty" role="status"><strong>저장했어요.</strong></div> : null}
+      {state?.saved && !pending ? <div className="notice notice-ok" role="status"><strong>저장했어요.</strong></div> : null}
       <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "저장하는 중…" : "저장"}</button>
     </form>
   );

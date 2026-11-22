@@ -1,0 +1,24 @@
+/* 청사진 화면 틀(P-12e 스튜디오, 캔버스 · 패널은 studio.css · dock.css · inspector.css · list-mode.css): 메뉴 바 밑을 꽉 채우는 판 · 확정 · 내보내기 창 · 알림. 값은 공용 토큰 */
+body:has(.bp-page) { padding: 0; min-height: 100dvh; display: flex; flex-direction: column; }
+body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
+.page.bp-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; background: var(--sunken); }
+.bp-page > .notice { margin: var(--sp-4); }
+.bp-wait { padding: var(--sp-5); }
+
+.bp-name { font: inherit; font-weight: 700; font-size: 17px; min-height: var(--hit); padding: 0 8px; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--ink); }
+.bp-name:hover, .bp-name:focus { border-color: var(--line); }
+.bp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* P-12h S4 한 벌: 작은 단추(.btn-sm) · 글자 링크(.bp-link) · 눌림(aria-pressed = 먹 채움: 위 막대 토글 · 하단 패널 탭 · 목록 모드 이름).
+   막힌 단추는 page.css 한 벌(aria-disabled + 누르면 이유 글) */
+.btn-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); } /* 지금은 .page .btn(44px · 본문 글자)이 이긴다: 옛 .insp-sm 등과 같아 S4는 이름만 합침. 작게 바꾸기는 제출 뒤(누르는 칸 확인 후) */
+.bp-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); padding: 0; border: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.btn-sm:focus-visible, .bp-link:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* .bp-page 밖(개발용 패널 샘플)의 하단 패널 탭에도 닿게 .dock · .lm도 */
+:is(.bp-page, .dock, .lm) :is(.btn, .dock-tab, .lm-name)[aria-pressed="true"], :is(.bp-page, .dock, .lm) :is(.btn, .dock-tab, .lm-name)[aria-pressed="true"]:hover { background: var(--ink); color: var(--on-ink); border-color: var(--ink); font-weight: 700; }
+
+.bp-opts { display: grid; gap: 6px; margin: 10px 0; }
+.c-dialog .bp-opt { justify-content: space-between; gap: var(--sp-2); text-align: left; min-height: 48px; padding: 6px var(--sp-3); }
+.bp-rec { flex: none; font-size: var(--fs-cap); border: 1px solid var(--ink-2); border-radius: 4px; padding: 0 6px; }
+.bp-field { display: grid; gap: 4px; margin: var(--sp-3) 0; font-weight: 600; }
+.bp-field select { min-height: var(--hit); font: inherit; padding: 0 8px; border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--surface); }
+

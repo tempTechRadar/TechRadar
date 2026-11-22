@@ -1,0 +1,10 @@
+.skel-list { display: grid; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.skel-row { display: grid; gap: 8px; padding: var(--sp-3) var(--sp-4); }
+.skel-row + .skel-row { border-top: 1px solid var(--line); }
+.skel-row span { display: block; height: 12px; border-radius: var(--r-sm); background: var(--sunken); animation: skel-pulse 1.4s ease-in-out 2; } /* P-12g B6: 끝없이 깜빡이지 않고 두 번 뒤 멈춤(3초 "아직 읽는 중"보다 먼저 끝남) */
+.skel-row span:first-child { width: 40%; height: 14px; }
+.skel-row span:last-child { width: 75%; }
+.skel-slow { visibility: hidden; animation: skel-show 0s 3s forwards; color: var(--muted); }
+@keyframes skel-pulse { 50% { opacity: .5; } }
+@keyframes skel-show { to { visibility: visible; } }
+@media (prefers-reduced-motion: reduce) { .skel-row span { animation: none; } }

@@ -6,7 +6,7 @@ import { maskSecrets } from "../domain/redact.ts";
 
 // 다대일 조인(changes, technologies, my_technologies, projects)은 실제 응답에서 한 줄 객체다(DB 타입 생성 전이라 느슨하게 둔다).
 const COLUMNS =
-  "id, kind, status, created_at, changes(kind, detected_at, prev_value, curr_value, draft_response, draft_sources, technologies(display_name)), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at), comparison";
+  "id, kind, status, created_at, my_technology_id, changes(kind, detected_at, prev_value, curr_value, draft_response, draft_sources, technologies(id, display_name, type, categories(name, parent:parent_id(name)))), my_technologies(source_file, project_id, projects(name)), judgments(decision, reason, fixed_version, judged_at), comparison";
 
 type Row = Record<string, any>;
 
@@ -33,6 +33,13 @@ function toDraft(change: Row): AlertRecord["change"]["draft"] {
   return { text: change.draft_response, sources };
 }
 
+// 하는 일 갈래 = 큰 갈래(세부 갈래면 그 위). 분류 전이면 null
+function toTech(t: Row | null | undefined): AlertRecord["tech"] {
+  if (!t?.id) return null;
+  const cat = t.categories as Row | null | undefined;
+  return { id: t.id, type: t.type ?? null, field: cat?.parent?.name ?? cat?.name ?? null };
+}
+
 function toRecord(row: Row): AlertRecord {
   return {
     id: row.id,
@@ -44,6 +51,8 @@ function toRecord(row: Row): AlertRecord {
     sourceFile: row.my_technologies?.source_file ?? null,
     judgment: toJudgment(row.judgments),
     comparison: toComparison(row.comparison),
+    myTechnologyId: row.my_technology_id ?? null,
+    tech: toTech(row.changes.technologies),
     change: {
       kind: row.changes.kind,
       techName: row.changes.technologies.display_name,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { markHelpful, readUsageNotes, reportNote, saveUsageNote } from "./usage-notes.ts";
+import { markHelpful, readTopUsageNotes, readUsageNotes, reportNote, saveUsageNote } from "./usage-notes.ts";
 
 type Err = { message: string; code?: string } | null;
 type Answer = { data: unknown; error: Err };
@@ -111,4 +111,20 @@ test("목록이 비면 내가 누른 것·신고한 것은 읽지 않는다", as
   const { db, calls } = fakeDb({ usage_notes: ok([]) });
   assert.deepEqual(await readUsageNotes(db, "t1", "u1"), []);
   assert.deepEqual(calls.map((c) => c.table), ["usage_notes"]);
+});
+
+test("사용기 요약: 도움 많은 순 몇 개와 전체 수, 못 읽으면 던진다(없음과 다르게)", async () => {
+  const rows = [{ id: "n2", used_for: "검색", result: "잘 됨", tip: "팁", helpful_count: 5 }];
+  const { db, calls } = fakeDb({ usage_notes: { data: rows, error: null, count: 7 } as Answer });
+  assert.deepEqual(await readTopUsageNotes(db, "t1"), { total: 7, top: [{ id: "n2", usedFor: "검색", result: "잘 됨", tip: "팁", helpfulCount: 5 }] });
+  assert.deepEqual(calls[0].filters, [["tech_id", "t1"]]);
+  await assert.rejects(readTopUsageNotes(fakeDb({ usage_notes: fail() }).db, "t1"));
+});
+
+test("사용기 수(손님용 집계): 숫자만 받고 글은 읽지 않는다, 못 읽으면 던진다", async () => {
+  const { readUsageNoteCount } = await import("./usage-notes.ts");
+  const { db, calls } = fakeDb({ "rpc:usage_note_count": ok(3) });
+  assert.equal(await readUsageNoteCount(db, "t1"), 3);
+  assert.deepEqual(calls.map((c) => c.table), ["rpc:usage_note_count"]);
+  await assert.rejects(readUsageNoteCount(fakeDb({ "rpc:usage_note_count": fail() }).db, "t1"), /사용기 수를 읽지 못함/);
 });

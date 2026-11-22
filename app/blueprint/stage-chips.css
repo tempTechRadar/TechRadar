@@ -1,0 +1,2 @@
+/* 단계 칩 줄의 "자세히"(후보 칩 옆, 글자 링크 .bp-link): 칩과 조금 띄움 */
+:is(.insp-chips, .lm-chips) > li > .bp-link { margin-left: var(--sp-1); padding: 0 var(--sp-1); font-size: var(--fs-sm); }

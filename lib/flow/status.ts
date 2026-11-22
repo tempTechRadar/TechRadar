@@ -24,6 +24,12 @@ const START_STATE: Record<RunRow["status"], NodeState> = {
 
 export type Colored = { states: Record<string, NodeState>; activeStart: string | null; boldEdges: Set<string> };
 
+/** 시작 상자 하나에서 갈 수 있는 상자·화살표(flow.json 연결 기준). 길만 고를 뿐 색(실제 기록)은 그대로다(불변 6) */
+export function pathFrom(flow: Flow, startId: string): { nodes: Set<string>; edges: Set<string> } {
+  const edges = reachableEdges(flow, startId);
+  return { edges, nodes: new Set([startId, ...[...edges].map((k) => k.split(">")[1])]) };
+}
+
 export function colorize(flow: Flow, run: RunRow | null, steps: StepRow[]): Colored {
   const startNode = run ? flow.nodes.find((n) => n.type === "start" && n.run_trigger === run.trigger) : undefined;
   const best = new Map<string, StepRow["status"]>();

@@ -24,12 +24,17 @@ test("프로젝트가 있으면 내 기술을 합치고(등급은 가장 나쁜 
   assert.deepEqual(m.edges, [["tech:a", "tech:b"]]);
 });
 
+test("공식 표시는 카탈로그 칸이 true일 때만: 칸이 없는 기술 · 이름만 넣은 내 기술은 공식 아님", () => {
+  const m = buildTechMap(input({ mine: [mine("m1", null, { manualName: "직접 넣은 것" })], techs: [tech("a", { official: true }), tech("b")] }), NOW);
+  assert.deepEqual(m.nodes.map((n) => [n.name, n.official]).sort(), [["a", true], ["b", false], ["직접 넣은 것", false]]);
+});
+
 test("묶기 기준 값: 작은 갈래는 큰 갈래 아래로, 갈래가 없으면 '분류 전', 종류는 한국어", () => {
   const m = buildTechMap(input({ techs: [tech("a"), tech("b", { categoryId: "big-design", type: "skill", techKey: "skill:x/y/b" }), tech("c", { categoryId: null })] }), NOW);
   const by = Object.fromEntries(m.nodes.map((n) => [n.name, n.attrs]));
   assert.deepEqual([by.a.field, by.a.sub, by.a.kind], ["백엔드·데이터", "DB", "MCP"]);
-  assert.deepEqual([by.b.field, by.b.sub, by.b.kind, by.b.host], ["디자인", "분류 전", "스킬", "Claude Code"]);
-  assert.deepEqual([by.c.field, by.c.sub], ["분류 전", "분류 전"]);
+  assert.deepEqual([by.b.field, by.b.sub, by.b.kind, by.b.host], ["디자인", "아직 분류 안 됨", "스킬", "Claude Code"]);
+  assert.deepEqual([by.c.field, by.c.sub], ["아직 분류 안 됨", "아직 분류 안 됨"]);
 });
 
 test("쓰는 곳은 칸이 있으면 그대로, 비면 기술 키·종류로 추정하고 추정이라고 표시", () => {
@@ -42,7 +47,7 @@ test("쓰는 곳은 칸이 있으면 그대로, 비면 기술 키·종류로 추
 test("같은 역할이 하나도 없는 내 기술은 외톨이, 이름만 추가한 기술은 분류 전·종류 모름", () => {
   const m = buildTechMap(input({ mine: [mine("m1", "a"), mine("m2", null, { manualName: "My Tool", grade: "unknown" })], techs: [tech("a")] }), NOW);
   const manual = m.nodes.find((n) => n.key === "name:my tool")!;
-  assert.deepEqual([manual.lonely, manual.attrs.field, manual.attrs.kind], [true, "분류 전", "모름"]);
+  assert.deepEqual([manual.lonely, manual.attrs.field, manual.attrs.kind], [true, "아직 분류 안 됨", "직접 넣은 것"]);
 });
 
 test("NEW는 카탈로그에 들어온 지 7일 안, 수집 오류는 '업데이트 n일 전'이 아니라 '수집 오류'(불변 2)", () => {
@@ -84,4 +89,24 @@ test("개념(작업 방식) 노드는 등급 칸이 '등급 없음'이다: 카�
   const concept = tech("h", { type: "concept", techKey: "concept:harness", grade: "unknown" });
   const m = buildTechMap(input({ techs: [concept, tech("x", { grade: "unknown" })], mine: [mine("m1", "h", { grade: "unknown" })] }), NOW);
   assert.deepEqual(m.nodes.map((n) => [n.key, n.attrs.grade]), [["tech:h", "등급 없음"], ["tech:x", "찾지 못함"]]);
+});
+
+test("지도 NEW 표시는 인기 상위만 남기고, 내 기술은 늘 NEW", async () => {
+  const { capNew } = await import("./build-map.ts");
+  const m = buildTechMap(input({
+    mine: [mine("m1", "c")],
+    techs: [tech("a", { createdAt: ago(1), signals: { stars: 900 } }), tech("b", { createdAt: ago(1), signals: { stars: 10 } }), tech("c", { createdAt: ago(1) }), tech("d", { createdAt: ago(1), signals: { stars: 50 } })],
+  }), NOW);
+  const capped = capNew(m, 2);
+  assert.deepEqual(capped.nodes.filter((n) => n.isNew).map((n) => n.name).sort(), ["a", "c", "d"]);
+  assert.equal(m.nodes.filter((n) => n.isNew).length, 4); // 원래 모델은 그대로
+});
+
+test("여러 프로젝트에서 쓰는 내 기술의 확인 시각은 가장 오래된 것, 하나라도 확인한 적 없으면 없음(최근 확인으로 부풀리지 않게)", () => {
+  const two = (a: string | null, b: string | null) => buildTechMap(input({
+    mine: [mine("m1", "a", { lastCheckedOkAt: a }), mine("m2", "a", { projectId: "p2", projectName: "다른 앱", lastCheckedOkAt: b })], techs: [tech("a")],
+  }), NOW).nodes[0].lastCheckedOkAt;
+  assert.equal(two("2026-11-22T00:00:00Z", "2026-11-20T00:00:00Z"), "2026-11-20T00:00:00Z");
+  assert.equal(two("2026-11-20T00:00:00Z", "2026-11-22T00:00:00Z"), "2026-11-20T00:00:00Z", "순서와 상관없이");
+  assert.equal(two("2026-11-22T00:00:00Z", null), null);
 });

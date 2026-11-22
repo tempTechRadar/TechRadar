@@ -11,6 +11,10 @@ export const MIN_HOLD_REASON = 5;
 export function holdReasonProblem(reason: string): string | null {
   return [...reason.trim()].length < MIN_HOLD_REASON ? `보류하는 이유를 ${MIN_HOLD_REASON}자 이상 적어 주세요.` : null;
 }
+/** 자주 쓰는 보류 이유(누르면 칸에 덧붙임). 고친 버전 이야기는 보안 경고에만. 알림 판단과 지도 판단이 같이 쓴다 */
+export const HOLD_REASON_CHIPS = { security: ["고친 버전이 나오면 다시 볼게요", "지금은 바꿀 시간이 없어요", "팀과 상의한 뒤 정할게요"], other: ["지금 쓰는 것으로 충분해요", "지금은 바꿀 시간이 없어요", "팀과 상의한 뒤 정할게요"] };
+export const appendReason = (now: string, chip: string) => (now.trim() ? `${now.trim()} ${chip}` : chip); // 쓰던 이유를 지우지 않고 덧붙인다
+
 export const NO_FIXED_VERSION_MESSAGE = "고친 버전이 아직 없어서 적용 후보로 저장할 수 없어요. 보류로 남겨 주세요.";
 
 export function validateJudgment(input: JudgmentInput): JudgmentCheck {

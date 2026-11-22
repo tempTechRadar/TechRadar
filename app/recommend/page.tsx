@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readRecommendations } from "@/lib/server/recommend-queries";
 import { getServerSupabase } from "@/lib/supabase/server";
-import "../alerts/alerts.css";
 
 // 추천(IA-20, PRD-F32): 취향의 관심 분야 안에서 주간 다운로드가 많은 기술. 알림·판단과 따로이고 알림 수·판단 대기 수에 들어가지 않는다.
 export default async function RecommendPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/recommend");
+  if (isPreviewUser(user)) return <PreviewOnly title="추천" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const supabase = (await getServerSupabase())!;
   const view = await readRecommendations(supabase, user.id, user.isDemo).catch((e) => { console.error("추천 조회 실패", e); return null; });
   return (
-    <main className="alerts">
+    <main className="page">
       <h1>추천</h1>
       <p className="muted">알림이 아니에요. 고른 관심 분야에서 주간 다운로드가 많은 기술이에요. 이미 쓰는 기술과 지원이 끝난 기술은 빼요. <Link href="/taste">취향 고치기</Link></p>
       {view === null ? (
@@ -25,7 +27,7 @@ export default async function RecommendPage() {
         <ul className="alert-list">
           {view.items.map((r) => (
             <li key={r.techId}>
-              <Link href={`/projects/tech/${r.techId}`}><strong>{r.name}</strong></Link>
+              <Link href={`/tech/${r.techId}`}><strong>{r.name}</strong></Link>
               {r.oneLiner ? <p>{r.oneLiner}</p> : null}
               <p className="muted">이유: {r.reason}{r.source ? ` · 출처: ${r.source}` : ""}</p>
             </li>

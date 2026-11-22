@@ -6,12 +6,14 @@ import { revalidatePath } from "next/cache";
 import { DEMO_FAIL_SAVE_COOKIE } from "@/lib/demo/demo-switch";
 import { maybeFailForDemo } from "@/lib/demo/judgment-hooks";
 import { recordActionOutcome } from "@/lib/server/action-record";
-import { getCurrentUser } from "@/lib/server/current-user";
+import { PREVIEW_NO_SAVE } from "@/lib/dev/login-preview";
+import { getCurrentUser, isLoginPreview } from "@/lib/server/current-user";
 import { saveJudgment, type JudgmentResult } from "@/lib/server/judgments";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { getServerSupabase } from "@/lib/supabase/server";
 
-export type JudgeState = { message: string | null };
+/** n = 실패를 돌려준 횟수: 같은 문구가 다시 와도 오류 상자를 새로 붙여 화면 읽기가 다시 읽고 등장도 한 번 돈다(P-12g C1) */
+export type JudgeState = { message: string | null; n: number };
 
 /**
  * 판단 뒤 흐름 화면의 "조치와 기록"(action_record) 단계를 남긴다(P-8·P-20c). 저장했으면 성공, 저장을 시도했다가 실패했으면 실패.
@@ -25,7 +27,8 @@ async function recordAction(alertId: string, result: JudgmentResult): Promise<vo
 }
 
 /** 적용 후보·보류 저장(IA-7, PRD-F17·F19). 실패하면 알림은 그대로 판단 대기고 메시지만 돌려준다. */
-export async function judge(_previous: JudgeState, formData: FormData): Promise<JudgeState> {
+export async function judge(previous: JudgeState, formData: FormData): Promise<JudgeState> {
+  if (await isLoginPreview()) return { message: PREVIEW_NO_SAVE, n: previous.n + 1 }; // 미리보기(개발용)는 아무것도 저장하지 않는다(불변 1·4)
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const alertId = String(formData.get("alertId") ?? "");
@@ -40,7 +43,9 @@ export async function judge(_previous: JudgeState, formData: FormData): Promise<
     reason: String(formData.get("reason") ?? ""),
   });
   await recordAction(alertId, result);
-  if (!result.ok) return { message: result.message };
+  // 이미 판단된 알림(다른 탭 · 지도에서)은 실패가 아니라 완료: 상세를 다시 그려 실제 완료 카드를 보인다(불변 4 · 6, P-12g C1)
+  if (!result.ok && result.code !== "done") return { message: result.message, n: previous.n + 1 };
   revalidatePath("/alerts");
-  redirect(`/alerts/${alertId}`);
+  // saved=1: 방금 저장한 첫 화면에서만 판단 카드가 한 번 움직인다. done: 초점만(P-12g C2, saved-focus가 주소에서 지움)
+  redirect(`/alerts/${alertId}?saved=${result.ok ? "1" : "done"}`);
 }

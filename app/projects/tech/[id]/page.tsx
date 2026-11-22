@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/lib/domain/my-tech-view";
+import { PreviewOnly } from "@/app/dev/preview-only";
+import { isPreviewUser } from "@/lib/dev/login-preview";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { getMyTechDetail, recordGradeView, type MyTechDetail } from "@/lib/server/my-tech";
 import { readUsageNotes, type UsageNoteView } from "@/lib/server/usage-notes";
 import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
-import "../../../alerts/alerts.css";
 import { readMarkForTech } from "@/lib/server/marks";
 import { MarkBar } from "./mark-bar";
 import { TechDetail } from "./tech-detail";
@@ -16,6 +17,7 @@ import { UsageNotes } from "./usage-notes";
 export default async function TechDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (isPreviewUser(user)) return <PreviewOnly title="기술 상세" />; // 미리보기(개발용)는 DB를 부르지 않는다
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const supabase = (await getServerSupabase())!;
@@ -47,7 +49,7 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
     // 등급은 DB 규칙(set_tech_mark)과 같은 카탈로그 등급: 이 프로젝트 줄의 등급과 다를 수 있다
     markBar = m
       ? <MarkBar techId={techId} grade={m.grade} initial={m.mark} />
-      : <p className="notice notice-error" role="alert">내 판단 표시를 읽지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
+      : <p className="notice notice-error" role="alert">내 판단 표시를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
   }
   return (
     <TechDetail d={detail} using={using} markBar={markBar}>
@@ -58,7 +60,7 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
 
 function LoadError() {
   return (
-    <main className="alerts">
+    <main className="page">
       <p className="muted"><Link href="/projects">← 내 프로젝트로</Link></p>
       <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
     </main>
