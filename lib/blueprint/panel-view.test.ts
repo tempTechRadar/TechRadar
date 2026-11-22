@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter, addStageBeside, addStageLinked, parallelProblem } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter, addStageBeside, addStageLinked, parallelProblem, linkSaid, putSaid, removeSaid } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -133,4 +133,12 @@ test("같은 순서에 더하기(S3): 앞 단계 선을 복사해 같은 깊이,
   assert.ok("problem" in addStageBeside(full, "넘침", full.stages[1], 1));
   assert.match((addStageLinked(full, "끌어 넘침", { x: 640, y: 0 }, { before: ["a"], after: [] }) as { problem: string }).problem, /2번째 순서/); // 선 끌기 · ＋ 단계도 같은 한도
   assert.equal(parallelProblem(full, "a"), null);
+});
+
+test("같은 일은 같은 말(S4): 넣기 · 빼기 · 잇기 · 끊기 토스트", () => {
+  const g: Graph = { ...emptyGraph(), stages: [st("기획"), st("개발")], edges: [] };
+  assert.equal(putSaid("개발", "Vite"), "개발에 Vite을(를) 넣었어요.");
+  assert.equal(removeSaid("개발", "Vite"), "개발에서 Vite을(를) 뺐어요.");
+  assert.equal(linkSaid(g, "기획", "개발", false), "기획 → 개발 연결을 이었어요.");
+  assert.equal(linkSaid(g, "기획", "없음", true), "기획 → 없는 단계 연결을 끊었어요.");
 });
