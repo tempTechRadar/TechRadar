@@ -78,7 +78,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
           : target.grade === "danger" ? <><b>{target.name}</b>은(는) 위험 등급이라 청사진에 넣지 않아요.</>
           : <><b>{target.name}</b>: 아래에서 넣을 단계를 고르거나, 이 카드를 단계로 끌어 놓으세요.</>}
       </p> : null}
-      {target && target.grade !== "danger" && graph.stages.length ? <AddTo graph={graph} name={target.name} onPut={(s) => put(target, s)} /> : null}
+      {target && target.grade !== "danger" && graph.stages.length ? <AddTo graph={graph} name={target.name} onPut={(s) => put(target, s)} say={say} /> : null}
       <form className="dock-row" role="search" onSubmit={(e) => e.preventDefault()}>
         {guest ? null : <>
           <label className="tt-dim">묶기 <select value={by[0]} onChange={(e) => { const d = e.target.value as TreeDim; setDims(by[1] && by[1] !== d ? [d, by[1]] : [d]); }}>
@@ -103,11 +103,11 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
 const DimOption = ({ d, off }: { d: TreeDim; off: boolean }) => <option value={d} disabled={off}>{off ? `${DIM_KO[d]}(못 읽음)` : DIM_KO[d]}</option>;
 
 /** ?add= 로 온 기술을 키보드로 한 번에 넣기(P-12h-2 T3): 넣을 단계 고르기 + 넣기 */
-function AddTo({ graph, name, onPut }: { graph: PanelProps["graph"]; name: string; onPut: (s: PanelProps["graph"]["stages"][number]) => void }) {
+function AddTo({ graph, name, onPut, say }: { graph: PanelProps["graph"]; name: string; onPut: (s: PanelProps["graph"]["stages"][number]) => void; say: PanelProps["say"] }) {
   const [to, setTo] = useState("");
   const s = graph.stages.find((x) => x.id === to);
   return (
-    <form className="dock-row" onSubmit={(e) => { e.preventDefault(); if (s) onPut(s); }}>
+    <form className="dock-row" onSubmit={(e) => { e.preventDefault(); if (s) onPut(s); else say("넣을 단계를 먼저 골라 주세요."); }}>
       <label className="tt-dim">{name}을(를) 넣을 단계 <select value={to} onChange={(e) => setTo(e.target.value)}>
         <option value="">고르기</option>{graph.stages.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
       <button type="submit" className="btn btn-sm" aria-disabled={s ? undefined : true}>넣기</button>
