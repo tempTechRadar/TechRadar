@@ -17,7 +17,7 @@ export function PanelsSample({ pool, history, tags: start }: { pool: PoolTech[];
   const { toast, say, clear } = useToast();
   const graph = stack[stack.length - 1];
   const p: PanelProps = {
-    graph, picked, onPick: setPicked, onAsk: () => say("질문으로 틀 만들기는 청사진 화면에서 열려요."), pool, tags, history, say, confirmedId: null, onCandidate: () => undefined, marking: null,
+    graph, picked, onPick: setPicked, onAsk: () => say("질문으로 틀 만들기는 청사진 화면에서 열려요."), pool, tags, history, say, onCandidate: () => undefined, marking: null,
     apply: (next, text) => { if (next === graph) return; setStack((s) => [...s.slice(-49), next]); if (text) say(text); },
     onTags: (id, t) => setTags((x) => ({ ...x, [id]: t })),
   };

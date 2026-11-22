@@ -43,7 +43,7 @@ function AddStage({ graph, apply, say, picked, onPick }: PanelProps) {
   const add = () => {
     const r = addStageAfter(graph, name, after);
     if ("problem" in r) { say(r.problem); return; }
-    apply(r.graph, after ? `"${after.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : `"${r.stage.name}" 단계를 더했어요. 앞 단계를 골라 순서를 이어 주세요.`);
+    apply(r.graph, after && r.linked ? `"${after.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : `"${r.stage.name}" 단계를 더했어요. 앞 단계를 골라 순서를 이어 주세요.`);
     onPick({ kind: "stage", stageId: r.stage.id });
     setName("");
   };

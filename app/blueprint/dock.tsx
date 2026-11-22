@@ -60,7 +60,7 @@ export function Dock(p: PanelProps) {
           {tab === "tech" ? <>
             <TechTab {...p} usage={usage} />
             {/* 옛 후보 탭(P-12f ⑤ 보드 녹이기): S2 기술 트리 전까지 기술 탭 안의 묶음. 손님은 내 판단이 없어 뺀다 */}
-            {p.guest ? null : <details className="dock-group"><summary>관심 · 적용 후보 · 보류</summary><CandidateTab {...p} /></details>}
+            {p.guest ? null : <CandidateGroup {...p} />}
           </> : <LoadTab {...p} usage={usage} />}
         </div>
       ) : null}
@@ -163,6 +163,12 @@ function TechCard({ t, use, tags, stage, placed = false, added = false, gated = 
   );
 }
 
+/** 옛 후보 탭 묶음: 펼칠 때만 그려서 서버에서 읽는다(접어 둔 채로 탭을 오갈 때마다 다시 읽지 않게) */
+function CandidateGroup(p: PanelProps) {
+  const [open, setOpen] = useState(false);
+  return <details className="dock-group" onToggle={(e) => setOpen(e.currentTarget.open)}><summary>관심 · 적용 후보 · 보류</summary>{open ? <CandidateTab {...p} /> : null}</details>;
+}
+
 /** 불러오기 탭: 질문으로 틀 만들기(손님도 됨, 이 브라우저 판) · 템플릿 · 내 이력(로그인) */
 function LoadTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
   return (
@@ -180,7 +186,7 @@ function LoadTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
 
 function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<string, TechUsage> }) {
   if (history === null) return <p className="notice notice-error" role="alert">내 이력을 불러오지 못했어요. 확정한 게 없다는 뜻이 아니에요. 판 만들기는 그대로 쓸 수 있어요.</p>;
-  if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. ③ 결과물에서 확정하면 여기에 쌓여요.</p>;
+  if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. 위 "확정 · 내보내기"에서 확정하면 여기에 쌓여요.</p>;
   // 확인 창 대신 되돌리기(studio가 50단계 쌓음): 지금 판이 있으면 알림에서 되돌릴 수 있다고 말한다
   // 판과 이름을 한 되돌리기 칸에(apply의 name): 되돌리면 이름도 돌아가고, 시작 템플릿 표시도 studio가 지운다
   const load = (h: BlueprintRecord) => apply(fromV1(toBoard(h.board)), `"${h.name}"을(를) 불러왔어요.${graph.stages.length ? " 전 판은 되돌리기로 돌아와요." : ""}`, h.name);

@@ -7,12 +7,13 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  applyTemplate, autoLayout, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
+  applyTemplate, autoLayout, LIMITS, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { recommendAt } from "@/lib/blueprint/knowledge";
 import { addStageAfter, CONNECT_KO, putProblem } from "@/lib/blueprint/panel-view";
+import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
@@ -23,7 +24,7 @@ import { GuideLines, useDragAssist } from "./drag-assist";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
 import { StageNode, type StageNodeType } from "./stage-node";
-import { ResultDialog } from "./result-dialog";
+import { ResultDialog, type CheckTarget } from "./result-dialog";
 import type { PanelProps, Picked } from "./studio-types";
 import { useStudioGraph } from "./use-studio-graph";
 import { useConfirm } from "./use-studio-save";
@@ -60,6 +61,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
+  const addBtn = useRef<HTMLButtonElement>(null);
   const [loginAsk, setLoginAsk] = useState<string | null>(null); // 손님이 저장 · 판단을 누름: 무엇을 하려는지(묻는 대화상자 글)
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
@@ -79,12 +81,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const confirmOpen = useRef(false);
   confirmOpen.current = confirming;
   const done = useConfirm((id) => {
-    setConfirming(false);
+    // 결과물 창은 열어 둔다(P-12h S1: 확정 → 같은 창 ④ AI 점검이 방금 확정한 것으로 바뀜)
     const fresh = id !== lastConfirmed.current;
     lastConfirmed.current = id; setConfirmedId(id);
     // 저장이 성공해 onDone이 불렸을 때만(실패면 이 함수가 안 불림, 불변 4) · 처음 보는 확정 id · 고리 없는 판 · 움직임 줄이기 아님
     if (fresh && layOk.current && !calm()) { setDrawing(true); clearTimeout(drawTimer.current); drawTimer.current = setTimeout(() => setDrawing(false), DRAW_MS); }
-    say("확정해서 내 이력에 남겼어요. \"확정 · 내보내기\"에서 AI 점검을 받을 수 있어요."); router.refresh();
+    say("확정해서 내 이력에 남겼어요. 아래 AI 점검에서 점검을 받을 수 있어요."); router.refresh();
   },
     (m) => { if (!confirmOpen.current) say(m); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
@@ -143,12 +145,14 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(putTech(g, stageId, { id: t.id, name: t.name }), `${s.name}에 ${t.name} 붙였어요.`);
   }
   const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
+  /** ＋ 단계 칸 닫기: 초점이 사라진 입력에서 body로 떨어지지 않게 단추로 돌려놓는다 */
+  function closeAdd() { addBtn.current?.focus(); setAdding(false); } // 칸이 사라지기 전에 옮긴다(다음 프레임으로 미루면 백그라운드 탭에서 안 옴)
   /** 새 단계: 고른 단계가 있으면 그 다음에 이어 붙인다(목록 모드와 같은 규칙, panel-view addStageAfter). 더한 단계를 고른 채로 둬서 연달아 이어 붙일 수 있게 */
   function addNamed(nm: string) {
     const r = addStageAfter(g, nm, base);
     if ("problem" in r) return say(r.problem);
-    apply(r.graph, base ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : `"${r.stage.name}" 단계를 더했어요.`);
-    setNewName(""); setAdding(false); setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
+    apply(r.graph, base && r.linked ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : base ? `"${r.stage.name}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).` : `"${r.stage.name}" 단계를 더했어요.`);
+    setNewName(""); closeAdd(); setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
@@ -210,7 +214,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : "선을 지웠어요.");
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
-  /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정 "① 단계 구축에 다시 잇기"). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
+  /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정, 하단 패널 불러오기 탭에서 엶). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
   function makeFromAnswers(cols: string[][]) {
     setAsking(false); unpick(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
@@ -228,12 +232,16 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // 손님은 관문이 없어 모든 기술이 밖이다: 막지 않고 확정을 누르면 로그인 안내
   const problems = [...(g.stages.length ? [] : ["단계를 하나 이상 만들어 주세요."]), ...limitProblems(g), ...(outside.size && !guest ? [`판단 안 한 기술 ${outside.size}개 — 적용 후보로 고르거나 빼 주세요.`] : [])];
   // AI 점검할 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 "먼저 확정해 주세요"로 막히지 않게, P-12h S1)
+  // 새로 고친 뒤에는 이 판의 확정 id를 모르므로(확정 id는 이 화면에서만 기억) 최근 확정본이 지금 판과 같은 내용인지(단계 순서 · 이름 · 기술)를 보고 알린다
   const latest = history?.[0];
-  const checkTarget = confirmedId ? { id: confirmedId, label: "방금 확정한 것" }
-    : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})` } : null;
+  const sameAsBoard = (h: NonNullable<typeof latest>) => board !== null && JSON.stringify(h.board.map((c) => c.map((s) => [s.name, s.techs.map((t) => t.id)])))
+    === JSON.stringify(board.map((c) => c.map((s) => [s.name, s.techs.map((t) => t.id)])));
+  const checkTarget: CheckTarget = confirmedId ? { id: confirmedId, label: "방금 확정한 것" }
+    : history === null ? "unknown"
+    : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
-  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
+  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
 
@@ -246,12 +254,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
         {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
         <span className="studio-addwrap">
-          <button type="button" className="btn" aria-expanded={adding} disabled={readOnly} onClick={() => setAdding(!adding)}>＋ 단계</button>
-          {adding ? (
+          <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} disabled={readOnly} onClick={() => setAdding(!adding)}>＋ 단계</button>
+          {adding && !readOnly ? (
             <form className="studio-addpop" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}
-              onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setAdding(false); } }}>
+              onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeAdd(); } }}
+              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null) && e.relatedTarget !== addBtn.current) setAdding(false); }}>
               <label>{base ? `"${base.name}" 다음 단계 이름` : "새 단계 이름"}
-                <input autoFocus value={newName} maxLength={20} list="studio-hints" placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} />
+                <input autoFocus value={newName} maxLength={STAGE_NAME_MAX} list="studio-hints" placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} />
               </label>
               <datalist id="studio-hints">{hints.map((h) => <option key={h} value={h} />)}</datalist>
               <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>더하기</button>

@@ -65,7 +65,7 @@ export const newStageSpot = (g: Graph): Pos => {
 
 /** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
  *  고른 단계 → 새 단계로 잇는다. 없으면 맨 오른쪽 단계 옆, 잇지 않음. 못 더하면 이유 글 */
-export function addStageAfter(g: Graph, name: string, after: Stage | undefined): { graph: Graph; stage: Stage } | { problem: string } {
+export function addStageAfter(g: Graph, name: string, after: Stage | undefined): { graph: Graph; stage: Stage; linked: boolean } | { problem: string } {
   const why = addStageProblem(g, name);
   if (why) return { problem: why };
   let at = after ? { x: after.x + LAYOUT.x, y: after.y } : newStageSpot(g);
@@ -73,7 +73,8 @@ export function addStageAfter(g: Graph, name: string, after: Stage | undefined):
   for (let i = 0; after && taken(at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
   const stage = createStage(name.trim(), at.x, at.y);
   const added = addStage(g, stage);
-  return { graph: after ? connect(added, after.id, stage.id) : added, stage };
+  const graph = after ? connect(added, after.id, stage.id) : added;
+  return { graph, stage, linked: graph !== added }; // 연결 한도(200) 등으로 못 이으면 단계만 더하고 linked=false(화면이 "이어 붙였어요"라고 하지 않게)
 }
 
 /** UUID v4. crypto.randomUUID는 https · localhost에서만 있어 http(휴대폰으로 PC 주소)에서는 getRandomValues로 만든다(use-studio-save.ts와 같은 방법) */

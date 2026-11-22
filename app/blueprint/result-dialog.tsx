@@ -11,10 +11,12 @@ import { CheckPanel } from "./check-panel";
 const KINDS: [ExportKind, string][] = [["prompt", "프롬프트"], ["md", "CLAUDE.md 글"], ["meta", "다듬기용 메타프롬프트"]];
 const flow = (b: Board) => b.map((c) => c.map((s) => s.name).join(" + ")).join(" → ");
 
-/** check = AI 점검에 쓸 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 점검할 수 있게). label은 어느 확정본인지 사람에게 보이는 말 */
+/** AI 점검에 쓸 확정본: 이 화면에서 방금 확정한 것, 없으면 최근 확정 이력(새로 고쳐도 점검할 수 있게). label은 어느 확정본 · 지금 판과 같은지 사람에게 보이는 말.
+ *  null = 확정한 적 없음, "unknown" = 이력을 읽지 못함(확정한 적 없음과 다르게, 불변 2) */
+export type CheckTarget = { id: string; label: string } | null | "unknown";
 type Props = {
   name: string; board: Board | null; problems: string[]; projects: { id: string; name: string }[];
-  busy: boolean; error: string; guest: boolean; check: { id: string; label: string } | null;
+  busy: boolean; error: string; guest: boolean; check: CheckTarget;
   onConfirm: (projectId: string | null) => void; onLogin: () => void; say: (m: string) => void; onClose: () => void;
 };
 
@@ -64,8 +66,10 @@ export function ResultDialog(p: Props) {
         <section aria-labelledby="rd-check">
           <h3 id="rd-check" className="rd-h">AI 점검</h3>
           {p.guest ? <p className="muted">로그인하고 확정하면 AI 점검을 받을 수 있어요.</p> : <>
-            {p.check ? <p className="muted">점검할 확정본: {p.check.label}</p> : null}
-            <CheckPanel blueprintId={p.check?.id ?? null} />
+            {p.check === "unknown" ? <p className="notice notice-error" role="alert">확정 이력을 읽지 못해 점검할 확정본을 몰라요. 확정한 게 없다는 뜻이 아니에요. 새로 고치거나 다시 확정해 주세요.</p> : <>
+              {p.check ? <p className="muted">점검할 확정본: {p.check.label}</p> : null}
+              <CheckPanel blueprintId={p.check?.id ?? null} />
+            </>}
           </>}
         </section>
       </div>

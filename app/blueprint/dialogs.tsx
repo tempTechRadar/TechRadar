@@ -1,7 +1,6 @@
 "use client";
-// 청사진 대화상자: 질문으로 틀 만들기(한 번에 한 질문, 첫 보기가 추천) · 이 조합으로 확정(프로젝트 고르기). 템플릿은 하단 패널 템플릿 탭, 내보내기는 ③ 결과물 미리보기
+// 청사진 대화상자: 질문으로 틀 만들기(한 번에 한 질문, 첫 보기가 추천). 확정 · 내보내기 · AI 점검은 결과물 창(result-dialog.tsx), 템플릿은 하단 패널 불러오기 탭
 import { useState } from "react";
-import type { Board } from "@/lib/blueprint/board";
 import { buildFromAnswers, QUESTIONS } from "@/lib/blueprint/knowledge";
 import { Dialog } from "../c-dialog";
 

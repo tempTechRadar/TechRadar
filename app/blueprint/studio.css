@@ -16,7 +16,7 @@
 .rd-row select { min-height: var(--hit); font: inherit; }
 .rd-preview { max-height: 30vh; overflow: auto; margin: 6px 0 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 .rd ul { margin: 4px 0 0; padding-left: 1.2em; }
-/* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 결과물(③) · 하단 패널 */
+/* 가운데: 캔버스(또는 목록 모드) + 오른쪽 속성 패널. 아래에 하단 패널(결과물은 "확정 · 내보내기" 창) */
 .studio-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; }
 .studio-insp { min-height: 0; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); }
 .studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
@@ -40,7 +40,6 @@
 .sn-order { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--ink); }
 .sn-techs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-/* ① 단계 구축: 단계 설계에 집중. 투명도는 글자 대비가 2.9:1로 떨어져 옅은 바탕 + 흐린 글자(5:1 이상)로 */
 .sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
 .studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
 .react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }

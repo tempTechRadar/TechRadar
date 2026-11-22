@@ -1,6 +1,6 @@
 "use client";
 // 단계 노드(P-12e): 머리는 작게(순서 번호 · 이름 · 기술 수), 몸은 기술 칩. 왼쪽 점 = 들어오는 선, 오른쪽 점 = 나가는 선.
-// 하단 패널에서 끈 기술(TECH_DRAG)을 놓으면 붙인다. ① 단계 구축에서는 칩을 흐리게(단계 설계에 집중), ② 스킬 붙이기에서만 칩 빼기.
+// 하단 패널에서 끈 기술(TECH_DRAG)을 놓으면 붙인다. 칩 빼기(✕)는 읽기 전용이 아니면 늘(P-12h S1: 단계 칸이 없어짐).
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 import { LIMITS, type Stage } from "@/lib/blueprint/graph";
