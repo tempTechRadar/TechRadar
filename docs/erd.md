@@ -385,7 +385,7 @@ UK: (kind, ecosystem, value).
 | name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
 | project_id | uuid | | FK→projects (지우면 null) | 고른 프로젝트(본인 것만, 함수가 확인) |
 | board | jsonb | ✔ | | `[[{name, techs:[{id,name}]}]]` — 바깥 = 순서, 안 = 같이(나란히). 열 1~12개 · 128KB 이하(check). 모양 · 단계 이름 1~20자 · 나란히 1~4 · 기술 8개 · 있는 기술인지 · 위험 등급은 `confirm_blueprint`가 막고, 기술 이름은 DB에서 다시 읽어 넣음. P-12e부터는 graph의 투영(깊이 = 열, 같은 깊이는 y → x 순) |
-| graph | jsonb | | | P-12e M1. 캔버스 그래프 `{v:2, stages:[{id,name,x,y,techs}], edges:[{from,to}]}`, 256KB 이하(check). 단계 1~48 · 깊이 12 · 나란히 4 · 기술 8 · 연결 200 · 고리 없음은 `confirm_blueprint_v2`가 막음. 옛 줄은 null. **P-12h(11-22):** 단계마다 `note`(200자로 자름, 비면 뺌, `blueprint_graph_clean`이 지킴, board에는 안 넣음). 옛 `confirm_blueprint` v1은 실행 권한 회수(M5) |
+| graph | jsonb | | | P-12e M1. 캔버스 그래프 `{v:2, stages:[{id,name,x,y,techs}], edges:[{from,to}]}`, 256KB 이하(check). 단계 1~48 · 깊이 12 · 나란히 4 · 기술 8 · 연결 200 · 고리 없음은 `confirm_blueprint_v2`가 막음. 옛 줄은 null. **P-12h(11-22):** 단계마다 `note`(200자로 자름, 비면 뺌, `blueprint_graph_clean`이 지킴, board에는 안 넣음). 옛 `confirm_blueprint` v1은 실행 권한 회수(M5). **P-12j(11-22 밤):** `links:[{from,to}]`(끝 = `기술id@단계id`, 사용자 표시 관계). `blueprint_graph_clean`이 없는 기술 · 자기 자신 · 겹침 · 모양 틀림인 선만 빼고 100개까지, 비면 키 없음, board에는 안 넣음 |
 | template_id | uuid | | FK→blueprint_templates (지우면 null) | P-12e. "이 템플릿으로 시작"한 템플릿(갤러리의 쓰인 수) |
 | created_at | timestamptz | ✔ | | |
 
@@ -399,7 +399,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | author_id | uuid | ✔ | FK→profiles (지우면 함께) | 기본값 `auth.uid()`. 갤러리 함수는 내보내지 않음(ADR 0036 2) |
 | kind | text | ✔ | | `frame` / `combo` |
 | name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
-| graph | jsonb | ✔ | | blueprints.graph와 같은 모양 · 256KB 이하. 틀은 기술을 비우고 저장. 단계 메모는 `save_blueprint_template`가 빼고 저장(P-12h) |
+| graph | jsonb | ✔ | | blueprints.graph와 같은 모양 · 256KB 이하. 틀은 기술을 비우고 저장. 단계 메모는 `save_blueprint_template`가 빼고 저장(P-12h). 관계선(`links`)은 조합 템플릿에 남고 틀은 기술이 없어 빠짐(P-12j) |
 | board | jsonb | ✔ | | graph의 투영(미리 보기) |
 | is_public | boolean | ✔ | | 기본 false. 작가가 공개를 눌러야 갤러리에 보임(ADR 0036 1) |
 | hidden_at | timestamptz | | | 관리자 숨김. 숨기면 갤러리에서 빠지고 작가가 다시 공개 못 함 |
@@ -678,7 +678,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | user_tastes | 5 | 3 | 켜짐 | ✔ | 새 표(P-23) |
 
 ## 바뀐 기록
-- 2026-11-22 밤 `projects` 5칸 (작업 `I-submit-check`, Maestro 요청, 계획 기준 · 구현 결과는 단계가 끝나면 채움): 2절 칸 표 · 관계 그림에 레포 기본 정보(`202611232100_P-12i_project_repo_meta.sql`, 운영 20261122120849 적용 확인). blueprints.graph의 `links`(P-12j, `202611232200_P-12j_tech_links.sql`)는 **운영 미적용**이라 칸 설명에 넣지 않음, 적용 뒤 더함. 7절 대조 표의 projects 칸 수(8)는 동결 뒤 4차 대조에서 고침.
+- 2026-11-22 밤 `projects` 5칸 (작업 `I-submit-check`, Maestro 요청, 계획 기준 · 구현 결과는 단계가 끝나면 채움): 2절 칸 표 · 관계 그림에 레포 기본 정보(`202611232100_P-12i_project_repo_meta.sql`, 운영 20261122120849 적용 확인). blueprints.graph · blueprint_templates.graph의 `links`(P-12j, `202611232200_P-12j_tech_links.sql`): 운영 `p12j_tech_links` 20261122133906 적용(사용자 승인, DocsChecker가 운영 마이그레이션 목록으로 확인), 권한 시험 `supabase/tests/tech_links_p12j.sql` 13항목 확인함(Maestro 실행, 모두 기대값). 7절 대조 표의 projects 칸 수(8)는 동결 뒤 4차 대조에서 고침.
 - 2026-11-22 단계 메모 · M5(작업 `I-submit-check`, Maestro 요청, ADR 0040): 마이그레이션 `202611231900_P-12e_m5_revoke_v1.sql`(운영 `p12e_m5_revoke_v1` 20261122104040: `confirm_blueprint` v1 실행 권한 회수, `blueprint_graph_clean` 인자 2개로) → `202611232000_P-12h_stage_note.sql`(운영 `p12h_stage_note` 20261122104136: graph 단계 `note`, 템플릿은 메모를 뺌). 새 표 · 칸 없음. DocsChecker 운영 SELECT: v1 실행 권한 anon · authenticated 없음, `blueprint_graph_clean` 하나, 두 함수 본문에 note. 권한 시험(M5 15 · 메모 9항목)은 적용한 Maestro 기록(#206 connectors). 7절 4차 대조는 동결 뒤.
 - 2026-11-20 3차 대조와 P-23·P-24 칸 표(작업 `I-prod-check-1120`, Claude 초안 — 표 주인 황재웅 확인 필요): 3절 요약에 있던 `user_tastes`·`usage_notes`·`helpful_votes`·`reports`를 2.7절 칸 표로 옮김(관계 그림의 `preferences` → `user_tastes`, `profiles ||--o{ usage_notes` 더함, 4절 접근 규칙 세 줄). 운영 DB 표 26개·칸 이름이 erd와 모두 일치(7절). P-23·P-24 마이그레이션 자체는 그 작업에서 했고(`I-P-23-recommend`·`I-P-24-usage-notes`), 이 줄은 erd 반영만
 - 2026-11-20 P-12d-marks(작업 `I-P-12d-marks`): `tech_marks`·`tech_mark_events`와 DB 함수 `set_tech_mark`를 더함(2.5절 끝, 4절, 관계 그림). 알림 없는 판단(ADR 0028). 마이그레이션 `202611201200_P-12d_tech_marks.sql`, 시험 `supabase/tests/tech_marks_p12d.sql`(운영 되돌림 시험 기대값 20개 맞음). **운영 적용: 11-20 09:04 KST**(DB 이름 `p12d_tech_marks`, 보안 점검 새 경고는 `set_tech_mark` security definer 1건 — `save_judgment`와 같은 의도)

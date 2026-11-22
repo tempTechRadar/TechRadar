@@ -56,10 +56,8 @@
 - **관계선을 템플릿에서 빼기:** 메모와 달리 개인 글이 아니어서 남긴다(ADR 0036 공개 범위 안).
 
 ## 결과와 남은 일
-- **DB:** `202611232200_P-12j_tech_links.sql`은 **운영에 적용하지 않았다**(11-22 DocsChecker가 운영 마이그레이션 목록 SELECT로 확인).
-  - 적용은 사용자 승인으로 하고, 권한 시험은 `supabase/tests/tech_links_p12j.sql`이다.
-  - 적용 전에 운영에서 확정하면 관계선은 빠지고 화면 초안에는 남는다. 화면은 깨지지 않는다.
-  - 이 코드가 배포되기 전에 적용해야 한다.
+- **DB(운영 적용됨, 11-22 밤):** `p12j_tech_links`(20261122133906, 파일 `202611232200_P-12j_tech_links.sql`)를 Maestro가 사용자 승인으로 적용했다. 적용 여부는 DocsChecker가 운영 마이그레이션 목록으로 확인했다.
+  - 권한 시험 `supabase/tests/tech_links_p12j.sql` 13항목은 **확인함(Maestro 실행)**. 모두 기대값이었다: confirm=saved · kept=2 · first=true · board_no_links=0 · no_key=0 · frame_no_links=0 · combo_links=2 · pairs=1260 · cap=100 · other_reads=0 · other_template=0 · clean_direct=blocked · guest_reads=blocked(0).
 - **ADR 0040을 바꾸는 곳:**
   - 2항 "아래 패널 [기술 | 불러오기]" → 왼쪽 Library. 탭은 그대로다.
   - 4항 "속성 패널은 오른쪽 서랍(기본 닫힘)" → 오른쪽 Inspector 고정 패널(접기)
