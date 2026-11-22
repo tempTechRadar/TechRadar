@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect, emptyGraph, LAYOUT, type Graph, type Stage } from "./graph.ts";
 import { stageFields } from "./knowledge.ts";
-import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter, addStageBeside, addStageLinked, parallelProblem, linkSaid, putSaid, removeSaid, removedStageSaid, sideSpot } from "./panel-view.ts";
+import { addStageProblem, filterPool, listRows, nameProblem, neighbors, newStageSpot, poolTags, putProblem, templateSaveId, uuid, addStageAfter, addStageBeside, addStageLinked, parallelProblem, linkSaid, putSaid, removeSaid, removedStageSaid, sideSpot, insertBetween } from "./panel-view.ts";
 
 const st = (id: string, x = 0, y = 0, techs: { id: string; name: string }[] = []): Stage => ({ id, name: id, x, y, techs });
 const tech = (id: string, o: Partial<{ field: string | null; sub: string | null; projects: number; grade: string }> = {}) =>
@@ -149,4 +149,14 @@ test("카드 왼쪽 · 오른쪽 +(T1): 앞 · 다음 자리는 한 칸 옆(차�
   assert.deepEqual(sideSpot(g, g.stages[1], 1), { x: 2 * LAYOUT.x, y: 0 });
   assert.deepEqual(sideSpot(g, g.stages[1], -1), { x: 0, y: LAYOUT.y }); // 왼쪽은 a가 차지
   assert.equal(removedStageSaid("기획"), '"기획" 단계를 지웠어요. 6초 안에 되돌리기로 살릴 수 있어요.');
+});
+
+test("선 사이에 끼우기(U2): A → B 선을 A → 새 → B로 한 번에, 가운데 자리, 없는 선 · 같은 순서 한도는 그대로 막음", () => {
+  const g: Graph = { ...emptyGraph(), stages: [st("a", 0, 0), st("b", 2 * LAYOUT.x, 0)], edges: [{ from: "a", to: "b" }] };
+  const r = insertBetween(g, "검토", "a", "b");
+  assert.ok("graph" in r);
+  assert.deepEqual([r.stage.x, r.stage.y], [LAYOUT.x, LAYOUT.y]); // 가운데 x, 한 줄 아래(양옆 카드와 안 겹치게)
+  assert.deepEqual(r.graph.edges.map((e) => `${e.from}>${e.to}`).sort(), [`${r.stage.id}>b`, `a>${r.stage.id}`].sort());
+  assert.ok("problem" in insertBetween(g, "검토", "b", "a"));
+  assert.ok("problem" in insertBetween(g, "  ", "a", "b"));
 });
