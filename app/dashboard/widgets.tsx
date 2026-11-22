@@ -6,7 +6,10 @@ import { filterAlerts } from "@/lib/alerts/filter-alerts";
 import { summarizeDashboard, type DashboardParams } from "@/lib/alerts/summarize-dashboard";
 import { toAlertView, type AlertRecord } from "@/lib/alerts/to-alert-view";
 import { repoCards } from "@/lib/dashboard/status-view";
-import { repoSummary, type Battery } from "@/lib/dashboard/repo-summary";
+import { repoMetaLine, repoSummary, type Battery } from "@/lib/dashboard/repo-summary";
+import type { MoveProgress } from "@/lib/server/board-queries";
+import { RepoDrawer } from "./board-client";
+import { RepoDetail } from "./widgets-more";
 import { countNew, isNew } from "@/lib/dashboard/since-last-visit";
 import { koreanTime } from "@/lib/flow/run-list";
 import { GRADE_KO } from "@/lib/map/build-map";
@@ -84,20 +87,22 @@ function BatteryBar({ b }: { b: Battery }) {
   );
 }
 
-/** W3 레포 보드: 레포 카드(AI 도구 구성 · 등급 배터리 · 모델 종료 · 판단 대기 · 마지막 읽기 · 수집 오류 · 다시 읽기). 설명 · 언어 · 마지막 푸시는 D1'(레포 기본 정보)에서 채움 */
-export async function ReposBody({ status, alerts, params }: { status: Promise<StatusData | null>; alerts: Promise<AlertRecord[] | null>; params: DashboardParams }) {
-  const [st, al] = await Promise.all([status, alerts]);
+/** W3 레포 보드: 레포 카드(레포 정보 · AI 도구 구성 · 등급 배터리 · 모델 종료 · 판단 대기 · 마지막 읽기 · 수집 오류 · 다시 읽기). 이름을 누르면 레포 서랍 */
+export async function ReposBody({ status, alerts, params, marks, move }: { status: Promise<StatusData | null>; alerts: Promise<AlertRecord[] | null>; params: DashboardParams;
+  marks: Promise<Map<string, string> | null>; move: Promise<MoveProgress | null> }) {
+  const [st, al, mk, mv] = await Promise.all([status, alerts, marks, move]);
   if (!st) return <Failed what="내 레포" />;
   const project = typeof params.project === "string" ? params.project : undefined;
   const rows = st.projects.filter((p) => !project || p.id === project);
   if (!st.projects.length) return <p className="notice notice-empty"><strong>아직 등록한 레포가 없어요.</strong> <Link href="/projects">레포 등록하기</Link></p>;
   if (!rows.length) return <p className="muted">거른 프로젝트가 없어요.</p>;
-  const cards = new Map(repoCards(rows, new Date()).map((c) => [c.id, c]));
+  const now = new Date(), cards = new Map(repoCards(rows, now).map((c) => [c.id, c]));
   return (
-    <ul className="repo-cards">{rows.map((p) => { const c = cards.get(p.id)!, s = repoSummary(p, al); return (
+    <ul className="repo-cards">{rows.map((p) => { const c = cards.get(p.id)!, s = repoSummary(p, al), meta = repoMetaLine(p, now); return (
       <li key={p.id} className="repo-card">
-        <h3><Link href={`/projects?project=${p.id}`}>{p.name}</Link> <span className="muted">{p.kind === "repo" ? "레포" : "내 컴퓨터"}</span></h3>
-        <p className="muted repo-meta">설명 · 언어 · 마지막 푸시: 아직 읽지 않았어요</p>
+        <h3><RepoDrawer name={p.name}><RepoDetail p={p} alerts={al} marks={mk} move={mv} /></RepoDrawer> <span className="muted">{p.kind === "repo" ? "레포" : "내 컴퓨터"}</span></h3>
+        {meta?.error ? <p className="notice notice-error repo-meta" role="status">{meta.error}</p> : null}
+        {meta?.info ? <p className="muted repo-meta">{meta.info}</p> : null}
         <p>{s.tools.length ? s.tools.map((t) => `${t.label} ${t.n}`).join(" · ") : "읽은 AI 도구가 아직 없어요"}{s.files.length ? <span className="muted"> · {s.files.join(", ")}</span> : null}</p>
         <BatteryBar b={s.battery} />
         <p>{s.pending === null ? <span className="muted">판단 대기 · 모델 종료를 못 읽었어요</span> : <>

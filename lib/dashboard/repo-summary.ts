@@ -31,3 +31,21 @@ export function repoSummary(p: StatusProjectRow, alerts: AlertLike[] | null): Re
     modelEol: mine ? mine.filter((a) => a.kind === "model_eol").length : null,
   };
 }
+
+const META_ERROR_KO: Record<string, string> = { timeout: "시간 초과", network: "연결 실패", rate_limited: "요청 한도", http_status: "응답 오류", parse: "모양이 다름" };
+const DAY_MS = 86_400_000;
+const date = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric" });
+/** 레포 기본 정보 줄(D1' 칸): 설명 · 주 언어 · 마지막 푸시(상대 시간 + 날짜). 한 번도 못 읽었으면 "아직 읽지 않았어요",
+ *  마지막 읽기가 실패했으면 그 사실(예전 값이 있으면 같이, 불변 2 · 4). 내 컴퓨터(로컬) 프로젝트는 null */
+export function repoMetaLine(p: StatusProjectRow, now: Date): { info: string | null; error: string | null } | null {
+  if (p.kind !== "repo") return null;
+  const parts = [p.repo_description, p.repo_language ? `주 언어 ${p.repo_language}` : null];
+  const pushed = p.repo_pushed_at ? Date.parse(p.repo_pushed_at) : Number.NaN;
+  if (Number.isFinite(pushed)) {
+    const d = Math.floor((now.getTime() - pushed) / DAY_MS);
+    parts.push(`마지막 푸시 ${d <= 0 ? "오늘" : d < 31 ? `${d}일 전` : `${Math.floor(d / 30)}달 전`}(${date.format(new Date(pushed))})`);
+  }
+  const info = parts.filter(Boolean).join(" · ") || null;
+  const error = p.repo_meta_error ? `레포 정보를 읽지 못했어요(${META_ERROR_KO[p.repo_meta_error] ?? p.repo_meta_error})${info ? ". 아래는 지난번 값이에요" : ""}` : null;
+  return { info: info ?? (error ? null : p.repo_meta_at ? "설명 · 언어가 비어 있는 레포예요" : "레포 정보(설명 · 언어 · 마지막 푸시)를 아직 읽지 않았어요"), error };
+}

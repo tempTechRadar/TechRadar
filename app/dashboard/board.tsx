@@ -85,7 +85,6 @@ export function Board({ widgets, storeKey }: { widgets: Widget[]; storeKey: stri
     if (d) { e.preventDefault(); commit(b.id, e.shiftKey ? { w: b.w + d[0], h: b.h + d[1] } : { x: b.x + d[0], y: b.y + d[1] }); }
     if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); hide(b.id); document.querySelector<HTMLElement>(".board-bar button")?.focus(); }
   };
-  const hidden = layout.filter((b) => b.hidden && byId.has(b.id));
   const shown = (id: string) => byId.get(id)!;
 
   return (
@@ -94,7 +93,7 @@ export function Board({ widgets, storeKey }: { widgets: Widget[]; storeKey: stri
         <button type="button" className="btn" aria-pressed={edit} onClick={() => setEdit(!edit)}>{edit ? "배치 끝내기" : "배치 바꾸기"}</button>
         <button type="button" className="btn" onClick={() => save(defaultLayout(ids))}>기본 배치로</button>
         {edit ? <span className="muted">위젯을 끌어 옮기고 모서리로 크기를 바꿔요. 키보드: 위젯에 Tab → 화살표 옮기기 · Shift+화살표 크기 · Delete 빼기. 배치는 이 브라우저에만 남아요.</span> : null}
-        {hidden.length ? <span className="board-hidden">뺀 위젯: {hidden.map((b) => <button key={b.id} type="button" className="btn btn-sm" onClick={() => commit(b.id, { hidden: false })}>{shown(b.id).title} 다시 넣기</button>)}</span> : null}
+        <Library widgets={widgets} layout={layout} onToggle={(id, on) => (on ? commit(id, { hidden: false }) : hide(id))} />
       </div>
       {narrow ? (
         <div className="board-stack">{stackOrder(layout).filter((id) => byId.has(id)).map((id) => (
@@ -110,6 +109,22 @@ export function Board({ widgets, storeKey }: { widgets: Widget[]; storeKey: stri
       )}
       {max ? <MaxView w={shown(max)} onClose={() => setMax(null)} /> : null}
     </div>
+  );
+}
+
+/** "+ 위젯": 9개 중 보드에 둘 것을 고른다(켜면 그 자리, 끄면 뺌 — 배치는 그대로 기억) */
+function Library({ widgets, layout, onToggle }: { widgets: Widget[]; layout: Box[]; onToggle: (id: string, on: boolean) => void }) {
+  const [open, setOpen] = useState(false);
+  const on = (id: string) => !layout.find((b) => b.id === id)?.hidden;
+  const n = widgets.filter((w) => on(w.id)).length;
+  return (
+    <span className="board-lib">
+      <button type="button" className="btn" aria-expanded={open} onClick={() => setOpen(!open)}>+ 위젯 <span className="muted">{n}/{widgets.length}</span></button>
+      {open ? <fieldset className="board-lib-pop" onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+        <legend>보드에 둘 위젯</legend>
+        {widgets.map((w) => <label key={w.id}><input type="checkbox" checked={on(w.id)} onChange={(e) => onToggle(w.id, e.target.checked)} /> {w.title}</label>)}
+      </fieldset> : null}
+    </span>
   );
 }
 

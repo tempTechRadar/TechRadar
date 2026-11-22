@@ -4,11 +4,17 @@ export const CELL = 24;
 export const MIN_W = 8, MIN_H = 4, MAX_X = 200;
 export type Box = { id: string; x: number; y: number; w: number; h: number; hidden?: boolean };
 
-/** 기본 배치 = 발표 순서(숫자 → 판단함 → 레포). 한 줄 48칸(1152px) 기준 */
+/** 기본 배치 = 발표 순서(계획 12열을 48칸으로): 맨 위 숫자 → 왼쪽 큰 칸 레포 · 오른쪽 판단함 → 바뀐 것 · 옮기기 · 점검 → 소식 · 뜨는 대안 · 기록. 한 줄 48칸(1152px) */
 const DEFAULTS: Record<string, Omit<Box, "id">> = {
   numbers: { x: 0, y: 0, w: 48, h: 8 },
-  inbox: { x: 0, y: 9, w: 20, h: 20 },
-  repos: { x: 21, y: 9, w: 27, h: 20 },
+  repos: { x: 0, y: 9, w: 30, h: 22 },
+  inbox: { x: 31, y: 9, w: 17, h: 22 },
+  changes: { x: 0, y: 32, w: 16, h: 15 },
+  move: { x: 16, y: 32, w: 16, h: 15 },
+  checked: { x: 32, y: 32, w: 16, h: 15 },
+  news: { x: 0, y: 48, w: 16, h: 16 },
+  trending: { x: 16, y: 48, w: 16, h: 16 },
+  history: { x: 32, y: 48, w: 16, h: 16 },
 };
 export function defaultLayout(ids: string[]): Box[] {
   let bottom = 0;
