@@ -1,7 +1,7 @@
 "use client";
 // 기술 칩(P-12e 스튜디오의 주인공): 종류 글자 아이콘 · 이름 · 등급 점. 단계 노드 · 하단 패널 · 속성 패널 · 목록 모드가 같은 모양을 쓴다.
 // 등급은 색만이 아니라 글자로도(화면 읽기 · 색맹: aria-label과 title).
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
 import type { BlueprintTech } from "@/lib/blueprint/graph";
 import type { PoolTech } from "@/lib/server/blueprints";
 
@@ -11,9 +11,11 @@ const GRADE_KO: Record<PoolTech["grade"], string> = { danger: "보안 위험", c
 
 /** info = 서랍 후보에서 찾은 자세한 정보(없으면 이름만: 이력에서 온 기술 등)
  *  onCandidate = 관문 밖 기술(남의 조합 템플릿에서 온 것): 점선 "후보 칩" + "적용 후보로 고르기"(11-21 사용자 결정 "고르기 칩으로") */
-export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandidate, busy = false }: {
-  tech: BlueprintTech; info?: PoolTech; picked?: boolean; onPick?: () => void; onRemove?: () => void; onCandidate?: () => void; busy?: boolean;
+/** fresh = 단계 노드가 이미 그려진 뒤에 붙은 칩(P-12g B4): 칩이 생길 때 한 번 정해 수명 동안 지킨다(크기가 바뀌어 다시 그려져도 다시 돌지 않게) */
+export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandidate, busy = false, fresh = false }: {
+  tech: BlueprintTech; info?: PoolTech; picked?: boolean; onPick?: () => void; onRemove?: () => void; onCandidate?: () => void; busy?: boolean; fresh?: boolean;
 }) {
+  const [pop] = useState(fresh);
   const grade = info?.grade ?? "unknown", type = info?.type ?? "";
   const label = `${tech.name}${type ? `, ${TYPE_KO[type] ?? type}` : ""}, ${onCandidate ? "아직 판단 안 함" : GRADE_KO[grade]}`;
   const stop = (f?: () => void) => (e: MouseEvent) => { e.stopPropagation(); f?.(); }; // 노드 고르기 · 끌기와 겹치지 않게
@@ -26,7 +28,7 @@ export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandi
     </span>
   );
   return (
-    <span className="tc" data-grade={grade} data-picked={picked ? "" : undefined}>
+    <span className={pop ? "tc tc-pop" : "tc"} data-grade={grade} data-picked={picked ? "" : undefined}>
       {/* 고를 수 없는 곳(하단 패널 카드 · 읽기 전용 보기)에서는 단추가 아닌 글자로: 아무 일도 안 하는 단추에 Tab이 멈추지 않게 */}
       {onPick ? <button type="button" className="tc-main nodrag" aria-label={label} aria-pressed={picked} title={label} onClick={stop(onPick)}>{body}</button>
         : <span className="tc-main" role="img" aria-label={label} title={label}>{body}</span>}

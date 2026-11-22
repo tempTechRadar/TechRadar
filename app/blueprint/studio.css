@@ -30,6 +30,11 @@
 .sn { box-sizing: border-box; min-width: 200px; max-width: 260px; padding: 6px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
 .sn[data-selected] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .sn[data-over] { outline: 2px dashed var(--ink); outline-offset: 2px; }
+/* P-12g B4 빈 자리 윤곽: 끄는 동안 칩 줄 끝(빈 단계는 안내 글 자리)에 다음 칩 자리. 가득 차면 윤곽 대신 글자(색에만 기대지 않음) */
+.sn[data-over]:not([data-full]) .sn-techs::after { content: ""; width: 72px; height: 28px; box-sizing: border-box; border: 1px dashed var(--ink-2); border-radius: var(--r-pill); }
+.sn[data-over]:not([data-full]) .sn-empty { padding: 4px 8px; border: 1px dashed var(--ink-2); border-radius: var(--r-pill); }
+.sn[data-full] { outline-color: var(--ink-2); }
+.sn-full { margin: 6px 0 0; font-size: var(--fs-cap); font-weight: 700; color: var(--ink); }
 .sn-head { display: flex; gap: 6px; align-items: center; font-size: var(--fs-cap); color: var(--ink-2); }
 .sn-order { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); color: var(--ink); }
@@ -48,6 +53,11 @@
 /* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
 .react-flow__edge.se-near .react-flow__edge-path { stroke: var(--ink-2); stroke-dasharray: 4 3; }
 .react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
+/* P-12g B2 확정 = 설계선 긋기: 실제 선(edge-path)과 화살촉은 그대로 두고, React Flow가 이미 그리는 두 번째 path(넓은 누름 영역, 보통 투명)를
+   잠깐 먹 1.5px로 덧칠해 한 번 긋고 사라진다. 클래스는 studio.tsx가 600ms 뒤 뗀다(움직임 줄이기면 아예 안 붙임 + 아래 none) */
+.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--ink); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 3000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
+@keyframes se-draw { 0% { stroke-dashoffset: 3000; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .react-flow__edge.se-draw .react-flow__edge-interaction { animation: none; stroke-opacity: 0; } }
 /* 미니맵: 작게 · 테두리로 판과 구분(빈 흰 상자로 단계를 덮지 않게). 목록 모드(좁은 화면)에는 캔버스가 없어 미니맵도 없다 */
 .react-flow__minimap.studio-mini { width: 160px; height: 100px; margin: 8px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
 .react-flow__minimap.studio-mini svg { width: 160px; height: 100px; }
@@ -58,7 +68,11 @@
 .sg-y { width: 100000px; height: 1px; }
 
 /* 기술 칩(주인공): 글자 아이콘 · 이름 · 등급 점 */
-.tc { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); }
+.tc { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface);
+  transition: background-color var(--dur), border-color var(--dur); } /* B3: 후보 칩(점선)이 보통 칩이 될 때 바탕 · 테두리 색만 부드럽게(선 모양은 바로), 줄이기면 0s */
+/* B4: 노드가 이미 있던 뒤에 붙은 칩만 한 번 살짝 커지며 나타남(--dur 기반, 줄이기면 0) */
+.tc-pop { animation: tc-pop calc(var(--dur) * .6) ease-out; }
+@keyframes tc-pop { from { opacity: 0; transform: scale(.96); } }
 .tc[data-picked] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .tc-main { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 28px; padding: 0 8px 0 3px; border: 0; border-radius: var(--r-pill); background: none; font: inherit; font-size: var(--fs-sm); color: var(--ink); cursor: pointer; }
 .tc-icon { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--on-ink); font-size: 11px; font-weight: 700; }

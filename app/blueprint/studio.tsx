@@ -3,7 +3,7 @@
 // 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기) · 스페이스(손 모드)만, 나머지는 단추(사용자 결정).
 // 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
@@ -30,6 +30,10 @@ import { useConfirm } from "./use-studio-save";
 import "./studio.css";
 
 const nodeTypes = { stage: StageNode };
+/** 움직임 줄이기(P-12g B1): CSS의 --dur 0s는 카메라 이동(fitView) · 클래스 붙이기 같은 JS 움직임에 닿지 않아 따로 본다(지도 controller.ts와 같은 방식) */
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** 확정 선 긋기(B2) 한 번의 길이: studio.css se-draw(--dur × 2)보다 조금 길게 두고 클래스를 뗀다 */
+const DRAW_MS = 600;
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
 type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean };
@@ -64,12 +68,36 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [found, setFound] = useState<PoolTech[]>([]); // 손님이 카탈로그에서 찾은 기술: 끌어 놓을 수 있게 info에만 더한다(손님 서랍)
   const info = useMemo(() => new Map([...found, ...pool].map((t) => [t.id, t])), [pool, found]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
+  // B2 확정 = 설계선 긋기: 실제 선은 그대로 두고 덧칠 선만 한 번 그었다가 사라진다. 같은 확정 id(같은 내용 다시 확정, 불변 3)면 긋지 않는다
+  const [drawing, setDrawing] = useState(false);
+  const lastConfirmed = useRef<string | null>(null), drawTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined), layOk = useRef(false);
+  useEffect(() => () => clearTimeout(drawTimer.current), []);
+  // B3 후보 칩: 판단이 저장된 뒤 서랍을 다시 읽는 동안에도 "고르는 중…"을 지킨다(그 틈에 "안 고른" 모양으로 돌아가 보이지 않게)
+  const [settling, setSettling] = useState<{ id: string; name: string } | null>(null);
+  const [refreshing, startRefresh] = useTransition();
   // 실패 문구는 확정 창이 열려 있으면 창 안에만, 창을 닫은 뒤 왔으면 알림으로(같은 말을 두 번 보이지 않게)
   const confirmOpen = useRef(false);
   confirmOpen.current = confirming;
-  const done = useConfirm((id) => { setConfirming(false); setConfirmedId(id); say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh(); },
+  const done = useConfirm((id) => {
+    setConfirming(false);
+    const fresh = id !== lastConfirmed.current;
+    lastConfirmed.current = id; setConfirmedId(id);
+    // 저장이 성공해 onDone이 불렸을 때만(실패면 이 함수가 안 불림, 불변 4) · 처음 보는 확정 id · 고리 없는 판 · 움직임 줄이기 아님
+    if (fresh && layOk.current && !calm()) { setDrawing(true); clearTimeout(drawTimer.current); drawTimer.current = setTimeout(() => setDrawing(false), DRAW_MS); }
+    say("확정해서 내 이력에 남겼어요. 아래 AI 점검 탭에서 점검을 받을 수 있어요."); router.refresh();
+  },
     (m) => { if (!confirmOpen.current) say(m); });
   const lay = useMemo(() => (graph ? layers(graph) : null), [graph]);
+  layOk.current = lay?.ok ?? false;
+  // 다시 읽기가 끝나면: 서랍에 들어왔으면 실선 칩, 아니면 점선 그대로(사실대로). 초점이 갈 곳을 잃었으면(body) 바뀐 칩으로
+  useEffect(() => {
+    if (refreshing || !settling) return;
+    const name = settling.name;
+    setSettling(null);
+    if (document.activeElement !== document.body) return;
+    document.querySelector<HTMLElement>(`.sn button.tc-main[aria-label^="${CSS.escape(name)},"]`)?.focus();
+  }, [refreshing, settling]);
+  const busyId = marking ?? (refreshing ? settling?.id ?? null : null);
   const board = useMemo(() => (graph ? toBoardView(graph) : null), [graph]);
   // "이 템플릿으로 시작": 초안을 읽은 뒤 한 번 펼친다(되돌리기 한 칸 = 전에 만들던 판). 새로 고쳐도 다시 펼치지 않게 주소에서 뺀다
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -105,7 +133,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     inflight.current.add(techId); setMarking(techId);
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
-    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); router.refresh(); } else say(r.message);
+    if (r.ok) { say(`${techName}을(를) 적용 후보로 골랐어요.`); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
@@ -134,11 +162,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, step, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
-      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking },
+      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId },
   }));
   const edges: FlowEdge[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
-    return { id, source: e.from, target: e.to, selected: selEdges.has(id), className: on ? "se se-on" : "se", markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 } };
+    return { id, source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 } };
   });
   const near = assist.near;
   if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
@@ -208,7 +236,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   const pick = (p: Picked) => { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); };
   const panel: PanelProps = { graph: g, step, picked, onPick: pick, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say, confirmedId,
-    onCandidate: (tid, tn) => void markCandidate(tid, tn), marking,
+    onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, onFound: guest ? (ts) => setFound((x) => [...x, ...ts.filter((t) => !x.some((y) => y.id === t.id))]) : undefined };
 
   return (
@@ -220,8 +248,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <span className="studio-grow" />
         <button type="button" className="btn" disabled={!canUndo} onClick={undo}>되돌리기</button>
         <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
-        <button type="button" className="btn" onClick={() => { const next = autoLayout(g); if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요."); apply(next, "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: 200 })); }}>자동 정렬</button>
-        <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: 200 })}>보기 초기화</button>
+        <button type="button" className="btn" onClick={() => { const next = autoLayout(g); if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요."); apply(next, "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })); }}>자동 정렬</button>
+        <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
       </div>
