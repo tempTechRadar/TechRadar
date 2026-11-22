@@ -6,6 +6,27 @@
 
 ---
 
+## I-P-12h-map-cart · 2026-11-22 · U1 지도 사이드 패널 개편: 관심 별 · 청사진 장바구니 · 보류 빼기 · 담은 수 배지 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12h-map-cart`(`feat/P-12h-blueprint-revamp` e896454 위, worktree `p12h-map-cart`, 로컬, 미푸시)
+- 출처: 사용자 결정(11-22, Maestro 전달) U1 1~6. 같은 시간 청사진 쪽 U2는 DevAssi1(app/blueprint/* 안 건드림). 불변 1 · 2 · 4 · 5, ADR 0028(지도 판단), 0012(위험 등급)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 사이드 패널의 판단 줄(관심 · 적용 후보 · 보류)과 "청사진에 넣기"(적용 후보일 때만 켜짐)가 따로 있어 무엇을 눌러야 청사진에 가는지 헷갈림. 보류 이유 칸이 지도에서 길게 열림. "왜 여기"가 아래 카드에 묻힘. 메뉴에서 담은 수가 안 보임 |
+| 기대 결과 | 이름 옆 별(☆/★, aria-pressed, "관심 표시") = 관심 토글 · "청사진에 담기" 늘 켜짐 = 적용 후보 저장(DB 변경 0), 담긴 뒤 "담김 ✓ · 빼기 · 청사진 열기"(손님과 같은 자리 · 같은 말) · 위험 등급은 누르면 이유 · 지도에서 보류 단추 · 이유 칸 없앰(알림 상세는 그대로) · 소속을 기본 정보 줄로 · 메뉴 "청사진" 담은 수 배지(못 읽으면 숨김) · 빠른 칩 "★ 관심" · "담은 기술" |
+| 영향 범위 | `app/tech-map/{side-panel.tsx,side-panel.css,guest-pick.tsx,canvas-map.tsx,judge.tsx,judge.css,controls.tsx,draw.ts}`, `app/nav/{cart-badge.tsx,cart-count.ts,tab-bar.tsx}`, `app/layout.tsx`, `app/site-nav.css`, `lib/server/marks.ts`(countCandidates), `lib/blueprint/cart-event.ts` |
+| 제약 | Claude API · 서브에이전트 · Workflow 없음, 새 라이브러리 · 색 · 토큰 · DB 변경 없음. 고친 파일의 시험 · tsc만(전체 시험 · build · 리뷰는 U1 · U2 합친 뒤). 로컬 커밋만 |
+| 열린 질문 | 기술 상세(mark-bar)의 판단 줄(관심 · 적용 후보 · 보류)도 별 · 담기로 바꿀지 — 이번엔 지도만 |
+
+**결정 · 이유:**
+- 관심과 담기는 DB에서 한 칸(status)이라 동시에 둘 수 없다 → 담은 기술(적용 후보)은 별도 채워 보인다(담은 것 = 관심도 있음). 빼기는 관심으로 낮춘다(별은 남음, 지우면 사용자가 별로 끔). 담은 기술의 별을 끄면 표시를 지워 담은 것도 빠지고, 토스트가 그렇게 말한다.
+- 빼기 · 별 끄기 뒤에는 되돌리기를 주지 않는다(다시 적용 후보가 되면 그 사이 온 알림까지 판단될 수 있음, canUndoMark · 불변 1). 담기는 관심 · 표시 없음에서 왔을 때만 되돌리기.
+- 담은 수 배지는 담기 · 빼기 뒤 이벤트로 서버에 다시 센다(더하고 빼지 않음: 레이아웃 새 값과 두 번 세지 않게). 손님은 이 브라우저 목록 수, 다른 탭은 storage 이벤트.
+- 이미 보류된 기술은 데이터 그대로 두고 "지금 보류예요(이유). 담거나 별을 누르면 보류가 풀려요"로 알린다.
+
+**결과:** 됨(로컬 커밋, 이 docs). `tsc` 오류 0, 고친 곳 시험(lib/a11y · lib/map · lib/blueprint · lib/nav · lib/server/marks) 166개 모두 통과. 로컬 3013에서 / · /blueprint · /tech/… 200(이 worktree엔 .env가 없어 데이터 없는 화면). 전체 시험 · build · code-review는 U1 · U2를 합친 뒤 한 번에(11-22 사용자 규칙).
+**확인하지 못함:** 실제 화면(별 · 담기 · 빼기 · 위험 이유 · 보류 줄 · 메뉴 배지 수가 바로 바뀌는지) — 로그인과 DB가 필요, 판단 대기 알림이 함께 판단될 때 토스트 문구(코드 경로는 기존 saveMarkWithToast 그대로), 담기 뒤 단추가 바뀌며 초점이 어디로 가는지, 화면 읽기 낭독.
+
 ## I-P-12h-blueprint-revamp · 2026-11-22 · 청사진 스튜디오 개편 S1: 한 화면 · 확정 · 내보내기 창 · 패널 정리 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12h-blueprint-revamp`(움직임 B 머리 20a7136 위, 새 worktree `devassi1-p12h`, 로컬, 미푸시 — 움직임 C가 끝나면 merge로 받음)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12h-blueprint-revamp.md` S1(11-22 인터뷰), Maestro 배정. 단계마다 사용자 점검(S1 → S4). 불변 1 · 2 · 4
