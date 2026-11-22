@@ -5,7 +5,7 @@ import type { MapNode, TechMapModel } from "@/lib/map/build-map";
 import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, type GroupItem, type Item, type MapLayout, type TechItem } from "@/lib/map/layout";
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
-import { draw, PULSE_SEC } from "./draw";
+import { draw } from "./draw";
 import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
 import { introWaits, type GateState } from "@/lib/map/ready-gate";
 
@@ -44,7 +44,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, tick = 0;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
@@ -255,7 +255,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   function frame(ms: number) {
     raf = requestAnimationFrame(frame); // 한 장이 실패해도 다음 장은 그린다
-    const now = ms / 1000, dt = Math.min(0.05, now - last || 0.016); last = now; S.now = now; tick++;
+    const now = ms / 1000, dt = Math.min(0.05, now - last || 0.016); last = now; S.now = now;
     // 첫 화면 덮개가 떠 있으면 닫을 때까지 첫 연출을 미룬다(덮개 뒤에서 혼자 끝나지 않게, lib/map/ready-gate.ts introWaits)
     if (S.introAt === Infinity && !introWaits(window.__techradarGate, moving(S))) startIntro(now);
     let anim = false;
@@ -270,8 +270,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
     const revealing = on && started && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
-    const pulsing = on && started && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
-    if (ctx && (needDraw || anim || revealing || S.leaving.size || pulsing)) { draw(ctx, S, now); needDraw = false; }
+    if (ctx && (needDraw || anim || revealing || S.leaving.size)) { draw(ctx, S, now); needDraw = false; }
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");

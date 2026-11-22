@@ -1,13 +1,12 @@
 // 캔버스 그리기(시안 docs/wireframes/radar-draw.js). 색은 tokens.css 값을 읽어 쓴다(테마를 바꾸면 같이 바뀜). 크기·모양 = 단계, 색 = 색 기준 값,
-// 보안은 기호로(위험 = 빨간 고리 + 처음 10초 맥박, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
+// 보안은 기호로(위험 = 멈춘 빨간 이중 고리 + ✕, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
 import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/map/layout";
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { GLOW, grow, introducing, moving, recentlyChecked, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
+import { GLOW, grow, introducing, moving, recentlyChecked, REVEAL, ringGrow, rippleR, sweepAlpha, sweepAngle, touchAge, TUNE } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
-export const PULSE_SEC = 10;
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
 let css: Record<string, string> = {};
 const col = (token: string) => css[token] ?? (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || "#888");
@@ -162,12 +161,10 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
     if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (n.grade === "danger") { // 맥박: 처음 10초만(계속 움직이면 거슬리고 접근성 기준에도 걸림), 그 뒤·움직임 줄이기면 멈춘 굵은 고리
-      const pulse = !moving(S) || now - S.sweepStart > PULSE_SEC ? 0 : (now % 1.6) / 1.6; // 끄기 · 움직임 줄이기면 멈춘 고리만
-      c.strokeStyle = col("--danger"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.stroke();
-      if (pulse) { c.globalAlpha = a * (1 - pulse); c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, rp + 3 + pulse * 9, 0, TAU); c.stroke(); c.globalAlpha = a; }
+    if (n.grade === "danger") { // 멈춘 실선 이중 고리(맥박 없음, P-12g map-4). 선이 처음 지날 때 한 번 울리는 것은 아래. 점선은 수집 오류에만
+      c.strokeStyle = col("--danger"); c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.moveTo(x + rp + 5.5, y); c.arc(x, y, rp + 5.5, 0, TAU); c.stroke();
     }
-    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--muted"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (n.grade === "danger" ? 7 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
+    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--muted"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (n.grade === "danger" ? 8 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--surface"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(it.token); c.fill(); }
@@ -175,10 +172,10 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame, sa: number) {
     if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--ink"), "right", 800);
-    if (it.id === S.sel) { c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 6, 0, TAU); c.stroke(); }
+    if (it.id === S.sel) { const sr = rp + (n.grade !== "danger" ? 6 : n.collectErrorKind ? 11 : 8.5); c.strokeStyle = col("--ink"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
     const age = sa > 0.01 ? touchAge(S, now, it) : 99; // 선 · 파동이 닿으면: 36시간 안에 실제로 확인한 점만 옅게 빛나고(ADR 0032), 위험 · NEW는 한 번 울림
     if (age < GLOW && recentlyChecked(n, wall)) { c.strokeStyle = col(it.token); c.globalAlpha = a * 0.25 * (1 - age / GLOW); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1.5 + age * 6, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (sa > 0.2 && age < 0.6 && (n.grade === "danger" || n.isNew)) {
+    if (sa > 0.2 && age < 0.6 && now - S.sweepStart < REVEAL && (n.grade === "danger" || n.isNew)) { // 처음 한 바퀴에서만(감속 동안 더 도는 부채꼴이 두 번 울리지 않게)
       c.strokeStyle = col(n.grade === "danger" ? "--danger" : "--ink"); c.globalAlpha = a * sa * (1 - age / 0.6); c.lineWidth = 1.5;
       c.beginPath(); c.arc(x, y, rp + 2 + age * 22, 0, TAU); c.stroke();
     }
