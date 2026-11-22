@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageAfter, listRows, nameProblem, neighbors, putProblem } from "@/lib/blueprint/panel-view";
+import { CONNECT_KO, addStageAfter, addStageBeside, listRows, nameProblem, neighbors, parallelProblem, putProblem } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
 import { StageChips } from "./stage-chips";
 import "./list-mode.css";
@@ -22,7 +22,7 @@ export function ListMode(p: PanelProps) {
       {cycle ? <p className="notice notice-error" role="alert">순서가 돌고 도는 연결이 있어요({cycle.map((id) => nameOf.get(id) ?? id).join(" → ")}). 앞 단계 하나를 끊어 주세요. 이대로는 확정할 수 없어요.</p> : null}
       {rows.length ? (
         <ol className="lm-rows">{rows.map((row, i) => (
-          <li key={row.map((s) => s.id).join()}>
+          <li key={i}>{/* 순서 번호로: 같은 순서에 단계를 더해도 줄이 새로 그려지지 않아 누른 단추의 초점이 남는다 */}
             <h3 className="lm-step">{cycle ? `${i + 1}번째(순서 모름)` : `${i + 1}번째`}{row.length > 1 ? ` · 동시에 ${row.length}개` : ""}</h3>
             <ul className="lm-cards">{row.map((s) => <StageCard key={`${s.id}:${s.name}`} {...p} s={s} canFrom={canFrom.get(s.id) ?? []} />)}{/* 이름이 다른 곳(속성 패널)에서 바뀌면 이름 칸을 새로 */}</ul>
           </li>
@@ -94,6 +94,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
         <label>이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} /></label>
         <button type="submit" className="btn lm-sm">이름 바꾸기</button>
       </form>
+      <BesideAdd graph={graph} apply={apply} say={say} onPick={onPick} s={s} />
       <div className="lm-part">
         <p><b>앞 단계</b> {before.length ? null : <span className="muted">없음(처음에 해요)</span>}</p>
         {before.length ? <ul className="lm-list">{before.map((b) => (
@@ -125,5 +126,31 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
         ) : <p className="muted">{pool.length ? "이 단계에 맞는 내 기술 · 적용 후보가 없어요." : "넣을 기술이 없어요. 지도에서 적용 후보로 고르면 생겨요."}</p>}
       </div>
     </li>
+  );
+}
+
+/** 같은 순서에 단계 더하기(캔버스 블록 위 · 아래 +의 짝, P-12h S3): 앞 단계 선을 복사해 같은 줄에. 같은 순서가 가득이면 이유를 말하고 열지 않는다 */
+function BesideAdd({ graph, apply, say, onPick, s }: Pick<PanelProps, "graph" | "apply" | "say" | "onPick"> & { s: Stage }) {
+  const [open, setOpen] = useState(false), [name, setName] = useState("");
+  const btn = useRef<HTMLButtonElement>(null);
+  const blocked = parallelProblem(graph, s.id);
+  const close = () => { btn.current?.focus(); setOpen(false); setName(""); }; // 입력이 사라지기 전에 초점을 단추로
+  const add = () => {
+    const r = addStageBeside(graph, name, s, 1);
+    if ("problem" in r) { say(r.problem); return; }
+    apply(r.graph, `"${s.name}"와(과) 같은 순서에 "${r.stage.name}" 단계를 더했어요.`);
+    close(); onPick({ kind: "stage", stageId: r.stage.id });
+  };
+  return (
+    <div className="lm-part">
+      <button ref={btn} type="button" className="btn lm-sm" aria-expanded={open} aria-disabled={blocked ? true : undefined} title={blocked ?? undefined}
+        onClick={() => (blocked ? say(blocked) : open ? close() : setOpen(true))}>같은 순서에 단계 더하기</button>
+      {open ? (
+        <form className="lm-row" onSubmit={(e) => { e.preventDefault(); add(); }} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
+          <label>같은 순서 단계 이름 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} /></label>
+          <button type="submit" className="btn btn-primary lm-sm">더하기</button>
+        </form>
+      ) : null}
+    </div>
   );
 }

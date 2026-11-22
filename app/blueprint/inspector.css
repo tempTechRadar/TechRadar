@@ -13,3 +13,4 @@
 .insp-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; overflow-wrap: anywhere; }
 .insp-actions { margin-top: 4px; }
 .insp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.insp-links { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 4px; } /* 앞 · 다음 단계 + 끊기(P-12h S3) */

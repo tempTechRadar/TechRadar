@@ -43,6 +43,21 @@
 .sn-empty { margin: 6px 0 0; font-size: var(--fs-cap); color: var(--muted); }
 .studio .react-flow__node:focus-visible { outline: var(--focus); outline-offset: 2px; } /* Tab으로 단계에 왔을 때 보이게(React Flow 기본은 표시 없음) */
 .react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }
+/* P-12h S3 위 · 아래 +: 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 누르면 같은 순서에 옅은 블록. 막혔으면 흐리게 + 이유(title · 이름) */
+.sn { position: relative; }
+.sn-plus { position: absolute; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; padding: 0; border: 1px solid var(--ink-2); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; line-height: 1; cursor: pointer; opacity: 0; }
+.sn-plus-up { top: -12px; } .sn-plus-down { bottom: -12px; }
+.sn:hover .sn-plus, .sn:focus-within .sn-plus { opacity: 1; }
+.sn-plus[aria-disabled] { color: var(--muted); border-style: dashed; cursor: not-allowed; }
+.sn-plus:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* 옅은 새 단계 블록(선을 빈 곳에 놓음 · +): 점선 테두리, 이름 입력 하나 */
+.sn-ghost { position: absolute; top: 0; left: 0; min-width: 200px; pointer-events: all; border-style: dashed; border-color: var(--ink-2); box-shadow: none; }
+.sn-ghost-label { display: grid; gap: 4px; font-size: var(--fs-cap); color: var(--muted); }
+.sn-ghost input { min-height: var(--hit-sm); font: inherit; font-size: var(--fs-sm); }
+/* 선 위 "끊기"(EdgeToolbar, 마우스를 올렸거나 선을 고르면) */
+.se-cut { min-height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-cap); cursor: pointer; }
+.se-cut:hover { border-color: var(--ink-2); }
+.se-cut:focus-visible { outline: var(--focus); outline-offset: 2px; }
 
 /* 연결선: 옅고 가늘게, 고른 단계 · 선만 진하게 */
 .react-flow__edge.se .react-flow__edge-path { stroke: var(--faint); stroke-width: 1; }

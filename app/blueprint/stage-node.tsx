@@ -12,6 +12,7 @@ export type StageData = {
   stage: Stage; order: number | null; picked: Picked; info: Map<string, PoolTech>; /** 휴대폰 "그림으로 보기": 칩 고르기 · 빼기 없음 */ readOnly?: boolean;
   onPick: (p: Picked) => void; onDropTech: (stageId: string, techId: string) => void; onRemoveTech: (stageId: string, techId: string) => void;
   /** 관문 밖 기술(info에 없음)을 적용 후보로 고르기 · 지금 고르는 중인 기술 id */ onCandidate: (techId: string, name: string) => void; marking: string | null;
+  /** 위 · 아래 +(S3): 같은 순서에 단계 더하기(읽기 전용이면 없음), 막힌 이유(같은 순서가 가득) */ onBeside?: (stageId: string, dir: -1 | 1) => void; besideBlocked: string | null;
 };
 export type StageNodeType = Node<StageData, "stage">;
 
@@ -37,6 +38,11 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null)) setOver(false); }}
       onDrop={(e) => { setOver(false); if (data.readOnly || full) return; const id = e.dataTransfer.getData(TECH_DRAG); if (!id) return; e.preventDefault(); data.onDropTech(stage.id, id); }}>
       <Handle type="target" position={Position.Left} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}로 들어오는 선`} />
+      {data.onBeside ? ([-1, 1] as const).map((dir) => (
+        <button key={dir} type="button" className={`sn-plus nodrag nopan ${dir < 0 ? "sn-plus-up" : "sn-plus-down"}`} aria-disabled={data.besideBlocked ? true : undefined}
+          aria-label={`${stage.name} ${dir < 0 ? "위" : "아래"}에 같은 순서 단계 더하기${data.besideBlocked ? ` (못 함: ${data.besideBlocked})` : ""}`} title={data.besideBlocked ?? undefined}
+          onClick={() => data.onBeside!(stage.id, dir)}>+</button>
+      )) : null}
       <header className="sn-head">
         <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : data.order + 1}</span>
         <b className="sn-name">{stage.name}</b>

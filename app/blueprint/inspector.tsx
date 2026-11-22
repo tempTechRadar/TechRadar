@@ -5,7 +5,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
-import { removeStage, removeTech, renameStage, type Graph } from "@/lib/blueprint/graph";
+import { disconnect, removeStage, removeTech, renameStage, type Stage } from "@/lib/blueprint/graph";
 import { nameProblem, neighbors } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
@@ -39,7 +39,6 @@ export function Inspector(p: PanelProps) {
 function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
-  const names = (list: Graph["stages"]) => (list.length ? list.map((x) => x.name).join(", ") : "없음");
   const rename = (form: FormData) => {
     const name = String(form.get("name") ?? "");
     const why = nameProblem(name);
@@ -54,8 +53,8 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <button type="submit" className="btn insp-sm">바꾸기</button>
       </form>
       <Card title="순서">
-        <p>앞 단계: {names(before)}</p>
-        <p>다음 단계: {names(after)}</p>
+        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), `${o.name} → ${s.name} 연결을 끊었어요.`); focusPanel(); }} />
+        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), `${s.name} → ${o.name} 연결을 끊었어요.`); focusPanel(); }} />
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
       <Card title={`붙은 기술 ${s.techs.length}`}>
@@ -67,6 +66,16 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
         <button type="button" className="btn insp-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
       </p>
     </>
+  );
+}
+
+/** 앞 · 다음 단계 줄 + "끊기"(캔버스 선 위 끊기 단추의 키보드 짝, P-12h S3) */
+function Links({ label, list, onCut }: { label: string; list: Stage[]; onCut: (o: Stage) => void }) {
+  if (!list.length) return <p>{label}: 없음</p>;
+  return (
+    <div>{label}:
+      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn insp-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button></li>)}</ul>
+    </div>
   );
 }
 

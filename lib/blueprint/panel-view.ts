@@ -63,18 +63,48 @@ export const newStageSpot = (g: Graph): Pos => {
   return right ? { x: right.x + 280, y: right.y } : { x: 0, y: 0 };
 };
 
-/** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
- *  고른 단계 → 새 단계로 잇는다. 없으면 맨 오른쪽 단계 옆, 잇지 않음. 못 더하면 이유 글 */
-export function addStageAfter(g: Graph, name: string, after: Stage | undefined): { graph: Graph; stage: Stage; linked: boolean } | { problem: string } {
+type Added = { graph: Graph; stage: Stage; linked: boolean } | { problem: string };
+/** 그 자리에 이미 단계가 있다(반 칸 안) */
+const taken = (g: Graph, p: Pos) => g.stages.some((o) => Math.abs(o.x - p.x) < LAYOUT.x / 2 && Math.abs(o.y - p.y) < LAYOUT.y / 2);
+
+/** 새 단계를 at에 두고 before → 새 단계 → after로 잇는다(P-12h S3: 선 끌어 새 블록 · 같은 순서에 더하기, 한 번의 apply = 되돌리기 한 칸).
+ *  연결 한도(200) 등으로 다 잇지 못하면 단계만 더하고 linked=false(화면이 "이었어요"라고 하지 않게). 이을 것이 없었으면 linked=false. 못 더하면 이유 글 */
+export function addStageLinked(g: Graph, name: string, at: Pos, link: { before: string[]; after: string[] }): Added {
   const why = addStageProblem(g, name);
   if (why) return { problem: why };
-  let at = after ? { x: after.x + LAYOUT.x, y: after.y } : newStageSpot(g);
-  const taken = (p: Pos) => g.stages.some((o) => Math.abs(o.x - p.x) < LAYOUT.x / 2 && Math.abs(o.y - p.y) < LAYOUT.y / 2);
-  for (let i = 0; after && taken(at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
   const stage = createStage(name.trim(), at.x, at.y);
-  const added = addStage(g, stage);
-  const graph = after ? connect(added, after.id, stage.id) : added;
-  return { graph, stage, linked: graph !== added }; // 연결 한도(200) 등으로 못 이으면 단계만 더하고 linked=false(화면이 "이어 붙였어요"라고 하지 않게)
+  let graph = addStage(g, stage);
+  const base = graph.edges.length, want = link.before.length + link.after.length;
+  for (const b of link.before) graph = connect(graph, b, stage.id);
+  for (const a of link.after) graph = connect(graph, stage.id, a);
+  return { graph, stage, linked: want > 0 && graph.edges.length === base + want };
+}
+
+/** 새 단계 더하기(P-12h S1, 캔버스 "＋ 단계" · 목록 모드가 같은 규칙): 고른 단계(after)가 있으면 그 오른쪽 빈자리(겹치면 아래로)에 두고
+ *  고른 단계 → 새 단계로 잇는다. 없으면 맨 오른쪽 단계 옆, 잇지 않음 */
+export function addStageAfter(g: Graph, name: string, after: Stage | undefined): Added {
+  let at = after ? { x: after.x + LAYOUT.x, y: after.y } : newStageSpot(g);
+  for (let i = 0; after && taken(g, at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + LAYOUT.y };
+  return addStageLinked(g, name, at, { before: after ? [after.id] : [], after: [] });
+}
+
+/** 같은 순서(병렬)에 단계를 더하지 못하는 이유: 그 단계와 같은 순서에 이미 LIMITS.parallel개. 고리가 있어 순서를 모르면 막지 않는다(확정 때 막힘) */
+export function parallelProblem(g: Graph, id: string): string | null {
+  const l = layers(g);
+  const d = l.ok ? l.depth.get(id) : undefined;
+  return l.ok && d !== undefined && l.levels[d].length >= LIMITS.parallel ? `${d + 1}번째 순서에 이미 ${LIMITS.parallel}개예요(동시에 ${LIMITS.parallel}개까지).` : null;
+}
+
+/** 같은 순서에 더하기(P-12h S3): 그 단계 위(-1) · 아래(1)로 한 칸(겹치면 더 그쪽), 앞 단계 선을 그대로 복사해 같은 깊이가 되게 */
+export function addStageBeside(g: Graph, name: string, of: Stage, dir: -1 | 1): Added {
+  const why = parallelProblem(g, of.id);
+  if (why) return { problem: why };
+  return addStageLinked(g, name, besideSpot(g, of, dir), { before: neighbors(g, of.id).before.map((s) => s.id), after: [] });
+}
+export function besideSpot(g: Graph, of: Stage, dir: -1 | 1): Pos {
+  let at = { x: of.x, y: of.y + dir * LAYOUT.y };
+  for (let i = 0; taken(g, at) && i < LIMITS.stages; i++) at = { x: at.x, y: at.y + dir * LAYOUT.y };
+  return at;
 }
 
 /** UUID v4. crypto.randomUUID는 https · localhost에서만 있어 http(휴대폰으로 PC 주소)에서는 getRandomValues로 만든다(use-studio-save.ts와 같은 방법) */

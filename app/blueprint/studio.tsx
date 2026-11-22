@@ -7,12 +7,12 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  applyTemplate, autoLayout, LIMITS, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
+  applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageAfter, CONNECT_KO, putProblem } from "@/lib/blueprint/panel-view";
+import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, neighbors, parallelProblem, putProblem } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -21,16 +21,21 @@ import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { GuideLines, useDragAssist } from "./drag-assist";
+import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
 import { StageNode, type StageNodeType } from "./stage-node";
 import { ResultDialog, type CheckTarget } from "./result-dialog";
+import { SeqEdge, type SeqEdgeType } from "./seq-edge";
 import type { PanelProps, Picked } from "./studio-types";
 import { useStudioGraph } from "./use-studio-graph";
 import { useConfirm } from "./use-studio-save";
+import { useBounce } from "./use-bounce";
 import "./studio.css";
 
 const nodeTypes = { stage: StageNode };
+const edgeTypes = { seq: SeqEdge };
+const posOf = (g: Graph) => new Map(g.stages.map((s) => [s.id, { x: s.x, y: s.y }]));
 /** 움직임 줄이기(P-12g B1): CSS의 --dur 0s는 카메라 이동(fitView) · 클래스 붙이기 같은 JS 움직임에 닿지 않아 따로 본다(지도 controller.ts와 같은 방식) */
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** 확정 선 긋기(B2) 한 번의 길이: studio.css se-draw(--dur × 2)보다 조금 길게 두고 클래스를 뗀다 */
@@ -61,7 +66,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
-  const addBtn = useRef<HTMLButtonElement>(null);
+  const addBtn = useRef<HTMLButtonElement>(null), canvasBox = useRef<HTMLDivElement>(null);
+  const [ghost, setGhost] = useState<Ghost | null>(null); // 옅은 새 단계 블록(S3: 선을 빈 곳에 놓음 · 위아래 +)
+  const [hoverEdge, setHoverEdge] = useState<string | null>(null), edgeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const bounce = useBounce();
   const [loginAsk, setLoginAsk] = useState<string | null>(null); // 손님이 저장 · 판단을 누름: 무엇을 하려는지(묻는 대화상자 글)
   const [confirming, setConfirming] = useState(false), [asking, setAsking] = useState(false), [marking, setMarking] = useState<string | null>(null);
   const { toast, say, clear } = useToast();
@@ -72,7 +80,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   // B2 확정 = 설계선 긋기: 실제 선은 그대로 두고 덧칠 선만 한 번 그었다가 사라진다. 같은 확정 id(같은 내용 다시 확정, 불변 3)면 긋지 않는다
   const [drawing, setDrawing] = useState(false);
   const lastConfirmed = useRef<string | null>(null), drawTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined), layOk = useRef(false);
-  useEffect(() => () => clearTimeout(drawTimer.current), []);
+  useEffect(() => () => { clearTimeout(drawTimer.current); clearTimeout(edgeTimer.current); }, []);
   // B3 후보 칩: 판단이 저장된 뒤 서랍을 다시 읽는 동안에도 "고르는 중…"을 지킨다(그 틈에 "안 고른" 모양으로 돌아가 보이지 않게)
   const [settling, setSettling] = useState<{ id: string; name: string } | null>(null);
   const settled = useRef(new Set<string>()); // 저장은 됐고 서랍을 다시 읽는 중인 기술(같은 기술을 또 보내지 않게, 불변 3)
@@ -120,6 +128,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   /** name을 주면 다른 곳에서 판을 통째로 가져온 일(이력 불러오기 등): 이름도 함께 되돌리기 칸에 넣고, 시작한 템플릿 표시는 지운다 */
   const apply = (next: Graph, message?: string, nm?: string) => {
     if (next === g && (nm === undefined || nm === name)) return;
+    bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
     push(next, nm);
     if (nm !== undefined) setTemplateId(null);
     if (message) say(message); else clear();
@@ -154,17 +163,47 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     apply(r.graph, base && r.linked ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : base ? `"${r.stage.name}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).` : `"${r.stage.name}" 단계를 더했어요.`);
     setNewName(""); closeAdd(); setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
+  /** 옅은 블록에 이름을 적고 Enter: 단계 + 선을 한 번의 apply로(되돌리기 한 칸). 더한 단계를 고른 채로 */
+  function commitGhost(gh: Ghost, nm: string) {
+    setGhost(null);
+    const r = addStageLinked(g, nm, gh.at, gh);
+    if ("problem" in r) return say(r.problem);
+    const n = r.stage.name, want = gh.before.length + gh.after.length;
+    apply(r.graph, want && !r.linked ? `"${n}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).`
+      : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 이어 붙였어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
+    setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
+  }
+  /** 블록 위 · 아래 +: 같은 순서(앞 단계 선 복사)에 옅은 블록. 같은 순서가 이미 가득이면 띄우지 않고 이유 */
+  function besideGhost(id: string, dir: -1 | 1) {
+    const s = stageOf(id), why = parallelProblem(g, id);
+    if (!s) return;
+    if (why) return say(why);
+    setGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] });
+  }
+  /** 반동 자동 정렬: 판은 바로, 화면은 튕겨 간 뒤 맞춰 보기. 움직임 줄이기면 바로 맞춤 */
+  function arrange() {
+    const next = autoLayout(g);
+    if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요.");
+    apply(next, "순서대로 정렬했어요.");
+    const fit = () => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 });
+    if (calm()) requestAnimationFrame(fit); else bounce.start(posOf(g), posOf(next), fit);
+  }
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
-    id: s.id, type: "stage", position: drag?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
+    id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
-      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId },
+      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost },
   }));
-  const edges: FlowEdge[] = g.edges.map((e) => {
+  // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다
+  const leaveEdge = () => { clearTimeout(edgeTimer.current); edgeTimer.current = setTimeout(() => setHoverEdge(null), 150); };
+  const keepEdge = (id: string) => { clearTimeout(edgeTimer.current); setHoverEdge(id); };
+  const edges: (FlowEdge | SeqEdgeType)[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
-    return { id, source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 } };
+    return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 },
+      data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
+        onCut: readOnly ? undefined : () => { setHoverEdge(null); onDelete({ nodes: [], edges: [{ source: e.from, target: e.to }] }); } } };
   });
   const near = assist.near;
   if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
@@ -186,7 +225,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (nextDims) setDims(nextDims);
     // 마우스로 끌 때만 격자 · 보조선에 붙인다(화살표 키 5px 이동이 보조선에 다시 붙어 제자리로 돌아오지 않게)
     const placed = dragging ? assist.during(g, raw) : new Map([...raw].map(([id, p]) => [id, { x: Math.round(p.x), y: Math.round(p.y) }]));
-    if (raw.size) moved = new Map([...(moved ?? []), ...placed]);
+    if (raw.size) { bounce.stop(); moved = new Map([...(moved ?? []), ...placed]); }
     if (nextSel) {
       setSel(nextSel);
       const one = nextSel.size === 1 ? [...nextSel][0] : null;
@@ -200,14 +239,22 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (next) setSelEdges(next);
   }
   const onConnect = (c: Connection) => { const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target)); };
-  /** 못 잇는 곳에 놓았을 때(isValidConnection이 막아 onConnect가 안 불림) 이유를 알린다. 들어오는 점에서 끌었으면 방향을 뒤집어 본다 */
-  const onConnectEnd = (_: unknown, st: FinalConnectionState) => {
+  /** 빈 곳에 놓았으면(S3) 그 자리에 옅은 새 단계: 오른쪽 점에서 끌면 다음 단계, 왼쪽 점에서 끌면 앞 단계.
+   *  못 잇는 곳에 놓았으면(isValidConnection이 막아 onConnect가 안 불림) 이유를 알린다. 들어오는 점에서 끌었으면 방향을 뒤집어 본다 */
+  const onConnectEnd = (ev: MouseEvent | TouchEvent, st: FinalConnectionState) => {
+    if (st.isValid === null && !st.toNode && st.fromNode) {
+      const pt = "changedTouches" in ev ? ev.changedTouches[0] : ev;
+      if (!pt) return;
+      const p = flow.screenToFlowPosition({ x: pt.clientX, y: pt.clientY }), back = st.fromHandle?.type === "target", of = st.fromNode.id;
+      setGhost({ at: { x: back ? p.x - NODE_SIZE.w : p.x, y: p.y - NODE_SIZE.h / 2 }, kind: back ? "before" : "after", of: stageOf(of)?.name ?? "", before: back ? [] : [of], after: back ? [of] : [] });
+      return;
+    }
     if (st.isValid !== false || !st.fromNode || !st.toNode) return;
     const [from, to] = st.fromHandle?.type === "target" ? [st.toNode.id, st.fromNode.id] : [st.fromNode.id, st.toNode.id];
     const p = connectProblem(g, from, to);
     if (p) say(CONNECT_KO[p]);
   };
-  function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: FlowEdge[] }) {
+  function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: { source: string; target: string }[] }) {
     let next = g;
     for (const e of es) next = disconnect(next, e.source, e.target);
     for (const n of ns) next = removeStage(next, n.id);
@@ -250,8 +297,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <div className="studio-bar">
         <label className="sr-only" htmlFor="bp-name">청사진 이름</label>
         <input id="bp-name" className="bp-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        <button type="button" className="btn" disabled={!canUndo} onClick={undo}>되돌리기</button>
-        <button type="button" className="btn" disabled={!canRedo} onClick={redo}>다시</button>
+        <button type="button" className="btn" disabled={!canUndo} onClick={() => { bounce.stop(); undo(); }}>되돌리기</button>
+        <button type="button" className="btn" disabled={!canRedo} onClick={() => { bounce.stop(); redo(); }}>다시</button>
         {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
         <span className="studio-addwrap">
           <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} disabled={readOnly} onClick={() => setAdding(!adding)}>＋ 단계</button>
@@ -267,7 +314,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
             </form>
           ) : null}
         </span>
-        <button type="button" className="btn" onClick={() => { const next = autoLayout(g); if (next === g) return say("바꿀 자리가 없어요. 이미 정렬됐거나 선이 고리로 이어져 있어요."); apply(next, "순서대로 정렬했어요."); requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })); }}>자동 정렬</button>
+        <button type="button" className="btn" onClick={arrange}>자동 정렬</button>
         <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
@@ -281,14 +328,17 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
-          <div className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
-            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 키보드 · 화면 읽기는 목록 모드를 쓰세요">
+            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+              onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
-              onDelete={onDelete} onPaneClick={unpick} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               minZoom={0.3} maxZoom={2} fitView fitViewOptions={{ padding: 0.2 }} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
+              {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} hints={hints} back={() => canvasBox.current?.focus()}
+                onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
               {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>
           </div>
