@@ -96,14 +96,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     S.scopeLabel = sc.length ? `${sc[sc.length - 1].value} · ${S.L.shown}개` : "";
     setFocus(S.focusId);
   }
-  /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리 */
-  function setView(next: ViewConfig, from: [number, number] = [0, 0]) {
+  /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리(분류만 보기). 없으면 새 점은 제자리에서 나타나고 남는 점은 바뀐 배치로 미끄러진다(가운데서 튀어나오지 않게, P-12g map-9) */
+  function setView(next: ViewConfig, from?: [number, number]) {
     if (S.introAt !== Infinity) finishIntro(); // 도구 줄을 만지면 처음 연출은 끝(첫 장 전 되살리기는 연출을 지움)
     const scoped = JSON.stringify(next.scope) !== JSON.stringify(S.view.scope); // 되살린 보기는 새 배열이라 값으로 비교
     const regroup = next.group.join() !== S.view.group.join() || scoped;
     S.view = usable(next, model, projectIds, opts.login);
     if (regroup) manual.clear(); // 묶기가 바뀌면 묶음 id가 달라져 손댄 기억은 뜻이 없다
-    rebuild(() => from);
+    rebuild(from ? () => from : (it) => [it.x, it.y]); // 함수를 넘겨야 남는 점이 미끄러진다(null이면 툭 바뀜)
     if (scoped) flyTo(homeCam(), false);
     saveView(); dirty(); notify();
   }
