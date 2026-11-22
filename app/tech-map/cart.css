@@ -1,0 +1,7 @@
+/* 관심 별 · 청사진 담기 줄(guest-pick.tsx): 지도 사이드 패널과 기술 상세가 같이 읽는다. 별 글자 색은 읽는 색(새 색 없음) */
+.side-star { flex: none; min-width: var(--hit); min-height: var(--hit); padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.side-star:disabled { cursor: progress; }
+.side-star:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.side-to-bp { display: grid; gap: 4px; justify-items: start; }
+.side-to-bp p { margin: 0; font-size: var(--fs-sm); }
+.side-to-bp p.side-cart-in { font-size: var(--fs-body); font-weight: 600; }
