@@ -257,16 +257,49 @@ test("저장소는 열리는데 읽는 파일이 다 없으면 오류가 아니�
   const { db, calls } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.deepEqual([r.status, r.errors, r.found], ["succeeded", 0, 0]);
-  assert.ok(urls.includes("https://api.github.com/repos/o/r"), "파일이 하나도 없을 때만 저장소를 확인한다");
+  assert.equal(urls.filter((u) => u === "https://api.github.com/repos/o/r").length, 2, "레포 기본 정보 1번 + 파일이 하나도 없을 때의 저장소 확인 1번");
   assert.equal(steps(calls).find((s) => s.step_name === "fetch_repo")?.status, "succeeded");
 });
 
-test("파일 하나만 없는 건 오류가 아니다: 저장소 확인도 부르지 않는다", async (t) => {
+test("파일 하나만 없는 건 오류가 아니다: 저장소 확인을 다시 부르지 않는다(레포 기본 정보 1번뿐)", async (t) => {
   const urls = stubWeb(t, { files: { "package.json": PKG } });
   const { db } = fakeDb(true);
   const r = await registerAndRead(USER, REPO, { db });
   assert.deepEqual([r.status, r.errors], ["succeeded", 0]);
-  assert.ok(!urls.includes("https://api.github.com/repos/o/r"));
+  assert.equal(urls.filter((u) => u === "https://api.github.com/repos/o/r").length, 1);
+});
+
+const metaUpdates = (calls: Call[]) => ops(calls, "projects", "update").map(arg0);
+
+test("레포 기본 정보(P-12i): 저장소 확인 응답의 설명 · 언어 · 마지막 푸시를 projects에 남기고 오류를 비운다", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, repo: ok('{"private":false,"description":" 내 도구 ","language":"TypeScript","pushed_at":"2026-11-20T01:02:03Z"}') });
+  const { db, calls } = fakeDb(true);
+  await registerAndRead(USER, REPO, { db });
+  const [row] = metaUpdates(calls);
+  assert.deepEqual([row.repo_description, row.repo_language, row.repo_pushed_at, row.repo_meta_error], ["내 도구", "TypeScript", "2026-11-20T01:02:03Z", null]);
+  assert.equal(typeof row.repo_meta_at, "string");
+});
+
+test("레포 기본 정보: 다시 읽기에서 저장소 확인이 실패하면 예전 값은 두고 오류 종류만(불변 2 · 4), 읽기는 계속한다", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, repo: status(429) });
+  const { db, calls } = fakeDb(true);
+  const r = await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(metaUpdates(calls), [{ repo_meta_error: "rate_limited" }]);
+  assert.equal(r.status, "succeeded");
+});
+
+test("레포 기본 정보: 다시 읽기는 비공개가 돼도 막지 않고(파일 읽기가 판단) 정보만 수집 오류", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, repo: status(404) });
+  const a = fakeDb(true);
+  await registerAndRead(USER, REPO, { db: a.db });
+  assert.deepEqual(metaUpdates(a.calls), [{ repo_meta_error: "http_status" }]);
+});
+
+test("레포 기본 정보: 칸 모양이 다른 응답(날짜가 깨짐)은 값을 덮지 않고 parse 오류", async (t) => {
+  stubWeb(t, { files: { "package.json": PKG }, repo: ok('{"private":false,"description":"x","language":null,"pushed_at":"어제"}') });
+  const { db, calls } = fakeDb(true);
+  await registerAndRead(USER, REPO, { db });
+  assert.deepEqual(metaUpdates(calls), [{ repo_meta_error: "parse" }]);
 });
 
 test("requirements.txt도 읽는다: 허용 목록의 PyPI 패키지만 기술이 되고, OSV는 PyPI 이름으로 묻는다(PRD-F6, SPEC-7)", async (t) => {
