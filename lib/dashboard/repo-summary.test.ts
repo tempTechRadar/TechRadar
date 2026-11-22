@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { repoSummary } from "./repo-summary.ts";
+import { repoMetaLine, repoSummary } from "./repo-summary.ts";
 import type { StatusProjectRow, StatusTechRow } from "./status-view.ts";
 
 const t = (id: string, o: Partial<StatusTechRow> = {}): StatusTechRow => ({ id, tech_id: id, manual_name: null, hidden_at: null, read_at: null, collect_error_kind: null, grade: "pass", technologies: { display_name: id, type: "mcp" }, ...o });
@@ -23,4 +23,18 @@ test("판단 대기 · 모델 종료는 이 레포의 대기 알림만, 알림�
   assert.deepEqual([s.pending, s.modelEol], [2, 1]);
   const none = repoSummary(repo, null);
   assert.deepEqual([none.pending, none.modelEol], [null, null]);
+});
+
+test("레포 정보 줄: 설명 · 언어 · 마지막 푸시(상대 + 날짜), 안 읽음 · 비어 있음 · 읽기 실패(지난 값과 함께)를 따로, 로컬은 없음", () => {
+  const now = new Date("2026-11-22T12:00:00Z");
+  const base = { ...repo, my_technologies: [] };
+  assert.equal(repoMetaLine({ ...base, kind: "local" }, now), null);
+  assert.deepEqual(repoMetaLine(base, now), { info: "레포 정보(설명 · 언어 · 마지막 푸시)를 아직 읽지 않았어요", error: null });
+  assert.deepEqual(repoMetaLine({ ...base, repo_meta_at: "2026-11-22T00:00:00Z" }, now), { info: "설명 · 언어가 비어 있는 레포예요", error: null });
+  const full = repoMetaLine({ ...base, repo_description: "기술 지도", repo_language: "TypeScript", repo_pushed_at: "2026-11-19T12:00:00Z", repo_meta_at: "2026-11-22T00:00:00Z" }, now)!;
+  assert.match(full.info!, /^기술 지도 · 주 언어 TypeScript · 마지막 푸시 3일 전\(2026/);
+  const failed = repoMetaLine({ ...base, repo_language: "Go", repo_meta_error: "rate_limited" }, now)!;
+  assert.equal(failed.error, "레포 정보를 읽지 못했어요(요청 한도). 아래는 지난번 값이에요");
+  assert.equal(failed.info, "주 언어 Go");
+  assert.equal(repoMetaLine({ ...base, repo_meta_error: "timeout" }, now)!.info, null);
 });

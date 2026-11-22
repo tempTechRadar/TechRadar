@@ -4,10 +4,13 @@ import { defaultLayout, MIN_H, MIN_W, parseLayout, pushDown, snapBox, stackOrder
 
 const IDS = ["numbers", "inbox", "repos"];
 
-test("기본 배치는 발표 순서(숫자 → 판단함 → 레포), 기본 자리가 없는 위젯은 맨 아래", () => {
-  assert.deepEqual(stackOrder(defaultLayout(IDS)), ["numbers", "inbox", "repos"]);
-  const extra = defaultLayout([...IDS, "news"]).find((b) => b.id === "news")!;
-  assert.ok(extra.y >= 27);
+test("기본 배치는 발표 순서(숫자 → 레포 · 판단함 → 바뀐 것 · 옮기기 · 점검 → 소식 · 뜨는 대안 · 기록), 서로 안 겹침, 기본 자리가 없는 위젯은 맨 아래", () => {
+  const all = ["numbers", "inbox", "repos", "changes", "move", "checked", "news", "trending", "history"];
+  const d = defaultLayout(all);
+  assert.deepEqual(stackOrder(d), ["numbers", "repos", "inbox", "changes", "move", "checked", "news", "trending", "history"]);
+  assert.deepEqual(pushDown(d, "numbers"), d, "기본 배치는 겹침이 없어 밀 것이 없다");
+  const extra = defaultLayout([...IDS, "zzz"]).find((b) => b.id === "zzz")!;
+  assert.ok(extra.y >= 31);
 });
 
 test("칸 맞추기: 반올림 · 최소 크기 · 음수 막기 · 숫자가 아니면 최소", () => {
