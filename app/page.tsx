@@ -48,8 +48,8 @@ const hotIds = () => readHot().catch(logged("요즘 뜨는 기술 조회 실패"
 
 // canSave = 로그인함(보기 기억·판단 남기기)
 function MapBody({ model, projects, query, canSave, who, top }: { model: TechMapModel | null; projects: { id: string; name: string }[]; query: string; canSave: boolean; who?: string; top: ReactNode }) {
-  if (model === null) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice" role="alert"><strong>지도를 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/dashboard#w-manage">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div></>;
-  if (model.nodes.length === 0) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice notice-empty"><strong>아직 지도에 올릴 기술이 없어요.</strong>{canSave ? <> <Link href="/dashboard#w-manage">내 프로젝트를 등록</Link>하면 저장소에서 읽은 기술이 지도에 와요.</> : " 모은 기술이 들어오면 여기에 보여요."}</div></>;
+  if (model === null) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice" role="alert"><strong>지도를 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.{canSave ? <> <Link href="/dashboard#w-repos">내 기술 목록</Link>은 따로 볼 수 있어요.</> : null}</div></>;
+  if (model.nodes.length === 0) return <>{top ? <div className="map-top map-top-flat">{top}</div> : null}<div className="notice notice-empty"><strong>아직 지도에 올릴 기술이 없어요.</strong>{canSave ? <> <Link href="/dashboard#repo-register">내 프로젝트를 등록</Link>하면 저장소에서 읽은 기술이 지도에 와요.</> : " 모은 기술이 들어오면 여기에 보여요."}</div></>;
   return <CanvasMap model={model} projects={projects} initialQuery={query} canSave={canSave} login={canSave} who={who} top={top} />;
 }
 
@@ -97,7 +97,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
         {dash ? null : <span className="notice" role="status">내 프로젝트 목록을 불러오지 못했어요(없다는 뜻이 아니에요). 프로젝트로 거르기 · 시작하기가 빠져 있어요.</span>}
         {start ? <StartChecklist steps={start} who={user.id} /> : null}
-        {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/dashboard#w-manage">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
+        {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/dashboard#repo-register">내 프로젝트를 등록하면 내 기술과 비교군이 지도에 와요</Link> : null}
       </>} />
     </main>
   );

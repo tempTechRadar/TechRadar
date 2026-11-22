@@ -1,37 +1,41 @@
-/* 프로젝트 관리 보드(P-12i D1): 위젯 캔버스. 값은 공용 토큰, 누르는 칸 24px 이상, 상태는 색만이 아니라 글자로 */
-.page.board-page { max-width: 1200px; }
-.board-filter { margin-bottom: var(--sp-3); }
-.board { display: grid; gap: var(--sp-3); }
-.board-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.board-bar .muted { font-size: var(--fs-sm); }
-.board-hidden { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; font-size: var(--fs-sm); }
-.board-canvas { position: relative; width: 100%; }
+/* 프로젝트 관리 = 컴팩트 타공보드(P-12k K1, 이 화면만): 본문 13px · 판 제목 13px 굵게 · 제목 막대 28px · 단추 28px · 판 여백 8px · 행 28~32px.
+   값은 공용 토큰, 누르는 칸 24px 이상(WCAG 2.5.8), 상태는 색만이 아니라 글자로. 판 안에 카드를 겹치지 않는다 */
+.page.board-page { max-width: 1200px; font-size: 13px; }
+.page.board-page h1 { font-size: var(--fs-h3); margin: 0 0 var(--sp-2); }
+.page.board-page .btn { min-height: 28px; padding: 0 10px; font-size: 13px; }
+.page.board-page input, .page.board-page select { min-height: 28px; font-size: 13px; }
+.page.board-page .notice { margin: 0 0 var(--sp-2); padding: 6px var(--sp-2); font-size: 13px; }
+.board { display: grid; gap: var(--sp-2); }
+.board-bar { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+.board-bar .muted { font-size: 12px; }
+
+/* 판(배경) = 타공 구멍(한 칸 폭 --cw × 한 줄 24px = 스냅 칸) */
+.board-canvas { position: relative; width: 100%; border-radius: var(--r-md); background-color: var(--sunken);
+  background-image: radial-gradient(circle at 50% 50%, var(--line) 0 2px, transparent 2.5px); background-size: var(--cw, 24px) 24px; }
 .board-canvas > .react-flow { background: transparent; }
-.board-canvas[data-edit] > .react-flow { background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 24px 24px; } /* 편집 모드에서만 칸 점 */
 .board-canvas .react-flow__node-widget { padding: 0; border: 0; background: none; cursor: default; }
 .board-canvas[data-edit] .react-flow__node-widget { cursor: grab; }
 .board-canvas .react-flow__node-widget:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.board-stack { display: grid; gap: var(--sp-3); }
+.board-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); } /* 판 안 넓은 표가 페이지를 밀지 않게 */
 
-/* 위젯 틀 */
-.bw { box-sizing: border-box; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+/* 걸린 판: 머리에 고리 두 개 */
+.bw { position: relative; box-sizing: border-box; height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
+.bw::before, .bw::after { content: ""; position: absolute; top: 9px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--ink-2); background: var(--sunken); pointer-events: none; }
+.bw::before { left: 10px; } .bw::after { right: 10px; }
 .bw[data-folded] { grid-template-rows: auto; }
-.bw-bar { display: flex; align-items: center; gap: var(--sp-2); min-height: 40px; padding: 0 var(--sp-2) 0 var(--sp-3); border-bottom: 1px solid var(--line); background: var(--sunken); }
-.bw-title { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bw-tools { display: inline-flex; gap: 2px; }
-.bw-tool { min-width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
-.bw-tool:hover { background: var(--surface); color: var(--ink); }
+.bw-bar { display: flex; align-items: center; gap: var(--sp-1); min-height: 28px; padding: 0 26px 0 28px; border-bottom: 1px solid var(--line); }
+.bw-title, .page.board-page .bw-title { flex: 1; min-width: 0; margin: 0; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw-tools { display: inline-flex; gap: 0; }
+.bw-tool { min-width: 24px; min-height: 24px; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
+.bw-tool:hover { background: var(--sunken); color: var(--ink); }
 .bw-tool:focus-visible, .bw-menuitem:focus-visible { outline: var(--focus); outline-offset: 1px; }
 .bw-menuwrap { position: relative; }
 .bw-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; display: grid; min-width: 9em; padding: var(--sp-1); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
-.bw-menuitem { min-height: 32px; padding: 0 var(--sp-2); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.bw-menuitem { min-height: 28px; padding: 0 var(--sp-2); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .bw-menuitem:hover { background: var(--sunken); }
-.bw-body { min-height: 0; overflow: auto; padding: var(--sp-3); cursor: auto; }
+.bw-body { position: relative; min-height: 0; overflow: auto; padding: 8px; cursor: auto; } /* relative: 표 안 sr-only(절대 위치)가 스크롤 상자 밖으로 새어 페이지를 밀지 않게 */
+.bw-body h3, .page.board-page .bw-body h3 { margin: 8px 0 2px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .board-stack .bw-body { max-height: 70vh; }
-.bw-body .stat-grid { margin: 0; }
-/* 판단함이 좁은 위젯에 들어가도 제목이 한 글자씩 꺾이지 않게: 배지 · 시각은 제목 아래 한 줄 */
-.page .bw-body .alert-row { display: grid; grid-template-columns: 1fr; gap: 2px; justify-items: start; }
-.bw-edit-hint { display: none; }
 .bw-resize-handle { width: 10px; height: 10px; border-radius: 2px; background: var(--surface); border: 1px solid var(--ink); }
 .bw-resize-line { border-color: var(--ink-2); }
 
@@ -39,44 +43,65 @@
 .bw-max { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--sp-4); background: rgba(0, 0, 0, .35); }
 .bw-max-box { width: min(1100px, 100%); max-height: 90vh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border-radius: var(--r-md); overflow: hidden; }
 
-/* W3 레포 카드 · 등급 배터리 */
-.repo-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--sp-3); }
-.repo-card { display: grid; gap: var(--sp-1); align-content: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); overflow-wrap: anywhere; }
-.repo-card h3 { margin: 0; font-size: var(--fs-body); }
-.repo-card p { margin: 0; font-size: var(--fs-sm); }
-.repo-card a { display: inline-flex; align-items: center; min-height: var(--hit-sm); }
-.repo-reread { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.battery { display: grid; gap: 2px; }
-.battery-bar { display: flex; height: 10px; overflow: hidden; border-radius: var(--r-pill); background: var(--sunken); }
-.battery-bar i { display: block; min-width: 4px; }
-.battery-danger { background: var(--danger); } .battery-warning { background: var(--caution); } .battery-success { background: var(--pass); } .battery-neutral { background: var(--unknown); }
-.battery-text { font-size: var(--fs-cap); color: var(--ink-2); }
+/* 숫자 띠(고정): 6칸 + 기간 */
+.band { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-2); }
+.band-cells { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; margin: 0; padding: 0; list-style: none; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.band-cell { display: grid; align-content: center; min-height: 48px; padding: 4px 10px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.band-cell:hover { background: var(--sunken); }
+.band-cell:focus-visible { outline: var(--focus); outline-offset: -2px; }
+.band-label { font-size: 12px; color: var(--ink-2); }
+.band-cell strong { font-size: 20px; line-height: 1.2; }
+.band-fail { color: var(--ink-danger); font-size: 12px; } .band-none, .band-note { color: var(--muted); font-size: 12px; }
+.band-period label { display: inline-flex; gap: var(--sp-1); align-items: center; font-size: 12px; }
 
-/* D2: 위젯 라이브러리 · 토글 · 목록 · 표 · 옮기기 단계 · 레포 서랍 */
+/* 판 안 공용: 없음 · 읽지 못함 한 모양, 한 줄 목록, 표 */
+.board-empty { margin: 0; color: var(--muted); }
+.board-fail { margin: 0; color: var(--ink-danger); }
+.board-warn { color: var(--ink-danger); }
+.board-head { margin: 0 0 4px; }
+.board-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 8px 0 0; }
+.board-lines, .board-list { list-style: none; margin: 0; padding: 0; }
+.board-lines li { display: flex; gap: 6px; align-items: center; min-height: 28px; border-bottom: 1px solid var(--line); }
+.board-lines li > :nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.board-src { flex: none; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--ink-2); padding: 0 4px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.board-lines time { flex: none; font-size: 11px; }
+.board-list { display: grid; gap: 2px; }
+.board-table { width: 100%; border-collapse: collapse; }
+.board-table th, .board-table td { height: 30px; padding: 2px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.board-table thead th { height: 24px; font-size: 11px; font-weight: 600; color: var(--ink-2); }
+.repo-rows { min-width: 560px; } /* 좁으면 판 안에서 옆으로 밀어 보기(페이지는 안 밀림) */
+.repo-rows tbody th { font-weight: 400; }
+.board-table thead th { white-space: nowrap; }
+.repo-rows td:last-child { width: 1%; white-space: nowrap; }
+.battery { display: grid; gap: 1px; min-width: 6em; }
+.battery-bar { display: flex; height: 6px; overflow: hidden; border-radius: var(--r-pill); background: var(--sunken); }
+.battery-bar i { display: block; min-width: 3px; }
+.battery-danger { background: var(--danger); } .battery-warning { background: var(--caution); } .battery-success { background: var(--pass); } .battery-neutral { background: var(--unknown); }
+.battery-text { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+
+/* 한 줄 폼(레포 등록 · 직접 추가) */
+.add-tech { display: grid; gap: 6px; }
+.add-tech .muted { margin: 0; font-size: 12px; }
+.add-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; }
+.add-row label { display: inline-flex; gap: 4px; align-items: center; }
+.add-hits fieldset { margin: 0 0 4px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.add-hits fieldset label { display: flex; gap: 4px; align-items: center; min-height: 28px; }
+.repo-register { margin-top: 8px; }
+
+/* "+ 판" */
 .board-lib { position: relative; }
-.board-lib-pop { position: absolute; left: 0; top: calc(100% + 4px); z-index: 10; display: grid; gap: var(--sp-1); min-width: 14em; margin: 0; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
-.board-lib-pop label { display: flex; gap: var(--sp-2); align-items: center; min-height: 28px; font-size: var(--fs-sm); }
-.board-toggle { display: inline-flex; gap: var(--sp-1); margin: 0 0 var(--sp-2); }
-.page .board-toggle .btn[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
-.board-list { list-style: none; margin: 0 0 var(--sp-2); padding: 0; display: grid; gap: var(--sp-1); font-size: var(--fs-sm); }
-.board-list a { color: var(--ink); }
-.board-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.board-table th, .board-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-.board-big { font-size: var(--fs-h1); margin-right: var(--sp-1); }
-.board-search { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; margin-bottom: var(--sp-2); font-size: var(--fs-sm); }
-.board-search label { display: grid; gap: 2px; }
-.move-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 0; margin: 0 0 var(--sp-2); padding: 0; }
-.move-steps li { flex: 1 1 0; min-width: 6em; padding: var(--sp-2); border: 1px solid var(--line); background: var(--sunken); font-size: var(--fs-sm); }
-.move-steps li + li { border-left: 0; }
-.move-steps li[data-done] { background: var(--surface); box-shadow: inset 0 -3px 0 var(--pass); }
-.move-steps li:not(:last-child)::after { content: " →"; color: var(--muted); }
-.move-steps a { color: var(--ink); text-decoration: none; }
-.move-steps b { font-size: var(--fs-h2); }
-.repo-open { min-height: var(--hit-sm); padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.board-lib-pop { position: absolute; left: 0; top: calc(100% + 4px); z-index: 10; display: grid; gap: 2px; min-width: 14em; margin: 0; padding: var(--sp-2) var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.board-lib-pop label { display: flex; gap: var(--sp-2); align-items: center; min-height: 28px; }
+
+/* 레포 서랍(K2에서 레포 상세 페이지로) */
+.repo-open { min-height: 24px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .repo-open:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.page.repo-drawer { max-width: none; margin: 0; } /* .page: 배지 · 단추 공용 모양이 .page 아래에만 걸려 있어 서랍(문서 맨 위)에도 붙임 */
+.page.repo-drawer { max-width: none; margin: 0; font-size: 13px; } /* .page: 배지 · 단추 공용 모양이 .page 아래에만 걸려 있어 서랍(문서 맨 위)에도 붙임 */
 .repo-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 40; width: min(720px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-side); }
+.repo-drawer .bw-bar { padding: 0 8px 0 12px; min-height: 40px; }
 .repo-drawer-body { overflow: auto; padding: var(--sp-3); }
-.repo-drawer-h { margin: var(--sp-4) 0 var(--sp-2); font-size: var(--fs-body); }
-.repo-table a { color: var(--ink); }
-.repo-meta.notice { margin: 0; padding: var(--sp-1) var(--sp-2); }
+.repo-drawer-h { margin: var(--sp-4) 0 var(--sp-2); font-size: 13px; }
+.repo-table a, .board-list a { color: var(--ink); }
+
+/* 좁은 폭: 띠는 3칸씩 두 줄(≤860은 판도 한 줄로 쌓음, board.tsx) */
+@media (max-width: 860px) { .band-cells { flex-basis: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { LOCAL_PROJECT_NAME } from "@/lib/server/local-import";
-import { GRADE_OPTIONS, keepView, ownText, searchTerm, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
+import { GRADE_OPTIONS, keepView, ownText, TECH_ERROR_TEXT } from "@/lib/domain/my-tech-view";
 import { PROJECT_ERROR_TEXT, PROJECT_NOTICE_TEXT } from "@/lib/domain/project-edit";
-import { searchCatalog, type CatalogHit } from "@/lib/server/my-tech";
 import type { CurrentUser } from "@/lib/server/current-user";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { FilterSelect } from "../alerts/filter-select";
 import "../views/views.css";
 import { registerProject } from "../projects/actions";
-import { AddTech } from "../projects/add-tech";
 import { ArchivedProjects, type ArchivedProject } from "../projects/archived-projects";
 import { ProjectManage } from "../projects/project-manage";
 import { ProjectTechs, type ProjectRow } from "../projects/tech-table";
 
-// 프로젝트 관리 보드의 "레포 관리 · 내 기술" 위젯(P-12i D3, 옛 /projects 목록 화면을 흡수 — /projects는 /dashboard로 보낸다).
-// 레포 등록 · 다시 읽기 · 내 기술 표(숨기기 · 되돌리기) · 이름 · 메모 고치기 · 보관 · 되살리기 · 직접 추가(IA-2 · 3, PRD-F4 · F7)가 이 자리에서 돈다.
+// 프로젝트 관리 보드의 "레포 관리 · 내 기술" 판(P-12i D3, 옛 /projects 목록 화면을 흡수 — /projects는 /dashboard#w-manage로 보낸다).
+// 다시 읽기 · 내 기술 표(숨기기 · 되돌리기) · 이름 · 메모 고치기 · 보관 · 되살리기(IA-2 · 3, PRD-F4)가 이 자리에서 돈다. K1부터 기본 배치에서 빠져 "+ 판"에서만 켜고(K2 레포 상세로 옮김),
+// 레포 등록은 "진행 중 프로젝트" 판, 직접 추가(PRD-F7)는 "직접 추가" 판이 맡는다.
 // 등록 · 숨기기 등의 결과는 주소 ?error= · ?notice=로 오고, 보드 맨 위 ManageNotices가 말한다(아래에 있어도 놓치지 않게).
 export type ManageQuery = { error?: string; notice?: string; audit?: string; grade?: string; project?: string; hidden?: string; q?: string };
 
@@ -33,25 +32,20 @@ export function ManageNotices({ query }: { query: ManageQuery }) {
   return (
     <>
       {errorText && <p className="notice notice-error" role="alert">{errorText}</p>}
-      {noticeText && <p className="notice notice-ok" role="status">{noticeText} <a href="#w-manage">레포 관리로</a></p>}
+      {noticeText && <p className="notice notice-ok" role="status">{noticeText} <a href="#w-manage">레포 관리 판으로</a></p>}
       {query.audit === "0" && <p className="notice notice-error" role="alert">바뀐 것은 저장됐지만 &quot;누가·언제 바꿨는지&quot; 기록을 남기지 못했어요. 팀에 알려 주세요.</p>}
     </>
   );
 }
 
-/** 레포 등록 폼(같은 주소를 다시 넣으면 다시 읽기) */
+/** 레포 등록 한 줄("진행 중 프로젝트" 판 맨 아래, 같은 주소를 다시 넣으면 다시 읽기). 읽는 파일 목록은 칸 설명(title)으로 */
 export function RegisterForm() {
   return (
-    <>
-      <form action={registerProject} className="filters" style={{ alignItems: "end" }} id="repo-register">
-        <label>
-          공개 GitHub 저장소 주소
-          <input name="repoUrl" type="url" required placeholder="https://github.com/owner/repo" size={36} />
-        </label>
-        <button className="btn btn-primary" type="submit">등록하고 읽기</button>
-      </form>
-      <p className="muted">package.json, requirements.txt, .mcp.json, .claude/skills와 Cursor · VS Code · Gemini CLI의 MCP 설정(.cursor/mcp.json · .vscode/mcp.json · .gemini/settings.json)에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.</p>
-    </>
+    <form action={registerProject} className="add-row repo-register" id="repo-register"
+      title="package.json, requirements.txt, .mcp.json, .claude/skills와 Cursor · VS Code · Gemini CLI의 MCP 설정에서 AI 코딩 도구만 읽어요. 이미 등록한 주소를 다시 넣으면 다시 읽어요.">
+      <label>+ 레포 등록 <input name="repoUrl" type="url" required placeholder="https://github.com/owner/repo (공개 저장소)" size={36} /></label>
+      <button className="btn btn-sm btn-primary" type="submit">등록하고 읽기</button>
+    </form>
   );
 }
 
@@ -71,13 +65,8 @@ export async function RepoManageBody({ user, query }: { user: CurrentUser; query
   const archivedRes = await supabase.from("projects").select("id, name, repo_url, archived_at").eq("owner_id", user.id).eq("kind", "repo").not("archived_at", "is", null).order("archived_at", { ascending: false });
   if (archivedRes.error) console.error("보관한 프로젝트 조회 실패", archivedRes.error.message);
   const archived = (archivedRes.data ?? []) as ArchivedProject[];
-  const term = searchTerm(query.q ?? "");
-  let hits: CatalogHit[] | null = null;
-  let searchFailed = false;
-  if (term) hits = await searchCatalog(supabase, query.q ?? "").catch((e) => { console.error("기술 검색 실패", e); searchFailed = true; return null; });
   const filter = { grade: query.grade, showHidden: query.hidden === "1" };
   const back = keepView(query); // 숨기기 · 추가 뒤에 같은 거르기로 돌아오게 폼에 싣는다
-  const carry = keepView({ grade: query.grade, project: query.project, hidden: query.hidden }); // 검색해도 거르기를 지우지 않게
   const shown = projects.filter((p) => !query.project || p.id === query.project);
   // 보관했거나 없는 프로젝트로 걸린 주소(북마크 · 옛 링크)는 빈 목록이 아니라 이유를 말한다
   const staleProject = Boolean(query.project) && !projects.some((p) => p.id === query.project);
@@ -88,9 +77,8 @@ export async function RepoManageBody({ user, query }: { user: CurrentUser; query
         <a href="#techs">내 기술</a>
         <Link href="/projects/runs">실행 기록</Link>
         <Link href="/projects/install">설치 프롬프트 · 가져오기</Link>
-        <a href="#add-title">직접 추가</a>
+        <a href="#w-add">직접 추가</a>
       </nav>
-      <RegisterForm />
       {staleProject && <p className="notice notice-empty" role="status">그 프로젝트는 보관했거나 없어서 보여 줄 수 없어요. <Link href="/dashboard">전체 보기</Link></p>}
       <div id="techs" />
       {loadError ? (
@@ -100,7 +88,6 @@ export async function RepoManageBody({ user, query }: { user: CurrentUser; query
       ) : (
         <>
           <form method="get" action="/dashboard" className="filters" aria-label="내 기술 거르기">
-            {term && <input type="hidden" name="q" value={term} />}
             <FilterSelect label="등급" name="grade" value={query.grade} options={GRADE_OPTIONS} />
             <FilterSelect label="프로젝트" name="project" value={query.project} options={[["", "전체"], ...projects.map((p): [string, string] => [p.id, p.name])]} />
             <label style={{ alignSelf: "end" }}>
@@ -121,11 +108,10 @@ export async function RepoManageBody({ user, query }: { user: CurrentUser; query
         <section className="card" aria-labelledby="p-local">
           <h2 id="p-local">{LOCAL_PROJECT_NAME}</h2>
           <p>저장소 없이 내 컴퓨터에서 쓰는 도구를 넣는 곳이에요. 아직 넣은 기술이 없어요.</p>
-          <p><a href="#add-title">직접 추가</a>하거나 <Link href="/projects/install">설치 프롬프트에서 가져오기</Link>로 넣을 수 있어요.</p>
+          <p><a href="#w-add">직접 추가</a>하거나 <Link href="/projects/install">설치 프롬프트에서 가져오기</Link>로 넣을 수 있어요.</p>
         </section>
       ) : null}
       {!loadError && <ArchivedProjects projects={archived} failed={Boolean(archivedRes.error)} />}
-      {!loadError && <AddTech projects={projects} q={query.q ?? ""} hits={hits} searchFailed={searchFailed} back={back} carry={carry} />}
     </div>
   );
 }

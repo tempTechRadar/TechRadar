@@ -5,7 +5,7 @@ type Param = string | string[] | undefined;
 
 const KINDS: AlertKind[] = ["security", "opportunity", "model_eol"];
 const STATUSES: AlertStatus[] = ["pending", "done"];
-const PERIOD_DAYS: Record<string, number> = { "7d": 7, "30d": 30 };
+const PERIOD_DAYS: Record<string, number> = { "1d": 1, "7d": 7, "30d": 30 } // 1d = 보드 숫자 띠 "오늘"(P-12k);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function parseAlertFilter(params: { kind?: Param; status?: Param; period?: Param; project?: Param }, now: Date): AlertFilter {

@@ -10,5 +10,5 @@ export function FilterSelect({ label, name, value, options }: { label: string; n
   );
 }
 
-export const PERIOD_OPTIONS: [string, string][] = [["", "전체"], ["7d", "최근 7일"], ["30d", "최근 30일"]];
+export const PERIOD_OPTIONS: [string, string][] = [["", "전체"], ["1d", "오늘"], ["7d", "최근 7일"], ["30d", "최근 30일"]];
 export const KIND_OPTIONS: [string, string][] = [["", "전체"], ["security", "보안 경고"], ["opportunity", "적용 기회"], ["model_eol", "모델 종료"]];
