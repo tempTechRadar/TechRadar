@@ -17,5 +17,6 @@ test("종 배지: 첫 그림 · 못 읽음↔숫자 · 종을 펼쳐 바로잡�
   assert.deepEqual(nextBadge(at(3), 2, false), { n: 2, dir: null }, "종 펼침 보정");
   assert.deepEqual(nextBadge(at(1), 0, true), { n: 0, dir: null }, "0이면 배지를 그냥 뺀다");
   assert.deepEqual(nextBadge(at(120), 130, true), { n: 130, dir: null }, "글이 99+로 같음");
+  assert.deepEqual(nextBadge({ n: 130, dir: "up" }, 125, false), { n: 125, dir: null }, "99+끼리면 지난 방향을 이어 받지 않음(다시 '늘었어요' 안 읽음)");
   assert.deepEqual([badgeLabel(0), badgeLabel(null), badgeLabel(7), badgeLabel(100)], [null, null, "7", "99+"]);
 });
