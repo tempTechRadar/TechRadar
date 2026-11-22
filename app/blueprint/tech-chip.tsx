@@ -31,7 +31,7 @@ export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandi
   return (
     <span className={pop ? "tc tc-pop" : "tc"} data-grade={grade} data-picked={picked ? "" : undefined}>
       {/* 고를 수 없는 곳(하단 패널 카드 · 읽기 전용 보기)에서는 단추가 아닌 글자로: 아무 일도 안 하는 단추에 Tab이 멈추지 않게 */}
-      {onPick ? <button type="button" className={drag ? "tc-main" : "tc-main nodrag"} aria-label={label} aria-pressed={picked} title={label} onClick={stop(onPick)}>{body}</button>
+      {onPick ? <button type="button" className={drag ? "tc-main" : "tc-main nodrag"} aria-label={label} aria-pressed={picked} title={label} onClick={(e) => { if (drag && e.shiftKey) return; stop(onPick)(e); }}>{body}</button>
         : <span className="tc-main" role="img" aria-label={label} title={label}>{body}</span>}
       {onRemove ? <button type="button" className="tc-x nodrag" aria-label={`${tech.name} 빼기`} onClick={stop(onRemove)}>✕</button> : null}
     </span>

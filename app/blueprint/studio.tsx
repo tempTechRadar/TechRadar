@@ -78,6 +78,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const listMode = narrow ? !phoneView : listOn, readOnly = narrow && phoneView;
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
+  const [selTechs, setSelTechs] = useState<Set<string>>(new Set()); // 고른 기술 노드(끝 id "기술@단계", H5 여러 개 고르기)
   // shortcut: 끄는 동안의 위치를 이 컴포넌트 상태에 둬서 포인터가 움직일 때마다 패널까지 다시 그린다. 단계가 수십 개를 넘어 끌기가 버벅이면 캔버스 자식으로 내리거나 패널을 memo한다
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
   // 끄는 기술 노드(H2): 단계 기준 자리. 놓을 때 어느 단계 · 몇 번째인지 본다(ref = 같은 변경 묶음 안에서 바로 읽기)
@@ -91,6 +92,20 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [ghost, setGhost] = useState<Ghost | null>(null); // 옅은 새 단계 블록(S3: 선을 빈 곳에 놓음 · 위아래 +)
   const [hoverEdge, setHoverEdge] = useState<string | null>(null), edgeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bounce = useBounce();
+  // H5 단축키(사용자 결정: 이 둘만): Ctrl/⌘+Z 되돌리기, Ctrl/⌘+Shift+Z 다시. 입력칸 · 글상자 · 고르기 칸 · 대화상자 안은 브라우저 기본 그대로
+  const keys = useRef({ undo, redo, stop: bounce.stop });
+  keys.current = { undo, redo, stop: bounce.stop };
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== "z") return;
+      const t = e.target instanceof HTMLElement ? e.target : null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.closest("dialog, [role=dialog]"))) return;
+      e.preventDefault(); keys.current.stop();
+      if (e.shiftKey) keys.current.redo(); else keys.current.undo();
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
   // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드를 고르면 열림. 열면 초점이 서랍으로, 닫으면 연 자리로(P-12j H1 고정 패널은 11-22 사용자 요청으로 되돌림)
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
   const [checkAsk, setCheckAsk] = useState(0); // 위 막대 "검증"을 누른 횟수: 하단 패널을 검증 탭으로
@@ -255,10 +270,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function removeFromCard(id: string) {
     const s = stageOf(id);
     if (!s) return;
+    if (sel.has(id) && sel.size + selTechs.size > 1) return onDelete({ nodes: [...sel, ...selTechs].map((x) => ({ id: x })), edges: [] }); // 여럿 고른 채 누름 = 함께
     const next = removeStage(g, id);
     canvasBox.current?.focus(); // 누른 단추가 카드와 함께 사라지므로
     if (picked?.stageId === id) unpick();
     setSel((x) => { const n = new Set(x); n.delete(id); return n; }); // 여럿 고른 채 지워도 사라진 단계가 남지 않게
+    setSelTechs((x) => new Set([...x].filter((e) => splitEnd(e).stageId !== id))); // 그 단계 안 기술도
     setSelEdges((x) => new Set([...x].filter((e) => !e.split(">").includes(id))));
     apply(next);
     say(removedStageSaid(s.name), () => { if (now.current === next) { bounce.stop(); undo(); say(`"${s.name}" 단계를 살렸어요.`); } else say("그 뒤에 판이 바뀌어 여기서는 되돌릴 수 없어요. 위 \"되돌리기\"를 써 주세요."); });
@@ -310,7 +327,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const popEnd = prevEnds && newEnds.length === 1 && endsNow.length === prevEnds.size + 1 ? newEnds[0] : null;
   for (const s of g.stages) s.techs.forEach((t, i) => {
     const id = linkEnd(t.id, s.id), moving = techDrag?.id === id;
-    nodes.push({ id, type: "tech", parentId: s.id, position: moving ? techDrag.pos : techSlot(i), draggable: !readOnly, selectable: false, connectable: !readOnly,
+    nodes.push({ id, type: "tech", parentId: s.id, position: moving ? techDrag.pos : techSlot(i), draggable: !readOnly, selectable: !readOnly, selected: selTechs.has(id), connectable: !readOnly,
       zIndex: moving ? 10 : undefined, style: { width: BOX.tech.w, height: BOX.tech.h },
       data: { tech: t, info: info.get(t.id), fresh: id === popEnd, readOnly, busy: busyId === t.id,
         picked: picked?.kind === "tech" && picked.stageId === s.id && picked.techId === t.id,
@@ -367,9 +384,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
 
   function onNodesChange(all: NodeChange<StageNodeType | TechNodeType>[]) {
     const changes: NodeChange<StageNodeType>[] = [];
+    // 여러 개를 함께 끌면 단계만 옮긴다(기술은 상자 안 자리 규칙이라 각자, H5): 한 묶음에 위치 변경이 둘 이상이면 기술 끌기는 버림
+    const group = all.filter((c) => c.type === "position").length > 1;
+    let nextTechSel: Set<string> | null = null;
     for (const c of all) {
       if (!("id" in c) || !isTechNode(c.id)) { changes.push(c as NodeChange<StageNodeType>); continue; }
-      if (c.type !== "position") continue; // 기술 노드는 끌기만 본다(고르기는 칩 단추, 크기는 고정)
+      if (c.type === "select") { nextTechSel ??= new Set(selTechs); if (c.selected) nextTechSel.add(c.id); else nextTechSel.delete(c.id); continue; }
+      if (c.type !== "position" || group) continue; // 크기는 고정
       if (c.position) { techDragRef.current = { id: c.id, pos: c.position }; setTechDrag(techDragRef.current); }
       if (c.dragging === false) dropTechNode(c.id);
     }
@@ -388,11 +409,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     // 마우스로 끌 때만 격자 · 보조선에 붙인다(화살표 키 5px 이동이 보조선에 다시 붙어 제자리로 돌아오지 않게)
     const placed = dragging ? assist.during(g, raw) : new Map([...raw].map(([id, p]) => [id, { x: Math.round(p.x), y: Math.round(p.y) }]));
     if (raw.size) { bounce.stop(); moved = new Map([...(moved ?? []), ...placed]); }
-    if (nextSel) {
-      setSel(nextSel);
-      const one = nextSel.size === 1 ? [...nextSel][0] : null;
-      setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : null));
-      if (one && !readOnly) openDrawer("stay"); // U2(11-22 사용자): 카드를 고르면 서랍이 열림(초점은 캔버스에 남음)
+    if (nextSel || nextTechSel) {
+      const ss = nextSel ?? sel, ts = nextTechSel ?? selTechs;
+      if (nextSel) setSel(ss);
+      if (nextTechSel) setSelTechs(ts);
+      const total = ss.size + ts.size, tech = ts.size === 1 && !ss.size ? splitEnd([...ts][0]) : null, one = ss.size === 1 && !ts.size ? [...ss][0] : null;
+      setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : tech ? { kind: "tech", stageId: tech.stageId, techId: tech.techId } : null));
+      if (total && !readOnly) openDrawer("stay"); // U2(11-22 사용자): 카드를 고르면 서랍이 열림(초점은 캔버스에 남음). 여럿이면 "n개 골랐어요"
     }
     if (ended) { const r = assist.drop(g, moved); apply(r.next, r.linked ? "가까이 둔 단계와 이었어요." : undefined); setDrag(null); } else if (moved !== drag) setDrag(moved);
   }
@@ -430,28 +453,35 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     const p = connectProblem(g, from, to);
     if (p) say(CONNECT_KO[p]);
   };
+  /** 지우기(Delete · 카드 아래 삭제 · 서랍 "n개 지우기"): 선 · 기술 · 단계를 apply 한 번에(되돌리기 한 칸). 노드를 지웠으면 토스트에도 되돌리기 */
   function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: { id: string; source: string; target: string }[] }) {
     let next = g;
     for (const e of es) next = e.id.startsWith("L:") ? removeLink(next, e.source, e.target) : disconnect(next, e.source, e.target);
-    for (const n of ns.filter((x) => !isTechNode(x.id))) next = removeStage(next, n.id);
-    apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : es.length === 1 ? linkSaid(g, es[0].source, es[0].target, true) : `연결 ${es.length}개를 끊었어요.`);
-    setSel(new Set()); setSelEdges(new Set()); setPicked(null);
+    const tns = ns.filter((x) => isTechNode(x.id)), sns = ns.filter((x) => !isTechNode(x.id));
+    for (const n of tns) { const t = splitEnd(n.id); next = removeTech(next, t.stageId, t.techId); }
+    for (const n of sns) next = removeStage(next, n.id);
+    setSel(new Set()); setSelEdges(new Set()); setSelTechs(new Set()); setPicked(null);
+    if (!ns.length) return apply(next, es.length === 1 ? linkSaid(g, es[0].source, es[0].target, true) : `연결 ${es.length}개를 끊었어요.`);
+    canvasBox.current?.focus(); // 누른 단추 · 고른 노드가 사라지므로
+    const msg = `${[sns.length ? `단계 ${sns.length}개` : "", tns.length ? `기술 ${tns.length}개` : ""].filter(Boolean).join(" · ")}를 지웠어요.`;
+    apply(next, msg);
+    say(msg, () => { if (now.current === next) { bounce.stop(); undo(); say("지운 것을 살렸어요."); } else say("그 뒤에 판이 바뀌어 여기서는 되돌릴 수 없어요. 위 \"되돌리기\"를 써 주세요."); });
   }
   /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정, 하단 패널 불러오기 탭에서 엶). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
   function makeFromAnswers(cols: string[][]) {
     setAsking(false); unpick(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
-  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
+  const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setSelTechs(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
     // 카드에 초점이 있을 때 F2 · Enter = 카드 위 이름 바꾸기(React Flow는 Enter로 고르기도 한다)
     const node = e.target instanceof HTMLElement && e.target.classList.contains("react-flow__node") ? e.target.dataset.id : undefined;
     if (!readOnly && node && (e.key === "F2" || e.key === "Enter")) { e.preventDefault(); setEditing(node); return; }
     if (readOnly || (e.key !== "Delete" && e.key !== "Backspace") || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (!sel.size && !selEdges.size) return;
+    if (!sel.size && !selEdges.size && !selTechs.size) return;
     e.preventDefault();
-    onDelete({ nodes: [...sel].map((id) => ({ id })), edges: edges.filter((x) => selEdges.has(x.id)) });
+    onDelete({ nodes: [...sel, ...selTechs].map((id) => ({ id })), edges: edges.filter((x) => selEdges.has(x.id)) });
   }
   // 검증(P-12j H4): 검증 탭과 확정 창 "고칠 것"이 같은 함수. 관문 밖 기술은 막고(DB도 거절, 손님은 관문이 없어 안 막음), 위험 · 수집 오류 · 빈 단계는 알리기만
   const issues = validateGraph(g, info, { guest });
@@ -476,17 +506,19 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
+  // 여럿 고른 것 중 지금 판에 있는 것만(되돌리기 · 다른 곳에서 지운 뒤 남은 id로 수가 부풀지 않게)
+  const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, checkFor };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, checkFor, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
       <div className="studio-bar">
         <label className="sr-only" htmlFor="bp-name">청사진 이름</label>
         <input id="bp-name" className="bp-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        <button type="button" className="btn" {...gate(canUndo ? null : "되돌릴 것이 없어요.", () => { bounce.stop(); undo(); })}>되돌리기</button>
-        <button type="button" className="btn" {...gate(canRedo ? null : "다시 할 것이 없어요.", () => { bounce.stop(); redo(); })}>다시</button>
+        <button type="button" className="btn" {...gate(canUndo ? null : "되돌릴 것이 없어요.", () => { bounce.stop(); undo(); })} title="되돌리기 (Ctrl/⌘+Z)">되돌리기</button>
+        <button type="button" className="btn" {...gate(canRedo ? null : "다시 할 것이 없어요.", () => { bounce.stop(); redo(); })} title="다시 (Ctrl/⌘+Shift+Z)">다시</button>
         {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
         <span className="studio-addwrap">
           <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} {...gate(readOnly ? READ_ONLY : null, () => setAdding(!adding))}>＋ 단계</button>
@@ -521,7 +553,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
-              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />

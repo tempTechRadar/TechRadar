@@ -26,6 +26,7 @@ export type PanelProps = {
   guestPicks?: { ids: string[]; techs: PoolTech[] | null | undefined; remove: (techId: string) => void };
   /** 선 사이에 단계 넣기(U2, 캔버스 선 위 +의 키보드 짝): 옅은 블록을 연다. 캔버스가 없으면(목록 모드) 없음 */ onInsert?: (from: string, to: string) => void;
   /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[];
+  /** 캔버스에서 여럿 고름(H5): 서랍은 "n개 골랐어요"와 함께 지우기만 */ multi?: { count: number; remove: () => void };
   /** 검증 항목을 누른 기술(n = 누른 횟수): 서랍 기술 탭을 검증으로 연다(P-12j H4) */ checkFor?: { techId: string; n: number } | null;
 };
 

@@ -24,7 +24,10 @@ export function Inspector(p: PanelProps) {
   const stage = p.picked ? p.graph.stages.find((s) => s.id === p.picked!.stageId) : undefined;
   return (
     <aside className="insp" aria-label="속성" tabIndex={-1}>{/* 지운 뒤 초점이 문서 맨 위로 떨어지지 않게 여기로 */}
-      {!p.picked || !stage ? <p className="muted">캔버스나 목록에서 단계 · 기술을 고르면 여기에 자세히 보여요.</p>
+      {p.multi ? <><header className="insp-head"><h2 tabIndex={-1}>{p.multi.count}개 골랐어요</h2></header>
+        <p className="muted">여럿 고른 것은 함께 옮기거나(단계만) 함께 지울 수 있어요. 하나를 고르면 자세히 보여요.</p>
+        <p className="insp-row insp-actions"><button type="button" className="btn btn-sm" onClick={p.multi.remove}>{p.multi.count}개 지우기</button></p></>
+        : !p.picked || !stage ? <p className="muted">캔버스나 목록에서 단계 · 기술을 고르면 여기에 자세히 보여요.</p>
         : p.picked.kind === "tech" ? <TechInfo {...p} stageId={stage.id} techId={p.picked.techId} />
         : <StageInfo key={`${stage.id}:${stage.name}`} {...p} stageId={stage.id} />}
     </aside>
