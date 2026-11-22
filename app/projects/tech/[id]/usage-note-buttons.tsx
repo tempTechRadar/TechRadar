@@ -21,11 +21,12 @@ export function UsageNoteButtons({ noteId, pathId, count, mine, voted, reported 
         <span> 신고했어요</span>
       ) : (
         <details style={{ display: "inline-block", marginLeft: 8 }}>
-          <summary>신고</summary>
+          {/* 펼치기(summary)는 기본 모양이 20px대라 누르는 칸 최소 크기 44px를 직접 단다(I-a11y-b-screens) */}
+          <summary style={{ minHeight: 44, display: "inline-flex", alignItems: "center", cursor: "pointer", padding: "0 8px" }}>신고</summary>
           <form action={repAction}>
             <input type="hidden" name="noteId" value={noteId} />
             <input type="hidden" name="pathId" value={pathId} />
-            <label>사유(200자까지)<input name="reason" required maxLength={400} autoComplete="off" /></label>
+            <label>사유(200자까지)<input name="reason" required maxLength={400} autoComplete="off" style={{ minHeight: 44 }} /></label>
             <button type="submit" className="btn" disabled={repPending}>{repPending ? "보내는 중…" : "신고 보내기"}</button>
           </form>
         </details>

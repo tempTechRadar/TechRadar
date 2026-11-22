@@ -37,3 +37,14 @@ export function pickRecommendations(input: { interests: string[]; categories: Ca
   rows.sort((a, b) => (b.weekly ?? -1) - (a.weekly ?? -1) || a.rec.name.localeCompare(b.rec.name));
   return rows.slice(0, limit).map((r) => r.rec);
 }
+
+// 내 표시(tech_marks, ADR 0028). 추천은 "관심"만 남기고 지운다: 적용 후보·보류는 판단 대기 알림을 판단하므로 기술 상세에서만 정한다.
+export type MarkKind = "interest" | "candidate" | "hold";
+export type RecommendedItem = Recommendation & { mark: MarkKind | null };
+export type MarkUi = { kind: "mark" } | { kind: "interested" } | { kind: "decided"; label: string };
+
+export function markUi(mark: MarkKind | null): MarkUi {
+  if (mark === null) return { kind: "mark" };
+  if (mark === "interest") return { kind: "interested" };
+  return { kind: "decided", label: mark === "candidate" ? "적용 후보" : "보류" };
+}
