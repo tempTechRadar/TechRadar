@@ -23,7 +23,7 @@ export function TechChip({ tech, info, picked = false, onPick, onRemove, onCandi
   if (onCandidate) return (
     <span className="tc tc-out">
       <span className="tc-name" title={label}>{tech.name}</span>
-      <button type="button" className="tc-pick nodrag" disabled={busy} aria-label={`${tech.name} 적용 후보로 고르기`} title="판단 대기 알림이 있으면 그 알림도 함께 판단돼요" onClick={stop(onCandidate)}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button>
+      <button type="button" className="tc-pick nodrag" disabled={busy} /* 보내는 중: 같은 판단을 두 번 보내지 않게(불변 3) */ aria-label={`${tech.name} 적용 후보로 고르기`} title="판단 대기 알림이 있으면 그 알림도 함께 판단돼요" onClick={stop(onCandidate)}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button>
       {onRemove ? <button type="button" className="tc-x nodrag" aria-label={`${tech.name} 빼기`} onClick={stop(onRemove)}>✕</button> : null}
     </span>
   );

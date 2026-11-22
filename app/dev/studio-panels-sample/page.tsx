@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { SAMPLE_BLUEPRINT, SAMPLE_TAGS } from "@/lib/dev/preview-data";
 import { PanelsSample } from "./panels-sample";
 import "../../blueprint/studio.css"; // 기술 칩(tech-chip) 모양
+import "../../blueprint/blueprint.css"; // 작은 단추 · 글자 링크 · 눌림 한 벌(P-12h S4)
 
 export default function StudioPanelsSamplePage() {
   if (process.env.NODE_ENV === "production") notFound();

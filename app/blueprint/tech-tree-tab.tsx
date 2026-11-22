@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { putTech } from "@/lib/blueprint/graph";
 import { BLUEPRINT_GATE, stageFields } from "@/lib/blueprint/knowledge";
-import { filterPool, poolTags, putProblem } from "@/lib/blueprint/panel-view";
+import { filterPool, poolTags, putProblem, putSaid } from "@/lib/blueprint/panel-view";
 import type { TechUsage } from "@/lib/blueprint/stored";
 import { buildTechTree, DIM_KO, judgeTechs, pathTo, secondDims, type Folder, type Judged, type TreeDim } from "@/lib/blueprint/tech-tree";
 import { GRADE_KO } from "@/lib/map/build-map";
@@ -68,7 +68,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
     if (!stage) return;
     const why = putProblem(stage, t);
     if (why) { say(why); return; }
-    apply(putTech(graph, stage.id, { id: t.id, name: t.name }), `${stage.name}에 ${t.name}을(를) 넣었어요.`);
+    apply(putTech(graph, stage.id, { id: t.id, name: t.name }), putSaid(stage.name, t.name));
   };
   const search = async () => {
     const n = ++ask.current;
@@ -80,7 +80,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
   return (
     <>
       {add ? <p className={`notice ${target && target.grade !== "danger" ? "" : "notice-error"}`} role="status">
-        {!target ? "적용 후보로 고른 것만 넣을 수 있어요. 지도나 알림에서 적용 후보로 고른 뒤 다시 와 주세요."
+        {!target ? `${BLUEPRINT_GATE} 지도나 알림에서 적용 후보로 고른 뒤 다시 와 주세요.`
           : target.grade === "danger" ? <><b>{target.name}</b>은(는) 위험 등급이라 청사진에 넣지 않아요.</>
           : <><b>{target.name}</b>: 넣을 단계를 캔버스에서 고르거나, 이 카드를 단계로 끌어 놓으세요.</>}
       </p> : null}
@@ -93,7 +93,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
         </>}
         <input type="search" value={term} onChange={(e) => { setTerm(e.target.value); setFound(undefined); ask.current++; setBusy(false); }} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
         <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
-        <button type="submit" className="btn dock-sm" aria-disabled={busy || term.trim().length < 2}>{busy ? "찾는 중…" : "카탈로그에서 찾기"}</button>
+        <button type="submit" className="btn btn-sm" aria-disabled={busy || term.trim().length < 2}>{busy ? "찾는 중…" : "카탈로그에서 찾기"}</button>
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보이고 \"넣기\"가 생겨요. "}{BLUEPRINT_GATE}</p>
       <p className="sr-only" aria-live="polite">{busy ? "찾는 중이에요" : found === null ? "찾은 결과를 불러오지 못했어요" : found ? `카탈로그에서 ${found.length}개 찾았어요` : ""}</p>
@@ -173,7 +173,7 @@ function Tree({ tree, stage, placedIn, target, usage, marking, follow, onPut, on
           const has = r.f.children.length > 0, here = r.f.key === current.key;
           return (
             <li key={r.f.key} ref={(el) => { if (el) refs.current.set(r.f.key, el); else refs.current.delete(r.f.key); }} role="treeitem" aria-level={r.depth} aria-posinset={r.pos} aria-setsize={r.size}
-              aria-selected={here} aria-expanded={has ? open.has(r.f.key) : undefined} tabIndex={here ? 0 : -1} className="tt-item" style={{ paddingLeft: 8 + (r.depth - 1) * 16 }}
+              aria-selected={here} aria-expanded={has ? open.has(r.f.key) : undefined} tabIndex={here ? 0 : -1} className="tt-item" style={{ paddingLeft: `calc(var(--sp-2) + ${r.depth - 1} * var(--sp-4))` }}
               onClick={() => { setSel(r.f.key); if (has) toggle(r.f.key, !open.has(r.f.key)); }} onKeyDown={(e) => onKey(e, i)}>
               <span aria-hidden="true" className="tt-caret">{has ? (open.has(r.f.key) ? "▾" : "▸") : ""}</span>{r.f.name} <span className="muted">{r.f.count}</span>
             </li>
@@ -201,9 +201,9 @@ function Card({ t, use, stage, placed, added, busy, onPut, onCandidate }: { t: I
       {t.note ? <span className="muted">{t.judgment === "hold" ? `보류 이유: ${t.note}` : t.note}</span> : null}
       {t.tags.length ? <span className="dock-tags">{t.tags.map((x) => <span key={x} className="tag">{x}</span>)}</span> : null}
       {risky ? <span className="dock-risky">✕ 위험 등급이라 넣지 않아요</span>
-        : !t.droppable ? (onCandidate ? <button type="button" className="btn dock-sm" disabled={busy} aria-label={busy ? undefined : `${t.name} 적용 후보로 고르기`} onClick={onCandidate}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button> : null)
+        : !t.droppable ? (onCandidate ? <button type="button" className="btn btn-sm" disabled={busy} /* 보내는 중: 두 번 보내지 않게 */ aria-label={busy ? undefined : `${t.name} 적용 후보로 고르기`} onClick={onCandidate}>{busy ? "고르는 중…" : "적용 후보로 고르기"}</button> : null)
         : placed ? <span className="muted">✓ {stage}에 있어요</span>
-        : stage ? <button type="button" className="btn dock-sm" onClick={onPut}>{stage}에 넣기</button> : null}
+        : stage ? <button type="button" className="btn btn-sm" onClick={onPut}>{stage}에 넣기</button> : null}
     </li>
   );
 }

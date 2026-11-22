@@ -38,6 +38,14 @@ export function neighbors(g: Graph, id: string): { before: Stage[]; after: Stage
   return { before: pick(g.edges.filter((e) => e.to === id).map((e) => e.from)), after: pick(g.edges.filter((e) => e.from === id).map((e) => e.to)) };
 }
 
+/** 같은 일은 같은 말(P-12h S4): 캔버스 · 속성 패널 · 목록 모드 · 하단 패널이 넣기 · 빼기 · 잇기 · 끊기에 같은 토스트 */
+export const putSaid = (stage: string, tech: string) => `${stage}에 ${tech}을(를) 넣었어요.`;
+export const removeSaid = (stage: string, tech: string) => `${stage}에서 ${tech}을(를) 뺐어요.`;
+export function linkSaid(g: Graph, from: string, to: string, cut: boolean): string {
+  const name = (id: string) => g.stages.find((s) => s.id === id)?.name ?? "없는 단계";
+  return `${name(from)} → ${name(to)} 연결을 ${cut ? "끊었어요" : "이었어요"}.`;
+}
+
 export const CONNECT_KO: Record<ConnectProblem, string> = {
   self: "자기 자신과는 이을 수 없어요.", missing: "없는 단계예요. 화면을 새로 고쳐 주세요.", exists: "이미 이어져 있어요.",
   cycle: "이으면 순서가 돌고 돌아서(고리) 이을 수 없어요.", limit: `연결은 ${LIMITS.edges}개까지예요.`,

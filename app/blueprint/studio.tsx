@@ -11,8 +11,8 @@ import {
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
-import { recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, neighbors, parallelProblem, putProblem } from "@/lib/blueprint/panel-view";
+import { BLUEPRINT_GATE, recommendAt } from "@/lib/blueprint/knowledge";
+import { addStageAfter, addStageLinked, besideSpot, CONNECT_KO, linkSaid, neighbors, parallelProblem, putProblem, putSaid, removeSaid } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -40,6 +40,8 @@ const posOf = (g: Graph) => new Map(g.stages.map((s) => [s.id, { x: s.x, y: s.y 
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** 확정 선 긋기(B2) 한 번의 길이: studio.css se-draw(--dur × 2)보다 조금 길게 두고 클래스를 뗀다 */
 const DRAW_MS = 600;
+const READ_ONLY = "그림으로 보기에서는 고칠 수 없어요. 그림으로 보기를 끄고 목록으로 고쳐 주세요.";
+const NO_CANVAS = "목록 모드에는 캔버스가 없어요. 목록 모드를 끄면 쓸 수 있어요.";
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
 type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean };
@@ -134,6 +136,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (message) say(message); else clear();
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
+  /** 막힌 단추 한 벌(P-12h S4, page.css): aria-disabled + 누르면 이유 글. disabled와 달리 Tab으로 닿아 이유를 들을 수 있다 */
+  const gate = (why: string | null, run: () => void) => ({ "aria-disabled": why ? true : undefined, title: why ?? undefined, onClick: () => (why ? say(why) : run()) });
 
   /** 손님이 저장 · 판단을 누르면: 판은 이 브라우저(손님 초안)에 그대로 두고 로그인으로. 로그인한 뒤 청사진에서 가져올지 묻는다 */
   const toLogin = (what: string) => setLoginAsk(what);
@@ -148,10 +152,10 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }
   function dropTech(stageId: string, techId: string) {
     const t = info.get(techId), s = stageOf(stageId);
-    if (!t || !s) return say("서랍에 있는 기술만 넣을 수 있어요(내 기술 · 적용 후보 · 이력).");
+    if (!t || !s) return say(BLUEPRINT_GATE);
     const why = putProblem(s, t);
     if (why) return say(why);
-    apply(putTech(g, stageId, { id: t.id, name: t.name }), `${s.name}에 ${t.name} 붙였어요.`);
+    apply(putTech(g, stageId, { id: t.id, name: t.name }), putSaid(s.name, t.name));
   }
   const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
   /** ＋ 단계 칸 닫기: 초점이 사라진 입력에서 body로 떨어지지 않게 단추로 돌려놓는다 */
@@ -160,7 +164,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   function addNamed(nm: string) {
     const r = addStageAfter(g, nm, base);
     if ("problem" in r) return say(r.problem);
-    apply(r.graph, base && r.linked ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 이어 붙였어요.` : base ? `"${r.stage.name}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).` : `"${r.stage.name}" 단계를 더했어요.`);
+    apply(r.graph, base && r.linked ? `"${base.name}" 다음에 "${r.stage.name}" 단계를 더하고 이었어요.` : base ? `"${r.stage.name}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).` : `"${r.stage.name}" 단계를 더했어요.`);
     setNewName(""); closeAdd(); setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
   /** 옅은 블록에 이름을 적고 Enter: 단계 + 선을 한 번의 apply로(되돌리기 한 칸). 더한 단계를 고른 채로 */
@@ -170,7 +174,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if ("problem" in r) return say(r.problem);
     const n = r.stage.name, want = gh.before.length + gh.after.length;
     apply(r.graph, want && !r.linked ? `"${n}" 단계를 더했지만 선은 잇지 못했어요(연결은 ${LIMITS.edges}개까지).`
-      : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 이어 붙였어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
+      : gh.kind === "after" ? `"${gh.of}" 다음에 "${n}" 단계를 더하고 이었어요.` : gh.kind === "before" ? `"${gh.of}" 앞에 "${n}" 단계를 더해 이었어요.` : `"${gh.of}"와(과) 같은 순서에 "${n}" 단계를 더했어요.`);
     setPicked({ kind: "stage", stageId: r.stage.id }); setSel(new Set([r.stage.id]));
   }
   /** 옅은 블록 열기: 그 자리 순서에 맞는 추천 이름(gap = 그 번호 열 앞), 지금 초점 자리(끝나면 돌아감) */
@@ -199,7 +203,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
 
   const nodes: StageNodeType[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid)),
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: setPicked, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
       onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost },
   }));
   // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다
@@ -211,7 +215,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
         // 속성 패널 "끊기"와 같게: 고른 단계는 그대로, 사라지는 단추 대신 캔버스로 초점
         onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
-          apply(disconnect(g, e.from, e.to), `${stageOf(e.from)?.name} → ${stageOf(e.to)?.name} 연결을 끊었어요.`); } } };
+          apply(disconnect(g, e.from, e.to), linkSaid(g, e.from, e.to, true)); } } };
   });
   const near = assist.near;
   if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
@@ -246,7 +250,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     for (const c of changes) if (c.type === "select") { next ??= new Set(selEdges); if (c.selected) next.add(c.id); else next.delete(c.id); }
     if (next) setSelEdges(next);
   }
-  const onConnect = (c: Connection) => { const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target)); };
+  const onConnect = (c: Connection) => { const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target), linkSaid(g, c.source, c.target, false)); };
   /** 빈 곳에 놓았으면(S3) 그 자리에 옅은 새 단계: 오른쪽 점에서 끌면 다음 단계, 왼쪽 점에서 끌면 앞 단계.
    *  못 잇는 곳에 놓았으면(isValidConnection이 막아 onConnect가 안 불림) 이유를 알린다. 들어오는 점에서 끌었으면 방향을 뒤집어 본다 */
   const onConnectEnd = (ev: MouseEvent | TouchEvent, st: FinalConnectionState) => {
@@ -268,7 +272,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     let next = g;
     for (const e of es) next = disconnect(next, e.source, e.target);
     for (const n of ns) next = removeStage(next, n.id);
-    apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : "선을 지웠어요.");
+    apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : es.length === 1 ? linkSaid(g, es[0].source, es[0].target, true) : `연결 ${es.length}개를 끊었어요.`);
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
   /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정, 하단 패널 불러오기 탭에서 엶). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
@@ -307,25 +311,25 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <div className="studio-bar">
         <label className="sr-only" htmlFor="bp-name">청사진 이름</label>
         <input id="bp-name" className="bp-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        <button type="button" className="btn" disabled={!canUndo} onClick={() => { bounce.stop(); undo(); }}>되돌리기</button>
-        <button type="button" className="btn" disabled={!canRedo} onClick={() => { bounce.stop(); redo(); }}>다시</button>
+        <button type="button" className="btn" {...gate(canUndo ? null : "되돌릴 것이 없어요.", () => { bounce.stop(); undo(); })}>되돌리기</button>
+        <button type="button" className="btn" {...gate(canRedo ? null : "다시 할 것이 없어요.", () => { bounce.stop(); redo(); })}>다시</button>
         {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
         <span className="studio-addwrap">
-          <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} disabled={readOnly} onClick={() => setAdding(!adding)}>＋ 단계</button>
+          <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} {...gate(readOnly ? READ_ONLY : null, () => setAdding(!adding))}>＋ 단계</button>
           {adding && !readOnly ? (
-            <form className="studio-addpop" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); }}
+            <form className="studio-addpop" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); else say("단계 이름을 적어 주세요."); }}
               onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeAdd(); } }}
               onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null) && e.relatedTarget !== addBtn.current) setAdding(false); }}>
               <label>{base ? `"${base.name}" 다음 단계 이름` : "새 단계 이름"}
                 <input autoFocus value={newName} maxLength={STAGE_NAME_MAX} list="studio-hints" placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} />
               </label>
               <datalist id="studio-hints">{hints.map((h) => <option key={h} value={h} />)}</datalist>
-              <button type="submit" className="btn btn-primary" disabled={!newName.trim()}>더하기</button>
+              <button type="submit" className="btn btn-primary" aria-disabled={newName.trim() ? undefined : true}>더하기</button>
             </form>
           ) : null}
         </span>
-        <button type="button" className="btn" onClick={arrange}>자동 정렬</button>
-        <button type="button" className="btn" disabled={listMode} onClick={() => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 })}>보기 초기화</button>
+        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
+        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ padding: 0.2, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : <button type="button" className="btn" aria-pressed={listOn} onClick={() => setListOn(!listOn)}>목록 모드(키보드 · 화면 읽기)</button>}
         <span className="studio-grow" />
@@ -349,7 +353,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="#ffffff" nodeColor="#8c8c8c" maskColor="rgba(0, 0, 0, 0.06)" />}
+              {narrow ? null : <MiniMap pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
             </ReactFlow>
           </div>
         )}

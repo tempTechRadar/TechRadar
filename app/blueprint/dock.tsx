@@ -76,7 +76,7 @@ function Resizer({ h, max, onH }: { h: number; max: number; onH: (v: number) => 
 function LoadTab(p: PanelProps & { usage: Map<string, TechUsage> }) {
   return (
     <>
-      <p className="dock-row"><button type="button" className="btn dock-sm" onClick={p.onAsk}>질문으로 틀 만들기</button><span className="muted">몇 가지 물음에 답하면 단계 틀을 만들어 줘요.</span></p>
+      <p className="dock-row"><button type="button" className="btn btn-sm" onClick={p.onAsk}>질문으로 틀 만들기</button><span className="muted">몇 가지 물음에 답하면 단계 틀을 만들어 줘요.</span></p>
       {p.guest ? <p className="notice" role="status">로그인하면 템플릿을 저장 · 공개하고, 확정한 청사진을 불러올 수 있어요. <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> · 지금 판은 이 브라우저에 그대로 있어요.</p> : <>
         <h3 className="dock-h">템플릿</h3>
         <TemplateTab {...p} />
@@ -104,7 +104,7 @@ function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<str
           <li key={h.id} className="dock-tech">
             <span><b>{h.name}</b><span className="muted"> · {h.projectName ?? "프로젝트 없음"} · {when.format(new Date(h.createdAt))}</span></span>
             <span className="muted">{h.board.map((c) => c.map((s) => s.name).join(" + ")).join(" → ")}</span>
-            <button type="button" className="btn dock-sm" onClick={() => load(h)}>불러오기</button>
+            <button type="button" className="btn btn-sm" onClick={() => load(h)}>불러오기</button>
           </li>
         ))}</ul>
       </section>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, type Stage } from "@/lib/blueprint/graph";
-import { nameProblem, neighbors } from "@/lib/blueprint/panel-view";
+import { linkSaid, nameProblem, neighbors, removeSaid } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import type { PoolTech } from "@/lib/server/blueprints";
 import { SideNotes } from "../tech-map/side-notes";
@@ -50,20 +50,20 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
       <header className="insp-head"><p className="muted">단계</p><h2 tabIndex={-1}>{s.name}</h2></header>
       <form className="insp-row" onSubmit={(e) => { e.preventDefault(); rename(new FormData(e.currentTarget)); }}>
         <label>이름 <input name="name" defaultValue={s.name} maxLength={STAGE_NAME_MAX} required /></label>
-        <button type="submit" className="btn insp-sm">바꾸기</button>
+        <button type="submit" className="btn btn-sm">이름 바꾸기</button>
       </form>
       <Card title="순서">
-        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), `${o.name} → ${s.name} 연결을 끊었어요.`); focusPanel(); }} />
-        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), `${s.name} → ${o.name} 연결을 끊었어요.`); focusPanel(); }} />
+        <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} />
+        <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} />
         <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
       </Card>
       <Card title={`붙은 기술 ${s.techs.length}`}>
         {s.techs.length ? <StageChips className="insp-chips" techs={s.techs} pool={pool} marking={marking} pickedTech={null}
-          onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), `${s.name}에서 ${t.name}을(를) 뺐어요.`); focusPanel(); }}
+          onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), removeSaid(s.name, t.name)); focusPanel(); }}
           onCandidate={(t) => { onCandidate(t.id, t.name); focusPanel(); }} /> : <p className="muted">아직 없어요. 하단 패널 기술 탭에서 넣어요.</p>}
       </Card>
       <p className="insp-row insp-actions">
-        <button type="button" className="btn insp-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
+        <button type="button" className="btn btn-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
       </p>
     </>
   );
@@ -74,7 +74,7 @@ function Links({ label, list, onCut }: { label: string; list: Stage[]; onCut: (o
   if (!list.length) return <p>{label}: 없음</p>;
   return (
     <div>{label}:
-      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn insp-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button></li>)}</ul>
+      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button></li>)}</ul>
     </div>
   );
 }
@@ -88,7 +88,7 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
   return (
     <>
       <header className="insp-head">
-        <p className="muted"><button type="button" className="insp-link" onClick={() => onPick({ kind: "stage", stageId: s.id })}>{s.name}</button> 단계의 기술</p>
+        <p className="muted"><button type="button" className="bp-link" onClick={() => onPick({ kind: "stage", stageId: s.id })}>{s.name}</button> 단계의 기술</p>
         <h2 tabIndex={-1}>{name}</h2>
         {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
         {t?.oneLiner ? <p>{t.oneLiner}</p> : null}
@@ -104,9 +104,9 @@ function TechInfo({ graph, apply, onPick, pool, tags, onTags, stageId, techId, g
       {/* 손님(P-12f): 사용기 요약은 로그인 액션이라 안내만. 사용기는 기술 상세 /tech/[id]에서 로그인 없이 읽는다 */}
       <Card title="사용기"><SideNotes techId={techId} login={!guest} all={null} /></Card>
       <p className="insp-row insp-actions">
-        {inStage ? <button type="button" className="btn insp-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick({ kind: "stage", stageId: s.id }); apply(removeTech(graph, s.id, techId), `${s.name}에서 ${name}을(를) 뺐어요.`); box?.focus(); }}>이 단계에서 빼기</button> : null}
-        <Link className="btn insp-sm" href={`/tech/${techId}`}>기술 상세</Link>
-        <Link className="insp-link" href={`/?sel=${encodeURIComponent(`tech:${techId}`)}`}>지도에서 보기</Link>
+        {inStage ? <button type="button" className="btn btn-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick({ kind: "stage", stageId: s.id }); apply(removeTech(graph, s.id, techId), removeSaid(s.name, name)); box?.focus(); }}>이 단계에서 빼기</button> : null}
+        <Link className="btn btn-sm" href={`/tech/${techId}`}>기술 상세</Link>
+        <Link className="bp-link" href={`/?sel=${encodeURIComponent(`tech:${techId}`)}`}>지도에서 보기</Link>
       </p>
     </>
   );

@@ -3,7 +3,7 @@
 import type { Board } from "./board.ts";
 
 /** 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 알림 상세 · 보드 · 청사진 서랍에 같은 글로 */
-export const BLUEPRINT_GATE = "적용 후보로 고른 것만 청사진에 넣을 수 있어요. 실제 설치는 Claude Code에서 직접 해요.";
+export const BLUEPRINT_GATE = "내 기술 · 적용 후보 · 확정 이력에 있는 기술만 청사진에 넣을 수 있어요. 실제 설치는 Claude Code에서 직접 해요.";
 
 /** 단계 이름 → 서랍에 보일 기술 분류(하는 일 또는 세부 갈래). 목록에 없는 단계(직접 쓴 이름)는 거르지 않는다 */
 export const STAGE_FIELDS: Record<string, string[]> = {

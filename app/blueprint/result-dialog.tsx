@@ -38,7 +38,7 @@ export function ResultDialog(p: Props) {
           <h3 id="rd-export" className="rd-h">내보내기</h3>
           <div className="rd-row">
             <label>형식 <select value={kind} onChange={(e) => setKind(e.target.value as ExportKind)} data-autofocus="">{KINDS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-            <button type="button" className="btn" disabled={!p.board} onClick={() => void copy()}>복사</button>
+            <button type="button" className="btn" aria-disabled={p.board ? undefined : true} onClick={() => (p.board ? void copy() : p.say("선이 고리로 이어져 복사할 수 없어요. 고리를 끊어 주세요."))}>복사</button>
           </div>
           {p.board ? <pre className="rd-preview" aria-label="내보내기 미리보기" tabIndex={0}>{text}</pre>
             : <p className="muted">선이 고리로 이어져 순서를 정할 수 없어요. 고리를 끊으면 미리보기가 나와요.</p>}

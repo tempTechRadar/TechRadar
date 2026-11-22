@@ -1,16 +1,13 @@
 /* 청사진 스튜디오 오른쪽 속성 패널(P-12e 조각 K). 카드 · 태그 모양은 지도 사이드 패널(side-panel.css)의 side-card · side-tags를 같이 씀 */
-.insp { box-sizing: border-box; display: grid; gap: 8px; align-content: start; min-width: 0; padding: 12px; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); font-size: var(--fs-sm); }
+.insp { box-sizing: border-box; display: grid; gap: var(--sp-2); align-content: start; min-width: 0; padding: var(--sp-3); overflow: auto; background: var(--surface); border-left: 1px solid var(--line); font-size: var(--fs-sm); }
 .insp p { margin: 0; }
-.insp-head { display: grid; gap: 4px; }
+.insp-head { display: grid; gap: var(--sp-1); }
 .insp-head h2 { margin: 0; font-size: var(--fs-h2); overflow-wrap: anywhere; }
 .insp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .insp-row label { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .insp-row input { min-height: var(--hit-sm); font: inherit; }
-.insp-sm { min-height: var(--hit-sm); padding: 0 10px; font-size: var(--fs-sm); }
-.insp-link { display: inline-flex; align-items: center; min-height: var(--hit-sm); padding: 0; border: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
-.insp-link:focus-visible, .insp-sm:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.insp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.insp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
 .insp-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; overflow-wrap: anywhere; }
-.insp-actions { margin-top: 4px; }
+.insp-actions { margin-top: var(--sp-1); }
 .insp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.insp-links { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 4px; } /* 앞 · 다음 단계 + 끊기(P-12h S3) */
+.insp-links { list-style: none; margin: var(--sp-1) 0; padding: 0; display: grid; gap: var(--sp-1); } /* 앞 · 다음 단계 + 끊기(P-12h S3) */

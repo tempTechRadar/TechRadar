@@ -62,7 +62,8 @@ export function CheckPanel({ blueprintId }: { blueprintId: string | null }) {
       <section aria-labelledby="bp-check-ai">
         <h3 id="bp-check-ai">AI 점검</h3>
         <p className="muted">누를 때만 Claude에게 물어봐요. 제안만 하고 청사진은 바뀌지 않아요. 오늘 {data.usedToday}/{data.limit}번 썼어요.</p>
-        <button type="button" className="btn" onClick={press} disabled={pending || used} aria-describedby="bp-check-note">{pending ? "점검하는 중…" : "점검 받기"}</button>
+        {/* pending은 같은 점검을 두 번 보내지 않게 disabled로 둔다. 오늘 다 쓴 것은 aria-disabled(이유 글 = 위 "오늘 n/n번") */}
+        <button type="button" className="btn" onClick={used ? undefined : press} disabled={pending} aria-disabled={used || undefined} aria-describedby="bp-check-note">{pending ? "점검하는 중…" : "점검 받기"}</button>
         <div id="bp-check-note" aria-live="polite">{note?.message ? <p className={note.tone === "error" ? "notice" : "muted"}>{note.message}</p> : null}</div>
         {data.latest ? <Result latest={data.latest} /> : <p className="muted">아직 받은 점검이 없어요.</p>}
       </section>

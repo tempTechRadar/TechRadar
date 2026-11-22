@@ -54,11 +54,11 @@ export function TemplateTab({ graph, say }: PanelProps) {
         {(["frame", "combo"] as TemplateKind[]).map((k) => (
           <button key={k} type="button" className="dock-tab" aria-pressed={kind === k} onClick={() => setKind(k)}>{KIND_KO[k]} · {KIND_HINT[k]}</button>
         ))}
-        <Link className="dock-link" href="/blueprint/gallery">갤러리에서 더 보기</Link>
+        <Link className="bp-link" href="/blueprint/gallery">갤러리에서 더 보기</Link>
       </div>
       <form className="dock-row" onSubmit={(e) => { e.preventDefault(); if (!busy) void save(); }}>
         <label>템플릿 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required placeholder="예: 웹앱 기본 흐름" /></label>
-        <button type="submit" className="btn dock-sm" aria-disabled={busy}>{busy ? "저장하는 중…" : `지금 판을 ${KIND_RO[kind]} 저장`}</button>
+        <button type="submit" className="btn btn-sm" aria-disabled={busy}>{busy ? "저장하는 중…" : `지금 판을 ${KIND_RO[kind]} 저장`}</button>
       </form>
       {kind === "frame" ? <p className="muted">틀은 기술을 빼고 단계와 연결만 저장해요.</p> : <p className="muted">조합은 단계에 붙인 기술까지 저장해요. 공개하면 다른 사람이 같은 조합으로 시작할 수 있어요.</p>}
       <p className="muted">&quot;이 템플릿으로 시작&quot;을 누르면 화면을 새로 열어 펼쳐요. 지금 판은 되돌리기 한 번으로 돌아와요.</p>
@@ -70,7 +70,7 @@ export function TemplateTab({ graph, say }: PanelProps) {
 }
 
 /** 템플릿으로 새로 열기(같은 화면 안 이동이 아니라 주소를 새로 열어야 studio가 펼침). 지금 판은 되돌리기 한 칸 */
-const Start = ({ t }: { t: MyTemplate | PublicTemplate }) => <a className="btn dock-sm" href={`/blueprint?template=${t.id}`}>이 템플릿으로 시작</a>;
+const Start = ({ t }: { t: MyTemplate | PublicTemplate }) => <a className="btn btn-sm" href={`/blueprint?template=${t.id}`}>이 템플릿으로 시작</a>;
 
 function Lists({ lists, kind, busy, shareError, onShare }: { lists: TemplateLists; kind: TemplateKind; busy: boolean; shareError: { id: string; message: string } | null; onShare: (t: MyTemplate) => void }) {
   const mine = lists.mine?.filter((t) => t.kind === kind) ?? null;
@@ -88,7 +88,7 @@ function Lists({ lists, kind, busy, shareError, onShare }: { lists: TemplateList
                 <Start t={t} />
                 {/* 관리자가 숨긴 것은 다시 공개할 수 없다(DB가 거절): 막힌 단추를 내지 않는다 */}
                 {t.hidden && !t.isPublic ? <span className="muted">관리자가 숨겨서 공개할 수 없어요</span>
-                  : <button type="button" className="btn dock-sm" aria-disabled={busy} onClick={() => { if (!busy) onShare(t); }}>{t.isPublic ? "비공개로" : "공개하기"}</button>}
+                  : <button type="button" className="btn btn-sm" aria-disabled={busy} onClick={() => { if (!busy) onShare(t); }}>{t.isPublic ? "비공개로" : "공개하기"}</button>}
               </span>
               {shareError?.id === t.id ? <p className="notice notice-error" role="alert">{shareError.message}</p> : null}
             </li>

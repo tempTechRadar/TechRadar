@@ -24,7 +24,7 @@ export function StageChips({ techs, pool, marking, className, pickedTech, onPick
           <li key={t.id}>
             <TechChip tech={t} info={known} picked={pickedTech === t.id} onPick={() => onPick(t.id)} onRemove={() => onRemove(t)}
               onCandidate={known ? undefined : () => onCandidate(t)} busy={marking === t.id} />
-            {known ? null : <button type="button" className="chip-more" aria-label={`${t.name} 자세히`} onClick={() => onPick(t.id)}>자세히</button>}
+            {known ? null : <button type="button" className="bp-link" aria-label={`${t.name} 자세히`} onClick={() => onPick(t.id)}>자세히</button>}
           </li>
         );
       })}</ul>
