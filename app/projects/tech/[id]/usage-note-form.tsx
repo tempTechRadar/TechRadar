@@ -19,7 +19,7 @@ export function UsageNoteForm({ techId, pathId }: { techId: string; pathId: stri
       <label>한 줄 팁<textarea name="tip" rows={2} required defaultValue={shown("tip")} /></label>
       <p className={left < 0 ? "notice notice-error" : "muted"} aria-live="polite">세 칸 합쳐 {NOTE_MAX}자까지 · {left >= 0 ? `${left}자 남음` : `${-left}자 넘었어요`}</p>
       {state?.error ? <div className="notice notice-error" role="alert"><strong>{state.error}</strong></div> : null}
-      {sent ? <div className="notice notice-empty" role="status"><strong>사용기를 남겼어요.</strong></div> : null}
+      {sent ? <div className="notice notice-ok" role="status"><strong>사용기를 남겼어요.</strong></div> : null}
       <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "남기는 중…" : "사용기 남기기"}</button>
     </form>
   );

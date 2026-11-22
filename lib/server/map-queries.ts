@@ -2,10 +2,13 @@
 // 로그인 전 지도(readGuestMapInput)만 서비스 키로 읽는다(ADR 0029): 공용 카탈로그의 아래 공개 칸만, 개인 표는 읽지 않는다.
 // 읽기에 실패하면 던진다: 화면이 "아직 없음"과 "읽지 못함"을 다르게 보여 줘야 한다(불변 2와 같은 이유).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CatalogTech, Category, Grade, MapInput, Mark, MyTechRow, Relation } from "../map/build-map.ts";
+import type { CatalogTech, Category, Grade, MapInput, Mark, MarkStatus, MyTechRow, Relation } from "../map/build-map.ts";
+import { NEW_QUOTA } from "../map/view-config.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
 import { fixedNote } from "../domain/services.ts";
+import { buildKanban } from "../views/kanban.ts";
+
 
 /** 지도에 한 번에 올릴 모은 기술의 최대 수(운영 1만 5천여 개를 다 그리지 않는다, 나머지는 지도 찾기 칸으로). 내 기술·비교군은 이 수와 따로 늘 들어간다.
  *  11-21 사용자 결정으로 1,200 → 500(한눈에 받아들일 수 있는 양, ADR 0030). shortcut: 고정 개수, 더 많이 보여야 하면 보이는 영역만 서버에서 읽는다 */
@@ -58,7 +61,7 @@ const DEV_TYPES = ["skill", "plugin", "concept"]; // 개발 도구(sdk)는 입�
  *  이번 주 새 기술(NEW 표시 15개를 고를 몫) */
 export const STARTER_MAX = 80; // 입문 세트가 이보다 많아지면 잘린다 — 시드 시험(starter-set-migration.test.ts)은 그 시드 파일의 줄 수만 막는다(다른 마이그레이션 · 관리자가 starter_set을 켜면 따로 세어 볼 것)
 // shortcut: 기간 칩 수는 지도에 올린 것만 센다 — 30일 새 기술이 NEW_QUOTA보다 많으면 "이번 달"은 최근 것부터 이 수까지만. 늘 넘치면 칩 수를 DB 개수로
-const RISKY_MAX = 100, NEW_QUOTA = 100;
+const RISKY_MAX = 100;
 /** 고르는 규칙이 바뀌면 올린다(로그인 전 지도 캐시 키) */
 export const PICK_RULE = "dev-first-5";
 
@@ -91,23 +94,6 @@ async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]
   return rows.slice(0, CATALOG_LIMIT).map(toTech);
 }
 
-/** 새 기술 화면에 한 번에 읽는 최대 수(넘으면 화면이 "최근 n개만"이라고 알린다) */
-export const NEW_LIMIT = 500;
-/** 새 기술(/new, design.md 13절 3): 처음 채운 뒤·7일 안에 들어온 공개 목록 기술(레지스트리 대량 채우기분 제외)(최근 것부터 최대 NEW_LIMIT개)과 내 표시 */
-/** userId가 null이면 로그인 전(11-21 사용자 결정: 새 기술도 로그인 없이): 서비스 키로 공개 목록만 읽고 내 표시는 없다(ADR 0029) */
-export async function readNewTechs(db: SupabaseClient, userId: string | null, now: Date): Promise<MapInput> {
-  const since = sinceDays(now, 7);
-  const [categories, techRes, markRes] = await Promise.all([
-    readCategories(db),
-    // 대량 채우기분은 DB에서 뺀다: 최근 순으로 잘라 읽어서, 읽은 뒤 거르면 대량분이 자리를 다 차지한다
-    publicTechs(db, READ_COLUMNS)
-      .gt("created_at", since).or(NOT_BULK_FILTER).order("created_at", { ascending: false }).order("id").limit(NEW_LIMIT),
-    userId ? db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId) : Promise.resolve({ data: [], error: null }),
-  ]);
-  const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
-  return { mine: [], techs: rowsOrThrow(techRes, "새 기술을 읽지 못함").map(toTech), relations: [], categories, marks, newSince: CATALOG_FIRST_FILL };
-}
-
 /** 로그인 전 지도(ADR 0029): 누구에게나 같은 카탈로그. 서비스 키 클라이언트로 부르되 공용 표(technologies·categories)의 공개 칸만 읽는다 */
 /** NEW 판정 규칙 판: 로그인 전 지도 · 새 기술 캐시 키에 넣는다. 규칙(isBulkFilled · NOT_BULK_FILTER)이 바뀌면 올려 옛 캐시를 안 쓴다 */
 export const NEW_RULE_VERSION = "new-bulk-1";
@@ -128,16 +114,19 @@ export async function readGuestMapInput(db: SupabaseClient): Promise<MapInput> {
 /** extraIds: 카탈로그 500개 밖이어도 꼭 올릴 기술(주소의 sel=, 내 레이더·새 기술의 "지도에서 보기") */
 export async function readMapInput(db: SupabaseClient, userId: string, isDemo: boolean, extraIds: string[] = []): Promise<MapInput> {
   const cats = readCategories(db); // 카탈로그 고르기(개발 분야)가 갈래를 쓴다: 한 번만 읽어 나눠 씀
-  const [mineRes, categories, catalog, markRes] = await Promise.all([
+  const [mineRes, categories, catalog, markRes, judgedRes] = await Promise.all([
     db.from("my_technologies")
       .select("id, tech_id, manual_name, project_id, source_file, grade, grade_reason, collect_error_kind, last_checked_ok_at, projects!inner(name, archived_at)")
       .eq("owner_id", userId).is("hidden_at", null).is("projects.archived_at", null).order("created_at").order("id"), // 같은 등급끼리 합칠 때 늘 같은 줄이 앞에
     cats,
     cats.then((c) => readCatalog(db, isDemo, c)), // 로그인 뒤에도 기본은 전체 지도(ADR 0027)
-    db.from("tech_marks").select("tech_id, status, reason").eq("user_id", userId),
+    db.from("tech_marks").select("tech_id, status, reason, updated_at").eq("user_id", userId),
+    db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"), // 알림에서 한 판단(지도 판단 칩도 후보 탭과 같은 계산)
   ]);
   const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);
-  const marks: Mark[] = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함").map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
+  const markRows = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함");
+  const marks: Mark[] = markRows.map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
+  const decided = decidedMarks(markRows, rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));
   const ids = [...new Set(mine.map((m) => m.techId).filter((x): x is string => !!x))];
   const relRows = (await Promise.all(chunks(ids).map((c) => {
     let q = db.from("tech_relations").select("tech_a, tech_b, quote").eq("kind", "same_role").eq("status", "confirmed").or(`tech_a.in.(${c.join(",")}),tech_b.in.(${c.join(",")})`);
@@ -153,5 +142,18 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
   const myIds = new Set(ids);
   // 둘레의 비교군은 쓸 수 있는 대안만: 사라진 기술·(시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 얇은 기술은 남긴다(운영은 두꺼운 기술이 3개뿐이라 빼면 비교군이 거의 사라짐)
   const usable = (r: Row) => myIds.has(r.id) || (r.status !== "gone" && (isDemo || !r.is_simulated));
-  return { mine, techs: [...catalog, ...techRows.filter(usable).map(toTech)], relations, categories, marks, newSince: CATALOG_FIRST_FILL };
+  return { mine, techs: [...catalog, ...techRows.filter(usable).map(toTech)], relations, categories, marks, decided, newSince: CATALOG_FIRST_FILL };
+}
+
+/** 기술마다 지금 판단: 청사진 "후보" 탭(옛 보드)과 같은 buildKanban 계산 — 지도 표시와 알림 판단 중 더 최근 것이 이긴다(P-12f, 같은 이름 칸이 화면마다 다르지 않게).
+ *  marks = tech_marks 줄(tech_id · status · updated_at), alerts = 판단한 알림 줄(changes.tech_id, judgments 한 줄 객체 또는 배열) */
+export function decidedMarks(marks: Row[], alerts: Row[]): Record<string, MarkStatus> {
+  const judged = alerts.flatMap((a) => {
+    const j = Array.isArray(a.judgments) ? a.judgments[0] : a.judgments;
+    return j && a.changes?.tech_id ? [{ techId: a.changes.tech_id as string, name: "", grade: "unknown" as const, decision: j.decision, reason: null, judgedAt: j.judged_at }] : [];
+  });
+  const k = buildKanban({ mine: [], marks: marks.map((m) => ({ techId: m.tech_id, name: "", grade: "unknown", status: m.status, reason: null, updatedAt: m.updated_at })), judged });
+  const out: Record<string, MarkStatus> = {};
+  for (const col of ["interest", "candidate", "hold"] as const) for (const c of k[col]) if (c.techId) out[c.techId] = col;
+  return out;
 }

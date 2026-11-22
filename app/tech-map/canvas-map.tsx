@@ -14,6 +14,7 @@ import { RadarSettings } from "./radar-settings";
 import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import { ViewTabs } from "./view-tabs";
+import { READY_MAP } from "@/lib/map/ready-gate";
 import "./map.css";
 
 /** top = 지도 위에 뜨는 첫 줄(판단 대기 · 최근 변경 · 로그인 유도 등, 페이지가 정함) */
@@ -65,6 +66,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   useEffect(() => {
     const st = stage.current!, cv = canvas.current!;
     const detach = ctl.attach(cv);
+    requestAnimationFrame(() => window.dispatchEvent(new Event(READY_MAP))); // 첫 장을 그린 뒤 첫 화면 덮개의 "지도 보기"를 켠다
     const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); };
     const ro = new ResizeObserver(measure);
     ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);
@@ -121,7 +123,11 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
     if (!n.techId) return;
     setBusy(true);
     await saveMarkWithToast({ techId: n.techId, status, reason, prev, text: markedText(status), say,
-      onSaved: (restored) => ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null) });
+      onSaved: (restored) => {
+        ctl.setMark(n.key, restored ? prev : status ? { techId: n.techId!, status, reason: status === "hold" ? reason.trim() : null } : null, !restored); // 되돌리기는 도장 없이 표시만
+        // 판단 칩으로 거르는 중이면 판단을 바꾼 기술이 지도에서 빠지며 패널이 닫힌다: 초점이 사라지지 않게 열기 전 자리로
+        if (!ctl.S.sel && lastFocus.current instanceof HTMLElement && document.contains(lastFocus.current)) lastFocus.current.focus({ preventScroll: true });
+      } });
     setBusy(false);
   }
 
@@ -148,7 +154,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           {top ? <div className="map-top">{top}</div> : null}
           <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} tagsFailed={model.tagsFailed} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
           <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />
-          <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} onView={setView} onReplay={replay} /></div>
+          <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} trendFailed={model.trendFailed} onView={setView} onReplay={replay} /></div>
         </div>
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
           onEnter={() => { overCard.current = true; clearTimeout(tipTimer.current); }} onLeave={() => { overCard.current = false; hover("", 0, 0); }}
@@ -164,7 +170,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         </aside>
         {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
         <div ref={dock} className="map-dock">
-          <RadarSettings motion={S.motion} tune={S.tune} still={S.still} onMotion={ctl.setMotion} onTune={ctl.setTune} />
+          <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />

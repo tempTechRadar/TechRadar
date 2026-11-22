@@ -12,7 +12,7 @@ export type EditFail = "not_found" | "failed" | "duplicate" | "reason" | "input"
 export type EditResult = { ok: true; changed: boolean; auditFailed: boolean } | { ok: false; code: EditFail };
 
 // 화면에는 코드만 돌려주고, DB가 한 말은 서버 로그에만 남긴다.
-function fail(code: EditFail, detail?: string): EditResult {
+function fail(code: EditFail, detail?: string): { ok: false; code: EditFail } {
   if (detail) console.error(`분류 확인 ${code}`, maskSecrets(detail));
   return { ok: false, code };
 }
@@ -88,4 +88,26 @@ export async function setCategory(ctx: EditCtx, techId: string, categoryId: stri
     .eq("id", techId).select("id");
   if (upd.error || !upd.data?.length) return fail("failed", upd.error?.message ?? "바뀐 줄이 없음(권한)");
   return { ok: true, changed: true, auditFailed: !(await writeAudit(ctx, "category_set", "technologies", techId, why.reason)) };
+}
+
+export type ClassifyNowResult = { ok: true; items: number; summary: string; auditFailed: boolean } | { ok: false; code: EditFail };
+
+/**
+ * "규칙으로 한 번에 분류"(P-12f ⑧): 갈래가 비고 관리자가 정하지 않은 기술을 지금 규칙으로 채운다. 하는 일은 매일 실행 뒤에 도는 classifyCatalog와 같고(run으로 받음),
+ * 관리자가 정한 것 · 시뮬레이터는 건드리지 않고 규칙으로 못 정한 것은 비워 둔다. 같은 줄을 다시 채우지 않으니 여러 번 눌러도 같다(불변 3).
+ * 중간에 실패해도 이미 정한 갈래는 그대로라 다시 누르면 남은 것부터 이어 한다. 성공도 실패도 담당자 · 시각 · 사유를 남긴다(audit_logs).
+ */
+export async function classifyNow(ctx: EditCtx, run: () => Promise<{ items: number; summary: string }>, rawReason: string): Promise<ClassifyNowResult> {
+  const why = checkReason(rawReason);
+  if (!why.ok) return fail("reason");
+  let out: { items: number; summary: string };
+  try {
+    out = await run();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await writeAudit(ctx, "classify_all", "technologies", "catalog", `${why.reason} (실패: ${maskSecrets(message)})`); // 일부는 저장됐을 수 있어 실패도 남긴다
+    return fail("failed", message);
+  }
+  const auditFailed = !(await writeAudit(ctx, "classify_all", "technologies", "catalog", `${why.reason} (결과: ${out.summary})`));
+  return { ok: true, items: out.items, summary: out.summary, auditFailed };
 }

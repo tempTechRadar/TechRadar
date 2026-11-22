@@ -5,8 +5,10 @@ import { categoryOptions, type CategoryGroup } from "@/lib/admin/category-option
 import { readClassify, type Categorized, type Relation, type Unclassified } from "@/lib/server/admin-queries";
 import { adminGate } from "@/lib/server/admin-gate";
 import { AdminShell, when } from "../admin-shell";
-import { AddRuleForm, AuditList, ConfirmRelationForm, RULE_KO, SetCategoryForm, ToggleRuleForm } from "./classify-forms";
+import { AddRuleForm, AuditList, ClassifyNowForm, ConfirmRelationForm, RULE_KO, SetCategoryForm, ToggleRuleForm } from "./classify-forms";
 import { readFlash } from "@/lib/server/admin-flash";
+
+export const maxDuration = 60; // "규칙으로 한 번에 분류"가 한 번에 40초까지 돈다(P-12f ⑧)
 
 const TITLE = "분류 확인";
 const LEAD = "지도 분류가 비어 있거나 사람이 확인해야 하는 것들이에요. 갈래 정하기, 같은 역할 확정, 규칙 고치기는 사유를 남겨야 해요.";
@@ -31,6 +33,7 @@ export default async function ClassifyPage({ searchParams }: { searchParams: Pro
       {info ? <p role="status" className="admin-note">{info}</p> : null}
       {data ? (
         <>
+          <ClassifyNowForm />
           <Unclassifieds rows={data.unclassified} manual={data.manualNames} set={data.categorized} groups={categoryOptions(data.categories)} />
           <Relations rows={data.relations} />
           <Rules rows={data.rules} />

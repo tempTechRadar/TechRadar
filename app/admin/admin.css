@@ -2,8 +2,8 @@
 .admin {
   --color-text: var(--ink); --color-muted: var(--muted); --color-surface-subtle: var(--sunken);
   --color-border: var(--line); --color-border-strong: var(--ink-2); --color-primary: var(--ink); --color-on-primary: var(--on-ink);
-  --color-danger: #b91c1c; --color-danger-bg: #fef2f2; --color-warning: #b45309; --color-warning-bg: #fffbeb;
-  --color-success: #15803d; --color-success-bg: #f0fdf4;
+  --color-danger: var(--ink-danger); --color-danger-bg: var(--bg-danger); --color-warning: var(--ink-caution); --color-warning-bg: var(--bg-caution);
+  --color-success: var(--ink-pass); --color-success-bg: var(--bg-pass);
   --space-1: var(--sp-1); --space-2: var(--sp-2); --space-3: var(--sp-3); --space-4: var(--sp-4); --space-5: var(--sp-5);
   --text-xs: var(--fs-cap); --text-sm: var(--fs-sm); --text-md: var(--fs-body); --text-lg: var(--fs-h2); --text-xl: var(--fs-h1);
   --radius: var(--r-md);

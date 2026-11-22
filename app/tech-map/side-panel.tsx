@@ -11,11 +11,13 @@ import { SideNotes } from "./side-notes";
 import { TagEditor } from "./tag-editor";
 import { DIM_KO } from "@/lib/map/view-config";
 import "./side-panel.css";
+import { listTime } from "@/lib/alerts/to-alert-view";
+import { GuestPick } from "./guest-pick";
 
 // 위험 · 주의는 맨 위 띠로, 나머지는 출처 카드 한 줄로(평소엔 보안 구역을 길게 두지 않음)
 const SEC_SHORT: Record<string, string> = { pass: "알려진 취약점 없음", unknown: "정보를 찾지 못함(위험하지 않다는 뜻이 아니에요)" };
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "아직 없음");
-const day = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+const when = (iso: string | null) => (iso ? listTime.format(new Date(iso)) : "아직 없음"); // 알림 화면과 같은 모양(서울 시각 · 24시간제: 서버 · 브라우저가 같은 글)
+const day = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 export const pathOf = (n: MapNode) => [n.attrs.field, n.attrs.sub, n.attrs.kind].filter((v) => v !== UNSORTED).join(" › ") || UNSORTED;
 const isRisky = (n: MapNode): n is MapNode & { grade: "danger" | "caution" } => n.grade === "danger" || n.grade === "caution";
 const Dot = ({ token, hollow }: { token: string | null; hollow?: boolean }) => (
@@ -76,7 +78,8 @@ function SecurityBand({ n }: { n: MapNode & { grade: "danger" | "caution" } }) {
 
 /** 판단 = 청사진으로 가는 관문(11-21 사용자 결정 C): 적용 후보만 넣을 수 있다. 실제 설치는 사람이 Claude Code에서 */
 function ToBlueprint({ n, login }: { n: MapNode; login: boolean }) {
-  if (!login || !n.techId) return null;
+  if (!n.techId) return null;
+  if (!login) return <GuestPick techId={n.techId} />; // 손님(P-12h-2 T3): 이 브라우저 담은 목록 → 청사진 "지도에서 담은 기술"
   const ok = n.mark?.status === "candidate";
   return (
     <div className="side-to-bp">
@@ -94,7 +97,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
   return (
     <>
       <TechHead n={n} />
-      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} />
+      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
       {isRisky(n) ? <SecurityBand n={n} /> : null}
       {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <section className="side-decide" aria-label="판단과 청사진">
@@ -112,6 +115,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
           <dt>저장소</dt><dd>{n.repoUrl ? <a href={n.repoUrl} target="_blank" rel="noopener noreferrer">저장소 열기</a> : none}</dd>
           <dt>라이선스</dt><dd>{n.license ?? none}</dd>
           <dt>활동</dt><dd>{n.label}</dd>
+          <dt>마지막 확인</dt><dd>{when(n.lastCheckedOkAt)}</dd>
           {isRisky(n) ? null : <><dt>보안</dt><dd>{isConcept(null, n.type) ? "작업 방식이라 등급 없음" : `${SEC_SHORT[n.grade]}${n.gradeReason ? ` · ${n.gradeReason}` : ""}`}</dd></>}
         </dl>
       </Card>

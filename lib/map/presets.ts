@@ -8,7 +8,7 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   { name: "입문자 추천", query: new URLSearchParams({ fk: "스킬,플러그인,개념,개발 도구" }).toString() }, // MCP 말고 먼저 알면 좋은 것(입문 세트가 여기 모임, ADR 0031)
   { name: "이번 주 새 기술", query: "t=week" },
   { name: "보안 위험", query: "risky=1&c=grade" },
-  { name: "내 관심", query: "mk=1", login: true },
+  { name: "내 관심", query: "mk=interest", login: true },
   { name: "내 기술과 비교군", query: "mine=1", mine: true },
 ];
 export const MAX_SAVED = 5;

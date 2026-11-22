@@ -5,8 +5,12 @@ import type { MapNode, TechMapModel } from "@/lib/map/build-map";
 import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, type GroupItem, type Item, type MapLayout, type TechItem } from "@/lib/map/layout";
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
-import { draw, PULSE_SEC } from "./draw";
-import { DEFAULT_TUNE, GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, moving, retune, REVEAL, SLOWDOWN, SWEEP_DELAY, TUNES, type Tune } from "@/lib/map/motion";
+import { draw } from "./draw";
+import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
+import { introWaits, type GateState } from "@/lib/map/ready-gate";
+
+declare global { interface Window { __techradarGate?: GateState } } // 첫 화면 덮개 스크립트(ready-gate.tsx)가 남김
+
 
 const STORE = "techradar.mapView";
 const ZMIN = 0.05, ZMAX = 12; // 넓게: 끝없는 판처럼(사용자 11-20)
@@ -16,11 +20,13 @@ type Cam = { x: number; y: number; k: number };
 export type MapState = {
   W: number; H: number; top: number; right: number; /** 아래쪽에 뜬 범례 · 상태 줄 높이(그 밑에 점을 두지 않는다) */ bottom: number; cam: Cam; fly: { from: Cam; to: Cam; t0: number; dur: number } | null; userCam: boolean;
   L: MapLayout; view: ViewConfig; collapsed: Set<string>; hidden: Set<string>; leaving: Map<string, number>; phys: ReturnType<typeof createPhysics>;
-  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; motion: Motion; tune: Tune; shift: number; introAt: number; sweepStart: number; now: number; scopeLabel: string;
+  sel: string; focusId: string; lit: Set<string> | null; login: boolean; still: boolean; motion: Motion; introAt: number; sweepStart: number; now: number; scopeLabel: string;
   riskRects: { x: number; y: number; list: TechItem[] }[]; hubLabels: { id: string; x: number; y: number; w: number; h: number }[];
   handles: { id: string; x: number; y: number }[]; homeArrow: { x: number; y: number } | null; scale: () => number; base: () => number;
   /** 찾아간 기술 · 펼친 묶음 자리에 한 번 퍼지는 물결(t = 시작 시각, 카메라가 도착할 때) */ ping: { id: string; t: number } | null;
   /** 처음 보기 배율(homeCam이 정할 때 기억). 배율 단계(draw)가 이것 대비로 본다: 펼침 · 거르기만으로 단계가 바뀌지 않게 */ homeK: number;
+  /** "이번 주" 다시 보기로 날아와 제자리에 닿은 점 → 닿은 시각(이름표를 LAND_SEC 동안 진하게, P-12g map-10). 끌다 부딪혀 튕긴 점(bump)과 따로 */ landed: Map<string, number>;
+  /** 방금 판단을 저장한 점(꼬리표가 0.2초 동안 꾹 찍힘, P-12g map-5). 되돌리기 · 판단 지우기는 찍지 않는다 */ stamp: { id: string; t: number } | null;
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
@@ -30,22 +36,17 @@ const MOTION_KEY = "techradar-map-motion";
 function savedMotion(): Motion {
   try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "ripple" || v === "off" ? v : "sweep"; } catch { return "sweep"; }
 }
-const TUNE_KEY = "techradar-map-tune";
-function savedTune(): Tune {
-  try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(TUNE_KEY); return TUNES.find((t) => t === v) ?? DEFAULT_TUNE; } catch { return DEFAULT_TUNE; }
-}
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
   const mine = model.mode === "mine";
-  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, interest: login && v.filter.interest, tags: login && !model.tagsFailed ? v.filter.tags : [], project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
+  return { ...v, filter: { ...v.filter, mineOnly: mine && v.filter.mineOnly, marks: login ? v.filter.marks : [], tags: login && !model.tagsFailed ? v.filter.tags : [], hot: !model.trendFailed && v.filter.hot, project: mine && projectIds.includes(v.filter.project) ? v.filter.project : "" } };
 }
 
 export function createMapController(opts: { model: TechMapModel; projectIds: string[]; initialQuery: string; canSave: boolean; login: boolean }) {
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, tick = 0, lastActive = 0;
-  const IDLE_SEC = 90;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   // 브라우저 기억은 여기서 읽지 않는다: 서버가 그린 첫 화면과 달라진다(hydration). 붙인 뒤 restoreSaved로
@@ -55,14 +56,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
 
   const S: MapState = {
     W: 0, H: 0, top: 0, right: 0, bottom: 0, cam: { x: 0, y: 0, k: 1 }, fly: null, userCam: false, L: L0, view: view0, collapsed: new Set(), hidden: new Set(),
-    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), tune: savedTune(), shift: 0, introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1,
+    leaving: new Map(), phys, sel: "", focusId: "", lit: null, login: opts.login, still: !!motion?.matches, motion: savedMotion(), introAt: Infinity, sweepStart: Infinity, now: 0, scopeLabel: "", ping: null, homeK: 1, landed: new Map(), stamp: null,
     riskRects: [], hubLabels: [], handles: [], homeArrow: null,
     // 아주 낮은 창에서도 0 · 음수가 되지 않게(뒤집혀 그려짐)
     base() { return Math.max(60, Math.min(this.W, this.H - this.top - this.bottom)) / (2 * this.L.radius) || 1; }, scale() { return this.cam.k * this.base(); },
   };
   const visible = () => S.L.items.filter((it) => !S.hidden.has(it.id));
   const notify = () => { version++; for (const f of listeners) f(); };
-  const dirty = () => { needDraw = true; lastActive = S.now; };
+  const dirty = () => { needDraw = true; };
 
   function saveView() {
     const q = viewQuery(S.view, defaultFor(kindCount)); // 이 지도의 기본과 같은 묶기는 싣지 않음(되살릴 때 같은 기본)
@@ -73,6 +74,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
 
   // ---- 배치
+  /** 판단을 저장하기 전 decided(되돌리기 때 알림 판단에서 온 값까지 그대로 돌리려고) */
+  const decidedBefore = new Map<string, MapNode["decided"]>();
   /** 사람이 직접 펼치거나 접은 묶음(true = 펼침). 처음 접기는 판이 바뀔 때마다(필터 · 되살린 보기) 새로 정하고, 이것만 그 위에 남긴다 */
   const manual = new Map<string, boolean>();
   const arriving = new Map<string, [number, number]>(); // 새로 들어온 것 보기: 날아오는 점 → 제자리. 처음 닿을 때 한 번 튕김(bump)
@@ -86,7 +89,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function rebuild(from: ((it: Item) => [number, number] | null) | null) {
     S.L = layoutMap(model, S.view);
     S.collapsed = collapsedFor(S.L);
-    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear(); arriving.clear();
+    S.hidden = hiddenOf(S.L, S.collapsed); S.leaving.clear(); arriving.clear(); S.landed.clear();
     if (S.sel && !S.L.byId.has(S.sel)) S.sel = "";
     const vis = visible();
     phys.sync(vis, from ? (it) => from(it as Item) : undefined);
@@ -96,14 +99,14 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     S.scopeLabel = sc.length ? `${sc[sc.length - 1].value} · ${S.L.shown}개` : "";
     setFocus(S.focusId);
   }
-  /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리 */
-  function setView(next: ViewConfig, from: [number, number] = [0, 0]) {
+  /** 보기 설정 바꾸기. from = 새로 나타나는 것이 튀어나올 자리(분류만 보기). 없으면 새 점은 제자리에서 나타나고 남는 점은 바뀐 배치로 미끄러진다(가운데서 튀어나오지 않게, P-12g map-9) */
+  function setView(next: ViewConfig, from?: [number, number]) {
     if (S.introAt !== Infinity) finishIntro(); // 도구 줄을 만지면 처음 연출은 끝(첫 장 전 되살리기는 연출을 지움)
     const scoped = JSON.stringify(next.scope) !== JSON.stringify(S.view.scope); // 되살린 보기는 새 배열이라 값으로 비교
     const regroup = next.group.join() !== S.view.group.join() || scoped;
     S.view = usable(next, model, projectIds, opts.login);
     if (regroup) manual.clear(); // 묶기가 바뀌면 묶음 id가 달라져 손댄 기억은 뜻이 없다
-    rebuild(() => from);
+    rebuild(from ? () => from : (it) => [it.x, it.y]); // 함수를 넘겨야 남는 점이 미끄러진다(null이면 툭 바뀜)
     if (scoped) flyTo(homeCam(), false);
     saveView(); dirty(); notify();
   }
@@ -152,8 +155,8 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     const list = visible().filter((it): it is TechItem => it.type === "t");
     const cam = homeCam(); flyTo(cam, false);
     if (!moving(S) || !list.length) return list.length; // 움직임 줄이기 · ⚙ 끄기면 걸러 보여 주기만
-    const half = Math.hypot(S.W, S.H) / 2 / (cam.k * S.base()), ang = (it: Item) => Math.atan2(it.y, it.x);
-    [...list].sort((a, b) => ang(a) - ang(b)).forEach((it, i, all) => { // 각도 순으로 조금씩 멀리서: 레이더가 도는 차례로 꽂힌다
+    const half = Math.hypot(S.W, S.H) / 2 / (cam.k * S.base()), ang = (it: Item) => Math.atan2(it.y, it.x), at = (it: TechItem) => Date.parse(it.node.addedAt ?? "") || 0;
+    [...list].sort((a, b) => at(a) - at(b) || ang(a) - ang(b)).forEach((it, i, all) => { // 실제로 들어온 순서(오래된 것 먼저)로 조금씩 멀리서: 다시 보기가 사실 순서대로 꽂힌다(P-12g map-10)
       const b = phys.B.get(it.id), r = half * (1.15 + (0.9 * i) / all.length);
       if (b) Object.assign(b, { x: cam.x + Math.cos(ang(it)) * r, y: cam.y + Math.sin(ang(it)) * r, vx: 0, vy: 0 });
       arriving.set(it.id, [it.x, it.y]);
@@ -164,7 +167,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   function landArrivals(now: number) {
     for (const [id, [x, y]] of arriving) {
       const b = phys.B.get(id);
-      if (!b || Math.hypot(b.x - x, b.y - y) < 4) { if (b) b.bump = now; arriving.delete(id); }
+      if (!b || Math.hypot(b.x - x, b.y - y) < 4) { if (b) { b.bump = now; S.landed.set(id, now); } arriving.delete(id); }
     }
   }
   /** 보기 초기화: 맨 처음 화면으로(묶기·색·필터·분류만 보기·펼침·카메라 모두, 사용자 11-20) */
@@ -239,6 +242,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   /** 첫 장: 가운데를 크게 본 채 시작해 화면이 물러난다(손댄 카메라 · 고른 점이 있으면 그대로). 움직임이 꺼져 있으면 연출 없이 바로 다 보임 */
   function startIntro(now: number) {
+    dirty(); // 덮개를 닫은 그 장부터 그린다
     S.introAt = now; S.sweepStart = now + SWEEP_DELAY;
     if (!moving(S)) { S.sweepStart = now - REVEAL - GROW; return; }
     if (S.userCam || S.sel || S.fly) return;
@@ -256,8 +260,9 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   function frame(ms: number) {
     raf = requestAnimationFrame(frame); // 한 장이 실패해도 다음 장은 그린다
-    const now = ms / 1000, dt = Math.min(0.05, now - last || 0.016); last = now; S.now = now; tick++;
-    if (S.introAt === Infinity) startIntro(now);
+    const now = ms / 1000, dt = Math.min(0.05, now - last || 0.016); last = now; S.now = now;
+    // 첫 화면 덮개가 떠 있으면 닫을 때까지 첫 연출을 미룬다(덮개 뒤에서 혼자 끝나지 않게, lib/map/ready-gate.ts introWaits)
+    if (S.introAt === Infinity && !introWaits(window.__techradarGate, moving(S))) startIntro(now);
     let anim = false;
     if (S.fly) {
       const p = Math.min(1, Math.max(0, (now - S.fly.t0) / S.fly.dur)), e = p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2, { from, to } = S.fly;
@@ -267,27 +272,33 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (phys.busy()) { if (S.still) for (let i = 0; i < 40 && phys.busy(); i++) phys.step(1 / 60, now, true); else phys.step(dt, now, false); anim = true; }
     if (arriving.size) landArrivals(now);
     if (S.ping && now - S.ping.t < 1.4) anim = true;
+    for (const t of S.landed.values()) if (now - t < LAND_SEC) { anim = true; break; } // 진한 이름표가 제 세기로 돌아올 때까지
+    if (S.stamp && now - S.stamp.t < 0.2) anim = true;
     const on = moving(S) && !document.hidden;
-    const revealing = on && now - S.sweepStart < REVEAL + GROW + SLOWDOWN; // 처음 연출 · 느려지는 동안은 매 장
-    // 그 뒤 옅은 선 · 파동은 1초 20장. shortcut: 손대지 않은 지 90초면 멈춘다(배터리), 다시 만지면 이어서 — 정지 화면 따로 그리기는 동결 뒤
-    const ambient = on && tick % 3 === 0 && now - lastActive < IDLE_SEC;
-    const pulsing = on && now - S.sweepStart < PULSE_SEC + 1 && tick % 2 === 0;
-    if (ctx && (needDraw || anim || revealing || ambient || S.leaving.size || pulsing)) { draw(ctx, S, now); needDraw = false; }
+    const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
+    const revealing = on && started && now - S.sweepStart < REVEAL + Math.max(SLOWDOWN, GROW); // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
+    const active = anim || revealing || S.leaving.size > 0;
+    // 움직임이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선 · 굵은 착지 이름표 · 찍히던 꼬리표가 도중 모습으로 굳는다
+    if (ctx && (needDraw || active || wasActive)) { draw(ctx, S, now); needDraw = false; }
+    wasActive = active;
   }
   function attach(canvas: HTMLCanvasElement) {
     ctx = canvas.getContext("2d");
     const onMotion = () => { S.still = !!motion?.matches; dirty(); notify(); }; // notify: ⚙ 창의 "기기 설정으로 꺼져 있어요"도 바로
     motion?.addEventListener("change", onMotion);
+    // 테마(어두운 모드 · data-theme)가 바뀌면 다음 장을 새 색으로: 연출 뒤에는 손댈 때만 그려서 옛 색이 남는다(P-12g map-13)
+    const scheme = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null, theme = new MutationObserver(dirty);
+    scheme?.addEventListener("change", dirty);
+    document.addEventListener("visibilitychange", dirty); // 숨은 탭에서 연출 시간이 지나갔으면 돌아왔을 때 끝난 모습으로
+    theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); ctx = null; };
+    return () => { cancelAnimationFrame(raf); motion?.removeEventListener("change", onMotion); scheme?.removeEventListener("change", dirty); document.removeEventListener("visibilitychange", dirty); theme.disconnect(); ctx = null; };
   }
 
   rebuild(null);
   return {
-    /** 레이더 움직임 바꾸기(오른쪽 아래 ⚙). 펼침은 처음 한 번뿐이라 다시 켜도 옅은 움직임부터 */
+    /** 레이더 움직임 바꾸기(오른쪽 아래 ⚙). 펼침은 처음 한 번뿐이라 다음에 열 때부터 */
     setMotion(m: Motion) { S.motion = m; try { localStorage.setItem(MOTION_KEY, m); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
-    /** 분위기(속도 · 여운) 바꾸기. 도는 선은 지금 자리에서 새 속도로 이어 돈다 */
-    setTune(t: Tune) { S.shift = retune(S, S.now, t); S.tune = t; try { localStorage.setItem(TUNE_KEY, t); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
     finishIntro,
     S, model, phys, revealItem, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, drill, toggle, resetView, select, unselect, goTo, setFocus, measure, attach, dirty, notify,
     /** 주소에 보기 설정이 없으면 이 브라우저가 기억한 마지막 보기(로그인했을 때만). 붙인 뒤 한 번 */
@@ -298,11 +309,19 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     },
     subscribe(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; },
     version: () => version,
-    /** 판단을 남긴 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로) */
-    setMark(key: string, mark: MapNode["mark"]) {
+    /** 판단 저장이 성공한 뒤 그 기술의 표시만 바꾼다(지도 자리는 그대로). stamp = 꼬리표를 찍는 움직임(되돌리기는 false) */
+    setMark(key: string, mark: MapNode["mark"], stamp = true) {
       const n = model.nodes.find((x) => x.key === key); if (!n) return;
+      const was = n.decided;
       n.mark = mark;
-      if (S.view.filter.interest) setView({ ...S.view }); else notify(); // "내 관심"으로 거르는 중이면 관심을 풀자마자 지도에서도 빠지게
+      // 방금 지도에서 한 판단이 가장 최근(알림 판단보다 뒤). 되돌리기는 저장 전 값으로(알림 판단에서 온 것까지).
+      // shortcut: 판단을 지우면 알림 판단이 있어도 꼬리표가 빠진다(새로 고치면 서버 decidedMarks대로 돌아옴) — 알림 판단을 지도 입력에 따로 실으면 맞춘다
+      if (stamp) decidedBefore.set(key, was);
+      n.decided = !stamp && decidedBefore.has(key) ? decidedBefore.get(key)! : mark?.status ?? null;
+      if (!stamp) decidedBefore.delete(key);
+      S.stamp = stamp && mark && n.decided !== was ? { id: key, t: S.now } : null; // 보이는 판단이 바뀔 때만 찍는다(같은 판단을 다시 저장하면 그대로, 불변 3)
+      dirty(); // 판단 칩을 안 켰어도 캔버스 꼬리표를 다시 그린다(연출 뒤에는 손댈 때만 그림)
+      if (S.view.filter.marks.length) setView({ ...S.view }); else notify(); // 판단 칩으로 거르는 중이면 판단을 바꾸자마자 지도에서도 맞게
     },
     /** 내 태그를 붙이거나 뗀 뒤: 태그로 거르는 중이면 바로 다시 거른다 */
     setTags(key: string, tags: string[]) {

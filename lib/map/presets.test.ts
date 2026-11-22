@@ -8,7 +8,7 @@ test("기본 묶음은 보기 주소로 읽힌다: 입문자 추천 = MCP 뺀 �
   assert.deepEqual(by["입문자 추천"].filter.kinds, ["스킬", "플러그인", "개념", "개발 도구"]);
   assert.equal(by["이번 주 새 기술"].filter.period, "week");
   assert.deepEqual([by["보안 위험"].filter.risky, by["보안 위험"].color], [true, "grade"]);
-  assert.equal(by["내 관심"].filter.interest, true);
+  assert.deepEqual(by["내 관심"].filter.marks, ["interest"]);
 });
 
 test("저장: 같은 이름은 바꿔 쓰고 새것이 앞, 5개 넘으면 오래된 것부터 빠짐, 빈 이름은 무시", () => {

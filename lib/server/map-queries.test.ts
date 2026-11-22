@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_FIRST_FILL, readGuestMapInput, readListedByIds, readMapInput, readNewTechs, STARTER_MAX, TECH_COLUMNS } from "./map-queries.ts";
+import { readGuestMapInput, readListedByIds, readMapInput, STARTER_MAX, TECH_COLUMNS } from "./map-queries.ts";
 import { NOT_BULK_FILTER } from "../domain/registry.ts";
 
 type Row = Record<string, unknown>;
@@ -125,16 +125,6 @@ test("로그인 전 지도를 못 읽으면 던진다(빈 지도로 보이지 �
   await assert.rejects(readGuestMapInput(db));
 });
 
-test("새 기술: 처음 채운 때와 7일 전 중 늦은 때 뒤에 들어온 공개 목록 기술만, 최근 것부터(시뮬레이터·사라진 기술 제외)", async () => {
-  const early = recordingDb({ technologies: [{ id: "t1", display_name: "a", created_at: "2026-11-21T00:00:00Z" }] });
-  const input = await readNewTechs(early.db, "user-a", new Date("2026-11-22T00:00:00Z"));
-  for (const c of [`technologies.gt(created_at,${CATALOG_FIRST_FILL})`, "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)", "technologies.not(one_liner_source,is,null)", "tech_marks.eq(user_id,user-a)"]) assert.ok(early.calls.includes(c), c);
-  assert.equal(input.newSince, CATALOG_FIRST_FILL);
-  const late = recordingDb({});
-  await readNewTechs(late.db, "user-a", new Date("2026-12-20T00:00:00Z"));
-  assert.ok(late.calls.includes("technologies.gt(created_at,2026-12-13T00:00:00.000Z)"));
-});
-
 test("레지스트리 대량 채우기로 들어온 줄은 NEW 기준 시각이 없다(표시가 있거나, 표시 전의 레지스트리 줄). 표시가 false거나 다른 출처면 들어온 시각", async () => {
   const reg = "https://registry.modelcontextprotocol.io/v0.1/servers?search=x";
   const at = "2026-11-21T00:00:00Z";
@@ -150,9 +140,9 @@ test("레지스트리 대량 채우기로 들어온 줄은 NEW 기준 시각이 
   assert.ok(input.techs.every((t) => !("one_liner_source" in t) && !("registry_backfill" in (t.signals ?? {}))), "판단에 쓴 칸은 화면 · 캐시로 내보내지 않는다(ADR 0029)");
 });
 
-test("새 기술 화면은 DB에서 대량 채우기분을 빼고 읽는다(최근 순으로 잘라 읽으니 읽은 뒤 거르면 자리를 다 차지한다)", async () => {
-  const { db, calls } = recordingDb({});
-  await readNewTechs(db, "user-a", new Date("2026-11-22T00:00:00Z"));
+test("지도의 이번 주 새 기술 몫은 DB에서 대량 채우기분을 빼고 읽는다(최근 순으로 잘라 읽으니 읽은 뒤 거르면 자리를 다 차지한다)", async () => {
+  const { db, calls } = recordingDb({ categories: [] });
+  await readGuestMapInput(db);
   assert.ok(calls.includes(`technologies.or(${NOT_BULK_FILTER})`));
 });
 
@@ -160,14 +150,6 @@ test("연동 서비스 · 개념은 카탈로그 설명이 없으면 정해 둔 
   const { db } = recordingDb({ technologies: [{ id: "s", tech_key: "service:supabase", one_liner: null }, { id: "n", tech_key: "npm:x", one_liner: null }], categories: [] });
   const input = await readGuestMapInput(db);
   assert.deepEqual(input.techs.map((t) => t.oneLiner), ["공식 MCP 서버(com.supabase/mcp)가 있어 AI 도구와 연결할 수 있어요", null]);
-});
-
-test("로그인 전 새 기술: 내 표시는 읽지 않고(남의 줄을 읽을 일이 없게) 공개 목록 조건은 그대로", async () => {
-  const { db, calls } = recordingDb({});
-  const input = await readNewTechs(db, null, new Date("2026-11-22T00:00:00Z"));
-  assert.ok(!calls.some((c) => c.startsWith("tech_marks.")));
-  for (const c of ["technologies.not(one_liner_source,is,null)", "technologies.eq(is_simulated,false)", "technologies.neq(status,gone)"]) assert.ok(calls.includes(c), c);
-  assert.deepEqual(input.marks, []);
 });
 
 test("로그인 전 지도에 고른 기술 더하기(sel=)도 공개 목록 조건 그대로, 고른 게 없으면 읽지 않는다", async () => {

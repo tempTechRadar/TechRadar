@@ -3,7 +3,7 @@
 import type { Board } from "./board.ts";
 
 /** 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 알림 상세 · 보드 · 청사진 서랍에 같은 글로 */
-export const BLUEPRINT_GATE = "적용 후보로 고른 것만 청사진에 넣을 수 있어요. 실제 설치는 Claude Code에서 직접 해요.";
+export const BLUEPRINT_GATE = "내 기술 · 적용 후보 · 확정 이력에 있는 기술만 청사진에 넣을 수 있어요. 실제 설치는 Claude Code에서 직접 해요.";
 
 /** 단계 이름 → 서랍에 보일 기술 분류(하는 일 또는 세부 갈래). 목록에 없는 단계(직접 쓴 이름)는 거르지 않는다 */
 export const STAGE_FIELDS: Record<string, string[]> = {
@@ -28,8 +28,10 @@ export const TEMPLATES: { name: string; desc: string; cols: string[][] }[] = [
 ];
 
 /** 단계에 맞는 기술인지: 그 단계의 분류가 기술의 하는 일 · 세부 갈래 중 하나와 같으면. 목록에 없는 단계는 모두 맞음 */
+/** 단계 이름의 분류. 사용자가 지은 이름이 "constructor" 같은 객체 기본 속성과 겹쳐도 목록에 없는 단계로 본다 */
+export const stageFields = (stage: string): string[] | undefined => (Object.hasOwn(STAGE_FIELDS, stage) ? STAGE_FIELDS[stage] : undefined);
 export function fitsStage(stage: string, tech: { field: string | null; sub: string | null }): boolean {
-  const fields = STAGE_FIELDS[stage];
+  const fields = stageFields(stage);
   return !fields || fields.includes(tech.field ?? "") || fields.includes(tech.sub ?? "");
 }
 

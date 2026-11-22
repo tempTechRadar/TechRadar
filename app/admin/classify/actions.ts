@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { adminGate, type AdminGate } from "@/lib/server/admin-gate";
 import { createAlertsForChange } from "@/lib/server/alerts";
 import { saveChange } from "@/lib/server/changes";
-import { addRule, confirmRelation, setCategory, setRuleEnabled, type EditCtx, type EditResult } from "@/lib/server/classify-edit";
+import { addRule, classifyNow, confirmRelation, setCategory, setRuleEnabled, type EditCtx, type EditResult } from "@/lib/server/classify-edit";
+import { CLASSIFY_NOW_BUDGET_MS, classifyCatalog } from "@/lib/server/classify-store";
 import { notifyRelationConfirmed } from "@/lib/server/relation-opportunity";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { flashQuery } from "@/lib/server/admin-flash";
@@ -70,4 +71,17 @@ export async function addRuleAction(form: FormData): Promise<void> {
 export async function setCategoryAction(form: FormData): Promise<void> {
   const ctx = ctxOf(await adminGate());
   back(await setCategory(ctx, text(form, "techId"), text(form, "categoryId"), text(form, "reason")), "갈래를 정했어요.");
+}
+
+const CLASSIFY_NOW_FAIL = "분류하다 멈췄어요. 이미 정한 갈래는 그대로이고, 다시 누르면 남은 것부터 이어서 해요.";
+
+/** "규칙으로 한 번에 분류"(P-12f ⑧). 관리자 확인 → 서비스 연결로 classifyCatalog(매일 실행과 같은 일) → 사유와 결과를 audit_logs에 남김 */
+export async function classifyNowAction(form: FormData): Promise<void> {
+  const ctx = ctxOf(await adminGate());
+  const work = getServiceSupabase();
+  if (!work) return go("error", "서비스 키 연결이 없어 지금은 분류할 수 없어요.");
+  const result = await classifyNow(ctx, () => classifyCatalog(work, Date.now() + CLASSIFY_NOW_BUDGET_MS), text(form, "reason"));
+  revalidatePath(PAGE);
+  if (!result.ok) return go("error", result.code === "reason" ? FAIL_TEXT.reason : CLASSIFY_NOW_FAIL);
+  return go("info", result.auditFailed ? `${result.summary} 다만 바꾼 기록(담당자·시각·사유)을 남기지 못했어요.` : result.summary);
 }

@@ -29,7 +29,7 @@ export function AdminShell({ tab, title, lead, blocked, error, children }: Props
       {lead ? <p className="admin-lead">{lead}</p> : null}
       {blocked === "forbidden" ? <p role="alert" className="admin-note danger">관리자만 볼 수 있어요.</p> : null}
       {blocked === "no_db" ? <p role="alert" className="admin-note danger">Supabase 연결 전이에요. .env.local을 확인해 주세요.</p> : null}
-      {error ? <p role="alert" className="admin-note danger">불러오지 못했어요(없는 게 아니라 조회 실패): {error}</p> : null}
+      {error ? <p role="alert" className="admin-note danger">불러오지 못했어요(없는 게 아니에요): {error}</p> : null}
       {blocked || error ? null : children}
     </main>
   );

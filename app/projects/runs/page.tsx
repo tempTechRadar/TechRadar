@@ -28,13 +28,15 @@ export default async function MyRunsPage({ searchParams }: { searchParams: Promi
   const picked = runs.find((r) => r.id === wanted) ?? runs[0] ?? null;
   const stepsRes = picked ? await supabase.from("run_steps").select(STEP_COLUMNS).eq("run_id", picked.id).order("created_at") : null;
   const readError = runsRes.error?.message ?? stepsRes?.error?.message;
+  if (readError) console.error("실행 기록 조회 실패", readError); // 원문은 서버 기록에만(화면에 DB 오류를 보이지 않음)
+  const again = new URLSearchParams(Object.entries({ run: wanted, node }).filter((e): e is [string, string] => !!e[1])).toString(); // 다시 불러와도 보던 실행 · 상자 그대로
 
   return (
-    <main>
+    <main className="page">
       <p><Link href="/projects">← 내 프로젝트</Link></p>
       <h1>내 실행 기록</h1>
       <p>내 저장소를 읽은 실행(처음 등록 읽기·다시 읽기)만 보여요. 실제로 실행한 기록대로 칠해지고, 기록이 없는 상자는 회색이에요.</p>
-      {readError ? <p role="alert" style={{ color: "var(--ink-danger)" }}>기록을 읽지 못했어요(없는 게 아니라 조회 실패): {readError}</p> : null}
+      {readError ? <p className="notice notice-error" role="alert"><strong>실행 기록을 불러오지 못했어요.</strong> 없는 게 아니에요. <Link href={`/projects/runs${again ? `?${again}` : ""}`}>다시 불러오기</Link></p> : null}
       {!readError && !picked ? <p>아직 실행 기록이 없어요. 프로젝트를 등록하거나 다시 읽기를 누르면 생겨요.</p> : null}
       <RunView flow={flow} runs={runs} picked={picked} steps={(stepsRes?.data ?? []) as StepDetail[]} node={node} basePath="/projects/runs" />
     </main>

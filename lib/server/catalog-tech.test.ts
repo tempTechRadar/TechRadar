@@ -58,6 +58,20 @@ test("공개 목록 밖(누군가의 저장소에서만 생긴 줄 · 사라진 
   assert.equal((await getCatalogTechDetail(fakeDb(tables), { id: "u1", isDemo: true }, "s"))?.tech.id, "s", "시뮬레이터 기술은 시연 계정에");
 });
 
+test("손님(user = null): 공개 목록만 열고, 내 기술 · 내 판단 기록 표는 묻지도 않는다(불변 5, P-12f)", async () => {
+  const asked: string[] = [];
+  const tables = {
+    technologies: [tech("a"), tech("p", { one_liner_source: null }), tech("g", { status: "gone" }), tech("s", { is_simulated: true })],
+    my_technologies: [{ id: "m1", owner_id: "u1", tech_id: "a", projects: { name: "앱", archived_at: null } }],
+    tech_mark_events: [{ user_id: "u1", tech_id: "a", created_at: "2026-11-20", new_status: "hold", reason: "남의 판단" }],
+  };
+  const spy = (db: SupabaseClient) => ({ from: (t: string) => (asked.push(t), db.from(t)) }) as unknown as SupabaseClient;
+  const d = (await getCatalogTechDetail(spy(fakeDb(tables)), null, "a"))!;
+  assert.deepEqual([d.tech.id, d.mine, d.events], ["a", [], []]);
+  assert.ok(!asked.includes("my_technologies") && !asked.includes("tech_mark_events"), asked.join(","));
+  for (const id of ["p", "g", "s"]) assert.equal(await getCatalogTechDetail(fakeDb(tables), null, id), null, id);
+});
+
 test("하나라도 못 읽으면 null이 아니라 던진다(없음과 읽지 못함은 다르다)", async () => {
   for (const table of ["technologies", "my_technologies", "tech_relations", "tech_mark_events"]) {
     await assert.rejects(getCatalogTechDetail(fakeDb({ technologies: [tech("a")] }, { [table]: "연결 실패" }), USER, "a"), /연결 실패/, table);

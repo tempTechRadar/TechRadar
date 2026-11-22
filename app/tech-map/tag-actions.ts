@@ -19,7 +19,7 @@ async function changeTag(save: typeof addTag, techId: string, tag: string): Prom
   const db = await getServerSupabase();
   if (!db) return { ok: false, message: NOT_CONNECTED };
   const result = await save(db, user.id, { techId, tag });
-  if (result.ok && result.changed) { revalidatePath("/"); revalidatePath("/views"); }
+  if (result.ok && result.changed) { revalidatePath("/"); revalidatePath("/blueprint"); }
   return result;
 }
 
@@ -39,11 +39,11 @@ export async function techTagsAction(techId: string): Promise<TechTagsResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, message: NOT_SIGNED_IN };
   const db = await getServerSupabase();
-  if (!db) return { ok: false, message: "태그를 읽지 못했어요." };
+  if (!db) return { ok: false, message: "태그를 불러오지 못했어요." };
   try {
     return { ok: true, ...(await readTagPanel(db, user.id, techId)) };
   } catch (e) {
     console.error("내 태그 읽기 실패", e instanceof Error ? e.message : e);
-    return { ok: false, message: "태그를 읽지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+    return { ok: false, message: "태그를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요." };
   }
 }
