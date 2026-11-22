@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 /** 저장하지 않는 액션(읽기 · 쿠키만). 관리자 액션은 가짜 계정이 일반 사용자라 관리자 확인에서 막힌다 */
-const READ_ONLY = new Set(["searchCatalogAction", "findCapture", "recentAlerts", "dismissFirstCheck"]);
+const READ_ONLY = new Set(["searchCatalogAction", "recentAlerts", "dismissFirstCheck"]);
 
 /** app 아래 파일 중 pick이 고른 것. 관리자 폴더는 뺀다: 가짜 계정은 일반 사용자라 관리자 확인에서 막힌다(admin-guard.test.ts) */
 function appFiles(dir: string, pick: (name: string, path: string) => boolean): string[] {

@@ -45,7 +45,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
 
   return (
     <div className="map-hud">
-      <MapSearch key={resets} onFind={onFind} login={login} projects={projects} onPick={(r) => { if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }} />
+      <MapSearch key={resets} onFind={onFind} onPick={(r) => { if (r.key) onGo(r.key); else onView({ ...view, scope: [r.scope!] }); }} />
       <div className="map-pop map-pop-view">
         <button type="button" className="btn" aria-expanded={viewOpen} onClick={toggleView}>보기</button>
         {viewOpen ? (
