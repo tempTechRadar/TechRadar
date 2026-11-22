@@ -8,13 +8,14 @@ import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReact
 import "@xyflow/react/dist/style.css";
 import {
   applyTemplate, autoLayout, LIMITS, NODE_SIZE, connect, renameStage, fromV1, connectProblem, disconnect, layers, limitProblems, putTech, removeStage, removeTech, toBoardView,
+  addLink, removeLink, moveTechInStage, linkEnd, slotAt, stageHeight, techSlot, BOX,
   type Graph, type Pos, type TemplateKind,
 } from "@/lib/blueprint/graph";
 import { fromNames } from "@/lib/blueprint/board";
 import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
 import { toBoard } from "@/lib/blueprint/stored";
 import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
-import { addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
+import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -31,6 +32,7 @@ import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
 import { StageNode, type StageNodeType } from "./stage-node";
+import { TechNode, type TechNodeType } from "./tech-node";
 import { ResultDialog, type CheckTarget } from "./result-dialog";
 import { SeqEdge, type SeqEdgeType } from "./seq-edge";
 import type { PanelProps, Picked } from "./studio-types";
@@ -39,7 +41,10 @@ import { useConfirm } from "./use-studio-save";
 import { useBounce } from "./use-bounce";
 import "./studio.css";
 
-const nodeTypes = { stage: StageNode };
+const nodeTypes = { stage: StageNode, tech: TechNode };
+/** 기술 노드 id = 관계선 끝 "기술id@단계id"(단계 id에는 @가 없다) */
+const isTechNode = (id: string | null | undefined) => Boolean(id?.includes("@"));
+const splitEnd = (end: string) => { const at = end.lastIndexOf("@"); return { techId: end.slice(0, at), stageId: end.slice(at + 1) }; };
 const edgeTypes = { seq: SeqEdge };
 const posOf = (g: Graph) => new Map(g.stages.map((s) => [s.id, { x: s.x, y: s.y }]));
 /** 움직임 줄이기(P-12g B1): CSS의 --dur 0s는 카메라 이동(fitView) · 클래스 붙이기 같은 JS 움직임에 닿지 않아 따로 본다(지도 controller.ts와 같은 방식) */
@@ -74,6 +79,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
   // shortcut: 끄는 동안의 위치를 이 컴포넌트 상태에 둬서 포인터가 움직일 때마다 패널까지 다시 그린다. 단계가 수십 개를 넘어 끌기가 버벅이면 캔버스 자식으로 내리거나 패널을 memo한다
   const [drag, setDrag] = useState<Map<string, Pos> | null>(null);
+  // 끄는 기술 노드(H2): 단계 기준 자리. 놓을 때 어느 단계 · 몇 번째인지 본다(ref = 같은 변경 묶음 안에서 바로 읽기)
+  const [techDrag, setTechDrag] = useState<{ id: string; pos: Pos } | null>(null), techDragRef = useRef<{ id: string; pos: Pos } | null>(null);
+  // B4 새 칩 한 번: 판에 기술 노드가 딱 하나 늘었을 때만 그 노드가 톡(불러오기 · 옮기기는 안 돎)
+  const seenEnds = useRef<Set<string> | null>(null);
+  useEffect(() => { if (graph) seenEnds.current = new Set(graph.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)))); });
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
   const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
   const addBtn = useRef<HTMLButtonElement>(null), canvasBox = useRef<HTMLDivElement>(null);
@@ -273,14 +283,49 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
-  const nodes: StageNodeType[] = g.stages.map((s) => ({
+  const nodes: (StageNodeType | TechNodeType)[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, picked, info, readOnly, onPick: (p) => { setPicked(p); if (p?.kind === "tech") openDrawer(); }, onDropTech: dropTech, onRemoveTech: (sid, tid) => apply(removeTech(g, sid, tid), removeSaid(stageOf(sid)?.name ?? "", g.stages.find((x) => x.id === sid)?.techs.find((x) => x.id === tid)?.name ?? "")),
-      onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
+    style: { width: NODE_SIZE.w, height: stageHeight(s) }, // 컨테이너 크기 = graph.ts stageHeight(자동 정렬과 같은 값)
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
       edit: readOnly ? undefined : { onSide: sideGhost, onRemove: removeFromCard, hasIn: g.edges.some((e) => e.to === s.id), hasOut: g.edges.some((e) => e.from === s.id),
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
+  // 기술 노드(H2): 단계의 자식(parentId), 자리는 단계 안 자동 흐름(techSlot). 부모 다음에 와야 해서 단계 뒤에 붙인다
+  const prevEnds = seenEnds.current, endsNow = g.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)));
+  const newEnds = prevEnds ? endsNow.filter((e) => !prevEnds.has(e)) : [];
+  const popEnd = prevEnds && newEnds.length === 1 && endsNow.length === prevEnds.size + 1 ? newEnds[0] : null;
+  for (const s of g.stages) s.techs.forEach((t, i) => {
+    const id = linkEnd(t.id, s.id), moving = techDrag?.id === id;
+    nodes.push({ id, type: "tech", parentId: s.id, position: moving ? techDrag.pos : techSlot(i), draggable: !readOnly, selectable: false, connectable: !readOnly,
+      zIndex: moving ? 10 : undefined, style: { width: BOX.tech.w, height: BOX.tech.h },
+      data: { tech: t, info: info.get(t.id), fresh: id === popEnd, readOnly, busy: busyId === t.id,
+        picked: picked?.kind === "tech" && picked.stageId === s.id && picked.techId === t.id,
+        onPick: () => { setPicked({ kind: "tech", stageId: s.id, techId: t.id }); openDrawer(); },
+        onRemove: () => apply(removeTech(g, s.id, t.id), removeSaid(s.name, t.name)),
+        onCandidate: info.has(t.id) ? undefined : () => void markCandidate(t.id, t.name) } });
+  });
+  const techName = (end: string) => { const { techId, stageId } = splitEnd(end); return stageOf(stageId)?.techs.find((t) => t.id === techId)?.name ?? ""; };
+  /** 기술 노드를 놓음: 같은 단계면 순서 바꾸기, 다른 단계 상자 안이면 옮기기(관계선 끝도 따라감), 상자 밖이면 제자리. apply 한 번 = 되돌리기 한 칸 */
+  function dropTechNode(id: string) {
+    const d = techDragRef.current;
+    techDragRef.current = null; setTechDrag(null);
+    if (!d || d.id !== id) return;
+    const { techId, stageId: fromId } = splitEnd(id), from = stageOf(fromId), tech = from?.techs.find((t) => t.id === techId);
+    if (!from || !tech) return;
+    const cx = from.x + d.pos.x + BOX.tech.w / 2, cy = from.y + d.pos.y + BOX.tech.h / 2;
+    const to = g.stages.find((s) => cx >= s.x && cx <= s.x + NODE_SIZE.w && cy >= s.y && cy <= s.y + stageHeight(s));
+    if (!to) return say("단계 상자 안에 놓아 주세요. 제자리로 돌렸어요.");
+    const top = cy - to.y - BOX.tech.h / 2;
+    if (to.id === fromId) {
+      const next = moveTechInStage(g, fromId, techId, slotAt(top, from.techs.length - 1));
+      if (next !== g) apply(next, `"${from.name}"에서 ${tech.name}의 순서를 바꿨어요.`);
+      return;
+    }
+    const r = moveTechToStage(g, fromId, to.id, { id: techId, grade: info.get(techId)?.grade ?? "unknown" }, slotAt(top, to.techs.length));
+    if (!r.ok) return say(r.message);
+    apply(r.graph, `${tech.name}을(를) "${from.name}"에서 "${to.name}"(으)로 옮겼어요.`);
+  }
   // 선 위에 마우스: 가운데 "끊기". 선에서 단추로 옮기는 틈(150ms)에는 지킨다
   const leaveEdge = () => { clearTimeout(edgeTimer.current); edgeTimer.current = setTimeout(() => setHoverEdge(null), 150); };
   const keepEdge = (id: string) => { clearTimeout(edgeTimer.current); setHoverEdge(id); };
@@ -293,12 +338,27 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
           apply(disconnect(g, e.from, e.to), linkSaid(g, e.from, e.to, true)); } } };
   });
+  // 기술 관계선(H2): 사용자가 그은 표시(가는 점선, "검증 · 호환"이 아님). 끊기는 순서 선과 같은 단추
+  for (const l of g.links ?? []) {
+    const id = `L:${l.from}>${l.to}`, label = `${techName(l.from)} → ${techName(l.to)}`;
+    edges.push({ id, type: "seq", source: l.from, target: l.to, selected: selEdges.has(id), className: "tl", markerEnd: { type: MarkerType.ArrowClosed, width: 8, height: 8 },
+      data: { label, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
+        onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
+          apply(removeLink(g, l.from, l.to), `"${label}" 관계 표시를 지웠어요.`); } } });
+  }
   const near = assist.near;
   if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
     label: near.blocked === "cycle" ? "고리가 생겨 못 이어요" : near.blocked ? "못 이어요" : "놓으면 이어져요",
     labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
-  function onNodesChange(changes: NodeChange<StageNodeType>[]) {
+  function onNodesChange(all: NodeChange<StageNodeType | TechNodeType>[]) {
+    const changes: NodeChange<StageNodeType>[] = [];
+    for (const c of all) {
+      if (!("id" in c) || !isTechNode(c.id)) { changes.push(c as NodeChange<StageNodeType>); continue; }
+      if (c.type !== "position") continue; // 기술 노드는 끌기만 본다(고르기는 칩 단추, 크기는 고정)
+      if (c.position) { techDragRef.current = { id: c.id, pos: c.position }; setTechDrag(techDragRef.current); }
+      if (c.dragging === false) dropTechNode(c.id);
+    }
     let nextSel: Set<string> | null = null, nextDims: typeof dims | null = null, moved = drag, ended = false, dragging = false;
     const raw = new Map<string, Pos>();
     for (const c of changes) {
@@ -327,10 +387,20 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     for (const c of changes) if (c.type === "select") { next ??= new Set(selEdges); if (c.selected) next.add(c.id); else next.delete(c.id); }
     if (next) setSelEdges(next);
   }
-  const onConnect = (c: Connection) => { const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target), linkSaid(g, c.source, c.target, false)); };
+  const MIXED = "기술은 기술끼리(관계 표시), 단계는 단계끼리(순서) 이어요.";
+  const onConnect = (c: Connection) => {
+    if (isTechNode(c.source) || isTechNode(c.target)) {
+      if (!isTechNode(c.source) || !isTechNode(c.target)) return say(MIXED);
+      const next = addLink(g, c.source, c.target);
+      if (next === g) return say((g.links?.length ?? 0) >= LIMITS.links ? `관계 표시는 ${LIMITS.links}개까지예요.` : "이미 그은 관계이거나 같은 기술이에요.");
+      return apply(next, `"${techName(c.source)}" → "${techName(c.target)}" 관계를 표시했어요(내가 그은 표시예요).`);
+    }
+    const p = connectProblem(g, c.source, c.target); if (p) say(CONNECT_KO[p]); else apply(connect(g, c.source, c.target), linkSaid(g, c.source, c.target, false));
+  };
   /** 빈 곳에 놓았으면(S3) 그 자리에 옅은 새 단계: 오른쪽 점에서 끌면 다음 단계, 왼쪽 점에서 끌면 앞 단계.
    *  못 잇는 곳에 놓았으면(isValidConnection이 막아 onConnect가 안 불림) 이유를 알린다. 들어오는 점에서 끌었으면 방향을 뒤집어 본다 */
   const onConnectEnd = (ev: MouseEvent | TouchEvent, st: FinalConnectionState) => {
+    if (st.fromNode && isTechNode(st.fromNode.id)) { if (st.isValid === false) say(MIXED); return; } // 기술 점은 빈 곳에 놓아도 새 단계를 만들지 않는다
     if (st.isValid === null && !st.toNode && st.fromNode) {
       const pt = "changedTouches" in ev ? ev.changedTouches[0] : ev;
       if (!pt) return;
@@ -341,14 +411,15 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       return;
     }
     if (st.isValid !== false || !st.fromNode || !st.toNode) return;
+    if (isTechNode(st.toNode.id)) return say(MIXED);
     const [from, to] = st.fromHandle?.type === "target" ? [st.toNode.id, st.fromNode.id] : [st.fromNode.id, st.toNode.id];
     const p = connectProblem(g, from, to);
     if (p) say(CONNECT_KO[p]);
   };
-  function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: { source: string; target: string }[] }) {
+  function onDelete({ nodes: ns, edges: es }: { nodes: { id: string }[]; edges: { id: string; source: string; target: string }[] }) {
     let next = g;
-    for (const e of es) next = disconnect(next, e.source, e.target);
-    for (const n of ns) next = removeStage(next, n.id);
+    for (const e of es) next = e.id.startsWith("L:") ? removeLink(next, e.source, e.target) : disconnect(next, e.source, e.target);
+    for (const n of ns.filter((x) => !isTechNode(x.id))) next = removeStage(next, n.id);
     apply(next, ns.length ? `단계 ${ns.length}개를 지웠어요. 되돌리기로 살릴 수 있어요.` : es.length === 1 ? linkSaid(g, es[0].source, es[0].target, true) : `연결 ${es.length}개를 끊었어요.`);
     setSel(new Set()); setSelEdges(new Set()); setPicked(null);
   }
@@ -428,13 +499,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <div className="studio-center">
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
-          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 키보드 · 화면 읽기는 왼쪽 Library의 '키보드로 편집'을 쓰세요">
+          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 왼쪽 Library의 '키보드로 편집'을 쓰세요">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
-              onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && connectProblem(g, c.source, c.target) === null}
+              onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
               onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
-              minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
+              nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               <Background gap={16} size={1} />
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}

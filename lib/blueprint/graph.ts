@@ -300,22 +300,38 @@ export function removeLink(g: Graph, from: string, to: string): Graph {
 /** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수.
  *  P-12h-2 T1: 카드를 키워 320 · 160 → 384 · 192. DB의 v1 → v2 변환(SQL 202611221000)은 옛 값 그대로 둔다(이미 바뀐 판을 다시 옮기지 않게) */
 export const LAYOUT = { x: 384, y: 192 } as const;
-function placeLevels(levels: string[][]): Map<string, Pos> {
-  const tallest = Math.max(0, ...levels.map((c) => c.length));
+/** 단계 = 컨테이너(P-12j H2): 머리 아래 기술 노드가 한 줄에 하나씩. 화면(stage-node · tech-node CSS)이 같은 값을 쓴다 */
+export const BOX = { head: 40, row: 46, pad: 12, note: 40, tech: { x: 12, w: NODE_SIZE.w - 24, h: 40 } } as const;
+/** 단계 상자 높이: 기술이 없어도 한 줄(놓을 자리 안내), 메모가 있으면 두 줄 더 */
+export const stageHeight = (s: Pick<Stage, "techs" | "note">): number => BOX.head + Math.max(1, s.techs.length) * BOX.row + BOX.pad + (s.note ? BOX.note : 0);
+/** 단계 안 i번째 기술 노드 자리(단계 왼쪽 위 기준) */
+export const techSlot = (i: number): Pos => ({ x: BOX.tech.x, y: BOX.head + i * BOX.row });
+/** 단계 안 y(단계 기준)에 놓으면 몇 번째 자리인지(0 ~ n) */
+export const slotAt = (y: number, n: number): number => Math.max(0, Math.min(n, Math.round((y - BOX.head) / BOX.row)));
+/** 깊이마다 열. 같은 열은 상자 높이만큼 쌓되(사이 48) 적어도 LAYOUT.y 칸, 열마다 가운데 맞춤. 모든 값이 8의 배수 */
+function placeLevels(levels: string[][], heightOf: (id: string) => number): Map<string, Pos> {
+  const step = (id: string) => Math.max(LAYOUT.y, Math.ceil((heightOf(id) + 48) / GRID) * GRID);
+  const total = (col: string[]) => col.reduce((n, id) => n + step(id), 0);
+  const tallest = Math.max(0, ...levels.map(total));
   const at = new Map<string, Pos>();
-  levels.forEach((col, d) => col.forEach((id, i) => at.set(id, { x: d * LAYOUT.x, y: (i + (tallest - col.length) / 2) * LAYOUT.y })));
+  levels.forEach((col, d) => {
+    let y = (tallest - total(col)) / 2;
+    for (const id of col) { at.set(id, { x: d * LAYOUT.x, y: Math.round(y / GRID) * GRID }); y += step(id); }
+  });
   return at;
 }
 export function autoLayout(g: Graph): Graph {
   const l = layers(g);
-  return l.ok ? moveStages(g, placeLevels(l.levels)) : g;
+  const h = new Map(g.stages.map((s) => [s.id, stageHeight(s)]));
+  return l.ok ? moveStages(g, placeLevels(l.levels, (id) => h.get(id) ?? 0)) : g;
 }
 
 // ── 바꿔 읽기 ──────────────────────────────────────────────────────────────────────────────────────
 /** 옛 열 · 행 판 → 그래프. 이웃한 열의 모든 짝을 잇는다(열 12 × 나란히 4면 최대 176줄이라 한도 안). 읽으면 toBoardView가 같은 판을 돌려준다 */
 export function fromV1(board: Board): Graph {
   const cols = board.filter((c) => c.length > 0);
-  const at = placeLevels(cols.map((c) => c.map((s) => s.id)));
+  const h = new Map(cols.flat().map((s) => [s.id, stageHeight(s)]));
+  const at = placeLevels(cols.map((c) => c.map((s) => s.id)), (id) => h.get(id) ?? 0);
   const stages = cols.flat().map((s) => ({ ...s, techs: [...s.techs], ...at.get(s.id)! }));
   const edges = cols.slice(1).flatMap((col, i) => cols[i].flatMap((a) => col.map((b) => ({ from: a.id, to: b.id }))));
   return { v: 2, stages, edges };
