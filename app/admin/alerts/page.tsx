@@ -25,7 +25,7 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
   const rows = filterAlerts(all, f);
 
   return (
-    <AdminShell tab="alerts" title={TITLE} lead={LEAD} error={error}>
+    <AdminShell tab="alerts" title={TITLE} lead={LEAD} proves="알림마다 누가 언제 판단했는지가 남고, 관리자도 남의 알림을 대신 판단하지 않는다는 것" error={error}>
       <ul className="admin-counts" aria-label="전체 알림 건수">
         <li><b>{counts.total}</b><span>전체</span></li>
         <li><b>{counts.pending}</b><span>판단 대기</span></li>

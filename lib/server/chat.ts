@@ -26,9 +26,9 @@ async function logCall(db: SupabaseClient, row: Row): Promise<void> {
   if (error) console.error("ai_calls를 기록하지 못함", maskSecrets(error.message));
 }
 
-/** 질문·찾은 쪽·답을 남긴다. 실패해도 답은 보여 준다(saved=false) */
+/** 질문·찾은 쪽·답을 남긴다. 질문은 Claude에 보낼 때처럼 비밀값을 가린다. 실패해도 답은 보여 준다(saved=false) */
 async function saveChat(db: SupabaseClient, userId: string, question: string, answer: string, sources: string[]): Promise<boolean> {
-  const { error } = await db.from("chat_logs").insert({ user_id: userId, question, answer, wiki_pages: sources });
+  const { error } = await db.from("chat_logs").insert({ user_id: userId, question: maskSecrets(question), answer, wiki_pages: sources });
   if (error) console.error("chat_logs를 기록하지 못함", maskSecrets(error.message));
   return !error;
 }
@@ -62,7 +62,9 @@ async function ask(deps: Deps, input: Input): Promise<ChatResult> {
   const since = startOfKoreanDay(input.now ?? new Date());
   const mine = rowsOrThrow(await deps.userDb.from("chat_logs").select("id").eq("user_id", input.userId).gte("created_at", since), "오늘 질문 수를 읽지 못함");
   const service = rowsOrThrow(await deps.serviceDb.from("ai_calls").select("id").gte("created_at", since), "오늘 호출 수를 읽지 못함");
-  const decision = decideAiCall("chatbot", { changeHasDraft: false, userCallsToday: mine.length, serviceCallsToday: service.length });
+  // 실패한 Claude 호출(호출 오류·답 모양 틀림)은 chat_logs에 안 남고 ai_calls에만 남는다. 성공은 둘 다에 남으니 실패 줄만 더해 한 질문을 두 번 세지 않는다
+  const myFailed = rowsOrThrow(await deps.serviceDb.from("ai_calls").select("id").eq("user_id", input.userId).eq("purpose", "chatbot").eq("status", "failed").gte("created_at", since), "오늘 실패한 질문 수를 읽지 못함");
+  const decision = decideAiCall("chatbot", { changeHasDraft: false, userCallsToday: mine.length + myFailed.length, serviceCallsToday: service.length });
   if (!decision.allow) return { status: "refused", reason: decision.reason === "user_limit" ? "user_limit" : "service_limit" };
   const pages = findWikiPages(question, deps.pages);
   // 맞는 쪽이 없으면 Claude를 부르지 않는다(비용 0). 그래도 질문은 남겨 하루 20개에 센다

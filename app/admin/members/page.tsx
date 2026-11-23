@@ -30,7 +30,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const memberOptions = [{ value: "", label: "모든 회원" }, ...(data?.profiles ?? []).map((p) => ({ value: p.id, label: p.nickname }))];
 
   return (
-    <AdminShell tab="members" title={TITLE} lead={LEAD} error={error}>
+    <AdminShell tab="members" title={TITLE} lead={LEAD} proves="관리자 권한을 주고 거두는 일도 사유와 함께 기록되고, 화면을 거치지 않아도 DB가 다시 막는다는 것" error={error}>
       {actionError ? <p role="alert" className="admin-note danger">{actionError}</p> : null}
       {info ? <p role="status" className="admin-note">{info}</p> : null}
       <FilterForm>

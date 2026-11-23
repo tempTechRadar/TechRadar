@@ -22,10 +22,10 @@ export default async function RunsPage() {
   const kinds = Object.entries(errorKindCounts(errors)).sort((a, b) => b[1] - a[1]);
 
   return (
-    <AdminShell tab="runs" title={TITLE} lead={LEAD} error={error}>
-      <p>
-        <Link href="/admin/run-now" style={{ display: "inline-flex", alignItems: "center", minHeight: "var(--hit)" }}>지금 한 번 실행</Link>
-        <span className="muted"> · 매일 06:00(한국 시간) 정기 실행 말고 지금 한 번 더 돌릴 때</span>
+    <AdminShell tab="runs" title={TITLE} lead={LEAD} proves="실패가 '변화 없음'으로 숨지 않고 수집 오류 · 연속 실패로 남는다는 것" error={error}>
+      <p className="admin-actions">
+        <Link href="/admin/run-now" className="admin-cta">지금 한 번 실행</Link>
+        <span className="muted">매일 06:00(한국 시간) 정기 실행 말고 지금 한 번 더 돌릴 때</span>
       </p>
 
       <h2>연속 실패</h2>

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TechRadar 발표 (초안)</title>
-<!-- 발표 자료 초안(2026-11-19). 한 파일, 바깥 주소 없음(인터넷이 끊겨도 열린다). 키는 ← → Space PageUp PageDown Home End.
+<title>TechRadar 발표</title>
+<!-- 발표 자료 제출판(2026-11-23, 처음 초안 2026-11-19). 한 파일, 바깥 주소 없음(인터넷이 끊겨도 열린다). 키는 ← → Space PageUp PageDown Home End.
      숫자와 문장은 저장소 문서·DB에서 가져온 것이고 출처를 각 슬라이드 아래에 적었다. "▢ 채울 것"은 아직 사실이 없는 자리다(지어 쓰지 않는다). -->
 <style>
   /* 색은 docs/design.md 5절(레이더 어두운 테마)의 토큰. 글자 대비는 같은 절의 값을 따른다 */
@@ -52,7 +52,6 @@
     animation: spin 9s linear infinite; pointer-events: none; opacity: .8; }
   @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
   #counter { position: fixed; right: 18px; bottom: 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 6px; z-index: 5; }
-  .draft { position: fixed; left: 18px; top: 12px; font-family: var(--mono); font-size: 12px; color: var(--warning); border: 1px solid var(--warning); padding: 2px 8px; border-radius: 6px; z-index: 5; background: var(--surface); }
   .shot { margin: 14px 0 0; }
   .shot img { display: block; max-width: 100%; max-height: 46vh; border: 1px solid #22303e; border-radius: 10px; }
   .shot img[hidden] { display: none; }
@@ -61,11 +60,10 @@
   a { color: var(--success); }
   :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
   @media (max-width: 640px) { body { font-size: 17px; } .slide { padding: 48px 20px 64px; } }
-  @media print { html { scroll-snap-type: none; } .slide { min-height: 0; height: 100vh; page-break-after: always; } #counter, .draft { display: none; } }
+  @media print { html { scroll-snap-type: none; } .slide { min-height: 0; height: 100vh; page-break-after: always; } #counter { display: none; } }
 </style>
 </head>
 <body>
-<span class="draft">초안 · 2026-11-23 갱신 중</span>
 <span id="counter" aria-hidden="true">1 / 17</span>
 
 <main id="deck">
@@ -101,11 +99,11 @@
     <div class="card"><h3>들은 말 <span class="tag">사람 인터뷰, 요약</span></h3>
       <ul><li>"있는 줄 몰라서 포기"는 거의 없다 (목적을 정하고 먼저 검색)</li><li>보안 확인 = 유명세·사례 확인. 실제 점검(권한·코드·출처)은 안 한다</li><li>새 기준: 무료로 쓸 수 있는가</li></ul></div>
     <div class="card"><h3>접거나 바꾼 것</h3>
-      <ul><li>기술 지도: 근거가 가장 약해 "대신 작게"</li><li>빈도·손해 수치화: 하지 않음 (ADR 0011)</li><li>가설들 → 통합안 승인 (ADR 0005·0013)</li></ul></div>
+      <ul><li>기술 지도: 근거가 가장 약해 "대신 작게" → 11-20 첫 화면이 되고(ADR 0026), 11-21 컨셉을 다시 정하며 중심으로(ADR 0032)</li><li>빈도·손해 수치화: 하지 않음 (ADR 0011)</li><li>가설들 → 통합안 승인 (ADR 0005·0013)</li></ul></div>
     <div class="card"><h3>한계</h3>
       <ul><li>표본이 작다</li><li>한 응답자는 인터뷰 전에 주제를 알고 있었고 "일부러 삐딱하게 답변"한다고 말했다</li><li>AI 인터뷰는 근거로 세지 않는다</li></ul></div>
   </div>
-  <p class="src"><b>출처:</b> docs/문제정의.md · docs/adr/0005·0011·0013 · docs/design.md 10절 · interviews/ (이름·연락처 없음)</p>
+  <p class="src"><b>출처:</b> docs/문제정의.md · docs/adr/0005·0011·0013·0026·0032 · docs/design.md 10절 · interviews/ (이름·연락처 없음)</p>
 </section>
 
 <section class="slide" id="s4" aria-labelledby="t4">
@@ -115,10 +113,10 @@
   <table>
     <tr><th>방법</th><th>하는 일</th><th>걸린 시간</th></tr>
     <tr><td>① 손으로</td><td>파일을 열어 깐 것을 적고, 기술마다 취약점·최근 업데이트를 검색</td><td class="warn">▢ 재서 채울 것</td></tr>
-    <tr><td>② 앱으로</td><td>저장소 등록 → 내 기술 목록 → 등급과 이유 확인</td><td class="warn">▢ 재서 채울 것</td></tr>
+    <tr><td>② 앱으로</td><td>저장소 등록 → 사용 중인 항목 목록 → 등급과 이유 확인</td><td class="warn">▢ 재서 채울 것</td></tr>
   </table>
   <div class="todo">아직 재지 않았다. 사람이 한 번 재고 여기에 쓴다. 사용자가 없어 앱 안의 숫자는 시연 계정 값뿐이라는 한계도 함께 말한다.</div>
-  <p class="src"><b>출처:</b> docs/adr/0011</p>
+  <p class="src"><b>출처:</b> docs/adr/0011 · 화면 말 "사용 중인 항목"은 docs/adr/0043 결정 6(커밋 bd34887)</p>
 </section>
 
 <section class="slide" id="s5" aria-labelledby="t5">
@@ -145,17 +143,17 @@
   <div class="grid">
     <div class="card"><h3>직접 입력</h3><p>저장소 주소나 설치 목록을 붙여 넣어 쓰는 기술을 등록한다. 저장되고 새로고침해도 남는다.</p></div>
     <div class="card"><h3>외부 자료와 연결</h3><p>등록한 기술과 수집한 기술이 같은 키로 이어져, 변경이 내 목록·알림에 나타난다.</p></div>
-    <div class="card"><h3>대시보드·관리자</h3><p>내 기술 수 · 변경 수 · 판단 대기·완료 · 최근 변경. 관리자: 회원별 등록, 수집 자료, 알림 처리, 수집 오류.</p></div>
+    <div class="card"><h3>프로젝트 보드·관리자</h3><p>대시보드는 <b>프로젝트 보드</b>로 바뀌었다(ADR 0043): 위 숫자 띠(오늘의 새 기술 · 진행 중 프로젝트 · 사용 중인 항목 · 위험 발생 · 판단 대기 · 완료, 기간 하나로 거르기) + 걸린 판 4개(진행 중 프로젝트 · 지도·소식 · 청사진 · 직접 추가). 관리자: 첫 화면 <b>관제 요약</b>(마지막 정기 실행 · 수집 오류 · 판단 대기 · 신고 · 분류 거리, 못 읽으면 "읽지 못함") + 묶음 메뉴 4개(지켜보기 · 사람 판단 현황 · 운영 관리 · 시연과 지식). 판단 단추는 어디에도 없다.</p></div>
     <div class="card"><h3>권한</h3><p>내 데이터는 나만. 화면뿐 아니라 서버와 DB(RLS)에서도 막는다.</p></div>
   </div>
   <h3 style="margin-top:20px">서비스 컨셉: 지도에서 고르고, 청사진으로 옮긴다 (ADR 0032, 11-21 확정)</h3>
   <ol class="steps">
-    <li><b>지도</b>(<code>/tech-map</code>, 로그인 전에도 보임)에서 내 기술과 새 기술을 보고 <b>고른다</b>. 도는 선이 지나가 밝아진 점은 최근 실제로 확인한 기술뿐이다(수집 오류는 밝아지지 않음).</li>
+    <li><b>지도</b>(<code>/tech-map</code>, 로그인 전에도 보임)에서 사용 중인 항목과 새 기술을 보고 <b>고른다</b>. 도는 선이 지나가 밝아진 점은 최근 실제로 확인한 기술뿐이다(수집 오류는 밝아지지 않음).</li>
     <li>고른 기술을 <b>청사진</b>(<code>/blueprint</code>)에 담아 단계로 엮는다. 담기는 적용 후보 저장이고, 확정 전에는 바뀌는 것을 미리 보여 준다(사람 판단 먼저).</li>
     <li>확정한 청사진을 <b>설치 프롬프트</b>로 내보내 다른 컴퓨터에서 다시 세팅한다(<b>옮긴다</b>).</li>
   </ol>
-  <div class="todo">화면 캡처 4장(등록, 내 기술 목록, 대시보드, 관리자) + 지도·청사진 각 1장. 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
-  <p class="src"><b>출처:</b> docs/prd.md PRD-F46 · docs/ia.md · supabase/tests/rls_m0·m1.sql · docs/adr/0032 · docs/design.md 1절 · README 첫 문단</p>
+  <div class="todo">화면 캡처 4장(등록, 사용 중인 항목 목록, 프로젝트 보드, 관리자) + 지도·청사진 각 1장. 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
+  <p class="src"><b>출처:</b> docs/prd.md PRD-F46 · docs/ia.md · supabase/tests/rls_m0·m1.sql · docs/adr/0032 · docs/adr/0043(프로젝트 보드, 화면 말 "사용 중인 항목") · docs/design.md 1절 · README 첫 문단</p>
 </section>
 
 <section class="slide" id="s7" aria-labelledby="t7">
@@ -183,7 +181,7 @@
     <li><b>흐름 화면</b>에서 상자가 차례로 켜진다 — 미리 그린 그림이 아니라 실제 실행 기록(<code>runs</code>·<code>run_steps</code>)에서 그린다.</li>
     <li>알림 상세: 이전 → 현재 값, 출처, 대응안 초안.</li>
     <li>판단(적용 후보 / 보류)을 저장하면 "조치와 기록" 상자가 켜진다.</li>
-    <li><b>일부러 실패</b>시킨다: 빨간 상자와 오류 기록. 실패 시연 버튼 5가지는 운영에서 일부러 꺼 두어 <b>로컬에서만</b> 돈다. 배포 주소에서는 package.json을 깨 둔 시연용 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(시연 저장소 github.com/csaeil/techradar-fail-demo, ADR 0024 제안).</li>
+    <li><b>일부러 실패</b>시킨다: 빨간 상자와 오류 기록. 실패 시연 5가지 중 ①②⑤는 운영에서 일부러 꺼 두어 <b>로컬에서만</b> 돈다(③④는 운영에서도 됨). 배포 주소에서는 package.json을 깨 둔 시연용 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(시연 저장소 github.com/csaeil/techradar-fail-demo, ADR 0024 제안).</li>
     <li>비슷한 지난 판단을 찾아 보여 준다.</li>
   </ol>
   <!-- 캡처는 사용자가 slides/images/flow.png 로 넣는다. 파일이 없으면 그림을 숨기고 아래 자리 표시가 보인다 -->
@@ -191,8 +189,8 @@
     <img src="images/flow.png" alt="관리자 흐름 화면: 실제 실행 기록으로 상자가 차례로 켜진 모습" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
     <div class="shot-ph" hidden>▢ 흐름 화면 캡처(관리자 /admin/flow)</div>
   </figure>
-  <div class="todo">리허설로 순서와 시간을 재고, 발표 전에 시뮬레이터 줄을 지운다(가짜 줄만 지우기). 인터넷이 끊길 때를 대비해 시연 화면 녹화도 챙긴다.</div>
-  <p class="src"><b>출처:</b> docs/flow.md · app/admin/simulator · app/admin/demo · lib/demo/demo-switch.ts · docs/관리자-사용설명서.md 5-3</p>
+  <div class="todo">리허설로 순서와 시간을 잰다. 인터넷이 끊길 때를 대비해 시연 화면 녹화도 챙긴다. 발표 당일 리허설에서 시뮬레이터를 돌렸다가 지우고 다시 돌리면 대응안 초안이 만들어지지 않는다(같은 입력의 Claude 호출은 하루 1번, <code>already_tried_today</code>). 그래서 리허설에서 만든 변경을 지우지 말고 그대로 시연에 쓰거나, 리허설에서는 시뮬레이터를 돌리지 않는다.</div>
+  <p class="src"><b>출처:</b> docs/flow.md · docs/qa.md "남은 오류" 11-20 시연 날 주의 · app/admin/simulator · app/admin/demo · lib/demo/demo-switch.ts · docs/관리자-사용설명서.md 5-3</p>
 </section>
 
 <section class="slide" id="s8b" aria-labelledby="t8b">
@@ -200,12 +198,12 @@
   <h2 id="t8b">제품 시연 다음에 위키 챗봇 시연</h2>
   <!-- 걸리는 시간은 팀 추정(리허설 전). 장별 예상(분, 화면 쪽 번호 1~17): 1 표지 0.5 · 2 문제 1 · 3 가설 0.5 · 4 숫자 0.5 · 5 지켜본 곳 0.5 · 6 입력·지도·청사진 1 · 7 사건과 대응 1 · 8 흐름 0.5 ·
        9 시연(이 장) 4 · 10 확인 1 · 11 커넥터 0.5 · 12 위키·챗봇 0.5 · 13 서브에이전트 0.5 · 14 하네스 1 · 15 바이브로그 1 · 16 기여 0.5 · 17 다음 0.5
-       = 합계 14.5분 → 12~15분 안(위쪽 끝). 넘치면 3·4·11·13쪽을 말로 줄인다. 리허설로 재서 고친다. -->
+       = 합계 15분 → 12~15분 안(위쪽 끝). 넘치면 3·4·11·13쪽을 말로 줄인다. 리허설로 재서 고친다. -->
   <table>
     <tr><th class="nowrap">순서</th><th>보여 줄 것</th><th>화면</th><th class="nowrap">분(팀 추정)</th></tr>
     <tr><td>1</td><td>시뮬레이터 버튼으로 가짜 위험 변경 1건 만들기</td><td><code>/admin/simulator</code></td><td>0.5</td></tr>
     <tr><td>2</td><td>흐름 화면에서 상자가 실제 실행 기록대로 켜짐</td><td><code>/admin/flow</code></td><td>1</td></tr>
-    <tr><td>3</td><td>알림 상세(이전 → 현재 값, 출처, 대응안 초안) → 판단 저장</td><td><code>/alerts</code></td><td>0.5</td></tr>
+    <tr><td>3</td><td><b>시연 계정으로 바꿔 로그인</b> → 알림 상세(이전 → 현재 값, 출처, 대응안 초안) → 판단 저장(관리자는 남의 알림을 못 봄)</td><td><code>/alerts</code></td><td>0.5</td></tr>
     <tr><td>4</td><td>지도에서 고른 기술을 청사진에 담고 설치 프롬프트로 내보내기</td><td><code>/tech-map</code> → <code>/blueprint</code></td><td>1</td></tr>
     <tr><td>5</td><td>위키 챗봇에 정답표 Q5 묻기: "챗봇 '한 사람 하루 20개' 한도는 어느 표를 세서 거나요?" → 두 문서가 다르다고 <b>양쪽 출처</b>를 함께 답하는지</td><td><code>/admin/chat</code></td><td>1</td></tr>
   </table>
@@ -218,9 +216,9 @@
   <p class="kicker">확인</p>
   <h2 id="t9">정답 사례로 채점하고, 합친 뒤 오류를 잡는다</h2>
   <div class="grid">
-    <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> (11-18 채점). 등급은 8/12가 맞았고, 다른 4건은 최신 버전 사례로 실제 등급이 "찾지 못함"이었으며 사건 판정은 맞았다.</p></div>
-    <div class="card"><p class="num green">970<span class="muted" style="font-size:.5em"> / 971</span></p><h3>자동 시험 통과 (11-19 저녁 main 4308b58, todo 1)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
-    <div class="card"><h3>QA 표 (11-19 점검)</h3><p>Claude QA: Pass 26 · Fail 0 · No Run 18<br>화면 QA: Pass 13 · Fail 1 · No Run 13</p><p class="muted">No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
+    <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b>, 등급 12/12 맞음 (11-21 채점). 경계 사례 44건도 <b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> · 결과 다름 0.</p></div>
+    <div class="card"><p class="num green">1,796<span class="muted" style="font-size:.5em"> / 1,796</span></p><h3>자동 시험 통과 (11-23 오후 main 5f16103, 실패 0)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 여러 조각에서 했다(docs/qa.md 22행).</p></div>
+    <div class="card"><h3>QA 표 (11-23, docs/qa.md)</h3><p>Claude QA 135줄: Pass 121 · Fail 9 · No Run 4 · 설계대로 1<br>사람 QA 47줄: Pass 13 · Fail 12 · No Run 21 · 일부 Pass 1</p><p class="muted">상태 칸 맨 앞 표기로 셌다. Claude QA Fail 9건 중 8건은 "Fail → 고침"으로 함께 적혀 있다. 사람 QA Fail 12건은 11-23 화면 문구·쓰기 쉬움 점검이다. No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
   </div>
   <ul style="margin-top:18px">
     <li><b>합친 뒤 잡은 오류</b> (docs/debug-note.md에서 3건):
@@ -230,21 +228,23 @@
         <li><b>설정:</b> 정기 실행 첫날 안 돎(<code>CRON_SECRET</code> 없음) → 사람이 넣고 다시 배포.</li>
       </ul></li>
   </ul>
-  <p class="src"><b>출처:</b> eval/result.md · docs/qa.md · docs/qa-c.md · docs/debug-note.md 11-19 행(#133·#135, #153, CRON_SECRET) · npm test (main)</p>
+  <p class="src"><b>출처:</b> eval/result.md(11-21 19:26 채점) · docs/qa.md(Claude QA·사람 QA 표 상태 칸, 11-23 셈) · docs/qa-c.md · docs/debug-note.md 11-19 행(#133·#135, #153, CRON_SECRET) · npm test (main)</p>
 </section>
 
 <section class="slide" id="s10" aria-labelledby="t10">
   <p class="kicker">커넥터</p>
-  <h2 id="t10">실제 일에 쓴 서비스 4개</h2>
+  <h2 id="t10">실제 일에 쓴 주요 서비스 6개</h2>
   <table>
     <tr><th>서비스</th><th>실제로 한 일</th><th>앱 실행에도?</th></tr>
     <tr><td>Supabase</td><td>DB 구조·줄 수 조회, 마이그레이션 적용, 실제 DB 시험의 전후 확인</td><td>예(서버 키 코드)</td></tr>
     <tr><td>Vercel</td><td>배포 상태, 환경변수 <b>이름</b> 확인(값은 안 읽음)</td><td>예(배포)</td></tr>
     <tr><td>abbsbook</td><td>단계마다 진행 기록(화면 + 메모)</td><td>아니오</td></tr>
     <tr><td>Slack</td><td>담당 팀원에게 발견한 문제 5건 전달(사용자 지시·초안 확인 뒤)</td><td>아니오</td></tr>
+    <tr><td>GitHub (<code>gh api</code>, 읽기만)</td><td>수집 기준을 정하려고 태그별 별 개수·새 저장소 검색, 공개 저장소의 <code>.cursor/mcp.json</code> 찾기, 등급 원인 확인</td><td>예(수집기가 GitHub API를 부름)</td></tr>
+    <tr><td>내장 브라우저 (ego-browser)</td><td>운영 화면 읽기 점검, 첫 화면 속도 재기, 응답에 비밀값이 있는지 점검, 흐름 화면 색 확인</td><td>아니오(점검용)</td></tr>
   </table>
   <p class="muted" style="margin-top:14px">외부를 바꾸는 일(알림 보내기·일정 만들기)은 대상과 내용을 확인한 뒤에만, 토큰은 기록에 적지 않는다.</p>
-  <p class="src"><b>출처:</b> docs/connectors.md</p>
+  <p class="src"><b>출처:</b> docs/connectors.md(GitHub 11-21 행, ego-browser 11-19·11-20 행). 대응안 초안의 Anthropic API 등 그 밖의 서비스도 같은 문서에 있다</p>
 </section>
 
 <section class="slide" id="s11" aria-labelledby="t11">
@@ -254,21 +254,21 @@
   <div class="grid">
     <div class="card"><h3>위키 18쪽 (#126)</h3><p>주제 15쪽 + <code>index</code>·<code>log</code>·<code>연결지도</code>. 사실마다 출처, 문서끼리 다른 곳은 한쪽으로 정리하지 않고 양쪽을 적음.</p></div>
     <div class="card"><h3>챗봇 (#125)</h3><p>관리자 탭 <code>/admin/chat</code>. 위키 쪽만 근거로 답하고 출처 쪽을 붙인다.</p></div>
-    <div class="card"><p class="num ok">4 / 5</p><h3>질문 5개 정답표 (운영, 11-19)</h3><p>답 있음 3 · 없음 1 · 문서끼리 어긋남 1. Q1–Q4 맞음(없는 질문엔 "위키에 없습니다", 지어내지 않음).</p></div>
-    <div class="card"><h3 class="warn">틀린 답 하나와 고친 방법</h3><p><b>Q5</b>(한도를 어느 표로 세나, 문서끼리 다름)에 "위키에 없습니다". 맞는 쪽은 찾았는데 쪽마다 <b>앞 2000자만</b> 넘겨 충돌 문단이 잘렸다. → 질문 낱말이 든 줄을 골라 넘기게 고침(#131, 넘기는 양은 그대로). 실제 위키로 Q1–Q5를 확인하는 시험 6개, 고치기 전 Q4·Q5 실패 확인.</p></div>
+    <div class="card"><p class="num ok">4 / 5</p><h3>질문 5개 정답표 (운영, 11-19) → 고친 뒤 Q5도 맞음(11-20 운영 재질문)</h3><p>답 있음 3 · 없음 1 · 문서끼리 어긋남 1. Q1–Q4 맞음(없는 질문엔 "위키에 없습니다", 지어내지 않음).</p></div>
+    <div class="card"><h3 class="warn">틀린 답 하나와 고친 방법</h3><p><b>Q5</b>(한도를 어느 표로 세나, 문서끼리 다름)에 "위키에 없습니다". 맞는 쪽은 찾았는데 쪽마다 <b>앞 2000자만</b> 넘겨 충돌 문단이 잘렸다. → 질문 낱말이 든 줄을 골라 넘기게 고침(#131, 넘기는 양은 그대로). 실제 위키로 Q1–Q5를 확인하는 시험 6개, 고치기 전 Q4·Q5 실패 확인. 11-20 운영에서 다시 물으니 두 출처를 모두 말했다.</p></div>
   </div>
-  <div class="todo">화면 캡처 2장(연결 지도, 출처와 함께 답하는 화면). 그리고 #131 뒤 운영에서 Q5를 다시 물은 결과(아직 확인하지 못함).</div>
-  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 · docs/qa-c.md H14 · wiki/ · PR #125·#126·#131 설명 · CLAUDE.md 4절</p>
+  <div class="todo">위키가 11-23에 바뀌어 발표 전 운영에서 Q5를 다시 묻는다. 화면 캡처 2장(연결 지도, 출처와 함께 답하는 화면).</div>
+  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 · 11-19 재확인 표 마지막 행(11-20 11:02 Q5 재질문) · git log wiki/(11-23 29826b0) · docs/qa-c.md H14 · wiki/ · PR #125·#126·#131 설명 · CLAUDE.md 4절</p>
 </section>
 
 <section class="slide" id="s12" aria-labelledby="t12">
   <p class="kicker">서브에이전트</p>
   <h2 id="t12">검토는 만든 쪽과 나눠서, 결과는 코드로 확인한 뒤에만 반영</h2>
   <div class="grid">
-    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 55건 기록(11-19 main 기준, docs/agents.md 표의 행 수).</p></div>
+    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 161건 기록(11-23 기준, docs/agents.md 표에서 날짜로 시작하는 행 수).</p></div>
     <div class="card"><h3 class="warn">잘 안 된 점 하나</h3><p>검토가 "비슷한 도우미 복사가 세 번째"라고 했는데 코드로 보니 <b>두 번째</b>였다. 그대로 믿고 합쳤으면 쓸데없는 변경이 됐다. → 검토 결과도 확인 뒤 반영.</p></div>
   </div>
-  <p class="src"><b>출처:</b> docs/agents.md (2026-11-19 P-9b 2차 검토 행)</p>
+  <p class="src"><b>출처:</b> docs/agents.md (표의 날짜 행 161개, 11-23 셈 · 2026-11-19 P-9b 2차 검토 행)</p>
 </section>
 
 <section class="slide" id="s13" aria-labelledby="t13">
@@ -285,9 +285,10 @@
     <li><b>고침 (#135):</b> 새 칸이 없을 때만 그 부분을 끄고 안내, 다른 오류는 그대로 조회 실패(불변 2).</li>
     <li><b>규칙 (#138):</b> CLAUDE.md 10절에 "새 칸·표 마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게".</li>
     <li><b>도구 (#156):</b> <code>npm run precheck</code>가 브랜치의 마이그레이션 파일을 찾아 이 규칙을 알리고, 합친 뒤 도는 <code>docs/운영-점검표.md</code>에 이 장애를 점검 줄(S2)로.</li>
+    <li><b>재검사 (11-20 ~ 11-23):</b> 경고가 떠도 운영 적용 전에 합쳐진 일이 또 있었다(#178 · #182 · #184/#187 · #215). <b>경고만으로는 못 막는다</b>는 것을 확인했다.</li>
+    <li><b>다시 고침 (11-22):</b> 마이그레이션 번호 겹침(11-21 · 11-22 두 번)은 경고가 아니라 <code>precheck</code> <b>실패</b>로 바꿨다. 운영 적용 순서는 PR 설명 맨 위 "운영 적용 전에는 합치지 말아 주세요"로 사람이 막는다.</li>
   </ol>
-  <div class="todo">"다음 변경에서 재검사" 결과: 규칙이 생긴 뒤 마이그레이션이 든 PR이 아직 없어(11-19 main 기준) precheck가 실제로 알린 기록이 없다. 다음 마이그레이션 PR에서 확인해 채운다.</div>
-  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · git log supabase/migrations</p>
+  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 · 11-20 #178 · #182 · 11-22 번호 겹침 · 11-23 #215 행 · docs/worklog.md · docs/intent.md I-p24-prod-apply(#184 · #187) · docs/제출물-체크리스트.md 하네스 개선 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · lib/records/migration-numbers.ts</p>
 </section>
 
 <section class="slide" id="s13b" aria-labelledby="t13b">
@@ -310,19 +311,19 @@
 
 <section class="slide" id="s14" aria-labelledby="t14">
   <p class="kicker">팀원별 기여</p>
-  <h2 id="t14">합친 PR 209개, 세 사람 모두 PR과 리뷰</h2>
-  <!-- 집계 규칙(2026-11-23 오전 다시 셈, 합친 PR 209개, #211까지. 처음 집계 11-19 17:29는 169개): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`.
+  <h2 id="t14">합친 PR 222개, 세 사람 모두 PR과 리뷰</h2>
+  <!-- 집계 규칙(2026-11-23 오후 14:41 다시 셈, 합친 PR 222개, #224까지. 같은 날 오전은 209개·#211까지, 처음 집계 11-19 17:29는 169개): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`.
        합친 PR = 작성자 아이디별 개수. 리뷰한 PR = 남의 PR에 리뷰를 1번 이상 남긴 PR 수(한 PR에 여러 번 남겨도 1, 본인 PR에 남긴 것은 뺌).
        초기 #1–#24는 남의 리뷰 기록이 없다. -->
   <table>
     <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>리뷰한 PR</th><th>GitHub에 안 남는 일</th></tr>
-    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">120</td><td class="num" style="font-size:28px">69</td><td class="warn">▢</td></tr>
-    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">50</td><td class="num" style="font-size:28px">32</td><td class="warn">▢</td></tr>
-    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">39</td><td class="num" style="font-size:28px">93</td><td class="warn">▢</td></tr>
+    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">127</td><td class="num" style="font-size:28px">75</td><td class="warn">▢</td></tr>
+    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">53</td><td class="num" style="font-size:28px">33</td><td class="warn">▢</td></tr>
+    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">42</td><td class="num" style="font-size:28px">99</td><td class="warn">▢</td></tr>
   </table>
   <p class="muted" style="margin-top:10px">리뷰한 PR = 남의 PR에 리뷰를 남긴 PR 수(본인 PR 제외, 한 PR은 1번). 처음 #1–#24는 남의 리뷰 없이 합쳐졌다.</p>
   <div class="todo">대표 PR·리뷰 번호와, 인터뷰·시나리오·도운 일처럼 GitHub에 안 남는 일을 각자 쓴다. 이름과 아이디가 맞는지도 확인한다.</div>
-  <p class="src"><b>출처:</b> gh pr list --state merged (11-23 오전 합친 PR 209개·#211까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
+  <p class="src"><b>출처:</b> gh pr list --state merged (11-23 오후 합친 PR 222개·#224까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
 </section>
 
 <section class="slide" id="s15" aria-labelledby="t15">
@@ -331,11 +332,11 @@
   <ul class="lead">
     <li>마지막 활동을 푸시 말고 <b>릴리스</b>로(봇이 푸시하는 죽은 저장소를 걸러냄)</li>
     <li>상태를 정한 출처별로 따로 저장해 계산(지금은 한 칸이라 둘이 같은 판단을 해도 구분 못 함)</li>
-    <li>적용 시나리오(사용자당 하루 5번)와 위키 챗봇</li>
-    <li>기술 지도: 근거가 약해 작게 시작했고, 사용자가 생기면 다시 본다</li>
-    <li>사용기·"도움이 됐어요"·추천(코드로, Claude 없이)</li>
+    <li>뺀 "찾기·넣기"를 <b>커스텀 기술 추가</b>로 다시 설계</li>
+    <li>화면 말 정리: 같은 상태를 부르는 말이 여럿("못 읽었다" 5가지), 보안 등급 이름이 화면마다 다름</li>
+    <li>사람 QA에서 아직 안 돌린 줄(일반 계정·시연 계정 화면, 사용기 쓰기 등)</li>
   </ul>
-  <p class="src"><b>출처:</b> docs/intent.md 열린 질문 · docs/adr/0021 알려진 한계 · docs/plan.md</p>
+  <p class="src"><b>출처:</b> docs/adr/0021 알려진 한계 · docs/adr/0043 결정 5 · docs/intent.md I-P-12k-no-capture·I-qa-sheet-copy-1123 열린 질문 · docs/qa.md 사람 QA(11-23 Fail·No Run 행)</p>
 </section>
 
 </main>

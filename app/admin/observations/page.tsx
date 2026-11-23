@@ -20,7 +20,7 @@ export default async function ObservationsPage({ searchParams }: { searchParams:
   try { [sources, rows] = await Promise.all([readSources(gate.db), readObservations(gate.db, filter)]); } catch (e) { error = e instanceof Error ? e.message : String(e); }
 
   return (
-    <AdminShell tab="observations" title={TITLE} lead={LEAD} error={error}>
+    <AdminShell tab="observations" title={TITLE} lead={LEAD} proves="알림의 근거가 된 값이 이전 값 · 현재 값 그대로 남고, 시뮬레이터가 만든 줄은 가짜로 구분된다는 것" error={error}>
       <FilterForm>
         <Select name="source" label="출처" value={filter.sourceId ?? ""} options={[{ value: "", label: "모든 출처" }, ...sources.map((s) => ({ value: s.id, label: s.name }))]} />
         <Select name="period" label="기간" value={filter.from ? String(sp.period) : ""} options={PERIOD_OPTIONS} />

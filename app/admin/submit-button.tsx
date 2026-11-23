@@ -6,12 +6,13 @@ import { useFormStatus } from "react-dom";
 
 const PENDING = "실행 중… 기록을 남기는 중";
 
-export function SubmitButton({ label, pendingNote, disabled = false, style }: { label: string; pendingNote?: string; disabled?: boolean; style?: CSSProperties }) {
+/** className: "primary"(주 행동, 청록 채움) · "danger"(위험한 일, 빨강 테두리) · 없음(보조) — P-12n 단추 규칙 */
+export function SubmitButton({ label, pendingNote, disabled = false, style, className }: { label: string; pendingNote?: string; disabled?: boolean; style?: CSSProperties; className?: string }) {
   const { pending } = useFormStatus();
   const busy = pending ? (pendingNote ? `${PENDING}(${pendingNote})` : PENDING) : "";
   return (
     <>
-      <button type="submit" style={{ minHeight: "var(--hit)", ...style }} disabled={disabled || pending} aria-busy={pending || undefined}>{pending ? busy : label}</button>
+      <button type="submit" className={className} style={{ minHeight: "var(--hit)", ...style }} disabled={disabled || pending} aria-busy={pending || undefined}>{pending ? busy : label}</button>
       <span role="status" className="sr-only">{busy}</span>
     </>
   );

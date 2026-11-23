@@ -8,15 +8,20 @@ import { askWiki } from "./chat.ts";
 
 type Insert = { table: string; row: Record<string, unknown> };
 
-/** 가짜 DB: select(...).eq().gte()는 정해 둔 줄 수를 돌려주고, insert는 기록만 한다 */
+/**
+ * 가짜 DB: select(...).eq().gte()는 정해 둔 줄 수를 돌려주고, insert는 기록만 한다.
+ * status=failed로 거른 읽기는 `표:failed` 수를, 나머지는 `표` 수를 돌려준다(오늘 실패한 내 질문 세기)
+ */
 function fakeDb(counts: Record<string, number>, opts: { insertError?: string; readError?: string } = {}) {
   const inserts: Insert[] = [];
   const filters: string[] = [];
   const db = {
     from(table: string) {
-      const result = () => (opts.readError ? { data: null, error: { message: opts.readError } } : { data: Array.from({ length: counts[table] ?? 0 }, (_, i) => ({ id: `r${i}` })), error: null });
+      let failedOnly = false;
+      const rows = () => Array.from({ length: (failedOnly ? counts[`${table}:failed`] : counts[table]) ?? 0 }, (_, i) => ({ id: `r${i}` }));
+      const result = () => (opts.readError ? { data: null, error: { message: opts.readError } } : { data: rows(), error: null });
       const q: Record<string, unknown> = {
-        eq: (col: string, val: unknown) => { filters.push(`${table}.${col}=${val}`); return q; },
+        eq: (col: string, val: unknown) => { filters.push(`${table}.${col}=${val}`); if (col === "status" && val === "failed") failedOnly = true; return q; },
         gte: () => q,
         then: (resolve: (v: unknown) => unknown) => resolve(result()),
       };
@@ -120,6 +125,39 @@ test("빈 질문·300자 넘는 질문은 거절", async () => {
   const deps = { userDb: fakeDb({}).db, serviceDb: fakeDb({}).db, ai: null, pages };
   assert.deepEqual(await askWiki(deps, { ...input, question: "   " }), { status: "refused", reason: "empty_question" });
   assert.deepEqual(await askWiki(deps, { ...input, question: "가".repeat(301) }), { status: "refused", reason: "too_long" });
+});
+
+test("한도: Claude 실패(ai_calls에만 남음)도 하루 20개에 센다 — chat_logs 15 + 내 실패 5 = 20이면 거절", async () => {
+  const user = fakeDb({ chat_logs: 15 });
+  const service = fakeDb({ ai_calls: 30, "ai_calls:failed": 5 });
+  const { ai, calls } = fakeAi(goodReply);
+  assert.deepEqual(await askWiki({ userDb: user.db, serviceDb: service.db, ai, pages }, input), { status: "refused", reason: "user_limit" });
+  assert.equal(calls.length, 0);
+  for (const f of ["ai_calls.user_id=u-admin", "ai_calls.purpose=chatbot", "ai_calls.status=failed"]) assert.ok(service.filters.includes(f), `내 챗봇 실패 줄만 센다: ${f}`);
+});
+
+test("한도: 성공은 chat_logs·ai_calls 둘 다에 남지만 ai_calls 성공 줄은 더하지 않는다(한 질문을 두 번 세지 않음)", async () => {
+  // 오늘 성공 19번: chat_logs 19줄 + ai_calls 성공 19줄, 실패 0 → 19개로 세서 20번째는 묻는다
+  const { ai, calls } = fakeAi(goodReply);
+  const r = await askWiki({ userDb: fakeDb({ chat_logs: 19 }).db, serviceDb: fakeDb({ ai_calls: 19, "ai_calls:failed": 0 }).db, ai, pages }, input);
+  assert.equal(r.status, "answered");
+  assert.equal(calls.length, 1);
+});
+
+test("chat_logs에 남기는 질문도 Claude에 보낼 때처럼 비밀값을 가린다", async () => {
+  const user = fakeDb({});
+  const { ai, calls } = fakeAi(goodReply);
+  const question = "정기 실행은 언제 도나요? ANTHROPIC_API_KEY=sk-secret12345678";
+  const r = await askWiki({ userDb: user.db, serviceDb: fakeDb({}).db, ai, pages }, { ...input, question });
+  assert.equal(r.status, "answered");
+  assert.equal(String(user.inserts[0].row.question).includes("sk-secret12345678"), false);
+  assert.equal(calls[0].user.includes("sk-secret12345678"), false);
+});
+
+test("위키에 없는 질문(Claude 안 부름)도 chat_logs에 가려서 남긴다", async () => {
+  const user = fakeDb({});
+  await askWiki({ userDb: user.db, serviceDb: fakeDb({}).db, ai: null, pages }, { ...input, question: "운영 DB 백업 주기는? password=hunter2secret" });
+  assert.equal(String(user.inserts[0].row.question).includes("hunter2secret"), false);
 });
 
 test("오늘 질문 수를 못 읽으면 없다고 치지 않고 실패", async () => {

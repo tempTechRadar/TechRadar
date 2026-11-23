@@ -28,7 +28,7 @@ export default async function ClassifyPage({ searchParams }: { searchParams: Pro
   try { data = await readClassify(gate.db); } catch (e) { error = e instanceof Error ? e.message : String(e); }
 
   return (
-    <AdminShell tab="classify" title={TITLE} lead={LEAD} error={error}>
+    <AdminShell tab="classify" title={TITLE} lead={LEAD} proves="지도 분류를 사람이 고치면 담당자 · 시각 · 사유가 남는다는 것" error={error}>
       {actionError ? <p role="alert" className="admin-note danger">{actionError}</p> : null}
       {info ? <p role="status" className="admin-note">{info}</p> : null}
       {data ? (

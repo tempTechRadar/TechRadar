@@ -38,7 +38,7 @@ export function DetailPanel({ detail }: { detail: NodeDetail }) {
   );
 }
 
-function RunTable({ flow, runs, picked, basePath }: Pick<Props, "flow" | "runs" | "picked" | "basePath">) {
+export function RunTable({ flow, runs, picked, basePath }: Pick<Props, "flow" | "runs" | "picked" | "basePath">) {
   if (runs.length === 0) return <p>아직 실행 기록이 없어요.</p>;
   return (
     <div style={{ overflowX: "auto" }}>
