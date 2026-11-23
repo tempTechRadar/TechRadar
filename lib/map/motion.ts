@@ -97,3 +97,17 @@ export function recentlyChecked(n: { lastCheckedOkAt: string | null; collectErro
 export function trackTargets<T extends { node: { isNew: boolean; addedAt: string | null } }>(items: T[], max = TRACK_MAX): T[] {
   return items.filter((it) => it.node.isNew && it.node.addedAt).sort((a, b) => Date.parse(b.node.addedAt!) - Date.parse(a.node.addedAt!)).slice(0, max);
 }
+
+/** 화면 상자 [x, y, 폭, 높이] */
+export type Box = [number, number, number, number];
+export const overlaps = (a: Box, b: Box) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+/** 추적 틀 꼬리표를 붙일 점(P-12m 사용자 점검: 꼬리표 · NEW · 이름이 겹침). 같은 점에 다른 꼬리표(등급 · 판단)가 있으면 빼고,
+ *  이미 놓인 이름표 · 꼬리표 상자와 겹치면 뺀다(틀은 남김). 앞에 놓인(더 최근) 꼬리표가 뒤 것을 막는다 */
+export function placeTags<T>(cands: { item: T; box: Box; busy: boolean }[], taken: Box[]): T[] {
+  const out: T[] = [], used = [...taken];
+  for (const c of cands) {
+    if (c.busy || used.some((b) => overlaps(b, c.box))) continue;
+    out.push(c.item); used.push(c.box);
+  }
+  return out;
+}

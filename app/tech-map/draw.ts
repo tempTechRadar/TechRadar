@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { ease, grow, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, recentlyChecked, ringGrow, rippleR, sweepAlpha, sweepAngle, trackTargets, WAVES } from "@/lib/map/motion";
+import { ease, grow, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, placeTags, recentlyChecked, type Box, ringGrow, rippleR, sweepAlpha, sweepAngle, trackTargets, WAVES } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
@@ -20,7 +20,8 @@ const rgba = (hex: string, a: number) => { const n = parseInt(hex.slice(1), 16);
 type Ctx = CanvasRenderingContext2D;
 type Pt = readonly [number, number];
 /** 한 장 그리는 데 함께 쓰는 것(함수 인자를 줄이려고 묶음) */
-type Frame = { c: Ctx; S: MapState; vis: Item[]; P: (it: Item) => Pt; alphaOf: (it: Item) => number; sc: number; now: number; /** 처음 보기 대비 배율(1 = 처음 보기) */ z: number };
+type Frame = { c: Ctx; S: MapState; vis: Item[]; P: (it: Item) => Pt; alphaOf: (it: Item) => number; sc: number; now: number; /** 처음 보기 대비 배율(1 = 처음 보기) */ z: number;
+  /** 이번 주 새 기술 추적 틀 대상(최근 순) · 이 장에 놓인 이름표 · 꼬리표 상자(추적 꼬리표가 피해 감) */ track: TechItem[]; boxes: Box[] };
 
 const bumpOf = (age: number) => (age >= 0 && age < 0.3 ? Math.sin((Math.PI * age) / 0.3) : 0); // 0 → 1 → 0, 0.3초
 export const hubRadius = (it: Item, sc: number) => it.r * Math.min(1.4, Math.max(0.7, sc ** 0.5));
@@ -59,7 +60,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   const P = home;
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
   const alphaOf = (it: Item) => Math.min(1, grow(S, now, it) * 1.6) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
-  const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / S.homeK };
+  const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / S.homeK, track: trackTargets(vis.filter((v): v is TechItem => v.type === "t")), boxes: [] };
   endless(F, [ox, oy]);
 
   sectorLight(F, [ox, oy]);
@@ -136,7 +137,7 @@ function sweep({ c, S, now }: Frame, [ox, oy]: Pt, sa: number) {
   c.globalAlpha = 1;
 }
 
-function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
+function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
   const wall = Date.now(); // 최근 확인은 벽시계로(캔버스의 now는 화면이 뜬 뒤 흐른 초)
   for (const it of vis) {
     if (it.type !== "t") continue;
@@ -154,7 +155,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     if (it.hollow) { c.fillStyle = col("--paper"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(GRADE_FILL[n.grade] ?? it.token); c.fill(); } // 위험 · 주의는 원 자체를 등급색으로(P-12m 시안), 나머지는 범주색
     if (!it.hollow || n.mine) { c.setLineDash(n.grade === "unknown" && !n.mine ? [2, 2] : []); c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); c.setLineDash([]); } // 찾지 못함은 점선 테두리 // 점은 밝은 고리, 사용 중은 굵게
-    if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800);
+    if (n.isNew && (z >= TIER.far || S.lit) && !track.includes(it)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800); // 추적 틀이 걸린 점은 꼬리표가 같은 뜻이라 NEW 없음
     if (it.id === S.sel) { const sr = rp + (n.collectErrorKind ? 8 : 6); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
     // 선 · 파동 중 먼저 닿은 때 한 번만 켜짐(P-12m, litAt): 36시간 안에 실제로 확인한 점만 ping 고리가 퍼지고(ADR 0032), 위험 · NEW는 한 번 울림
     const age = litAge(S, now, it);
@@ -242,30 +243,31 @@ function pingRing({ c, S, P, now }: Frame) {
 
 /** 새 기술 추적 틀(P-12m 시안): 이번 주 들어온 기술(trackTargets, 최근 TRACK_MAX개)에만 흰 모서리 틀 + 흰 면 꼬리표 "새 기술 · 이번 주".
  *  켜진 뒤 LOCK_AFTER초에 1.9배에서 조여 들고 꼬리표가 뒤따른다. 움직임이 없으면(끄기 · 움직임 줄이기) 처음부터 걸린 모습. 꼬리표가 가려지지 않게 이름표 다음에 그린다 */
-function trackFrames({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
+function trackFrames({ c, S, P, alphaOf, sc, now, z, track, boxes }: Frame) {
   if (z < TIER.far && !S.lit) return; // 멀리서는 점이 옅어 틀도 없음(NEW 표와 같은 기준)
-  const placed: Pt[] = []; // 먼저 건(더 최근) 틀과 꼬리표 자리에 겹치면 건너뛴다(새 기술이 한곳에 몰릴 때 틀이 포개지지 않게)
-  for (const it of trackTargets(vis.filter((v): v is TechItem => v.type === "t"))) {
-    const age = litAge(S, now, it), p = age < 0 ? 1 : Math.min(1, Math.max(0, (age - LOCK_AFTER) / LOCK)), a = alphaOf(it) * p;
-    if (a <= 0.01) continue;
-    const [x, y] = P(it), h = (dotRadius(it, sc) + 9) * (1 + 0.9 * (1 - ease(p)));
-    if (placed.some(([px, py]) => Math.abs(px - x) < 110 && Math.abs(py - y) < 44)) continue;
-    placed.push([x, y]);
+  const TEXT = "새 기술 · 이번 주";
+  c.font = `700 11px ${col("--font")}`;
+  const tw = c.measureText(TEXT).width + 12;
+  const shown = track.map((it) => {
+    const age = litAge(S, now, it), p = age < 0 ? 1 : Math.min(1, Math.max(0, (age - LOCK_AFTER) / LOCK)), [x, y] = P(it), h = (dotRadius(it, sc) + 9) * (1 + 0.9 * (1 - ease(p)));
+    return { it, age, a: alphaOf(it) * p, x, y, h, box: [x - h, y - h - 22, tw, 18] as Box, busy: !!it.node.decided || it.node.grade === "danger" || it.node.grade === "caution" };
+  }).filter((f) => f.a > 0.01);
+  const tagged = new Set(placeTags(shown.map((f) => ({ item: f.it, box: f.box, busy: f.busy })), boxes)); // 꼬리표는 점마다 하나, 겹치면 빼고 틀만
+  for (const { it, age, a, x, y, h, box } of shown) {
     c.globalAlpha = a; c.strokeStyle = col("--on-paper"); c.fillStyle = col("--on-paper"); c.lineWidth = 1;
     c.strokeRect(x - h, y - h, h * 2, h * 2);
     for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) c.fillRect(x + dx * h - 3.5, y + dy * h - 3.5, 7, 7);
     const t = age < 0 ? 1 : Math.min(1, Math.max(0, (age - LOCK_AFTER - LOCK) / LOCK));
-    if (t <= 0) continue;
+    if (t <= 0 || !tagged.has(it)) continue;
     c.globalAlpha = a * t; c.font = `700 11px ${col("--font")}`;
-    const text = "새 기술 · 이번 주", w = c.measureText(text).width + 12;
-    c.fillStyle = col("--surface"); c.fillRect(x - h, y - h - 22, w, 18);
-    c.fillStyle = col("--ink"); c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(text, x - h + 6, y - h - 12.5);
+    c.fillStyle = col("--surface"); c.fillRect(box[0], box[1], box[2], box[3]);
+    c.fillStyle = col("--ink"); c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(TEXT, box[0] + 6, box[1] + 9.5);
   }
   c.globalAlpha = 1;
 }
 
 // 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 가까이 가면 모든 이름(names), 더 가까이 가면 한국어 한 줄 · 인기 · 보안(detail). 겹치면 건너뛴다
-function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
+function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
   const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
   const names = ramp(z, TIER.names), det = ramp(z, TIER.detail);
   const onScreen = (it: Item) => { const [x, y] = P(it); return x > -20 && y > S.top - 20 && x < S.W - S.right + 20 && y < S.H + 20; };
@@ -284,7 +286,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     const w = c.measureText(text).width;
     return { it, text, x: x - rp - 2, y: y + rp + 5, box: [x - rp - 4 - w, y + rp - 2, w + 4, 14] };
   });
-  const boxes: number[][] = tags.map((t) => t.box);
+  boxes.push(...tags.map((t) => t.box as Box));
   for (const it of want.slice(0, 160)) {
     const solo = alone?.has(it.id) && names > 0.4;
     const [x, y] = P(it), [what, facts] = det > 0.4 || solo ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
@@ -296,7 +298,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
     const off = dotRadius(it, sc) + 5; // 가까이 가면 점이 커지니 점 가장자리에서 띄운다
     const right = x > S.W / 2 - 1 ? x + off + w < S.W - S.right - 4 : x - off - w < 4; // 바깥쪽에, 화면 끝에 잘리면 안쪽으로
-    const box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
+    const box: Box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
     if (boxes.some((o) => box[0] < o[0] + o[2] && o[0] < box[0] + box[2] && box[1] < o[1] + o[3] && o[1] < box[1] + box[3])) continue;
     boxes.push(box);
     const a = Math.min(1, grow(S, now, it) * 1.6) * (rank(it) < 4 || S.lit?.has(it.id) || alone?.has(it.id) || justLanded(it) ? 1 : names); // 펼치기 전(0)이면 이름표도 없음, 단계 문턱에서는 스며듦

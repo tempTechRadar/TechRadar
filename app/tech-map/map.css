@@ -172,3 +172,24 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 /* 칩 숫자는 고정폭(시안 B) */
 :is(.map-top-hud, .map-dock) .chip b { font-family: var(--mono); font-weight: 500; }
 .map-filter .map-dot { margin-top: 0; }
+/* P-12m 사용자 점검: 위쪽 한 줄 — 찾기 + 경로 칩 + 빠른 칩(칩만 줄바꿈) + 로그인 띠(오른쪽 끝, 얇게) */
+.map-hud > .map-search { flex: 0 1 240px; }
+.map-hud > .map-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+.map-top .map-chip-note { min-height: 28px; padding: 0 8px; border: 0; background: none; color: var(--on-paper-2); font-weight: 400; }
+/* 첫 점검 띠도 지도 위에서는 한 줄로 얇게 */
+.map-page > .first-check { display: flex; align-items: center; gap: var(--sp-3); padding: 4px var(--sp-3); font-size: var(--fs-sm); }
+.map-page > .first-check :is(h2, h3, p) { margin: 0; font-size: inherit; }
+.map-page > .first-check .btn { min-height: 28px; padding: 0 10px; }
+/* 보기 · 보기 초기화: 오른쪽 아래 ⚙ 왼쪽, 창은 위로 */
+.map-dock > .map-view-tools { position: absolute; right: 52px; bottom: calc(100% + 6px); display: flex; gap: 6px; }
+.map-pop-up > .map-pop-panel { top: auto; bottom: calc(100% + 6px); left: auto; right: 0; }
+/* 왼쪽 패널 맨 위 저장한 보기(옛 보기 묶음 탭) */
+.map-filter-saved { display: grid; gap: 2px; padding-top: 4px; }
+.map-filter-saved .map-tabs { gap: 0 2px; }
+.map-filter-saved .map-tab { min-height: 26px; padding: 0 6px; }
+.map-filter .map-filter-select { display: flex; gap: 6px; }
+.map-filter .map-filter-select select { flex: 1; min-width: 0; }
+.map-filter .btn { min-height: 28px; justify-self: start; }
+.map-filter-toggle b { font-family: var(--mono); color: var(--scan); }
+.map-filter select { min-height: 26px; padding: 0 4px; font-size: var(--fs-sm); }
+.map-hud > .map-chips { flex: 1 1 auto; min-width: 0; } /* 좁은 화면(≤640)에서는 위 규칙대로 한 줄 가로 밀기 */
