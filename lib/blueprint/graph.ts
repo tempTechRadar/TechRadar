@@ -12,7 +12,6 @@
 //     limitProblems(g): string[]                          확정 조건 어긋남(깊이 · 같은 깊이 · 단계 · 기술 · 연결 · 고리). 빈 배열이면 확정 가능
 //     wouldCycle(g, from, to): boolean                    from → to를 이으면 고리가 생기는가(자기 자신 포함)
 //     connectProblem(g, from, to): ConnectProblem | null  이을 수 없는 이유(null이면 이을 수 있음)
-//     nearestLink(g, id, reach?, sizeOf?): Link | null    끄는 단계 가까이의 "붙을 자리"(이미 이어진 짝은 건너뜀, blocked면 빨간 점선)
 //     snap(rect, others, reach?): Snapped                 8px 격자 + 다른 단계와 왼쪽 · 가운데 · 오른쪽(위 · 가운데 · 아래) 정렬 보조선
 //   바꾸기
 //     createStage(name, x, y, techs?): Stage              새 단계(id 새로)
@@ -61,7 +60,6 @@ export const COORD_MAX = 100000;
 /** 깊이 계산 결과: levels[d] = 깊이 d의 단계 id(y → x → id 순). 사이클이면 cycle = 고리를 이루는 단계 id(연결 방향 순서) */
 export type Layers = { ok: true; depth: Map<string, number>; levels: string[][] } | { ok: false; cycle: string[] };
 export type ConnectProblem = "self" | "missing" | "exists" | "cycle" | "limit";
-export type Link = { from: string; to: string; blocked: ConnectProblem | null };
 export type Guide = { axis: "x" | "y"; at: number };
 export type Snapped = Pos & { guides: Guide[] };
 export type ParsedGraph = { ok: true; graph: Graph } | { ok: false; message: string };
@@ -182,28 +180,6 @@ export function snap(r: Rect, others: Rect[], reach = GUIDE_REACH): Snapped {
 
 /** 단계 크기는 화면이 잰다(sizeOf로 넘김). 못 재면 이 값 */
 export const NODE_SIZE: Size = { w: 208, h: 112 }; // P-12j(11-22 사용자): 글자는 크게 · 폭과 간격은 좁게 → 1440 화면에 단계 6개가 0.9배 이상
-/** 붙을 자리를 보여 주는 가장자리 사이 거리(px) */
-export const LINK_REACH = 160;
-const edgeGap = (a: Rect, b: Rect) =>
-  Math.hypot(Math.max(0, Math.abs(a.x + a.w / 2 - b.x - b.w / 2) - (a.w + b.w) / 2), Math.max(0, Math.abs(a.y + a.h / 2 - b.y - b.h / 2) - (a.h + b.h) / 2));
-/** id를 끌 때 reach 안에서 가장 가까운, 아직 안 이어진 단계와의 연결 후보. 왼쪽(같은 열이면 위쪽)이 앞단계. blocked면 빨간 점선으로 보여 주고 놓아도 안 이어진다 */
-export function nearestLink(g: Graph, id: string, reach = LINK_REACH, sizeOf: (s: Stage) => Size = () => NODE_SIZE): Link | null {
-  const me = g.stages.find((s) => s.id === id);
-  if (!me) return null;
-  const rect = (s: Stage): Rect => ({ x: s.x, y: s.y, ...sizeOf(s) });
-  const linked = (o: Stage) => g.edges.some((e) => (e.from === id && e.to === o.id) || (e.to === id && e.from === o.id));
-  let best: { o: Stage; d: number } | null = null;
-  for (const o of g.stages) {
-    if (o.id === id || linked(o)) continue;
-    const d = edgeGap(rect(me), rect(o));
-    if (d <= reach && (!best || d < best.d)) best = { o, d };
-  }
-  if (!best) return null;
-  const [mx, ox] = [me.x + rect(me).w / 2, best.o.x + rect(best.o).w / 2];
-  const otherFirst = ox < mx || (ox === mx && best.o.y < me.y);
-  const [from, to] = otherFirst ? [best.o.id, id] : [id, best.o.id];
-  return { from, to, blocked: connectProblem(g, from, to) };
-}
 
 // ── 바꾸기 ─────────────────────────────────────────────────────────────────────────────────────────
 const clampPos = (n: number) => Math.max(-COORD_MAX, Math.min(COORD_MAX, Math.round(n)));
