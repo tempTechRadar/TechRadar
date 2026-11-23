@@ -26,12 +26,12 @@ test("화면에 내보낼 한국어는 지금 원문을 번역한 것만(원문�
   assert.deepEqual(stale, { oneLinerKo: null, oneLinerKoAt: null, oneLinerKoSrc: null, oneLinerSource: "https://x.example" }, "옛 번역은 내보내지 않지만 출처는 그대로");
 });
 
-test("묶기: 20개씩, 나머지는 마지막 묶음, 빈 목록은 0묶음", () => {
+test("묶기: 10개씩, 나머지는 마지막 묶음, 빈 목록은 0묶음", () => {
   const rows = Array.from({ length: 45 }, (_, i) => i);
-  assert.deepEqual(toBatches(rows).map((b) => b.length), [TRANSLATE_BATCH, TRANSLATE_BATCH, 5]);
-  assert.equal(TRANSLATE_BATCH, 20);
+  assert.deepEqual(toBatches(rows).map((b) => b.length), [10, 10, 10, 10, 5]);
+  assert.equal(TRANSLATE_BATCH, 10);
   assert.deepEqual(toBatches([]), []);
-  assert.equal(toBatches(Array.from({ length: 500 }, (_, i) => i)).length, 25);
+  assert.equal(toBatches(Array.from({ length: 500 }, (_, i) => i)).length, 50);
 });
 
 test("너무 긴 원문은 보내지 않는다(잘라서 번역하지 않음)", () => {

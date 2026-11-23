@@ -1,5 +1,5 @@
 // 기술 한 줄 설명 → 한국어 개요 번역기(P-12r, 서버 전용). 지도에 올릴 공개 목록 기술(map-queries readCatalog) 중 번역이 없거나 원문이 바뀐 줄을
-// 20개씩 묶어 Claude 1번 호출로 번역해 technologies.one_liner_ko · one_liner_ko_src(번역한 원문 그대로) · one_liner_ko_at에 쓴다.
+// 10개씩 묶어 Claude 1번 호출로 번역해 technologies.one_liner_ko · one_liner_ko_src(번역한 원문 그대로) · one_liner_ko_at에 쓴다.
 // 서비스 키 연결(db)로만 쓴다: technologies 쓰기는 서버. 키(ANTHROPIC_API_KEY)는 어댑터가 읽는다.
 // 불변 4: 호출이 실패하거나 답이 이상한 묶음 · 줄은 건너뛰고(있던 번역은 지우지 않음) 다음 실행에 다시 한다. 저장은 "원문이 그대로일 때만"(읽은 뒤 원문이 바뀌면 건너뜀).
 // 불변 3: 이미 번역된 줄(원문이 같음)은 다시 부르지 않는다. 상대 경로 import · 파라미터 프로퍼티 없음: `@/` 별칭이 있으면 node가 불러오지 못한다(스크립트에서도 쓴다).
@@ -11,8 +11,8 @@ import { cleanForLog, maskSecrets } from "../domain/redact.ts";
 import { rowsOrThrow } from "./alert-db.ts";
 import { chunks, readCatalog, readCategories } from "./map-queries.ts";
 
-const TRANSLATE_MAX_TOKENS = 4096; // 20줄 × (id + 한국어 80자 안팎) — 어댑터 기본 2048은 모자란다
-export const MAX_BATCHES_PER_RUN = 30; // 500줄 = 25번 + 여유. 한 번 실행이 이 수를 넘겨 부르지 않는다(비용 상한)
+const TRANSLATE_MAX_TOKENS = 8192; // 10줄 × (id + 한국어 120자 안팎)은 보통 1,000토큰대지만 4096에서 잘린 묶음이 있었다(11-24 백필): 어댑터 한도(8192)까지
+export const MAX_BATCHES_PER_RUN = 60; // 500줄 = 50번 + 여유. 한 번 실행이 이 수를 넘겨 부르지 않는다(비용 상한)
 
 export type TranslateOptions = {
   db: SupabaseClient;
@@ -64,7 +64,7 @@ export async function translateOneLiners(opt: TranslateOptions): Promise<Transla
 
 const emptyResult = (): TranslateResult => ({ status: "done", catalog: 0, targets: 0, tooLong: 0, batches: 0, translated: 0, dropped: 0, failedBatches: 0, saveFailed: 0, changedSinceRead: 0, droppedWhy: [], samples: [], errors: [] });
 
-/** 읽어 온 줄 중 번역이 필요한 것을 20개씩 묶어 번역한다(DB 읽기 없음: 시험에서 줄을 직접 넘긴다) */
+/** 읽어 온 줄 중 번역이 필요한 것을 10개씩 묶어 번역한다(DB 읽기 없음: 시험에서 줄을 직접 넘긴다) */
 export async function translateRows(opt: TranslateOptions, rows: Row[], catalog = rows.length): Promise<TranslateResult> {
   const out = emptyResult();
   out.catalog = catalog;
@@ -90,7 +90,7 @@ async function runBatch(opt: TranslateOptions, batch: Row[], out: TranslateResul
   } catch (error) {
     const message = cleanForLog(error instanceof Error ? error.message : String(error)) ?? "호출 실패";
     out.failedBatches++;
-    out.errors.push(message);
+    out.errors.push(`${message} [묶음 첫 줄: ${sent.slice(0, 3).map((r) => r.name).join(", ")}]`); // 어느 줄이 문제인지 보이게(잘림이 특정 원문 때문인지 가리려고)
     await log({ status: "failed", error: message });
     return; // 이 묶음은 건너뛴다: 있던 번역은 그대로, 다음 실행에 다시
   }
