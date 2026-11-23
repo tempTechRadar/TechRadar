@@ -145,3 +145,15 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .tc-pick:disabled { opacity: .6; cursor: progress; }
 .tc-x { min-width: 24px; min-height: 28px; padding: 0 6px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; cursor: pointer; }
 
+
+/* 섹션 틀(P-12o 2단계): 단계들을 감싸는 점선 틀, 머리만 눌림 · 놓기를 받는다 */
+.secn { width: 100%; height: 100%; box-sizing: border-box; border: 1.5px dashed var(--ring); border-radius: var(--r-lg); background: color-mix(in srgb, var(--card) 35%, transparent); }
+.secn[data-over] { border-color: var(--scan); }
+.secn-head { pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; }
+.secn-name { font-size: var(--fs-h3); color: var(--ink); }
+.secn-techs { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; font-size: var(--fs-sm); }
+.secn-x { margin-left: 4px; padding: 0 2px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.secn-ungroup { padding: 0 8px; min-height: 24px; border: 1px solid var(--ring); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-cap); cursor: pointer; }
+.secn-ungroup:hover { border-color: var(--scan); }
+.secn :focus-visible { outline: var(--focus); outline-offset: 2px; }
+.secn .nchip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; background: var(--chip-teal); color: var(--chip-teal-ink); white-space: nowrap; }

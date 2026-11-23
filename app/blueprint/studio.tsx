@@ -24,6 +24,8 @@ import { markTech } from "../tech-map/actions";
 import { pickedTechsAction } from "./actions";
 import { addPicked, loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
 import { cartChanged } from "@/lib/blueprint/cart-event";
+import { groupSection, putSectionTech, removeSectionTech, ungroupSection } from "@/lib/blueprint/sections";
+import { SectionNode, type SectionNodeType } from "./section-node";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
@@ -42,7 +44,8 @@ import { useConfirm } from "./use-studio-save";
 import { useBounce } from "./use-bounce";
 import "./studio.css";
 
-const nodeTypes = { stage: StageNode, tech: TechNode };
+const nodeTypes = { stage: StageNode, tech: TechNode, section: SectionNode };
+const SEC = "sec:"; // 섹션 틀 노드 id 앞(단계 · 기술 노드와 겹치지 않게)
 /** 기술 노드 id = 관계선 끝 "기술id@단계id"(단계 id에는 @가 없다) */
 const isTechNode = (id: string | null | undefined) => Boolean(id?.includes("@"));
 const splitEnd = (end: string) => { const at = end.lastIndexOf("@"); return { techId: end.slice(0, at), stageId: end.slice(at + 1) }; };
@@ -272,6 +275,22 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     if (again) return say(`${t.name}을(를) 담았어요. ${again}`);
     apply(putTech(now, stageId, { id: t.id, name: t.name }), `${putSaid(s.name, t.name)} 담은 기술에도 넣었어요.`);
   }
+  /** 섹션 머리에 기술 놓기(P-12o): 서랍(관문) 안 기술만 공통 기술로. 지도 전체 기술은 먼저 단계에 넣어 담은 뒤(관문에 들어온 뒤) */
+  function dropSectionTech(sectionId: string, techId: string) {
+    const t = info.get(techId), sec = g.sections?.find((x) => x.id === sectionId);
+    if (!sec) return;
+    if (!t) return say(catalogById.has(techId) ? "지도 전체 기술은 먼저 단계에 넣어 담은 뒤 섹션에 넣어 주세요." : STUDIO_GATE);
+    const r = putSectionTech(g, sectionId, { id: t.id, name: t.name, grade: t.grade });
+    if (!r.ok) return say(r.message);
+    apply(r.graph, `"${sec.name}" 섹션 공통 기술에 ${t.name}을(를) 넣었어요.`);
+  }
+  /** 고른 단계들을 섹션으로 묶기(오른쪽 서랍, P-12o) */
+  function groupChosen(name: string): boolean {
+    const r = groupSection(g, [...sel].filter((id) => stageOf(id)), name);
+    if (!r.ok) { say(r.message); return false; }
+    apply(r.graph, `단계 ${r.section.stageIds.length}개를 "${r.section.name}" 섹션으로 묶었어요.`);
+    return true;
+  }
   const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
   /** ＋ 단계 칸 닫기: 초점이 사라진 입력에서 body로 떨어지지 않게 단추로 돌려놓는다 */
   function closeAdd() { addBtn.current?.focus(); setAdding(false); } // 칸이 사라지기 전에 옮긴다(다음 프레임으로 미루면 백그라운드 탭에서 안 옴)
@@ -358,14 +377,26 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
   const starter = !readOnly && g.stages.length === 1 && !g.stages[0].techs.length && !pool.length && !found.length; // 빈 판 첫 안내(P-12n R2-1)
-  const nodes: (StageNodeType | TechNodeType)[] = g.stages.map((s) => ({
-    id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
+  const posOfStage = (s: (typeof g.stages)[number]) => drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y };
+  // 섹션 틀(P-12o): 안의 단계를 감싸는 자리 · 크기(끄는 중에도 따라감). 단계보다 앞에(뒤에 깔림), 눌림은 머리만
+  const sectionNodes: SectionNodeType[] = (g.sections ?? []).flatMap((sec) => {
+    const ms = g.stages.filter((s) => sec.stageIds.includes(s.id));
+    if (!ms.length) return [];
+    const xs = ms.map((s) => posOfStage(s).x), ys = ms.map((s) => posOfStage(s).y), x0 = Math.min(...xs) - 20, y0 = Math.min(...ys) - 64;
+    const x1 = Math.max(...ms.map((s) => posOfStage(s).x + NODE_SIZE.w)) + 20, y1 = Math.max(...ms.map((s) => posOfStage(s).y + stageHeight(s))) + 20;
+    return [{ id: SEC + sec.id, type: "section", position: { x: x0, y: y0 }, zIndex: -1, draggable: false, selectable: false, focusable: false, connectable: false,
+      style: { width: x1 - x0, height: y1 - y0, pointerEvents: "none" },
+      data: { section: sec, readOnly, onDropTech: dropSectionTech, onRemoveTech: (id, tid) => apply(removeSectionTech(g, id, tid), `"${sec.name}" 섹션 공통 기술에서 뺐어요.`),
+        onUngroup: (id) => apply(ungroupSection(g, id), `"${sec.name}" 섹션을 풀었어요. 단계는 그대로예요.`) } }];
+  });
+  const nodes: (StageNodeType | TechNodeType | SectionNodeType)[] = [...sectionNodes, ...g.stages.map((s): StageNodeType => ({
+    id: s.id, type: "stage", position: posOfStage(s), selected: sel.has(s.id), measured: dims.get(s.id),
     style: { width: NODE_SIZE.w, height: stageHeight(s) }, // 컨테이너 크기 = graph.ts stageHeight(자동 정렬과 같은 값)
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined,
       edit: readOnly ? undefined : { onRemove: removeFromCard,
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
-  }));
+  }))];
   // 기술 노드(H2): 단계의 자식(parentId), 자리는 단계 안 자동 흐름(techSlot). 부모 다음에 와야 해서 단계 뒤에 붙인다
   const prevEnds = seenEnds.current, endsNow = g.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)));
   const newEnds = prevEnds ? endsNow.filter((e) => !prevEnds.has(e)) : [];
@@ -427,7 +458,8 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     label: near.blocked === "cycle" ? "고리가 생겨 못 이어요" : near.blocked ? "못 이어요" : "놓으면 이어져요",
     labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
-  function onNodesChange(all: NodeChange<StageNodeType | TechNodeType>[]) {
+  function onNodesChange(every: NodeChange<StageNodeType | TechNodeType | SectionNodeType>[]) {
+    const all = every.filter((c) => !("id" in c && c.id.startsWith(SEC))) as NodeChange<StageNodeType | TechNodeType>[]; // 섹션 틀은 계산한 자리라 바뀜을 받지 않음
     const changes: NodeChange<StageNodeType>[] = [];
     // 여러 개를 함께 끌면 단계만 옮긴다(기술은 상자 안 자리 규칙이라 각자, H5): 한 묶음에 위치 변경이 둘 이상이면 기술 끌기는 버림
     const group = all.filter((c) => c.type === "position").length > 1;
@@ -556,7 +588,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }), stages: [...sel].filter((id) => stageOf(id)).length, onGroup: readOnly || listMode ? undefined : groupChosen } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>

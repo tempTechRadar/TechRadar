@@ -41,7 +41,7 @@ test("내보내기: 섹션 머리를 단계 앞에 한 번, 공통 기술은 첫
   const g = G([{ id: "s1", name: "준비", stageIds: ["a", "b"], techs: [{ id: "t1", name: "Supabase" }] }]);
   const lines = sectionLines(g);
   assert.deepEqual(lines, ["섹션 「준비」: 단계 기획 · 개발 — 공통 기술: Supabase(이 섹션 첫 단계 전에 먼저 설치)"]);
-  const text = exportText("prompt", "판", [[{ name: "기획", techs: [] }]], [], lines);
+  const text = exportText("prompt", "판", [[{ id: "a", name: "기획", techs: [] }]], [], lines);
   assert.ok(text.indexOf("섹션 「준비」") < text.indexOf("기획") || text.split("섹션 「준비」").length === 2, "섹션 머리는 한 번");
-  assert.equal(exportText("prompt", "판", [[{ name: "기획", techs: [] }]]).includes("섹션"), false, "섹션이 없으면 줄도 없음");
+  assert.equal(exportText("prompt", "판", [[{ id: "a", name: "기획", techs: [] }]]).includes("섹션"), false, "섹션이 없으면 줄도 없음");
 });
