@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { groupLabelOf, groupTabs } from "./admin-nav";
+import { AdminNotes, AdminToolbar, type AdminNote, type ToolbarProps } from "./admin-ui";
 import "./admin.css";
 
 // 기존 9개의 id · href · label은 그대로(다른 파일 · 시험이 읽는다). 탭 밖이던 두 화면(지금 실행 · 실패 시연)을 메뉴에 더했다. 묶음은 admin-nav.ts
@@ -22,8 +23,11 @@ export const ADMIN_TABS = [
 
 const NAV = groupTabs(ADMIN_TABS);
 
-/** proves: 이 화면이 심사 · 시연에서 증명하는 것 한 줄(선택) */
-type Props = { tab: string; title: string; lead?: string; proves?: string; blocked?: "forbidden" | "no_db"; error?: string | null; children?: ReactNode };
+/** proves: 이 화면이 심사 · 시연에서 증명하는 것 한 줄(선택). toolbar · notes: 관리자 화면 문법(admin-ui.tsx)의 1 · 2번 자리 */
+type Props = {
+  tab: string; title: string; lead?: string; proves?: string; blocked?: "forbidden" | "no_db"; error?: string | null;
+  toolbar?: ToolbarProps; notes?: (AdminNote | null | false | undefined)[]; children?: ReactNode;
+};
 
 function AdminNav({ tab }: { tab: string }) {
   return (
@@ -43,7 +47,12 @@ function AdminNav({ tab }: { tab: string }) {
   );
 }
 
-export function AdminShell({ tab, title, lead, proves, blocked, error, children }: Props) {
+export function AdminShell({ tab, title, lead, proves, blocked, error, toolbar, notes = [], children }: Props) {
+  // 순서는 여기서만 정한다: 머리 → 툴바 → 알림(막힘 · 읽기 실패가 먼저) → 본문(숫자 띠 → 필터 → 섹션)
+  const shellNotes: AdminNote[] = [];
+  if (blocked === "forbidden") shellNotes.push({ tone: "danger", text: "관리자만 볼 수 있어요." });
+  if (blocked === "no_db") shellNotes.push({ tone: "danger", text: "Supabase 연결 전이에요. .env.local을 확인해 주세요." });
+  if (error) shellNotes.push({ tone: "danger", text: `불러오지 못했어요(없는 게 아니에요): ${error}` });
   return (
     <main className="admin">
       <AdminNav tab={tab} />
@@ -54,9 +63,8 @@ export function AdminShell({ tab, title, lead, proves, blocked, error, children 
           {lead ? <p className="admin-lead">{lead}</p> : null}
           {proves ? <p className="admin-proves"><b>이 화면이 증명하는 것</b> {proves}</p> : null}
         </header>
-        {blocked === "forbidden" ? <p role="alert" className="admin-note danger">관리자만 볼 수 있어요.</p> : null}
-        {blocked === "no_db" ? <p role="alert" className="admin-note danger">Supabase 연결 전이에요. .env.local을 확인해 주세요.</p> : null}
-        {error ? <p role="alert" className="admin-note danger">불러오지 못했어요(없는 게 아니에요): {error}</p> : null}
+        {toolbar && !blocked ? <AdminToolbar {...toolbar} /> : null}
+        <AdminNotes items={[...shellNotes, ...(blocked ? [] : notes)]} />
         {blocked || error ? null : children}
       </div>
     </main>

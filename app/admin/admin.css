@@ -16,6 +16,7 @@
 }
 .admin h1 { font-size: var(--text-xl); margin: var(--space-3) 0 var(--space-2); }
 .admin h2 { font-size: var(--text-lg); margin: var(--space-4) 0 var(--space-2); }
+.admin h3 { font-size: var(--text-md); margin: 0; }
 .admin a { color: inherit; }
 .admin :focus-visible { outline: var(--focus); outline-offset: 2px; }
 .admin-lead, .admin .muted { color: var(--color-muted); font-size: var(--text-sm); }
@@ -33,33 +34,70 @@
 .admin-main { min-width: 0; }
 
 /* 본문 머리: 묶음 이름(작게) · 제목 · 설명 · 이 화면이 증명하는 것 */
-.admin-head { padding-bottom: var(--space-3); margin-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
+.admin-head { padding-bottom: var(--space-3); margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); }
 .admin-head h1 { margin: var(--space-1) 0 var(--space-2); }
 .admin-head .admin-lead { margin: 0; max-width: 72ch; }
 .admin-eyebrow { margin: 0; font-size: var(--text-xs); font-weight: 700; color: var(--color-muted); letter-spacing: .02em; }
 .admin-proves { margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--scan); background: var(--sunken); border-radius: 0 var(--radius) var(--radius) 0; font-size: var(--text-sm); max-width: 72ch; }
 .admin-proves b { display: block; font-size: var(--text-xs); color: var(--color-muted); }
 
-/* 좁은 화면(760px 이하): 메뉴를 위로 올려 한 줄 가로 밀기(묶음 이름은 항목 앞 작은 글자). 페이지 자체는 가로로 넘치지 않는다 */
-@media (max-width: 760px) {
-  .admin { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); }
-  .admin-side { position: static; display: flex; gap: var(--space-3); align-items: center; overflow-x: auto; padding: 0 0 var(--space-2); border-right: 0; border-bottom: 1px solid var(--color-border); scrollbar-width: thin; }
-  .admin-group { display: flex; align-items: center; gap: var(--space-1); flex: none; }
-  .admin-group-name { padding: 0; white-space: nowrap; }
-  .admin-group-name span { display: none; }
-  .admin-side ul { display: flex; gap: 2px; }
-  .admin-side a, .admin-home { flex: none; white-space: nowrap; }
-}
+/* ===== 관리자 화면 문법(I-admin-unify, app/admin/admin-ui.tsx) =====
+   순서: 머리 → 툴바 → 알림 → 숫자 띠 → 필터 → 섹션. 자리마다 아래 여백이 같아서(--space-4) 어느 화면이든 같은 자리에서 시작한다 */
+.admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: var(--hit); margin: 0 0 var(--space-4); }
+.admin-toolbar-links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.admin-toolbar-primary { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.admin-toolbar-primary form, .admin-section-actions form, .admin-tile-actions form { margin: 0; }
 
-.admin-note { padding: var(--space-3); border-radius: var(--radius); }
+.admin-notes { display: grid; gap: var(--space-2); margin: 0 0 var(--space-4); }
+.admin-note { margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius); border: 1px solid transparent; }
 .admin-note.danger { color: var(--color-danger); background: var(--color-danger-bg); }
 .admin-note.warning { color: var(--color-warning); background: var(--color-warning-bg); }
+.admin-note.success { color: var(--color-success); background: var(--color-success-bg); }
+.admin-note.info, .admin-note:not(.danger, .warning, .success) { background: var(--sunken); border-color: var(--color-border); }
 
-.admin-filter { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; margin: var(--space-3) 0; }
+.admin-counts { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: 0 0 var(--space-4); padding: 0; list-style: none; }
+.admin-counts li { min-width: 96px; }
+.admin-counts b { display: block; font-family: var(--mono); font-size: var(--text-xl); font-variant-numeric: tabular-nums; }
+.admin-counts span { font-size: var(--text-sm); color: var(--color-muted); }
+.admin-counts small { display: block; font-size: var(--text-xs); color: var(--color-muted); }
+
+.admin-filter { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; margin: 0 0 var(--space-4); }
 .admin-filter label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
+
+/* 섹션: 같은 h2 · 같은 설명 · 둘째부터 위 구분선. 안쪽 조각 사이 간격은 --space-3 하나 */
+.admin-section { margin: 0 0 var(--space-5); min-width: 0; }
+.admin-section + .admin-section { padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.admin-section > * { margin-block: 0; }
+.admin-section > * + * { margin-top: var(--space-3); }
+.admin-section > .admin-section-desc { margin-top: var(--space-1); }
+.admin-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.admin .admin-section-head h2 { margin: 0; font-size: var(--text-lg); }
+.admin-section-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.admin-section-desc { color: var(--color-muted); font-size: var(--text-sm); max-width: 72ch; }
+.admin-empty { color: var(--color-muted); font-size: var(--text-sm); }
+.admin-subsection { margin-top: var(--space-4); }
+.admin-subsection h3 { margin: 0 0 var(--space-2); }
+.admin-list { padding-left: var(--space-5); display: grid; gap: var(--space-1); }
+.admin-inline-form { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; } /* 바깥 여백은 섹션 규칙이 정한다 */
+.admin-inline-form-after { display: inline-flex; margin-left: var(--space-2); vertical-align: middle; }
+.admin-stack-form { display: grid; gap: var(--space-2); max-width: 520px; margin-top: var(--space-3); }
+.admin-details summary { min-height: var(--hit); display: flex; align-items: center; cursor: pointer; }
+.admin-cell-list { margin: 0; padding-left: var(--space-4); }
+.admin-eval p { margin: var(--space-2) 0; }
+.admin-placeholder { border: 1px dashed var(--color-border-strong); border-radius: var(--radius); padding: var(--space-3); color: var(--color-muted); font-size: var(--text-sm); }
+
+/* 동작 칸(AdminTiles · AdminTile, 시뮬레이터 · 실패 시연): 한 줄에 나란히, 단추는 칸 아래로 줄 맞춤, 좁으면 한 칸씩 */
+.admin-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.admin-tile { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--card); min-width: 0; }
+.admin-tile-desc { display: grid; gap: var(--space-1); }
+.admin-tile-desc p { margin: 0; }
+.admin-tile-actions { margin-top: auto; padding-top: var(--space-1); display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin-tile-actions > .muted { flex-basis: 100%; } /* 안내 글은 단추 위 한 줄 — 칸마다 단추가 맨 아래 같은 높이에 남게 */
+
 /* 단추 규칙(P-12n, page.css와 같게): 보조 = 어두운 면 + --ring 테두리(올리면 청록), 주 행동(필터 · 확정) = 청록 채움, 위험한 일(.danger) = 빨강 테두리 · 빨강 글자 */
-.admin-filter select, .admin-filter button, .admin button { min-height: var(--hit); font: inherit; border: 1px solid var(--ring); border-radius: var(--radius); padding: 0 var(--space-3); background: var(--sunken); color: var(--color-text); }
-.admin-filter button { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: 600; }
+.admin select, .admin-filter button, .admin button { min-height: var(--hit); font: inherit; border: 1px solid var(--ring); border-radius: var(--radius); padding: 0 var(--space-3); background: var(--sunken); color: var(--color-text); }
+.admin button { min-width: var(--hit); }
+.admin-filter button, .admin button.primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: 600; }
 .admin button:not(:disabled):hover { border-color: var(--scan); }
 .admin button.danger { color: var(--ink-danger); border-color: var(--danger); background: var(--sunken); }
 .admin button.danger:not(:disabled):hover { border-color: var(--danger); background: var(--bg-danger); }
@@ -69,13 +107,15 @@
 .admin :where(input, textarea)::placeholder { color: var(--muted); }
 .admin button:disabled { color: var(--color-muted); border-style: dashed; cursor: not-allowed; }
 
-.admin-counts { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: var(--space-2) 0; padding: 0; list-style: none; }
-.admin-counts li { min-width: 96px; }
-.admin-counts b { display: block; font-family: var(--mono); font-size: var(--text-xl); }
-.admin-counts span { font-size: var(--text-sm); color: var(--color-muted); }
+/* 주 행동 단추 모양 링크(P-12n: 청록 채움 하나) · 보조 링크 단추(테두리, 툴바 링크) */
+.admin-cta, .admin-linkbtn { display: inline-flex; align-items: center; box-sizing: border-box; min-height: var(--hit); padding: 0 var(--space-4); border-radius: var(--radius); text-decoration: none; font-weight: 600; }
+.admin a.admin-cta { background: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary); }
+.admin-linkbtn { border: 1px solid var(--ring); background: var(--sunken); }
+.admin-linkbtn:hover { border-color: var(--scan); }
 
 .admin-table-wrap { overflow-x: auto; }
 .admin table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+.admin table.admin-table-wide { min-width: 640px; }
 .admin th, .admin td { text-align: left; padding: 6px var(--space-2); border-bottom: 1px solid var(--color-border); vertical-align: top; } /* 한 줄이면 32px 행(13px × 1.5 + 12) */
 .admin th { color: var(--color-muted); font-weight: 600; white-space: nowrap; }
 .admin .mono { font-family: var(--mono); font-size: var(--text-xs); word-break: break-all; }
@@ -86,10 +126,10 @@
 .badge.success { color: var(--color-success); background: var(--color-success-bg); }
 .badge.neutral { color: var(--color-muted); background: var(--color-surface-subtle); border: 1px solid var(--color-border); }
 
-.admin-placeholder { border: 1px dashed var(--color-border-strong); border-radius: var(--radius); padding: var(--space-3); color: var(--color-muted); font-size: var(--text-sm); }
-
-/* 사용기 신고(P-24 24b): 글별 카드, 글자 그대로 보이는 사용기 본문, 필터 줄의 고르기 링크 */
-.admin-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; background: var(--card); }
+/* 사용기 신고(P-24 24b, 다른 팀원 화면 — 이 파일의 클래스만 같이 씀): 글별 카드, 글자 그대로 보이는 사용기 본문, 필터 줄의 고르기 링크 */
+.admin-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: 0 0 var(--space-3); background: var(--card); }
+.admin-card h2 { font-size: var(--text-lg); margin: 0 0 var(--space-1); }
+.admin-card p { margin: var(--space-1) 0; }
 .admin-notetext { background: var(--color-surface-subtle); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; }
 .admin-seg { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; }
 .admin-seg[aria-current="true"] { background: var(--picked-bg); box-shadow: inset 0 0 0 1px var(--picked-line); font-weight: 700; }
@@ -109,57 +149,54 @@
 .role-form button.danger { background: var(--bg-danger); color: var(--ink-danger); border-color: var(--danger); } /* 흰 글자 위 밝은 빨강(대비 미달)이던 것 → 위험한 일 규칙 */
 .role-form .role-reason { display: grid; gap: var(--space-1); }
 
-/* 관제 요약(11-23 리뉴얼): 한 문장 메시지 · 숫자 타일(묶음별) · 시연 순서 · 불변 규칙 띠. 숫자는 고정폭 숫자(tabular-nums) */
+/* 관제 요약(11-23 리뉴얼): 한 문장 메시지 · 숫자 칸(묶음별) · 시연 순서 · 불변 규칙 띠. 숫자는 고정폭 숫자(tabular-nums).
+   숫자 칸은 .admin-stat(링크 칸), 동작 칸 .admin-tile과 이름을 나눔(같은 이름이라 서로의 규칙이 섞여 있었음) */
 .admin-message { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); font-size: var(--text-lg); font-weight: 600; line-height: 1.5; border: 1px solid var(--picked-line); border-radius: var(--r-lg); background: var(--picked-bg); }
-.admin-tiles h2 { font-size: var(--text-sm); color: var(--color-muted); margin: var(--space-4) 0 var(--space-2); }
-.admin-tiles ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: var(--space-2); }
-.admin-tile a { display: grid; gap: 2px; align-content: start; height: 100%; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-border); border-left-width: 3px; border-radius: var(--radius); background: var(--card); text-decoration: none; }
-.admin-tile a:hover { border-color: var(--ring); }
-.admin-tile[data-tone="ok"] a { border-left-color: var(--pass); }
-.admin-tile[data-tone="warn"] a { border-left-color: var(--caution); }
-.admin-tile[data-tone="danger"] a { border-left-color: var(--danger); }
-.admin-tile[data-tone="unknown"] a { border-left-color: var(--unknown); border-style: dashed; }
-/* 좁은 화면: 숫자 타일을 두 칸으로(한 칸씩 쌓으면 숫자 7개가 화면 세 장을 차지했다, 견본 390px 캡처) */
-@media (max-width: 760px) { .admin-tiles ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } .admin-tile a { padding: var(--space-2) var(--space-3); } .admin-tile-value { font-size: 22px; } }
-.admin-tile-label { font-size: var(--text-sm); color: var(--color-muted); }
-.admin-tile-value { font-family: var(--mono); font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.admin-tile[data-tone="danger"] .admin-tile-value { color: var(--ink-danger); }
-.admin-tile[data-tone="unknown"] .admin-tile-value { font-family: var(--font); font-size: var(--text-lg); color: var(--ink-caution); }
-.admin-tile-sub { font-size: var(--text-xs); color: var(--color-muted); }
-.admin-tile-reason { font-size: var(--text-xs); color: var(--ink-caution); overflow-wrap: anywhere; }
-.admin-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); counter-reset: step; }
+.admin-stats { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: var(--space-2); }
+.admin-stat a { display: grid; gap: 2px; align-content: start; height: 100%; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-border); border-left-width: 3px; border-radius: var(--radius); background: var(--card); text-decoration: none; }
+.admin-stat a:hover { border-color: var(--ring); }
+.admin-stat[data-tone="ok"] a { border-left-color: var(--pass); }
+.admin-stat[data-tone="warn"] a { border-left-color: var(--caution); }
+.admin-stat[data-tone="danger"] a { border-left-color: var(--danger); }
+.admin-stat[data-tone="unknown"] a { border-left-color: var(--unknown); border-style: dashed; }
+.admin-stat-label { font-size: var(--text-sm); color: var(--color-muted); }
+.admin-stat-value { font-family: var(--mono); font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.admin-stat[data-tone="danger"] .admin-stat-value { color: var(--ink-danger); }
+.admin-stat[data-tone="unknown"] .admin-stat-value { font-family: var(--font); font-size: var(--text-lg); color: var(--ink-caution); }
+.admin-stat-sub { font-size: var(--text-xs); color: var(--color-muted); }
+.admin-stat-reason { font-size: var(--text-xs); color: var(--ink-caution); overflow-wrap: anywhere; }
+.admin-steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); counter-reset: step; }
 .admin-steps li { counter-increment: step; }
 .admin-steps a { display: grid; gap: var(--space-1); align-content: start; height: 100%; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--sunken); text-decoration: none; }
 .admin-steps a:hover { border-color: var(--scan); }
 .admin-steps b::before { content: counter(step) ". "; font-family: var(--mono); color: var(--scan); }
 .admin-steps span { font-size: var(--text-sm); color: var(--color-muted); }
-.admin-rules { margin-top: var(--space-5); padding: var(--space-3) var(--space-4); border-radius: var(--r-lg); border: 1px solid var(--color-border); background: var(--sunken); }
-.admin-rules h2 { margin: 0 0 var(--space-2); font-size: var(--text-sm); color: var(--color-muted); }
-.admin-rules ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-2) var(--space-4); }
+.admin-rules { list-style: none; padding: var(--space-3) var(--space-4); border-radius: var(--r-lg); border: 1px solid var(--color-border); background: var(--sunken); display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-2) var(--space-4); }
 .admin-rules li { padding-left: var(--space-3); border-left: 2px solid var(--scan); font-weight: 600; }
 
-/* 주 행동 단추 모양 링크(P-12n: 청록 채움 하나) · 보조 링크 단추(테두리) · 안내 상자 · 시연 카드 · 챗봇 */
-.admin-cta, .admin-linkbtn { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-4); border-radius: var(--radius); text-decoration: none; font-weight: 600; }
-.admin a.admin-cta { background: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary); }
-.admin-linkbtn { border: 1px solid var(--ring); background: var(--sunken); }
-.admin-linkbtn:hover { border-color: var(--scan); }
-.admin-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-3) 0; }
-.admin-actions form { margin: 0; }
-.admin button.primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: 600; }
-.admin-note.info { background: var(--sunken); border: 1px solid var(--color-border); }
-.admin-note.on { color: var(--color-success); background: var(--color-success-bg); }
-.admin-guide { margin: var(--space-3) 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--caution); border-radius: var(--r-lg); background: var(--card); }
-.admin-guide h2 { margin-top: 0; }
-.admin-guide ol { margin: var(--space-2) 0 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); }
-.admin-card h2 { font-size: var(--text-lg); margin: 0 0 var(--space-1); }
-.admin-card p { margin: var(--space-1) 0; }
-.admin-list { margin: var(--space-2) 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); }
-.admin-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; list-style: none; }
+/* 위키 챗봇: 예시 질문 칩 · 질문 칸 · 답 */
+.admin-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; list-style: none; }
 .admin .admin-chip { min-height: var(--hit); padding: var(--space-1) var(--space-3); border-radius: var(--r-pill); text-align: left; font-size: var(--text-sm); }
 .admin-chip b { font-family: var(--mono); color: var(--scan); margin-right: var(--space-1); }
 .admin-chat { display: grid; gap: var(--space-2); max-width: 720px; }
 .admin-chat textarea { padding: var(--space-2); font-size: 16px; }
 .admin-chat button { justify-self: start; }
-.admin-answer { margin-top: var(--space-3); max-width: 720px; }
+.admin-answer { max-width: 720px; }
 .admin-answer .answer-text { white-space: pre-wrap; }
-.admin-recent li { margin-bottom: var(--space-2); }
+
+/* 좁은 화면(760px 이하): 메뉴를 위로 올려 한 줄 가로 밀기(묶음 이름은 항목 앞 작은 글자), 숫자 칸 두 칸, 툴바 주 행동은 링크 아래 줄 왼쪽.
+   페이지 자체는 가로로 넘치지 않는다(표 · 넓은 표는 .admin-table-wrap 안에서만 민다) */
+@media (max-width: 760px) {
+  .admin { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); }
+  .admin-side { position: static; display: flex; gap: var(--space-3); align-items: center; overflow-x: auto; padding: 0 0 var(--space-2); border-right: 0; border-bottom: 1px solid var(--color-border); scrollbar-width: thin; }
+  .admin-group { display: flex; align-items: center; gap: var(--space-1); flex: none; }
+  .admin-group-name { padding: 0; white-space: nowrap; }
+  .admin-group-name span { display: none; }
+  .admin-side ul { display: flex; gap: 2px; }
+  .admin-side a, .admin-home { flex: none; white-space: nowrap; }
+  .admin-toolbar-primary { margin-left: 0; }
+  .admin-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-stat a { padding: var(--space-2) var(--space-3); }
+  .admin-stat-value { font-size: 22px; }
+  .admin-inline-form-after { display: flex; margin: var(--space-1) 0 0; }
+}
