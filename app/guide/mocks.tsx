@@ -1,6 +1,7 @@
 // 둘러보기 단계 카드의 "모양 예시": 실제 화면과 같은 클래스(.btn · .btn-primary · .chip · .tag · .notice)로 "이렇게 생긴 걸 누르세요"를 그린다.
 // 누를 수 없는 그림이라 단추 대신 span으로 그리고(초점이 가지 않게), 화면 읽기에는 숨긴다(같은 내용을 행동 목록이 글로 말함).
-// 숫자 대신 n을 쓴다: 가짜 데이터로 보이지 않게. 동그라미 숫자(M)는 왼쪽 행동 목록의 번호와 짝이다.
+// 숫자 대신 n을 쓴다: 가짜 데이터로 보이지 않게. 동그라미 숫자(M)는 왼쪽 행동 목록의 번호와 짝이고 위에서 아래로 커진다.
+// 여기 글자는 실제 화면 글자이거나 lib/tutorial/guide-sections.ts의 MOCK_PLACEHOLDERS여야 한다(시험이 대조).
 import type { ReactNode } from "react";
 import { ALERT_KINDS, BAND_CELLS, EXPORT_KINDS, type GuideStep } from "@/lib/tutorial/guide-steps";
 
@@ -33,13 +34,13 @@ function Choose() {
   return <>
     <M n={1} block><span className="g-row"><span className="g-seg">새 기술</span><span className="chip" aria-current="true">오늘 <b>n</b></span><span className="chip">이번 주 <b>n</b></span><span className="chip">이번 달 <b>n</b></span><span className="chip">위험·주의 <b>n</b></span><span className="chip">사용 중 <b>n</b></span></span></M>
     <div className="g-map">
-      <span className="g-sky" aria-hidden="true">
+      <span className="g-sky">
         {["--cat-1", "--cat-2", "--cat-3", "--cat-6", "--cat-4", "--cat-1", "--cat-7"].map((t, i) => <i key={i} style={{ background: `var(${t})` }} />)}
         <M n={2}><i className="g-dot-big" style={{ background: "var(--cat-2)" }} /></M>
       </span>
       <span className="g-side">
         <b>기술 이름</b>
-        <span className="g-row"><span className="tag">하는 일</span><span className="tag">통과</span></span>
+        <span className="g-row"><span className="tag">통과</span></span>
         <M n={3}><Btn primary>청사진에 담기</Btn></M>
         <span className="muted">비교군 · 출처</span>
       </span>
@@ -49,7 +50,7 @@ function Choose() {
 
 function Judge() {
   return <>
-    <div className="g-row"><M n={1}><span className="g-row g-bell-row"><span className="g-bell"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg><span className="g-badge">n</span></span><span className="muted">종 숫자 = 판단 대기 수</span></span></M></div>
+    <div className="g-row"><M n={1}><span className="g-row g-bell-row"><span className="g-bell"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg><span className="g-badge">n</span></span><span className="muted">종 숫자 = 판단 대기 수</span></span></M></div>
     <M n={2} block><span className="g-kinds">{ALERT_KINDS.map((k) => <span key={k.name}><span className={`tag${k.name === "보안 경고" ? " g-tag-danger" : ""}`}>{k.name}</span><span>{k.when}</span></span>)}</span></M>
     <span className="card g-card">
       <b>판단하기</b>
@@ -63,11 +64,12 @@ function Judge() {
 function Compose() {
   return <>
     <div className="g-row g-toolbar"><M n={1}><Btn>＋ 단계</Btn></M><span className="muted">위 막대</span></div>
-    <M n={3} block><span className="g-stages"><span className="g-stage"><b>단계 1</b><span className="g-chip-tech">담은 기술</span></span><Arrow /><span className="g-stage"><b>단계 2</b><span className="g-drop">여기에 놓기</span></span></span></M>
+    <span className="g-stages"><span className="g-stage"><b>단계 1</b><span className="g-chip-tech">담은 기술</span></span><Arrow /><span className="g-stage"><b>단계 2</b><M n={2}><span className="g-drop">아래에서 기술을 끌어 놓아요</span></M></span></span>
     <span className="g-dock">
       <span className="g-row"><span className="chip" aria-current="true">기술</span><span className="chip">변경 이력</span></span>
       <span className="g-row"><span className="g-chip-tech">담은 기술</span><M n={2}><Btn small>넣기</Btn></M><span className="muted">또는 끌어 놓기</span></span>
     </span>
+    <M n={3} block><span className="g-row g-toolbar"><span className="g-label">앞 단계 고르기</span><Field>단계 1</Field><Btn small>잇기</Btn></span></M>
   </>;
 }
 
@@ -90,7 +92,7 @@ export function StepMock({ id }: { id: GuideStep["id"] }) {
   const Mock = MOCKS[id];
   return (
     <figure className="g-mock">
-      <figcaption>모양 예시 <span className="muted">· 실제 화면에서 이렇게 생긴 걸 찾아요. 숫자는 왼쪽 순서</span></figcaption>
+      <figcaption><span>모양 예시</span><span className="muted">실제 화면에서 이렇게 생긴 걸 찾아요. 숫자는 왼쪽 순서</span><span className="tag">그림 · 누를 수 없어요</span></figcaption>
       <div className="g-mock-body" aria-hidden="true"><Mock /></div>
     </figure>
   );

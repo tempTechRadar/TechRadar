@@ -14,6 +14,15 @@ const typing = (el: Element | null) => !!el && (el.matches("input, textarea, sel
 export function Guide() {
   const [cur, setCur] = useState<number | null>(null); // null = 스크립트 전(모든 카드 보임)
   const box = useRef<HTMLElement>(null);
+  const seen = useRef(false); // 단계 영역이 화면에 보이는지(보일 때만 문서 바탕의 ← →를 받는다)
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => { seen.current = e.isIntersecting; });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     const fromHash = stepFromHash(location.hash, STEPS.length);
@@ -37,8 +46,10 @@ export function Guide() {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
       const active = document.activeElement;
-      // 초점이 이 단계 영역이나 문서 바탕에 있을 때만(자주 묻는 질문 등 다른 곳에서 누른 화살표로 위 카드가 바뀌지 않게)
-      if (typing(active) || (active && active !== document.body && !box.current?.contains(active))) return;
+      // 초점이 단계 영역 안이거나, 문서 바탕이면서 단계 영역이 화면에 보일 때만(안 보이는 카드가 몰래 바뀌지 않게)
+      const inside = !!active && !!box.current?.contains(active);
+      const onBody = !active || active === document.body;
+      if (typing(active) || !(inside || (onBody && seen.current))) return;
       const next = moveStep(cur, e.key === "ArrowLeft" ? -1 : 1, STEPS.length);
       if (next !== cur) { e.preventDefault(); go(next, box.current?.contains(active) ?? false); }
     };
@@ -71,14 +82,18 @@ export function Guide() {
             </header>
             <p className="g-gist">{s.gist}</p>
             <div className="g-card-body">
-              <ol className="g-actions">{s.actions.map((a) => <li key={a}><span><Ui text={a} /></span></li>)}</ol>
+              <div className="g-actions-col">
+                <ol className="g-actions">{s.actions.map((a) => <li key={a}><span><Ui text={a} /></span></li>)}</ol>
+                {s.fine ? <p className="g-fine">{s.fine}</p> : null}
+                {s.gradeLink ? <p className="g-fine"><a href="#g-grades">등급 뜻 보기 ↓</a></p> : null}
+              </div>
               <StepMock id={s.id} />
             </div>
             <footer className="g-card-foot">
               <Link className="btn" href={s.href}>{s.hrefLabel} 화면으로 가기</Link>
               <span className="g-pager">
                 {i > 0 ? <a className="btn" href={stepHash(i - 1)} onClick={link(i - 1, true)}>← 이전</a> : null}
-                {i < STEPS.length - 1 ? <a className="btn" href={stepHash(i + 1)} onClick={link(i + 1, true)}>다음: {STEPS[i + 1].title} →</a> : <a className="btn" href="#g-grades">다 봤어요. 등급 뜻 보기 ↓</a>}
+                {i < STEPS.length - 1 ? <a className="btn" href={stepHash(i + 1)} onClick={link(i + 1, true)}>다음: {STEPS[i + 1].title} →</a> : <a className="btn" href="#g-done">다 봤어요 ↓</a>}
               </span>
             </footer>
           </article>

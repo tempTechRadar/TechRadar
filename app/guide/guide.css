@@ -1,15 +1,27 @@
 /* 둘러보기(/guide). 값은 app/tokens.css 토큰만. 단추 · 칩 · 태그는 공용 클래스(.btn · .chip · .tag)를 그대로 쓰고 여기서는 배치만 */
 .page.guide { max-width: 1120px; }
 .guide h3 { font-size: var(--fs-h2); margin: 0; }
-.guide .g-ui { font-weight: 700; color: var(--ink); background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 5px; white-space: nowrap; } /* 화면에 있는 이름(단추 · 칩) */
+.guide .g-ui { font-weight: 700; color: var(--ink); background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 5px; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* 화면에 있는 이름(단추 · 칩). 긴 안내 문구도 있어 줄바꿈은 허용(좁은 화면 넘침 방지) */
 .guide .g-sec { margin-top: var(--sp-6); }
+.guide .muted, .guide .g-note { color: var(--ink-2); } /* 이 화면의 작은 안내 글은 처음 읽는 글이라 --muted보다 밝게(U15) */
+.guide .g-note { font-size: var(--fs-sm); }
+.guide h3.g-sub { display: flex; align-items: baseline; gap: var(--sp-2); margin: var(--sp-3) 0 var(--sp-2); font-size: var(--fs-h3); }
 
 /* 소개: 한 문장 + 기준 문장 셋 = 메뉴 셋 */
-.g-intro .g-lead { font-size: var(--fs-h3); color: var(--ink-2); max-width: 70ch; margin: 0 0 var(--sp-4); }
+.g-intro .g-problem { max-width: 62ch; margin: 0 0 var(--sp-2); color: var(--ink-2); }
+.g-intro .g-lead { max-width: 62ch; margin: 0 0 var(--sp-4); font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.6; }
+.g-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; }
+.g-terms { margin-top: var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--sunken); }
+.g-terms summary { display: list-item; min-height: var(--hit); padding: 8px var(--sp-3) 0; box-sizing: border-box; cursor: pointer; font-weight: 600; }
+.g-terms dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2) var(--sp-4); margin: 0; padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+.g-terms dl > div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: var(--sp-2); }
+.g-terms dt { font-weight: 700; } .g-terms dd { margin: 0; color: var(--ink-2); }
 .g-motto { list-style: none; margin: 0 0 var(--sp-3); padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
 .g-motto a { display: grid; gap: 2px; height: 100%; box-sizing: border-box; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); text-decoration: none; }
 .g-motto a:hover { border-color: var(--scan); }
 .g-motto strong { font-size: var(--fs-h1); letter-spacing: -.01em; }
+.g-motto strong span { color: var(--muted); font-weight: 400; }
+.g-motto a:hover strong span { color: var(--scan); }
 .g-motto .g-menu { font-size: var(--fs-sm); color: var(--muted); }
 .g-motto .g-what { color: var(--ink-2); }
 
@@ -39,12 +51,16 @@
 .g-actions > li::before { content: counter(act); margin-top: 3px; }
 .g-card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
 .g-pager { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.g-actions-col { display: grid; gap: var(--sp-3); min-width: 0; align-content: start; }
+.g-fine { margin: 0; font-size: var(--fs-sm); color: var(--ink-2); overflow-wrap: anywhere; }
+.g-done-sec { padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); }
+.g-gains { margin: 0 0 var(--sp-2); padding-left: var(--sp-5); display: grid; gap: var(--sp-1); }
 
 /* 모양 예시: 누를 수 없는 그림이라 점선 틀 + 이름표 */
 .g-mock { margin: 0; min-width: 0; border: 1px dashed var(--ring); border-radius: var(--r-lg); background: var(--sunken); }
-.g-mock figcaption { padding: var(--sp-2) var(--sp-3); border-bottom: 1px dashed var(--ring); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+.g-mock figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px dashed var(--ring); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
 .g-mock figcaption .muted { font-weight: 400; }
-.g-mock-body { display: grid; gap: var(--sp-3); padding: var(--sp-4) var(--sp-3) var(--sp-3); pointer-events: none; user-select: none; }
+.g-mock-body { display: grid; gap: var(--sp-3); padding: var(--sp-4) var(--sp-3) var(--sp-3); pointer-events: none; user-select: none; opacity: .82; filter: saturate(.75); } /* 살짝 흐리게: 진짜 단추로 보이지 않게(U11) */
 .g-mock-body .btn { cursor: default; }
 .g-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
 .g-mark { position: relative; display: inline-flex; max-width: 100%; border-radius: var(--r-md); outline: 1px dashed var(--ink-2); outline-offset: 3px; }
@@ -90,7 +106,7 @@
 .g-toast { padding: var(--sp-1) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); font-size: var(--fs-sm); box-shadow: var(--shadow-pop); }
 
 /* 등급 범례 · 약속 · 질문 · 더 있는 화면 */
-.g-grades { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+.g-grades { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
 .g-grades li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); }
 .g-swatch { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; }
 .g-swatch-dot { background: var(--sw); }
@@ -113,7 +129,11 @@
 @media (prefers-reduced-motion: no-preference) { html:has(.page.guide) { scroll-behavior: smooth; } }
 @media (max-width: 1000px) { .g-card-body { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) {
-  .g-motto, .g-grades, .g-promises { grid-template-columns: minmax(0, 1fr); }
+  .g-grades, .g-promises, .g-terms dl { grid-template-columns: minmax(0, 1fr); }
+  .g-motto { gap: var(--sp-2); } /* 좁으면 기준 문장 카드를 동사 + 메뉴만으로 줄여 단계를 위로(U15) */
+  .g-motto a { padding: var(--sp-2); }
+  .g-motto strong { font-size: var(--fs-h2); }
+  .g-motto .g-what { display: none; }
   .g-steps-grid { grid-template-columns: minmax(0, 1fr); }
   .g-step-nav { position: static; }
   .g-step-nav ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
