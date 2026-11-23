@@ -9,3 +9,7 @@
 .bp-check-tag.info { border-style: dashed; }
 .bp-check-src { display: inline; color: var(--ink-2); font-size: var(--fs-cap); }
 .bp-check-src a { color: inherit; }
+/* P-12q 프롬프트 진단: 작은 제목 · 다듬은 프롬프트 미리보기(길어도 패널을 밀지 않게 스크롤) */
+.bp-check h5 { margin: var(--sp-2) 0 var(--sp-1); font-size: var(--fs-sm); }
+.bp-check-diag { margin-top: var(--sp-3); padding-top: var(--sp-2); border-top: 1px solid var(--line); }
+.bp-check-pre { max-height: 240px; overflow: auto; margin: var(--sp-2) 0 0; padding: var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-sm); white-space: pre-wrap; font-size: var(--fs-sm); }

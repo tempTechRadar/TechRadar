@@ -12,7 +12,7 @@ const MAX_LINE_CHARS = 300;
 const FENCE = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
 
 // shortcut: 명령 이름 뒤에 글자가 이어지면 명령으로 본다("docker 이미지" 같은 일반 문장도 바뀔 수 있음, 안전한 쪽). 화이트리스트가 생기면 그때 좁힌다.
-const COMMAND_LINE = /(^|[\s`$(])(npm|npx|pnpm|yarn|pip3?|pipx|uvx?|brew|apt(?:-get)?|curl|wget|docker|git\s+clone|claude\s+mcp\s+add)\s+\S/i;
+export const COMMAND_LINE = /(^|[\s`$(])(npm|npx|pnpm|yarn|pip3?|pipx|uvx?|brew|apt(?:-get)?|curl|wget|docker|git\s+clone|claude\s+mcp\s+add)\s+\S/i;
 
 type Lines = { ok: true; lines: string[] } | { ok: false; error: string };
 
@@ -25,19 +25,24 @@ function readLines(value: unknown, label: string, max: number): Lines {
   return { ok: true, lines: value.map((line: string) => line.trim()) };
 }
 
-function withoutCommands(lines: string[]): string[] {
+export function withoutCommands(lines: string[]): string[] {
   const replaced = lines.map((line) => (COMMAND_LINE.test(line) ? COMMAND_NOTICE : line));
   return replaced.filter((line, index) => line !== COMMAND_NOTICE || replaced.indexOf(COMMAND_NOTICE) === index);
 }
 
-export function parseScenarioResponse(raw: string, allowedSources: string[]): ScenarioParse {
+/** 답 글 → JSON 값(```json 울타리는 벗김). JSON이 아니면 undefined */
+export function readJson(raw: string): unknown {
   const text = raw.trim();
-  let value: unknown;
   try {
-    value = JSON.parse(FENCE.exec(text)?.[1] ?? text);
+    return JSON.parse(FENCE.exec(text)?.[1] ?? text);
   } catch {
-    return { ok: false, error: "답이 JSON이 아니에요" };
+    return undefined;
   }
+}
+
+export function parseScenarioResponse(raw: string, allowedSources: string[]): ScenarioParse {
+  const value = readJson(raw);
+  if (value === undefined) return { ok: false, error: "답이 JSON이 아니에요" };
   if (value === null || typeof value !== "object" || Array.isArray(value)) return { ok: false, error: "답이 객체가 아니에요" };
   const { steps, risks, sources } = value as { steps?: unknown; risks?: unknown; sources?: unknown };
   const stepLines = readLines(steps, "적용 단계", MAX_STEPS);

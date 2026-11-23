@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12q-ai-diagnosis · 2026-11-23 · 청사진 AI 프롬프트 진단: 내보낼 프롬프트의 중복 · 충돌 · 순서와 다듬은 프롬프트 (P-12q, DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12q-ai-diagnosis`(origin/main 5f16103 위, 로컬)
+- 출처: Maestro 배정(사용자 승인, 11-23 오후 "API 이제 써"). 기존 AI 점검(I-P-12e) 넓히기. 불변 1 · 2 · 3, PRD-NF2
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 확정 · 내보내기에서 복사해 가는 프롬프트를 AI 코딩 도구에 넣기 전에, 단계별 기술끼리 겹치거나 부딪치는 곳 · 순서를 짚어 줄 도구가 없다 |
+| 기대 결과 | "점검 받기" 한 번에 기존 제안 · 주의할 점과 함께 내보낼 프롬프트 진단(중복 · 간섭 · 충돌 · 순서)과 다듬은 프롬프트(4000자 이내)를 받는다. 화면에 "AI 제안 · 검증 아님" 표시, [다듬은 프롬프트 복사]. 원래 내보내기 복사 · 청사진은 그대로 |
+| 영향 범위 | lib/ai/parse-check-response.ts(새) · build-check-prompt.ts · parse-scenario-response.ts(JSON 읽기 · 명령 거르기 내보냄) · ai-client.ts · lib/server/anthropic-client.ts(호출마다 maxTokens · timeoutMs, 없으면 기본값) · lib/server/blueprint-check.ts(graph 읽어 내보내기 원문 만들기 · body.diagnosis 저장), app/blueprint/check-panel.tsx · check-panel.css, 시험 3개 |
+| 제약 | DB 변경 없음(body는 jsonb). 하루 3번 · ai_calls · 같은 입력 재사용 · 실패 문구는 그대로. 진단 항목은 모양이 틀리면 그 항목만 버림: 프롬프트에 없는 기술 이름 · 넘기지 않은 주소 · 설치 명령이 든 다듬은 프롬프트. result-dialog.tsx는 안 건드림(#221과 겹침) |
+| 열린 질문 | 진단은 확정본 기준이라 확정 뒤 판을 고치면 다듬은 프롬프트와 지금 내보내기가 달라짐. 단계 메모도 Claude에 감(내보내기 원문에 있으니까, 비밀 키 모양은 가림) |
+
+**결과:** 로컬 커밋. 실제 Claude 호출 2번(로컬, 키는 출력 안 함): 웹 청사진 15.6초 · 출력 2,214토큰, 데이터 청사진 12.2초 · 1,746토큰, 둘 다 파싱 통과. 겹침(Cursor · Copilot · Claude Code, Playwright · Cypress)과 순서(배포를 맨 앞에 둔 판 → 맨 뒤로)를 짚고 근거 · "추측"을 적음. 진단 화면은 실제 답으로 찍어 확인(1440 · 390, 가로 스크롤 없음).
+**확인하지 못함:** 로그인 상태에서 확정본으로 "점검 받기"를 눌러 화면 끝까지(사람 QA). 운영 Vercel 함수 시간 한도 안에 드는지(로컬 12~16초, 어댑터 시간 한도 120초).
 ## I-P-12o-section-gate · 2026-11-23 · 섹션 공통 기술도 공개 목록 검사 (FrontLead 세션, 김영식)
 - 브랜치: `fix/P-12o-section-gate`(origin/main 5f16103e에서 갈라짐)
 - 출처: 푸시 뒤 자동 보안 검토(security-guidance) 지적, 불변 5, 섹션 마이그레이션 `202611240100`, 공개 관문 `202611221320`

@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12q-ai-diagnosis | P-12q 청사진 AI 프롬프트 진단: "점검 받기"가 내보낼 프롬프트 원문까지 보고 중복 · 간섭 · 충돌 · 순서 · 다듬은 프롬프트(4000자)를 함께 줌. "AI 제안 · 검증 아님" 표시 · [다듬은 프롬프트 복사], 파서가 지어낸 기술 · 주소 · 설치 명령을 버림. 실제 호출 2번 확인 | Maestro(배정) · Claude DevAssi2(구현 · 시험) | `feat/P-12q-ai-diagnosis` 로컬 |
 | I-P-12o-section-gate | 자동 보안 검토 지적 반영: 공개 목록 밖 기술 검사가 섹션 공통 기술도 보게 `template_unlisted_techs`를 같은 모양으로 다시 정의 + 이미 공개된 그런 조합 비공개로, 되돌림 시험 SQL | Claude(FrontLead) | `fix/P-12o-section-gate` |
 | I-P-12p-map-polish | 지도 손질(FrontLead): A 찾기 아래 가운데 막대 · 저장한 보기 위 둘째 줄 · 보기 방식/보기 초기화는 필터 패널 맨 위, B "Ready to Catch?" 관문 지움(사용자 지시), C 기본 보기 "LS점프업"(`pick=ls`, 스킬 · 플러그인 · 개념 · 개발 도구 · "AI 작업 방식" + 고른 목록 LS_PICKS), D 잔잔한 레이더(파동 하나 + 잔물결, 점은 파동에 닿아 떠오름, 뒤에서 옅은 선, ⚙ 여운 · 속도 · 밝기 · 굵기 · 기본값으로). 사용자 추가 2개: 내가 저장한 보기 [✕] 지우기 + "지웠어요 · 되돌리기", 지도 아래 등급 뜻 줄을 필터 패널 한 줄로 옮김(⚙는 오른쪽 아래 찾기 막대 높이로). 자체 코드 리뷰 10건 중 8건 고침(옅은 선은 초당 12장 · 떠오름은 보이기 시작할 때 · 찾기 칸 손가락 44px · 죽은 CSS 등), 시드 마이그레이션 지적 1건은 운영 적용 전 두 키가 없었음을 확인해 해당 없음. 시드 · QA 초안 브랜치 합침 | Claude(FrontLead), 김영식(계획 승인) | `feat/P-12p-map-polish` |
 | I-P-12p-seed | LS점프업 시드(C-4): herdr(도구, 키 `github:herdrdev/herdr`) · 루프 하네스(개념, 키 `concept:loop-harness`) 2줄 마이그레이션 `202611240200_P-12p_ls_seed.sql`(초안, 운영 적용 전) + 되돌림 시험 SQL + 파일 검사 시험 6개. 출처는 공식 저장소 · README · Anthropic 글을 직접 열어 확인 | Claude(DataCollector)가 출처 확인 · 마이그레이션 · 시험, 영식 승인 대기 | `supabase/migrations/202611240200_P-12p_ls_seed.sql` · `supabase/tests/ls_seed_p12p.sql` · `lib/server/ls-seed-migration.test.ts` |
