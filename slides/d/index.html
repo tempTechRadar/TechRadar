@@ -126,11 +126,29 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .shots.stack .hint{float:right;font-size:.7rem;color:var(--dim)}
 .shotbtn{display:block;width:100%;padding:0;margin:0;border:0;background:none;cursor:zoom-in;font:inherit;color:inherit}
 .shotbtn:hover img{border-color:var(--amb)}
-/* 눌러서 크게 보기 */
-.lb{position:fixed;inset:0;z-index:50;background:rgba(8,12,19,.94);display:flex;align-items:center;justify-content:center;animation:fade .2s ease both}
-.lb button{display:flex;flex-direction:column;align-items:center;gap:.6rem;padding:0;border:0;background:none;cursor:zoom-out;font:inherit;color:var(--dim)}
-.lb img{display:block;max-width:96vw;max-height:90vh;width:auto;height:auto;border:1px solid var(--dim);background:#000}
-.lb small{font-size:max(12px,.8rem)}
+/* 눌러서 짚어 보기(둘러보기): 좌표는 JS가 원본 픽셀 기준으로 계산 */
+.lb{position:fixed;inset:0;z-index:50;background:rgba(8,12,19,.985);overflow:hidden;animation:fade .2s ease both}
+.lbView{position:absolute;inset:0;cursor:pointer}
+.lbView img{position:absolute;left:0;top:0;max-width:none;transform-origin:0 0;background:#000;box-shadow:0 0 0 1px var(--dim);transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.lbSpot{position:absolute;left:0;top:0;border:2px solid var(--amb);border-radius:4px;box-shadow:0 0 0 200vmax rgba(8,12,19,.74);pointer-events:none;opacity:0;transition:left .7s cubic-bezier(.4,0,.2,1),top .7s cubic-bezier(.4,0,.2,1),width .7s cubic-bezier(.4,0,.2,1),height .7s cubic-bezier(.4,0,.2,1),opacity .35s ease,border-color .35s ease}
+.lbSpot.on{opacity:1}
+.lbSpot.bad{border-color:var(--red)}
+.lb.nt .lbView img,.lb.nt .lbSpot{transition:none}
+.lbCard{position:absolute;left:50%;bottom:3.6rem;transform:translateX(-50%);width:min(46rem,92vw);background:var(--bg2);border:1px solid var(--line);border-left:.25rem solid var(--amb);padding:.65rem 1rem .75rem;color:var(--tx);font-size:max(13px,.92rem);line-height:1.5}
+.lbCard.bad{border-left-color:var(--red)}
+.lbCard .n{font-family:var(--mono);font-size:max(11px,.74rem);color:var(--dim);letter-spacing:.06em}
+.lbCard b{display:block;color:var(--hi);font-size:max(15px,1.1rem);margin:.1rem 0 .2rem}
+.lbCard.bad b{color:var(--red)}
+.lbCard p{margin:0}
+.lbBar{position:absolute;left:0;right:0;bottom:.8rem;display:flex;justify-content:center;align-items:center;gap:1.2rem;color:var(--dim);font-size:max(12px,.78rem)}
+.lbDots{display:flex;gap:.15rem}
+.lbDots button{width:max(22px,1.5rem);height:max(22px,1.5rem);padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.lbDots button::before{content:"";width:max(9px,.6rem);height:max(9px,.6rem);border-radius:50%;border:1px solid var(--dim)}
+.lbDots button[aria-current="step"]::before{background:var(--amb);border-color:var(--amb)}
+.lbDots button.bad[aria-current="step"]::before{background:var(--red);border-color:var(--red)}
+.lbX{position:absolute;top:.8rem;right:1rem;width:max(34px,2.4rem);height:max(34px,2.4rem);border:1px solid var(--dim);border-radius:50%;background:var(--bg2);color:var(--hi);font:inherit;font-size:max(20px,1.4rem);line-height:1;cursor:pointer}
+.lbX:hover{border-color:var(--amb)}
+@media (prefers-reduced-motion:reduce){.lbView img,.lbSpot{transition:none}}
 .chk{list-style:none;padding:0;margin:.3rem 0}
 .chk li{margin:0;border-bottom:1px solid var(--line)}
 .chk label{display:grid;grid-template-columns:1.5rem 1fr 6.2rem;gap:.4rem;align-items:start;padding:.32rem 0;cursor:pointer;font-size:.9rem}
@@ -158,6 +176,10 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .notes{display:none;border-top:1px solid var(--amb);padding:.45rem 1rem;font-size:.84rem;line-height:1.42;color:var(--tx);max-height:13rem;overflow:auto;background:#131c2a}
 .notes b{color:var(--hi)}
 .showN .notes{display:block}
+.ic{width:1.1em;height:1.1em;vertical-align:-.18em;fill:none;stroke:var(--amb);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.pc .kv{list-style:none;padding:0;margin:.4rem 0}
+.pc .kv li{display:grid;grid-template-columns:1.3rem 6.2rem 1fr;gap:.5rem;align-items:start;margin:0;padding:.38rem 0;border-bottom:1px solid var(--line)}
+.kv li .ic{margin-top:.2em}
 .hand{font-size:.8rem;color:var(--tx);border:1px solid var(--line);border-left:.2rem solid var(--amb);padding:.25rem .6rem;margin-top:.5rem}
 .hand b{font-weight:400;font-size:.68rem;letter-spacing:.1em;color:var(--dim);margin-right:.5em}
 
@@ -191,6 +213,33 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+ <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h6M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+ <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h4"/></symbol>
+ <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+ <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+ <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+ <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+ <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+ <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+ <symbol id="i-move" viewBox="0 0 24 24"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></symbol>
+ <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+ <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></symbol>
+ <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/></symbol>
+ <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></symbol>
+ <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+ <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+ <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 01-12 0zM12 17v4"/></symbol>
+ <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+ <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M12 3c4 2 6 6 6 10l-3 3H9l-3-3c0-4 2-8 6-10z"/><path d="M9 16l-2 5M15 16l2 5M12 9h.01"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 010 7M18 14.5c2.5.5 4 2.5 4 5.5"/></symbol>
+ <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 013-3h13M17 3l3 3-3 3M20 13v2a3 3 0 01-3 3H4M7 21l-3-3 3-3"/></symbol>
+</svg>
 <div class="stage" id="stage">
   <div class="top">
     <b>TechRadar</b><span>지키고, 고르고, 옮긴다</span>
@@ -220,7 +269,12 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 
   <div class="list" id="list" aria-label="전체 항적"></div>
 
-  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="캡처 크게 보기" hidden><button type="button" id="lbBtn" aria-label="크게 보기 닫기"><img id="lbImg" alt=""><small>누르거나 Esc로 닫기</small></button></div>
+  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="캡처 짚어 보기" hidden>
+    <div class="lbView" id="lbView"><img id="lbImg" alt=""><div class="lbSpot" id="lbSpot" aria-hidden="true"></div></div>
+    <div class="lbCard" id="lbCard" aria-live="polite"><span class="n" id="lbN"></span><b id="lbTt"></b><p id="lbD"></p></div>
+    <div class="lbBar"><div class="lbDots" id="lbDots" role="group" aria-label="단계 고르기"></div><span>→ Space 다음 · ← 이전 · 이미지 누르면 다음 · Esc 닫기</span></div>
+    <button type="button" class="lbX" id="lbBtn" aria-label="짚어 보기 닫기">×</button>
+  </div>
 
   <div class="help" id="help" role="dialog" aria-label="도움말">
     <div class="cols">
@@ -248,22 +302,22 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
         <h2>안내서 11장 12항목 + 강사 공지 4항목 ↔ 막 · 표적</h2>
         <table>
           <tr><th>#</th><th>항목</th><th>막</th><th>표적</th></tr>
-          <tr><td>1</td><td>문제(가장 크게)</td><td>① 문제</td><td class="mono">T-01~T-04</td></tr>
-          <tr><td>2</td><td>지켜본 곳과 데이터</td><td>② 만든 것</td><td class="mono">T-06</td></tr>
-          <tr><td>3</td><td>직접 입력과 운영 화면</td><td>② 만든 것</td><td class="mono">T-07</td></tr>
-          <tr><td>4</td><td>사건과 대응</td><td>② · ③ 사건과 대응</td><td class="mono">T-08 · T-09 · T-10</td></tr>
-          <tr><td>5</td><td>시연(성공 · 일부러 실패 · 과거 기록 찾기)</td><td>④ 시연</td><td class="mono">T-11 · T-12</td></tr>
-          <tr><td>6</td><td>확인(채점 · 시험 · QA · 합친 뒤 오류)</td><td>⑤ 확인</td><td class="mono">T-13 · T-14</td></tr>
-          <tr><td>7</td><td>커넥터</td><td>⑤ 확인</td><td class="mono">T-14</td></tr>
-          <tr><td>8</td><td>문서 위키와 챗봇</td><td>⑥ AI와 일한 방식(+ ④ 시연 ⑤번)</td><td class="mono">T-19 · T-12</td></tr>
-          <tr><td>9</td><td>서브에이전트</td><td>⑥</td><td class="mono">T-18</td></tr>
-          <tr><td>10</td><td>하네스</td><td>⑥</td><td class="mono">T-16 · T-17</td></tr>
-          <tr><td>11</td><td>팀원별 기여</td><td>⑦ 사람</td><td class="mono">T-20 · T-22</td></tr>
-          <tr><td>12</td><td>다음에 해 볼 것</td><td>⑦ 사람</td><td class="mono">T-21</td></tr>
-          <tr><td>공지 1</td><td>바이브로그를 슬라이드에 녹여서</td><td>⑥ 7일 타임라인</td><td class="mono">T-15</td></tr>
-          <tr><td>공지 2</td><td>자동화 흐름 화면</td><td>④ 시연</td><td class="mono">T-11 · T-12</td></tr>
-          <tr><td>공지 3</td><td>md 기반 LLM 위키 시연</td><td>④ 시연 ⑤번</td><td class="mono">T-12</td></tr>
-          <tr><td>공지 4</td><td>제품 시연 · 12~15분</td><td>④ 4분 · 전체 13.5 + 1.5분</td><td class="mono">T-12</td></tr>
+          <tr><td>1</td><td>문제(가장 크게)</td><td>① 문제</td><td class="mono">T-01~T-03</td></tr>
+          <tr><td>2</td><td>지켜본 곳과 데이터</td><td>② 만든 것</td><td class="mono">T-05</td></tr>
+          <tr><td>3</td><td>직접 입력과 운영 화면</td><td>② 만든 것</td><td class="mono">T-06</td></tr>
+          <tr><td>4</td><td>사건과 대응</td><td>② · ③ 사건과 대응</td><td class="mono">T-07 · T-08 · T-09</td></tr>
+          <tr><td>5</td><td>시연(성공 · 일부러 실패 · 과거 기록 찾기)</td><td>④ 시연</td><td class="mono">T-10 · T-11</td></tr>
+          <tr><td>6</td><td>확인(채점 · 시험 · QA · 합친 뒤 오류)</td><td>⑤ 확인</td><td class="mono">T-12 · T-13</td></tr>
+          <tr><td>7</td><td>커넥터</td><td>⑤ 확인</td><td class="mono">T-13</td></tr>
+          <tr><td>8</td><td>문서 위키와 챗봇</td><td>⑥ AI와 일한 방식(+ ④ 시연 ⑤번)</td><td class="mono">T-18 · T-11</td></tr>
+          <tr><td>9</td><td>서브에이전트</td><td>⑥</td><td class="mono">T-17</td></tr>
+          <tr><td>10</td><td>하네스</td><td>⑥</td><td class="mono">T-15 · T-16</td></tr>
+          <tr><td>11</td><td>팀원별 기여</td><td>⑦ 사람</td><td class="mono">T-19 · T-21</td></tr>
+          <tr><td>12</td><td>다음에 해 볼 것</td><td>⑦ 사람</td><td class="mono">T-20</td></tr>
+          <tr><td>공지 1</td><td>바이브로그를 슬라이드에 녹여서</td><td>⑥ 7일 타임라인</td><td class="mono">T-14</td></tr>
+          <tr><td>공지 2</td><td>자동화 흐름 화면</td><td>④ 시연</td><td class="mono">T-10 · T-11</td></tr>
+          <tr><td>공지 3</td><td>md 기반 LLM 위키 시연</td><td>④ 시연 ⑤번</td><td class="mono">T-11</td></tr>
+          <tr><td>공지 4</td><td>제품 시연 · 12~15분</td><td>④ 4분 · 전체 13.5 + 1.5분</td><td class="mono">T-11</td></tr>
         </table>
       </div>
     </div>
@@ -288,117 +342,123 @@ var KIND={dot:"● 내용",inc:"▲ 사고",lim:"◇ 한계",hum:"● 내용"};
 var T=[
 {act:0,center:1,k:"dot",sp:"영",who:"김영식",sec:15,nm:"표지",
  title:"지도에서 고르고, 청사진으로 옮긴다",
- body:`<p><b>TechRadar</b> — AI 코딩 도구로 만드는 사람이 내가 깐 기술의 목록 · 보안 · 더 나은 대안을 한눈에 보고, 판단하고 기록하고, 다른 컴퓨터로 옮기는 서비스. 기준 문장: <b>지키고, 고르고, 옮긴다.</b></p>
+ body:`<p><b>TechRadar</b> — 내가 깐 AI 코딩 기술을 한눈에</p>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-shield"/></svg><b>지키고</b><span>내 기술 목록 · 보안 등급</span></li>
+ <li><svg class="ic"><use href="#i-target"/></svg><b>고르고</b><span>알림 · 판단 · 더 나은 대안</span></li>
+ <li><svg class="ic"><use href="#i-move"/></svg><b>옮긴다</b><span>다른 컴퓨터로 설치 프롬프트</span></li></ul>
  <h2>발표 순서</h2>
  <table><tr><th>막</th><th>말하는 사람</th></tr>
  <tr><td>① 문제</td><td>김영식</td></tr><tr><td>② 만든 것</td><td>김영식</td></tr>
  <tr><td>③ 사건과 대응</td><td>황재웅</td></tr><tr><td>④ 시연</td><td>세 사람</td></tr>
  <tr><td>⑤ 확인</td><td>황재웅</td></tr><tr><td>⑥ AI와 일한 방식</td><td>차세일</td></tr>
- <tr><td>⑦ 사람</td><td>세 사람</td></tr></table>
- <p class="sm">김영식 A 지키기 + 공용 · 황재웅 B 고르기 · 차세일 C 옮기기 · 운영</p>`,
+ <tr><td>⑦ 사람</td><td>세 사람</td></tr></table>`,
  src:"README.md 1 · 12줄 · ADR 0032(컨셉, 11-21)",
- notes:"구성: 11-23 화이트보드 v2 7막 기준. 낮 화이트보드와 달라진 점은 ⑥을 1.5 → 2.5분으로 늘린 것 하나(여유 2.5 → 1.5분). 발표 전에 운영 /api/version 이 main 과 같은지, /guide 가 200인지 확인(17:20 기준 운영은 #232, /guide 404였다)."},
+ notes:"한 문장 소개: AI 코딩 도구로 만드는 사람이 내가 깐 기술의 목록 · 보안 · 더 나은 대안을 한눈에 보고, 판단하고 기록하고, 다른 컴퓨터로 옮기는 서비스. 분담: 김영식 A 지키기 + 공용 · 황재웅 B 고르기 · 차세일 C 옮기기 · 운영. 구성: 11-23 화이트보드 v2 7막 기준. 낮 화이트보드와 달라진 점은 ⑥을 1.5 → 2.5분으로 늘린 것 하나(여유 2.5 → 1.5분). 발표 전에 운영 /api/version 이 main 과 같은지, /guide 가 200인지 확인(17:20 기준 운영은 #232, /guide 404였다)."},
 {act:0,k:"dot",sp:"영",who:"김영식",sec:45,nm:"놓치는 것",
  title:"깔기는 쉬운데,<br>뭘 깔았는지 한눈에 못 본다",
- body:`<div class="q"><p>"중구난방 다 깔려 있다"</p><small><span class="tag">사람 인터뷰</span> 그룹1 P1 · 정리해 둔 것 없음, 노트북 반납 전에 "싹 정리하고 가지고 나갈" 계획</small></div>
- <div class="q"><p>"막막해서 그냥 제로부터 시작할 생각"</p><small><span class="tag">사람 인터뷰</span> 그룹1 P3 · 발화자는 전사 말투로 추정</small></div>
- <table><tr><td style="width:5rem"><b>누가</b></td><td>AI 코딩 도구로 만드는 초심자(수강생) — v1 대상</td></tr>
- <tr><td><b>언제</b></td><td>도구를 깔고 난 뒤, 그리고 컴퓨터를 옮길 때</td></tr>
- <tr><td><b>놓치는 것</b></td><td>내가 깐 것의 큰 그림 — 목록이 없어서 정리도, 다시 세팅도 0부터</td></tr></table>
- <p class="sm">가장 강한 근거는 "변화를 놓침"이 아니라 "목록이 없음"이다. 팀 밖 사람 2명(추정)에게서 나온 주장만 중심에 두었다.</p>`,
+ body:`<div class="q"><p>"중구난방 다 깔려 있다"</p><small><span class="tag">사람 인터뷰</span> 그룹1 P1</small></div>
+ <div class="q"><p>"막막해서 그냥 제로부터 시작할 생각"</p><small><span class="tag">사람 인터뷰</span> 그룹1 P3 · 발화자 추정</small></div>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-user"/></svg><b>누가</b><span>AI 코딩 도구 초심자(수강생)</span></li>
+ <li><svg class="ic"><use href="#i-clock"/></svg><b>언제</b><span>도구 설치 후 · 컴퓨터 옮길 때</span></li>
+ <li><svg class="ic"><use href="#i-list"/></svg><b>놓치는 것</b><span>내가 깐 것의 목록 → 정리 · 재설치 모두 0부터</span></li></ul>
+ <p class="sm">핵심 근거 — "목록 없음" · 팀 밖 2명(추정)</p>`,
  src:"docs/문제정의.md 54~56줄(판정 표 원문) · 232줄 · interviews/2026-11-17-그룹1-사람.md",
- notes:"안내서: 문제를 가장 크게. 인용 두 개를 그대로 읽는다. 인터뷰 대상 신원은 말하지 않는다(그룹1 P1 · P3까지만)."},
-{act:0,k:"lim",sp:"영",who:"김영식",sec:35,nm:"가설 좁힘",
+ notes:"안내서: 문제를 가장 크게. 인용 두 개를 그대로 읽는다. 인터뷰 대상 신원은 말하지 않는다(그룹1 P1 · P3까지만). 말로 보탤 것: P1은 정리해 둔 것이 없고, 노트북 반납 전에 '싹 정리하고 가지고 나갈' 계획이었다. P3 발화자는 전사 말투로 추정했다. 대상은 v1 기준. 가장 강한 근거는 '변화를 놓침'이 아니라 '목록이 없음'이고, 팀 밖 사람 2명(추정)에게서 나온 주장만 중심에 두었다."},
+{act:0,k:"lim",sp:"영",who:"김영식",sec:60,nm:"가설 좁힘",
  title:"가설 셋을 인터뷰로 판정했고,<br>하나를 접었다",
- body:`<table><tr><th>가설</th><th>팀 밖에서 나온 말</th><th>판정</th></tr>
- <tr><td><b>A</b> 소식 · 보안 지켜보기</td><td>"큰 그림이 없다" <span class="n">2</span>명(추정) · 보안 <span class="n">1</span>명</td><td><b>중심으로</b> — 단, 생태계 전체가 아니라 "내가 깐 것"</td></tr>
- <tr><td><b>B</b> 필요 → 검색 · 추천</td><td>"몰라서 포기" <span class="n">0</span>명</td><td><b>중심에서 내림</b> — 중단 기준(구체 사례 2명 미만)</td></tr>
- <tr><td><b>C</b> 둘을 합친 안</td><td>공개 저장소 등록</td><td>남김 → 통합안의 첫 화면</td></tr></table>
+ body:`<table><tr><th>가설</th><th>팀 밖 근거</th><th>판정</th></tr>
+ <tr><td><b>A</b> 보안 · 소식 지켜보기</td><td>큰 그림 없음 <span class="n">2</span>명(추정) · 보안 <span class="n">1</span>명</td><td><svg class="ic"><use href="#i-check"/></svg> <b>중심</b> — "내가 깐 것"만</td></tr>
+ <tr><td><b>B</b> 검색 · 추천</td><td>몰라서 포기 <span class="n">0</span>명</td><td><svg class="ic"><use href="#i-down"/></svg> <b>내림</b> — 2명 미만</td></tr>
+ <tr><td><b>C</b> A + B 통합</td><td>공개 저장소 등록</td><td><svg class="ic"><use href="#i-arrow"/></svg> <b>첫 화면</b>으로</td></tr></table>
  <h2>◇ 한계</h2>
- <ul><li>그룹1은 전사 끝부분만 있고, 발화자는 추정이다.</li><li>대표1은 숙련자이고 주제를 미리 알았다. 전사에 "일부러 삐딱하게 답변"이 있다.</li><li>초심자 근거는 그룹1뿐. 팀원 본인 인터뷰와 AI 인터뷰는 세지 않았다.</li></ul>`,
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-doc"/></svg><b>그룹1</b><span>전사 끝부분만 · 발화자 추정</span></li>
+ <li><svg class="ic"><use href="#i-star"/></svg><b>대표1</b><span>숙련자 · 주제 미리 앎 · "일부러 삐딱하게"</span></li>
+ <li><svg class="ic"><use href="#i-filter"/></svg><b>초심자 근거</b><span>그룹1뿐 · 팀원 · AI 인터뷰 제외</span></li></ul>`,
  src:"docs/문제정의.md 50~68줄 · ADR 0005 · ADR 0013(11-18 회의 통합안 승인)",
- notes:"말로 짧게. 규칙: 팀 밖 사람 2명 이상에게서 나온 주장을 중심에 둔다. 질문이 나오면: 문제정의의 주 숫자(등급을 확인한 기술 비율)와 발표 숫자(비교 작업 시간)가 다른 이유는 ADR 0011."},
-{act:0,k:"hum",sp:"영",who:"김영식",sec:25,nm:"숫자 하나",
- title:"숫자 하나: 손으로 vs 앱으로",
- body:`<p>같은 저장소 하나를 두고 걸린 시간과 찾은 위험 수를 잰다.</p>
- <table><tr><th style="width:50%">① 손으로</th><th>② 앱으로</th></tr>
- <tr><td>파일을 열어 깐 것을 적고, 기술마다 취약점 · 최근 업데이트를 검색</td><td>등록 → 내 기술 목록과 등급</td></tr></table>
- <span class="edit" data-edit="hand" data-default="아직 재지 않았다 — 손으로 걸린 시간 · 찾은 위험 수"></span>
- <span class="edit" data-edit="app" data-default="아직 재지 않았다 — 앱으로 걸린 시간 · 찾은 위험 수"></span>
- <h2>◇ 재는 방법과 한계</h2>
- <ul><li>사람 한 명이 스톱워치로 잰다. 잰 값은 "잰 것"으로 표시한다.</li><li>빈도 · 손해는 수치화하지 않았다 — 인터뷰에서 지금 값을 얻지 못했다.</li><li>사용자가 없어, 앱 안의 숫자는 시연 계정 값뿐이다.</li></ul>`,
- src:"ADR 0011(숫자 하나는 비교 작업 시간으로, 11-18 채택)",
- notes:"값이 비어 있으면 '아직 재지 않았다'를 그대로 말한다. 지어내지 않는다. E 키 → 칸 클릭 → 입력 → Esc.",
+ notes:"말로 짧게. 규칙: 팀 밖 사람 2명 이상에게서 나온 주장을 중심에 둔다. A는 생태계 전체가 아니라 '내가 깐 것'으로 좁혀 중심에 뒀다. B는 중단 기준(구체 사례 2명 미만)에 걸려 내렸다. C(둘을 합친 안)는 통합안의 첫 화면으로 남겼다. 대표1 전사에는 '일부러 삐딱하게 답변'이라는 말이 있다. 질문이 나오면: 문제정의의 주 숫자(등급을 확인한 기술 비율)와 발표 숫자(비교 작업 시간)가 다른 이유는 ADR 0011.",
  hand:"여기까지가 문제. 이어서 만든 것."},
 {act:1,k:"dot",sp:"영",who:"김영식",sec:25,nm:"분업 지도",
  title:"기준 문장 세 마디가 곧<br>영역 셋, 사람 셋, 메뉴 셋",
  body:`<div class="tri">
- <div><span>A · 김영식 · 메뉴 프로젝트</span><b>지키고</b><p>저장소 읽기 · 수집기 · 등급. 공용 뼈대 · DB · 계정</p></div>
- <div><span>B · 황재웅 · 메뉴 지도</span><b>고르고</b><p>알림 · 판단, Claude 초안 · 시나리오, 적용 기회, 추천 · 사용기, 사람 QA</p></div>
- <div><span>C · 차세일 · 메뉴 청사진 · 운영</span><b>옮긴다</b><p>실행 기록 · 흐름 화면, 시뮬레이터 · 채점, 정기 실행, 관리자, 설치 프롬프트, 위키 · 챗봇</p></div></div>
- <p>층(프론트 / 백엔드)으로 나누지 않고 <b>기능 영역</b>으로 나눴다. 각자 화면 · 서버 · 데이터 · QA를 모두 맡았다.</p>
- <p class="sm">공용 파일은 주인제: <span class="mono">lib/server/</span> 뼈대는 김영식, <span class="mono">flow/flow.json</span>은 차세일만. 메뉴는 11-22에 프로젝트 · 지도 · 청사진으로 정리(지도 화면은 김영식 #178, 청사진 스튜디오는 김영식 #204).</p>`,
+ <div><span>A · 김영식 · 메뉴 프로젝트</span><b>지키고</b><p>저장소 읽기 · 수집기 · 등급 · 공용 뼈대</p></div>
+ <div><span>B · 황재웅 · 메뉴 지도</span><b>고르고</b><p>알림 · 판단 · 추천 · 사람 QA</p></div>
+ <div><span>C · 차세일 · 메뉴 청사진 · 운영</span><b>옮긴다</b><p>실행 기록 · 흐름 화면 · 위키 챗봇 · 운영</p></div></div>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-layers"/></svg><b>나눈 기준</b><span>층(프론트 / 백엔드)이 아니라 기능 영역</span></li>
+ <li><svg class="ic"><use href="#i-user"/></svg><b>각자 맡은 것</b><span>화면 · 서버 · 데이터 · QA 끝까지</span></li>
+ <li><svg class="ic"><use href="#i-key"/></svg><b>공용 파일</b><span>주인제 — <span class="mono">lib/server/</span> 김영식 · <span class="mono">flow.json</span> 차세일</span></li></ul>`,
  src:"docs/plan.md 8 · 10~18줄 · ADR 0037 · 0041",
- notes:"영역 ↔ 메뉴는 느슨한 대응이다. 지도 · 청사진 화면 자체는 김영식 PR(#178 · #204)이라, '메뉴를 그 사람이 만들었다'고 말하지 않는다. 분업의 뜻(기능 영역, 각자 끝까지)만."},
+ notes:"영역별 전체 목록 — A: 저장소 읽기 · 수집기 · 등급, 공용 뼈대 · DB · 계정. B: 알림 · 판단, Claude 초안 · 시나리오, 적용 기회, 추천 · 사용기, 사람 QA. C: 실행 기록 · 흐름 화면, 시뮬레이터 · 채점, 정기 실행, 관리자, 설치 프롬프트, 위키 · 챗봇. 메뉴는 11-22에 프로젝트 · 지도 · 청사진으로 정리(지도 화면은 김영식 #178, 청사진 스튜디오는 김영식 #204). 영역 ↔ 메뉴는 느슨한 대응이다. 지도 · 청사진 화면 자체는 김영식 PR(#178 · #204)이라, '메뉴를 그 사람이 만들었다'고 말하지 않는다. 분업의 뜻(기능 영역, 각자 끝까지)만."},
 {act:1,k:"dot",sp:"영",who:"김영식",sec:25,nm:"지켜본 곳",
  title:"수집기 7개가 매일 06:00에 읽고,<br>실패는 '수집 오류'로 남긴다",
  body:`<table><tr><th>#</th><th>수집기</th><th>무엇</th></tr>
- <tr><td class="n">1</td><td>OSV</td><td>취약점 매일 재확인</td></tr><tr><td class="n">2</td><td>GitHub</td><td>저장소 정보(푸시 · 라이선스 · 별 · 보관)</td></tr>
- <tr><td class="n">3</td><td>GitHub 검색</td><td>별 후보(ADR 0033)</td></tr><tr><td class="n">4</td><td>레지스트리</td><td>공식 MCP 레지스트리</td></tr>
- <tr><td class="n">5</td><td>다운로드</td><td>npm · PyPI 주간 다운로드</td></tr><tr><td class="n">6</td><td>Hacker News</td><td>소식</td></tr>
- <tr><td class="n">7</td><td>바깥 소식</td><td>공식 피드(ADR 0038)</td></tr></table>
- <div class="big"><div><span class="n">3,166</span><span>11-19 운영 첫 실수집 기술 수(64초)</span></div><div><span class="n">4,921</span><span>11-22 수동 실행(172초) · 다시 돌려도 중복 0</span></div></div>
- <p class="sm">불변 규칙 2: 수집 실패를 "변화 없음" · "삭제됨"으로 단정하지 않는다. 실패하면 수집 오류와 다음 시도 시각을 기록한다. 11-23 06:07 정기 실행은 25단계 중 수집 오류 2.</p>`,
+ <tr><td class="n">1</td><td>OSV</td><td>취약점 매일 재확인</td></tr><tr><td class="n">2</td><td>GitHub</td><td>저장소 정보</td></tr>
+ <tr><td class="n">3</td><td>GitHub 검색</td><td>별 후보</td></tr><tr><td class="n">4</td><td>레지스트리</td><td>공식 MCP 레지스트리</td></tr>
+ <tr><td class="n">5</td><td>다운로드</td><td>npm · PyPI 주간</td></tr><tr><td class="n">6</td><td>Hacker News</td><td>소식</td></tr>
+ <tr><td class="n">7</td><td>바깥 소식</td><td>공식 피드</td></tr></table>
+ <div class="big"><div><span class="n">3,166</span><span>11-19 첫 수집 기술 수 · 64초</span></div><div><span class="n">4,921</span><span>11-22 재실행 · 172초 · 중복 0</span></div></div>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-alert"/></svg><b>실패하면</b><span>"수집 오류" + 다음 시도 시각 기록</span></li>
+ <li><svg class="ic"><use href="#i-clock"/></svg><b>11-23 06:07</b><span>25단계 중 수집 오류 2</span></li></ul>`,
  src:"lib/schedule/collectors.ts:13 · vercel.json(0 21 * * * UTC) · docs/qa.md:79 · docs/connectors.md:12 · docs/debug-note.md:56 · CLAUDE.md 3절",
- notes:"'자동 재시도'라고 말하지 않는다 — 다음 시도 시각을 기록할 뿐. 지금 운영 DB의 기술 수는 확인하지 못했다(DB를 읽지 않음)."},
+ notes:"불변 규칙 2: 수집 실패를 '변화 없음' · '삭제됨'으로 단정하지 않는다. GitHub = 푸시 · 라이선스 · 별 · 보관 여부, 검색 별 후보는 ADR 0033, 바깥 소식 공식 피드는 ADR 0038. 11-22는 수동 실행. '자동 재시도'라고 말하지 않는다 — 다음 시도 시각을 기록할 뿐. 지금 운영 DB의 기술 수는 확인하지 못했다(DB를 읽지 않음)."},
 {act:1,k:"dot",sp:"영",who:"김영식",sec:20,nm:"입력 · 화면",
  title:"공개 저장소를 등록하면<br>내 목록 · 지도 · 청사진이 된다",
- body:`<ol class="steps"><li><span>등록</span><span>공개 저장소 주소 → 내가 깐 기술 목록("사용 중인 항목")과 등급. 컴팩트 보드(ADR 0043, #208 · #210)</span></li>
- <li><span>지도 <b class="mono">/</b></span><span>첫 화면. 색 = 분류, 등급은 기호(ADR 0026~0028, #178 · #188)</span></li>
- <li><span>청사진</span><span><span class="mono">/blueprint</span> — 고른 것을 설치 프롬프트로 옮긴다(#204)</span></li>
- <li><span>대시보드</span><span><span class="mono">/dashboard</span> · 관리자 <span class="mono">/admin</span>(리뉴얼 #227 · #229, 관리자 지정 · 되돌리기 #212 · #215)</span></li></ol>
- <h2>권한 — 세 곳에서 막는다</h2>
- <p><b>화면 · 서버 · DB(RLS)</b>. 사용자는 본인이 공개한 것 말고는 본인 데이터만, 관리자 데이터는 관리자만(불변 규칙 5).</p>
- <p class="sm">화면은 ④ 시연에서 직접 보여 드립니다.</p>`,
+ body:`<ol class="steps"><li><span>등록</span><span>공개 저장소 주소 → 내 기술 목록 · 등급</span></li>
+ <li><span>지도 <b class="mono">/</b></span><span>첫 화면 · 색 = 분류, 기호 = 등급</span></li>
+ <li><span>청사진</span><span><span class="mono">/blueprint</span> · 고른 것 → 설치 프롬프트</span></li>
+ <li><span>대시보드</span><span><span class="mono">/dashboard</span> · 관리자 <span class="mono">/admin</span></span></li></ol>
+ <h2><svg class="ic"><use href="#i-lock"/></svg> 권한 — 세 곳에서 막는다</h2>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-shield"/></svg><b>막는 곳</b><span>화면 · 서버 · DB(RLS, 행 단위 권한)</span></li>
+ <li><svg class="ic"><use href="#i-user"/></svg><b>사용자</b><span>내 데이터는 나만 (공개한 것은 예외)</span></li>
+ <li><svg class="ic"><use href="#i-key"/></svg><b>관리자 데이터</b><span>관리자만</span></li></ul>
+ <p class="sm"><svg class="ic"><use href="#i-play"/></svg> 화면은 ④ 시연에서</p>`,
  src:"CLAUDE.md 3절 5번 · ADR 0043",
- notes:"지도 주소는 / 이다(/tech-map 은 없는 경로). 손님도 지도 · 청사진을 써 볼 수 있게 한 것은 ADR 0037."},
+ notes:"근거 PR — 등록 · 컴팩트 보드 ADR 0043, #208 · #210 / 지도 ADR 0026~0028, #178 · #188 / 청사진 #204 / 관리자 리뉴얼 #227 · #229, 관리자 지정 · 되돌리기 #212 · #215. 내 기술 목록의 화면 이름은 '사용 중인 항목'. 권한은 불변 규칙 5. 지도 주소는 / 이다(/tech-map 은 없는 경로). 손님도 지도 · 청사진을 써 볼 수 있게 한 것은 ADR 0037."},
 {act:1,k:"dot",sp:"영",who:"김영식",sec:20,nm:"알림 세 종류",
  title:"알림은 세 종류, 판단은 사람이 한다",
  body:`<div class="tri">
  <div><span>내 기술이 위험으로</span><b>보안 경고</b><p>등급이 "위험"으로 바뀌면</p></div>
- <div><span>소식이 내 기술과 맞으면</span><b>적용 기회</b><p>조건 4개 — 넷째는 별 수가 알려져 있으면 100 이상(11-21)</p></div>
+ <div><span>소식이 내 기술과 맞으면</span><b>적용 기회</b><p>조건 4개 충족 시</p></div>
  <div><span>쓰는 모델이 끝나면</span><b>모델 종료</b><p>종료 소식</p></div></div>
- <p>등급은 <b>코드 규칙</b>으로 매긴다. Claude는 대응안 <b>초안</b>만 쓰고, 조치는 사람이 판단한 뒤에만 실행된다. 그래서 이름도 "승인"이 아니라 <b>"판단"</b>이다.</p>
- <p class="sm">불변 규칙 1: 사람이 판단하기 전에는 어떤 조치도 실행하지 않는다. 관리자도 건너뛸 수 없다.</p>`,
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-code"/></svg><b>등급</b><span>코드 규칙으로 매김</span></li>
+ <li><svg class="ic"><use href="#i-bot"/></svg><b>Claude</b><span>대응안 <b>초안</b>만</span></li>
+ <li><svg class="ic"><use href="#i-user"/></svg><b>조치</b><span>사람이 <b>판단</b>한 뒤에만 · 관리자도 예외 없음</span></li></ul>
+ <p class="sm">그래서 이름도 "승인"이 아니라 "판단"</p>`,
  src:"README.md 상태 줄(알림 세 종류) · CLAUDE.md 3절 1번 · docs/worklog.md 86 · 93줄(조건 4) · docs/worklog.md 581~585줄",
- notes:"알림은 세 종류(보안 경고 · 적용 기회 · 모델 종료)로 말한다.",
+ notes:"알림은 세 종류(보안 경고 · 적용 기회 · 모델 종료)로 말한다. 적용 기회 조건 넷째는 별 수가 알려져 있으면 100 이상(11-21). 불변 규칙 1: 사람이 판단하기 전에는 어떤 조치도 실행하지 않는다. 관리자도 건너뛸 수 없다.",
  hand:"\"이 알림이 실제로 어떻게 흘러가는지, 재웅 님이 이어갑니다.\""},
 {act:2,k:"dot",sp:"재",who:"황재웅",sec:30,nm:"사건 → 기록",
  title:"사건 기준 → 알림 → 사람 판단 → 조치와 기록",
- body:`<ol class="steps"><li><span>사건 기준</span><span>바깥 변화가 <b>내 기술</b>에 닿을 때만 사건. 등급 규칙 v1(코드)</span></li>
- <li><span>알림</span><span>보안 경고 · 적용 기회 · 모델 종료. 같은 변경을 다시 읽어도 두 번 생기지 않는다(멱등)</span></li>
- <li><span>초안</span><span>Claude가 대응안 초안과 적용 시나리오를 쓴다(#110 · #120)</span></li>
- <li><span>사람 판단</span><span>알림 상세에서 판단을 저장(#43). 거절 · 저장 실패면 기존 값을 지키고 "처리 완료"로 표시하지 않는다</span></li>
- <li><span>조치 · 기록</span><span>판단 뒤에만 조치. 처리 기록이 남고, 비슷한 지난 판단을 다시 찾는다</span></li></ol>
- <p class="sm">흐름 화면은 이 단계들의 실제 실행 기록(<span class="mono">runs</span> · <span class="mono">run_steps</span>)을 읽어 그린다. 미리 그린 가짜 불빛은 없다(불변 규칙 6).</p>`,
+ body:`<ol class="steps"><li><span>사건 기준</span><span>바깥 변화가 <b>내 기술</b>에 닿을 때만</span></li>
+ <li><span>알림</span><span>3종 · 같은 변경은 한 번만(멱등)</span></li>
+ <li><span>초안</span><span>Claude — 대응안 · 적용 시나리오</span></li>
+ <li><span>사람 판단</span><span>저장 실패면 기존 값 유지 · "처리 완료" 표시 안 함</span></li>
+ <li><span>조치 · 기록</span><span>판단 뒤에만 · 비슷한 지난 판단 다시 찾기</span></li></ol>
+ <p class="sm"><svg class="ic"><use href="#i-eye"/></svg> 흐름 화면 = 실제 실행 기록으로 그림 · 가짜 불빛 없음</p>`,
  src:"CLAUDE.md 3절 1 · 3 · 4 · 6번 · README.md 폴더 표(alerts · draft · judgments · action-record · similar-judgments)",
- notes:"1분 막이다. 다섯 단계를 한 호흡으로. 자세한 화면은 시연 ③번에서."},
+ notes:"등급 규칙 v1은 코드. 초안 #110 · #120, 판단 저장은 알림 상세에서(#43), 거절도 같은 처리. 흐름 화면은 runs · run_steps 를 읽어 그린다(불변 규칙 6). 1분 막이다. 다섯 단계를 한 호흡으로. 자세한 화면은 시연 ③번에서."},
 {act:2,k:"inc",sp:"재",who:"황재웅",sec:30,nm:"#133 장애 18분",
  title:"합친 뒤 깨진 일 하나:<br>운영 장애 약 18분",
- body:`<ol class="steps seq"><li><span>11-19 14:43</span><span><b>#133 합침</b> → 운영 관리자 분류 탭 전체가 조회 실패</span></li>
- <li><span>원인</span><span>새 칸을 만드는 마이그레이션보다 <b>코드가 먼저</b> 운영에 올라갔다</span></li>
- <li><span>14:56</span><span>#135 — 칸 없음 오류일 때만 그 부분을 끄고 안내</span></li>
- <li><span>15:01</span><span>마이그레이션 적용. <b class="rd">장애 약 18분</b></span></li>
- <li><span>막은 방법</span><span>규칙 #138(합치기 전에 운영 먼저) → 도구 #156(precheck 경고 + 운영 점검표)</span></li></ol>
- <p class="sm">시험은 통과했는데 합친 뒤에 깨졌다. 그 뒤 이야기는 ⑥ AI와 일한 방식에서.</p>`,
+ body:`<ol class="steps seq"><li><span>11-19 14:43</span><span><b>#133 합침</b> → 관리자 분류 탭 조회 실패</span></li>
+ <li><span>원인</span><span><b>코드가</b> 마이그레이션(DB 변경)보다 <b>먼저</b> 배포</span></li>
+ <li><span>14:56</span><span>#135 — 문제 부분만 끄고 안내</span></li>
+ <li><span>15:01</span><span>마이그레이션 적용 · <b class="rd">장애 약 18분</b></span></li>
+ <li><span>막은 방법</span><span>규칙 #138 → 도구 #156</span></li></ol>
+ <p class="sm">시험 통과 ≠ 합친 뒤 안전 · 뒷이야기는 ⑥에서</p>`,
  src:"docs/debug-note.md:30 · PR #133 · #135 · #138 · #156",
- notes:"무엇이 깨졌고 어떻게 막았나만. '다음 시연이 그 증명'으로 넘긴다.",
+ notes:"말로 보탤 것: #135는 칸 없음 오류일 때만 그 부분을 끄고 안내. 규칙 #138 = 합치기 전에 운영 먼저, 도구 #156 = precheck 경고 + 운영 점검표. 무엇이 깨졌고 어떻게 막았나만. '다음 시연이 그 증명'으로 넘긴다.",
  hand:"\"그래서 지금은 어떻게 도는지, 운영 주소에서 세일 님이 직접 쏩니다.\""},
 {act:3,k:"dot",sp:"세",who:"차세일",sec:20,wide:1,nm:"흐름 화면",
  title:"미리 그린 그림이 아니라, 실행 기록에서 그린다",
  body:`<div class="shots stack">
- <figure><figcaption><span class="hint">눌러서 크게</span><b>성공</b> — 시뮬레이터가 쏜 가짜 사건이 끝까지 돈 실행. 11-20 운영 실제 실행</figcaption><button type="button" class="shotbtn" aria-label="성공 실행 캡처 크게 보기"><img src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 끝까지 성공한 실행 기록"></button></figure>
- <figure><figcaption><b>일부러 실패</b> — 실패한 단계가 빨간 상자로. 11-20 운영 실제 실행</figcaption><button type="button" class="shotbtn" aria-label="일부러 실패시킨 실행 캡처 크게 보기"><img src="images/flow-fail-demo-1120.png" alt="흐름 화면: 일부러 실패시킨 실행에서 빨간 상자가 켜진 실행 기록"></button></figure></div>
+ <figure><figcaption><span class="hint">눌러서 짚어 보기 →</span><svg class="ic"><use href="#i-check"/></svg> <b>성공</b> — 가짜 사건이 끝까지 돈 실행 · 11-20 운영</figcaption><button type="button" class="shotbtn" data-tour="ok" aria-label="성공 실행 캡처 단계별로 짚어 보기"><img src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 끝까지 성공한 실행 기록"></button></figure>
+ <figure><figcaption><svg class="ic"><use href="#i-alert"/></svg> <b>일부러 실패</b> — 실패 단계가 빨간 상자로 · 11-20 운영</figcaption><button type="button" class="shotbtn" data-tour="fail" aria-label="일부러 실패시킨 실행 캡처 단계별로 짚어 보기"><img src="images/flow-fail-demo-1120.png" alt="흐름 화면: 일부러 실패시킨 실행에서 빨간 상자가 켜진 실행 기록"></button></figure></div>
 `,
  src:"docs/images/flow-sim-success-1120.png · flow-fail-demo-1120.png · docs/flow.md 115 · 119줄 · CLAUDE.md 3절 6번",
  notes:"강사 공지: 자동화 흐름 화면을 슬라이드에. 시연이 막히면 이 두 장으로 대신한다. 실패 시연(#54)은 캡처로."},
@@ -406,114 +466,118 @@ var T=[
  title:"가짜 사건 하나가<br>운영 주소에서 끝까지 돈다",
  body:`<ol class="steps">
  <li><span>① 차세일</span><span>시뮬레이터로 가짜 사건을 쏜다</span></li>
- <li><span>② 차세일</span><span>흐름 화면 — 실제 실행 기록, 실패하면 빨간 상자</span></li>
- <li><span>③ 황재웅</span><span>알림 상세 → 판단 저장 → 비슷한 지난 판단 찾기</span></li>
+ <li><span>② 차세일</span><span>흐름 화면 — 실패하면 빨간 상자</span></li>
+ <li><span>③ 황재웅</span><span>알림 → 판단 저장 → 지난 판단 찾기</span></li>
  <li><span>④ 김영식</span><span>지도 → 청사진 → 설치 프롬프트</span></li>
- <li><span>⑤ 차세일</span><span>위키 챗봇 — md 기반 LLM 위키에 묻기</span></li></ol>
- <p class="sm">운영 주소 <a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a>에서 성공 · 일부러 실패 · 과거 기록 찾기를 모두 보여 드립니다.</p>`,
+ <li><span>⑤ 차세일</span><span>위키 챗봇에 묻기</span></li></ol>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-globe"/></svg><b>운영 주소</b><span><a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a></span></li>
+ <li><svg class="ic"><use href="#i-play"/></svg><b>보여 줄 것</b><span>성공 · 일부러 실패 · 과거 기록 찾기</span></li></ul>`,
  src:"README.md 12줄(운영 주소) · sim/README.md",
- notes:"<b>리허설 주의</b> ① 시뮬레이터는 같은 입력 하루 1번 — 돌렸다 지우고 다시 돌리면 대응안 초안이 안 나온다. ② 관리자는 남의 알림을 못 본다 → 브라우저 프로필 2개에 관리자 · 시연 계정을 미리 로그인. ③ 위키 Q5는 11-20 운영 재질문에서 맞았고, 11-23 위키 변경 뒤 재확인 전이다. ④ 오늘 만든 마이그레이션 3개의 운영 적용 여부는 확인하지 못했다 — 가이드 캐릭터 · 한국어 개요는 확인 전이면 시연 경로에서 뺀다.",
+ notes:"② 흐름 화면은 실제 실행 기록이다. ⑤ 위키는 md 기반 LLM 위키. <b>리허설 주의</b> ① 시뮬레이터는 같은 입력 하루 1번 — 돌렸다 지우고 다시 돌리면 대응안 초안이 안 나온다. ② 관리자는 남의 알림을 못 본다 → 브라우저 프로필 2개에 관리자 · 시연 계정을 미리 로그인. ③ 위키 Q5는 11-20 운영 재질문에서 맞았고, 11-23 위키 변경 뒤 재확인 전이다. ④ 오늘 만든 마이그레이션 3개의 운영 적용 여부는 확인하지 못했다 — 가이드 캐릭터 · 한국어 개요는 확인 전이면 시연 경로에서 뺀다.",
  hand:"\"방금 본 것이 맞게 도는지, 숫자로 재웅 님이 확인합니다.\""},
 {act:4,k:"dot",sp:"재",who:"황재웅",sec:35,nm:"채점 · 시험 · QA",
  title:"놓침 0 · 잘못 울림 0,<br>실행 못 한 항목도 그대로 적었다",
- body:`<div class="big"><div><span class="n">56</span><span>채점 사례(등급 12 + 경계 44)</span></div><div><span class="n">0 · 0</span><span>놓침 · 잘못 울림. 등급 12/12</span></div><div><span class="n">1,883</span><span>자동 시험 통과 · 실패 0</span></div></div>
+ body:`<div class="big"><div><span class="n">56</span><span>채점 사례(등급 12 + 경계 44)</span></div><div><span class="n">0 · 0</span><span>놓침 · 잘못 울림 · 등급 12/12</span></div><div><span class="n">1,883</span><span>자동 시험 통과 · 실패 0</span></div></div>
  <table><tr><th>QA 표</th><th>줄</th><th>Pass</th><th>Fail</th><th>No Run</th><th>그 밖</th></tr>
  <tr><td>Claude QA</td><td class="n">135</td><td class="n">121</td><td class="n">9</td><td class="n">4</td><td>설계대로 1</td></tr>
  <tr><td>사람 QA</td><td class="n">47</td><td class="n">13</td><td class="n">12</td><td class="n">21</td><td>일부 Pass 1</td></tr>
  <tr><td>영역 C · Claude 1차</td><td class="n">20</td><td class="n">20</td><td class="n">0</td><td class="n">0</td><td></td></tr>
  <tr><td>영역 C · 사람 2차</td><td class="n">15</td><td class="n">15</td><td class="n">0</td><td class="n">0</td><td></td></tr></table>
- <p class="sm">Claude QA의 Fail 9건 중 8건은 고친 뒤 다시 통과했다. 아직 실행하지 못한 항목(No Run)도 숨기지 않고 그대로 적었다.</p>`,
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-repeat"/></svg><b>Claude QA</b><span>Fail 9건 중 8건 고쳐서 재통과</span></li>
+ <li><svg class="ic"><use href="#i-eye"/></svg><b>No Run</b><span>못 한 항목도 숨기지 않고 표기</span></li></ul>`,
  src:"eval/result.md 3~5 · 24 · 90줄 · npm test(main 210375b, 11-23) · docs/qa.md(11-23 14:38) · docs/qa-c.md",
  notes:"PR #220 제목의 '사람 QA Pass 19 → 33'은 QA 시트 사본 기준으로 보이고, docs/qa.md 사람 QA 표(Pass 13)와 다르다. 어느 쪽이 발표 기준인지 재웅 님이 확인. 화면에는 docs/qa.md 값을 적었다."},
 {act:4,k:"inc",sp:"재",who:"황재웅",sec:25,nm:"잡은 오류 · 커넥터",
  title:"시험이 통과해도,<br>합친 뒤 운영에서 잡은 오류",
- body:`<ol class="steps"><li><span>11-19 · #153</span><span>적용 시나리오가 운영에서 늘 실패 — 가짜 DB 시험은 칸 권한을 몰라 통과했다</span></li>
- <li><span>11-19 · #104</span><span>06시 첫 정기 실행이 안 돎 — CRON_SECRET 없음</span></li>
- <li><span>11-23</span><span>메뉴 상태 줄이 "오류 0" — 실제로는 수집 오류 2(불변 규칙 2 위반). 세는 조건을 고치고 시험 추가</span></li></ol>
- <h2>커넥터 — 운영을 직접 확인한 기록 122행</h2>
+ body:`<ol class="steps"><li><span>11-19 · #153</span><span>적용 시나리오 운영에서 늘 실패 · 가짜 DB 시험은 통과</span></li>
+ <li><span>11-19 · #104</span><span>06시 첫 정기 실행 안 돎 · 설정값 없음</span></li>
+ <li><span>11-23</span><span>상태 줄 "오류 0" ↔ 실제 수집 오류 2 → 고침 + 시험 추가</span></li></ol>
+ <h2><svg class="ic"><use href="#i-plug"/></svg> 커넥터 — 운영 직접 확인 기록 122행</h2>
  <table><tr><td>Supabase <span class="n">약 88</span></td><td>Vercel <span class="n">약 18</span></td><td>ego-browser <span class="n">약 10</span></td></tr>
  <tr><td>abbsbook <span class="n">7</span></td><td>GitHub <span class="n">약 5</span></td><td>Claude API <span class="n">3</span> · Slack <span class="n">2</span></td></tr></table>
 `,
  src:"docs/debug-note.md:26 · 31 · 34 · 56 · docs/connectors.md(날짜 행 122)",
- notes:"커넥터는 말로 짧게. #133 장애는 ③에서 이미 말했으니 여기서는 나머지 셋.",
+ notes:"#153: 가짜 DB 시험은 칸 권한을 몰라 통과했다. #104: CRON_SECRET 없음. 11-23: 메뉴 상태 줄이 수집 오류를 세지 않아 불변 규칙 2 위반, 세는 조건을 고쳤다. 커넥터는 말로 짧게. #133 장애는 ③에서 이미 말했으니 여기서는 나머지 셋.",
  hand:"\"이걸 7일 동안 어떻게 만들었는지, 세일 님.\""},
 {act:5,k:"dot",sp:"세",who:"차세일",sec:45,wide:1,nm:"7일 타임라인",
  title:"7일, 합친 PR 232개 — 방향을 다섯 번 틀었다",
  body:`<div class="tl" id="tl"></div>
- <p class="sm">◆ 방향 전환 &nbsp; <span class="rd">▲ 사고</span> &nbsp; □ 바이브로그 장면 · 막대는 날짜별로 합친 PR 수(팀 합계). 11-21 · 22는 큰 묶음 PR이라 숫자가 작다.</p>
+ <p class="sm">◆ 방향 전환 &nbsp; <span class="rd">▲ 사고</span> &nbsp; □ 바이브로그 · 막대 = 날짜별 합친 PR 수</p>
  <div class="opt"><h2>바이브로그 — 내 판단 한 문장</h2>
  <span class="edit" data-edit="vibe-y" data-default="김영식"></span>
  <span class="edit" data-edit="vibe-j" data-default="황재웅"></span>
  <span class="edit" data-edit="vibe-s" data-default="차세일"></span></div>`,
  src:"gh pr list --state merged(11-23 17:17, KST 날짜) · ADR 0005 · 0017 · 0026~0028 · 0032 · 0037 · 0041 · 0043 · 0044 · docs/debug-note.md 30 · 49~52 · 55줄",
- notes:"강사 공지: 바이브로그는 슬라이드에 녹여서. 자기 깃발(□)은 각자 한 문장씩 말해도 된다. 11-16은 합친 PR 0(프로젝트 시작 · 팀 하네스)이라 막대에 없다. 사람별 일별 표는 띄우지 않는다."},
+ notes:"막대는 팀 합계. 11-21 · 22는 큰 묶음 PR이라 숫자가 작다. 강사 공지: 바이브로그는 슬라이드에 녹여서. 자기 깃발(□)은 각자 한 문장씩 말해도 된다. 11-16은 합친 PR 0(프로젝트 시작 · 팀 하네스)이라 막대에 없다. 사람별 일별 표는 띄우지 않는다."},
 {act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"규칙과 기록",
  title:"셋이 같은 규칙으로 일했고,<br>전부 기록으로 남겼다",
- body:`<ol><li><b>영역</b> — 기능 영역 A · B · C, 각자 화면 · 서버 · 데이터 · QA</li>
- <li><b>주인제</b> — 공용 파일은 주인만 채운다. 마이그레이션은 김영식 리뷰 필수</li>
- <li><b>PR 승인 1</b> — 조각 = 브랜치, 하루 크기, 만든 사람 아닌 1명 승인</li>
- <li><b>기록 5문서</b> — 충돌이 기록 문서에 몰려 <span class="mono">merge=union</span> + 작업 ID 브랜치(ADR 0017)</li>
- <li><b>precheck</b> — 충돌 미리 보기, 마이그레이션 번호 겹침은 실패</li>
- <li><b>배포 아끼기</b> — 자동 main 합치기(#106), 20분 잠잠하면 한 번 배포(#159)</li></ol>
+ body:`<ul class="kv">
+ <li><svg class="ic"><use href="#i-layers"/></svg><b>영역</b><span>A · B · C, 각자 끝까지</span></li>
+ <li><svg class="ic"><use href="#i-key"/></svg><b>주인제</b><span>공용 파일은 주인만 · DB 변경은 김영식 리뷰</span></li>
+ <li><svg class="ic"><use href="#i-check"/></svg><b>PR 승인 1</b><span>하루 크기 조각 · 다른 1명 승인</span></li>
+ <li><svg class="ic"><use href="#i-doc"/></svg><b>기록 5문서</b><span>충돌 → <span class="mono">merge=union</span> + 작업 ID 브랜치</span></li>
+ <li><svg class="ic"><use href="#i-filter"/></svg><b>precheck</b><span>충돌 미리 보기 · 번호 겹침은 실패</span></li>
+ <li><svg class="ic"><use href="#i-rocket"/></svg><b>배포 아끼기</b><span>자동 합치기 · 20분 잠잠하면 배포</span></li></ul>
  <div class="band"><div><span class="n">280</span>intent</div><div><span class="n">45</span>ADR</div><div><span class="n">168</span>agents 행</div><div><span class="n">122</span>connectors 행</div><div><span class="n">55</span>debug-note</div><div><span class="n">18</span>위키 쪽</div></div>
- <p class="sm">팀 스킬 2개(stage-check · abbs-log), GitHub Actions 2개.</p>`,
+ <p class="sm">팀 스킬 2개 · GitHub Actions 2개</p>`,
  src:"docs/plan.md 8~27줄 · docs/debug-note.md 14 · 15 · 20 · 51줄 · ADR 0017 · 0018 · 0023",
- notes:"'훅을 썼다'고 말하지 않는다(문서 근거 없음). 하네스 = CLAUDE.md 규칙 + 스킬 2개 + precheck + Actions 2개. ADR 0023 · 0025는 아직 '제안' 상태."},
+ notes:"말로 보탤 것: 영역마다 화면 · 서버 · 데이터 · QA. 조각 = 브랜치. 기록 문서에 충돌이 몰려 merge=union(ADR 0017). 자동 main 합치기 #106, 20분 잠잠하면 한 번 배포 #159. 팀 스킬은 stage-check · abbs-log. '훅을 썼다'고 말하지 않는다(문서 근거 없음). 하네스 = CLAUDE.md 규칙 + 스킬 2개 + precheck + Actions 2개. ADR 0023 · 0025는 아직 '제안' 상태."},
 {act:5,k:"inc",sp:"세",who:"차세일",sec:30,nm:"하네스: 18분 그 뒤",alarm:1,
  title:"장애 18분 → 규칙 → 도구 →<br>그래도 4번 더 → 실패로 바꿨다",
- body:`<ol class="steps seq"><li><span>11-19 장애</span><span>#133 — 코드가 마이그레이션보다 먼저. <b class="rd">약 18분</b>(14:43&nbsp;→&nbsp;15:01)</span></li>
- <li><span>규칙 #138</span><span>"합치기 전에 운영에 먼저 적용"을 팀 규칙으로</span></li>
- <li><span>도구 #156</span><span>precheck가 마이그레이션이 든 PR에 경고 + 운영 점검표</span></li>
- <li><span>4번 재발</span><span>#178(5분) · #182(약 9시간) · #184/#187 · #215 — <b>경고만으로는 못 막는다</b></span></li>
- <li><span>번호 겹침 2번</span><span>11-21 · 11-22, 세션 여럿이 같은 시각대 번호를 따로 골랐다</span></li>
- <li><span class="rd">exit 1</span><span>precheck가 번호 겹침이면 <b>실패(종료 코드 1)</b>, 시험 5개. 순서를 막는 장치는 아직 없다</span></li></ol>
- <p class="sm">같은 꼴로 반복된 것이 하나 더: 승인 뒤 커밋 빠짐(#204에 14커밋 → #206, #208 → #210).</p>`,
+ body:`<ol class="steps seq"><li><span>11-19 장애</span><span>#133 코드가 먼저 · <b class="rd">약 18분</b></span></li>
+ <li><span>규칙 #138</span><span>합치기 전에 운영 먼저</span></li>
+ <li><span>도구 #156</span><span>precheck 경고 + 운영 점검표</span></li>
+ <li><span>4번 재발</span><span><b>경고만으로는 못 막는다</b></span></li>
+ <li><span>번호 겹침 2번</span><span>여러 세션이 같은 번호를 골랐다</span></li>
+ <li><span class="rd">exit 1</span><span>번호 겹침 = <b>실패</b> · 순서 막는 장치는 아직 없음</span></li></ol>
+ <p class="sm"><svg class="ic"><use href="#i-repeat"/></svg> 또 반복된 것 — 승인 뒤 커밋 빠짐</p>`,
  src:"docs/debug-note.md:30 · 41 · 45 · 47 · 49~52 · 55 · 57 · docs/intent.md:2039 · supabase/precheck-migrations.mts",
- notes:"당사자(#133 · #135 · #138)로서 말한다. exit 1은 '번호 겹침'에만 해당한다 — 적용 순서 위반은 여전히 경고와 PR 설명 문구로만 막는다. 틀린 것 · 깨진 것도 숨기지 않고."},
+ notes:"말로 보탤 것: 장애 14:43 → 15:01. precheck 경고는 마이그레이션이 든 PR에. 4번 재발 = #178(5분) · #182(약 9시간) · #184/#187 · #215. 번호 겹침은 11-21 · 11-22, 세션 여럿이 같은 시각대 번호를 따로 골랐다. exit 1 = 종료 코드 1, 시험 5개. 커밋 빠짐 = #204에 14커밋 → #206, #208 → #210. 당사자(#133 · #135 · #138)로서 말한다. exit 1은 '번호 겹침'에만 해당한다 — 적용 순서 위반은 여전히 경고와 PR 설명 문구로만 막는다. 틀린 것 · 깨진 것도 숨기지 않고."},
 {act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"에이전트 · 세션",
  title:"AI에게 맡기되,<br>만든 쪽과 검토하는 쪽을 나눴다",
- body:`<div class="big"><div><span class="n">168</span><span>서브에이전트 기록 행(docs/agents.md)</span></div><div><span class="n">11</span><span>품질 루프 서브에이전트(영역 C, 최대 3바퀴, #227)</span></div><div><span class="n">54</span><span>11-22 테마 탐색 Workflow 에이전트</span></div></div>
- <ul><li><b>검토 분리</b> — 기획 문서는 메인이 직접 쓰고, 검토는 매번 다른 도우미에게 맡겼다.</li>
- <li><b>다중 세션</b> — Maestro(정리 · 배정) · FrontLead · DevAssi1 · 2 · DataCollector · DocsChecker. 11-21~23 지도 · 청사진 작업, 주로 김영식 쪽 세션.</li>
- <li><b>품질 루프</b> — 감사 3 · 분석 1 · 만들기 5 · 검토 2, 영역 경계 파일 목록 105개 + 조심 파일 9개.</li></ul>
- <h2 class="rd">잘 안 된 점 하나</h2>
- <p>같은 기능을 두 세션이 따로 만들어 <b>13파일 충돌</b>(11-20). 마이그레이션 번호도 두 번 겹쳤다.</p>`,
+ body:`<div class="big"><div><span class="n">168</span><span>서브에이전트 기록 행</span></div><div><span class="n">11</span><span>품질 루프 에이전트</span></div><div><span class="n">54</span><span>테마 탐색 에이전트 · 11-22</span></div></div>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-eye"/></svg><b>검토 분리</b><span>쓰는 쪽(메인) ≠ 검토하는 쪽(매번 다른 도우미)</span></li>
+ <li><svg class="ic"><use href="#i-users"/></svg><b>다중 세션</b><span>정리 · 배정 1 + 작업 세션 5</span></li>
+ <li><svg class="ic"><use href="#i-repeat"/></svg><b>품질 루프</b><span>감사 3 · 분석 1 · 만들기 5 · 검토 2</span></li></ul>
+ <h2 class="rd"><svg class="ic" style="stroke:var(--red)"><use href="#i-alert"/></svg> 잘 안 된 점</h2>
+ <p>두 세션이 같은 기능 → <b>13파일 충돌</b>(11-20) · 번호 겹침 2번</p>`,
  src:"docs/agents.md 3 · 5 · 141~163줄 · docs/quality-loop/README.md 4~22줄 · docs/debug-note.md 46 · 49 · 50줄 · ADR 0039 9줄",
- notes:"다중 세션은 주로 김영식 쪽 세션으로 기록돼 있다 — 팀 전체의 방식처럼 말하지 않는다. 필요하면 영식 님이 한 문장 보탠다."},
+ notes:"말로 보탤 것: 168은 docs/agents.md 기록 행. 품질 루프는 영역 C, #227, 영역 경계 파일 목록 105개 + 조심 파일 9개. 54는 Workflow 에이전트. 기획 문서는 메인이 직접 쓰고 검토는 매번 다른 도우미에게. 다중 세션 = Maestro(정리 · 배정) · FrontLead · DevAssi1 · 2 · DataCollector · DocsChecker, 11-21~23 지도 · 청사진 작업. 다중 세션은 주로 김영식 쪽 세션으로 기록돼 있다 — 팀 전체의 방식처럼 말하지 않는다. 필요하면 영식 님이 한 문장 보탠다."},
 {act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"위키 · 챗봇 Q5",
  title:"위키 챗봇이 틀린 답을 했고,<br>처음 추측한 원인도 틀렸다",
- body:`<ol class="steps"><li><span>위키</span><span>출처 달린 팀 문서 요약 <b>18쪽</b>(주제 15 + index · log · 연결지도). 챗봇은 관리자 화면</span></li>
- <li><span>11-19 운영</span><span>정답표 5개 중 <b>4개</b> 맞음. Q5(문서끼리 다른 질문)에 <b class="rd">"위키에 없습니다"</b></span></li>
- <li><span>첫 추측</span><span>"쪽 찾기 탓" — 틀렸다. 쪽은 맞게 찾았다</span></li>
- <li><span>진짜 원인</span><span>쪽마다 앞 2000자만 넘겨서 충돌 문단이 잘렸다</span></li>
- <li><span>고침 #131</span><span>질문 낱말이 든 줄만 골라 1900자 안으로 + "충돌은 양쪽 출처와 함께"</span></li>
- <li><span>11-20 11:02</span><span>운영 재질문 — Q5가 두 출처를 모두 말함 → <b>5/5</b></span></li></ol>
- <p class="sm">지금은 실제 위키로 Q1~Q5를 확인하는 자동 시험이 함께 돈다.</p>`,
+ body:`<ol class="steps"><li><span>위키</span><span>출처 달린 팀 문서 요약 <b>18쪽</b></span></li>
+ <li><span>11-19 운영</span><span>5문항 중 <b>4개</b> 정답 · Q5에 <b class="rd">"위키에 없습니다"</b></span></li>
+ <li><span>첫 추측</span><span>"쪽 찾기 탓" → 틀림</span></li>
+ <li><span>진짜 원인</span><span>쪽마다 앞 2000자만 → 충돌 문단 잘림</span></li>
+ <li><span>고침 #131</span><span>질문 낱말이 든 줄만 + 충돌은 양쪽 출처로</span></li>
+ <li><span>11-20 11:02</span><span>재질문 → <b>5/5</b></span></li></ol>
+ <p class="sm"><svg class="ic"><use href="#i-check"/></svg> 지금은 Q1~Q5 자동 시험이 함께 돈다</p>`,
  src:"docs/wiki-chat.md 3 · 24~26 · 30~34줄 · PR #125 · #126 · #131 · CLAUDE.md 4절",
- notes:"위키 규칙: 두 문서가 다르게 말하면 한쪽으로 정리하지 않고 양쪽 출처와 함께 충돌로 적는다. Q5가 바로 그 질문이다.",
+ notes:"말로 보탤 것: 18쪽 = 주제 15 + index · log · 연결지도, 챗봇은 관리자 화면. Q5는 문서끼리 다르게 말하는 질문. 쪽은 맞게 찾았다. 고침은 1900자 안으로. 재질문에서 Q5가 두 출처를 모두 말했다. 자동 시험은 실제 위키로 돈다. 위키 규칙: 두 문서가 다르게 말하면 한쪽으로 정리하지 않고 양쪽 출처와 함께 충돌로 적는다. Q5가 바로 그 질문이다.",
  hand:"\"마지막은 사람 이야기입니다. 기여와 다음은 재웅 님.\""},
 {act:6,k:"hum",sp:"재",who:"황재웅",sec:15,wide:1,nm:"팀원별 기여",
  title:"세 사람 모두 PR을 올렸고,<br>서로의 PR을 리뷰했다",
  body:`<table><tr><th></th><th>김영식 · A 지키기 + 공용</th><th>황재웅 · B 고르기</th><th>차세일 · C 옮기기 · 운영</th></tr>
  <tr><td>합친 PR · 리뷰</td><td><span class="n" style="font-size:1.35rem">133 / 79</span></td><td><span class="n" style="font-size:1.35rem">43 / 100</span></td><td><span class="n" style="font-size:1.35rem">56 / 38</span></td></tr>
- <tr><td>대표 PR</td><td>#33 등록 → OSV → 등급 · #87 정기 OSV 재확인 · #178 첫 화면 지도 · #204 청사진 스튜디오 · #208 프로젝트 보드</td><td>#37 · #38 알림 · #43 판단 저장 · #120 적용 시나리오 · #139 적용 기회 · #184 사용기 · 신고 · #220 사람 QA</td><td>#30 실행 기록 · #46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇(+&nbsp;#131) · #227 품질 루프 + 관리자 · #234 Tutorial</td></tr>
+ <tr><td>대표 PR</td><td>#33 등록 → 등급 · #178 지도 · #204 청사진 · #208 프로젝트 보드</td><td>#38 알림 · #43 판단 저장 · #139 적용 기회 · #220 사람 QA</td><td>#46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇 · #227 품질 루프</td></tr>
  <tr><td>GitHub 밖의 일</td>
- <td>Supabase · Vercel · 구글 OAuth · 환경변수 관리, 운영 마이그레이션 적용, skills.sh 약관 확인</td>
- <td>운영 사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198)</td>
- <td>11-18 회의 기록, 문제정의 v5 · 인터뷰 질문지, 강사 확인 · 일정 공유, 발표 자료 배포</td></tr></table>
- <p class="sm">합친 PR 232개(#234까지) · 리뷰한 PR = 남의 PR에 리뷰를 남긴 수(본인 PR 제외, PR당 1번)</p>`,
+ <td>Supabase · Vercel · 로그인 설정 · 운영 DB 적용</td>
+ <td>운영 사람 QA · 시드 14쌍 결정</td>
+ <td>회의 기록 · 문제정의 · 질문지 · 일정 · 발표 배포</td></tr></table>
+ <p class="sm">합친 PR 232개 · 리뷰 = 남의 PR에 남긴 리뷰 수(PR당 1번)</p>`,
  src:"gh pr list · GraphQL reviews(11-23 17:17) · docs/plan.md 6절",
- notes:"사람별 커밋 수는 말하지 않는다(작성자 이름 대응이 추정). 숫자는 PR 133/79 · 43/100 · 56/38만. GitHub 밖 칸은 E 키로 본인이 고친다."},
+ notes:"대표 PR 전체 — 김영식: #33 등록 → OSV → 등급 · #87 정기 OSV 재확인 · #178 첫 화면 지도 · #204 청사진 스튜디오 · #208 프로젝트 보드. 황재웅: #37 · #38 알림 · #43 판단 저장 · #120 적용 시나리오 · #139 적용 기회 · #184 사용기 · 신고 · #220 사람 QA. 차세일: #30 실행 기록 · #46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇(+ #131) · #227 품질 루프 + 관리자 · #234 Tutorial. GitHub 밖 전체 — 김영식: Supabase · Vercel · 구글 OAuth · 환경변수 관리, 운영 마이그레이션 적용, skills.sh 약관 확인. 황재웅: 운영 사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198). 차세일: 11-18 회의 기록, 문제정의 v5 · 인터뷰 질문지, 강사 확인 · 일정 공유, 발표 자료 배포. 합친 PR은 #234까지, 리뷰 수는 본인 PR 제외. 사람별 커밋 수는 말하지 않는다(작성자 이름 대응이 추정). 숫자는 PR 133/79 · 43/100 · 56/38만. GitHub 밖 칸은 E 키로 본인이 고친다."},
 {act:6,k:"lim",sp:"재",who:"황재웅",sec:15,nm:"다음에 해 볼 것",
  title:"다음은 사람에게 다시 묻기",
- body:`<h2>사람 인터뷰로 확인할 것</h2>
- <p><b>그룹1에게, 노트북을 반납한 뒤에 다시 묻는다.</b> "싹 정리해서 가지고 나갈" 계획이 실제로 어떻게 됐는지 — 우리 문제의 가장 강한 근거가 그 한 장면이다.</p>
- <h2>다음 개선 하나</h2>
- <p><b>운영 적용 순서를 경고가 아니라 장치로 막기.</b> 번호 겹침은 실패로 바꿨지만, "마이그레이션 먼저"는 네 번 더 어긴 뒤에도 경고와 PR 문구뿐이다.</p>
- <h2>알고 있는 한계</h2>
- <p>아직 실사용자가 없어, 앱 안의 숫자는 시연 계정 값이다. 다음 인터뷰에서 실제 사용 기록으로 확인한다.</p>`,
+ body:`<ul class="kv">
+ <li><svg class="ic"><use href="#i-users"/></svg><b>다시 묻기</b><span>그룹1 — 노트북 반납 뒤 "싹 정리" 계획은 어떻게 됐나</span></li>
+ <li><svg class="ic"><use href="#i-lock"/></svg><b>다음 개선</b><span>운영 적용 순서를 경고 → <b>장치</b>로 막기</span></li>
+ <li><svg class="ic"><use href="#i-alert"/></svg><b>한계</b><span>실사용자 없음 · 앱 숫자는 시연 계정 값</span></li></ul>`,
  src:"docs/팀토론-문제정의-승인.md 1부 1번 표 · docs/debug-note.md 41 · 45 · 57줄 · docs/제출전-레드팀-1123.md 47줄 · ADR 0045 45줄",
- notes:"'다음 개선 하나'는 저장소 기록(4번 재발, 순서를 막는 장치 없음)에서 고른 후보다. 팀이 다른 것을 고르면 말로 바꾼다.",
+ notes:"말로 보탤 것: 그 한 장면이 우리 문제의 가장 강한 근거다. 번호 겹침은 실패로 바꿨지만 '마이그레이션 먼저'는 네 번 더 어긴 뒤에도 경고와 PR 문구뿐이다. 한계는 다음 인터뷰에서 실제 사용 기록으로 확인한다. '다음 개선 하나'는 저장소 기록(4번 재발, 순서를 막는 장치 없음)에서 고른 후보다. 팀이 다른 것을 고르면 말로 바꾼다.",
  hand:"\"끝으로 한 사람씩 20초 — 영식 님부터.\""},
 {act:6,k:"hum",sp:"셋",who:"세 사람",sec:60,nm:"소감 · 항적 완성",fin:1,
  title:"세 사람이 7일 동안 남긴 것",
@@ -778,17 +842,71 @@ function actFirst(a){for(var i=0;i<T.length;i++) if(T[i].act===a&&!T[i].center) 
 function tgl(c){stage.classList.toggle(c);mode();}
 function mode(){var m=[];if(editing)m.push("편집 중 — Esc로 끝");if(paused)m.push("스캔 멈춤");if(REVEAL)m.push("REVEAL=ALL");else if(REDUCED)m.push("움직임 줄임");$("bMode").textContent=m.join(" · ");$("tScan").textContent=(paused||STILL)?"HOLD":"SCAN";}
 function setEdit(on){editing=on;stage.classList.toggle("editing",on);fillEdits($("pc"));mode();if(on){var f=$("pc").querySelector("[data-edit]");if(f)f.focus();}else if(document.activeElement)document.activeElement.blur();}
-/* 캡처 크게 보기: 열려 있는 동안 발표 키를 막는다 */
-var lbFrom=null;
-function lbOpen(btn){var im=btn.querySelector("img");if(!im)return;lbFrom=btn;$("lbImg").src=im.getAttribute("src");$("lbImg").alt=im.alt;$("lb").hidden=false;$("lbBtn").focus();}
-function lbClose(){if($("lb").hidden)return;$("lb").hidden=true;$("lbImg").removeAttribute("src");if(lbFrom&&document.contains(lbFrom))lbFrom.focus();lbFrom=null;}
+/* 캡처 짚어 보기(둘러보기): 열려 있는 동안 발표 키를 막는다.
+   r = 원본 픽셀(1774×415) 기준 [x,y,w,h]. 렌더 크기에 비례해 다시 계산한다. bad = 실패 지점(빨강) */
+var TOUR={
+ ok:{w:1774,h:415,s:[
+  {t:"전체 보기",d:"시뮬레이터로 쏜 가짜 사건 하나가 실제로 지나간 길. 초록 = 이번 실행에서 실제로 돈 단계, 회색 = 안 켜진 단계. 미리 그린 그림이 아니라 실행 기록(runs · run_steps)으로 칠한다."},
+  {r:[14,127,113,48],t:"시작: 시뮬레이터",d:"가짜 취약점 사건을 넣는 시작 버튼. 이 실행은 여기서 출발했다."},
+  {r:[340,14,440,48],t:"같은 모양으로 → 이전 값과 비교 → 등급 계산",d:"들어온 자료를 같은 모양으로 맞추고, 지난 값과 비교한 뒤 코드 규칙으로 등급을 매긴다. 화살표 위 '1건'은 실제로 다음 단계로 넘어간 건수다."},
+  {r:[830,14,277,104],t:"사건인가? → 변경 저장",d:"내가 깐 기술에 닿는 변화라서 '사건 1'. 변경 저장은 같은 변경을 다시 읽어도 두 번 생기지 않게 막는다(멱등)."},
+  {r:[1155,14,115,48],t:"대응안 초안(Claude) — 회색",d:"이번엔 켜지지 않았다. 같은 날 같은 입력으로 이미 한 번 불러서(하루 한 번 규칙). 안 돈 단계는 안 돈 대로 보여 준다."},
+  {r:[1318,14,115,48],t:"알림 만들기",d:"앱 안 알림이 만들어졌다."},
+  {r:[1482,14,115,48],t:"사람 판단 — 주황 점선",d:"판단 대기. 사람이 판단하기 전에는 조치가 실행되지 않는다(불변 규칙 1, 관리자도 못 건너뜀)."},
+  {r:[1645,14,115,104],t:"조치와 기록 · 적용 시나리오",d:"사람이 판단하면 그때 여기가 켜진다."}]},
+ fail:{w:1774,h:415,s:[
+  {t:"전체 보기",d:"package.json을 일부러 깨 둔 공개 저장소를 등록했다. 어디서 깨졌는지가 빨간 상자로 바로 보인다."},
+  {r:[14,184,113,48],bad:1,t:"처음 등록 읽기 — 빨강",d:"시작 상자부터 빨강: 이 실행은 실패로 끝났다."},
+  {r:[176,297,115,48],t:"내 저장소 파일 읽기 — 초록",d:"파일을 가져오는 것까지는 성공했다."},
+  {r:[340,127,115,48],bad:1,t:"내 기술 뽑기 — 빨강",d:"깨진 package.json에서 기술 목록을 뽑다가 실패. 실패한 단계가 정확히 이 상자다."},
+  {r:[450,20,660,100],t:"뒤로는 0건, 사건 0",d:"실패한 뒤로는 0건이 넘어가고 사건이 생기지 않았다. 실패를 '변화 없음'으로 단정하지 않는다(불변 규칙 2)."}]}
+};
+var lbFrom=null,lbT=null,lbI=0;
+function lbOpen(btn){var im=btn.querySelector("img");if(!im)return;lbFrom=btn;
+  lbT=TOUR[btn.getAttribute("data-tour")]||{w:im.naturalWidth||1774,h:im.naturalHeight||415,s:[{t:"전체 보기",d:""}]};
+  var li=$("lbImg");li.src=im.getAttribute("src");li.alt=im.alt;li.style.width=lbT.w+"px";li.style.height=lbT.h+"px";
+  $("lbDots").innerHTML=lbT.s.map(function(s,i){return '<button type="button" data-i="'+i+'"'+(s.bad?' class="bad"':'')+' aria-label="'+(i?i+"단계: ":"")+s.t.replace(/"/g,"&quot;")+'"></button>';}).join("");
+  lbI=0;$("lb").hidden=false;lbLay(true);$("lbBtn").focus();}
+function lbClose(){if($("lb").hidden)return;$("lb").hidden=true;var li=$("lbImg");li.removeAttribute("src");li.style.transform="";
+  $("lbSpot").className="lbSpot";$("lbDots").innerHTML="";lbI=0;lbT=null;
+  if(lbFrom&&document.contains(lbFrom))lbFrom.focus();lbFrom=null;}
+function lbGo(i){if(!lbT)return;var n=lbT.s.length;lbI=i>=n?0:Math.max(0,i);lbLay(false);}
+function lbLay(now){
+  var lb=$("lb"),s=lbT.s[lbI],last=lbT.s.length-1,card=$("lbCard"),li=$("lbImg"),sp=$("lbSpot"),bad=!!s.bad;
+  lb.classList.toggle("nt",!!now);
+  $("lbN").textContent=lbI?lbI+" / "+last:"0 / "+last+" · 처음";
+  $("lbTt").textContent=s.t;$("lbD").textContent=s.d;
+  card.classList.toggle("bad",bad);sp.classList.toggle("bad",bad);sp.classList.toggle("on",!!s.r);
+  [].forEach.call($("lbDots").children,function(d,i){if(i===lbI)d.setAttribute("aria-current","step");else d.removeAttribute("aria-current");});
+  /* 설명 카드 위쪽 빈 곳을 이미지 영역으로 쓴다 → 지점이 카드에 가리지 않는다 */
+  var W=window.innerWidth,top=Math.max(56,W*.035),bot=card.getBoundingClientRect().top-16,ah=Math.max(80,bot-top),
+      s0=Math.min(W*.96/lbT.w,ah/lbT.h),r=s.r||[0,0,lbT.w,lbT.h],pad=6,
+      S=s.r?Math.max(s0,Math.min((W*.72-pad*2)/r[2],(ah*.8-pad*2)/r[3],2.4)):s0,
+      tx=W/2-(r[0]+r[2]/2)*S,ty=top+ah/2-(r[1]+r[3]/2)*S;
+  li.style.transform="translate("+tx.toFixed(1)+"px,"+ty.toFixed(1)+"px) scale("+S.toFixed(4)+")";
+  sp.style.left=(tx+r[0]*S-pad).toFixed(1)+"px";sp.style.top=(ty+r[1]*S-pad).toFixed(1)+"px";
+  sp.style.width=(r[2]*S+pad*2).toFixed(1)+"px";sp.style.height=(r[3]*S+pad*2).toFixed(1)+"px";
+  if(now){void lb.offsetWidth;lb.classList.remove("nt");}
+}
 document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("#pc .shotbtn");if(b){e.preventDefault();lbOpen(b);}});
 $("lbBtn").addEventListener("click",lbClose);
+$("lbView").addEventListener("click",function(){lbGo(lbI+1);});
+$("lbDots").addEventListener("click",function(e){var d=e.target.closest("button[data-i]");if(d)lbGo(+d.getAttribute("data-i"));});
+window.addEventListener("resize",function(){if(lbT&&!$("lb").hidden)lbLay(true);});
 document.addEventListener("keydown",function(e){
   if(!$("lb").hidden){
-    if(e.key==="Escape"){e.preventDefault();lbClose();return;}
-    if((e.key==="Enter"||e.key===" ")&&e.target===$("lbBtn")) return; /* 버튼 기본 동작(클릭)으로 닫힘 */
-    if(!e.ctrlKey&&!e.metaKey) e.preventDefault();
+    var k=e.key;
+    if(k==="Escape"){e.preventDefault();lbClose();return;}
+    if(e.ctrlKey||e.metaKey||e.altKey) return;
+    if(k==="Enter"&&e.target&&e.target.tagName==="BUTTON") return; /* 닫기 · 점 버튼의 기본 동작 */
+    if(k==="Tab"){ /* 포커스를 창 안에서만 돌린다 */
+      var f=[$("lbBtn")].concat([].slice.call($("lbDots").children)),j=f.indexOf(document.activeElement);
+      e.preventDefault();f[(j<0?0:j+(e.shiftKey?-1:1)+f.length)%f.length].focus();return;}
+    e.preventDefault();
+    if(k==="ArrowRight"||k===" "||k==="PageDown"||k==="Enter") lbGo(lbI+1);
+    else if(k==="ArrowLeft"||k==="PageUp"||k==="Backspace") lbGo(lbI-1);
+    else if(k==="Home") lbGo(0);
+    else if(k==="End") lbGo(lbT.s.length-1);
     return;
   }
   var inEdit=e.target&&e.target.isContentEditable;
