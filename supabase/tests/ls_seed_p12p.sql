@@ -18,7 +18,7 @@ do $$
 declare n int; v text; msg text := '';
 begin
   select count(*) into n from public.technologies where tech_key in ('github:herdrdev/herdr', 'concept:loop-harness'); msg := msg || 'rows=' || n || '(2);';
-  select count(*) into n from public.technologies where signals ->> 'ls_seed' = 'true'; msg := msg || 'ls_seed=' || n || '(1: 새 줄 루프 하네스만, herdr은 있던 signals가 이김);';
+  select count(*) into n from public.technologies where signals ->> 'ls_seed' = 'true'; msg := msg || 'ls_seed=' || n || '(2: 있던 herdr 줄에도 표시가 붙음 — signals = excluded || 있던 값이라 ls_seed 키는 새로 받고 registry_backfill은 있던 false가 이김);';
   -- 공개 목록 조건(lib/server/map-queries.ts listedTechs · isListed)
   select count(*) into n from public.technologies
     where tech_key in ('github:herdrdev/herdr', 'concept:loop-harness') and one_liner_source is not null and one_liner is not null and status <> 'gone' and is_simulated = false;
