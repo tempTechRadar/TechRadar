@@ -219,7 +219,7 @@
   <h2 id="t9">정답 사례로 채점하고, 합친 뒤 오류를 잡는다</h2>
   <div class="grid">
     <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> (11-18 채점). 등급은 8/12가 맞았고, 다른 4건은 최신 버전 사례로 실제 등급이 "찾지 못함"이었으며 사건 판정은 맞았다.</p></div>
-    <div class="card"><p class="num green">970<span class="muted" style="font-size:.5em"> / 971</span></p><h3>자동 시험 통과 (11-19 저녁 main 4308b58, todo 1)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
+    <div class="card"><p class="num green">1,796<span class="muted" style="font-size:.5em"> / 1,796</span></p><h3>자동 시험 통과 (11-23 오후 main 5f16103, 실패 0)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 조각마다 한다.</p></div>
     <div class="card"><h3>QA 표 (11-19 점검)</h3><p>Claude QA: Pass 26 · Fail 0 · No Run 18<br>화면 QA: Pass 13 · Fail 1 · No Run 13</p><p class="muted">No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
   </div>
   <ul style="margin-top:18px">
@@ -285,9 +285,10 @@
     <li><b>고침 (#135):</b> 새 칸이 없을 때만 그 부분을 끄고 안내, 다른 오류는 그대로 조회 실패(불변 2).</li>
     <li><b>규칙 (#138):</b> CLAUDE.md 10절에 "새 칸·표 마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게".</li>
     <li><b>도구 (#156):</b> <code>npm run precheck</code>가 브랜치의 마이그레이션 파일을 찾아 이 규칙을 알리고, 합친 뒤 도는 <code>docs/운영-점검표.md</code>에 이 장애를 점검 줄(S2)로.</li>
+    <li><b>재검사 (11-20 ~ 11-23):</b> 경고가 떠도 운영 적용 전에 합쳐진 일이 또 있었다(#178 · #182 · #184/#187 · #215). <b>경고만으로는 못 막는다</b>는 것을 확인했다.</li>
+    <li><b>다시 고침 (11-22):</b> 마이그레이션 번호 겹침(11-21 · 11-22 두 번)은 경고가 아니라 <code>precheck</code> <b>실패</b>로 바꿨다. 운영 적용 순서는 PR 설명 맨 위 "운영 적용 전에는 합치지 말아 주세요"로 사람이 막는다.</li>
   </ol>
-  <div class="todo">"다음 변경에서 재검사" 결과: 규칙이 생긴 뒤 마이그레이션이 든 PR이 아직 없어(11-19 main 기준) precheck가 실제로 알린 기록이 없다. 다음 마이그레이션 PR에서 확인해 채운다.</div>
-  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · git log supabase/migrations</p>
+  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 · 11-20 #178 · #182 · 11-22 번호 겹침 · 11-23 #215 행 · docs/제출물-체크리스트.md 하네스 개선 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · lib/records/migration-numbers.ts</p>
 </section>
 
 <section class="slide" id="s13b" aria-labelledby="t13b">
