@@ -118,6 +118,19 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .shots figure{margin:0}
 .shots img{display:block;width:100%;height:15.5rem;object-fit:cover;object-position:left top;border:1px solid var(--dim);background:#000}
 .shots figcaption{font-size:.74rem;color:var(--tx);margin-top:.25rem;line-height:1.35}
+/* T-11 전용: 가로로 긴 캡처를 위아래로, 자르지 않고 */
+.shots.stack{display:block;margin:.2rem 0}
+.shots.stack figure+figure{margin-top:.85rem}
+.shots.stack img{height:auto;object-fit:contain}
+.shots.stack figcaption{margin:0 0 .3rem;font-size:.82rem}
+.shots.stack .hint{float:right;font-size:.7rem;color:var(--dim)}
+.shotbtn{display:block;width:100%;padding:0;margin:0;border:0;background:none;cursor:zoom-in;font:inherit;color:inherit}
+.shotbtn:hover img{border-color:var(--amb)}
+/* 눌러서 크게 보기 */
+.lb{position:fixed;inset:0;z-index:50;background:rgba(8,12,19,.94);display:flex;align-items:center;justify-content:center;animation:fade .2s ease both}
+.lb button{display:flex;flex-direction:column;align-items:center;gap:.6rem;padding:0;border:0;background:none;cursor:zoom-out;font:inherit;color:var(--dim)}
+.lb img{display:block;max-width:96vw;max-height:90vh;width:auto;height:auto;border:1px solid var(--dim);background:#000}
+.lb small{font-size:max(12px,.8rem)}
 .chk{list-style:none;padding:0;margin:.3rem 0}
 .chk li{margin:0;border-bottom:1px solid var(--line)}
 .chk label{display:grid;grid-template-columns:1.5rem 1fr 6.2rem;gap:.4rem;align-items:start;padding:.32rem 0;cursor:pointer;font-size:.9rem}
@@ -173,6 +186,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
   #print section{break-inside:avoid;border-bottom:1px solid #999;padding:8pt 0}
   #print *{color:#000!important;background:transparent!important;animation:none!important;border-color:#999!important}
   #print img{max-width:45%;height:auto}#print .shots{display:block}
+  #print .shotbtn{cursor:auto}#print .shots .hint{display:none}.lb{display:none!important}
 }
 </style>
 </head>
@@ -205,6 +219,8 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
   </section>
 
   <div class="list" id="list" aria-label="전체 항적"></div>
+
+  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="캡처 크게 보기" hidden><button type="button" id="lbBtn" aria-label="크게 보기 닫기"><img id="lbImg" alt=""><small>누르거나 Esc로 닫기</small></button></div>
 
   <div class="help" id="help" role="dialog" aria-label="도움말">
     <div class="cols">
@@ -380,9 +396,9 @@ var T=[
  hand:"\"그래서 지금은 어떻게 도는지, 운영 주소에서 세일 님이 직접 쏩니다.\""},
 {act:3,k:"dot",sp:"세",who:"차세일",sec:20,wide:1,nm:"흐름 화면",
  title:"미리 그린 그림이 아니라, 실행 기록에서 그린다",
- body:`<div class="shots">
- <figure><img src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 끝까지 성공한 실행 기록"><figcaption><b>성공</b> — 시뮬레이터가 쏜 가짜 사건이 끝까지 돈 실행. 11-20 운영 실제 실행</figcaption></figure>
- <figure><img src="images/flow-fail-demo-1120.png" alt="흐름 화면: 일부러 실패시킨 실행에서 빨간 상자가 켜진 실행 기록"><figcaption><b>일부러 실패</b> — 실패한 단계가 빨간 상자로. 11-20 운영 실제 실행</figcaption></figure></div>
+ body:`<div class="shots stack">
+ <figure><figcaption><span class="hint">눌러서 크게</span><b>성공</b> — 시뮬레이터가 쏜 가짜 사건이 끝까지 돈 실행. 11-20 운영 실제 실행</figcaption><button type="button" class="shotbtn" aria-label="성공 실행 캡처 크게 보기"><img src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 끝까지 성공한 실행 기록"></button></figure>
+ <figure><figcaption><b>일부러 실패</b> — 실패한 단계가 빨간 상자로. 11-20 운영 실제 실행</figcaption><button type="button" class="shotbtn" aria-label="일부러 실패시킨 실행 캡처 크게 보기"><img src="images/flow-fail-demo-1120.png" alt="흐름 화면: 일부러 실패시킨 실행에서 빨간 상자가 켜진 실행 기록"></button></figure></div>
 `,
  src:"docs/images/flow-sim-success-1120.png · flow-fail-demo-1120.png · docs/flow.md 115 · 119줄 · CLAUDE.md 3절 6번",
  notes:"강사 공지: 자동화 흐름 화면을 슬라이드에. 시연이 막히면 이 두 장으로 대신한다. 실패 시연(#54)은 캡처로."},
@@ -762,7 +778,19 @@ function actFirst(a){for(var i=0;i<T.length;i++) if(T[i].act===a&&!T[i].center) 
 function tgl(c){stage.classList.toggle(c);mode();}
 function mode(){var m=[];if(editing)m.push("편집 중 — Esc로 끝");if(paused)m.push("스캔 멈춤");if(REVEAL)m.push("REVEAL=ALL");else if(REDUCED)m.push("움직임 줄임");$("bMode").textContent=m.join(" · ");$("tScan").textContent=(paused||STILL)?"HOLD":"SCAN";}
 function setEdit(on){editing=on;stage.classList.toggle("editing",on);fillEdits($("pc"));mode();if(on){var f=$("pc").querySelector("[data-edit]");if(f)f.focus();}else if(document.activeElement)document.activeElement.blur();}
+/* 캡처 크게 보기: 열려 있는 동안 발표 키를 막는다 */
+var lbFrom=null;
+function lbOpen(btn){var im=btn.querySelector("img");if(!im)return;lbFrom=btn;$("lbImg").src=im.getAttribute("src");$("lbImg").alt=im.alt;$("lb").hidden=false;$("lbBtn").focus();}
+function lbClose(){if($("lb").hidden)return;$("lb").hidden=true;$("lbImg").removeAttribute("src");if(lbFrom&&document.contains(lbFrom))lbFrom.focus();lbFrom=null;}
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("#pc .shotbtn");if(b){e.preventDefault();lbOpen(b);}});
+$("lbBtn").addEventListener("click",lbClose);
 document.addEventListener("keydown",function(e){
+  if(!$("lb").hidden){
+    if(e.key==="Escape"){e.preventDefault();lbClose();return;}
+    if((e.key==="Enter"||e.key===" ")&&e.target===$("lbBtn")) return; /* 버튼 기본 동작(클릭)으로 닫힘 */
+    if(!e.ctrlKey&&!e.metaKey) e.preventDefault();
+    return;
+  }
   var inEdit=e.target&&e.target.isContentEditable;
   if(e.key==="Escape"){if(editing)setEdit(false);stage.classList.remove("showH","ov");mode();return;}
   if(inEdit||e.ctrlKey||e.metaKey||e.altKey) return;
