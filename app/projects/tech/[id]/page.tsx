@@ -65,7 +65,7 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
 function LoadError() {
   return (
     <main className="page">
-      <p className="muted"><Link href="/dashboard">← 프로젝트 관리로</Link></p>
+      <p className="muted"><Link href="/dashboard">← 프로젝트로</Link></p>
       <p className="notice notice-error" role="alert">기술 정보를 불러오지 못했어요(조회 실패). 잠시 뒤 새로 고쳐 주세요.</p>
     </main>
   );

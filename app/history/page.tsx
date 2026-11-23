@@ -48,10 +48,10 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   return (
     <main className="page">
       <h1>기록 찾기</h1>
-      <p className="muted"><Link href="/dashboard">← 프로젝트 관리</Link></p>
+      <p className="muted"><Link href="/dashboard">← 프로젝트</Link></p>
       {records && supabase ? <SeenMarker value={seenValue(user.id, visitAt)} /> : null}{/* 알림을 읽었을 때만, 미리보기는 안 씀 */}
       <Pending records={records} seen={seen} />
-      <h2>흐름</h2>
+      <h2>지난 기록</h2>
       {records && !marks.error && events.length === MARK_LIMIT ? <p className="notice" role="status">지도 판단은 최근 {MARK_LIMIT}건에서만 찾아요. 더 오래된 판단은 여기에서 보이지 않아요(없는 게 아니에요).</p> : null}
       {/* 하나라도 못 읽었으면 "기록 없음"이 아니라 "읽지 못함"(불변 2) */}
       {records === null || marks.error ? <LoadError /> : records.length + events.length === 0 ? <Empty /> : <Results records={records} events={events} params={params} />}
@@ -97,7 +97,7 @@ function Results({ records, events, params }: { records: AlertRecord[]; events: 
   const shown = filterHistory(items, parseHistoryFilter(params, new Date()));
   return (
     <>
-      <form className="filters" aria-label="일지 찾기">
+      <form className="filters" aria-label="기록 찾기">
         <label className="search">기술 이름 · 이유
           <input name="q" type="search" defaultValue={params.q ?? ""} placeholder="예: mcp-remote, 고친 버전" />
         </label>
@@ -107,7 +107,7 @@ function Results({ records, events, params }: { records: AlertRecord[]; events: 
         <button type="submit" className="btn">찾기</button>
       </form>
       {shown.length === 0 ? (
-        <div className="notice notice-empty"><strong>이 조건에 맞는 기록이 없어요.</strong> <Link href="/history">조건 풀기</Link></div>
+        <div className="notice notice-empty"><strong>이 조건에 맞는 기록이 없어요.</strong> <Link href="/history">필터 풀기</Link></div>
       ) : (
         <ul className="alert-list">
           {shown.map((item) => {

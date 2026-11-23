@@ -56,7 +56,7 @@ main.page.board-page { max-width: 1200px; font-size: 13px; padding: 0; backgroun
 .band-cell strong { font-family: var(--mono); font-size: 20px; font-weight: 700; line-height: 1.2; }
 /* 칸 차례는 widgets.tsx Band의 cells: 1 오늘의 새 기술 · 4 위험 발생 · 5 판단 대기(얼음 파랑, P-12n 공통 색 뜻: 청록은 주 행동 · 탐색선만) */
 .band-cells > li:nth-child(4) strong { color: var(--danger); }
-.band-cells > li:nth-child(5) strong { color: var(--ice); }
+.band-cells > li:nth-child(5) strong { color: var(--pending); }
 .band-fail { color: var(--ink-danger); font-size: 12px; } .band-none, .band-note { color: var(--muted); font-size: 12px; }
 .band-period label { display: inline-flex; gap: var(--sp-1); align-items: center; font-size: 12px; color: var(--muted); }
 

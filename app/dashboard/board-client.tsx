@@ -22,5 +22,6 @@ export function DraftResume({ who }: { who: string }) {
   useEffect(() => {
     try { const d = JSON.parse(localStorage.getItem(`blueprint-draft-v2:${who}`) ?? "null"); if (d?.graph) setName(typeof d.name === "string" && d.name ? d.name : "내 청사진"); } catch { /* 저장소를 막았거나 깨진 초안: 안 보임 */ }
   }, [who]);
-  return name ? <Link href="/blueprint">이어서 하기: {name}</Link> : null;
+  // 단추 하나(P-12n R3-3: "청사진 열기"와 "이어서 하기"가 같은 곳으로 가는 두 단추였음): 이 브라우저에 초안이 있으면 이어서 하기, 없으면 열기. 첫 그림은 열기(서버와 같게)
+  return <Link className="btn btn-sm" href="/blueprint">{name ? `이어서 하기: ${name}` : "청사진 열기"}</Link>;
 }

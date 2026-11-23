@@ -15,13 +15,15 @@
 .admin h1 { font-size: var(--text-xl); margin: var(--space-3) 0 var(--space-2); }
 .admin h2 { font-size: var(--text-lg); margin: var(--space-4) 0 var(--space-2); }
 .admin a { color: inherit; }
-.admin :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.admin :focus-visible { outline: var(--focus); outline-offset: 2px; }
 .admin-lead, .admin .muted { color: var(--color-muted); font-size: var(--text-sm); }
 
 .admin-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); }
+/* 좁은 화면(P-12n R3-7): 탭 9개를 여러 줄로 쌓지 않고 한 줄 가로 밀기 */
+@media (max-width: 640px) { .admin-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; } .admin-tabs a { flex: none; white-space: nowrap; } }
 .admin-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-3); border-radius: var(--radius); text-decoration: none; font-size: var(--text-sm); }
 .admin-tabs a:hover { background: var(--card); }
-.admin-tabs a[aria-current="page"] { background: var(--color-primary); color: var(--color-on-primary); }
+.admin-tabs a[aria-current="page"] { background: var(--picked-bg); box-shadow: inset 0 0 0 1px var(--picked-line); font-weight: 700; } /* 고른 탭 = 카드 바탕 + 청록 테두리(P-12n, 흰 · 청록 채움 아님) */
 
 .admin-note { padding: var(--space-3); border-radius: var(--radius); }
 .admin-note.danger { color: var(--color-danger); background: var(--color-danger-bg); }
@@ -64,7 +66,7 @@
 .admin-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; background: var(--card); }
 .admin-notetext { background: var(--color-surface-subtle); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; }
 .admin-seg { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; }
-.admin-seg[aria-current="true"] { background: var(--color-primary); color: var(--color-on-primary); }
+.admin-seg[aria-current="true"] { background: var(--picked-bg); box-shadow: inset 0 0 0 1px var(--picked-line); font-weight: 700; }
 
 /* 회원과 권한: 칸에는 버튼 하나, 입력은 대화상자(I-P-admin-revoke). 표 칸이 펼쳐지며 표가 흔들리던 것을 없앰 */
 .admin .role-cell { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
