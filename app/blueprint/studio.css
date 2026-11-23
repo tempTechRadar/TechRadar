@@ -120,7 +120,8 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .react-flow__minimap.studio-mini svg { width: 160px; height: 100px; }
 .studio-note { margin: 0; border-radius: 0; }
 /* P-12n R2: 손님 띠는 얇은 한 줄 · 위 막대 보조 단추는 옅은 테두리, 묶음 사이 간격 · 빈 판 첫 안내 */
-.studio-guest { padding: 4px var(--sp-4); font-size: var(--fs-sm); }
+.page .notice.studio-guest { padding: 4px var(--sp-4); border-width: 0 0 1px; border-color: var(--line); font-size: var(--fs-sm); } /* .page .notice(상자)보다 세게 */
+@media (max-width: 860px) { .studio-bar .studio-group { margin-left: 0; } } /* 좁은 화면은 줄바꿈이라 묶음 간격이 자리만 차지 */
 .studio-bar .btn:not(.btn-primary, [aria-pressed="true"]) { border-color: var(--line); }
 .studio-bar .studio-group { margin-left: var(--sp-3); }
 .sn-start { display: grid; gap: 4px; font-size: var(--fs-cap); line-height: 16px; color: var(--muted); }

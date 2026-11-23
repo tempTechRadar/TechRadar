@@ -58,7 +58,7 @@ const FIT = { padding: 0.03, minZoom: 0.4, maxZoom: 1.2 };
 const READ_ONLY = "그림으로 보기에서는 고칠 수 없어요. 그림으로 보기를 끄고 목록으로 고쳐 주세요.";
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
-type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean };
+type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean; /** 보드에서 연 확정 청사진 id(P-12n R3-3) */ bp?: string | null };
 type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
@@ -68,7 +68,7 @@ export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
-function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false }: Props) {
+function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false, bp = null }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
@@ -185,8 +185,14 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       push(applyTemplate(template.graph, template.kind), template.name); setTemplateId(template.id);
       say(`"${template.name}" ${template.kind === "frame" ? "틀" : "조합"}로 시작했어요. 되돌리기를 누르면 전에 만들던 판으로 돌아가요.`);
     } else if (templateMissing) say("템플릿을 열지 못했어요. 지워졌거나 비공개로 바뀌었을 수 있어요.");
-    if (template || templateMissing) { const q = new URLSearchParams(location.search); q.delete("template"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
-  }, [graph, template, templateMissing, push, say]);
+    else if (bp) {
+      // 불러오기 창의 내 이력과 같은 일: 판 · 이름을 되돌리기 한 칸으로. 이력은 최근 것만 읽어 오래된 것은 못 찾을 수 있다
+      const h = history?.find((x) => x.id === bp);
+      if (h) { push(h.graph ?? fromV1(toBoard(h.board)), h.name); say(`"${h.name}"을(를) 불러왔어요. 전 판은 되돌리기로 돌아와요.`); }
+      else say(history === null ? "내 이력을 불러오지 못해 그 청사진을 열지 못했어요. 없다는 뜻이 아니에요." : "그 청사진을 찾지 못했어요. 최근 확정한 것만 바로 열 수 있어요.");
+    }
+    if (template || templateMissing || bp) { const q = new URLSearchParams(location.search); q.delete("template"); q.delete("bp"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
+  }, [graph, template, templateMissing, bp, history, push, say]);
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
