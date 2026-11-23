@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-24-hidden-note-admin-view | 사람 QA H-28 중 발견: 관리자 계정으로 사용자 화면을 보면 숨긴 사용기가 일반 글처럼 보임(RLS가 관리자에게 다 돌려줌) → 목록은 숨긴 글을 내 글일 때만 남기고, 지도 요약은 숨기지 않은 글만. 시험 먼저(2개 실패), 망가뜨리기 3곳 모두 잡음. 마이그레이션 없음 | 황재웅 / Claude | `lib/server/usage-notes.ts`, 시험 |
 | I-P-admin-revoke | 관리자 되돌리기: DB 함수 `admin_revoke_admin`(관리자 재확인 · 자기 자신 · 마지막 관리자 거절 · 관리자 줄 잠금 · 역할 변경과 audit_logs 한 거래), 서버 함수(지정과 공통 호출) + 시험 5개, `/admin/members` 다른 관리자 줄 "일반 계정으로 되돌리기". 운영 마이그레이션 적용 전 | 차세일(요청), Claude(구현·시험) | 마이그레이션 `202611240000_P-admin-revoke.sql`, `lib/server/admin-grant.ts`, `app/admin/members/` |
 | I-P-23-taste-save-permission | 사람 QA 중 운영 `/taste` 저장이 권한 오류(permission denied for table user_tastes)로 실패하는 것을 발견. `upsert`가 `user_id`까지 고치려 해 열 권한에 막힘(추정) → 내 줄 고치기, 없으면 넣기로 바꿈. 시험 먼저(5개 실패 확인), 망가뜨리기 4곳 중 3곳 잡음(1곳 동치), `upsert` 금지 소스 훑기 추가. 마이그레이션 없음 | 황재웅 / Claude | `lib/server/taste-store.ts`, 시험 2개 |
 | I-submit-redteam-1123 | 제출 전 레드팀 검토(안내서 12장 + 강사 공지 11-22 대조): 발표 자료가 11-19 상태이고 바이브로그·자동화 흐름 장이 없음, 저장소 공개·`llkd33` 초대 없음, README 상태 줄 낡음·안내서 폴더 위치 없음, 오늘 마이그레이션 운영 적용 확인 필요(처음 3개라고 썼다가 2개로 정정, 아래 (2)), 사람 QA No Run 27행. README 상태 줄·폴더 위치 표, 체크리스트 강사 공지 반영 | 차세일(검토 요청·강사 공지 전달), Claude(`strategy-red-team` 스킬로 검토·문서) | `docs/제출전-레드팀-1123.md`, `README.md`, `docs/제출물-체크리스트.md` |
