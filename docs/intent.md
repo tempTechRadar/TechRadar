@@ -6,6 +6,22 @@
 
 ---
 
+## I-P-12m-theme · 2026-11-23 · 블루프린트 테마 문서: ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
+- 브랜치: `docs/P-12m-theme`(feat/P-12l-blueprint-defaults 5ca75ab에서 갈라짐, 로컬. FrontLead가 feat/P-12m-blueprint-theme로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md`(맨 위 "11-23 10:00 T1 결정"), Maestro 요청(11-23)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 사용자가 블루프린트 파랑 바탕을 골랐는데, ADR 0042 6항은 "색 그대로, 다크 테마 안 넣음"이고 design.md 5절은 11-18 어두운 테마 제안이다. 파랑 위 등급색 대비가 못 미치는 것도 규칙으로 남겨야 한다 |
+| 기대 결과 | ADR 0044(바탕 #0E5BA3 · 무늬 · 흰 면 규칙 · 레이더 선과 파동 · 대비 표 · 고민한 것), ADR 0042 6항 개정 표시, design.md 5 · 6 · 16절 새 토큰, GLOSSARY "도면 시트" · "추적 틀" |
+| 영향 범위 | docs만(앱 코드 · qa 문서 · wiki 안 고침) |
+| 제약 | 로컬 커밋만, 푸시 안 함, Claude API 안 씀. 참고 이미지는 저장소에 넣지 않음. 대비는 `lib/a11y/contrast.ts`로 계산한 값만 |
+| 열린 질문 | --on-paper · --grid · --grid-2 · --scan의 정확한 값(FrontLead 보고 뒤 채움). 추적 틀의 "이번 주 새 기술"이 지도 NEW(들어온 지 7일 미만, `lib/map/build-map.ts`)와 같은 기준인지 |
+
+**결과:** ADR 0044 새로, ADR 0042 6항 · design.md 5 · 6 · 16절 · GLOSSARY 반영(로컬 커밋). 대비는 다시 계산해 맞음(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). 토큰 값 넷과 구현 결과는 FrontLead 보고 뒤 채움
+
+---
+
 ## I-P-12l-blueprint-defaults · 2026-11-23 · 청사진 기본 화면: 빈 카드 하나 · 하단 패널 30% · 탭 2개 · 위 막대 "불러오기 ▾" (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12l-blueprint-defaults`(origin/main 00fbba0 위, 로컬)
 - 출처: 사용자 요청 · 승인 계획(Maestro 배정 P-12l). IA-4(청사진) · PRD-F 청사진 편집 · 불변 4(불러오기 전 판은 되돌리기로)
