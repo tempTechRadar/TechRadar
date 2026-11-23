@@ -38,7 +38,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       <header className="sn-head">
         <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : String(data.order + 1).padStart(2, "0")}</span>
         {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
-          : <b className="sn-name" onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? "두 번 누르면 이름 바꾸기(F2)" : undefined}>{stage.name}</b>}
+          : <b className="sn-name" data-long={stage.name.length > 6 ? "" : undefined} onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? `${stage.name} — 두 번 누르면 이름 바꾸기(F2)` : stage.name}>{stage.name}</b>}
         <span className="sn-count" title={`이 단계의 기술 ${stage.techs.length}개 · 한 단계에 ${LIMITS.techs}개까지`}>{stage.techs.length}/{LIMITS.techs}</span>
       </header>
       {/* 기술 노드(자식)가 놓일 자리: 높이는 graph.ts stageHeight와 같다. 끄는 동안 다음 자리에 점선 윤곽(B4) */}

@@ -200,3 +200,5 @@
   .admin-stat-value { font-size: 22px; }
   .admin-inline-form-after { display: flex; margin: var(--space-1) 0 0; }
 }
+/* P-12y M2: 관리자가 아니면 메뉴 칸 없이 안내만 */
+.admin[data-solo] { grid-template-columns: minmax(0, 1fr); }

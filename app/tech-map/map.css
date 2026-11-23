@@ -172,6 +172,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-filter .map-filter-select select { flex: 1; min-width: 0; }
 .map-filter .btn { min-height: 28px; justify-self: start; }
 .map-filter-toggle b { font-family: var(--mono); color: var(--scan); }
+.map-filter-on { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); font-weight: 400; color: var(--muted); text-align: left; } /* 켜진 조건 이름(P-12x H2) */
 .map-filter select { min-height: 26px; padding: 0 4px; font-size: var(--fs-sm); }
 .map-hud > .map-chips { flex: 1 1 auto; min-width: 0; } /* 좁은 화면(≤640)에서는 위 규칙대로 한 줄 가로 밀기 */
 @media (max-width: 640px) { .map-hud > .map-top { order: -1; margin-left: 0; } } /* 좁으면 로그인 · 시작하기 줄을 맨 위로(칩 가로 밀기 밖으로 밀리지 않게, P-12m Q3) */
@@ -204,3 +205,8 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 @media (max-width: 640px) { .map-dock > .map-findbar { left: 0; transform: none; width: calc(100% - 52px); } } /* 오른쪽 ⚙(44px) 자리를 비움 */
 .map-filter-key { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: var(--fs-sm); color: var(--on-paper-2); }
 .map-filter-key > span { display: inline-flex; align-items: center; gap: 4px; }
+.map-dock > .guide.map-finder { top: auto; right: 0; bottom: 48px; z-index: 6; } /* P-12w 찾기 도우미: ⚙(44px) 바로 위, 말풍선은 위로 */
+@media (max-width: 640px) { .map-dock > .guide.map-finder { bottom: 120px; } } /* 폰: guide.css가 화면에 고정(fixed)하므로 아래 탭 줄 · ⚙ 위로 */
+.map-dock > .guide.map-finder[data-drawer] { right: 380px; } /* 열린 서랍(380px) 왼쪽으로: [지도에서 보기]로 연 서랍이 후보 목록을 가리지 않게 */
+.map-dock > .guide.map-finder .guide-pop { max-height: min(560px, calc(100dvh - 300px)); } /* 낮은 화면에서 위 머리(닫기)가 잘리지 않게 */
+@media (max-width: 640px) { .map-dock > .guide.map-finder[data-drawer] { right: 12px; } }

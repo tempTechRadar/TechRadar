@@ -3,9 +3,8 @@
 // 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
 import type { MapNode } from "@/lib/map/build-map";
 import type { MapLayout } from "@/lib/map/layout";
-import { DIMS, DIM_KO, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DIMS, DIM_KO, inPeriod, MARK_KO, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
-const MARK_CHIP: Record<MarkPick, string> = { interest: "★ 관심", candidate: "담은 기술", hold: "보류" }; // 사이드 패널 별 · 담기와 같은 말(P-12h U1)
 
 
 /** 필터 패널 맨 위 "보기 방식"(P-12p 사용자: 보기 · 보기 초기화를 필터 사이드바 안으로): 묶기 1~3단계 · 색 + [보기 초기화] */
@@ -55,7 +54,8 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
   const errs = count((x) => !!x.collectErrorKind), hots = count((x) => x.hot), risky = count((x) => x.grade === "danger" || x.grade === "caution");
   return (
     <>
-      <span className="map-seg" role="group" aria-label="새 기술(들어온 때)">
+      {/* P-12y M3: 이 수는 지도에 올린 기술만 센다(새 기술은 최근 NEW_QUOTA개까지). 프로젝트 화면 "오늘의 새 기술"은 들어온 전체 수 */}
+      <span className="map-seg" role="group" aria-label="지도에 보이는 새 기술(들어온 때)" title={`지도에 보이는 기술만 세요(새 기술은 최근 ${NEW_QUOTA}개까지). 프로젝트 화면의 "오늘의 새 기술"은 들어온 전체 수예요.`}>
         <span className="map-seg-label" aria-hidden="true">새 기술</span>
         {PERIODS.map((p) => { const n = count((x) => inPeriod(x, p)); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
           <button key={p} type="button" className="chip" aria-pressed={f.period === p} disabled={!n && f.period !== p} onClick={() => set({ period: f.period === p ? "" : p })}>
@@ -67,7 +67,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
       {login ? <span className="map-seg" role="group" aria-label="내 판단">
         {MARK_PICKS.map((m) => { const on = f.marks.includes(m); return ( // 옛 보드의 칸(관심 · 적용 후보 · 보류)을 지도 칩으로(P-12f)
           <button key={m} type="button" className="chip" aria-pressed={on} onClick={() => set({ marks: on ? f.marks.filter((x) => x !== m) : [...f.marks, m] })}>
-            {MARK_CHIP[m]} <b>{count((x) => x.decided === m)}</b>
+            {MARK_KO[m]} <b>{count((x) => x.decided === m)}</b>
           </button>
         ); })}
       </span> : null}
