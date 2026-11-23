@@ -54,7 +54,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   css = {};
   const { W, H, L, phys } = S, sc = S.scale(), toS = (x: number, y: number): Pt => [W / 2 + (x - S.cam.x) * sc, H / 2 + (y - S.cam.y) * sc];
   const home = (it: Item): Pt => { const b = phys.B.get(it.id); return b ? toS(b.x, b.y) : toS(it.x, it.y); };
-  c.fillStyle = col("--paper"); c.fillRect(0, 0, W, H);
+  c.clearRect(0, 0, W, H); // 바탕(--paper)은 .map-stage CSS: 밑의 옅은 선 겹 캔버스가 점 · 이름표 아래로 비쳐 보이게(P-12u)
   const [ox, oy] = toS(0, 0);
   // 펼침(11-21 사용자: 가운데서 튀어나오기보다 레이더가 지나간 자리에서 떠오르게): 자리는 그대로, 크기 · 진하기만 grow로(drawTechs · drawHubs)
   // P-12p: 점은 파동에 닿아 보이기 시작할 때 아래에서 떠올라 흔들리다 멈춘다(riseAt). 보이기 전 · 연출 없음(riseAge < 0)은 제자리
@@ -66,7 +66,6 @@ export function draw(c: Ctx, S: MapState, now: number) {
 
   sectorLight(F, [ox, oy]);
   rings(F, [ox, oy]);
-  if (S.radar.idle && !S.still) idleLine(F, [ox, oy]);
   if (moving(S)) ripples(F, [ox, oy]);
 
   // 선: 위아래 단계(가운데 → 1단계 → … → 기술). 비교군 선은 지도에 없음(P-12m, 사이드 패널에서만)
@@ -127,13 +126,20 @@ function ripples({ c, S, sc, now }: Frame, o: Pt) {
   c.globalAlpha = 1;
 }
 
-/** 뒤에서 늘 도는 옅은 선(P-12p, ⚙ 여운 · 속도 · 밝기 · 굵기): 꾸밈이라 점을 켜지 않는다. 뒤로 trail도 옅어지는 --scan 꼬리 + 끝 선 */
-function idleLine({ c, S, now }: Frame, [ox, oy]: Pt) {
+/** 뒤에서 늘 도는 옅은 선(P-12p, ⚙ 여운 · 속도 · 밝기 · 굵기): 꾸밈이라 점을 켜지 않는다. 뒤로 trail도 옅어지는 --scan 꼬리 + 끝 선.
+ *  P-12u(사용자 "버벅거린다"): 지도 캔버스 밑 겹 캔버스에 매 장 따로 그린다(지도는 바뀔 때만 다시 그리고 바탕이 비어 선이 점 · 글자 아래로 보임).
+ *  가운데 · 배율은 지도와 같은 카메라를 따른다. ⚙ 끄기 · 움직임 줄이기면 비우기만 하고 false */
+export const idleOn = (S: MapState) => S.radar.idle && !S.still;
+export function drawIdle(c: Ctx, S: MapState, now: number): boolean {
+  c.clearRect(0, 0, S.W, S.H);
+  if (!idleOn(S)) return false;
+  const sc = S.scale(), ox = S.W / 2 - S.cam.x * sc, oy = S.H / 2 - S.cam.y * sc;
   const { trail, speed, alpha, width } = S.radar, ang = idleAngle(now, speed), far = farOf(S, [ox, oy]), scan = col("--scan");
   const tail = c.createConicGradient(ang, ox, oy);
   tail.addColorStop(1 - trail / 360, rgba(scan, 0)); tail.addColorStop(1, rgba(scan, alpha));
   c.fillStyle = tail; c.beginPath(); c.moveTo(ox, oy); c.arc(ox, oy, far, ang - (trail / 180) * Math.PI, ang); c.closePath(); c.fill();
   c.strokeStyle = rgba(scan, Math.min(1, alpha * 2.5)); c.lineWidth = width; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + far * Math.cos(ang), oy + far * Math.sin(ang)); c.stroke();
+  return true;
 }
 
 function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
