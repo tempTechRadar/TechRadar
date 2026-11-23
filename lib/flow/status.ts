@@ -50,7 +50,7 @@ function stepStatusByNode(steps: TimedStep[]): Map<string, StepRow["status"]> {
   }
   // 판단 저장은 human_judgment 줄을 고치지 않고 action_record 성공 줄만 남긴다(action-record.ts). 그 줄이 곧 판단이 끝났다는 기록이다(docs/flow.md 3절 "판단 대기 → 이어가기")
   // 알림이 여러 건인 실행(human_judgment count_in = n)은 성공한 조치 줄이 n개 이상일 때만 판단이 다 끝난 것으로 본다(검토 R3).
-  // 조치 상자의 "가장 최근 줄" 규칙은 알림 1건 실행(지금 시뮬레이터는 시연 계정 1명)을 전제로 한다
+  // 조치 상자의 "가장 최근 줄" 규칙은 알림 1건 실행을 전제로 한다(시뮬레이터는 시연 계정 수만큼 알림을 만들어 count_in = n. 시연 계정이 2개면 둘 다 판단해야 사람 판단이 초록)
   const judgeRows = steps.filter((s) => s.step_name === "human_judgment");
   const need = Math.max(1, ...judgeRows.map((s) => (typeof s.count_in === "number" ? s.count_in : 1)));
   const done = steps.filter((s) => s.step_name === "action_record" && s.status === "succeeded").length;
