@@ -4,15 +4,15 @@ import { COLS, defaultLayout, MIN_H, MIN_W, parseLayout, pushDown, reveal, snapB
 
 const IDS = ["repos", "radar", "add"];
 
-test("기본 배치(K1): 왼쪽 진행 중 프로젝트 · 직접 추가, 오른쪽 지도 · 소식 · 청사진이 27줄 안, 서로 안 겹침, 기본 자리가 없는 판은 맨 아래", () => {
+test("기본 배치(P-12n 내용 높이): 왼쪽 진행 중 프로젝트 · 직접 추가, 오른쪽 지도 · 소식 · 청사진이 22줄 안, 서로 안 겹침, 기본 자리가 없는 판은 맨 아래", () => {
   const all = ["repos", "radar", "blueprint", "add"];
   const d = defaultLayout(all);
   assert.deepEqual(stackOrder(d), ["repos", "radar", "blueprint", "add"]);
   assert.deepEqual(pushDown(d, "repos"), d, "기본 배치는 겹침이 없어 밀 것이 없다");
-  assert.ok(Math.max(...d.filter((b) => !b.hidden).map((b) => b.y + b.h)) <= 27, "1440×900 첫 화면");
+  assert.ok(Math.max(...d.filter((b) => !b.hidden).map((b) => b.y + b.h)) <= 22, "판이 내용보다 크지 않게(1440×900 첫 화면에 띠까지 다 들어옴)");
   assert.ok(d.every((b) => b.x + b.w <= COLS));
   const extra = defaultLayout([...IDS, "zzz"]).find((b) => b.id === "zzz")!;
-  assert.ok(extra.y >= 27);
+  assert.ok(extra.y >= 22);
 });
 
 test("링크로 온 빠진 판은 다시 걸고 겹치는 판을 밀어낸다, 걸려 있으면 그대로", () => {
