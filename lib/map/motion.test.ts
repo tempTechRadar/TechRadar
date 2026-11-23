@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { grow, GROW, idleAngle, introducing, litAge, litAt, MOTION_END, PING, placeTags, RECENT_HOURS, recentlyChecked, REVEAL, RISE, RISE_SEC, riseAt, rippleR, ringGrow, SLOWDOWN, trackTargets, type MotionState } from "./motion.ts";
+import { grow, GROW, idleAngle, introducing, litAge, litAt, MOTION_END, PING, placeTags, RECENT_HOURS, recentlyChecked, REVEAL, RISE, RISE_SEC, riseAge, riseAt, rippleR, ringGrow, SLOWDOWN, trackTargets, type MotionState } from "./motion.ts";
 import type { Item } from "./layout.ts";
 
 const item = (id: string, x: number, y: number, parent: string | null = null) => ({ id, x, y, parent, type: "t" }) as unknown as Item;
@@ -40,6 +40,9 @@ test("떠오름(P-12p): 닿기 전엔 아래, 닿은 뒤 위로 올라와 살짝
   assert.ok(Math.abs(riseAt(0.6)) < RISE / 4, "점점 잦아듦");
   assert.equal(riseAt(RISE_SEC), 0, "멈춤");
   assert.equal(riseAt(Number.NaN), RISE, "잘못된 값은 닿기 전으로");
+  const s = S(), t = litAt(s, late) + 0.1;
+  assert.ok(Math.abs(riseAge(s, t, early) - riseAge(s, t, late)) < 1e-9, "부모(바깥)를 기다린 자식은 부모와 함께 떠오름(안 보이는 동안 흔들리지 않게)");
+  assert.equal(riseAge(S({ motion: "off" }), t, early), -1);
 });
 
 test("최근 확인(파동이 닿을 때 빛남): 수집 오류 없이 36시간 안에 확인한 것만, 확인한 적 없음 · 오래됨 · 오류는 아님", () => {
