@@ -36,6 +36,7 @@
 //     applyTemplate(t, kind): Graph                       틀 · 조합 적용(단계 id를 새로 매김)
 //   한도는 확정 조건이라 편집 중에는 막지 않는다(깊이 · 같은 깊이는 limitProblems가 알림). 편집 함수가 막는 것은 단계 48 · 기술 8 · 연결 200 · 고리 · 자기 연결 · 겹친 연결.
 import { cleanName, MAX_TECHS, newStage, STAGE_NAME_MAX, type Board, type BlueprintTech, type Stage as BoardStage } from "./board.ts";
+import { cleanSections, keepSections, withSections, type Section } from "./sections.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
 
 export type { BlueprintTech };
@@ -47,7 +48,7 @@ export type Stage = BoardStage & Pos;
 /** from → to: from이 끝나야 to를 시작한다 */
 export type Edge = { from: string; to: string };
 export type TechLink = { from: string; to: string };
-export type Graph = { v: 2; stages: Stage[]; edges: Edge[]; links?: TechLink[] };
+export type Graph = { v: 2; stages: Stage[]; edges: Edge[]; links?: TechLink[]; /** 섹션(P-12o 2단계, sections.ts) */ sections?: Section[] };
 
 /** 확정 조건(서버 · DB 함수 blueprint_graph_clean과 같은 값). 단계 이름 1~20자 · id 1~64자는 parseGraph가 본다 */
 export const LIMITS = { depth: 12, parallel: 4, stages: 48, techs: MAX_TECHS, edges: 200, links: 100 } as const;
@@ -286,7 +287,7 @@ function withLinks(g: Graph, links: TechLink[]): Graph {
 }
 /** 관계선을 정리해 다시 단다(단계 · 기술을 바꾼 뒤 부르는 쪽용) */
 export const setLinks = (g: Graph, raw: unknown): Graph => withLinks(g, cleanLinks(g, raw));
-const keepLinks = (g: Graph): Graph => (g.links ? setLinks(g, g.links) : g);
+const keepLinks = (g: Graph): Graph => keepSections(g.links ? setLinks(g, g.links) : g); // 섹션도 함께(없어진 단계를 빼고 2개 미만이면 품)
 /** 관계선 긋기: 정리 규칙에 걸리면(없는 끝 · 자기 자신 · 이미 있음 · 100개) 같은 그래프 */
 export function addLink(g: Graph, from: string, to: string): Graph {
   const links = cleanLinks(g, [...(g.links ?? []), { from, to }]);
@@ -349,7 +350,8 @@ export function applyTemplate(t: Graph, kind: TemplateKind): Graph {
     stages: src.stages.map((s) => ({ ...s, id: fresh.get(s.id)!, techs: [...s.techs] })),
     edges: src.edges.filter((e) => fresh.has(e.from) && fresh.has(e.to)).map((e) => ({ from: fresh.get(e.from)!, to: fresh.get(e.to)! })),
   };
-  return withLinks(g, cleanLinks(g, (src.links ?? []).map((l) => ({ from: reEnd(l.from), to: reEnd(l.to) }))));
+  const sections = (src.sections ?? []).map((x) => ({ ...x, stageIds: x.stageIds.map((id) => fresh.get(id) ?? ""), techs: kind === "frame" ? [] : [...x.techs] })); // 섹션도 새 id로(P-12o)
+  return withSections(withLinks(g, cleanLinks(g, (src.links ?? []).map((l) => ({ from: reEnd(l.from), to: reEnd(l.to) })))), cleanSections(g.stages.map((s) => s.id), sections));
 }
 
 const bad = (message: string): ParsedGraph => ({ ok: false, message });
@@ -379,7 +381,7 @@ function parseEdge(e: unknown, ids: Set<string>, seen: Set<string>): Edge | stri
 
 /** 모양 · id · 연결선 · 개수(단계 48 · 기술 8 · 연결선 200) · 고리. 깊이 · 같은 깊이는 보지 않는다(그건 확정 조건) */
 function parseShape(raw: unknown, minStages: number): ParsedGraph {
-  const r = (raw ?? {}) as { v?: unknown; stages?: unknown; edges?: unknown; links?: unknown };
+  const r = (raw ?? {}) as { v?: unknown; stages?: unknown; edges?: unknown; links?: unknown; sections?: unknown };
   if (r.v !== 2 || !Array.isArray(r.stages) || !Array.isArray(r.edges)) return bad("청사진 모양이 맞지 않아요.");
   if (r.stages.length < minStages || r.stages.length > LIMITS.stages) return bad(`단계는 ${minStages}~${LIMITS.stages}개여야 해요.`);
   if (r.edges.length > LIMITS.edges) return bad(`연결선은 ${LIMITS.edges}개까지예요.`);
@@ -400,7 +402,7 @@ function parseShape(raw: unknown, minStages: number): ParsedGraph {
     pairs.add(`${p.from}\n${p.to}`);
   }
   const plain: Graph = { v: 2, stages, edges };
-  const graph = withLinks(plain, cleanLinks(plain, r.links)); // 관계선은 맞지 않으면 그 선만 뺀다(메모와 같이 판을 버리지 않음)
+  const graph = withSections(withLinks(plain, cleanLinks(plain, r.links)), cleanSections(ids, r.sections)); // 관계선 · 섹션은 맞지 않으면 그것만 뺀다(메모와 같이 판을 버리지 않음)
   const l = layers(graph);
   return l.ok ? { ok: true, graph } : bad(cycleText(graph, l.cycle));
 }

@@ -3,6 +3,7 @@
 // 단계 = 이름 바꾸기 · 앞 / 다음 단계 · 붙은 기술(빼기) · 지우기. 기술 = 탭 개요 · 관계 · 검증 · 이력(P-12j H3, inspector-tabs.tsx) + 내 태그(TagEditor) · 사용기 상위 3개(SideNotes).
 // 그래프는 apply로만 바꾼다(되돌리기 · 저장은 studio).
 import Link from "next/link";
+import { SECTION } from "@/lib/blueprint/sections";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, setStageNote, STAGE_NOTE_MAX, type Stage } from "@/lib/blueprint/graph";
@@ -26,6 +27,7 @@ export function Inspector(p: PanelProps) {
     <aside className="insp" aria-label="속성" tabIndex={-1}>{/* 지운 뒤 초점이 문서 맨 위로 떨어지지 않게 여기로 */}
       {p.multi ? <><header className="insp-head"><h2 tabIndex={-1}>{p.multi.count}개 골랐어요</h2></header>
         <p className="muted">여럿 고른 것은 함께 옮기거나(단계만) 함께 지울 수 있어요. 하나를 고르면 자세히 보여요.</p>
+        {p.multi.onGroup && p.multi.stages >= 2 ? <GroupForm stages={p.multi.stages} onGroup={p.multi.onGroup} /> : null}
         <p className="insp-row insp-actions"><button type="button" className="btn btn-sm btn-danger" onClick={p.multi.remove}>{p.multi.count}개 지우기</button></p></>
         : !p.picked || !stage ? <p className="muted">캔버스나 목록에서 단계 · 기술을 고르면 여기에 자세히 보여요.</p>
         : p.picked.kind === "tech" ? <TechInfo {...p} stageId={stage.id} techId={p.picked.techId} />
@@ -85,6 +87,17 @@ function NoteField({ graph, apply, stage }: Pick<PanelProps, "graph" | "apply"> 
       </label>
       <p className="muted" aria-live="polite">{text.length}/{STAGE_NOTE_MAX}자 · 내보내기에 &quot;메모:&quot;로 들어가요. 템플릿에는 저장되지 않아요.</p>
     </Card>
+  );
+}
+
+/** 고른 단계들을 섹션으로 묶기(P-12o 2단계): 이름을 받아 묶고, 섹션 머리에 기술을 끌어 놓으면 공통 기술 */
+function GroupForm({ stages, onGroup }: { stages: number; onGroup: (name: string) => boolean }) {
+  const [name, setName] = useState("");
+  return (
+    <form className="insp-row" onSubmit={(e) => { e.preventDefault(); if (onGroup(name)) setName(""); }}>
+      <label>섹션 이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={SECTION.nameMax} required placeholder="예: 백엔드 준비" /></label>
+      <button type="submit" className="btn btn-sm btn-primary">단계 {stages}개를 섹션으로 묶기</button>
+    </form>
   );
 }
 

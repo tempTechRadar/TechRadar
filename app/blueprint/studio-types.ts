@@ -18,6 +18,7 @@ export type PanelProps = {
   /** 내 프로젝트(기술 트리 "프로젝트" 분류기준의 폴더 이름, P-12h S2) */ projects: { id: string; name: string }[]; onPick: (p: Picked) => void; apply: Apply;
   /** 서랍 후보(내 기술 · 적용 후보 · 이력) */ pool: PoolTech[];
   /** 서랍 "지도 전체"(P-12o, 공개 칸만, null = 못 읽음) · 그 기술을 단계에 넣기(로그인은 먼저 담기, 손님은 이 브라우저 담기) */ catalog: PoolTech[] | null; onPlace: (stageId: string, techId: string) => void;
+  /** 섹션 공통 기술 넣기(P-12o, 끌어 놓기의 키보드 짝: 서랍 카드 "넣을 곳 고르기"의 섹션) */ onSectionTech?: (sectionId: string, techId: string) => void;
   /** 내 태그(기술 id → 태그). null = 읽지 못함 */ tags: Record<string, string[]> | null;
   onTags: (techId: string, tags: string[]) => void;
   history: BlueprintRecord[] | null; say: Say;
@@ -29,7 +30,7 @@ export type PanelProps = {
   /** 앞(-1) · 다음(1) 단계 더하기(P-12o: 카드 옆 +의 키보드 짝) */ onSide?: (stageId: string, dir: -1 | 1) => void;
   /** 선 사이에 단계 넣기(U2, 캔버스 선 위 +의 키보드 짝): 옅은 블록을 연다. 캔버스가 없으면(목록 모드) 없음 */ onInsert?: (from: string, to: string) => void;
   /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[];
-  /** 캔버스에서 여럿 고름(H5): 서랍은 "n개 골랐어요"와 함께 지우기만 */ multi?: { count: number; remove: () => void };
+  /** 캔버스에서 여럿 고름(H5): 서랍은 "n개 골랐어요"와 함께 지우기 · 섹션으로 묶기(P-12o, 단계 2개 이상, 성공이면 true) */ multi?: { count: number; remove: () => void; stages: number; onGroup?: (name: string) => boolean };
 };
 
 /** 하단 패널 기술을 캔버스 단계로 끌 때 dataTransfer에 techId를 싣는 형식 */

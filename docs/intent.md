@@ -40,6 +40,21 @@
 **확인하지 못함:** 지도 화면에서 두 줄이 보이는지(LS_PICKS는 FrontLead).
 
 ---
+## I-P-12o-sections · 2026-11-23 · 청사진 섹션: 여러 단계를 묶고 섹션이 공통 기술을 가짐 (P-12o 2단계, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12o-sections`(feat/P-12o-blueprint-polish 500e930 위, 로컬)
+- 출처: 사용자 인터뷰(11-23 오후: Shift + 끌기로 여러 개 고르면 섹션으로 묶기, 섹션이 기술을 따로 가짐, 내보내기는 섹션 머리에 한 번, 한 단계는 한 섹션에만) · 승인 계획 P-12o 2단계 · Maestro 배정("오늘 시도", 17:00까지). IA-4 · 불변 1 · 4 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 여러 단계에 같은 기술을 쓰려면 단계마다 따로 넣어야 하고, 단계 묶음에 이름을 붙일 수 없다 |
+| 기대 결과 | Shift + 끌기 · Shift + 누르기로 단계 2개 이상을 고르면 오른쪽 서랍 [섹션으로 묶기]. 섹션 틀 머리에 이름 · 공통 기술 칩 · [풀기], 머리에 기술을 끌어 놓으면 공통 기술. 확정 · 이력 · 조합 템플릿에 섹션이 남고, 내보내기는 단계 앞에 섹션 머리 줄 |
+| 영향 범위 | lib/blueprint/sections.ts(새) · graph.ts(파서 · 단계 지우기 정리) · export-text.ts, app/blueprint(section-node 새 · studio · inspector · studio-types · result-dialog · studio.css), 마이그레이션 202611240100(blueprint_graph_clean · save_blueprint_template), 시험 sections.test · supabase/tests/sections_p12o.sql |
+| 제약 | 공통 기술도 단계 기술과 같은 확정 관문(blueprint_clean_techs). 틀 템플릿은 공통 기술을 비움. board(v1)에는 섹션 없음. 코드는 sections가 없어도 그대로(옛 판 · 마이그레이션 전). 운영 적용은 사용자 승인 뒤 PR 병합 전 |
+| 열린 질문 | 섹션 이름 바꾸기 화면은 아직 없음(풀고 다시 묶기). 휴대폰 목록 모드에는 섹션이 안 보임. 확정 이력의 섹션 공통 기술은 blueprint_allowed_techs(이력 관문)에 들지 않음(단계 기술만) |
+
+**결과:** 로컬 커밋. 운영 적용은 Maestro가 사용자 승인으로 했음(11-23 13:27 KST, MCP 버전 20261123042722, 권한 시험 sections_p12o.sql 14/14). 손님 초안에 섹션을 넣어 캔버스 틀(이름 · 공통 기술 칩 · 풀기)을 찍어 확인.
+**자체 리뷰:** 8건 중 6건을 고침(앱 쪽 정리를 DB와 맞춤: 공통 기술 id는 uuid만 · 이름은 20글자 뒤 스페이스만 다듬기, 확정 전 검사가 섹션 공통 기술의 관문 · 위험을 막음, 템플릿 적용에 섹션도 새 id로, 서랍 "넣을 곳 고르기"에 섹션(키보드 짝), 쓰지 않는 renameSection 지움). 남긴 2건: ① 운영에 적용된 DB 함수는 id · 이름 키가 없는 섹션을 null로 남기고, 공통 기술 모양이 틀리면 판째 거절함. 앱은 서버에서 parseGraph(cleanSections)로 먼저 정리해 보내서 이 값이 DB까지 가지 않음 → 제출 뒤 보완 마이그레이션(coalesce(jsonb_typeof(…), ''))으로. ② 섹션 id 정규식이 graph.ts 단계 id와 같은 것을 한 번 더 둠(주석으로 묶음). 전체 시험 1,796 · tsc · build 통과.
+**확인하지 못함:** 로그인으로 확정 → 다시 불러오기에서 섹션이 남는지(화면), Shift 끌기로 실제로 묶기(사람 QA).
 
 ## I-qa-sheet-copy-1123 · 2026-11-23 · QA 시트 사본(xlsx)과 운영 사람 QA 결과 (황재웅)
 - 브랜치: `docs/qa-sheet-copy-1123`

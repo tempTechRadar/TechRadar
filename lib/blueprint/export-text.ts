@@ -33,15 +33,16 @@ const RELATION = "사용자 표시 관계";
 /** 프롬프트 · 다듬기 끝에 붙는 관계 줄(없으면 빈 글) */
 const relationTail = (rel: string[]) => (rel.length ? `\n${rel.map((r) => `${RELATION}: ${r}`).join("\n")}\n` : "");
 
-/** rel = linkLines(graph). 프롬프트 · CLAUDE.md에 "사용자 표시 관계: A → B" 줄로 붙는다 */
-export function exportText(kind: ExportKind, name: string, b: Board, rel: string[] = []): string {
+/** rel = linkLines(graph). 프롬프트 · CLAUDE.md에 "사용자 표시 관계: A → B" 줄로 붙는다. sec = sectionLines(graph)(P-12o): 단계 앞에 섹션 머리를 한 번 */
+export function exportText(kind: ExportKind, name: string, b: Board, rel: string[] = [], sec: string[] = []): string {
+  const head = sec.length ? `${sec.join("\n")}\n\n` : "";
   if (kind === "md") {
     const rows = b.flatMap((col, i) => col.map((s) => `| ${i + 1} | ${cell(s.name)} | ${cell(techs(s.techs)) || "-"} | ${s.note ? `메모: ${cell(s.note)}` : "-"} |`));
     const relMd = rel.length ? `\n${rel.map((r) => `- ${RELATION}: ${r}`).join("\n")}\n` : "";
-    return `## 작업 단계와 쓸 도구\n\n| 순서 | 단계 | 쓸 도구 | 메모 |\n|---|---|---|---|\n${rows.join("\n")}\n\n같은 순서 번호의 단계는 동시에 진행한다.\n${relMd}`;
+    return `## 작업 단계와 쓸 도구\n\n${sec.map((x) => `- ${x}`).join("\n")}${sec.length ? "\n\n" : ""}| 순서 | 단계 | 쓸 도구 | 메모 |\n|---|---|---|---|\n${rows.join("\n")}\n\n같은 순서 번호의 단계는 동시에 진행한다.\n${relMd}`;
   }
-  if (kind === "meta") return `${META_RULES}\n\n<청사진 이름="${attr(name)}">\n${steps(b)}\n${relationTail(rel)}</청사진>\n`;
-  return `아래 청사진대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${steps(b)}\n${relationTail(rel)}`;
+  if (kind === "meta") return `${META_RULES}\n\n<청사진 이름="${attr(name)}">\n${head}${steps(b)}\n${relationTail(rel)}</청사진>\n`;
+  return `아래 청사진대로 작업해 줘. 같은 번호의 단계는 동시에 진행해도 돼. 단계마다 괄호 안의 도구를 먼저 써 줘.\n\n${head}${steps(b)}\n${relationTail(rel)}`;
 }
 
 /** Mermaid 글 안에서 형식이 깨지지 않게(따옴표 · 꺾쇠는 Mermaid 엔티티로, 줄바꿈은 한 칸) */
