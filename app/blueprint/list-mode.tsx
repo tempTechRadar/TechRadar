@@ -50,7 +50,7 @@ function AddStage({ graph, apply, say, picked, onPick }: PanelProps) {
   return (
     <form className="lm-row lm-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
       <label>{after ? `"${after.name}" 다음 단계 이름` : "새 단계 이름"} <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} placeholder="예: 기획, 개발, 테스트" /></label>
-      <button type="submit" className="btn btn-primary btn-sm">단계 더하기</button>
+      <button type="submit" className="btn btn-sm">단계 더하기</button>
     </form>
   );
 }
@@ -89,7 +89,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
     <li ref={card} className={`lm-card${chosen ? " chosen" : ""}`} aria-label={`${s.name} 단계`}>
       <div className="lm-row lm-head">
         <button type="button" className="lm-name" aria-pressed={chosen} onClick={() => onPick(chosen ? null : { kind: "stage", stageId: s.id })}>{s.name}</button>
-        <button type="button" className="btn btn-sm" onClick={() => { if (chosenStage) onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); document.getElementById("lm-title")?.focus(); }}>단계 지우기</button>
+        <button type="button" className="btn btn-sm btn-danger" onClick={() => { if (chosenStage) onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); document.getElementById("lm-title")?.focus(); }}>단계 지우기</button>
       </div>
       <form className="lm-row" onSubmit={(e) => { e.preventDefault(); rename(); }}>
         <label>이름 <input value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} /></label>
@@ -99,7 +99,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
       <div className="lm-part">
         <p><b>앞 단계</b> {before.length ? null : <span className="muted">없음(처음에 해요)</span>}</p>
         {before.length ? <ul className="lm-list">{before.map((b) => (
-          <li key={b.id}>{b.name} <button type="button" className="btn btn-sm" aria-label={`${b.name}에서 오는 연결 끊기`} onClick={() => { apply(disconnect(graph, b.id, s.id), linkSaid(graph, b.id, s.id, true)); stay(); }}>끊기</button></li>
+          <li key={b.id}>{b.name} <button type="button" className="btn btn-sm btn-danger" aria-label={`${b.name}에서 오는 연결 끊기`} onClick={() => { apply(disconnect(graph, b.id, s.id), linkSaid(graph, b.id, s.id, true)); stay(); }}>끊기</button></li>
         ))}</ul> : null}
         {canFrom.length ? (
           <div className="lm-row">
@@ -182,7 +182,7 @@ function TechTools({ graph, apply, say, pool, s }: Pick<PanelProps, "graph" | "a
         <button type="button" className="btn btn-sm" aria-disabled={t && rel ? undefined : true} onClick={link}>잇기</button>
       </div> : null}
       {mine.length ? <ul className="lm-list">{mine.map((l) => (
-        <li key={`${l.from}>${l.to}`}>{name(l.from)} → {name(l.to)} <button type="button" className="btn btn-sm" aria-label={`${name(l.from)} → ${name(l.to)} 관계 표시 지우기`}
+        <li key={`${l.from}>${l.to}`}>{name(l.from)} → {name(l.to)} <button type="button" className="btn btn-sm btn-danger" aria-label={`${name(l.from)} → ${name(l.to)} 관계 표시 지우기`}
           onClick={() => apply(removeLink(graph, l.from, l.to), `"${name(l.from)} → ${name(l.to)}" 관계 표시를 지웠어요.`)}>끊기</button></li>
       ))}</ul> : null}
     </div>
@@ -208,7 +208,7 @@ function BesideAdd({ graph, apply, say, onPick, s }: Pick<PanelProps, "graph" | 
       {open ? (
         <form className="lm-row" onSubmit={(e) => { e.preventDefault(); add(); }} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
           <label>같은 순서 단계 이름 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={STAGE_NAME_MAX} /></label>
-          <button type="submit" className="btn btn-primary btn-sm">더하기</button>
+          <button type="submit" className="btn btn-sm">더하기</button>
         </form>
       ) : null}
     </div>

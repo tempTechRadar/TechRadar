@@ -56,7 +56,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
         {/* 이 판의 관계선은 서버를 읽지 않아도 안다 */}
         <h3 className="dock-h">이 판에서 내가 그은 관계 {links.length}</h3>
         {links.length ? <ul className="insp-links">{links.map((l) => (
-          <li key={`${l.from}>${l.to}`}>{nameOf(l.from)} → {nameOf(l.to)} <button type="button" className="btn btn-sm" aria-label={`${nameOf(l.from)} → ${nameOf(l.to)} 관계 표시 지우기`}
+          <li key={`${l.from}>${l.to}`}>{nameOf(l.from)} → {nameOf(l.to)} <button type="button" className="btn btn-sm btn-danger" aria-label={`${nameOf(l.from)} → ${nameOf(l.to)} 관계 표시 지우기`}
             onClick={() => apply(removeLink(graph, l.from, l.to), `"${nameOf(l.from)} → ${nameOf(l.to)}" 관계 표시를 지웠어요.`)}>끊기</button></li>
         ))}</ul> : <p className="muted">없어요. 캔버스에서 기술의 점끼리 이으면 생겨요(내가 긋는 표시예요, 호환 검증이 아니에요).</p>}
         <h3 className="dock-h">지도 비교군</h3>
