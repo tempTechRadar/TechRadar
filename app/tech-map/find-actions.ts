@@ -13,7 +13,7 @@ import { getServiceSupabase } from "@/lib/server/service-supabase";
 
 export type FindResult = { ok: true; reply: FindReply; techs: Record<string, { name: string; grade: string }> } | { ok: false; message: string };
 
-const BUSY = "지금은 찾기 도우미가 대답하지 못해요. 잠시 뒤 다시 물어봐 주세요. 위 찾기 막대는 그대로 쓸 수 있어요.";
+const BUSY = "지금은 찾기 도우미가 대답하지 못해요. 잠시 뒤 다시 물어봐 주세요. 아래 찾기 막대는 그대로 쓸 수 있어요.";
 const FIND_CALL = { maxTokens: 1500, timeoutMs: 60_000 };
 
 async function mapTechs(): Promise<FindTech[]> {

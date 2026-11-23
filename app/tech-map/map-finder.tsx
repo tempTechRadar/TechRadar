@@ -4,6 +4,7 @@
 // AI는 찾기만 한다(담기 · 판단은 사람, 불변 1). 대화는 이 탭에만(sessionStorage). 손님은 로그인 안내만(호출 없음).
 import { useEffect, useId, useRef, useState } from "react";
 import type { FindReply } from "@/lib/ai/find-on-map";
+import { GRADE_KO } from "@/lib/map/build-map";
 import { MAP_FIND_PER_USER_PER_DAY } from "@/lib/ai/decide-ai-call";
 import { Bot } from "../ai-bot";
 import { findOnMapAction } from "./find-actions";
@@ -12,7 +13,6 @@ import "../blueprint/guide.css";
 type Msg = { role: "user" | "guide"; text: string; reply?: FindReply; techs?: Record<string, { name: string; grade: string }> };
 const HELLO: Msg = { role: "guide", text: "이름이 안 떠오르는 기술이 있나요? 하는 일이나 특징을 말해 주면 지도에서 찾아볼게요." };
 const START: Msg[] = [HELLO]; // 아직 읽기 전: 이 값이면 저장하지 않는다
-const GRADE_KO: Record<string, string> = { pass: "통과", caution: "주의", danger: "위험", unknown: "찾지 못함" };
 const key = (who: string) => `techradar-map-find:${who}`;
 
 /** 저장된 대화는 바깥 값이라 모양을 확인한다(깨진 값으로 지도가 죽지 않게) */
@@ -30,7 +30,8 @@ function load(who: string): Msg[] {
 const asTurn = (m: Msg) => ({ role: m.role, text: m.reply ? [m.reply.say, m.reply.ask].filter(Boolean).join(" ") : m.text });
 
 /** onPick = 그 기술 점으로 가서 서랍 열기(없으면 이유 말풍선) */
-export function MapFinder({ who, login, onPick }: { who: string; login: boolean; onPick: (techId: string) => void }) {
+/** drawer = 오른쪽 서랍이 열림(그 왼쪽으로 비켜 후보 목록이 가리지 않게) */
+export function MapFinder({ who, login, drawer, onPick }: { who: string; login: boolean; drawer: boolean; onPick: (techId: string) => void }) {
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState<Msg[]>(START);
   const [draft, setDraft] = useState("");
@@ -50,13 +51,13 @@ export function MapFinder({ who, login, onPick }: { who: string; login: boolean;
     setLog(next); setDraft(""); setBusy(true); setError(null);
     const r = await findOnMapAction(next.map(asTurn)).catch(() => ({ ok: false as const, message: "찾기 도우미에게 보내지 못했어요. 잠시 뒤 다시 물어봐 주세요." }));
     setBusy(false);
-    if (!r.ok) { setLog(log); setDraft(t); return setError(r.message); } // 보내지 못한 말은 입력칸으로
-    setLog((l) => [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }]); setHop((h) => h + 1);
+    if (!r.ok) { setLog((l) => (l === next ? log : l)); setDraft(t); return setError(r.message); } // 보내지 못한 말은 입력칸으로
+    setLog((l) => (l === next ? [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }] : l)); // 그사이 "새로 시작"했으면 옛 답은 버림 setHop((h) => h + 1);
   }
   const close = () => { setOpen(false); btn.current?.focus(); };
 
   return (
-    <div className="guide map-finder" onKeyDown={(e) => { if (e.key === "Escape" && open) { e.stopPropagation(); close(); } }}>
+    <div className="guide map-finder" data-drawer={drawer ? "" : undefined} onKeyDown={(e) => { if (e.key === "Escape" && open) { e.stopPropagation(); close(); } }}>
       {open ? (
         <section id={id} className="guide-pop" role="dialog" aria-label="지도 찾기 도우미">
           <header className="guide-head"><b>지도 찾기 도우미</b><span className="guide-tag">AI 제안 · 검증 아님</span>
@@ -72,7 +73,7 @@ export function MapFinder({ who, login, onPick }: { who: string; login: boolean;
                   {m.reply?.picks.length ? (
                     <div className="guide-card"><span className="guide-label">후보</span>
                       <ul>{m.reply.picks.map((p) => { const t = m.techs?.[p.id]; return (
-                        <li key={p.id}><span className="guide-tech"><b>{t?.name ?? p.id}</b>{t ? <span className="guide-grade" data-grade={t.grade}>{GRADE_KO[t.grade] ?? t.grade}</span> : null}</span>
+                        <li key={p.id}><span className="guide-tech"><b>{t?.name ?? p.id}</b>{t ? <span className="guide-grade" data-grade={t.grade}>{GRADE_KO[t.grade as keyof typeof GRADE_KO] ?? t.grade}</span> : null}</span>
                           {p.why ? <span className="guide-why">{p.why}</span> : null}
                           <button type="button" className="btn btn-sm" onClick={() => onPick(p.id)}>지도에서 보기</button></li>); })}</ul>
                     </div>) : null}

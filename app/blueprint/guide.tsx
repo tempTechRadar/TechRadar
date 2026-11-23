@@ -55,8 +55,8 @@ export function Guide({ who, guest, stages, drawer, onStages, onTech, placed }: 
     setLog(next); setDraft(""); setBusy(true); setError(null);
     const r = await guideTurnAction(next.map(asTurn), stages).catch(() => ({ ok: false as const, message: "가이드에게 보내지 못했어요. 잠시 뒤 다시 말해 주세요." }));
     setBusy(false);
-    if (!r.ok) { setLog(log); setDraft(t); return setError(r.message); } // 보내지 못한 말은 대화에서 빼고 입력칸으로(다시 보낼 때 두 번 쌓이지 않게)
-    setLog((l) => [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }]); setHop((h) => h + 1);
+    if (!r.ok) { setLog((l) => (l === next ? log : l)); setDraft(t); return setError(r.message); } // 보내지 못한 말은 대화에서 빼고 입력칸으로(다시 보낼 때 두 번 쌓이지 않게)
+    setLog((l) => (l === next ? [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }] : l)); // 그사이 "새로 시작"했으면 옛 답은 버림 setHop((h) => h + 1);
   }
   const mark = (i: number, k: string) => setLog((l) => l.map((m, j) => (j === i ? { ...m, done: [...(m.done ?? []), k] } : m)));
   const close = () => { setOpen(false); btn.current?.focus(); };

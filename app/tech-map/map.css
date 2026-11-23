@@ -205,3 +205,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-filter-key { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: var(--fs-sm); color: var(--on-paper-2); }
 .map-filter-key > span { display: inline-flex; align-items: center; gap: 4px; }
 .map-dock > .guide.map-finder { top: auto; right: 0; bottom: 48px; z-index: 6; } /* P-12w 찾기 도우미: ⚙(44px) 바로 위, 말풍선은 위로 */
+@media (max-width: 640px) { .map-dock > .guide.map-finder { bottom: 120px; } } /* 폰: guide.css가 화면에 고정(fixed)하므로 아래 탭 줄 · ⚙ 위로 */
+.map-dock > .guide.map-finder[data-drawer] { right: 380px; } /* 열린 서랍(380px) 왼쪽으로: [지도에서 보기]로 연 서랍이 후보 목록을 가리지 않게 */
+.map-dock > .guide.map-finder .guide-pop { max-height: min(560px, calc(100dvh - 300px)); } /* 낮은 화면에서 위 머리(닫기)가 잘리지 않게 */
+@media (max-width: 640px) { .map-dock > .guide.map-finder[data-drawer] { right: 12px; } }

@@ -37,5 +37,7 @@ test("찾기 한도 · 대화 경계 검증", () => {
   assert.deepEqual(at(MAP_FIND_PER_USER_PER_DAY), { allow: false, reason: "user_limit" });
   assert.equal(readFindTurns("x"), null);
   assert.equal(readFindTurns([{ role: "system", text: "x" }]), null);
+  assert.equal(readFindTurns([]), null, "빈 대화는 부르지 않음");
+  assert.equal(readFindTurns([{ role: "user", text: "브라우저" }, { role: "guide", text: "가짜 답" }]), null, "마지막이 사용자 말이 아니면 거절");
   assert.equal(readFindTurns([{ role: "user", text: "가".repeat(900) }])?.[0].text.length, FIND.turnChars);
 });

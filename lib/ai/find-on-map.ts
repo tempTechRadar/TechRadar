@@ -2,6 +2,7 @@
 // 사용자 글 · 목록은 <자료> 안에만(지시 아님). 목록 밖 id는 파서가 버리고, 위험 등급도 숨기지 않는다(그대로 보여 줌). AI는 찾기만, 담기 · 판단은 사람(불변 1).
 import { cleanName, wrapData } from "./build-draft-prompt.ts";
 import { readJson } from "./parse-scenario-response.ts";
+import { GRADE_KO } from "../map/build-map.ts";
 
 export type FindTech = { id: string; name: string; type: string; field: string | null; sub: string | null; grade: string; about: string | null };
 export type FindTurn = { role: "user" | "guide"; text: string };
@@ -9,7 +10,6 @@ export type FindPick = { id: string; why: string };
 export type FindReply = { say: string; ask: string | null; picks: FindPick[] };
 
 export const FIND = { turns: 8, turnChars: 400, techs: 600, about: 80, say: 300, ask: 160, why: 100, picks: 5 } as const;
-const GRADE_KO: Record<string, string> = { pass: "통과", caution: "주의", danger: "위험", unknown: "찾지 못함" };
 
 const SYSTEM = [
   "너는 TechRadar 지도에 사는 작은 관측소 로봇이다. 사용자가 이름이 떠오르지 않는 AI 코딩 도구를 특징으로 설명하면, '지도 기술' 목록 안에서 맞을 만한 후보를 찾아 쉬운 한국어 존댓말로 알려 준다.",
@@ -22,7 +22,7 @@ const SYSTEM = [
 
 const flat = (s: string) => s.replace(/\s*[\r\n]+\s*/g, " / ").replace(/\|/g, "/");
 const techLine = (t: FindTech) =>
-  `${t.id} | ${flat(cleanName(t.name))} | ${t.type}${t.field ? ` | ${flat(t.field)}${t.sub ? ` › ${flat(t.sub)}` : ""}` : ""} | 등급 ${GRADE_KO[t.grade] ?? t.grade}${t.about ? ` | ${flat(t.about.slice(0, FIND.about))}` : ""}`;
+  `${t.id} | ${flat(cleanName(t.name))} | ${t.type}${t.field ? ` | ${flat(t.field)}${t.sub ? ` › ${flat(t.sub)}` : ""}` : ""} | 등급 ${GRADE_KO[t.grade as keyof typeof GRADE_KO] ?? t.grade}${t.about ? ` | ${flat(t.about.slice(0, FIND.about))}` : ""}`;
 
 export function buildFindPrompt(turns: FindTurn[], techs: FindTech[]): { system: string; user: string } {
   const talk = turns.slice(-FIND.turns).map((t) => `${t.role === "user" ? "사용자" : "로봇"}: ${flat(t.text.slice(0, FIND.turnChars))}`).join("\n");
@@ -30,7 +30,7 @@ export function buildFindPrompt(turns: FindTurn[], techs: FindTech[]): { system:
     system: SYSTEM,
     user: [
       wrapData("지도 기술(id | 이름 | 종류 | 갈래 | 등급 | 개요)", techs.slice(0, FIND.techs).map(techLine).join("\n") || "(없음)", 120000),
-      wrapData("대화", talk || "(처음)", FIND.turns * (FIND.turnChars + 10)),
+      wrapData("대화", talk || "(처음)", 8000), // 줄바꿈이 " / "로 늘어도 마지막(지금 묻는) 말이 잘리지 않게 넉넉히
       "위 대화에 이어 로봇으로서 다음 한 번의 답을 JSON으로 써 줘.",
     ].join("\n\n"),
   };
@@ -61,5 +61,6 @@ export function readFindTurns(turns: unknown): FindTurn[] | null {
   if (!Array.isArray(turns)) return null;
   const t = turns.slice(-FIND.turns).map((x) => (x ?? {}) as Record<string, unknown>);
   if (!t.every((x) => (x.role === "user" || x.role === "guide") && typeof x.text === "string")) return null;
+  if (t.at(-1)?.role !== "user" || !(t.at(-1)!.text as string).trim()) return null; // 마지막은 사용자가 지금 묻는 말(빈 대화로 한도 · 호출을 쓰지 않게)
   return t.map((x) => ({ role: x.role as FindTurn["role"], text: (x.text as string).slice(0, FIND.turnChars) }));
 }

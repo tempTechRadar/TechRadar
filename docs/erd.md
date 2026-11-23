@@ -483,7 +483,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 **ai_calls** — Claude 호출 기록
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
-| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) |
+| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) / `translate`(P-12r) / `blueprint_guide`(P-12s) / `map_find`(P-12w, 운영 적용 11-23) |
 | user_id | uuid | | FK→profiles | 사람이 요청했으면 |
 | input_hash | text | ✔ | | 같은 입력은 다시 보내지 않음 |
 | tokens_in · tokens_out | int | | | |

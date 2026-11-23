@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12w-map-finder · 2026-11-23 · 지도 찾기 도우미 (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12w-map-finder`(origin/main 210375b2에서 갈라짐)
+- 출처: 사용자 "레이더 맵에서 챗봇 하나 같은 디자인으로 만들어서, 해당 기술의 이름이 안 떠오를 때 특징 같은 걸 설명해서 찾을 수 있게"(17:35, 승인 17:40), 계획 `.claude/plans-share/p12w-map-finder-and-audit.md` 1절, 불변 1 · 2 · 5, SPEC-9
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 이름이 떠오르지 않는 기술은 지도 찾기 막대(이름 · 한 줄 설명 글자 맞추기)로 못 찾는다 |
+| 기대 결과 | 지도 오른쪽 아래 ⚙ 위 로봇(청사진 가이드와 같은 모양)에게 특징을 말하면 지도 공개 목록 안에서 후보 5개까지(이름 · 등급 · 이유), 모호하면 한 번 되물음, [지도에서 보기]는 찾기 막대와 같은 길로 점 · 서랍 |
+| 영향 범위 | `lib/ai/find-on-map.ts`, `lib/server/ai-slot.ts`(청사진 가이드와 같이 쓰게 꺼냄) · `blueprint-guide.ts`, `lib/ai/decide-ai-call.ts`, `app/tech-map/{find-actions.ts,map-finder.tsx,canvas-map.tsx,map.css}`, `app/ai-bot.tsx`, `app/blueprint/guide.tsx`, 마이그레이션 `202611240600` |
+| 제약 | 로그인만 · 하루 20번 · ai_calls(map_find) 기록 · 대화는 sessionStorage · 목록 밖 id는 버림 · 위험도 숨기지 않음 · "AI 제안 · 검증 아님". 운영 DB 적용은 Maestro(사용자 승인) |
+| 열린 질문 | 한 번에 넘기는 목록이 약 4만 5천 토큰(500개 × 이름 · 개요)으로 계획의 2만보다 크다. 비용이 걱정되면 개요 길이를 줄이거나 종류로 먼저 거르기 |
+
+**결과:** 로컬 커밋. 운영 마이그레이션 적용: Maestro(사용자 승인, 시험 8/8). 실제 API 3번(가짜 DB, 운영 쓰기 없음, 목록은 운영 공개 줄 500개 읽기): "브라우저를 띄워 테스트" → chrome-devtools-mcp 등 5개, "깃허브 보안 문제" → trailofbits/skills 등 4개, "그거 있잖아" → 후보 없이 한 번 되물음. 한 번 8~10초, 입력 약 4만 5천 토큰. 화면 1440 · 390. `npm test` 1886/1886 · tsc · precheck 통과.
+
 ## I-P-12v-space-pan · 2026-11-23 · 청사진 화면 이동은 스페이스 + 끌기 (FrontLead 세션, 김영식)
 - 브랜치: `fix/P-12v-space-pan`(origin/main f0169246에서 갈라짐)
 - 출처: 사용자 "청사진에서 스페이스바를 눌러야 잡고 이동하는 모드로 해 줘. 평상시엔 그냥 마우스로 클릭만 되는 거고"(Maestro 전달), P-12o(빈 곳 끌기 = 이동)를 바꿈
