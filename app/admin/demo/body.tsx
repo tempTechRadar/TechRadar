@@ -52,8 +52,8 @@ export function DemoBody({ on, error, info }: { on: boolean; error?: string; inf
           {DEMOS.map((d) => (
             <AdminTile key={d.no} id={`demo-${d.no}`} title={`${d.no} ${d.title}`}
               desc={<><p>{d.how}</p><p className="muted">보이는 것: {d.see}</p></>}>
-              <form action={d.action}><SubmitButton label={d.label} disabled={d.needsSwitch && !on} /></form>
               {d.needsSwitch && !on ? <span className="muted">스위치가 꺼져 있어 못 눌러요</span> : null}
+              <form action={d.action}><SubmitButton label={d.label} disabled={d.needsSwitch && !on} /></form>
             </AdminTile>
           ))}
           <AdminTile id="demo-5" title="⑤ 저장 실패" desc={<>
