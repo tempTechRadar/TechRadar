@@ -6,6 +6,25 @@
 
 ---
 
+## I-P-12r-ko-view · 2026-11-23 · 기술마다 한국어 개요 — 화면 표시 (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12r-ko-view`(`feat/P-12r-ko-overview` 위, 433d7b18을 합침 → PR 하나로)
+- 출처: Maestro 배정(사용자 승인), 붙일 곳 정리 `.claude/plans-share/p12r-ko-overview-spots.md`, 백엔드 I-P-12r-ko-overview
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 한국어 개요(`oneLinerKo`)가 저장돼도 화면은 영어 원문이나 분류로 만든 한 줄(describeKo)만 보인다 |
+| 기대 결과 | 지도 사이드 패널 · 기술 상세 두 곳 · 청사진 서랍 "설명"이 한국어 개요를 먼저 보이고 "AI 번역" 표시와 [원문 보기](영어 원문 + 출처 링크)를 붙인다. 개요가 없으면 지금 그대로 |
+| 영향 범위 | `lib/views/ko-overview.ts`(고르기) · `app/ko-overview.tsx`(표시 조각) · `app/tech-map/side-panel.tsx` · `app/tech/[id]/catalog-tech-view.tsx` · `app/projects/tech/[id]/tech-detail.tsx` · `app/blueprint/inspector-tabs.tsx` · `lib/server/my-tech.ts`(칸 4개 더 읽기) · `app/page.css` · 개발용 샘플 2곳 |
+| 제약 | 옛 번역 거르기는 서버(koOf)에 한 곳만 둔다. FrontLead P-12p 지도 파일 7개는 안 건드림. 로컬 커밋만 |
+| 열린 질문 | 없음 |
+
+**정한 것 · 이유:**
+- 지도 사이드 패널은 describeKo 첫 줄 자리를 한국어 개요로 바꾼다(인기 · 보안 줄은 그대로): 같은 자리에 두 설명이 겹치지 않게.
+- 출처 링크는 http(s)만 건다: DB 글이라 다른 주소 형식이 들어와도 링크가 되지 않게.
+- `/projects/tech/[id]`는 snake 칸을 직접 읽고 백엔드의 `koOf`로 같은 규칙을 쓴다.
+
+**결과:** 커밋 8326cea0 feat · 92e0c0f4 test · b3e3be75 merge(433d7b18). tsc 통과, 관련 시험 138개 통과(새 시험 3개, 기록 검사 포함). 화면은 로그인 미리보기 지도와 `/dev/my-tech-sample?view=detail`에서 샘플 번역으로 확인. `/tech/[id]`와 청사진 서랍은 미리보기가 DB를 안 읽어서 화면으로는 확인하지 못함(같은 조각 · 같은 함수).
+
 ## I-P-12r-ko-overview · 2026-11-24 · 기술마다 한국어 개요 — 백엔드(번역기 · 칸 · 내보내기) (DataCollector 세션, 김영식)
 - 브랜치: `feat/P-12r-ko-overview`(origin/main 5f16103e에서 갈라짐)
 - 출처: Maestro 배정(사용자 승인 "번역 · 표시까지만, 매일 번역은 제출 뒤", "API 이제 써"), DevAssi1이 화면 쪽(`p12r-ko-overview-spots.md`)
