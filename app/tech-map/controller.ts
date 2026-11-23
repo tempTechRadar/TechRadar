@@ -6,7 +6,7 @@ import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, 
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
 import { draw } from "./draw";
-import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, MOTION_END, moving, REVEAL, SWEEP_DELAY } from "@/lib/map/motion";
+import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, LOCK, LOCK_AFTER, MOTION_END, moving, REVEAL, SWEEP_DELAY } from "@/lib/map/motion";
 import { introWaits, type GateState } from "@/lib/map/ready-gate";
 
 declare global { interface Window { __techradarGate?: GateState } } // 첫 화면 덮개 스크립트(ready-gate.tsx)가 남김
@@ -253,7 +253,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   /** 누르거나 휠을 굴리면 처음 연출을 바로 끝낸다(기다리지 않게). 끝냈으면 true(그 조작은 연출을 끝내는 데만 쓴다) */
   function finishIntro(): boolean {
     if (!introducing(S, S.now)) return false;
-    S.sweepStart = S.now - REVEAL - GROW; S.introAt = Math.min(S.introAt, S.now - 2);
+    S.sweepStart = S.now - Math.max(MOTION_END, REVEAL + LOCK_AFTER + 2 * LOCK) - 0.1; S.introAt = Math.min(S.introAt, S.now - 2); // 두 바퀴 · 세 파동 · 켜짐 · 틀까지 다 끝난 모습으로
     if (S.fly && !S.userCam) { S.cam = { ...S.fly.to }; S.fly = null; }
     dirty();
     return true;

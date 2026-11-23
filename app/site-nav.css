@@ -80,6 +80,6 @@ a.scan-status:hover { border-color: var(--scan); color: var(--on-paper); }
 .scan-dot[data-tone="ok"] { background: var(--pass); } .scan-dot[data-tone="err"] { background: var(--danger); }
 @media (max-width: 900px) {
   .scan-status { display: none; }
-  .scan-status[data-err] { display: inline-flex; margin-right: 0; } /* 수집 오류가 있으면 그 수만(P-12m Q3) */
+  .scan-status[data-err] { display: inline-flex; margin-right: 0; } /* 수집 오류 · 실행 실패 · 읽지 못함이 있으면 그 부분만(P-12m Q3, 불변 2) */
   .scan-status[data-err] > :not(.scan-errpart) { display: none; }
 }

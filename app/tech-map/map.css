@@ -159,9 +159,9 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-filter-body { overflow: auto; padding: 0 10px 10px; display: grid; gap: 10px; }
 .map-filter fieldset { margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid var(--line-d); display: grid; gap: 1px; }
 .map-filter legend, .map-filter-head { padding: 0; margin-bottom: 4px; font-size: var(--fs-cap); font-weight: 700; color: var(--on-paper-2); }
-.map-filter label, .map-filter-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 6px; min-height: 26px; cursor: pointer; }
-.map-filter-row { grid-template-columns: auto minmax(0, 1fr) auto; cursor: default; }
-.map-filter label > span, .map-filter-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-filter label, .map-filter-row { display: flex; align-items: center; gap: 6px; min-height: 26px; cursor: pointer; } /* 점이 있는 줄 · 없는 줄 모두 이름은 남은 폭, 수는 오른쪽 끝(자체 리뷰) */
+.map-filter-row { cursor: default; }
+.map-filter label > span, .map-filter-row > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-filter label b, .map-filter-row b { font-family: var(--mono); font-weight: 400; font-size: var(--fs-cap); color: var(--on-paper-2); }
 .map-filter input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var(--scan); }
 .map-filter-key { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line-d); color: var(--on-paper-2); }

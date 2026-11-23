@@ -108,7 +108,7 @@ export function isUnder(L: MapLayout, it: Item, gid: string): boolean {
   return false;
 }
 
-/** 올린·고른 것과 이어진 것: 묶음이면 위로 가는 길 + 그 아래 전부, 기술이면 위로 가는 길 + 비교군 */
+/** 올린·고른 것과 이어진 것: 묶음이면 위로 가는 길 + 그 아래 전부, 기술이면 위로 가는 길(비교군은 지도에 없음, P-12m) */
 export function connected(L: MapLayout, id: string): Set<string> {
   const out = new Set([id]), it = L.byId.get(id);
   if (!it) return out;

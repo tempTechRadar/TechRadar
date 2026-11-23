@@ -154,6 +154,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--paper"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(GRADE_FILL[n.grade] ?? it.token); c.fill(); } // 위험 · 주의는 원 자체를 등급색으로(P-12m 시안), 나머지는 범주색
+    if (GRADE_FILL[n.grade] && rp >= 3.5) { c.fillStyle = col("--on-ink"); c.font = `800 ${Math.max(7, Math.round(rp * 1.3))}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(n.grade === "danger" ? "✕" : "!", x, y + 0.5); } // 색에만 기대지 않게 점 안에도 기호(이름표가 안 그려지는 배율에서도)
     if (!it.hollow || n.mine) { c.setLineDash(n.grade === "unknown" && !n.mine ? [2, 2] : []); c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); c.setLineDash([]); } // 찾지 못함은 점선 테두리 // 점은 밝은 고리, 사용 중은 굵게
     if (n.isNew && (z >= TIER.far || S.lit) && !track.includes(it)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800); // 추적 틀이 걸린 점은 꼬리표가 같은 뜻이라 NEW 없음
     if (it.id === S.sel) { const sr = rp + (n.collectErrorKind ? 8 : 6); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
@@ -184,7 +185,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     if (shut) { c.setLineDash([3, 3]); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; hubPath(c, x, y, r + 5, it.level); c.stroke(); c.setLineDash([]); }
     if (it.id === S.sel) { c.strokeStyle = col("--on-paper"); c.lineWidth = 2; hubPath(c, x, y, r + 7, it.level); c.stroke(); }
     if (it.danger) badge(c, x + r * 0.8, y - r * 0.8, "✕", col("--danger"));
-    c.fillStyle = col("--on-paper"); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = col(filled ? "--on-ink" : "--on-paper"); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle";
     const shown = Math.round(it.count * Math.min(1, grow(S, now, it) ** 2)); // 처음 열 때 수가 0부터 차오름
     if (r >= 9) c.fillText(shut ? `+${shown}` : String(shown), x, y + 0.5);
     const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3;
