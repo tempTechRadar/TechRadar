@@ -5,7 +5,7 @@ import { fromNames } from "./board.ts";
 import { parseBoard, toStored } from "./stored.ts";
 import {
   addStage, applyTemplate, asFrame, autoLayout, connect, connectProblem, createStage, disconnect, emptyGraph, fromV1, layers, limitProblems, moveStages,
-  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, BOX, NODE_SIZE, slotAt, stageHeight, techSlot, type Graph, type Stage,
+  parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, BOX, NODE_SIZE, slotAt, stageHeight, techSlot, type Graph, type Stage,
 } from "./graph.ts";
 
 const T = (n: number) => ({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, name: `기술${n}` });
@@ -186,18 +186,6 @@ test("그래프: 놓을 때 8px 격자 · 다른 단계와 정렬 보조선(가�
   assert.deepEqual(mid.guides, []);
   const center = snap({ x: 173, y: 0, w: 100, h: 50 }, others); // 가운데 173+50=223 → 220
   assert.deepEqual([center.x, center.guides[0]], [170, { axis: "x", at: 220 }]);
-});
-
-test("그래프: 가까이 끌면 붙을 자리(앞뒤 · 이미 이어진 짝 건너뜀 · 고리면 blocked · 멀면 없음)", () => {
-  const g = mk(["a", "b", "c"], [["a", "b"]], { a: [0, 0], b: [600, 0], c: [300, 0] });
-  const near = nearestLink(g, "c", 100);
-  assert.deepEqual(near, { from: "a", to: "c", blocked: null }, "a(왼쪽)와 b(오른쪽)가 같은 거리면 먼저 나온 a, 왼쪽이 앞단계");
-  assert.deepEqual(nearestLink({ ...g, edges: [] }, "a", 100), { from: "a", to: "c", blocked: null }, "가까운 쪽에서 내가 앞단계");
-  assert.equal(nearestLink(g, "c", 10), null);
-  assert.equal(nearestLink(g, "nope"), null);
-  const chain = mk(["a", "b", "c"], [["a", "b"], ["b", "c"]], { a: [300, 0], b: [1500, 0], c: [0, 0] }); // a → b → c인데 c가 a의 왼쪽
-  assert.deepEqual(nearestLink(chain, "a", 300, () => ({ w: 100, h: 50 })), { from: "c", to: "a", blocked: "cycle" }, "왼쪽 c가 앞단계 → c → a는 고리라 blocked");
-  assert.deepEqual(nearestLink(g, "c", 100, () => ({ w: 240, h: 96 }))!.from, "a");
 });
 
 test("그래프: parseGraph — 정상(좌표 반올림 · 기술 중복 한 번 · name 없어도 됨)", () => {

@@ -397,7 +397,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined,
       edit: readOnly ? undefined : { onRemove: removeFromCard,
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
-        editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
+        editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard, onBeside: besideGhost } },
   }))];
   // 기술 노드(H2): 단계의 자식(parentId), 자리는 단계 안 자동 흐름(techSlot). 부모 다음에 와야 해서 단계 뒤에 붙인다
   const prevEnds = seenEnds.current, endsNow = g.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)));
@@ -455,10 +455,6 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
         onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
           apply(removeLink(g, l.from, l.to), `"${label}" 관계 표시를 지웠어요.`); } } });
   }
-  const near = assist.near;
-  if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
-    label: near.blocked === "cycle" ? "고리가 생겨 못 이어요" : near.blocked ? "못 이어요" : "놓으면 이어져요",
-    labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
   function onNodesChange(every: NodeChange<StageNodeType | TechNodeType | SectionNodeType>[]) {
     const all = every.filter((c) => !("id" in c && c.id.startsWith(SEC))) as NodeChange<StageNodeType | TechNodeType>[]; // 섹션 틀은 계산한 자리라 바뀜을 받지 않음
@@ -496,7 +492,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
       setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : tech ? { kind: "tech", stageId: tech.stageId, techId: tech.techId } : null));
       if (total && !readOnly) openDrawer("stay"); // U2(11-22 사용자): 카드를 고르면 서랍이 열림(초점은 캔버스에 남음). 여럿이면 "n개 골랐어요"
     }
-    if (ended) { const r = assist.drop(g, moved); apply(r.next, r.linked ? "가까이 둔 단계와 이었어요." : undefined); setDrag(null); } else if (moved !== drag) setDrag(moved);
+    if (ended) { apply(assist.drop(g, moved)); setDrag(null); } else if (moved !== drag) setDrag(moved);
   }
   function onEdgesChange(changes: EdgeChange[]) {
     let next: Set<string> | null = null;
