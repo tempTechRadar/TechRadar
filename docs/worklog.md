@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12o-sections | P-12o 2단계 청사진 섹션: 여러 단계를 섹션으로 묶고 섹션이 공통 기술을 가짐(서랍 [섹션으로 묶기] · 캔버스 틀 · 머리에 기술 놓기 · 풀기 · 내보내기 머리 줄), 마이그레이션 202611240100 · 권한 시험 SQL. 운영 적용은 Maestro(사용자 승인, 시험 14/14) | 사용자(인터뷰) · Claude FrontLead(구현) · Maestro(운영 적용) | `feat/P-12o-sections` 로컬 |
 | I-P-12o-blueprint-polish | P-12o 청사진 다듬기 1단계(사용자 요청 · 인터뷰): 카드 + 단추 4개 뺌 · 같은 순서 단계는 서랍 단추, 빈 곳 끌면 화면 이동 · Shift + 끌기 고르기, 새 단계 임시 창 208px, 서랍 "묶기" → "분류기준", 서랍 "지도 전체"(손님 포함, 끌면 담고 넣기) | 사용자(요청) · Claude FrontLead(인터뷰 · 구현) | `feat/P-12o-blueprint-polish` 로컬, tsc · 고친 시험 108 통과 |
 | I-P-12n-ux-polish | P-12n 화면 다듬기: 공용 단추 규칙(주 행동 청록 하나 · 보조 판 · 위험 빨강 테두리) · 공통 색 뜻 토큰(--cat-3 · 고른 것 카드 + 청록 · 판단 대기 얼음 · 완료 회색 · 수집 오류 회색 점선 · 포커스 청록 · 배지 12px) · R1 지도 · 메뉴 · 상태 줄 10개(상태 줄 "마지막 수집 │ 출처 │ 수집 오류", 출처 = fetch_*) · 토스트 · R2 · R3 · 기록 · QA · main 합침, 자체 리뷰 고침 | Maestro(배정) · Claude FrontLead(구현 · 합침) · DevAssi2(R2) · DevAssi1(R3) · DocsChecker · QA | `feat/P-12n-ux-polish` 로컬, 전체 시험 1,787 · tsc · build · precheck 통과 |
 | I-P-12n-blueprint | P-12n R2 청사진: 주 단추는 "확정 · 내보내기" 하나 · 지우기 · 끊기 · 삭제 .btn-danger · 고른 토글 --picked-bg + 청록 테두리 · 빈 판 첫 안내([지도 열기] [불러오기], 0/8 title) · 손님 띠 한 줄 · 위 막대 묶음 · 옅은 보조 테두리 · 목록 모드에서 캔버스 단추 숨김 · 미니맵 색 · 2개 이하 숨김 · 고른 관계선 청록 2.5 · 캔버스 aria-describedby · "지금 청사진" · /blueprint?bp= (보드 R3-3용). tsc 0 · 시험 118 통과 · 3015 1440 · 390 확인 | DevAssi2(Claude) | studio · stage-node · load-menu · css |
