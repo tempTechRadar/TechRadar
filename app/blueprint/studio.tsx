@@ -27,7 +27,7 @@ import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
-import { LoadMenu } from "./load-menu";
+import { fromRecord, LoadMenu } from "./load-menu";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
@@ -190,7 +190,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     else if (bp) {
       // 불러오기 창의 내 이력과 같은 일: 판 · 이름을 되돌리기 한 칸으로. 이력은 최근 것만 읽어 오래된 것은 못 찾을 수 있다
       const h = history?.find((x) => x.id === bp);
-      if (h) { push(h.graph ?? fromV1(toBoard(h.board)), h.name); say(`"${h.name}"을(를) 불러왔어요. 전 판은 되돌리기로 돌아와요.`); }
+      if (h) { const [next, said] = fromRecord(h, graph.stages.length > 0); push(next, h.name); say(said); }
       else say(history === null ? "내 이력을 불러오지 못해 그 청사진을 열지 못했어요. 없다는 뜻이 아니에요." : "그 청사진을 찾지 못했어요. 최근 확정한 것만 바로 열 수 있어요.");
     }
     if (template || (bp && history?.some((x) => x.id === bp))) setFitAsk((n) => n + 1);
