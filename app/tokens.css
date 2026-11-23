@@ -6,6 +6,8 @@
   /* 파란 도면 바탕(P-12m, 사용자 톤 "Burger Blueprint"): 바탕만 도면, 카드 · 판 · 패널은 --surface 흰 면 그대로. 등급색은 이 바탕 위 1.2~1.9라 흰 면 위에만.
      --grid · --grid-2 = 바탕에 흰색 20% · 40%를 섞은 단색(가는 · 굵은 격자), --scan = 레이더 선 · 파동 */
   --paper: #0e5ba3; --on-paper: #ffffff; --grid: #3e7cb5; --grid-2: #6e9dc8; --scan: #8ed8ff;
+  /* 도면 위 보조 글자(흰색 80%, 도면 위 4.5 이상) · 도면 위 부품 판(도면색에 검정 20%) */
+  --on-paper-2: #cfdeed; --paper-deep: #0b4982;
 
   --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
   /* 글자로 읽는 오류 빨강(상태 색은 표시에만): 흰 바탕 6.5:1 */
@@ -24,11 +26,12 @@
   --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 12px; --r-pill: 999px;
   --shadow-pop: 0 6px 20px rgba(0, 0, 0, .14);
   --shadow-side: -8px 0 24px rgba(0, 0, 0, .1);
-  --hit: 44px; --hit-sm: 32px;
+  --hit: 36px; --hit-sm: 32px; /* 단추 · 칩 높이: 마우스는 36px로 촘촘하게(P-12m 사용자 "더 컴팩트하게"), 손가락은 아래에서 44px */
   --dur: .26s; --ease: ease;
   --focus: 2px solid var(--ink);
 }
 @media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
+@media (pointer: coarse) { :root { --hit: 44px; } }
 
 body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background-color: var(--paper);
   background-image: linear-gradient(var(--grid-2) 1px, transparent 1px), linear-gradient(90deg, var(--grid-2) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
