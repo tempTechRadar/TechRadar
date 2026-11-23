@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, setStageNote, STAGE_NOTE_MAX, type Stage } from "@/lib/blueprint/graph";
-import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
+import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid, parallelProblem } from "@/lib/blueprint/panel-view";
 import { GRADE_KO } from "@/lib/map/build-map";
 import { SideNotes } from "../tech-map/side-notes";
 import { TagEditor } from "../tech-map/tag-editor";
@@ -34,7 +34,7 @@ export function Inspector(p: PanelProps) {
   );
 }
 
-function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert }: PanelProps & { stageId: string }) {
+function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert, onBeside, onSide }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
   const rename = (form: FormData) => {
@@ -53,7 +53,9 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
       <Card title="순서">
         <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(o.id, s.id) : undefined} />
         <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(s.id, o.id) : undefined} />
-        <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요.</p>
+        {onSide ? <p className="insp-row"><button type="button" className="btn btn-sm" onClick={() => onSide(s.id, -1)}>앞 단계 더하기</button><button type="button" className="btn btn-sm" onClick={() => onSide(s.id, 1)}>다음 단계 더하기</button></p> : null}
+        {onBeside ? <BesideButton graph={graph} stageId={s.id} onBeside={onBeside} /> : null}
+        <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요. 앞 · 다음 단계는 위 단추나, 카드 옆 점에서 선을 빈 곳으로 끌어 만들어요.</p>
       </Card>
       <NoteField graph={graph} apply={apply} stage={s} />
       <Card title={`넣은 기술 ${s.techs.length}`}>
@@ -84,6 +86,12 @@ function NoteField({ graph, apply, stage }: Pick<PanelProps, "graph" | "apply"> 
       <p className="muted" aria-live="polite">{text.length}/{STAGE_NOTE_MAX}자 · 내보내기에 &quot;메모:&quot;로 들어가요. 템플릿에는 저장되지 않아요.</p>
     </Card>
   );
+}
+
+/** 같은 순서에 단계 더하기(P-12o: 카드 위 · 아래 +를 뺀 대신). 같은 순서가 가득이면 막고 이유를 글로(목록 모드와 같은 parallelProblem) */
+function BesideButton({ graph, stageId, onBeside }: { graph: PanelProps["graph"]; stageId: string; onBeside: (id: string) => void }) {
+  const why = parallelProblem(graph, stageId);
+  return <p className="insp-row"><button type="button" className="btn btn-sm" aria-disabled={why ? true : undefined} title={why ?? undefined} onClick={() => onBeside(stageId)}>같은 순서에 단계 더하기</button>{why ? <span className="muted"> {why}</span> : null}</p>;
 }
 
 /** 앞 · 다음 단계 줄 + "끊기"(캔버스 선 위 끊기 단추의 키보드 짝, P-12h S3) */
