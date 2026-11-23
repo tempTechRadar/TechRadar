@@ -71,6 +71,13 @@ export async function listMyAlerts(db: SupabaseClient, userId: string): Promise<
   return (data as Row[]).map(toRecord);
 }
 
+/** 판단한 알림 카드의 [다음 판단 대기 →](P-12n R3-2): 지금 알림을 뺀 내 판단 대기 중 가장 최근 것의 id. 없으면 null, 읽기에 실패하면 오류(부르는 쪽이 목록 링크로) */
+export async function nextPendingAlertId(db: SupabaseClient, userId: string, currentId: string): Promise<string | null> {
+  const { data, error } = await db.from("alerts").select("id").eq("user_id", userId).eq("status", "pending").neq("id", currentId).order("created_at", { ascending: false }).limit(1);
+  if (error || !data) throw new Error(`다음 판단 대기를 읽지 못함: ${maskSecrets(error?.message ?? "빈 응답")}`);
+  return (data as { id: string }[])[0]?.id ?? null;
+}
+
 /** 알림 한 건. 내 것이 아니거나 없으면 null, 읽기에 실패하면 오류. */
 export async function getMyAlert(db: SupabaseClient, userId: string, alertId: string): Promise<AlertRecord | null> {
   const { data, error } = await db.from("alerts").select(COLUMNS).eq("user_id", userId).eq("id", alertId).maybeSingle();
