@@ -161,7 +161,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
     else { c.fillStyle = col(GRADE_FILL[n.grade] ?? it.token); c.fill(); } // 위험 · 주의는 원 자체를 등급색으로(P-12m 시안), 나머지는 범주색
     if (GRADE_FILL[n.grade] && rp >= 3.5) { c.fillStyle = col("--on-ink"); c.font = `800 ${Math.max(7, Math.round(rp * 1.3))}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(n.grade === "danger" ? "✕" : "!", x, y + 0.5); } // 색에만 기대지 않게 점 안에도 기호(이름표가 안 그려지는 배율에서도)
     if (!it.hollow || n.mine) { c.setLineDash(n.grade === "unknown" && !n.mine ? [2, 2] : []); c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); c.setLineDash([]); } // 찾지 못함은 점선 테두리 // 점은 밝은 고리, 사용 중은 굵게
-    if (n.isNew && (z >= TIER.far || S.lit) && !track.includes(it)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800); // 추적 틀이 걸린 점은 꼬리표가 같은 뜻이라 NEW 없음
+    if (n.isNew && (z >= TIER.far || S.lit) && !track.includes(it)) label(c, "NEW", x, y - rp - 9, 9, col("--on-paper"), "center", 800); // 점 바로 위: 왼쪽 위에 두면 왼쪽 이름표 끝("· 1일 전")과 겹침(P-12x H3). 추적 틀이 걸린 점은 꼬리표가 같은 뜻이라 NEW 없음
     if (it.id === S.sel) { const sr = rp + (n.collectErrorKind ? 8 : 6); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
     // 첫 파동이 닿은 때 한 번만 켜짐(P-12p, litAt): 36시간 안에 실제로 확인한 점만 ping 고리가 퍼지고(ADR 0032), 위험 · NEW는 한 번 울림
     const age = litAge(S, now, it);
@@ -278,7 +278,7 @@ function trackFrames({ c, S, P, alphaOf, sc, now, z, track, boxes }: Frame) {
 }
 
 // 이름표: 올린 무리·고른 것·내 기술·위험·NEW 먼저, 가까이 가면 모든 이름(names), 더 가까이 가면 한국어 한 줄 · 인기 · 보안(detail). 겹치면 건너뛴다
-function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
+function leafLabels({ c, S, vis, P, sc, now, z, boxes, track }: Frame) {
   const quiet = introducing(S, now); // 처음 연출 동안은(가까이 본 채라 이름이 한꺼번에 뜸) 고른 것 말고는 이름표 없음
   const names = ramp(z, TIER.names), det = ramp(z, TIER.detail);
   const onScreen = (it: Item) => { const [x, y] = P(it); return x > -20 && y > S.top - 20 && x < S.W - S.right + 20 && y < S.H + 20; };
@@ -296,8 +296,8 @@ function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
   const tags = vis.filter((it): it is TechItem => it.type === "t" && !!it.node.decided && (z >= TIER.far || !!S.lit || it.id === S.sel) && onScreen(it)).map((it) => {
     const [x, y] = P(it), rp = dotRadius(it, sc) * (it.id === S.focusId ? 1.3 : 1) * (0.35 + 0.65 * grow(S, now, it)), text = MARK_TAG[it.node.decided!];
     c.font = `700 9px ${col("--font")}`;
-    const w = c.measureText(text).width;
-    return { it, text, x: x - rp - 2, y: y + rp + 5, box: [x - rp - 4 - w, y + rp - 2, w + 4, 14] };
+    const w = c.measureText(text).width, tx = x - rp - (track.includes(it) ? 11 : 2); // 추적 틀이 걸린 점은 틀 왼쪽 바깥에(P-12x H3)
+    return { it, text, x: tx, y: y + rp + 5, box: [tx - 2 - w, y + rp - 2, w + 4, 14] };
   });
   boxes.push(...tags.map((t) => t.box as Box));
   for (const it of want.slice(0, 160)) {
@@ -309,7 +309,7 @@ function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
     c.font = `700 10px ${col("--font")}`; const tw = gt ? c.measureText(gt).width + 6 : 0; c.font = `12px ${col("--font")}`;
     const w = Math.max(nw + tw, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
-    const off = dotRadius(it, sc) + 5; // 가까이 가면 점이 커지니 점 가장자리에서 띄운다
+    const off = dotRadius(it, sc) + (track.includes(it) ? 13 : 5); // 가까이 가면 점이 커지니 점 가장자리에서 띄운다. 추적 틀(반지름 + 9)이 걸린 점은 틀 바깥에서(P-12x H3: "· 1일 전"이 틀에 겹침)
     const right = x > S.W / 2 - 1 ? x + off + w < S.W - S.right - 4 : x - off - w < 4; // 바깥쪽에, 화면 끝에 잘리면 안쪽으로
     const box: Box = right ? [x + off, y - 8, w, h] : [x - off - w, y - 8, w, h];
     if (boxes.some((o) => box[0] < o[0] + o[2] && o[0] < box[0] + box[2] && box[1] < o[1] + o[3] && o[1] < box[1] + box[3])) continue;

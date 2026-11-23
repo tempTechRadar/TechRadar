@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_VIEW, filterCount, groupOf, parseView, passes, viewQuery, type ViewConfig } from "./view-config.ts";
+import { DEFAULT_VIEW, filterCount, filterNames, groupOf, parseView, passes, viewQuery, type ViewConfig } from "./view-config.ts";
 
 test("주소 → 보기 설정 → 주소가 같다(기본값은 주소에 싣지 않음)", () => {
   assert.deepEqual(parseView(""), DEFAULT_VIEW);
@@ -115,4 +115,13 @@ test("판단 칩은 지금 판단(decided: 지도 표시와 알림 판단 중 �
   assert.deepEqual(shown("mk=candidate"), ["b"]); // 지도 표시 없이 알림에서만
   assert.deepEqual(shown("mk=interest"), []);
   assert.equal(m.nodes.find((n) => n.name === "a")?.mark?.status, "interest"); // 판단 줄 · 되돌리기는 지도 표시 그대로
+});
+
+test("켠 필터 이름(P-12x H2): 수와 같은 것을 같은 순서로, LS점프업은 탭이 보여 주므로 빼고, 프로젝트는 이름으로", () => {
+  const v = parseView("pick=ls&risky=1&t=week&mk=interest&tg=ai&p=p1&fk=스킬");
+  const names = filterNames(v, (id) => (id === "p1" ? "데모" : undefined));
+  assert.deepEqual(names, ["스킬", "위험·주의", "이번 주", "★ 관심", "데모", "#ai"]);
+  assert.equal(names.length, filterCount(v));
+  assert.equal(filterNames(v).at(-2), "프로젝트", "이름을 모르는 프로젝트는 그냥 프로젝트");
+  assert.deepEqual(filterNames(parseView("pick=ls")), []);
 });
