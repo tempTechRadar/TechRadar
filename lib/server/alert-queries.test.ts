@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getMyAlert, listMyAlerts } from "./alert-queries.ts";
+import { getMyAlert, listMyAlerts, nextPendingAlertId } from "./alert-queries.ts";
 
 type Row = Record<string, unknown>;
 
 // 실제 DB 대신, 요청한 표·거르기·정렬을 모으고 미리 정한 줄을 돌려주는 가짜 클라이언트
 function fakeDb(rows: Row[], error?: string) {
-  const calls: { table?: string; select?: string; eq: [string, unknown][]; order?: [string, unknown] } = { eq: [] };
+  const calls: { table?: string; select?: string; eq: [string, unknown][]; neq: [string, unknown][]; order?: [string, unknown]; limit?: number } = { eq: [], neq: [] };
   const db = {
     from(table: string) {
       calls.table = table;
@@ -17,7 +17,9 @@ function fakeDb(rows: Row[], error?: string) {
           let result = rows;
           const q = {
             eq(col: string, val: unknown) { calls.eq.push([col, val]); result = result.filter((r) => r[col] === val); return q; },
+            neq(col: string, val: unknown) { calls.neq.push([col, val]); result = result.filter((r) => r[col] !== val); return q; },
             order(col: string, options: unknown) { calls.order = [col, options]; return q; },
+            limit(n: number) { calls.limit = n; result = result.slice(0, n); return q; },
             maybeSingle: () => Promise.resolve(error ? { data: null, error: { message: error } } : { data: result[0] ?? null, error: null }),
             then: (resolve: (v: unknown) => unknown) => Promise.resolve(error ? { data: null, error: { message: error } } : { data: result, error: null }).then(resolve),
           };
@@ -165,4 +167,16 @@ test("변경의 기술에서 행 태그용 하는 일 갈래(세부 갈래면 �
   (top.changes as Row).technologies = { id: "t-2", display_name: "x", type: "skill", categories: { name: "검사·보안", parent: null } };
   assert.deepEqual((await listMyAlerts(fakeDb([top]).db, "user-a"))[0].tech, { id: "t-2", type: "skill", field: "검사·보안" });
   assert.equal((await listMyAlerts(fakeDb([alertRow("a1", "user-a", "2026-11-18T01:30:00Z")]).db, "user-a"))[0].tech, null, "기술 id를 못 읽으면 태그 · 링크 없음");
+});
+
+test("다음 판단 대기: 내 것 · 판단 대기 · 지금 알림이 아닌 것 중 최신 한 줄만 읽고, 없으면 null, 못 읽으면 오류(화면은 목록 링크로)", async () => {
+  const mine = (id: string, status: string) => ({ ...alertRow(id, "u1", "2026-11-23T00:00:00Z"), status });
+  const { db, calls } = fakeDb([alertRow("x", "u2", "2026-11-23T05:00:00Z"), mine("now", "pending"), mine("d", "done"), mine("next", "pending")]);
+  assert.equal(await nextPendingAlertId(db, "u1", "now"), "next");
+  assert.deepEqual(calls.eq, [["user_id", "u1"], ["status", "pending"]]);
+  assert.deepEqual(calls.neq, [["id", "now"]]);
+  assert.deepEqual(calls.order, ["created_at", { ascending: false }]);
+  assert.equal(calls.limit, 1);
+  assert.equal(await nextPendingAlertId(fakeDb([mine("now", "pending")]).db, "u1", "now"), null);
+  await assert.rejects(nextPendingAlertId(fakeDb([], "boom").db, "u1", "now"), /다음 판단 대기를 읽지 못함/);
 });

@@ -27,7 +27,7 @@ import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
-import { LoadMenu } from "./load-menu";
+import { fromRecord, LoadMenu } from "./load-menu";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
@@ -56,10 +56,9 @@ const DRAW_MS = 600;
 // P-12j(11-22 사용자): 카드 폭 · 간격을 줄여 단계 6개가 1440에서 0.9배 이상. minZoom을 낮춰 판이 커도 전체를 담는다(첫 단계가 왼쪽 밖으로 나가지 않게)
 const FIT = { padding: 0.03, minZoom: 0.4, maxZoom: 1.2 };
 const READ_ONLY = "그림으로 보기에서는 고칠 수 없어요. 그림으로 보기를 끄고 목록으로 고쳐 주세요.";
-const NO_CANVAS = "목록으로 편집하는 중에는 캔버스가 없어요. 그림으로 돌아가면 쓸 수 있어요.";
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
-type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean };
+type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean; /** 보드에서 연 확정 청사진 id(P-12n R3-3) */ bp?: string | null };
 type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
@@ -69,7 +68,7 @@ export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
-function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false }: Props) {
+function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false, bp = null }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
@@ -88,6 +87,9 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const seenEnds = useRef<Set<string> | null>(null);
   useEffect(() => { if (graph) seenEnds.current = new Set(graph.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)))); });
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
+  // 판을 통째로 바꾼 뒤(템플릿 · 질문 틀 · 이력 · ?bp= · 손님 초안) 화면을 판에 맞춘다: 새 노드가 그려진 다음 프레임에(P-12n Maestro 점검)
+  const [fitAsk, setFitAsk] = useState(0);
+  const [loadAsk, setLoadAsk] = useState(0); // 빈 판 카드의 [불러오기]를 누른 횟수: 위 막대 "불러오기 ▾"를 연다(P-12n R2-1)
   const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
   const addBtn = useRef<HTMLButtonElement>(null), canvasBox = useRef<HTMLDivElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null); // 옅은 새 단계 블록(S3: 선을 빈 곳에 놓음 · 위아래 +)
@@ -185,8 +187,21 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       push(applyTemplate(template.graph, template.kind), template.name); setTemplateId(template.id);
       say(`"${template.name}" ${template.kind === "frame" ? "틀" : "조합"}로 시작했어요. 되돌리기를 누르면 전에 만들던 판으로 돌아가요.`);
     } else if (templateMissing) say("템플릿을 열지 못했어요. 지워졌거나 비공개로 바뀌었을 수 있어요.");
-    if (template || templateMissing) { const q = new URLSearchParams(location.search); q.delete("template"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
-  }, [graph, template, templateMissing, push, say]);
+    else if (bp) {
+      // 불러오기 창의 내 이력과 같은 일: 판 · 이름을 되돌리기 한 칸으로. 이력은 최근 것만 읽어 오래된 것은 못 찾을 수 있다
+      const h = history?.find((x) => x.id === bp);
+      if (h) { const [next, said] = fromRecord(h, graph.stages.length > 0); push(next, h.name); say(said); }
+      else say(history === null ? "내 이력을 불러오지 못해 그 청사진을 열지 못했어요. 없다는 뜻이 아니에요." : "그 청사진을 찾지 못했어요. 최근 확정한 것만 바로 열 수 있어요.");
+    }
+    if (template || (bp && history?.some((x) => x.id === bp))) setFitAsk((n) => n + 1);
+    if (template || templateMissing || bp) { const q = new URLSearchParams(location.search); q.delete("template"); q.delete("bp"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
+  }, [graph, template, templateMissing, bp, history, push, say]);
+
+  useEffect(() => {
+    if (!fitAsk || listMode) return;
+    const f = requestAnimationFrame(() => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }));
+    return () => cancelAnimationFrame(f);
+  }, [fitAsk, listMode, flow]);
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
@@ -195,7 +210,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (next === g && (nm === undefined || nm === name)) return;
     bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
     push(next, nm, merge);
-    if (nm !== undefined) setTemplateId(null);
+    if (nm !== undefined) { setTemplateId(null); whole(); }
     if (message) { say(message); setLog((l) => [...l.slice(-49), message]); } else clear();
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
@@ -312,10 +327,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const pickedOrder = picked && lay?.ok ? lay.depth.get(picked.stageId) ?? null : null;
   const hints = board ? recommendAt(board, pickedOrder === null ? board.length : pickedOrder + 1).slice(0, 4) : [];
 
+  const starter = !readOnly && g.stages.length === 1 && !g.stages[0].techs.length && !pool.length && !found.length; // 빈 판 첫 안내(P-12n R2-1)
   const nodes: (StageNodeType | TechNodeType)[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     style: { width: NODE_SIZE.w, height: stageHeight(s) }, // 컨테이너 크기 = graph.ts stageHeight(자동 정렬과 같은 값)
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
       edit: readOnly ? undefined : { onSide: sideGhost, onRemove: removeFromCard, hasIn: g.edges.some((e) => e.to === s.id), hasOut: g.edges.some((e) => e.from === s.id),
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
@@ -468,9 +484,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }
   /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정, 하단 패널 불러오기 탭에서 엶). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
   function makeFromAnswers(cols: string[][]) {
-    setAsking(false); unpick(); setTemplateId(null);
+    setAsking(false); whole(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
+  /** 판을 통째로 바꿈: 고른 것 · 서랍을 풀고(가리킬 것이 사라짐) 화면을 새 판에 맞춘다 */
+  const whole = () => { unpick(); setFitAsk((n) => n + 1); };
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setSelTechs(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
@@ -501,7 +519,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const changes = !confirming ? null : history === null ? "unknown" as const : latest ? diffLines(graphDiff(latest.graph ?? fromV1(toBoard(latest.board)), g)) : null;
   const checkTarget: CheckTarget = confirmedId ? { id: confirmedId, label: "방금 확정한 것" }
     : history === null ? "unknown"
-    : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 판과 같아요" : " — 지금 판과 달라요. 지금 판을 점검하려면 먼저 확정해 주세요"}` } : null;
+    : latest ? { id: latest.id, label: `최근 확정 "${latest.name}" (${new Date(latest.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })})${sameAsBoard(latest) ? " — 지금 청사진과 같아요" : " — 지금 청사진과 달라요. 지금 청사진을 점검하려면 먼저 확정해 주세요"}` } : null;
   /** 패널에서 고르면 캔버스에서도 그 단계를 고른 모양으로 */
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
   // 여럿 고른 것 중 지금 판에 있는 것만(되돌리기 · 다른 곳에서 지운 뒤 남은 id로 수가 부풀지 않게)
@@ -518,7 +536,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         <button type="button" className="btn" {...gate(canUndo ? null : "되돌릴 것이 없어요.", () => { bounce.stop(); undo(); })} title="되돌리기 (Ctrl/⌘+Z)">되돌리기</button>
         <button type="button" className="btn" {...gate(canRedo ? null : "다시 할 것이 없어요.", () => { bounce.stop(); redo(); })} title="다시 (Ctrl/⌘+Shift+Z)">다시</button>
         {/* ＋ 단계: 고른 단계가 있으면 그 다음에 이어 붙임. 이름은 작은 입력(추천 이름은 datalist), Esc로 닫기 */}
-        <span className="studio-addwrap">
+        <span className="studio-addwrap studio-group">
           <button ref={addBtn} type="button" className="btn" aria-expanded={adding && !readOnly} {...gate(readOnly ? READ_ONLY : null, () => setAdding(!adding))}>＋ 단계</button>
           {adding && !readOnly ? (
             <form className="studio-addpop" onSubmit={(e) => { e.preventDefault(); if (newName.trim()) addNamed(newName.trim()); else say("단계 이름을 적어 주세요."); }}
@@ -528,13 +546,15 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
                 <input autoFocus value={newName} maxLength={STAGE_NAME_MAX} list="studio-hints" placeholder="예: 리서치" onChange={(e) => setNewName(e.target.value)} />
               </label>
               <datalist id="studio-hints">{hints.map((h) => <option key={h} value={h} />)}</datalist>
-              <button type="submit" className="btn btn-primary" aria-disabled={newName.trim() ? undefined : true}>더하기</button>
+              <button type="submit" className="btn" aria-disabled={newName.trim() ? undefined : true}>더하기</button>
             </form>
           ) : null}
         </span>
-        <LoadMenu {...panel} blocked={readOnly ? READ_ONLY : null} />
-        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
-        <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
+        <LoadMenu {...panel} blocked={readOnly ? READ_ONLY : null} ask={loadAsk} />
+        {listMode ? null : <>{/* 목록 모드엔 캔버스가 없어 숨김(P-12n R2-4) */}
+          <button type="button" className="btn studio-group" {...gate(readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
+          <button type="button" className="btn" onClick={() => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 })}>보기 초기화</button>
+        </>}
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : null}{/* 넓은 화면의 목록 편집 켜기는 하단 패널 탭 줄 끝 작은 링크로(11-22 사용자: 기능은 두고 단추만 내리기) */}
         <span className="studio-grow" />
@@ -542,12 +562,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
-      {guest ? <p className="notice studio-note" role="status">로그인 전이에요. 판은 이 브라우저에만 남고, 기술은 지도에서 &quot;청사진에 담기&quot;로 고른 것을 아래 기술 탭에서 넣어요. 내보내기 복사는 그대로 되고, 확정 · 템플릿 · AI 점검은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a>하면 돼요.</p> : null}
+      {guest ? <p className="notice studio-note studio-guest">로그인 전 — 판은 이 브라우저에만 남아요. 확정 · 템플릿은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> 후.</p> : null}
       {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
-        <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
+        <button type="button" className="btn" onClick={() => { answerGuest(true); whole(); }}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
-          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스. 단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요">
+          <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
+            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
@@ -559,7 +580,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--faint)" maskColor="rgba(0, 0, 0, 0.06)" />}
+              {narrow || g.stages.length <= 2 ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
             </ReactFlow>
           </div>
         )}
@@ -577,7 +598,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         check={checkTarget} say={say} onLogin={() => { setConfirming(false); toLogin("확정하려면"); }}
         onConfirm={(p) => void done.confirm(name.trim() || "이름 없는 청사진", p, g, templateId)} onClose={() => setConfirming(false)} /> : null}
       {loginAsk ? <AskDialog title="로그인할까요?" yes="로그인하러 가기" onYes={() => { setLoginAsk(null); router.push(`/login?next=${encodeURIComponent("/blueprint")}`); }} onClose={() => setLoginAsk(null)}>
-        <p>{loginAsk} 로그인이 필요해요. 지금 판은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요.</p>
+        <p>{loginAsk} 로그인이 필요해요. 지금 청사진은 이 브라우저에 그대로 두고, 로그인한 뒤 가져올 수 있어요.</p>
       </AskDialog> : null}
     </div>
   );

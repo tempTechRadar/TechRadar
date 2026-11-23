@@ -8,7 +8,7 @@ import { ease, grow, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PI
 
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
-const MARK_TAG = { interest: "관심", candidate: "담음", hold: "보류" } as const;
+const MARK_TAG = { interest: "관심", candidate: "담은 기술", hold: "보류" } as const;
 /** 등급 표시(P-12m 시안, 11-23 사용자): 점은 등급색으로 칠하고 이름 뒤에 꼬리표. 글자로도 말해 색에만 기대지 않는다 */
 const GRADE_FILL: Partial<Record<string, string>> = { danger: "--danger", caution: "--caution" };
 const GRADE_TAG: Partial<Record<string, string>> = { danger: "✕ 위험", caution: "! 주의" };
@@ -28,7 +28,7 @@ export const hubRadius = (it: Item, sc: number) => it.r * Math.min(1.4, Math.max
 export const dotRadius = (it: Item, sc: number) => Math.max(2.4, it.r * sc ** 0.6);
 /** 배율 단계(네이버 지도처럼 가까이 갈수록 자세히, 11-21 사용자). z = 처음 보기 대비 배율(화면 크기 · 접힘과 상관없이 같은 느낌).
  *  멀리(far 아래) 1단계 묶음과 수 · 처음 보기 2단계 이름과 점 · 가까이(names~) 모든 기술 이름 · 아주 가까이(detail~) 한국어 한 줄과 인기 · 보안 */
-const TIER = { far: 0.75, names: 1.8, detail: 3.5 };
+const TIER = { far: 0.75, level2: 1.3, names: 1.8, detail: 3.5 }; // level2: 2단계 묶음 이름은 조금 확대해야(P-12n 잡음 줄이기)
 /** at 앞뒤 20%에서 0 → 1로 스며든다(단계가 툭 바뀌지 않게) */
 const ramp = (k: number, at: number) => Math.max(0, Math.min(1, (k - at * 0.8) / (at * 0.4)));
 
@@ -110,7 +110,7 @@ function ringLabels(F: Frame, [ox, oy]: Pt) {
   rs.forEach((r, l) => {
     const g = ringGrow(S, F.now, l + 1); // 고리가 다 퍼진 뒤에 이름
     if (g < 0.99) return;
-    label(c, l < group.length ? `${l + 1}단계 · ${DIM_KO[group[l]]}` : "기술", ox, oy - r * sc - 2, 11, col("--on-paper-2"), "center", 600);
+    label(c, l < group.length ? `${l + 1}단계 · ${DIM_KO[group[l]]}` : "기술", ox, oy - r * sc - 2, 10, col("--faint"), "center", 500); // 고리 이름은 배경 정보라 작고 옅게(P-12n)
   });
 }
 
@@ -150,7 +150,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
     if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
     if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + 3.5, 0, TAU); c.stroke(); c.setLineDash([]); }
+    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--err-line"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + 3.5, 0, TAU); c.stroke(); c.setLineDash([]); }
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--paper"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(GRADE_FILL[n.grade] ?? it.token); c.fill(); } // 위험 · 주의는 원 자체를 등급색으로(P-12m 시안), 나머지는 범주색
@@ -171,6 +171,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
 
 // 묶음(1 육각 · 2 마름모 · 3 네모). 누르면 사이드바, 오른쪽 아래 작은 +/− 손잡이 = 펼치기·접기
 function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   S.hubLabels = []; S.handles = [];
   const jobs: { it: Item & { type: "g" }; x: number; y: number; r: number; a: number; shut: boolean; must: boolean }[] = [];
   for (const it of vis) {
@@ -188,12 +189,14 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     c.fillStyle = col(filled ? "--on-ink" : "--on-paper"); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle";
     const shown = Math.round(it.count * Math.min(1, grow(S, now, it) ** 2)); // 처음 열 때 수가 0부터 차오름
     if (r >= 9) c.fillText(shut ? `+${shown}` : String(shown), x, y + 0.5);
-    const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3;
-    c.fillStyle = col("--panel"); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
-    c.strokeStyle = col("--on-paper"); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
-    S.handles.push({ id: it.id, x: hx, y: hy });
+    if (shut || touch || it.id === S.focusId || it.id === S.sel) { // 접기 ⊖는 올리거나 고른 묶음에만, 펼치기 +는 늘(P-12n: 손잡이가 지도를 덮던 잡음). 손가락 화면은 올리기가 없어 늘
+      const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3;
+      c.fillStyle = col("--panel"); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
+      c.strokeStyle = col("--on-paper"); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
+      S.handles.push({ id: it.id, x: hx, y: hy });
+    }
     const lit = !!S.lit && S.lit.has(it.id) && (S.lit.size < 80 || it.level < 3);
-    if (it.level === 1 || lit || (it.level === 2 && z >= TIER.far) || z >= TIER.names) jobs.push({ it, x, y, r, a, shut, must: it.level === 1 || lit });
+    if (it.level === 1 || lit || (it.level === 2 && z >= TIER.level2) || z >= TIER.names) jobs.push({ it, x, y, r, a, shut, must: it.level === 1 || lit });
   }
   // 이름표는 바깥 방향에. 1단계는 늘, 2단계 이하는 다른 이름표와 겹치지 않을 때만
   jobs.sort((p, q) => Number(q.must) - Number(p.must) || p.it.level - q.it.level);
@@ -257,7 +260,9 @@ function trackFrames({ c, S, P, alphaOf, sc, now, z, track, boxes }: Frame) {
   for (const { it, age, a, x, y, h, box } of shown) {
     c.globalAlpha = a; c.strokeStyle = col("--on-paper"); c.fillStyle = col("--on-paper"); c.lineWidth = 1;
     c.strokeRect(x - h, y - h, h * 2, h * 2);
-    for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) c.fillRect(x + dx * h - 3.5, y + dy * h - 3.5, 7, 7);
+    c.lineWidth = 2; c.beginPath(); // 모서리는 꺾쇠선 ⌜⌟(P-12n, 지도 오른쪽 아래 뜻 줄과 같은 모양)
+    for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const cx = x + dx * h, cy = y + dy * h; c.moveTo(cx - dx * 7, cy); c.lineTo(cx, cy); c.lineTo(cx, cy - dy * 7); }
+    c.stroke(); c.lineWidth = 1;
     const t = age < 0 ? 1 : Math.min(1, Math.max(0, (age - LOCK_AFTER - LOCK) / LOCK));
     if (t <= 0 || !tagged.has(it)) continue;
     c.globalAlpha = a * t; c.font = `700 11px ${col("--font")}`;
@@ -277,7 +282,9 @@ function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
   const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
   const justLanded = (it: Item) => now - (S.landed.get(it.id) ?? -99) < LAND_SEC; // "이번 주" 다시 보기로 방금 닿은 점: 이름(들어온 날)을 잠깐 진하게
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel || justLanded(it)
-    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
+    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 // 찾기 · 올림이 먼저(좁은 화면에서도)
+      : S.W < 640 ? it.node.grade === "danger" // 좁은 화면은 위험 · 고른 것만(P-12n, 390에서 이름이 겹침)
+      : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
   // 판단 꼬리표(점 왼쪽 아래, 칩과 같은 기준 decided): 자리를 먼저 잡아 이름표가 피해 가고, 이름표 테두리에 덮이지 않게 맨 나중에 그린다

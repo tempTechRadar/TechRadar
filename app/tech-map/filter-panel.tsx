@@ -1,6 +1,6 @@
 "use client";
 // 지도 왼쪽 필터 패널(P-12m Q2, 시안 "합본 · 지도" C 모양, 11-23 사용자 결정 · 점검 수정): 위 칩 줄을 한 줄로 줄이려고 옛 "필터" 창과 보기 묶음 탭을 여기로 모았다.
-// 맨 위 저장한 보기(묶음 탭) → 보안 · 사용 중 · 내 태그 · 종류 · 하는 일(세부 갈래) 체크(색 기준인 값에는 점 색 = 범례) → 등급 표시 뜻.
+// 맨 위 저장한 보기(묶음 탭) → 프로젝트 · 내 태그 · 종류 · 하는 일(세부 갈래) 체크(색 기준인 값에는 점 색 = 범례). 보안 · 사용 중은 위 칩, 등급 표시 뜻은 지도 오른쪽 아래(P-12n).
 // ‹로 접고, 접힘은 이 브라우저에만 기억(편의). 좁은 화면(≤860)은 처음에 접혀 있다
 import { useEffect, useState, type ReactNode } from "react";
 import type { MapNode } from "@/lib/map/build-map";
@@ -58,18 +58,13 @@ export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFail
               <span key={l.value} className="map-filter-row"><i className="map-dot" aria-hidden="true" style={l.hollow ? { border: `2px solid var(${l.token})` } : { background: `var(${l.token})` }} /><span>{l.value}</span><b>{l.count}</b></span>
             ))}</fieldset>
           )}
-          <fieldset><legend>보안</legend>
-            <label><input type="checkbox" checked={f.risky} onChange={(e) => setFilter({ risky: e.target.checked })} /><span>위험·주의만</span><b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></label>
-            <label><input type="checkbox" checked={f.err} onChange={(e) => setFilter({ err: e.target.checked })} /><span>수집 오류만</span><b>{count((x) => !!x.collectErrorKind)}</b></label>
-          </fieldset>
-          <fieldset><legend>사용 중인 항목</legend>
-            <label><input type="checkbox" checked={f.mineOnly} disabled={!canMine} onChange={(e) => setFilter({ mineOnly: e.target.checked })} /><span>사용 중{canMine ? "" : " (로그인하고 프로젝트를 등록한 뒤)"}</span>{canMine ? <b>{count((x) => x.mine)}</b> : null}</label>
-            {canMine && projects.length > 1 ? (
-              <label className="map-filter-select">프로젝트 <select value={f.project} onChange={(e) => setFilter({ project: e.target.value })}>
+          {canMine && projects.length > 1 ? ( // 보안 · 사용 중은 위 칩과 같은 일이라 패널에서 뺌(P-12n), 프로젝트 고르기만
+            <fieldset><legend>프로젝트</legend>
+              <label className="map-filter-select"><span className="sr-only">프로젝트</span><select value={f.project} onChange={(e) => setFilter({ project: e.target.value })}>
                 <option value="">전체</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select></label>
-            ) : null}
-          </fieldset>
+            </fieldset>
+          ) : null}
           {login ? <fieldset><legend>내 태그</legend>
             {tagsFailed ? <p className="muted">내 태그를 불러오지 못했어요(없다는 뜻이 아니에요).</p>
               : tags.length ? tags.map((t) => <label key={t}><input type="checkbox" checked={tagOn(t)} onChange={() => toggleTag(t)} /><span>{t}</span><b>{count((x) => x.tags.some(same(t)))}</b></label>)
@@ -82,12 +77,6 @@ export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFail
             ) : null}</div>
           ))}</fieldset>
           {n ? <button type="button" className="btn" onClick={() => onView({ ...view, filter: { ...DEFAULT_VIEW.filter } })}>필터 모두 끄기</button> : null}
-          <div className="map-filter-key" role="group" aria-label="등급 표시 뜻">
-            <span className="map-filter-head">등급 표시</span>
-            <span><i className="map-dot" data-grade="danger" aria-hidden="true" />✕ 위험</span>
-            <span><i className="map-dot" data-grade="caution" aria-hidden="true" />! 주의</span>
-            <span><i className="map-dot" data-grade="unknown" aria-hidden="true" />찾지 못함</span>
-          </div>
         </div>
       ) : null}
     </section>

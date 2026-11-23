@@ -6,6 +6,64 @@
 
 ---
 
+## I-P-12n-ux-polish · 2026-11-23 · 화면 다듬기: 단추 규칙 · 공통 색 뜻 · 지도 · 메뉴 · 상태 줄 + R2 · R3 합치기 (P-12n, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12n-ux-polish`(#216 머리 0e2b870에서 갈라짐, 로컬. DevAssi2 feat/P-12n-blueprint · DevAssi1 feat/P-12n-board · DocsChecker docs/P-12n-records · QA docs/qa-p12m · origin/main 950fc71 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12n-ux-polish.md` · 확정 목록 `p12n-list.md`("전부 진행, 높음부터"), Maestro 배정. ADR 0044 · IA-3 · IA-4 · IA-10 · PRD-NF5 · 불변 1 · 2 · 5 · 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 주 행동 단추 색이 여러 가지(흰 채움 · 청록 · 흰 테두리)이고 청록이 종류색과 겹친다. 지도 위 손잡이 · 이름이 붐비고, 상태 줄 말이 영어 · "단계"라 뜻이 흐리다. 사이드 패널 순서가 담기보다 태그가 먼저다 |
+| 기대 결과 | 주 행동 = 청록 채움 하나, 보조 = 어두운 판 + 테두리, 위험 = 빨강 테두리. 고른 것 = 카드 + 청록 테두리, 판단 대기 = 얼음 파랑, 완료 = 회색, 수집 오류 = 회색 점선. 상태 줄 "마지막 수집 hh:mm │ 출처 m │ 수집 오류 k"(출처 = fetch_* 단계, 수집 오류 = 출처 실패만, 처리 실패는 따로). 지도 잡음 줄이기 · 표시 뜻 한 줄 · 사이드 패널 순서 |
+| 영향 범위 | tokens.css · page.css · site-nav.css · nav(scan-status · alert-bell) · lib/server/scan-status.ts · tech-map(draw · controls · filter-panel · side-panel · canvas-map · map.css · ready-gate.css · cart.css) · views.css · first-check-banner.tsx · page.tsx, 시험 contrast · scan-status |
+| 제약 | 화면만 바꾸고 불변 1~6 · 데이터 규칙은 그대로. Claude API 없음. 로컬 커밋, 고친 시험 + tsc, 전체 검사는 R4 |
+| 열린 질문 | "출처 7 중 n 정상"은 collect_error와 출처 이름 짝을 확인하지 못해 넣지 않음. 고리 이름(--faint 10px)은 대비 약 3.4 |
+
+**결과:** 로컬 커밋. R1 10개 + 공통 색 뜻 + 단추 규칙 + 토스트, R2 · R3 · 기록 · QA · main 합침(충돌 없음). 자체 리뷰 10건 중 제 영역 7건 고침, R2 1건은 DevAssi2가 고침, R3 2건은 DevAssi1에게 넘김. 전체 시험 1,787 · tsc · build · precheck 통과.
+**확인하지 못함:** 관리자 실계정 · 손가락 기기 · 화면 읽기(사람 QA PN-1~8).
+
+## I-P-12n-blueprint · 2026-11-23 · P-12n R2 청사진 다듬기: 단추 규칙 · 빈 판 첫 안내 · 손님 띠 · 위 막대 위계 · 미니맵 · 캔버스 설명 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12n-blueprint`(feat/P-12n-ux-polish 755e90f 위 + FrontLead 공통 토큰 40f46c4 병합, 로컬)
+- 출처: 사용자 승인 확정 목록 `.claude/plans-share/p12n-list.md` R2 1~6 · 공통 색 뜻(11-23 "전부 진행, 높음부터"), Maestro 배정. IA-4 청사진
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 청사진에 주 단추(청록 채움)가 여럿 · 고른 토글이 흰 채움이라 주 단추와 헷갈림 · 빈 판에서 무엇을 할지 안 보임 · 손님 띠가 두꺼움 · 위 막대 단추가 같은 무게 |
+| 기대 결과 | 주 행동은 "확정 · 내보내기" 하나, 지우기 · 끊기 = .btn-danger, 고른 토글 = 카드 + 청록 테두리. 빈 판 카드에 "지도에서 담거나, 템플릿으로 시작" [지도 열기] [불러오기]. 손님 띠 한 줄. 위 막대 묶음 · 옅은 보조 테두리 · 목록 모드에선 캔버스 단추 숨김. 미니맵 색 · 2개 이하 숨김 · 고른 관계선 청록 2.5. 캔버스 설명은 aria-describedby, "지금 판" → "지금 청사진" |
+| 영향 범위 | app/blueprint(studio · stage-node · load-menu · inspector · inspector-tabs · list-mode · seq-edge · dialogs · template-tab · page · blueprint.css · studio.css) |
+| 제약 | app/blueprint/*만(공용 page.css · tokens.css는 FrontLead). 새 라이브러리 · DB 변경 없음. Claude API 없음 |
+| 열린 질문 | 없음 |
+
+**결과:** 로컬 커밋 128da85 · 6adb496 feat(+ 40f46c4 병합 816a3d7) · 이 docs. tsc 0, 고친 곳 시험(청사진 · 대비 · 미리보기 막기) 118 통과. 3015 손님 화면 1440 · 390 확인: 빈 판 안내 · [불러오기]로 메뉴 열림(초점 첫 템플릿) · 템플릿 뒤 안내 사라지고 미니맵 보임 · 보이는 주 단추 1개 · 고른 탭 = #182144 바탕 + 청록 inset 테두리 · 목록 모드에 자동 정렬 · 보기 초기화 없음 · 위험 단추(단계 지우기 · 끊기 · 삭제) 빨강 · 손님 띠 27px(390은 두 줄 45px). DevAssi1 요청으로 `/blueprint?bp=<확정 청사진 id>`도 넣음(내 이력에서 찾아 불러오기, 되돌리기 한 칸).
+**확인하지 못함:** 로그인 화면(?bp= 실제 열기 · 내 이력 · 서랍의 위험 단추), 화면 읽기 낭독, 실제 휴대폰.
+
+---
+## I-P-12n-board · 2026-11-23 · 화면 다듬기 R3: 보드 · 레포 상세 · 알림 판단 · 기록 · 관리자 (P-12n, DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12n-board`(feat/P-12n-ux-polish 755e90f 위 + 공통 색 토큰 40f46c4 받음, 로컬. FrontLead가 R4에서 합침)
+- 출처: 사용자 승인 확정 목록 `.claude/plans-share/p12n-list.md` R3-1~7 · 공통 색 뜻("전부 진행, 높음부터"), 계획 `p12n-ux-polish.md`, Maestro 배정. PRD-F15 · F17(판단) · F22(보드) · IA-2 · 3 · 7 · 16, 불변 2 · 4
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 관리자 역할 대화상자가 흰 바탕 · 흰 글자로 읽히지 않는다. 판단 카드는 이유 칸이 두 단추보다 먼저 나와 무엇을 누를지 늦게 보이고, 판단 뒤 다음 할 일이 없다. 보드 판이 내용보다 크고 배치 도구가 내용만큼 눈에 띈다. 판단 대기 · 완료 · 주의 색 뜻이 겹친다. 알림 필터가 칩과 드롭다운 두 곳이다 |
+| 기대 결과 | 대화상자 어두운 면 · 위험 단추 대비 통과. 판단 카드 = 두 갈래 먼저, 보류 이유는 [보류…] 펼친 뒤, 판단한 카드에 [다음 판단 대기 →]. 보드 판 높이 = 내용, 배치 도구는 작은 보조 줄, 청사진 단추 하나 · 이름은 그 청사진 열기. 판단 대기 얼음 파랑 · 완료 회색. 알림 필터는 칩 + 프로젝트 · 기간 |
+| 영향 범위 | app/admin(admin.css · flow · reports), app/alerts(목록 · 상세 · 판단 폼), app/dashboard(board · widgets-more · board-client · board.css), app/projects([id] · project-manage · 돌아가기 문구), app/history 문구, lib/alerts(next-pending 새 · to-alert-view 색 이름), lib/dashboard/board-layout 기본값, lib/flow/look 종이색, 시험 |
+| 제약 | 기능 · 데이터 규칙(불변 1~6) 그대로, 화면만. 다음 판단 대기 목록을 못 읽으면 "없음"이 아니라 판단 대기 목록 링크(불변 2). Claude API 없음, 고친 시험 · tsc만(전체는 R4) |
+| 열린 질문 | 기록의 판단 대기 중복 줄(R3-6 낮음)은 시간 안에 못 하면 남김. 실제 관리자 계정 대화상자 · 흐름 화면은 사람 QA |
+
+**결과:** 로컬 커밋(feat · test · 이 docs). R3-1 대화상자 --card · 위험 단추 --bg-danger 위 --ink-danger(흰 글자 버그). 관리자 단추 규칙: 필터 = 청록 채움, 보조 = --ring 테두리, 위험 = .danger(글 숨기기 · 일반으로 되돌리기), 고른 탭 · 구간 = --picked, 포커스 링 --focus, 390에서 탭 한 줄 가로 밀기. R3-2 판단 카드 두 갈래 먼저 · [보류…](details, 펼치면 이유 칸에 초점) · [보류 저장], 판단한 카드 [청사진에 넣기](주 행동) · [다음 판단 대기 →](nextPendingId, 못 읽으면 판단 대기 목록 링크 · 없으면 "더 없어요"). R3-3 보드 기본 배치 27 → 22줄(진행 중 프로젝트 20 → 9줄), 배치 도구 테두리 없는 흐린 보조 줄, "+ 판 추가 (4개 모두 보임)", 청사진 단추 하나(초안 있으면 이어서 하기), 확정 청사진 이름 = /blueprint?bp=<id>(R2 DevAssi2가 지원), 숫자 띠 판단 대기 --pending · 새 기술 색 뺌(청록은 주 행동만), 정말 보관하기 .btn-danger. R3-4 알림 상태 · 종류 드롭다운 뺌(칩 값은 숨은 칸으로 실음), 배지 판단 대기 --pending · 완료 --done. R3-5 /admin/flow AdminShell 안(못 읽으면 그림 대신 안내), P-5 · P-17 · 표 이름 문구 뺌, 종이 #eeece6. R3-6 일부: "흐름" → "지난 기록", "일지 찾기" → "기록 찾기", "조건 풀기" → "필터 풀기". R3-7 용어: h1 · 탭 제목 · 돌아가기 "프로젝트", 레포 상세 "완료". tsc 통과, 고친 영역 시험 267개 통과. 3108 미리보기 1440 · 390(옆 밀림 없음)으로 봄.
+**리뷰 반영(FrontLead code-review 2건):** /admin/flow는 실행 목록 오류만 틀로 막고, 고른 실행의 단계만 못 읽으면 그림 자리에 "이 실행의 단계를 읽지 못했어요" + 실행 목록은 남김(불변 2). [다음 판단 대기]는 알림 전체 대신 nextPendingAlertId(판단 대기 · 지금 것 빼고 · 최신 1줄)만 읽음(시험 1).
+**확인하지 못함:** 실제 관리자 계정의 역할 대화상자 · 흐름 화면(미리보기는 관리자가 아님 → 막힘 화면 · 신고 샘플만), /blueprint?bp= 실제 열기(R2 쪽, 로그인 필요), 손가락 기기 · 화면 읽기. 남김: R3-6 기록의 판단 대기 중복 줄(타임라인에서 판단 대기 알림 줄 빼기는 기록 규칙과 얽혀 시간 안에 안 함).
+## I-P-12n-records · 2026-11-23 · 운영에 빠진 #215 마이그레이션 적용 기록 · 체크리스트 · 레드팀 정정 · P-12n 테마 문서 (DocsChecker 세션)
+- 브랜치: `docs/P-12n-records`(feat/P-12n-ux-polish 755e90f에서 갈라짐, 로컬. FrontLead가 R4에서 합침)
+- 출처: 제출 전 stage-check(`.claude/plans-share/stage-check-1123.md`) ❌1, Maestro 요청(11-23), FrontLead P-12n 알림(11-23)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | #215가 main에 합쳐졌는데 운영 DB에 `P-admin-revoke` 마이그레이션이 없었다. 체크리스트 F절과 레드팀 ② · ④도 실제와 달랐다(강사 초대 수락됨, 빠진 마이그레이션) |
+| 기대 결과 | debug-note · connectors 한 줄씩, 체크리스트 F절 · 레드팀 0절 표 · ② · ④ · 4절 할 일 정정. P-12n 상태 줄 문구 · 공통 색 뜻 토큰 · `--cat-3` · 배지 12px을 ADR 0044 · design.md 5절에 |
+| 영향 범위 | docs만 |
+| 제약 | 운영 DB는 읽기만(적용은 Maestro가 사용자 승인으로). 로컬 커밋, 푸시 안 함. 프로필 id · 이메일 안 옮김 |
+| 열린 질문 | 없음 |
+| 결과 | 운영 다시 읽어 적용 확인(함수 · 잠금 · anon 실행 false · 관리자 4) 뒤 기록 4곳 반영. stage-check 커넥터 줄(4808eec)도 이 브랜치로 가져옴. P-12n 값은 `feat/P-12n-ux-polish`의 `app/tokens.css` · `scan-status.ts` · `controls.tsx`에서 확인하고 대비를 다시 계산해 ADR 0044 · design.md에 넣음 |
 ## I-P-24-hidden-note-admin-view · 2026-11-23 · 관리자에게 숨긴 사용기가 일반 글처럼 보이던 것 고침 (황재웅)
 - 브랜치: `fix/P-24-hidden-note-admin-view`
 - 출처: 사람 QA H-28(ego 브라우저, 운영, 관리자로 지정된 황재웅 계정)에서 발견. 사용자 "추천대로 1번 버그 고치고 PR까지 진행해"(11-23)

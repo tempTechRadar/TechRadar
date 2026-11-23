@@ -54,7 +54,7 @@
 .side-props { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 8px; margin: var(--sp-2) 0; font-size: var(--fs-sm); }
 .side-props dt { color: var(--muted); line-height: 22px; }
 .side-props dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 22px; }
-.nchip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--fs-cap); font-weight: 600; white-space: nowrap; }
+.nchip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
 .nchip[data-c="blue"] { background: var(--chip-blue); color: var(--chip-blue-ink); }
 .nchip[data-c="purple"] { background: var(--chip-purple); color: var(--chip-purple-ink); }
 .nchip[data-c="green"] { background: var(--chip-green); color: var(--chip-green-ink); }

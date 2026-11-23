@@ -16,11 +16,12 @@ import "./blueprint.css";
 
 export const metadata = { title: "청사진 · TechRadar" };
 
-/** add: 보드의 "청사진에 넣기"가 실어 보낸 기술 id(11-21 화면 개편 C). template: 갤러리의 "이 템플릿으로 시작"(P-12e). uuid 모양이 아니면 버린다 */
-export default async function BlueprintPage({ searchParams }: { searchParams: Promise<{ add?: string; template?: string }> }) {
+/** add: 보드의 "청사진에 넣기"가 실어 보낸 기술 id(11-21 화면 개편 C). template: 갤러리의 "이 템플릿으로 시작"(P-12e).
+ *  bp: 보드의 확정한 청사진 이름(P-12n R3-3) — 내 이력에서 그 청사진을 불러온다(손님은 이력이 없어 무시). uuid 모양이 아니면 버린다 */
+export default async function BlueprintPage({ searchParams }: { searchParams: Promise<{ add?: string; template?: string; bp?: string }> }) {
   const user = await getCurrentUser();
   const preview = !!user && isPreviewUser(user); // 미리보기(개발용)는 DB 없이 샘플로
-  const { add, template } = await searchParams;
+  const { add, template, bp } = await searchParams;
   const log = (what: string) => (e: unknown) => { console.error(what, e instanceof Error ? e.message : e); return null; };
   const want = isUuid(template) ? template : null;
   if (!user) {
@@ -47,7 +48,7 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
     <main className="page bp-page">
       <h1 className="sr-only">청사진</h1>
       {/* 하단 패널이 주소의 add=를 읽어(useSearchParams) Suspense로 감싼다 */}
-      {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null}
+      {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} bp={isUuid(bp) ? bp : null}
         template={tpl} templateMissing={!!want && !tpl} /></Suspense>
         : <div className="notice notice-error" role="alert"><strong>사용 중인 항목을 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>

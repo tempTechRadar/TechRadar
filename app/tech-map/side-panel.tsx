@@ -49,7 +49,7 @@ function Props({ n }: { n: MapNode }) {
       <dt>종류</dt><dd>{val(n.attrs.kind, "blue")}</dd>
       <dt>갈래</dt><dd>{val(n.attrs.sub, "teal")}</dd>
       <dt>하는 일</dt><dd>{val(n.attrs.field, "purple")}</dd>
-      <dt>출처</dt><dd>{n.official ? <Chip c="green">공식</Chip> : null}{src ? <Chip c="gray">{src}</Chip> : n.official ? null : NONE}</dd>
+      <dt>만든 곳</dt><dd>{n.official ? <Chip c="green">공식</Chip> : null}{src ? <Chip c="gray">{src}</Chip> : n.official ? null : NONE}</dd>
       {n.mine ? <><dt>사용 중</dt><dd><Chip c="yellow">{n.projectNames.length ? n.projectNames.join(", ") : "사용 중"}</Chip></dd></> : null}
     </dl>
   );
@@ -64,20 +64,12 @@ function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
       <div className="side-title"><h2 id="map-side-title" tabIndex={-1}>{n.name}</h2>{star}</div>
       <p>{what}</p>
       <p className="muted">{facts ? `${facts} · ` : ""}{where}</p>
-      <Props n={n} />
-      {n.isNew || n.addedAt || n.nearMine ? (
-        <p className="map-row side-tags">
-          {n.isNew ? <span className="tag">NEW</span> : null}
-          {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
-          {n.nearMine ? <span className="tag">사용 중인 항목의 비교군</span> : null}
-        </p>
-      ) : null}
     </header>
   );
 }
 
-function CompareList({ n, compare, onGo }: { n: MapNode; compare: Compare[]; onGo: (key: string) => void }) {
-  if (!compare.length) return <p className="muted">{n.mine ? "확인된 비교군이 아직 없어요." : "비교군은 사용 중인 항목 둘레에만 보여요."}</p>;
+function CompareList({ compare, onGo }: { compare: Compare[]; onGo: (key: string) => void }) {
+  if (!compare.length) return <p className="muted">확인된 비교군이 아직 없어요.</p>;
   return (
     <ul className="map-near">{compare.map(({ item: ci, node: m, quote }) => (
       <li key={m.key}><Dot token={ci?.token ?? null} hollow={ci?.hollow} /><div>
@@ -108,13 +100,21 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
   return (
     <>
       <TechHead n={n} star={login && n.techId ? <Star status={n.mark?.status} busy={busy} onMark={onMark} /> : null} />
-      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
       {isRisky(n) ? <SecurityBand n={n} /> : null}
       {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <section className="side-decide" aria-label="청사진">
         <Cart techId={n.techId} mark={n.mark} danger={n.catalogGrade === "danger"} login={login} busy={busy} onMark={onMark} />
       </section>
-      <Card title={`비교군 ${compare.length}`}><CompareList n={n} compare={compare} onGo={onGo} /></Card>
+      {/* P-12n 순서: 이름 → 보안 띠 → 청사진에 담기 → 속성 칩 → 태그 편집. 비교군은 사용 중인 기술일 때만(사용자 원문) */}
+      <Props n={n} />
+      {n.isNew || n.addedAt ? (
+        <p className="map-row side-tags">
+          {n.isNew ? <span className="tag">NEW</span> : null}
+          {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
+        </p>
+      ) : null}
+      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
+      {n.mine ? <Card title={`비교군 ${compare.length}`}><CompareList compare={compare} onGo={onGo} /></Card> : null}
       <Card title="출처">
         {n.oneLiner ? <p>{n.oneLiner}</p> : null}
         <dl className="side-facts">

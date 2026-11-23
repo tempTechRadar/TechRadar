@@ -9,7 +9,7 @@
 .site-nav button { cursor: pointer; background: none; border: 1px solid var(--line-d); border-radius: var(--r-md); }
 .site-nav form { display: flex; gap: var(--sp-2); align-items: center; margin: 0; color: var(--on-paper); }
 /* 메뉴의 판단 대기 수(design.md 17절). 글자색은 --ink 계열 규칙대로 검은 바탕에 흰 글자 */
-.site-nav .nav-badge, .tab-bar .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: var(--fs-cap); line-height: 20px; text-align: center; }
+.site-nav .nav-badge, .tab-bar .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--pending); color: var(--on-ink); font-size: var(--fs-sm); font-weight: 700; line-height: 20px; text-align: center; } /* 판단 대기 = 얼음 파랑(P-12n) */
 /* 11-21 메뉴 줄이기: 로고 = 기술 지도, 계정 펼침(내 프로젝트 · 설정 · 관리자 · 로그아웃) */
 .site-nav .site-nav-logo { font-weight: 800; letter-spacing: -0.01em; margin-right: var(--sp-2); }
 .site-nav-account { position: relative; }
@@ -38,9 +38,8 @@
 .nav-alerts .nav-alerts-head { font-weight: 700; }
 .nav-alerts ul { list-style: none; margin: 0; padding: 0; display: grid; }
 .nav-alerts li a { align-items: flex-start; gap: var(--sp-2); padding: 6px var(--sp-2); min-height: 44px; line-height: 1.4; }
-.nav-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--ink-danger); }
-.nav-dot.done { background: var(--line); }
-.site-nav-menu :focus-visible { outline-color: var(--ink); }
+.nav-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--pending); } /* 판단 대기 = 얼음 파랑, 완료 = 중립 회색(P-12n) */
+.nav-dot.done { background: var(--done); }
 .site-nav-menu .nav-alerts-all { justify-content: center; font-weight: 600; border-top: 1px solid var(--line); border-radius: 0; }
 /* 휴대폰 아래 탭 바(11-21): 641px 이상은 숨김 */
 .tab-bar { display: none; }
@@ -55,7 +54,7 @@
   html body:has(.map-page) { height: calc(100dvh - var(--tab-bar-h)); }
   .tab-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); }
   .tab-bar a { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 56px; font-size: var(--fs-cap); color: var(--muted); text-decoration: none; }
-  .tab-bar a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 3px 0 var(--ink); }
+  .tab-bar a[aria-current="page"] { color: var(--ink); font-weight: 700; box-shadow: inset 0 3px 0 var(--picked-line); }
 }
 @media (max-width: 640px) {
   /* 좁으면 오른쪽 묶음이 다음 줄로 내려갈 수 있다: 펼침을 단추가 아니라 메뉴 바 오른쪽 끝에 맞춰 화면 밖으로 나가지 않게 */
@@ -70,11 +69,11 @@
 .nav-badge[data-dir="up"] { animation: badge-from-below calc(var(--dur) * 1.5) var(--ease) 1; }
 .nav-badge { font-variant-numeric: tabular-nums; }
 /* 상태 줄(P-12m B): 고정폭 작은 글씨, 점은 색 + 글자(오류 수)로 함께 알림. 좁은 화면에서는 숨김(메뉴가 두 줄이 되지 않게) */
-.scan-status { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 var(--sp-2); margin-right: var(--sp-2); border: 1px solid var(--line-d); border-radius: var(--r-sm); background: var(--panel); color: var(--on-paper-2); font-family: var(--mono); font-size: var(--fs-cap); white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
+.scan-status { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 var(--sp-2); margin-right: var(--sp-2); border: 1px solid var(--line-d); border-radius: var(--r-sm); background: var(--panel); color: var(--on-paper-2); font-family: var(--font); font-size: var(--fs-sm); white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
 .site-nav a.scan-status { min-height: 28px; color: var(--on-paper-2); }
 a.scan-status:hover { border-color: var(--scan); color: var(--on-paper); }
 .scan-status time, .scan-status .scan-k { color: var(--on-paper); }
-.scan-k { letter-spacing: .06em; }
+.scan-status time { font-family: var(--mono); } /* 시각만 고정폭, 한국어는 본문 글꼴 12px(P-12n) */
 .scan-sep { color: var(--faint); }
 .scan-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--faint); vertical-align: 1px; }
 .scan-dot[data-tone="ok"] { background: var(--pass); } .scan-dot[data-tone="err"] { background: var(--danger); }
@@ -83,3 +82,4 @@ a.scan-status:hover { border-color: var(--scan); color: var(--on-paper); }
   .scan-status[data-err] { display: inline-flex; margin-right: 0; } /* 수집 오류 · 실행 실패 · 읽지 못함이 있으면 그 부분만(P-12m Q3, 불변 2) */
   .scan-status[data-err] > :not(.scan-errpart) { display: none; }
 }
+.site-nav .nav-icon:is([aria-current="page"], [data-current]) { box-shadow: inset 0 -2px 0 var(--scan); border-radius: 0; } /* 알림 화면에서 종 = 지금 화면(P-12n) */
