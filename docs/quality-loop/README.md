@@ -95,3 +95,5 @@
 | 흐름 문서 | D8 · D9 · D10 · D13 고침, C3로 `flow.json`에 `extract_my_tech → fetch_osv` · `fetch_osv → grade` 화살표 더함 | **화살표는 되돌림**: 도우미가 스스로 보고한 부작용(`fetch_osv`가 1열 → 3열로 밀려 흐름 화면 배치가 바뀜, `counts.ts` 숫자가 겹쳐 보임)이 발표 직전 위험보다 큼. `fetch_repo` config(읽는 파일)는 살림. flow.md에 "보류 이유"를 적음 |
 
 도우미 worktree는 `origin/main` 0a40e81(#223)에서 갈라져, 합치기 전에 `git merge origin/main`을 먼저 함(충돌 없음, 기록 문서 union).
+
+**위키 반영(C6 뒤따름):** 계획 = `wiki/데이터-구조.md` 코드 사실 줄과 `wiki/연결지도.md` 충돌 표 1행의 "20개 = chat_logs"를 "chat_logs + 실패한 ai_calls 본인 줄"로, 줄 번호 62–64 → 63–67. 문서 A ↔ B 충돌 자체와 정답표 Q5 요지는 그대로. 사용자 위임으로 반영하고 `wiki/log.md`에 덧붙임. 위키 시험 18개 통과. 운영 위키는 배포 뒤에 바뀌므로, 발표 전 운영 Q5 재질문은 배포된 판으로 한다.
