@@ -46,3 +46,18 @@
 @media (max-width: 860px) { .tt { grid-template-columns: 1fr; } .tt-tree { border-right: 0; border-bottom: 1px solid var(--line); } }
 .dock-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 860px) { .dock-cols, .dock-cols-3 { grid-template-columns: 1fr; } }
+
+/* 서랍 "지도 전체" 한 줄 목록(P-12o): 여러 칸으로 촘촘히, 한 줄 28px */
+.tt-rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 2px 8px; }
+.tt-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 4px 0 6px; border-radius: var(--r-sm); cursor: grab; }
+.tt-row:hover { background: var(--sunken); }
+.tt-row .tc-icon { width: 18px; height: 18px; font-size: 10px; }
+.tt-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+.tt-row-grade { font-size: var(--fs-sm); } .tt-row-grade.g-danger { color: var(--ink-danger); } .tt-row-grade.g-caution { color: var(--ink-caution); }
+.tt-row-in { color: var(--scan); font-size: var(--fs-sm); }
+.tt-row-add { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid var(--ring); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.tt-row-add:hover { border-color: var(--scan); }
+.tt-row-add:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.tt-row-choose { position: absolute; top: 100%; left: 0; right: 0; z-index: 3; padding: 6px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); box-shadow: var(--shadow-pop); }
+.tt-more { margin-top: var(--sp-2); }
+@media (pointer: coarse) { .tt-row { min-height: 44px; } .tt-row-add { width: 44px; height: 44px; } }
