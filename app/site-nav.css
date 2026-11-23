@@ -1,13 +1,12 @@
 /* 주 메뉴(모든 화면): 누르는 칸을 최소 44px로 둔다(WCAG 2.2 대상 크기, 터치). 링크 높이가 20px이던 것을 키웠다(I-a11y-tap-targets).
    왼쪽 = 보는 곳, 오른쪽 = 내 것(design.md 13절 1). 좁으면 두 줄로 내려간다 */
-.site-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--on-paper); }
-/* 메뉴는 파란 도면 위(P-12m): 흰 글자 · 흰 선 · 흰 초점선. 펼친 메뉴 판은 흰 면이라 아래에서 --ink로 되돌린다 */
-.site-nav :focus-visible { outline-color: var(--on-paper); }
+.site-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--sp-4); margin-bottom: var(--sp-4); border-bottom: 1px solid var(--line-d); }
+/* 메뉴는 밤하늘 위(P-12m 관측소): 밝은 글자 · 어두운 선. 펼친 메뉴 판은 --surface(어두운 판) */
 .site-nav-main, .site-nav-side { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sp-1); }
 .site-nav a, .site-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--sp-2); font: inherit; color: var(--on-paper); }
 .site-nav-main a { font-weight: 600; text-decoration: none; }
 .site-nav-main a:hover { text-decoration: underline; }
-.site-nav button { cursor: pointer; background: none; border: 1px solid var(--on-paper); border-radius: var(--r-md); }
+.site-nav button { cursor: pointer; background: none; border: 1px solid var(--line-d); border-radius: var(--r-md); }
 .site-nav form { display: flex; gap: var(--sp-2); align-items: center; margin: 0; color: var(--on-paper); }
 /* 메뉴의 판단 대기 수(design.md 17절). 글자색은 --ink 계열 규칙대로 검은 바탕에 흰 글자 */
 .site-nav .nav-badge, .tab-bar .nav-badge { margin-left: var(--sp-1); min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ink); color: var(--on-ink); font-size: var(--fs-cap); line-height: 20px; text-align: center; }
@@ -16,7 +15,7 @@
 .site-nav-account { position: relative; }
 .site-nav-account summary { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 var(--sp-2); cursor: pointer; list-style: none; border-radius: var(--r-md); }
 .site-nav-account summary::-webkit-details-marker { display: none; }
-.site-nav-account[open] summary { box-shadow: inset 0 0 0 1px var(--on-paper); } /* 도면 위 흰 글자: 바탕을 칠하면 대비가 4.5 밑이라 테두리로 */
+.site-nav-account[open] summary { box-shadow: inset 0 0 0 1px var(--on-paper); } 
 .site-nav-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; display: grid; min-width: 160px; padding: 4px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .site-nav-menu a, .site-nav-menu button { color: var(--ink); justify-content: flex-start; width: 100%; text-decoration: none; border: 0; border-radius: var(--r-sm); }
 .site-nav-menu a:hover, .site-nav-menu button:hover, .site-nav-menu a:focus-visible, .site-nav-menu button:focus-visible { background: var(--sunken); }
@@ -24,7 +23,7 @@
 .site-nav .site-nav-login { text-decoration: underline; }
 .site-nav-name { max-width: 14em; margin: 0; padding: 6px var(--sp-2) 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; border-bottom: 1px solid var(--line); } /* 별명은 30자까지라 길면 줄임 */
 /* 지금 보는 화면(aria-current): 밑줄 막대 + 굵게. 색만으로 알리지 않는다 */
-.site-nav-main a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--on-paper); }
+.site-nav-main a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--scan); }
 .site-nav-main a.site-nav-logo[aria-current="page"] { box-shadow: none; }
 /* 종 알림 · 아바타(11-21): 44px 원형 단추 안에 그림. 배지는 종 오른쪽 위에 겹침 */
 .site-nav .nav-icon, .nav-pop > summary { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; border-radius: var(--r-pill); cursor: pointer; list-style: none; color: var(--on-paper); }
@@ -70,3 +69,13 @@
 .nav-badge[data-dir="down"] { animation: badge-from-above var(--dur) var(--ease) 1; }
 .nav-badge[data-dir="up"] { animation: badge-from-below calc(var(--dur) * 1.5) var(--ease) 1; }
 .nav-badge { font-variant-numeric: tabular-nums; }
+/* 상태 줄(P-12m B): 고정폭 작은 글씨, 점은 색 + 글자(오류 수)로 함께 알림. 좁은 화면에서는 숨김(메뉴가 두 줄이 되지 않게) */
+.scan-status { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 var(--sp-2); margin-right: var(--sp-2); border: 1px solid var(--line-d); border-radius: var(--r-sm); background: var(--panel); color: var(--on-paper-2); font-family: var(--mono); font-size: var(--fs-cap); white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
+.site-nav a.scan-status { min-height: 28px; color: var(--on-paper-2); }
+a.scan-status:hover { border-color: var(--scan); color: var(--on-paper); }
+.scan-status time, .scan-status .scan-k { color: var(--on-paper); }
+.scan-k { letter-spacing: .06em; }
+.scan-sep { color: var(--faint); }
+.scan-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--faint); vertical-align: 1px; }
+.scan-dot[data-tone="ok"] { background: var(--pass); } .scan-dot[data-tone="err"] { background: var(--danger); }
+@media (max-width: 900px) { .scan-status { display: none; } }

@@ -36,13 +36,13 @@ function hubPath(c: Ctx, x: number, y: number, r: number, level: number) {
   c.closePath();
 }
 function badge(c: Ctx, x: number, y: number, ch: string, color: string) {
-  c.fillStyle = col("--surface"); c.beginPath(); c.arc(x, y, 7.5, 0, TAU); c.fill(); // 등급색은 흰 면 위에만(P-12m: 도면 바탕 위 대비 1.2~1.9)
+  c.fillStyle = col("--surface"); c.beginPath(); c.arc(x, y, 7.5, 0, TAU); c.fill(); // 등급 배지는 판 위에(P-12m: 점 · 선과 겹쳐도 읽히게)
   c.fillStyle = color; c.beginPath(); c.arc(x, y, 6, 0, TAU); c.fill();
   c.fillStyle = col("--on-ink"); c.font = `800 9px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(ch, x, y + 0.5);
 }
 function label(c: Ctx, text: string, x: number, y: number, fs: number, color: string, align: CanvasTextAlign = "left", weight = 400) {
   c.font = `${weight} ${fs}px ${col("--font")}`; c.textAlign = align; c.textBaseline = "middle";
-  c.lineJoin = "round"; c.strokeStyle = col("--paper"); c.lineWidth = 4; c.strokeText(text, x, y); // 도면 표기(P-12m): 흰 글자 둘레를 도면색으로 끊어 밑의 선이 글자를 지나지 않게
+  c.lineJoin = "round"; c.strokeStyle = col("--paper"); c.lineWidth = 4; c.strokeText(text, x, y); // P-12m: 밝은 글자 둘레를 바탕색으로 끊어 밑의 선이 글자를 지나지 않게
   c.fillStyle = color; c.fillText(text, x, y);
 }
 
@@ -163,7 +163,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--paper"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
     else { c.fillStyle = col(it.token); c.fill(); }
-    if (!it.hollow || n.mine) { c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); } // 도면 위 점은 흰 고리, 사용 중은 굵게
+    if (!it.hollow || n.mine) { c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); } // 점은 밝은 고리, 사용 중은 굵게
     if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
     if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800);
@@ -190,7 +190,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     const shut = S.collapsed.has(it.id), filled = !!it.token && !it.hollow;
     c.globalAlpha = a;
     hubPath(c, x, y, r, it.level);
-    c.fillStyle = filled ? col(it.token!) : col("--paper-deep"); c.fill(); // 빈 묶음은 도면에 그린 판(흰 면이 떠 보이지 않게, P-12m)
+    c.fillStyle = filled ? col(it.token!) : col("--panel"); c.fill(); // 빈 묶음은 어두운 판(흰 면이 떠 보이지 않게, P-12m)
     c.strokeStyle = col(filled || !(it.hollow && it.token) ? "--on-paper" : it.token); c.lineWidth = it.token ? 2 : 1.4; c.stroke();
     if (shut) { c.setLineDash([3, 3]); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; hubPath(c, x, y, r + 5, it.level); c.stroke(); c.setLineDash([]); }
     if (it.id === S.sel) { c.strokeStyle = col("--on-paper"); c.lineWidth = 2; hubPath(c, x, y, r + 7, it.level); c.stroke(); }
@@ -199,7 +199,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     const shown = Math.round(it.count * Math.min(1, grow(S, now, it) ** 2)); // 처음 열 때 수가 0부터 차오름
     if (r >= 9) c.fillText(shut ? `+${shown}` : String(shown), x, y + 0.5);
     const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3;
-    c.fillStyle = col("--paper-deep"); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = col("--panel"); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
     c.strokeStyle = col("--on-paper"); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
     S.handles.push({ id: it.id, x: hx, y: hy });
     const lit = !!S.lit && S.lit.has(it.id) && (S.lit.size < 80 || it.level < 3);
@@ -392,7 +392,7 @@ function endless(F: Frame, [ox, oy]: Pt) {
   }
   // 점 모눈: 화면 간격 20~40px가 되게 세상 간격을 두 배씩 바꾸고, 잘게 나뉘는 단계는 옅게 들어온다
   const g = 40 * 2 ** Math.ceil(Math.log2(20 / (40 * sc))), gs = g * sc, fine = Math.min(1, (gs - 20) / 20);
-  c.fillStyle = col("--grid-2");
+  c.fillStyle = col("--line-d");
   for (const [step, a] of [[g, 0.6 * fine], [g * 2, 0.6]]) {
     if (a < 0.01) continue;
     c.globalAlpha = a;

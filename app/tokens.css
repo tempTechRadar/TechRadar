@@ -1,43 +1,59 @@
 /* TechRadar 공용 토큰(docs/wireframes/tokens.css와 같은 값, I-P-12d-shell). 화면 CSS는 값 대신 이 이름을 쓴다.
    상태·범주 색은 표시(점·띠·아이콘)에만, 글자색은 --ink 계열. 대비 시험(lib/a11y/contrast.test.ts)이 #rrggbb를 읽으므로 6자리로 쓴다 */
 :root {
-  --ink: #1a1a1a; --ink-2: #444444; --muted: #666666; --faint: #b3b3b3;
-  --line: #d4d4d4; --surface: #ffffff; --sunken: #f3f3f3; --on-ink: #ffffff;
-  /* 파란 도면 바탕(P-12m, 사용자 톤 "Burger Blueprint"): 바탕만 도면, 카드 · 판 · 패널은 --surface 흰 면 그대로. 등급색은 이 바탕 위 1.2~1.9라 흰 면 위에만.
-     --grid · --grid-2 = 바탕에 흰색 20% · 40%를 섞은 단색(가는 · 굵은 격자), --scan = 레이더 선 · 파동 */
-  --paper: #0e5ba3; --on-paper: #ffffff; --grid: #3e7cb5; --grid-2: #6e9dc8; --scan: #8ed8ff;
-  /* 도면 위 보조 글자(흰색 80%, 도면 위 4.5 이상) · 도면 위 부품 판(도면색에 검정 20%) */
-  --on-paper-2: #cfdeed; --paper-deep: #0b4982;
+  color-scheme: dark;
+  /* 관측소 테마(P-12m, 11-23 11:30 사용자 결정 A + B, ADR 0044): 남색 밤하늘 바탕 · 어두운 면 · 청록 강조. 다크 한 벌만(밝은 테마 없음).
+     옛 이름(--ink · --surface …)은 뜻을 그대로 두고 값만 어두운 쪽으로: --ink = 밝은 글자, --surface = 어두운 판, --on-ink = 밝은 칠 위 어두운 글자 */
+  --paper: #0b1020; --paper-2: #0e1630; --panel: #151c33; --card: #182144; --line-d: #26314f; --ring: #2b3a66;
+  --on-paper: #e8edff; --on-paper-2: #9ba9cf; --scan: #3de0c8; --ice: #7fd4ff;
+  --ink: #e8edff; --ink-2: #c3cce6; --muted: #9ba9cf; --faint: #5d6a8f;
+  --line: #26314f; --surface: #151c33; --sunken: #10172c; --on-ink: #0b1020;
 
-  --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
-  /* 글자로 읽는 오류 빨강(상태 색은 표시에만): 흰 바탕 6.5:1 */
-  --ink-danger: #b91c1c;
-  /* 글자로 읽는 상태 색과 연한 바탕(P-12f ④: 화면마다 박던 값을 모음). 바탕 위 글자도 4.5:1 이상 */
-  --ink-caution: #b45309; --ink-pass: #15803d;
-  --bg-danger: #fef2f2; --bg-caution: #fffbeb; --bg-pass: #f0fdf4;
+  /* 등급(어두운 바탕용, 표시와 글자 둘 다 4.5 이상: 카드 위 위험 5.6이 가장 낮음) */
+  --danger: #ff6b6b; --caution: #f2b544; --pass: #5fd39a; --unknown: #a4acb9;
+  --ink-danger: #ff8f8f; --ink-caution: #f2b544; --ink-pass: #5fd39a;
+  --bg-danger: #3a1c24; --bg-caution: #3a2c14; --bg-pass: #16322a;
 
-  --cat-1: #2a78d6; --cat-2: #1baf7a; --cat-3: #6250d6; --cat-4: #008300;
-  --cat-5: #e87ba4; --cat-6: #0b7fa0; --cat-7: #6d7a1f; --cat-8: #b0479e;
+  /* 범주 색: 지도는 많은 값부터 --cat-1 …(종류면 MCP · 스킬 · 개발 도구 · 개념 · 플러그인 순) */
+  --cat-1: #6cb6ff; --cat-2: #b79cff; --cat-3: #5ee0e0; --cat-4: #ff9ecf;
+  --cat-5: #c8d2e0; --cat-6: #8fe0b5; --cat-7: #f2dd8a; --cat-8: #ffc58a;
+
+  /* 노션식 색 칩(바탕 / 글자, 칩 안 6.8~8.2): 상세 패널 속성(등급 · 종류 · 갈래 · 하는 일 · 출처 · 사용 중 · 내 태그) */
+  --chip-blue: #1d3a5f; --chip-blue-ink: #9ccbff; --chip-purple: #3a2e5c; --chip-purple-ink: #cdb8ff;
+  --chip-green: #1e4032; --chip-green-ink: #8fe0b5; --chip-orange: #4d3318; --chip-orange-ink: #ffc58a;
+  --chip-pink: #4d2338; --chip-pink-ink: #ffb3d3; --chip-teal: #173f44; --chip-teal-ink: #8de6ea;
+  --chip-yellow: #4a4119; --chip-yellow-ink: #f2dd8a; --chip-red: #522227; --chip-red-ink: #ffb0b0;
+  --chip-gray: #2e3448; --chip-gray-ink: #c9d2e8;
 
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
-  --fs-cap: 12px; --fs-sm: 13px; --fs-body: 15px; --fs-h3: 15px; --fs-h2: 18px; --fs-h1: 22px;
-  --lh: 1.55;
-  --r-sm: 6px; --r-md: 8px; --r-lg: 10px; --r-xl: 12px; --r-pill: 999px;
-  --shadow-pop: 0 6px 20px rgba(0, 0, 0, .14);
-  --shadow-side: -8px 0 24px rgba(0, 0, 0, .1);
-  --hit: 36px; --hit-sm: 32px; /* 단추 · 칩 높이: 마우스는 36px로 촘촘하게(P-12m 사용자 "더 컴팩트하게"), 손가락은 아래에서 44px */
+  --mono: "JetBrains Mono", "D2Coding", ui-monospace, Consolas, monospace;
+  /* 컴팩트(사용자 11-23 "전체를 컴팩트하게, 관리자까지"): 본문 13 · 표 행 32 · 단추 34(마우스) / 44(손가락) */
+  --fs-cap: 11px; --fs-sm: 12px; --fs-body: 13px; --fs-h3: 13px; --fs-h2: 16px; --fs-h1: 20px;
+  --lh: 1.5; --row: 32px;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 10px; --r-pill: 999px;
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, .45);
+  --shadow-side: -8px 0 24px rgba(0, 0, 0, .4);
+  --hit: 34px; --hit-sm: 28px;
   --dur: .26s; --ease: ease;
-  --focus: 2px solid var(--ink);
+  --focus: 2px solid var(--scan);
 }
 @media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
 @media (pointer: coarse) { :root { --hit: 44px; } }
 
-body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background-color: var(--paper);
-  background-image: linear-gradient(var(--grid-2) 1px, transparent 1px), linear-gradient(90deg, var(--grid-2) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; }
-/* 바탕 위에 글이 놓이는 일반 화면은 본문을 흰 "도면 시트" 한 장 위에(둘레로 도면이 비침, 안쪽 --ink 그대로). 지도 · 청사진은 캔버스라 바탕 그대로 */
-.page:not(.map-page, .bp-page, .repo-drawer) { box-sizing: border-box; padding: var(--sp-5); background: var(--surface); border-radius: var(--r-xl); box-shadow: 0 0 0 1px var(--on-paper), 0 8px 24px rgba(0, 0, 0, .18); }
+body { margin: 0; padding: var(--sp-4); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background-color: var(--paper);
+  /* 밤하늘(사용자: "살짝만"): 별 두 겹(작은 타일 반복) + 아주 옅은 은하 띠 + 가운데가 조금 밝은 남색. 글자 · 점보다 늘 옅게, 그림 파일 · 라이브러리 없음 */
+  background-image:
+    radial-gradient(1px 1px at 23px 41px, rgba(232, 237, 255, .55), transparent 70%), radial-gradient(1px 1px at 151px 97px, rgba(232, 237, 255, .4), transparent 70%),
+    radial-gradient(1px 1px at 89px 173px, rgba(127, 212, 255, .45), transparent 70%), radial-gradient(1.5px 1.5px at 211px 19px, rgba(232, 237, 255, .5), transparent 70%),
+    radial-gradient(1px 1px at 61px 311px, rgba(232, 237, 255, .3), transparent 70%), radial-gradient(1px 1px at 271px 233px, rgba(232, 237, 255, .35), transparent 70%),
+    linear-gradient(118deg, transparent 28%, rgba(61, 224, 200, .035) 42%, rgba(155, 169, 255, .06) 50%, rgba(61, 224, 200, .03) 58%, transparent 72%),
+    radial-gradient(ellipse 80% 70% at 50% 35%, var(--paper-2), var(--paper) 75%);
+  background-size: 293px 271px, 377px 349px, 431px 409px, 517px 487px, 613px 571px, 709px 659px, 100% 100%, 100% 100%; /* 별마다 다른 타일 크기(서로 나누어떨어지지 않게): 같은 크기면 격자 점처럼 줄을 맞춘다 */
+  background-attachment: fixed; }
+/* 바탕 위에 글이 놓이는 일반 화면은 본문을 어두운 판(--panel) 한 장 위에. 지도 · 청사진은 캔버스라 바탕 그대로 */
+.page:not(.map-page, .bp-page, .repo-drawer) { box-sizing: border-box; padding: var(--sp-4) var(--sp-5); background: var(--panel); border: 1px solid var(--line-d); border-radius: var(--r-xl); box-shadow: 0 12px 32px rgba(0, 0, 0, .35); }
+.page table :is(th, td) { height: var(--row); padding-block: 0; }
 /* 화면 읽기 프로그램만 읽는 글(모든 화면 공용: 지도 css에만 있어 다른 화면에서 글이 그대로 보이던 것) */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: var(--focus); outline-offset: 2px; }

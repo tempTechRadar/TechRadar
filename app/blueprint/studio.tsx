@@ -555,7 +555,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}
-              <Background gap={24} size={1.5} color="var(--grid-2)" />
+              <Background gap={24} size={1.5} color="var(--line-d)" />
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
