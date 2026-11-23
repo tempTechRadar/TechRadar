@@ -87,6 +87,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const seenEnds = useRef<Set<string> | null>(null);
   useEffect(() => { if (graph) seenEnds.current = new Set(graph.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)))); });
   const [dims, setDims] = useState<Map<string, { width: number; height: number }>>(new Map()); // 잰 노드 크기(미니맵이 씀)
+  // 판을 통째로 바꾼 뒤(템플릿 · 질문 틀 · 이력 · ?bp= · 손님 초안) 화면을 판에 맞춘다: 새 노드가 그려진 다음 프레임에(P-12n Maestro 점검)
+  const [fitAsk, setFitAsk] = useState(0);
   const [loadAsk, setLoadAsk] = useState(0); // 빈 판 카드의 [불러오기]를 누른 횟수: 위 막대 "불러오기 ▾"를 연다(P-12n R2-1)
   const [newName, setNewName] = useState(""), [adding, setAdding] = useState(false); // 위 막대 "＋ 단계"의 이름 칸(작은 팝오버, S3 전까지)
   const addBtn = useRef<HTMLButtonElement>(null), canvasBox = useRef<HTMLDivElement>(null);
@@ -191,8 +193,15 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       if (h) { push(h.graph ?? fromV1(toBoard(h.board)), h.name); say(`"${h.name}"을(를) 불러왔어요. 전 판은 되돌리기로 돌아와요.`); }
       else say(history === null ? "내 이력을 불러오지 못해 그 청사진을 열지 못했어요. 없다는 뜻이 아니에요." : "그 청사진을 찾지 못했어요. 최근 확정한 것만 바로 열 수 있어요.");
     }
+    if (template || (bp && history?.some((x) => x.id === bp))) setFitAsk((n) => n + 1);
     if (template || templateMissing || bp) { const q = new URLSearchParams(location.search); q.delete("template"); q.delete("bp"); window.history.replaceState(null, "", q.size ? `?${q}` : location.pathname); }
   }, [graph, template, templateMissing, bp, history, push, say]);
+
+  useEffect(() => {
+    if (!fitAsk || listMode) return;
+    const f = requestAnimationFrame(() => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }));
+    return () => cancelAnimationFrame(f);
+  }, [fitAsk, listMode, flow]);
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
@@ -201,7 +210,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (next === g && (nm === undefined || nm === name)) return;
     bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
     push(next, nm, merge);
-    if (nm !== undefined) setTemplateId(null);
+    if (nm !== undefined) { setTemplateId(null); whole(); }
     if (message) { say(message); setLog((l) => [...l.slice(-49), message]); } else clear();
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
@@ -475,9 +484,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }
   /** 질문 6개의 답으로 만든 틀(11-21 사용자 결정, 하단 패널 불러오기 탭에서 엶). 지금 판이 있으면 대화상자 마지막에 "바꾸기"로 묻고, 되돌리기 한 칸이면 전 판 */
   function makeFromAnswers(cols: string[][]) {
-    setAsking(false); unpick(); setTemplateId(null);
+    setAsking(false); whole(); setTemplateId(null);
     apply(fromV1(fromNames(cols)), "질문 답으로 틀을 만들었어요. 되돌리기를 누르면 전 판으로 돌아가요.");
   }
+  /** 판을 통째로 바꿈: 고른 것 · 서랍을 풀고(가리킬 것이 사라짐) 화면을 새 판에 맞춘다 */
+  const whole = () => { unpick(); setFitAsk((n) => n + 1); };
   const unpick = () => { setSel(new Set()); setSelEdges(new Set()); setSelTechs(new Set()); setPicked(null); setDrawer(false); }; // 빈 곳 누르기 · Esc = 서랍도 닫힘(U2)
   /** 지우기 키: 캔버스 안에 초점이 있을 때만(React Flow의 deleteKeyCode는 문서 전체에서 들어 패널 · 확정 창에서도 지워짐). Mac의 delete = Backspace */
   function onCanvasKey(e: React.KeyboardEvent) {
@@ -553,7 +564,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
         : "지난 초안을 읽지 못해 새 판으로 열었어요. 따로 보관할 자리가 없어 지난 초안을 그대로 두었어요. 이 판을 고치기 시작하면 그 위에 저장돼요."}</p> : null}
       {guest ? <p className="notice studio-note studio-guest">로그인 전 — 판은 이 브라우저에만 남아요. 확정 · 템플릿은 <a href={`/login?next=${encodeURIComponent("/blueprint")}`}>로그인</a> 후.</p> : null}
       {guestDraft ? <p className="notice studio-note" role="status">로그인 전에 이 브라우저에서 만들던 판 &quot;{guestDraft.name}&quot;이 있어요. 가져올까요? 지금 판은 되돌리기로 돌아와요.{" "}
-        <button type="button" className="btn" onClick={() => answerGuest(true)}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
+        <button type="button" className="btn" onClick={() => { answerGuest(true); whole(); }}>가져오기</button> <button type="button" className="btn" onClick={() => answerGuest(false)}>버리기</button></p> : null}
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
