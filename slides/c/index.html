@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TechRadar 발표 C안 — 실행 기록</title>
+<style>
+:root{
+  --bg:#040704; --panel:#0a120b; --line:#1c3a22;
+  --g:#74f092; --gb:#d4ffdd; --gd:#58b56e; --am:#ffc04d; --rd:#ff7466;
+  --p1:#74f092; --p2:#c6f25c; --p3:#62e6c4;
+  --fs:clamp(12px, min(1.3vw, 2.45vh), 28px);
+  --mono:"D2Coding","Cascadia Mono","Cascadia Code",Consolas,"Malgun Gothic",monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--g);font-family:var(--mono);font-size:var(--fs);line-height:1.46;
+  display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;
+  text-shadow:0 0 .35em rgba(116,240,146,.28)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.13) 2px 3px)}
+x-b{color:var(--gb);font-weight:700}
+x-d{color:var(--gd);text-shadow:none}
+x-a{color:var(--am);text-shadow:0 0 .35em rgba(255,192,77,.25)}
+x-r{color:var(--rd);text-shadow:0 0 .35em rgba(255,116,102,.25)}
+x-1{color:var(--p1)} x-2{color:var(--p2)} x-3{color:var(--p3)}
+a{color:var(--gb);text-decoration:underline;text-underline-offset:.2em}
+a:focus-visible,button:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--am);outline-offset:2px}
+
+/* 상태 줄 (tmux) */
+#bar{display:flex;gap:1ch;align-items:center;padding:.25em 1.5ch;background:#0f2a16;color:var(--gb);
+  border-bottom:1px solid var(--line);white-space:nowrap;text-shadow:none}
+#tabs{display:flex;gap:.6ch;flex:1;min-width:0;overflow:hidden}
+#tabs button{font:inherit;color:var(--gd);background:none;border:0;padding:0 .3ch;cursor:pointer}
+#tabs button[aria-current="true"]{background:var(--g);color:#04210b;font-weight:700}
+#who{color:var(--am)}
+#clock{color:var(--gb)}
+
+/* 화면 */
+#screen{overflow-y:auto;overflow-x:hidden;padding:.7em 2ch 1.2em;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.blk{margin-bottom:.55em}
+.cl{white-space:pre-wrap;word-break:break-all}
+.ps{color:var(--gd);text-shadow:none}
+.cmd{color:var(--gb);font-weight:700}
+.ln{white-space:pre-wrap;padding-left:2ch;text-indent:-2ch;margin-left:2ch;min-height:1.46em;overflow-wrap:anywhere}
+.row{display:grid;column-gap:2ch;margin-left:2ch;align-items:baseline}
+.row>*{min-width:0;overflow-wrap:anywhere}
+.row .n{text-align:right}
+.bar{white-space:nowrap;overflow:hidden;letter-spacing:0}
+.q{border-left:.35ch solid var(--g);padding-left:1.5ch;margin-left:2ch;color:var(--gb);font-size:1.18em;line-height:1.5}
+.q small{font-size:.72em;color:var(--gd);font-weight:400;text-shadow:none}
+.big{font-size:1.9em;line-height:1.3;color:var(--gb);font-weight:700;margin:.15em 0 .15em 2ch}
+.add{color:var(--g)} .del{color:var(--rd)} .hold{color:var(--am)}
+.pics{position:relative;z-index:51;display:grid;grid-template-columns:1fr 1fr;gap:2ch;margin:.3em 0 .3em 2ch}
+.pics figure{margin:0}
+.pics img{display:block;width:100%;height:auto;border:1px solid var(--line);background:#fff}
+.pics figcaption{color:var(--gd);text-shadow:none}
+.hum{color:var(--am);border-bottom:1px dashed var(--am);text-shadow:none}
+body.editing .hum{background:#2a1f05;outline:1px solid var(--am);cursor:text}
+.cursor{display:inline-block;width:1ch;background:var(--g);color:var(--bg);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.ask{margin-left:2ch;color:var(--gb);font-weight:700}
+.ask kbd{font:inherit;border:1px solid var(--g);padding:0 .6ch;color:var(--gb)}
+[hidden]{display:none!important}
+
+/* 아래 줄 */
+#foot{display:flex;gap:2ch;justify-content:space-between;padding:.2em 2ch;border-top:1px solid var(--line);
+  color:var(--gd);text-shadow:none;font-size:.82em;white-space:nowrap;background:var(--bg)}
+#foot .rec{color:var(--am)}
+
+/* 덧창 */
+#notes{position:fixed;left:2ch;right:2ch;bottom:2.4em;z-index:20;background:rgba(10,18,11,.9);border:1px solid var(--gd);
+  padding:.5em 1.5ch;font-size:.9em;color:var(--gb);text-shadow:none}
+#notes b{color:var(--am);font-weight:400}
+#timer,#help{position:fixed;right:2ch;top:2.6em;z-index:30;background:rgba(10,18,11,.96);border:1px solid var(--gd);
+  padding:.6em 1.5ch;color:var(--gb);text-shadow:none;font-size:.9em}
+#help{left:50%;right:auto;top:50%;transform:translate(-50%,-50%)}
+#timer table,#help table{border-collapse:collapse}
+#timer td,#help td{padding:0 1.2ch .1em 0;vertical-align:top}
+#timer td.n{text-align:right}
+#timer tr.on td{color:var(--bg);background:var(--g)}
+#timer .over{color:var(--rd)}
+#help td:first-child{color:var(--am);white-space:nowrap}
+#help{font-size:.8em;max-width:96vw;max-height:94vh;overflow:auto}
+#help .hh{margin:.7em 0 .2em;color:var(--gb)}
+#print{display:none}
+
+@media (prefers-reduced-motion:reduce){.cursor{animation:none}}
+@media print{
+  body{display:block;overflow:visible;background:#fff;color:#000;text-shadow:none;font-size:9pt}
+  body::after,#bar,#screen,#foot,#notes,#timer,#help{display:none!important}
+  #print{display:block}
+  #print *{color:#000!important;text-shadow:none!important}
+  #print h2{font-size:11pt;border-bottom:1px solid #000;margin:1.2em 0 .4em;break-after:avoid}
+  #print .blk{break-inside:avoid}
+  #print a{text-decoration:none}
+  #print .pics img{max-width:80mm}
+  .hum{border-bottom:1px dashed #000}
+}
+</style>
+</head>
+<body>
+<header id="bar">
+  <nav id="tabs" aria-label="막"></nav>
+  <span id="who" aria-live="polite"></span>
+  <span id="clock" title="T: 막별 시간"></span>
+</header>
+
+<main id="screen" tabindex="0" aria-label="터미널 화면">
+  <div id="out" role="log" aria-live="polite"></div>
+  <div class="cl" id="live"><span class="ps">techradar@demo-day:~$</span> <span class="cursor" id="cursor">&nbsp;</span></div>
+</main>
+
+<footer id="foot">
+  <span id="hint">Enter 다음 · ← 이전 · 1–7 막 · T 시간 · N 메모 · S 화자 · E 편집 · ? 도움말</span>
+  <span class="rec">● 기록 재생 · 값은 11-23 17:20 저장소 · GitHub에서 센 것</span>
+</footer>
+
+<aside id="notes" hidden aria-label="발표자 메모"></aside>
+<aside id="timer" hidden aria-label="막별 시간"></aside>
+<aside id="help" hidden role="dialog" aria-label="도움말">
+  <table>
+    <tr><td>Enter · Space · →</td><td>다음 명령 (타이핑 중이면 즉시 완성)</td></tr>
+    <tr><td>←</td><td>이전 명령으로 (화면을 그 시점으로)</td></tr>
+    <tr><td>1 – 7</td><td>막 이동 · Home 처음</td></tr>
+    <tr><td>a / h</td><td>판단 프롬프트에서: 적용 후보 / 보류</td></tr>
+    <tr><td>T</td><td>타이머 · 막별 목표 시간 (R: 0으로)</td></tr>
+    <tr><td>N</td><td>발표자 메모 · 출처</td></tr>
+    <tr><td>S</td><td>화자 표시 켜고 끄기</td></tr>
+    <tr><td>E</td><td>사람만 채울 칸(호박색 점선) 편집 · Esc로 끝 · 이 브라우저에 저장</td></tr>
+    <tr><td>#6.3</td><td>주소 해시 = 막.명령 · ?reveal=all = 그 장면 끝 상태</td></tr>
+    <tr><td>? · Esc</td><td>이 창 열고 닫기</td></tr>
+  </table>
+  <p class="hh">안내서 11장 12항목 + 강사 공지 4항목 ↔ 막 <x-d>(구성: 11-23 화이트보드 v2 7막 기준)</x-d></p>
+  <table class="map">
+    <tr><td>1 문제 · 김영식 2분</td><td>문제(가장 크게) — 인용 2개 · 가설 판정 · 숫자 하나</td></tr>
+    <tr><td>2 만든 것 · 김영식 1.5분</td><td>지켜본 곳과 데이터 · 직접 입력과 운영 화면</td></tr>
+    <tr><td>3 사건과 대응 · 황재웅 1분</td><td>사건과 대응 — 사건 기준 → 알림 → 판단 → 기록 + #133 장애 18분</td></tr>
+    <tr><td>4 시연 · 세 사람 4분</td><td>시연(성공 · 일부러 실패 · 과거 기록 찾기) · <x-a>공지</x-a> 자동화 흐름 화면 · LLM 위키 시연 · 제품 시연</td></tr>
+    <tr><td>5 확인 · 황재웅 1분</td><td>확인(채점 · 시험 · QA · 합친 뒤 오류) · 커넥터</td></tr>
+    <tr><td>6 AI와 일한 방식 · 차세일 2.5분</td><td>하네스 · 서브에이전트 · 문서 위키와 챗봇 · <x-a>공지</x-a> 바이브로그(슬라이드에 녹여서)</td></tr>
+    <tr><td>7 사람 · 세 사람 1.5분</td><td>팀원별 기여 · 다음에 해 볼 것 · <x-a>공지</x-a> 12–15분(목표 13.5분)</td></tr>
+  </table>
+</aside>
+<div id="print"></div>
+
+<script>
+"use strict";
+/* ───────── 도우미: 출력 줄 만들기 ───────── */
+const R=(cols,...cells)=>`<div class="row" style="grid-template-columns:${cols}">${cells.map(c=>`<span>${c}</span>`).join("")}</div>`;
+const H=(k,d)=>`<span class="hum" data-k="${k}" spellcheck="false">${d}</span>`;
+const BAR=n=>n===0?"":n<2?"▏":"█".repeat(Math.round(n/2));
+const APP="https://techradar-theta.vercel.app";
+const L=(p,t)=>`<a href="${APP}${p}" target="_blank" rel="noopener">${t||APP+p}</a>`;
+
+/* ───────── 명령 스크립트 (막 · 명령 · 출력 · 화자 · 목표 초 · 메모 · 출처) ───────── */
+const ACTS=[
+{name:"문제",sec:120,cmds:[
+ {cmd:"cat /etc/motd",who:"김영식",note:"표지 15초. 이름 · 기준 문장 · 발표 순서만 말하고 바로 Enter. 구성: 11-23 화이트보드 v2 7막 기준(⑥만 1.5 → 2.5분으로 늘림, 여유 1.5분).",src:"docs/plan.md:8 · ADR 0032",out:[
+  "┌───────────────────────────────────────────────────┐",
+  "│  T E C H R A D A R        demo-day | 2026-11-23   │",
+  "└───────────────────────────────────────────────────┘",
+  `<div class="big">지도에서 고르고, 청사진으로 옮긴다</div>`,
+  "",
+  R("10ch 12ch 1fr","<x-2>김영식</x-2>","<x-2>A 지키기</x-2>","내 기술 · 보안 등급 · 수집 · 지도 + 공용 뼈대"),
+  R("10ch 12ch 1fr","<x-3>황재웅</x-3>","<x-3>B 고르기</x-3>","알림 · 판단 · 기록"),
+  R("10ch 12ch 1fr","<x-1>차세일</x-1>","<x-1>C 옮기기</x-1>","흐름 화면 · 관리자 · 설치 프롬프트 · 운영"),
+  "",
+  "<x-d>순서</x-d>  1 문제 → 2 만든 것 → 3 사건과 대응 → 4 시연 → 5 확인 → 6 AI와 일한 방식 → 7 사람   <x-d>(13.5분 + 여유 1.5분)</x-d>",
+  "",
+  "<x-d># 이 발표는 슬라이드가 아니라 터미널 세션 하나입니다. 실시간 실행이 아니라 기록 재생이고,</x-d>",
+  "<x-d># 화면의 값은 모두 11-23 17:20 기준 저장소와 GitHub에서 센 것입니다. Enter를 누르면 다음 명령이 실행됩니다.</x-d>"]},
+
+ {clear:1,cmd:"ls interviews/*-사람.md | wc -l",who:"김영식",note:"40초. 인용 2개를 그대로 읽는다. [사람] 표시를 꼭 말한다 — AI 인터뷰 3건은 가설로만 썼다.",src:"interviews/ · docs/문제정의.md:5",out:[
+  "2",
+  "<x-d># 팀 밖 사람 인터뷰 2건 · 5명 (11-17). 팀원 본인 1건은 힌트, AI 인터뷰 3건은 가설로만 — 세지 않는다.</x-d>"]},
+ {cmd:`grep -h "\\[그룹1" docs/문제정의.md | head -2`,who:"김영식",note:"P3는 발화자 추정이라는 점을 숨기지 않는다.",src:"docs/문제정의.md:56 (원문 그대로)",out:[
+  `<div class="q">"중구난방 다 깔려 있다"<br><small>— [사람 인터뷰 · 그룹1 P1] 정리해 둔 것 없음, 노트북 반납 전에 "싹 정리하고 가지고 나갈" 계획</small></div>`,
+  "",
+  `<div class="q">"막막해서 그냥 제로부터 시작할 생각"<br><small>— [사람 인터뷰 · 그룹1 P3, 발화자 추정]</small></div>`,
+  "",
+  "<x-d>docs/문제정의.md:56</x-d>"]},
+ {cmd:`sed -n 11p docs/문제정의.md`,who:"김영식",note:"문제 한 문장. '깔기는 쉬운데 뭘 깔았는지 한눈에 못 본다'로 줄여 말한다.",src:"docs/문제정의.md:11",out:[
+  "AI 코딩 도구로 직접 무언가를 만드는 사람은 스킬 · MCP · 플러그인을 하나씩 깔다 보니,",
+  "<x-b>내가 무엇을 깔았는지, 그게 안전한지, 더 나은 것이 나왔는지를 한눈에 볼 수 없다.</x-b>"]},
+
+ {clear:1,cmd:"diff 가설-ABC.md 통합안.md",who:"김영식",note:"45초. 가설 셋을 인터뷰로 판정했고, B가 접혔다. 접은 것 · 한계는 말로 짧게. 규칙: 팀 밖 2명 이상에게서 나온 주장을 중심에.",src:"docs/문제정의.md:50–68 · ADR 0005 · ADR 0013",out:[
+  "<x-d>--- 가설 A(소식 · 보안) · B(필요 → 검색) · C(합친 안)            11-16</x-d>",
+  "<x-d>+++ 통합안 — 사람 인터뷰로 판정 11-17 · 회의 승인 11-18 (ADR 0013)</x-d>",
+  "<x-d>@@ 규칙: 팀 밖 사람 2명 이상에게서 나온 주장을 중심에 둔다 @@</x-d>",
+  R("2ch 34ch 6ch 12ch 1fr","<span class='add'>+</span>","<span class='add'>깐 것을 한눈에 보지 못한다</span>","A · C","2명(추정)","<x-b>중심으로 올림</x-b> — 생태계 전체가 아니라 \"내가 깐 것\""),
+  R("2ch 34ch 6ch 12ch 1fr","<span class='add'>+</span>","<span class='add'>무엇이 안전한지 모른 채 깐다</span>","A","1명","남김 → 기술마다 보안 등급 + 쉬운 이유"),
+  R("2ch 34ch 6ch 12ch 1fr","<span class='add'>+</span>","<span class='add'>소식을 보고 새 도구를 깐다</span>","A","1명","남김(약함) → 적용 기회 알림"),
+  R("2ch 34ch 6ch 12ch 1fr","<span class='hold'>~</span>","<span class='hold'>저장해 두고 다시 못 찾는다</span>","A","0명","<x-a>보류</x-a>"),
+  R("2ch 34ch 6ch 12ch 1fr","<span class='del'>−</span>","<span class='del'>몰라서 원하는 결과물을 포기한다</span>","<x-r>B</x-r>","<x-r>0명</x-r>","<x-r>중심에서 내림</x-r> — 중단 기준: 구체 사례 2명 미만"),
+  "",
+  "<x-d># B는 팀원(차세일)의 가설이었다. 팀 밖 근거가 0명이라 인터뷰가 접었다.</x-d>",
+  "<x-a>! 한계  그룹1은 전사 끝부분만 있고 발화자는 추정 · 초심자 근거는 그룹1뿐</x-a>",
+  "<x-a>! 한계  대표1은 숙련자이고 주제를 미리 알았다 — 전사에 \"일부러 삐딱하게 답변\"</x-a>"]},
+ {cmd:"time ./compare.sh --by-hand && time ./compare.sh --with-app",who:"김영식",note:"20초. 숫자 하나. 값이 없으면 '아직 재지 않았다'를 그대로 말한다. 지어내지 않는다. E로 편집.",src:"ADR 0011 · 사람이 채울 칸",out:[
+  R("10ch 1fr","손으로:",H("hand","(아직 재지 않음 — 재는 방법: 같은 저장소 하나를 두고 스톱워치로, 깐 것 목록 만들기 + 위험 찾기)")),
+  R("10ch 1fr","앱으로:",H("app","(아직 재지 않음 — 같은 저장소를 등록해 목록 · 등급이 뜰 때까지)")),
+  "<x-a>! 한계  사용자가 없다 — 앱 안의 숫자는 시연 계정 값뿐이다</x-a>"]},
+]},
+
+{name:"만든것",sec:90,cmds:[
+ {cmd:"tree -L 1 techradar/",who:"김영식",note:"30초. 기준 문장 세 마디 = 영역 셋 = 세 사람 = 메뉴(프로젝트 · 지도 · 청사진).",src:"docs/plan.md:8–18",out:[
+  "techradar/                 <x-d># \"지키고, 고르고, 옮긴다\" — 기준 문장 세 마디가 곧 영역 셋</x-d>",
+  R("20ch 24ch 1fr","├── <x-2>A-지키기/</x-2>","<x-2>김영식</x-2> <x-d>sikomar00</x-d>","저장소 읽기 · 수집 · 보안 등급 · 지도 <x-d>+ 공용: 뼈대 앱 · DB · 계정</x-d>"),
+  R("20ch 24ch 1fr","├── <x-3>B-고르기/</x-3>","<x-3>황재웅</x-3> <x-d>hjw12345-git</x-d>","알림 만들기 · 판단 저장(한 거래) · 대응안 초안 · 기록 찾기"),
+  R("20ch 24ch 1fr","└── <x-1>C-옮기기-운영/</x-1>","<x-1>차세일</x-1> <x-d>csaeil</x-d>","실행 기록 · 흐름 화면 · 시뮬레이터 · 채점 · 관리자 · 설치 프롬프트"),
+  "",
+  "3 directories",
+  "<x-d># 층(프론트 / 백엔드)으로 나누지 않았다. 각자 자기 영역의 화면 · 서버 · 데이터 · QA를 모두 해 본다.</x-d>",
+  "<x-d># 공용 파일은 주인이 있다: lib/server/ 뼈대 = 김영식 · flow/flow.json = 차세일만 고친다.</x-d>"]},
+
+ {clear:1,cmd:"crontab -l",who:"김영식",note:"40초. 서로 다른 출처를 매일 읽는다. '자동 재시도'라는 말은 쓰지 않는다.",src:"vercel.json · lib/schedule/collectors.ts:13",out:[
+  "<x-b>0 21 * * *</x-b>   /api/cron/daily      <x-d># UTC — 매일 06:00 KST (vercel.json 실제 값)</x-d>"]},
+ {cmd:"systemctl list-units 'collector@*'",who:"김영식",note:"수집기 7개. 처음 4곳에 11-21 뒤 3곳(별 후보 · HN · 바깥 소식)이 더해졌다. 실패는 collect_error — '변화 없음'으로 단정하지 않는다(불변 규칙 2).",src:"lib/schedule/collectors.ts:13 · docs/qa.md:79 · docs/connectors.md:12 · docs/debug-note.md:56",out:[
+  R("3ch 26ch 1fr","<x-d>#</x-d>","<x-d>UNIT</x-d>","<x-d>DESCRIPTION</x-d>"),
+  R("3ch 26ch 1fr","1","osvCollector","OSV 취약점 매일 재확인"),
+  R("3ch 26ch 1fr","2","githubCollector","GitHub 저장소 정보 (푸시 · 라이선스 · 별 · 보관)"),
+  R("3ch 26ch 1fr","3","githubSearchCollector","별 후보 검색 <x-d>(ADR 0033 · 11-22 추가)</x-d>"),
+  R("3ch 26ch 1fr","4","registryCollector","공식 MCP 레지스트리"),
+  R("3ch 26ch 1fr","5","downloadsCollector","npm · PyPI 주간 다운로드"),
+  R("3ch 26ch 1fr","6","hnCollector","Hacker News <x-d>(11-22 추가)</x-d>"),
+  R("3ch 26ch 1fr","7","newsCollector","바깥 소식 — 공식 피드 <x-d>(ADR 0038 · 11-22 추가)</x-d>"),
+  "",
+  "7 loaded units listed.",
+  "<x-d>11-19 운영 첫 실수집   64초 · 기술 3,166개 (mcp 2,830 · npm 294 · pypi 42)</x-d>",
+  "<x-d>11-22 지금 한 번 실행  125초 4,823건 → 172초 4,921건, 두 번째 실행의 새 줄 0</x-d>",
+  "<x-a>11-23 06:07 정기 실행  단계 25 │ 수집 오류 2   ← collect_error 로 기록 — \"변화 없음\" · \"삭제됨\"으로 단정하지 않는다</x-a>"]},
+ {cmd:`grep -n "권한 검사" CLAUDE.md`,who:"김영식",note:"20초. 등록 → 목록 · 지도 · 청사진, 권한은 세 곳에서 막는다. 알림은 세 종류이고 판단은 사람이 한다 — 끝에 '사건과 대응은 재웅 님'.",src:"CLAUDE.md:35 (불변 규칙 5)",out:[
+  "35: 5. 권한 검사는 화면뿐 아니라 <x-b>서버와 DB(RLS 등)에서도</x-b> 한다. 사용자는 본인 데이터만, 관리자 데이터는 관리자만.",
+  "<x-d># 화면 · 서버 · DB 세 곳. 등록 → 목록 · 지도 · 청사진, 대시보드 · 관리자 화면은 시연에서 직접 봅니다.</x-d>",
+  "<x-d># 알림은 세 종류(security · opportunity · model_eol), 판단은 사람이 한다   → 넘김: 사건과 대응은 재웅 님</x-d>"]},
+]},
+
+{name:"사건",sec:60,cmds:[
+ {cmd:"tail -f /var/log/techradar/alerts.log",who:"황재웅",note:"30초. 사건 기준 → 알림 세 종류 → 사람 판단 → 조치와 기록. 조치는 사람이 판단한 뒤에만.",src:"docs/문제정의.md:57–59 · docs/GLOSSARY.md:125–138 · 코드의 kind: security | opportunity | model_eol · docs/worklog.md 11-21 I-P-21c",out:[
+  R("8ch 16ch 1fr","<x-r>[ALERT]</x-r>","<x-r>보안 경고</x-r>","내 기술이 \"위험\"으로 바뀜 — OSV가 알려 준 고친 버전이 있으면 함께 보여 줌"),
+  R("8ch 16ch 1fr","<x-b>[ALERT]</x-b>","<x-b>적용 기회</x-b>","새 소식이 내 기술과 맞음 — 조건 4개 <x-d>(11-21: 별 100 이상 추가)</x-d>"),
+  R("8ch 16ch 1fr","<x-a>[ALERT]</x-a>","<x-a>모델 지원 종료</x-a>","내 코드에 쓴 모델 이름이 공식 종료 공지에 있음 — 종료일 · 공식 추천 대체"),
+  R("8ch 16ch 1fr","<x-d>[DRAFT]</x-d>","<x-d>대응안 초안</x-d>","<x-d>Claude가 근거 링크와 함께 씀 · 같은 입력은 하루 1번</x-d>"),
+  R("8ch 16ch 1fr","<x-b>[WAIT ]</x-b>","<x-b>판단 대기</x-b>","<x-b>사람이 판단하기 전에는 아무것도 바뀌지 않는다</x-b>")]},
+ {cmd:"judge --alert 보안경고 --interactive",who:"황재웅",ask:1,note:"여기서 멈춘다. Enter를 눌러도 진행되지 않는다는 것을 보여 준 다음, a(적용 후보)나 h(보류)를 누른다.",src:"CLAUDE.md:31 (불변 규칙 1) · ADR 0010 · ADR 0012",out:[
+  "<x-d>알림 1건 · 상태: 판단 대기 · 바뀐 것: 없음</x-d>"]},
+ {cmd:"sed -n 31p CLAUDE.md",who:"황재웅",note:"불변 규칙 1 원문. 판단은 기록일 뿐, 우리는 대신 설치하거나 바꾸지 않는다.",src:"CLAUDE.md:31",out:[
+  "1. <x-b>사람이 승인하기 전에는 어떤 조치도 실행하지 않는다.</x-b> 관리자도 승인을 건너뛸 수 없다."]},
+ {cmd:"head -5 incident.log",who:"황재웅",note:"30초. 합친 뒤 깨진 일 하나: 무엇이 깨졌고 어떻게 막았나. 끝에 '다음 시연이 그 증명입니다 — 세일 님'.",src:"docs/debug-note.md:30",out:[
+  R("12ch 8ch 1fr","<x-r>11-19 14:43</x-r>","<x-r>[DOWN]</x-r>","<x-r>#133 병합 → 운영 /admin/classify 조회 실패 — 코드가 마이그레이션보다 먼저 올라감</x-r>"),
+  R("12ch 8ch 1fr","11-19 14:56","[FIX ]","#135 합침 — 칸 없음 오류일 때만 그 부분을 끄고 안내"),
+  R("12ch 8ch 1fr","<x-b>11-19 15:01</x-b>","<x-b>[ UP ]</x-b>","<x-b>마이그레이션 적용 · 복구 — 장애 약 18분</x-b>"),
+  R("12ch 8ch 1fr","11-19","[RULE]","#138 \"마이그레이션은 합치기 전에 운영에 먼저\""),
+  R("12ch 8ch 1fr","11-19","[TOOL]","#156 precheck가 마이그레이션 파일을 찾아 경고 <x-d>(막지는 않음)</x-d>"),
+  "<x-d># 무엇이 깨졌고 어떻게 막았나 — 그 뒤 이야기는 6막에서   → 넘김: 다음 시연이 그 증명입니다, 세일 님</x-d>"]},
+]},
+
+{name:"시연",sec:240,cmds:[
+ {cmd:"icat docs/images/flow-*-1120.png",who:"차세일",note:"15초. 자동화 흐름 화면(강사 공지). 미리 그린 그림이 아니라 실행 기록에서 그린다. 일부러 실패는 빨간 상자 캡처로.",src:"docs/images/ · docs/flow.md:115·119 · CLAUDE.md:36 (불변 규칙 6)",out:[
+  `<div class="pics"><figure><img src="flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 끝까지 성공한 실행 기록"><figcaption>flow-sim-success-1120.png — 시뮬레이터 실행, 끝까지 성공</figcaption></figure><figure><img src="flow-fail-demo-1120.png" alt="흐름 화면: 실패 시연에서 한 단계가 빨간 상자로 표시된 실행 기록"><figcaption>flow-fail-demo-1120.png — 실패 시연, 빨간 상자</figcaption></figure></div>`,
+  "<x-d># 11-20 운영의 실제 실행을 찍은 것 (11-23 테마 변경 전 화면)</x-d>",
+  "6. 흐름 화면은 <x-b>실제 실행 기록(runs, run_steps)을 읽어 그린다.</x-b> 미리 그린 가짜 불빛은 안 된다.   <x-d>CLAUDE.md:36</x-d>"]},
+ {clear:1,cmd:"cat demo.sh",who:"차세일",note:"시연 순서 5줄, 4분: 차세일 1.5 → 황재웅 0.5 → 김영식 1 → 차세일 1(위키). 운영 주소로. 링크는 새 탭으로 열린다.",src:"구성 v2 ④ · sim/README.md:21 · #185",out:[
+  "<x-d>#!/bin/sh — 가짜 사건 하나가 끝까지 돈다 · 제품 3분 + 위키 1분 · 운영 주소</x-d>",
+  R("3ch 62ch 1fr","1",`open ${L("/admin/simulator")}`,"가짜 사건 쏘기 <x-1>차세일 1.5분</x-1>"),
+  R("3ch 62ch 1fr","2",`open ${L("/admin/flow")}`,"흐름 화면 — 방금 실행이 그려진다 <x-1>차세일</x-1>"),
+  R("3ch 62ch 1fr","3",`open ${L("/alerts")}`,`알림 상세 → 판단 → ${L("/history","지난 판단")} <x-3>황재웅 0.5분</x-3>`),
+  R("3ch 62ch 1fr","4",`open ${L("/")}`,`지도 → ${L("/blueprint","청사진")} → 설치 프롬프트 <x-2>김영식 1분</x-2>`),
+  R("3ch 62ch 1fr","5",`open ${L("/admin/chat")}`,"md 기반 LLM 위키 챗봇 Q5 <x-1>차세일 1분</x-1>"),
+  "",
+  "<x-a>! 관리자는 남의 알림을 못 본다 → 3번은 시연 계정으로 로그인한 다른 브라우저 프로필에서</x-a>",
+  "<x-a>! 같은 입력의 대응안 초안은 하루 1번 — 시뮬레이터를 지우고 다시 쏘면 초안이 안 나온다</x-a>",
+  "<x-a>! 실패 시연 5가지 중 1 · 2 · 5번은 운영에서 꺼져 있다 → 실패 화면은 앞 장면의 캡처로</x-a>"]},
+ {cmd:"./demo.sh --timer 225",who:"세 사람",count:225,note:"225초(앞의 흐름 화면 15초와 합쳐 4분). 막대가 다 차면 넘어간다. 끝에 '확인은 재웅 님'. Enter로 다음.",src:"구성 v2 ④ (시연 4분)",out:[]},
+]},
+
+{name:"확인",sec:60,cmds:[
+ {cmd:"npm test",who:"황재웅",note:"1분(막 전체). 숫자마다 출처. 시험은 다 통과했다 — 그런데 합친 뒤에 깨졌다, 로 넘어간다.",src:"npm test (C:\\Users\\uSER\\TechRadar, main 210375b, 11-23 직접 실행)",out:[
+  "<x-b>✔ 1,883 passed, 0 failed</x-b>   <x-d>시험 파일 245개 · main 210375b</x-d>"]},
+ {cmd:"head eval/result.md",who:"황재웅",note:"정답 사례 56건, 놓침 0 · 잘못 울림 0. 채점은 11-21, 그 뒤 다시 채점한 기록은 없다.",src:"eval/result.md:3–5 · 24 · 90",out:[
+  R("14ch 6ch 10ch 12ch 8ch 10ch","<x-d>구분</x-d>","<x-d>사례</x-d>","<x-d>맞게 울림</x-d>","<x-d>맞게 조용함</x-d>","<x-d>놓침</x-d>","<x-d>잘못 울림</x-d>"),
+  R("14ch 6ch 10ch 12ch 8ch 10ch","등급 G1–G9","12","6","6","0","0"),
+  R("14ch 6ch 10ch 12ch 8ch 10ch","경계 사례","44","18","26","0","0"),
+  R("14ch 6ch 10ch 12ch 8ch 10ch","<x-b>전체</x-b>","<x-b>56</x-b>","<x-b>24</x-b>","<x-b>32</x-b>","<x-b>0</x-b>","<x-b>0</x-b>"),
+  "<x-d>등급 맞음 12/12 · 실행 실패 0 · 채점 11-21 19:26 · 등급 규칙 v1</x-d>"]},
+ {cmd:"./qa-status docs/qa.md",who:"황재웅",note:"No Run을 숨기지 않는다. 사람 QA는 21줄이 아직 안 돌았다.",src:"docs/qa.md (마지막 수정 11-23 14:38)",out:[
+  R("12ch 7ch 1fr","Claude QA","135줄","<x-b>PASS 121</x-b> / <x-r>FAIL 9</x-r> <x-d>(8 fixed)</x-d> / <x-a>NO RUN 4</x-a> / 설계대로 1"),
+  R("12ch 7ch 1fr","사람 QA","47줄","<x-b>PASS 13</x-b> / <x-r>FAIL 12</x-r> / <x-a>NO RUN 21</x-a> / 일부 PASS 1")]},
+ {cmd:`grep "합친 뒤" docs/debug-note.md | head -3`,who:"황재웅",note:"합친 뒤 잡은 오류 3건. 커넥터는 말로 짧게. 가짜 DB 시험은 환경변수 · 칸 권한 · 마이그레이션 적용을 모른다.",src:"docs/debug-note.md:26 · 30 · 31 · 34",out:[
+  "<x-r>11-19  #133  마이그레이션보다 코드가 먼저 운영에 → 관리자 분류 탭 조회 실패, 장애 약 18분</x-r>",
+  "<x-r>11-19  #153  가짜 DB 시험은 통과, 운영에서는 늘 실패 (칸 권한을 시험이 모름)</x-r>",
+  "<x-r>11-19  cron  CRON_SECRET이 없어 첫 정기 실행이 돌지 않음</x-r>",
+  "<x-d># 커넥터 기록 122행 — Supabase · Vercel · Slack · abbsbook(MCP): 운영 마이그레이션 적용 · 배포 상태 · 권한 시험에 씀</x-d>",
+  "<x-d># 놓침 0 · 잘못 울림 0, 그런데 합친 뒤에 깨졌다   → 넘김: AI와 일한 방식은 세일 님</x-d>"]},
+]},
+
+{name:"AI방식",sec:150,cmds:[
+ {cmd:"git log --merges --since=11-16 --format=%ad --date=short | sort | uniq -c | spark",who:"차세일",slow:1,note:"45초. 가장 큰 장면. 7일 타임라인, 232개. PR 수는 무게가 아니다 — 11-21 · 22는 수십 커밋짜리 묶음 PR이다. 사람별 커밋 수는 말하지 않는다.",src:"gh pr list --state merged (KST 날짜로 나눔, 11-23 17:17)",out:[
+  R("6ch 41ch 4ch 1fr","11-16","<span class='bar'></span>","<span class='n'>0</span>","<x-d>프로젝트 시작 · 팀 하네스(CLAUDE.md)</x-d>"),
+  R("6ch 41ch 4ch 1fr","11-17",`<span class='bar'>${BAR(24)}</span>`,"24","기획 문서 · 사람 인터뷰 <x-d>(#1–#24, 리뷰 없이 합침)</x-d>"),
+  R("6ch 41ch 4ch 1fr","11-18",`<span class='bar'>${BAR(68)}</span>`,"68","회의 · plan · 개발 첫날 — 얇은 한 줄(M0)"),
+  R("6ch 41ch 4ch 1fr","<x-b>11-19</x-b>",`<x-b><span class='bar'>${BAR(79)}</span></x-b>`,"<x-b>79</x-b>","<x-b>최다</x-b> — M1 · <x-r>장애 18분</x-r> · 위키 챗봇"),
+  R("6ch 41ch 4ch 1fr","11-20",`<span class='bar'>${BAR(28)}</span>`,"28","첫 정기 실행 성공 · 지도가 첫 화면"),
+  R("6ch 41ch 4ch 1fr","11-21",`<span class='bar'>${BAR(1)}</span>`,"1","컨셉 재정의 <x-d>(묶음 PR #202)</x-d>"),
+  R("6ch 41ch 4ch 1fr","11-22",`<span class='bar'>${BAR(4)}</span>`,"4","청사진 스튜디오 <x-d>(묶음 #203 · #204)</x-d>"),
+  R("6ch 41ch 4ch 1fr","11-23",`<span class='bar'>${BAR(28)}</span>`,"28","보드 · 테마 · QA · 관리자 리뉴얼 · Tutorial"),
+  R("6ch 41ch 4ch 1fr","<x-b>합계</x-b>","<x-d>█ = PR 2개</x-d>","<x-b>232</x-b>","<x-d>#1–#234 (닫기만 한 #116 · #160 제외) · 열린 PR 0</x-d>")]},
+ {cmd:"git tag -l 'pivot/*'",who:"차세일",note:"방향을 다섯 번 틀었다. 실제 git tag가 아니라 ADR을 tag 목록처럼 적은 것이라고 한마디.",src:"ADR 0005 · 0026–0028 · 0032 · 0033 · 0044 · docs/worklog.md:92·99",out:[
+  R("32ch 12ch 1fr","pivot/11-17-가설-판정","→ ADR 0005","B \"몰라서 포기\"는 팀 밖 0명 → 보조로 내림"),
+  R("32ch 12ch 1fr","pivot/11-20-지도가-첫-화면","→ ADR 0026","\"근거가 약해 작게\" → 첫 화면, 색 = 분류 · 등급은 기호"),
+  R("32ch 12ch 1fr","<x-b>pivot/11-21-컨셉-재정의</x-b>","<x-b>→ ADR 0032</x-b>","<x-b>\"지도에서 고르고, 청사진으로 옮긴다\"</x-b>"),
+  R("32ch 12ch 1fr","pivot/11-21-수집-기준","→ ADR 0033","별 하나가 아니라 관문 + 의심 거르기 + 점수"),
+  R("32ch 12ch 1fr","pivot/11-23-테마-1시간-반","→ ADR 0044","파란 도면 10:00 → 11:30 관측소 — \"글자가 붕 떠 보여\""),
+  "<x-d># 실제 git tag가 아니라 결정 기록(ADR)의 날짜를 tag 목록 모양으로 적은 것</x-d>"]},
+
+ {clear:1,cmd:"cat vibelog/장면-3.md",who:"차세일",note:"35초(장면 전체). 바이브로그는 슬라이드에 녹여서(강사 공지). 세 사람 장면을 한 줄씩 읽는다. '내 판단' 칸은 본인만 쓸 수 있다 — E로 편집.",src:"docs/worklog.md · docs/debug-note.md 기준 후보 — 본인 vibelog(abbsbook) 확인 전",out:[
+  R("9ch 7ch 1fr","<x-1># 차세일</x-1>","<x-1>11-19</x-1>",`<x-1>#133 장애 18분 → #135 → 규칙 #138</x-1>   내 판단: ${H("v1","(본인이 한 문장)")}`),
+  R("9ch 7ch 1fr","<x-2># 김영식</x-2>","<x-2>11-18</x-2>",`<x-2>기록 문서 충돌 20곳 → merge=union (ADR 0017 · #55)</x-2>   내 판단: ${H("v2","(본인이 한 문장)")}`),
+  R("9ch 7ch 1fr","<x-3># 황재웅</x-3>","<x-3>11-23</x-3>",`<x-3>사람 QA 중 취향 저장 권한 오류 발견 → #214</x-3>   내 판단: ${H("v3","(본인이 한 문장)")}`),
+  "<x-d># 장면은 worklog · debug-note에서 뽑은 후보 — 본인 vibelog 확인 전</x-d>"]},
+ {cmd:"wc -l docs/*.md | sort -rn",who:"차세일",note:"기록 체계. 셋이 같은 규칙으로 일했다는 근거. 과정 기록은 일하면서 쌓았다.",src:"wc -l · grep -cE '^\\| *2026-11-' · ls docs/adr · ls wiki (11-23 다시 확인)",out:[
+  R("9ch 24ch 1fr","<span class='n'>4,353 줄</span>","docs/intent.md","작업 의도 — 작업 ID = 브랜치 이름"),
+  R("9ch 24ch 1fr","<span class='n'>607 줄</span>","docs/worklog.md","날짜별 한 일 · 정한 일 · 막힌 일"),
+  R("9ch 24ch 1fr","<span class='n'>168 행</span>","docs/agents.md","서브에이전트 기록 — 맡긴 일 · 사람이 확인한 것"),
+  R("9ch 24ch 1fr","<span class='n'>122 행</span>","docs/connectors.md","커넥터 기록 (Supabase · Vercel · Slack · abbsbook)"),
+  R("9ch 24ch 1fr","<span class='n'>59 줄</span>","docs/debug-note.md","오류와 해결 약 55건"),
+  R("9ch 24ch 1fr","<span class='n'>45 개</span>","docs/adr/","결정 기록 0001–0045"),
+  R("9ch 24ch 1fr","<span class='n'>18 쪽</span>","wiki/","md 기반 LLM 위키 → 챗봇")]},
+ {cmd:"cat RULES",who:"차세일",note:"규칙 6개. 훅(hooks)을 썼다고 말하지 않는다 — 문서 근거가 없다.",src:"docs/plan.md:16–27 · ADR 0017 · 0018 · 0023 · CLAUDE.md 10절",out:[
+  R("3ch 34ch 1fr","1","조각 하나 = 브랜치 하나","만든 사람이 아닌 1명 승인 <x-d>(main 보호는 11-18부터)</x-d>"),
+  R("3ch 34ch 1fr","2","공용 파일은 주인이 고친다","다른 사람은 주인에게 요청"),
+  R("3ch 34ch 1fr","3","기록 문서 5개는 merge=union","병합 59개 중 8개 · 충돌 20곳이 모두 기록 문서였다 <x-d>(ADR 0017)</x-d>"),
+  R("3ch 34ch 1fr","4","열린 PR에 main 자동 합치기","GitHub Actions <x-d>(#106)</x-d>"),
+  R("3ch 34ch 1fr","5","PR 전에 npm run precheck","GitHub이 볼 충돌 미리 보기 <x-d>(#71)</x-d>"),
+  R("3ch 34ch 1fr","6","배포 횟수를 아낀다","하루 한도에 두 번 막힘 → 20분 잠잠하면 한 번 배포 <x-d>(ADR 0018 · 0023)</x-d>")]},
+
+ {clear:1,cmd:"tail -n +6 incident.log",who:"차세일",note:"30초. 하네스: ③의 장애 18분 → 규칙 → 도구, 그 뒤 이야기. 규칙을 만들고 경고를 달았지만 네 번 더 어겼다 — 그래서 실패로 바꿨다.",src:"docs/debug-note.md:30 · 41 · 45 · 47–51 · 57",out:[
+  R("12ch 8ch 1fr","<x-r>11-20~23</x-r>","<x-r>[AGAIN]</x-r>","<x-r>규칙 위반 재발 ×4 — #178 · #182 · #184/#187 · #215</x-r>   <x-a>경고만으로는 못 막는다</x-a>"),
+  R("12ch 8ch 1fr","<x-r>11-21 · 22</x-r>","<x-r>[DUP ]</x-r>","<x-r>마이그레이션 번호 겹침 ×2 — 세션 여럿이 같은 시각대 번호를 따로 고름</x-r>")]},
+ {cmd:"npm run precheck   # 11-22부터",who:"차세일",note:"번호 겹침은 경고가 아니라 실패(종료 코드 1)로. 순서 위반(#215)은 아직 장치가 없다는 것도 말한다.",src:"docs/debug-note.md:51 · 52 · 55 · 56 · supabase/precheck-migrations.mts",out:[
+  "<x-b>precheck: 마이그레이션 번호 겹침은 exit 1</x-b>   <x-d>경고 → 실패 · 시험 5개</x-d>",
+  "<x-a>! 남은 것  순서(운영 먼저)를 막는 장치는 아직 없다 — PR 설명 맨 위 \"운영 적용 전에는 합치지 말아 주세요\"</x-a>",
+  "<x-a>! 남은 것  승인 뒤 커밋 빠짐 #204 → #206 · #208 → #210 / 상태 줄 \"오류 0\"(실제 수집 오류 2)은 11-23에 고침</x-a>"]},
+
+ {clear:1,cmd:"ps -ef --forest | grep claude",who:"차세일",note:"40초(장면 전체). 서브에이전트 · 다중 세션. AI에게 맡기되 확인한 뒤에만 합쳤다. 누구 세션인지 그대로 — 팀 전체의 방식처럼 말하지 않는다.",src:"docs/agents.md:141–163 · docs/quality-loop/README.md:4–22 · ADR 0039:9 · docs/debug-note.md:46",out:[
+  R("22ch 44ch 1fr","<x-d>SESSION</x-d>","<x-d>ROLE</x-d>","<x-d>OWNER</x-d>"),
+  R("22ch 44ch 1fr","<x-2>Maestro</x-2>","정리 · 배정 · 판정","<x-2>김영식 세션</x-2> <x-d>(11-21~23 · 기록 기준)</x-d>"),
+  R("22ch 44ch 1fr","<x-2> ├─ FrontLead</x-2>","지도 · 청사진 · 셸","<x-d>〃</x-d>"),
+  R("22ch 44ch 1fr","<x-2> ├─ DevAssi1 · 2</x-2>","만드는 도우미 — 파일 경계를 나눠 줌","<x-d>〃</x-d>"),
+  R("22ch 44ch 1fr","<x-2> ├─ DataCollector</x-2>","수집 · 백엔드","<x-d>〃</x-d>"),
+  R("22ch 44ch 1fr","<x-2> └─ DocsChecker</x-2>","문서","<x-d>〃</x-d>"),
+  R("22ch 44ch 1fr","<x-1>quality-loop</x-1>","영역 C만 · 최대 3바퀴","<x-1>차세일 세션</x-1> <x-d>(11-23 · #227)</x-d>"),
+  R("22ch 44ch 1fr","<x-1> └─ subagent ×11</x-1>","감사 3 · 분석 1 · 만들기 5 · 검토 2","<x-d>〃</x-d>"),
+  R("22ch 44ch 1fr","workflow ×54","테마 · 움직임 시안 탐색 (11-22)","Maestro 세션 → 움직임만 채택 <x-d>(ADR 0039)</x-d>"),
+  "",
+  "<x-d># 서브에이전트 기록 168행 — 만든 쪽과 검토 쪽을 나누고, 돌아온 결과는 사람이 확인한 뒤 합쳤다</x-d>",
+  "<x-a>! 잘 안 된 점  같은 기능을 두 세션이 따로 만들어 13파일 충돌 (11-20)</x-a>"]},
+ {cmd:"wiki-chat --replay Q5",who:"차세일",note:"위키와 챗봇: 틀린 답 Q5와 고친 방법. 처음엔 '쪽 찾기 탓'으로 잘못 추측했다. 11-23 위키 변경 뒤 재확인 칸은 사실대로.",src:"docs/wiki-chat.md:3 · 24–26 · 30–34 · #131",out:[
+  "<x-r>11-19 14:00 운영  5개 중 4개 맞음 — Q5(문서끼리 다른 질문) \"위키에 없습니다\"</x-r>",
+  "11-19 #131       원인: 쪽마다 앞 2000자만 넘김 → 질문 낱말이 든 줄만 골라 1900자 안으로",
+  "<x-b>11-20 11:02 운영  재질문 — Q5가 두 출처를 모두 말함 → 5/5</x-b>",
+  R("17ch 1fr","<x-a>11-23 위키 변경 뒤</x-a>",H("q5","(운영 재질문 확인 전 — 실제 위키로 Q1–Q5를 보는 시험은 npm test에서 통과)")),
+  "<x-d># 틀린 것 · 깨진 것도 숨기지 않고   → 넘김: 마지막은 세 사람이 함께</x-d>"]},
+]},
+
+{name:"사람",sec:90,cmds:[
+ {cmd:"gh pr list --state merged --limit 500 --json author,reviews | ./tally",who:"황재웅",note:"35초. 세 사람 모두 PR과 리뷰. 커밋 수는 말하지 않는다(작성자 이름 대응이 추정). GitHub 밖 칸은 본인이 확인 · 편집(E).",src:"gh pr list · GraphQL reviews (본인 PR 제외, PR당 1번) 11-23 17:17 · docs/plan.md · docs/차세일-의견-피드백-정리.md",out:[
+  R("9ch 12ch 8ch 14ch 1fr","<x-d>이름</x-d>","<x-d>영역</x-d>","<x-d>합친 PR</x-d>","<x-d>리뷰한 남의 PR</x-d>","<x-d>대표 PR</x-d>"),
+  R("9ch 12ch 8ch 14ch 1fr","<x-2>김영식</x-2>","A 지키기","<x-b>133</x-b>","<x-b>79</x-b>","#33 등록 → 등급 · #178 첫 화면 지도 · #204 청사진 스튜디오 · #208 보드"),
+  R("9ch 12ch 8ch 14ch 1fr","<x-3>황재웅</x-3>","B 고르기","<x-b>43</x-b>","<x-b>100</x-b>","#37 · #38 알림 · #43 판단 저장 · #120 적용 시나리오 · #220 사람 QA"),
+  R("9ch 12ch 8ch 14ch 1fr","<x-1>차세일</x-1>","C 옮기기","<x-b>56</x-b>","<x-b>38</x-b>","#30 실행 기록 · #46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇 · #227"),
+  R("9ch 12ch 8ch 14ch 1fr","<x-d>합계</x-d>","","<x-d>232</x-d>","<x-d>217</x-d>","<x-d>리뷰는 모두 승인 · #1–#24는 리뷰 없이 합쳐짐 · PR 수는 무게가 아니다</x-d>"),
+  "",
+  "<x-d># GitHub에 남지 않는 일 — 문서 근거가 있는 것만, 본인 확인</x-d>",
+  R("9ch 1fr","<x-2>김영식</x-2>",H("o1","Supabase · Vercel · 구글 OAuth · 환경변수 준비, 운영 마이그레이션 적용 (docs/plan.md) — 본인 확인")),
+  R("9ch 1fr","<x-3>황재웅</x-3>",H("o2","사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198) — 그 밖은 본인이 채움")),
+  R("9ch 1fr","<x-1>차세일</x-1>",H("o3","11-18 회의 기록자, 문제정의 v5와 가설 B, 질문지, 발표 주소 배포, 실패 시연 저장소 — 본인 확인"))]},
+ {clear:1,cmd:"cat TODO.md",who:"황재웅",note:"15초. 다음은 사람에게 다시 묻기. 한계를 먼저 말하고 끝낸다.",src:"docs/팀토론-문제정의-승인.md 1부 1번 표 · docs/제출전-레드팀-1123.md:47 · ADR 0045:45",out:[
+  "<x-b>- [ ] 사람에게 다시 묻기</x-b> — 그룹1에게 노트북 반납 뒤 다시 인터뷰 <x-d>(사람 인터뷰로 확인할 것 · 담당 차세일 제안)</x-d>",
+  `- [ ] 다음 개선 — ${H("next","(팀이 하나 고름 · 후보: 마이그레이션 순서를 경고가 아니라 장치로 막기)")}`,
+  `- [ ] 숫자 하나 재기 — 손으로 vs 앱으로 <x-d>(ADR 0011)</x-d>`,
+  "",
+  "<x-a>! 한계  사용자가 없다 — 앱 안의 숫자는 시연 계정 값뿐</x-a>",
+  "<x-a>! 한계  11-22~23 화면 변화는 사람 QA가 얇다 · AI 진단 · 한국어 개요(ADR 0045)는 사람 QA 전</x-a>",
+  "<x-a>! 한계  가장 강한 근거는 \"변화를 놓침\"이 아니라 \"목록이 없음\"이다</x-a>"]},
+ {cmd:"for p in 영식 재웅 세일; do say --소감 $p --20s; done",who:"세 사람",note:"각자 20초 소감: 영식 → 재웅 → 세일. 칸은 본인이 채운다(E). 비워 두고 말로만 해도 된다.",src:"구성 v2 ⑦ · 사람이 채울 칸",out:[
+  R("9ch 1fr","<x-2>김영식</x-2>",H("s1","(본인 소감 20초)")),
+  R("9ch 1fr","<x-3>황재웅</x-3>",H("s2","(본인 소감 20초)")),
+  R("9ch 1fr","<x-1>차세일</x-1>",H("s3","(본인 소감 20초)"))]},
+ {cmd:"exit",who:"세 사람",note:"끝. 질문을 받는다.",src:"",out:[
+  "logout",
+  `<div class="big">세션 종료 · 질문 받습니다</div>`,
+  "<x-d>Connection to demo-day closed.   서비스 https://techradar-theta.vercel.app</x-d>"]},
+]},
+];
+
+/* ───────── 펼치기: 막 → 단계 ───────── */
+const STEPS=[];let sc=-1;
+ACTS.forEach((a,ai)=>a.cmds.forEach((c,ci)=>{ if(ci===0||c.clear) sc++; STEPS.push({...c,a:ai,c:ci,scene:sc,i:STEPS.length}); }));
+const TOTAL=ACTS.reduce((s,a)=>s+a.sec,0);
+const $=id=>document.getElementById(id);
+const out=$("out"),screen=$("screen"),cursor=$("cursor"),live=$("live");
+const qs=new URLSearchParams(location.search);
+const REVEAL=qs.get("reveal")==="all";
+const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const PS=`<span class="ps">techradar@demo-day:~$</span> `;
+let cur=0, job=null, pending=null, choices={}, showWho=true, tick=null;
+let started=false, elapsed=0, spent=ACTS.map(()=>0);
+
+const store={get(k){try{return localStorage.getItem("trc:"+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("trc:"+k,v)}catch(e){}}};
+function hydrate(root){
+  root.querySelectorAll(".hum").forEach(h=>{const v=store.get(h.dataset.k); if(v!==null&&v!=="") h.textContent=v;
+    h.contentEditable=document.body.classList.contains("editing")?"plaintext-only":"false";});
+}
+function lineHTML(l){return l.startsWith("<div")?l:`<div class="ln">${l||"&nbsp;"}</div>`}
+const ASK_RES={
+  a:["<x-b>✔ 판단 저장 (한 거래)</x-b> — 적용 후보 · 고친 버전 번호를 함께 기록","  → 설치 프롬프트 기본 목록에 그 버전으로 고정. <x-d>우리는 대신 설치하거나 바꾸지 않는다 — 판단은 기록 (ADR 0010)</x-d>"],
+  h:["<x-b>✔ 판단 저장 (한 거래)</x-b> — 보류 · 이유 5자 이상","  → 지금 쓰는 설치 프롬프트 목록과 버전은 그대로. <x-d>저장에 실패하면 기존 값을 보존하고 \"처리 완료\"로 표시하지 않는다</x-d>"]};
+function countHTML(left,total){
+  const W=42,done=Math.max(0,Math.min(W,Math.round((total-left)/total*W)));
+  const m=String(Math.floor(Math.max(0,left)/60)).padStart(2,"0"),s=String(Math.max(0,left)%60).padStart(2,"0");
+  return `[<x-b>${"█".repeat(done)}</x-b><x-d>${"░".repeat(W-done)}</x-d>] ${left<=0?"<x-a>00:00 — 시간 끝, 다음으로</x-a>":`<x-b>${m}:${s}</x-b> 남음`}   <x-d>${total}초 고정 · Enter로 다음</x-d>`;
+}
+function build(st){
+  const b=document.createElement("div"); b.className="blk"; b.dataset.i=st.i;
+  let h=`<div class="cl">${PS}<span class="cmd"></span></div>`+st.out.map(lineHTML).join("");
+  if(st.count) h+=`<div class="ln cnt">${countHTML(st.count,st.count)}</div>`;
+  b.innerHTML=h; b.querySelector(".cmd").textContent=st.cmd; hydrate(b); return b;
+}
+function askLine(b,st,state){ /* state: 'wait' | 'a' | 'h' */
+  b.querySelectorAll(".askz").forEach(e=>e.remove());
+  const d=document.createElement("div"); d.className="askz";
+  if(state==="wait"){
+    d.innerHTML=`<div class="ask">판단? <kbd>a</kbd> 적용 후보 / <kbd>h</kbd> 보류  <span class="slot"></span></div><div class="ln nudge" hidden></div>`;
+    b.appendChild(d); d.querySelector(".slot").appendChild(cursor); live.hidden=true;
+  }else{
+    d.innerHTML=`<div class="ask">판단? [a 적용 후보 / h 보류] ${state}</div>`+ASK_RES[state].map(lineHTML).join("");
+    b.appendChild(d);
+  }
+}
+function home(){ live.hidden=false; live.appendChild(cursor); }
+function follow(b){ const max=screen.scrollHeight-screen.clientHeight; screen.scrollTop=Math.max(0,Math.min(max,b.offsetTop-screen.offsetTop-6)); }
+function stopTick(){ if(tick){clearInterval(tick);tick=null;} }
+
+function settle(st,b){ /* 명령이 다 나온 뒤 */
+  job=null;
+  if(st.ask){ pending={st,b,n:0}; askLine(b,st,"wait"); }
+  else home();
+  if(st.count&&!REVEAL){ const t0=Date.now(),el=b.querySelector(".cnt");
+    tick=setInterval(()=>{const left=st.count-Math.floor((Date.now()-t0)/1000); el.innerHTML=countHTML(left,st.count); if(left<=0) stopTick();},1000); }
+  follow(b);
+}
+function run(st,animate){
+  const b=build(st); out.appendChild(b);
+  if(!animate||REDUCED){ settle(st,b); return; }
+  const cmdEl=b.querySelector(".cmd"), rest=[...b.children].slice(1);
+  rest.forEach(e=>e.hidden=true); cmdEl.textContent=""; live.hidden=true; cmdEl.after(cursor);
+  const chars=[...st.cmd], dur=Math.min(700,Math.max(400,chars.length*14)), per=dur/chars.length;
+  let n=0,k=0,timer=null,done=false;
+  const finish=()=>{ if(done) return; done=true; clearTimeout(timer); cmdEl.textContent=st.cmd; rest.forEach(e=>e.hidden=false); settle(st,b); };
+  const gap=st.slow?95:Math.min(28,420/Math.max(1,rest.length));
+  const lines=()=>{ if(k>=rest.length) return finish(); rest[k++].hidden=false; follow(b); timer=setTimeout(lines,gap); };
+  const type=()=>{ const step=Math.max(1,Math.round(16/per)); n=Math.min(chars.length,n+step); cmdEl.textContent=chars.slice(0,n).join("");
+    if(n>=chars.length){ home(); live.hidden=true; timer=setTimeout(lines,90);} else timer=setTimeout(type,Math.max(16,per)); };
+  job={finish}; follow(b); type();
+}
+function paint(i,animate){ /* 화면을 i 시점으로 */
+  if(job){ job.finish(); } stopTick(); pending=null; home();
+  const st=STEPS[i], first=STEPS.findIndex(s=>s.scene===st.scene);
+  const sameScene=out.lastElementChild&&+out.lastElementChild.dataset.i===i-1&&STEPS[i-1]&&STEPS[i-1].scene===st.scene&&animate;
+  if(!sameScene){ out.innerHTML="";
+    for(let j=first;j<i;j++){ const s=STEPS[j],b=build(s); out.appendChild(b); if(s.ask) askLine(b,s,choices[s.i]||"a"); } }
+  cur=i; run(st,animate); chrome();
+}
+function next(){
+  if(job){ job.finish(); return; }
+  if(pending){ pending.n++; const n=pending.b.querySelector(".nudge"); n.hidden=false;
+    n.innerHTML=`<x-a>… Enter ×${pending.n} — 판단이 없어서 아무것도 바뀌지 않았다. a 또는 h 를 누르세요.</x-a>`; follow(pending.b); screen.scrollTop=screen.scrollHeight; return; }
+  if(cur>=STEPS.length-1) return;
+  startClock(); paint(cur+1,true);
+}
+function prev(){ if(cur>0) paint(cur-1,false); }
+function goAct(a){ const i=STEPS.findIndex(s=>s.a===a); if(i>=0){ if(i>0) startClock(); paint(i,false);} }
+function decide(k){ const {st,b}=pending; choices[st.i]=k; pending=null; askLine(b,st,k); home(); follow(b); screen.scrollTop=screen.scrollHeight; }
+
+/* ───────── 상태 줄 · 메모 · 타이머 ───────── */
+const fmt=s=>String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+function startClock(){ if(started||REVEAL) return; started=true; setInterval(()=>{elapsed++; spent[STEPS[cur].a]++; clock(); if(!$("timer").hidden) timerPanel();},1000); }
+function clock(){ $("clock").textContent=`│ ${fmt(elapsed)} / ${fmt(TOTAL)}`; }
+function chrome(){
+  const st=STEPS[cur];
+  $("tabs").innerHTML=ACTS.map((a,i)=>`<button type="button" data-a="${i}" aria-current="${i===st.a}">[${i+1}:${a.name}${i===st.a?"*":""}]</button>`).join("");
+  $("who").textContent=showWho?`speaker: ${st.who}`:""; clock();
+  const nx=STEPS[cur+1];
+  $("notes").innerHTML=`<b>#${st.a+1}.${st.c+1} 메모</b> ${st.note}<br><b>출처</b> ${st.src||"—"}<br><b>다음</b> ${nx?`$ ${esc(nx.cmd)} <x-d>(${nx.who})</x-d>`:"끝"}`;
+  if(!$("timer").hidden) timerPanel();
+  try{ history.replaceState(null,"",location.pathname+location.search+`#${st.a+1}.${st.c+1}`);}catch(e){}
+}
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function timerPanel(){
+  const a=STEPS[cur].a;
+  $("timer").innerHTML=`<table><tr><td>막</td><td class="n">목표</td><td class="n">쓴 시간</td></tr>`+
+    ACTS.map((x,i)=>`<tr class="${i===a?"on":""}"><td>${i+1} ${x.name}</td><td class="n">${fmt(x.sec)}</td><td class="n ${spent[i]>x.sec&&i!==a?"over":""}">${fmt(spent[i])}</td></tr>`).join("")+
+    `<tr><td>합계</td><td class="n">${fmt(TOTAL)}</td><td class="n ${elapsed>900?"over":""}">${fmt(elapsed)}</td></tr></table><x-d>발표 12–15분 · R: 0으로</x-d>`;
+}
+function setEdit(on){ document.body.classList.toggle("editing",on); hydrate(document);
+  $("hint").textContent=on?"편집 중 — 호박색 점선 칸을 눌러 고치세요 · Esc로 끝 (이 브라우저에 저장)":"Enter 다음 · ← 이전 · 1–7 막 · T 시간 · N 메모 · S 화자 · E 편집 · ? 도움말";
+  if(on){ const h=out.querySelector(".hum"); if(h) h.focus(); } else if(document.activeElement) document.activeElement.blur(); }
+document.addEventListener("input",e=>{ const h=e.target.closest&&e.target.closest(".hum"); if(h) store.set(h.dataset.k,h.textContent.trim()); });
+
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const k=e.key;
+  if(k==="Escape"){ $("help").hidden=true; if(document.body.classList.contains("editing")) setEdit(false); return; }
+  if(e.target.isContentEditable){ if(k==="Enter") e.preventDefault(); return; }
+  if(document.body.classList.contains("editing")&&k!=="e"&&k!=="E") return;
+  if(k==="?"){ $("help").hidden=!$("help").hidden; return; }
+  if(pending&&(k==="a"||k==="A"||k==="ㅁ")){ decide("a"); return; }
+  if(pending&&(k==="h"||k==="H"||k==="ㅗ")){ decide("h"); return; }
+  if(k==="Enter"||k===" "||k==="ArrowRight"||k==="PageDown"){ if(e.target.tagName==="A"||e.target.tagName==="BUTTON") { if(k!=="ArrowRight"&&k!=="PageDown") return; } e.preventDefault(); next(); }
+  else if(k==="ArrowLeft"||k==="PageUp"){ e.preventDefault(); prev(); }
+  else if(k>="1"&&k<="7") goAct(+k-1);
+  else if(k==="Home") goAct(0);
+  else if(k==="t"||k==="T"||k==="ㅅ"){ $("timer").hidden=!$("timer").hidden; timerPanel(); }
+  else if(k==="r"||k==="R"||k==="ㄱ"){ elapsed=0; spent=ACTS.map(()=>0); clock(); timerPanel(); }
+  else if(k==="n"||k==="N"||k==="ㅜ"){ $("notes").hidden=!$("notes").hidden; }
+  else if(k==="s"||k==="S"||k==="ㄴ"){ showWho=!showWho; chrome(); }
+  else if(k==="e"||k==="E"||k==="ㄷ"){ e.preventDefault(); setEdit(!document.body.classList.contains("editing")); }
+});
+$("tabs").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ goAct(+b.dataset.a); b.blur(); } });
+
+/* ───────── 주소 해시 #막.명령 ───────── */
+function fromHash(){
+  const m=/^#(\d+)(?:\.(\d+))?/.exec(location.hash); if(!m) return 0;
+  const a=Math.min(ACTS.length,Math.max(1,+m[1]))-1, c=Math.max(1,+(m[2]||1))-1;
+  let i=STEPS.findIndex(s=>s.a===a&&s.c===c); if(i<0) i=STEPS.findIndex(s=>s.a===a);
+  if(REVEAL){ const scn=STEPS[i].scene; while(STEPS[i+1]&&STEPS[i+1].scene===scn) i++; }
+  return i;
+}
+addEventListener("hashchange",()=>{ const i=fromHash(); if(i!==cur) paint(i,false); });
+
+/* ───────── 인쇄: 전체 세션을 한 줄로 길게 ───────── */
+addEventListener("beforeprint",()=>{
+  const p=$("print"); p.innerHTML="";
+  ACTS.forEach((a,ai)=>{ const h=document.createElement("h2"); h.textContent=`[${ai+1}:${a.name}] 목표 ${fmt(a.sec)}`; p.appendChild(h);
+    STEPS.filter(s=>s.a===ai).forEach(s=>{ const b=build(s); if(s.ask) askLine(b,s,choices[s.i]||"a"); p.appendChild(b); }); });
+  home();
+});
+addEventListener("afterprint",()=>{ $("print").innerHTML=""; });
+
+paint(fromHash(),false);
+</script>
+</body>
+</html>

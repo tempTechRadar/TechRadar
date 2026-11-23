@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TechRadar 발표 E안 — 기판(PCB)</title>
+<style>
+[hidden]{display:none!important}
+:root{
+  --mask:#0f3f2b; --mask2:#0a2e1f; --mask3:#134a33; --cu:#2c7a52; --cu2:#235f41;
+  --gold:#d8b24a; --gold2:#f4d36b; --silk:#f3f3ea; --dim:#b7d2c3;
+  --ra:#f2a65a; --rb:#84c9f2; --rc:#f29ac4; --bad:#ff8f7a;
+  --sans:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  --mono:Consolas,"D2Coding","Malgun Gothic","Apple SD Gothic Neo",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#061a12;color:var(--silk);font-family:var(--sans);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:0 0;background:var(--mask)}
+#board{position:absolute;inset:0;width:1600px;height:900px;display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid #fff;outline-offset:3px}
+svg :focus-visible{outline:none}
+svg .pin:focus-visible .ring,svg .chip:focus-visible .body{stroke:#fff;stroke-width:3}
+
+/* ---------- 기판 ---------- */
+.tr{fill:none;stroke:var(--cu2);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.rt{fill:none;stroke:var(--cu);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.lit{fill:none;stroke:var(--gold2);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.pad{fill:var(--gold)} .via{fill:var(--gold);stroke:none} .hole{fill:var(--mask2)}
+.silk{fill:var(--silk);font-family:var(--mono);font-size:11px;letter-spacing:.5px}
+.silkl{fill:none;stroke:var(--silk);stroke-width:1.4}
+.body{fill:#15181a;stroke:#3a4044;stroke-width:1.5}
+.chip.done .body{stroke:var(--gold)}
+.chip.act .body{stroke:var(--gold2);stroke-width:3}
+.chip{cursor:pointer}
+.mark{fill:#9aa3a6;font-family:var(--mono);font-size:12px}
+.chip.act .mark{fill:#fff}
+.led{fill:#2a3a31;stroke:#0008;stroke-width:1}
+.chip.done .led,.chip.act .led{fill:var(--gold2)}
+.pin{cursor:pointer}
+.pin .p{fill:var(--gold)} .pin .ring{fill:none;stroke:transparent;stroke-width:2.5}
+.pin.seen .p{fill:var(--gold2)}
+.pin.cur .ring{stroke:#fff}
+.pin.cur .p{fill:#fff}
+#pulse{fill:#fff7c9;stroke:var(--gold2);stroke-width:3}
+.rail{stroke-width:10;stroke-linecap:butt;opacity:.38}
+.rail.on{opacity:1}
+.railflow{stroke:#fff;stroke-width:3;stroke-dasharray:14 42;fill:none;opacity:0}
+.railflow.on{opacity:.95;animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-56}}
+.railt{font-family:var(--sans);font-size:15px;fill:var(--dim)}
+.railt.on{fill:#fff;font-weight:700}
+.zone{fill:none;stroke:var(--silk);stroke-width:1.2;stroke-dasharray:7 6;opacity:.28}
+.zt{opacity:.5}
+.z5 .zone{opacity:.95} .z5 .zt{opacity:1}
+.scar .old{stroke:#0a2e1f;stroke-width:5}
+.scar .new{stroke:var(--cu2)}
+.t14 .scar .new,.allon .scar .new{stroke:var(--gold2)}
+.t14 .scar text,.allon .scar text{fill:#fff}
+.bar{fill:#22352b}
+.bar.on{fill:var(--gold2)}
+.bar.peak.on{fill:#fff}
+.cnt{font-family:var(--mono);font-size:13px;fill:var(--gold2);text-anchor:middle;opacity:0}
+.cnt.on{opacity:1}
+#j1s{opacity:0;transition:opacity .4s} .jclosed #j1s{opacity:1}
+#f1ok{opacity:0;transition:opacity .4s} .fok #f1ok{opacity:1}
+#f1cut{opacity:0} .fcut #f1cut{opacity:1}
+.fcut #f1wire,.fidle #f1wire{opacity:.25}
+.allon .tr{stroke:var(--gold);transition:stroke 1.2s}
+.allon .led{fill:var(--gold2)}
+.allon .body{stroke:var(--gold2)}
+.ovl{display:none} .ov .ovl{display:block}
+.ovl rect{fill:#fff;stroke:#000;stroke-width:1} .ovl text{fill:#0a2e1f;font-family:var(--sans);font-size:15px;font-weight:700}
+#runt{font-family:var(--mono);font-size:30px;fill:#5d666a;text-anchor:middle;font-weight:700}
+.run #runt{fill:var(--gold2)}
+
+/* ---------- 데이터시트 패널 ---------- */
+#panel{position:absolute;left:892px;top:58px;width:680px;height:726px;background:#08261a;border:2px solid var(--silk);padding:16px 24px 12px;display:flex;flex-direction:column}
+#panel:before,#panel:after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--gold);}
+#panel:before{left:-8px;top:-8px;border-right:0;border-bottom:0}
+#panel:after{right:-8px;bottom:-8px;border-left:0;border-top:0}
+#ph{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--silk);padding-bottom:7px;font-family:var(--mono);font-size:17px;color:var(--dim)}
+#ph b{color:var(--gold2);font-size:21px}
+#ph .act{font-family:var(--sans);color:#fff;font-weight:700}
+#pt{font-size:33px;line-height:1.24;margin:13px 0 11px;font-weight:800;color:#fff;word-break:keep-all;letter-spacing:-.5px}
+#pb{flex:1;min-height:0;font-size:20px;line-height:1.5;word-break:keep-all;overflow:hidden}
+#pb p{margin:0 0 9px} #pb ul,#pb ol{margin:0 0 8px;padding-left:24px} #pb li{margin:2px 0}
+#ps{border-top:1px solid #5f8a74;padding-top:6px;font-size:14.5px;line-height:1.4;color:var(--dim);font-family:var(--mono);word-break:keep-all}
+table.ds{border-collapse:collapse;width:100%;font-size:18.5px;line-height:1.38;margin:0 0 9px}
+table.ds caption{text-align:left;font-family:var(--mono);font-size:14.5px;color:var(--gold2);letter-spacing:1px;padding-bottom:3px}
+table.ds th,table.ds td{border:1px solid #6f9a84;padding:5px 9px;text-align:left;vertical-align:top}
+table.ds th{font-family:var(--mono);font-size:14.5px;color:var(--dim);font-weight:400;background:#0c3324;white-space:nowrap}
+table.ds td.n,.n{font-family:var(--mono);color:var(--gold2);font-weight:700;white-space:nowrap}
+table.ds.s{font-size:16.5px} table.ds.s td{padding:4px 8px}
+.tag{display:inline-block;font-family:var(--mono);font-size:13.5px;border:1px solid var(--silk);padding:0 6px;margin-left:4px;color:var(--silk);vertical-align:2px;white-space:nowrap}
+.tag.w{border-color:var(--gold2);color:var(--gold2)}
+blockquote{margin:0 0 10px;padding:9px 16px;border-left:6px solid var(--gold);background:#0c3324;font-size:27px;font-weight:700;line-height:1.3}
+blockquote small{display:block;font-size:15px;font-weight:400;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+.sm{font-size:16.5px;color:var(--dim)} .xs{font-size:15px;color:var(--dim)}
+.ca{color:var(--ra)} .cb{color:var(--rb)} .cc{color:var(--rc)} .g{color:var(--gold2)} .bad{color:var(--bad)}
+.big2{display:flex;gap:14px;margin-bottom:10px}
+.big2>div{flex:1;border:2px solid var(--silk);padding:10px 14px;min-height:150px}
+.big2 h3{margin:0 0 6px;font-size:16px;font-family:var(--mono);color:var(--dim);font-weight:400}
+.big2 .v{font-size:27px;font-weight:800;line-height:1.25;color:var(--gold2);min-height:66px}
+[data-k]{border-bottom:1px dashed transparent;min-width:40px;display:inline-block}
+.empty{color:var(--silk)!important;font-weight:400!important}
+body.edit [data-k]{outline:2px dashed var(--gold2);outline-offset:2px;background:#123f2c;cursor:text}
+#editbar{display:none;position:absolute;left:892px;top:22px;width:680px;font-size:15px;color:#08261a;background:var(--gold2);padding:3px 10px;font-weight:700}
+body.edit #editbar{display:block}
+.flowimg{display:block;width:100%;border:1px solid var(--silk);background:#fff}
+figure{margin:0 0 7px} figcaption{font-size:14.5px;color:var(--dim);font-family:var(--mono);margin-top:2px}
+.chk{list-style:none;padding:0!important;margin:0 0 8px!important}
+.chk li{display:flex;gap:10px;align-items:center;border-bottom:1px solid #416b56;padding:4px 0;font-size:19px}
+.chk input{width:22px;height:22px;accent-color:#d8b24a;flex:none}
+.chk .who{margin-left:auto;font-family:var(--mono);font-size:15px;white-space:nowrap}
+#cd{font-family:var(--mono);font-size:44px;font-weight:700;color:var(--gold2);line-height:1}
+.cdrow{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.cdrow button,.btn{font:inherit;font-size:16px;background:#0c3324;color:#fff;border:1.5px solid var(--silk);padding:4px 12px;cursor:pointer}
+.step{display:inline-block;border:1px solid var(--silk);padding:2px 9px;margin:2px 2px 2px 0;font-size:17px}
+.arrow{color:var(--gold2);font-family:var(--mono)}
+.jst{font-family:var(--mono);font-size:18px;border:2px solid var(--bad);color:var(--bad);padding:6px 12px;margin-top:6px}
+.jst.ok{border-color:var(--gold2);color:var(--gold2)}
+.band{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.band span{border:1px solid #6f9a84;padding:2px 9px;font-size:16.5px} .band b{font-family:var(--mono);color:var(--gold2)}
+.fin{font-size:25px;font-weight:800;color:var(--gold2);border:2px solid var(--gold2);padding:10px 14px;margin-top:8px;text-align:center}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;left:892px;top:800px;width:680px;height:82px;display:flex;gap:10px;align-items:stretch;font-size:15px}
+#hud>div{border:1px solid #6f9a84;background:#08261a;padding:6px 11px;display:flex;flex-direction:column;justify-content:center}
+#hspk{flex:1} #htime{flex:1.25} #hkeys{flex:1;color:var(--dim);font-size:13.5px;line-height:1.5;white-space:nowrap}
+#hud .l{font-size:13px;color:var(--dim);white-space:nowrap}
+#hud .v{font-size:20px;font-weight:700;color:#fff;white-space:nowrap}
+#clock{font-family:var(--mono)} #clock.off{color:var(--dim)}
+#hand{position:absolute;left:60px;top:756px;width:800px;font-size:17px;color:#08261a;background:var(--silk);padding:4px 12px;font-weight:700;display:none}
+body.spk #hand.has{display:block}
+#notes{display:none;position:absolute;left:44px;top:60px;width:830px;max-height:330px;background:#f3f3ea;color:#10261c;border:2px solid #000;padding:12px 18px;font-size:18.5px;line-height:1.5;overflow:auto;word-break:keep-all}
+#notes h4{margin:0 0 4px;font-family:var(--mono);font-size:14px;color:#3b5a4a}
+body.notes #notes{display:block}
+.modal{display:none;position:absolute;inset:26px;background:#061f15;border:2px solid var(--silk);padding:18px 26px;overflow:auto;z-index:5}
+body.help #help,body.ovv #over{display:block}
+.modal h2{margin:0 0 8px;font-size:24px} .modal h3{font-size:17px;margin:10px 0 4px;color:var(--gold2);font-family:var(--mono)}
+.cols{display:flex;gap:26px} .cols>div{flex:1}
+kbd{font-family:var(--mono);border:1px solid var(--silk);padding:0 6px;font-size:15px;background:#0c3324}
+#help table.ds{font-size:15px} #help table.ds td,#help table.ds th{padding:2px 7px;font-size:15px}
+#help li{font-size:16.5px;line-height:1.55}
+#over ol{columns:2;font-size:18px;line-height:1.6;padding-left:30px;margin:6px 0}
+#over a{color:#fff} #over li.cur a{color:var(--gold2);font-weight:700}
+a{color:var(--gold2)}
+#print{display:none}
+@media (prefers-reduced-motion:reduce){.railflow.on{animation:none}*{transition:none!important}}
+@media print{
+  html,body{overflow:visible;height:auto;background:#fff;color:#000}
+  #stage,.sr{display:none!important}
+  #print{display:block;font-size:12pt}
+  #print section{page-break-inside:avoid;border-bottom:1px solid #000;padding:8pt 0}
+  #print h2{font-size:15pt;margin:0 0 4pt} #print .meta{font-size:9pt;color:#333}
+  #print *{color:#000!important;background:none!important} #print img{max-width:100%}
+  #print table{border-collapse:collapse} #print td,#print th{border:1px solid #666;padding:2pt 5pt}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+<svg id="board" viewBox="0 0 1600 900" role="group" aria-label="발표 기판: 칩 7개가 7막, 핀이 쪽. 핀을 눌러 이동">
+  <defs>
+    <pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="#0f3f2b"/><rect width="7" height="14" fill="#114530"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="#061a12"/>
+  <rect x="8" y="8" width="1584" height="884" rx="22" fill="url(#hatch)" stroke="#0a2e1f" stroke-width="4"/>
+  <rect x="40" y="48" width="832" height="744" fill="#0f3f2b" opacity=".55"/>
+  <g id="gDeco"></g>
+  <g id="gZones"></g>
+  <g id="gRt"></g>
+  <g id="gLit"></g>
+  <g id="gComp"></g>
+  <g id="gPins"></g>
+  <g id="gRails"></g>
+  <g id="gOv"></g>
+  <circle id="pulse" r="8" cx="-50" cy="-50"/>
+</svg>
+
+<div id="editbar">편집 모드 — 점선 칸을 눌러 직접 써 넣는다(이 브라우저에 저장) · Esc 또는 E로 끝</div>
+<section id="panel" aria-live="polite" aria-label="데이터시트 패널">
+  <div id="ph"><span><b id="pref">U1</b> <span class="act" id="pact"></span></span><span id="ppin"></span></div>
+  <h1 id="pt"></h1>
+  <div id="pb"></div>
+  <div id="ps"></div>
+</section>
+<div id="hand"></div>
+<div id="hud">
+  <div id="hspk"><span class="l">지금 말하는 사람 (제안 · S)</span><span class="v" id="spkv"></span></div>
+  <div id="htime"><span class="l">경과(T) · 쪽 · 막 목표</span><span class="v"><span id="clock" class="off">00:00</span> <span id="tgt" style="font-size:15px;font-weight:400;color:var(--dim)"></span></span></div>
+  <div id="hkeys">← → 이동 · 1~7 막<br>N 메모 · S 넘김 · E 편집<br>O 전체 · ? 도움말</div>
+</div>
+<aside id="notes" aria-label="발표자 메모"><h4>발표자 메모 (N)</h4><div id="notesb"></div></aside>
+
+<div id="help" class="modal" role="dialog" aria-label="도움말">
+  <h2>도움말 — 기판 발표 조작 <span class="sm">( ? 또는 Esc로 닫기 )</span></h2>
+  <div class="cols">
+    <div>
+      <h3>KEYS</h3>
+      <ul>
+        <li><kbd>→</kbd> <kbd>Space</kbd> <kbd>PageDown</kbd> 다음(신호가 다음 핀으로) · <kbd>←</kbd> <kbd>PageUp</kbd> 이전</li>
+        <li><kbd>1</kbd>~<kbd>7</kbd> 막(칩) 이동 · <kbd>Home</kbd> <kbd>End</kbd> 처음 · 끝</li>
+        <li><kbd>T</kbd> 경과 시간 시작 · 멈춤 (<kbd>Shift</kbd>+<kbd>T</kbd> 0으로)</li>
+        <li><kbd>N</kbd> 발표자 메모 · <kbd>S</kbd> 화자 넘김 문장 띠</li>
+        <li><kbd>E</kbd> 사람 칸 편집(시간 2칸 · 바이브로그 "내 판단" · GitHub 밖 일)</li>
+        <li><kbd>O</kbd> 전체 보기(모든 부품 라벨 + 쪽 목록) · <kbd>R</kbd> 시연 카운트다운</li>
+        <li>칩 · 금색 핀을 직접 클릭, <kbd>Tab</kbd>으로 핀 이동 뒤 <kbd>Enter</kbd></li>
+        <li>주소 <code>#p12</code>로 위치 공유 · <code>?reveal=all</code> 연출 끝 상태</li>
+      </ul>
+      <h3>기판 읽는 법</h3>
+      <ul>
+        <li>칩 U1~U7 = 7막, 금색 핀 = 쪽, 밝은 배선 = 지나온 길</li>
+        <li>J1 점퍼 = 사람 판단 · F1 퓨즈 = 장애 18분 · TP1~4 = 확인 숫자</li>
+        <li>아래 전원 레일 3줄 = 세 사람. 흐르는 줄이 지금 말하는 사람</li>
+        <li>구성: 11-23 화이트보드 v2 7막 기준(13.5분 + 여유 1.5분). ⑥을 1.5 → 2.5분으로 늘림</li>
+      </ul>
+    </div>
+    <div>
+      <h3>안내서 11장 12항목 + 강사 공지 4항목 ↔ 막</h3>
+      <table class="ds">
+        <tr><th>항목</th><th>막 · 쪽</th></tr>
+        <tr><td>1 문제(가장 크게)</td><td>U1 · 2~4쪽</td></tr>
+        <tr><td>2 지켜본 곳과 데이터</td><td>U2 · 6쪽</td></tr>
+        <tr><td>3 직접 입력과 운영 화면</td><td>U2 · 7쪽</td></tr>
+        <tr><td>4 사건과 대응</td><td>U2 8쪽 · U3 9~10쪽</td></tr>
+        <tr><td>5 시연(성공 · 일부러 실패 · 과거 기록)</td><td>U4 · 11~12쪽</td></tr>
+        <tr><td>6 확인</td><td>U5 · 13쪽</td></tr>
+        <tr><td>7 커넥터</td><td>U5 13쪽(말로) · U6 17쪽</td></tr>
+        <tr><td>8 문서 위키와 챗봇</td><td>U4 12쪽 ⑤ · U6 17쪽</td></tr>
+        <tr><td>9 서브에이전트</td><td>U6 · 17쪽</td></tr>
+        <tr><td>10 하네스</td><td>U6 · 15~16쪽</td></tr>
+        <tr><td>11 팀원별 기여</td><td>U7 · 18쪽</td></tr>
+        <tr><td>12 다음에 해 볼 것</td><td>U7 · 19쪽</td></tr>
+        <tr><td>공지 1 바이브로그를 슬라이드에</td><td>U6 · 14쪽(둘째 화면)</td></tr>
+        <tr><td>공지 2 자동화 흐름 화면</td><td>U4 · 11쪽(실제 캡처 2장)</td></tr>
+        <tr><td>공지 3 md 기반 LLM 위키 시연</td><td>U4 · 12쪽 ⑤</td></tr>
+        <tr><td>공지 4 제품 시연 · 12~15분</td><td>U4 12쪽 · 전체 13.5분</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="over" class="modal" role="dialog" aria-label="전체 보기">
+  <h2>전체 보기 — 19쪽 <span class="sm">( O 또는 Esc로 닫기 · 기판에도 부품 라벨이 켜진다 )</span></h2>
+  <ol id="overlist"></ol>
+</div>
+</div>
+
+<nav class="sr" aria-label="쪽 목록(기판과 같은 순서)"><ol id="srlist"></ol></nav>
+<div id="print"></div>
+
+<script>
+(function(){
+"use strict";
+var NS="http://www.w3.org/2000/svg";
+var $=function(id){return document.getElementById(id)};
+function el(tag,attrs,parent,text){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e}
+var qs=new URLSearchParams(location.search), REVEAL=qs.get("reveal")==="all";
+var RM=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ================= 내용 ================= */
+var WHO={Y:"김영식",J:"황재웅",S:"차세일",ALL:"세 사람"};
+var ACTS=[
+ {ref:"U1",name:"1막 문제",sec:120},{ref:"U2",name:"2막 만든 것",sec:90},{ref:"U3",name:"3막 사건과 대응",sec:60},
+ {ref:"U4",name:"4막 시연",sec:240},{ref:"U5",name:"5막 확인",sec:60},{ref:"U6",name:"6막 AI와 일한 방식",sec:150},{ref:"U7",name:"7막 사람",sec:90}];
+var P=[
+/*1*/{a:0,ref:"SW1",pin:"전원",who:"Y",sec:15,nav:"표지",
+ t:"지도에서 고르고,<br>청사진으로 옮긴다",
+ b:'<p><b class="g">TechRadar</b> — AI 코딩 도구를 지키고 · 고르고 · 옮긴다. 프로젝트3 최종 발표.</p>'+
+ '<table class="ds"><caption>BOARD INFORMATION</caption>'+
+ '<tr><th>팀</th><td><span class="ca">김영식</span> A 지키기 · <span class="cb">황재웅</span> B 고르기 · <span class="cc">차세일</span> C 옮기기 · 운영</td></tr>'+
+ '<tr><th>기간</th><td>첫 커밋 <span class="n">11-16</span> → 제출 <span class="n">11-23</span></td></tr>'+
+ '<tr><th>REV</th><td>합친 PR <span class="n">232</span>개 · 마지막 <span class="n">#234</span></td></tr>'+
+ '<tr><th>신호 경로</th><td>U1 문제 → U2 만든 것 → U3 사건과 대응 → U4 시연 → U5 확인 → U6 AI와 일한 방식 → U7 사람</td></tr></table>'+
+ '<p class="sm">전원을 넣으면 신호가 입력에서 출력까지 흐른다. 구성: 11-23 화이트보드 v2 7막 기준 · 13.5분 + 여유 1.5분.</p>',
+ s:"컨셉 ADR 0032 · 영역 docs/plan.md 8~14줄 · PR 수 gh pr list(11-23 17:17, 닫기만 한 #116 · #160 제외)",
+ n:"전원 스위치. 이름 · 기준 문장 · 순서만 말하고 바로 문제로. 화자 배정은 모두 제안이다."},
+/*2*/{a:0,ref:"U1",pin:"1",who:"Y",sec:40,nav:"누가 무엇을 놓치나",
+ t:"깔기는 쉬운데, 뭘 깔았는지<br>한눈에 못 본다",
+ b:'<blockquote>“중구난방 다 깔려 있다”<small>[사람 인터뷰] 그룹1 P1 · 2026-11-17</small></blockquote>'+
+ '<blockquote>“막막해서 그냥 제로부터 시작할 생각”<small>[사람 인터뷰] 그룹1 P3 · 발화자는 전사 말투로 추정</small></blockquote>'+
+ '<table class="ds s"><tr><th>누가</th><td>AI 코딩 도구를 이것저것 깔아 쓰는 사람</td></tr>'+
+ '<tr><th>언제</th><td>노트북 반납 전에 “싹 정리하고 가지고 나갈” 때</td></tr>'+
+ '<tr><th>잃는 것</th><td>정리해 둔 것이 없어 처음부터 다시</td></tr></table>',
+ s:"docs/문제정의.md 56줄 표(인터뷰에서 나온 말 그대로) · interviews/2026-11-17-그룹1-사람.md",
+ n:"인용 두 개를 그대로 읽는다. 가장 강한 근거는 '변화를 놓침'이 아니라 '목록이 없음'이다(문제정의 232줄)."},
+/*3*/{a:0,ref:"U1",pin:"2",who:"Y",sec:40,nav:"가설을 인터뷰로 좁힘",
+ t:"가설 셋을 인터뷰로 판정했고,<br>하나는 접었다",
+ b:'<table class="ds s"><caption>HYPOTHESIS → VERDICT (팀 밖 2명 이상이면 중심)</caption>'+
+ '<tr><th>가설의 주장</th><th>팀 밖</th><th>판정</th></tr>'+
+ '<tr><td>깐 것을 한눈에 보지 못한다 (A · C)</td><td class="n">2명(추정)</td><td><b class="g">중심으로 올림</b> — 내가 깐 것</td></tr>'+
+ '<tr><td>무엇이 안전한지 모른 채 깐다 (A)</td><td class="n">1명</td><td>남김 → 보안 등급 + 이유</td></tr>'+
+ '<tr><td>몰라서 원하는 결과물을 포기한다 (B)</td><td class="n">0명</td><td><b class="bad">중심에서 내림</b> — 중단 기준(구체 사례 2명 미만)</td></tr></table>'+
+ '<p class="sm"><b>한계</b> · 그룹1은 전사 끝부분만 있고 발화자는 추정 · 대표1은 주제를 미리 알았고 “일부러 삐딱하게” 답함 · 팀원 본인과 AI 인터뷰는 세지 않음</p>',
+ s:"docs/문제정의.md 50~68줄 · ADR 0005(합친 안 C) · ADR 0013(11-18 회의 승인)",
+ n:"가설 B(필요 → 검색 · 추천)는 차세일 v5 안이었고 팀 밖 0명이라 보조로 내렸다. 말로 짧게."},
+/*4*/{a:0,ref:"U1",pin:"3",who:"Y",sec:25,nav:"숫자 하나: 손으로 vs 앱으로",
+ t:"숫자 하나: 손으로 vs 앱으로",
+ b:'<div class="big2"><div><h3>① 손으로 (파일을 열어 적고 검색)</h3><div class="v" data-k="t-hand" data-d="아직 재지 않았다"></div><div class="xs">걸린 시간 · 찾은 위험 수</div></div>'+
+ '<div><h3>② 앱으로 (등록 → 내 목록과 등급)</h3><div class="v" data-k="t-app" data-d="아직 재지 않았다"></div><div class="xs">걸린 시간 · 찾은 위험 수</div></div></div>'+
+ '<p class="sm"><b>재는 방법</b> · 같은 저장소 하나를 두고 사람이 스톱워치로 잰다. 잰 값이면 “잰 것”으로 표시한다.<br><b>한계</b> · 사용자가 없어 앱 안 숫자는 시연 계정 값뿐이다. 빈도 · 손해는 수치화하지 않고 당사자 말과 공개 사례로 설명한다.</p>'+
+ '<p class="xs">값을 넣으려면 <kbd>E</kbd> — 넣기 전에는 위 문장이 그대로 사실이다.</p>',
+ s:"ADR 0011(숫자 하나는 비교 작업 시간으로, 11-18 채택) · 값은 사람만 채움",
+ n:"재지 않았으면 재지 않았다고 말한다. 값이 있으면 E로 써 넣는다."},
+/*5*/{a:1,ref:"U2",pin:"1",who:"Y",sec:25,nav:"분업 한 장 지도",
+ t:"기준 문장 세 마디가<br>곧 영역 셋이다",
+ b:'<table class="ds"><caption>ZONE MAP — 층이 아니라 기능 영역</caption>'+
+ '<tr><th>말</th><th>영역 · 사람</th><th>메뉴</th><th>맡은 것</th></tr>'+
+ '<tr><td><b class="ca">지키고</b></td><td>A 김영식</td><td>프로젝트</td><td>저장소 읽기 · 수집 · 등급</td></tr>'+
+ '<tr><td><b class="cb">고르고</b></td><td>B 황재웅</td><td>지도</td><td>알림 · 판단 · 기록</td></tr>'+
+ '<tr><td><b class="cc">옮긴다</b></td><td>C 차세일</td><td>청사진</td><td>흐름 화면 · 관리자 · 설치 프롬프트 · 운영</td></tr></table>'+
+ '<p>각자 자기 영역의 <b>화면 · 서버 · 데이터 · QA</b>를 모두 해 봤다. 프론트 / 백엔드로 나누지 않았다.</p>'+
+ '<p class="sm">공용 파일은 주인제: <code>lib/server/</code> 뼈대는 김영식, <code>flow/flow.json</code>은 차세일만 고친다.</p>',
+ s:"docs/plan.md 8줄 · 10~18줄 · 메뉴 ADR 0037 · 0041",
+ n:"기판 아래 전원 레일 세 줄이 세 사람이다. 영역 = 사람 = 메뉴."},
+/*6*/{a:1,ref:"U2",pin:"2",who:"Y",sec:25,nav:"지켜본 곳과 데이터",
+ t:"출처 7곳을 매일 읽고,<br>실패는 “수집 오류”로 남긴다",
+ b:'<table class="ds s"><caption>COLLECTORS ×7 — 매일 06:00 KST</caption>'+
+ '<tr><td>OSV 취약점 재확인</td><td>GitHub 저장소 정보</td></tr><tr><td>GitHub 별 후보 검색</td><td>공식 MCP 레지스트리</td></tr>'+
+ '<tr><td>npm · PyPI 주간 다운로드</td><td>Hacker News</td></tr><tr><td colspan="2">바깥 소식(공식 피드)</td></tr></table>'+
+ '<table class="ds s"><tr><th>첫 실수집 11-19</th><td><span class="n">64초</span> · 기술 <span class="n">3,166</span>개</td></tr>'+
+ '<tr><th>지금 한 번 실행 11-22</th><td><span class="n">125초 4,823건</span> · <span class="n">172초 4,921건</span>(새 줄 0)</td></tr></table>'+
+ '<p class="sm">실패하면 “변화 없음”으로 단정하지 않는다. 다음 시도 시각만 적고, 다음 기회는 06:00 정기 실행 또는 지금 한 번 실행이다.</p>',
+ s:"lib/schedule/collectors.ts:13 · vercel.json(0 21 * * * UTC) · CLAUDE.md 불변 규칙 2 · docs/qa.md:79 · docs/connectors.md:12 · docs/qa-c.md:10",
+ n:"처음 4곳에서 11-21 뒤 별 후보 · HN · 바깥 소식이 더해져 7개. 다시 돌리는 코드는 없다 — 시각 기록만."},
+/*7*/{a:1,ref:"U2",pin:"3",who:"Y",sec:20,nav:"직접 입력과 운영 화면",
+ t:"등록하면 내 목록에,<br>권한은 세 곳에서 막는다",
+ b:'<p><span class="step">공개 저장소 등록</span><span class="arrow"> → </span><span class="step">사용 중인 항목 · 등급</span><span class="arrow"> → </span><span class="step">지도 <code>/</code></span><span class="arrow"> → </span><span class="step">청사진</span></p>'+
+ '<table class="ds s"><caption>SCREENS — 화면은 시연에서 직접 봅니다</caption>'+
+ '<tr><th>프로젝트 보드</th><td>컴팩트 보드 · “사용 중인 항목” <span class="tag">#208 · #210</span></td></tr>'+
+ '<tr><th>관리자</th><td>관리자 지정 · 되돌리기, 화면 리뉴얼 <span class="tag">#212 · #215 · #227 · #229</span></td></tr>'+
+ '<tr><th>권한</th><td><b class="g">화면 · 서버 · DB(RLS)</b> 세 곳에서 검사. 본인이 공개한 것 말고는 본인 데이터만</td></tr></table>'+
+ '<p class="sm">관리자도 남의 알림은 못 본다 — 그래서 시연은 시연 계정으로 로그인한다.</p>',
+ s:"CLAUDE.md 불변 규칙 5 · ADR 0043 · docs/intent.md:2749 · #185",
+ n:"화면 캡처 대신 시연에서 직접 본다고 말하고 넘어간다. 지도 주소는 / 이다."},
+/*8*/{a:1,ref:"U2",pin:"4",who:"Y",sec:20,nav:"알림 세 종류, 판단은 사람",
+ t:"알림은 세 종류,<br>판단은 사람이 한다",
+ b:'<table class="ds"><caption>ALERT TYPES</caption><tr><th>종류</th><th>언제 생기나</th></tr>'+
+ '<tr><td><b class="bad">보안 경고</b></td><td>내 프로젝트가 쓰는 기술의 등급이 “위험”으로 바뀔 때</td></tr>'+
+ '<tr><td><b class="g">적용 기회</b></td><td>같은 역할로 확정된 새 기술. 조건 4개(넷째: 별 수를 알면 100 이상)</td></tr>'+
+ '<tr><td><b class="cb">모델 종료</b></td><td>내 코드에 쓴 모델 이름이 공식 지원 종료 공지에 있을 때</td></tr></table>'+
+ '<p>앱은 알리고 초안까지만 쓴다. <b>사람이 판단하기 전에는 어떤 조치도 실행하지 않는다.</b> 관리자도 건너뛸 수 없다.</p>',
+ s:"docs/GLOSSARY.md(보안 경고 · 모델 종료) · docs/worklog.md 11-21 I-P-21c(조건 4) · CLAUDE.md 불변 규칙 1",
+ n:"넘김(제안): “그 판단이 실제로 어떻게 걸리는지, 재웅 님이 이어갑니다.”",h:"다음 화자 → 황재웅 · “사건이 오면 무슨 일이 생기는지, 재웅 님이 이어갑니다.” (제안)"},
+/*9*/{a:2,ref:"U3",pin:"1",who:"J",sec:30,steps:1,nav:"사건 → 알림 → 판단 → 기록",
+ t:"사람이 판단하기 전에는<br>신호가 넘어가지 않는다",
+ b:'<p><span class="step">사건 기준</span><span class="arrow"> → </span><span class="step">알림</span><span class="arrow"> → </span><span class="step" style="border-color:var(--gold2);color:var(--gold2)">J1 사람 판단</span><span class="arrow"> → </span><span class="step">조치와 기록</span></p>'+
+ '<table class="ds s"><caption>INVARIANTS — 코드를 바꿀 때마다 시험으로 확인</caption>'+
+ '<tr><th>1</th><td>사람이 판단하기 전에는 어떤 조치도 실행하지 않는다</td></tr>'+
+ '<tr><th>3</th><td>같은 변경을 다시 읽어도 사건 · 조치가 두 번 생기지 않는다</td></tr>'+
+ '<tr><th>4</th><td>거절 · 저장 실패 때는 기존 값을 지키고 “처리 완료”로 표시하지 않는다</td></tr></table>'+
+ '<p class="sm">판단 저장은 한 거래로 묶었다 <span class="tag">#43</span> · Claude는 대응안 초안과 적용 시나리오까지만 <span class="tag">#120</span></p>'+
+ '<div class="jst" data-step="0">J1 열림 — 판단 전: 조치 0건 <span class="xs">(→ 를 누르면 판단)</span></div>'+
+ '<div class="jst ok" data-step="1">J1 닫힘 — 판단이 저장된 뒤에만 조치와 기록이 생긴다</div>',
+ s:"CLAUDE.md 3절 불변 규칙 1 · 3 · 4 · PR #43 · #120",
+ n:"→ 한 번 더 누르면 기판의 J1 점퍼가 닫힌다. 그 뒤에야 신호가 U4로 간다."},
+/*10*/{a:2,ref:"U3",pin:"2",who:"J",sec:30,nav:"합친 뒤 깨진 일 하나",
+ t:"합친 뒤에 깨졌다:<br>#133, 약 18분",
+ b:'<table class="ds s"><caption>INCIDENT 11-19 — 무엇이 깨졌고 어떻게 막았나</caption>'+
+ '<tr><th class="n">14:43</th><td><b class="bad">#133 합침</b> → 새 칸을 만드는 마이그레이션보다 코드가 먼저 운영에 → 관리자 분류 탭 조회 실패</td></tr>'+
+ '<tr><th class="n">14:56</th><td>#135 — 칸 없음 오류일 때만 그 부분을 끄고 안내</td></tr>'+
+ '<tr><th class="n">15:01</th><td>운영에 마이그레이션 적용 → 복구 <b class="g">(약 18분)</b></td></tr>'+
+ '<tr><th>규칙</th><td>#138 — 합치기 전에 운영에 먼저 적용</td></tr>'+
+ '<tr><th>도구</th><td>#156 — precheck 경고 + 운영 점검표</td></tr></table>'+
+ '<p class="sm">이 규칙이 그 뒤로도 깨진 이야기는 U6의 퓨즈 F1에서 숨기지 않고 말한다.</p>',
+ s:"docs/debug-note.md:30 · PR #133 · #135 · #138 · #156",
+ n:"넘김(제안): “막아 둔 것이 지금 도는지, 다음 시연이 그 증명입니다. 세일 님이 직접 쏩니다.”",h:"다음 화자 → 차세일 · “다음 시연이 그 증명입니다. 세일 님이 직접 쏩니다.” (제안)"},
+/*11*/{a:3,ref:"U4",pin:"1",who:"S",sec:15,nav:"자동화 흐름 화면(실제 캡처)",
+ t:"미리 그린 그림이 아니라<br>실행 기록에서 그린다",
+ b:'<figure><img class="flowimg" src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터 실행이 사람 판단 대기에서 멈춘 모습"><figcaption>11-20 운영 실제 실행 — 시뮬레이터 실행: 사람 판단 대기에서 멈춤</figcaption></figure>'+
+ '<figure><img class="flowimg" src="images/flow-fail-demo-1120.png" alt="흐름 화면: 일부러 실패시킨 실행의 빨간 상자"><figcaption>11-20 운영 실제 실행 — 일부러 실패시킨 실행: 빨간 상자</figcaption></figure>'+
+ '<p class="sm">흐름 화면은 <code>runs</code> · <code>run_steps</code>를 읽어 그린다. 캡처는 11-23 테마 변경 전 모습이다.</p>',
+ s:"docs/flow.md 115 · 119줄 · docs/images/ · CLAUDE.md 불변 규칙 6",
+ n:"강사 공지 '자동화 흐름 화면'. 캡처는 예고편이고 바로 운영 주소로 넘어간다."},
+/*12*/{a:3,ref:"U4",pin:"RUN",who:"ALL",sec:225,steps:1,nav:"시연 — 가짜 사건이 끝까지 돈다",
+ t:"가짜 사건 하나가 끝까지 돈다",
+ b:'<div class="cdrow"><span id="cd">3:45</span><button type="button" id="cdbtn">RUN 시작 (R)</button><span class="xs">시연 4분 = 앞 쪽 15초 + 여기 225초 · 조작은 한 사람 고정</span></div>'+
+ '<ul class="chk">'+
+ '<li><label><input type="checkbox" data-c="0"> ① 시뮬레이터로 가짜 사건 쏘기</label><span class="who cc">차세일</span></li>'+
+ '<li><label><input type="checkbox" data-c="1"> ② 흐름 화면 — 실행 기록 · 빨간 상자</label><span class="who cc">차세일 · ①② 1.5분</span></li>'+
+ '<li><label><input type="checkbox" data-c="2"> ③ 알림 상세 · 판단 저장 · 지난 판단</label><span class="who cb">황재웅 · 0.5분</span></li>'+
+ '<li><label><input type="checkbox" data-c="3"> ④ 지도 <code>/</code> → 청사진 → 설치 프롬프트</label><span class="who ca">김영식 · 1분</span></li>'+
+ '<li><label><input type="checkbox" data-c="4"> ⑤ 위키 챗봇 Q5 (md 기반 LLM 위키)</label><span class="who cc">차세일 · 1분</span></li></ul>'+
+ '<p class="xs"><b>조심</b> · 같은 입력은 하루 1번: 시뮬레이터를 지우고 다시 돌리면 대응안 초안이 안 나온다 · 관리자는 남의 알림을 못 봄 → 시연 계정으로 · 실패 시연 ①②⑤는 운영에서 꺼져 있다 · Q5는 11-20 운영에서 맞음, 11-23 위키 변경 뒤 재확인 전 · 직전에 <code>/api/version</code> 확인</p>',
+ s:"sim/README.md 21줄 · PR #185 · #169 · docs/wiki-chat.md · 시간 배분은 화이트보드 v2(리허설 시간은 팀 추정)",
+ n:"R 또는 →로 카운트다운 시작. 성공 · 일부러 실패(빨간 상자) · 과거 기록 찾기(지난 판단)를 모두 보여 준다. 넘김(제안): “방금 본 것이 맞는지, 숫자로 확인합니다. 재웅 님.”",h:"다음 화자 → 황재웅 · “방금 본 것이 맞는지, 숫자로 확인합니다.” (제안)"},
+/*13*/{a:4,ref:"U5",pin:"TP1~4",who:"J",sec:60,nav:"확인 — 숫자마다 출처",
+ t:"놓침 0 · 잘못 울림 0.<br>그런데 합친 뒤에 깨졌다",
+ b:'<table class="ds s"><caption>ELECTRICAL CHARACTERISTICS</caption><tr><th>TP</th><th>항목</th><th>값</th><th>조건</th></tr>'+
+ '<tr><th>TP1</th><td>채점</td><td class="n">56사례 · 놓침 0 · 잘못 울림 0</td><td>사례 12 + 경계 44, 등급 12/12 · 11-21</td></tr>'+
+ '<tr><th>TP2</th><td>자동 시험</td><td class="n">1,883 통과 · 실패 0</td><td>npm test · main 210375b</td></tr>'+
+ '<tr><th rowspan="2">TP3</th><td>Claude QA 135줄</td><td class="n">Pass 121 · Fail 9 · No Run 4</td><td>Fail 8건은 고침 · 설계대로 1</td></tr>'+
+ '<tr><td>사람 QA 47줄</td><td class="n">Pass 13 · Fail 12 · No Run 21</td><td>일부 Pass 1 · No Run 그대로</td></tr>'+
+ '<tr><th>TP4</th><td>합친 뒤 잡은 오류</td><td class="n">3건</td><td>#133 장애 18분 · #153 운영에서 늘 실패(가짜 DB 시험은 통과) · CRON_SECRET 없어 첫 정기 실행 안 돎</td></tr></table>'+
+ '<p class="xs">#220 제목의 “사람 QA Pass 19 → 33”은 QA 시트 사본 기준으로 보이며 위 표(docs/qa.md)와 다르다 — 어느 쪽이 기준인지 확인 전. 커넥터 기록은 122행(Supabase가 가장 많음).</p>',
+ s:"eval/result.md:3-5 · 24 · 90 · npm test(11-23) · docs/qa.md(11-23 14:38) · docs/debug-note.md:26 · 30 · 31 · docs/connectors.md",
+ n:"숫자마다 출처를 말한다. No Run을 숨기지 않는다. 넘김(제안): “이걸 7일 동안 어떻게 만들었는지는 세일 님이.”",h:"다음 화자 → 차세일 · “7일 동안 어떻게 일했는지는 세일 님이 이어갑니다.” (제안)"},
+/*14*/{a:5,ref:"U6",pin:"1",who:"S",sec:50,steps:1,nav:"7일 타임라인 · 바이브로그",
+ t:"7일, 232개.<br>방향을 다섯 번 틀었다",
+ b:'<div data-step="0"><table class="ds s"><caption>REROUTE ×5 — 끊긴 옛 배선과 새 배선</caption>'+
+ '<tr><th class="n">11-17</th><td>가설 B를 중심에서 내림(팀 밖 0명) <span class="tag">ADR 0005</span></td></tr>'+
+ '<tr><th class="n">11-20</th><td>지도를 “작게”에서 첫 화면으로 <span class="tag">ADR 0026~0028</span></td></tr>'+
+ '<tr><th class="n">11-21</th><td>컨셉 재정의 “지도에서 고르고, 청사진으로 옮긴다” <span class="tag">ADR 0032</span></td></tr>'+
+ '<tr><th class="n">11-21</th><td>수집 기준: 별 하나 → 관문 + 의심 거르기 + 점수 <span class="tag">ADR 0033</span></td></tr>'+
+ '<tr><th class="n">11-23</th><td>파란 도면 테마를 1시간 반 만에 접고 관측소 테마로 <span class="tag">ADR 0044</span></td></tr></table>'+
+ '<p class="sm"><b class="bad">사고</b> · 11-19 #133 장애 18분 · 11-21 · 22 마이그레이션 번호 겹침 2번 · 11-22 · 23 승인 뒤 커밋 빠짐(#204 → #206, #208 → #210)</p>'+
+ '<p class="xs">막대 = 날짜별 합친 PR 24 · 68 · 79 · 28 · 1 · 4 · 28. 11-21 · 22는 수가 적지만 #202~#204는 수십 커밋 묶음이다(PR 수는 무게가 아니다).</p></div>'+
+ '<div data-step="1"><table class="ds s"><caption>VIBELOG — 저장소 기록에서 뽑은 후보 · 본인 vibelog 확인 전</caption>'+
+ '<tr><th>누구 · 날짜</th><th>막힌 것 → 푼 방법</th><th>내 판단 (본인만 씀)</th></tr>'+
+ '<tr><td><b class="ca">김영식</b><br><span class="n">11-18</span></td><td>기록 문서 충돌(병합 59개 중 8개 · 20곳) → merge=union + 기록 검사 시험 <span class="tag">#55</span></td><td><span data-k="vl-y" data-d="아직 쓰지 않았다 — 본인이 한 문장"></span></td></tr>'+
+ '<tr><td><b class="cb">황재웅</b><br><span class="n">11-23</span></td><td>사람 QA 중 취향 저장 권한 오류를 찾음 → 고침 <span class="tag">#214</span></td><td><span data-k="vl-j" data-d="아직 쓰지 않았다 — 본인이 한 문장"></span></td></tr>'+
+ '<tr><td><b class="cc">차세일</b><br><span class="n">11-19</span></td><td>#133 장애 → 부분 끄기 #135 → 규칙 #138</td><td><span data-k="vl-s" data-d="아직 쓰지 않았다 — 본인이 한 문장"></span></td></tr></table>'+
+ '<p class="xs">“내 판단” 칸은 abbsbook에도 비어 있었다(제출물 체크리스트 11줄). 지어 쓰지 않는다 — <kbd>E</kbd>로 각자 써 넣는다.</p></div>',
+ s:"gh pr list(KST 날짜별) · docs/문제정의.md · ADR 0005 · 0026~0028 · 0032 · 0033 · 0044 · docs/debug-note.md:14 · 30 · 47~55",
+ n:"기판 왼쪽 버스의 재배선 흔적 5개와 메모리 뱅크 막대를 가리킨다. →를 한 번 더 누르면 바이브로그 장면 3개. 자기 장면은 각자 한 문장(제안)."},
+/*15*/{a:5,ref:"U6",pin:"2",who:"S",sec:25,nav:"일하는 규칙과 기록",
+ t:"셋이 같은 규칙으로 일했고,<br>전부 기록했다",
+ b:'<ol style="font-size:19px">'+
+ '<li>층이 아니라 <b>기능 영역</b>으로 나눈다 (A · B · C)</li>'+
+ '<li><b>공용 파일 주인제</b> — 바꿀 게 있으면 주인에게 요청</li>'+
+ '<li>조각 = 브랜치, <b>만든 사람이 아닌 1명 승인</b> <span class="xs">(main 보호 전인 #1~#24는 리뷰 없이 합쳐짐)</span></li>'+
+ '<li><b>기록 5문서는 union merge</b> — 충돌 20곳이 모두 기록 문서였다 <span class="tag">ADR 0017</span></li>'+
+ '<li><b>precheck</b> — 충돌 미리 보기, 마이그레이션 번호 겹침은 실패 <span class="tag">#71 · #156</span></li>'+
+ '<li><b>배포 아끼기</b> — 20분 잠잠하면 한 번 배포 <span class="tag">#159 · #176</span></li></ol>'+
+ '<div class="band"><span>intent <b>280</b></span><span>ADR <b>45</b></span><span>agents <b>168행</b></span><span>connectors <b>122행</b></span><span>debug-note <b>55행</b></span><span>위키 <b>18쪽</b></span></div>',
+ s:"docs/plan.md 8~27줄 · .gitattributes · docs/debug-note.md 14~20줄 · ADR 0017 · 0018 · 0023(제안 상태) · 행 수는 11-23 grep -c",
+ n:"규칙은 읽지 말고 두세 개만 짚는다. ADR 0023은 아직 '제안' 상태다."},
+/*16*/{a:5,ref:"F1",pin:"퓨즈",who:"S",sec:35,steps:1,nav:"하네스 — 장애 18분과 재발",
+ t:"규칙 → 도구 →<br>그래도 네 번 더 깨졌다",
+ b:'<table class="ds s"><caption>F1 — BLOWN 11-19 14:43 · RESTORED 15:01</caption>'+
+ '<tr><th>① 장애</th><td>#133이 마이그레이션보다 먼저 배포 → 약 18분</td></tr>'+
+ '<tr><th>② 규칙</th><td>#138 — 합치기 전에 운영 먼저</td></tr>'+
+ '<tr><th>③ 도구</th><td>#156 — precheck가 마이그레이션이 든 PR에 경고</td></tr>'+
+ '<tr><th>④ <b class="bad">×4 재발</b></th><td>#178(5분) · #182(약 9시간) · #184/#187 · #215</td></tr>'+
+ '<tr><th>⑤ 배운 것</th><td><b>경고만으로는 못 막는다.</b> 경고는 뜨지만 승인 뒤 바로 합쳐진다</td></tr>'+
+ '<tr><th>⑥ 실패로</th><td>번호 겹침(11-21 · 22 두 번)은 precheck가 <b class="g">경고가 아니라 실패</b>(종료 코드 1)</td></tr></table>'+
+ '<p class="sm">순서를 막는 장치는 아직 없다. 지금은 PR 설명 맨 위에 “운영 적용 전에는 합치지 말아 주세요”를 적는다.</p>'+
+ '<div class="jst" data-step="0">F1 끊어짐 — 14:43 <span class="xs">(→ 를 누르면 복구)</span></div>'+
+ '<div class="jst ok" data-step="1">F1 복구 — 규칙 · 도구로 이었다. 옆 실크: ×4 재발</div>',
+ s:"docs/debug-note.md:30 · 41 · 45 · 47~51 · 57 · docs/intent.md:2039",
+ n:"차세일은 #133 · #135 · #138 당사자다. '실패로 바꾼 것'은 번호 겹침 검사이고, 적용 순서를 막는 장치는 아직 없다는 것까지 말한다."},
+/*17*/{a:5,ref:"RN1",pin:"에이전트",who:"S",sec:40,nav:"서브에이전트 · 다중 세션 · 위키 챗봇",
+ t:"AI에게 맡기되,<br>확인한 뒤에만 합쳤다",
+ b:'<table class="ds s">'+
+ '<tr><th>서브에이전트</th><td>기록 <span class="n">168행</span>. 만든 쪽과 검토하는 쪽을 나눔. 팀 정의 0개 — 기본 제공 도우미를 불러 씀</td></tr>'+
+ '<tr><th>다중 세션</th><td>Maestro · FrontLead · DevAssi1 · 2 · DataCollector · DocsChecker <span class="xs">(11-21~23, 주로 김영식 쪽 세션)</span></td></tr>'+
+ '<tr><th>품질 루프</th><td>영역 C만 · 최대 3바퀴 · 서브에이전트 11개 <span class="tag">#227</span></td></tr>'+
+ '<tr><th class="bad">잘 안 된 점</th><td>같은 기능을 두 세션이 따로 만들어 <b>13파일 충돌</b>(11-20), 마이그레이션 번호 겹침 2번</td></tr>'+
+ '<tr><th>커넥터</th><td>기록 122행 — Supabase · Vercel · Slack · abbsbook(MCP)</td></tr>'+
+ '<tr><th>위키 챗봇</th><td>위키 18쪽. 11-19 정답표 <span class="n">4/5</span>, Q5 틀림(“위키에 없습니다”) → 쪽마다 앞 2000자만 넘기던 것을 고침 <span class="tag">#131</span> → 11-20 운영 <span class="n">5/5</span></td></tr></table>'+
+ '<p class="xs">처음에는 “쪽 찾기 탓”으로 잘못 짚었다. 11-23 위키 변경 뒤 운영 재질문은 확인 전.</p>',
+ s:"docs/agents.md 3 · 5 · 141~163줄 · docs/quality-loop/README.md · docs/debug-note.md:46~50 · docs/connectors.md · docs/wiki-chat.md:3 · 24~34",
+ n:"다중 세션은 팀 전체의 방식처럼 말하지 않는다(주로 김영식 쪽 세션). 넘김(제안): “마지막은 세 사람이 각자.”",h:"다음 → 세 사람 · “마지막은 세 사람이 각자 말합니다.” 영식 → 재웅 → 세일 (제안)"},
+/*18*/{a:6,ref:"U7",pin:"1",who:"ALL",sec:60,nav:"팀원별 기여",
+ t:"세 사람 모두 PR과 리뷰",
+ b:'<table class="ds s"><caption>CONTRIBUTION — 합친 PR / 리뷰한 남의 PR (모두 승인)</caption>'+
+ '<tr><th></th><th class="ca">김영식 · A</th><th class="cb">황재웅 · B</th><th class="cc">차세일 · C</th></tr>'+
+ '<tr><th>PR / 리뷰</th><td class="n">133 / 79</td><td class="n">43 / 100</td><td class="n">56 / 38</td></tr>'+
+ '<tr><th>대표 PR</th><td>#33 등록 → 등급 · #178 첫 화면 지도 · #204 청사진</td><td>#37 · #38 알림 · #43 판단 저장 · #139 적용 기회</td><td>#30 실행 기록 · #46 흐름 화면 · #125 위키 챗봇</td></tr>'+
+ '<tr><th>GitHub 밖<br><span class="xs">본인 확인</span></th>'+
+ '<td class="xs"><span data-k="gh-y" data-d="문서 근거: Supabase · Vercel · 구글 OAuth · 환경변수, 운영 마이그레이션 적용 (본인 확인 전)"></span></td>'+
+ '<td class="xs"><span data-k="gh-j" data-d="문서 근거는 약하다: 사람 QA 수행(#220) · 같은 역할 시드 결정(#198). 나머지는 본인이 써 넣는다"></span></td>'+
+ '<td class="xs"><span data-k="gh-s" data-d="문서 근거: 11-18 회의 기록, 질문지 작성, 강사 확인 전달, 발표 주소 배포 (본인 확인 전)"></span></td></tr></table>'+
+ '<p class="sm">각자 20초 소감: 영식 → 재웅 → 세일. PR 수는 무게가 아니다 — 사람별 커밋 수는 세지 않았다.</p>',
+ s:"gh pr list · GraphQL reviews(11-23 17:17, 본인 PR 제외 · PR당 1번) · docs/plan.md · docs/차세일-의견-피드백-정리.md",
+ n:"세 레일이 모두 켜진다. 각자 20초. GitHub 밖 칸은 E로 본인이 고친다."},
+/*19*/{a:6,ref:"U7",pin:"OUT",who:"J",sec:30,steps:1,nav:"다음에 해 볼 것",
+ t:"다음은, 사람에게 다시 묻기",
+ b:'<table class="ds"><tr><th>사람 인터뷰로<br>확인할 것</th><td>그룹1 중 1명에게 노트북 반납 뒤 다시 묻는다. 설치 프롬프트 수작업 시험을 함께 해 본다</td></tr>'+
+ '<tr><th>다음 개선 하나</th><td>마이그레이션 적용 순서를 경고가 아니라 장치로 막기 — 네 번의 재발이 근거</td></tr>'+
+ '<tr><th>한계</th><td>사용자가 없다 · 11-22~23 화면 변화는 사람 QA가 얇다 · AI 진단 · 한국어 개요(ADR 0045)는 사람 QA 전</td></tr></table>'+
+ '<div class="jst" data-step="0">출력 대기 <span class="xs">(→ 를 누르면 전체 통전)</span></div>'+
+ '<div class="fin" data-step="1">입력에서 출력까지, 전부 이어졌다.<br><span style="font-size:19px;color:#fff;font-weight:400">지키고 · 고르고 · 옮긴다 — 감사합니다</span></div>',
+ s:"docs/팀토론-문제정의-승인.md 25줄 · docs/debug-note.md:57 · docs/제출전-레드팀-1123.md 47줄 · ADR 0045",
+ n:"→ 한 번 더 누르면 기판 전체가 통전된 그림. 질문을 받는다."}
+];
+var NP=P.length;
+
+/* ================= 기판 그리기 ================= */
+var A=[[140,118],[138,255],[138,305],[138,355],[252,152],[252,178],[252,204],[252,230],[582,170],[582,215],[578,400],[445,445],[820,490],[518,640],[518,670],[590,700],[695,700],[782,700],[782,740]];
+var R=[
+"M140,118 H172 L192,138 V235 L172,255 H138",
+"M138,255 H150 L158,263 V297 L150,305 H138",
+"M138,305 H150 L158,313 V347 L150,355 H138",
+"M138,355 H190 L215,330 V177 L240,152 H252",
+"M252,152 H244 L238,158 V172 L244,178 H252",
+"M252,178 H244 L238,184 V198 L244,204 H252",
+"M252,204 H244 L238,210 V224 L244,230 H252",
+"M252,230 H270 L440,190 H520 L540,170 H582",
+"M582,170 H574 L566,178 V207 L574,215 H582",
+"M582,215 H600 L750,190 H800 L820,210 V370 L790,400 H578",
+"M578,400 H560 L445,445",
+"M445,445 L560,490 H820",
+"M820,490 V540 L800,560 H600 L560,600 V620 L540,640 H518",
+"M518,640 H528 L534,646 V664 L528,670 H518",
+"M518,670 H530 L540,680 V690 L550,700 H590",
+"M590,700 H695","M695,700 H782",
+"M782,700 H770 L764,706 V734 L770,740 H782"];
+var gDeco=$("gDeco"),gRt=$("gRt"),gLit=$("gLit"),gComp=$("gComp"),gPins=$("gPins"),gRails=$("gRails"),gZ=$("gZones"),gOv=$("gOv"),board=$("board");
+function silk(x,y,t,o){o=o||{};var a={x:x,y:y,"class":"silk"+(o.c?" "+o.c:"")};if(o.a)a["text-anchor"]=o.a;if(o.r)a.transform="rotate("+o.r+" "+x+" "+y+")";if(o.w)a["font-weight"]=o.w;var e=el("text",a,o.p||gComp,t);if(o.s)e.style.fontSize=o.s+"px";return e}
+function via(x,y,p){el("circle",{cx:x,cy:y,r:5,"class":"via"},p||gDeco);el("circle",{cx:x,cy:y,r:2,"class":"hole"},p||gDeco)}
+function smd(x,y,ref,vert,p){p=p||gComp;var w=vert?10:24,h=vert?24:10;
+  el("rect",{x:x-w/2-2,y:y-h/2-2,width:w+4,height:h+4,fill:"none",stroke:"#f3f3ea",'stroke-width':.8,opacity:.6},p);
+  if(vert){el("rect",{x:x-5,y:y-12,width:10,height:7,"class":"pad"},p);el("rect",{x:x-5,y:y+5,width:10,height:7,"class":"pad"},p);el("rect",{x:x-5,y:y-5,width:10,height:10,fill:ref[0]=="C"?"#b08a5a":"#1b1d1e"},p)}
+  else{el("rect",{x:x-12,y:y-5,width:7,height:10,"class":"pad"},p);el("rect",{x:x+5,y:y-5,width:7,height:10,"class":"pad"},p);el("rect",{x:x-5,y:y-5,width:10,height:10,fill:ref[0]=="C"?"#b08a5a":"#1b1d1e"},p)}
+  silk(vert?x+10:x-12,vert?y+4:y-10,ref,{s:9,p:p})}
+
+/* 가장자리 · 마운팅 홀 · 실크 */
+[[34,34],[1566,34],[34,866],[1566,866]].forEach(function(c){el("circle",{cx:c[0],cy:c[1],r:15,"class":"pad"},gDeco);el("circle",{cx:c[0],cy:c[1],r:9,fill:"#061a12"},gDeco)});
+silk(468,82,"TECHRADAR",{s:27,w:700}).style.letterSpacing="4px";
+silk(469,102,"지도에서 고르고, 청사진으로 옮긴다",{s:13}).style.fontFamily="var(--sans)";
+silk(862,70,"REV 11-23 · PR #234",{s:13,a:"end"});
+silk(862,88,"TEAM 영식 · 재웅 · 세일",{s:12,a:"end"}).style.fontFamily="var(--sans)";
+silk(1570,48,"DATASHEET",{s:12,a:"end"});
+silk(892,48,"TR-E · 1/1",{s:12});
+
+/* 구역(분업) */
+[["A 지키고",48,"var(--ra)"],["B 고르고",322,"var(--rb)"],["C 옮긴다",596,"var(--rc)"]].forEach(function(z,i){
+  el("rect",{x:z[1],y:112,width:268,height:676,"class":"zone"},gZ);
+  var t=silk(z[1]+8,782,"ZONE "+z[0],{s:13,p:gZ,c:"zt"});t.style.fontFamily="var(--sans)";t.style.fill=z[2]});
+
+/* 장식 배선 */
+function tr(d,p){return el("path",{d:d,"class":"tr"},p||gDeco)}
+tr("M620,330 H700 L720,350 V440");tr("M640,350 H690 L705,365 V440");tr("M560,360 H600 L620,340");
+tr("M750,245 V280 L730,300 H640");tr("M330,520 H300 L280,540 V590");tr("M60,440 H110 L130,460 V590");tr("M60,470 H95 L115,490 V590");
+tr("M500,150 V135 L520,115 H560 L575,130");tr("M355,130 V100");tr("M270,250 L250,270 V300 H330");
+tr("M700,600 H760 L780,620");tr("M640,640 V660 L620,680");tr("M56,300 H44 V520");
+[[720,440],[705,440],[640,300],[280,590],[130,590],[115,590],[575,130],[250,300],[44,520],[620,340],[192,186],[820,540],[600,560],[700,600]].forEach(function(v){via(v[0],v[1])});
+
+/* 재배선 흔적 5개 = 버스 */
+var scars=["11-17","11-20","11-21","11-21","11-23"];
+var gS=el("g",{"class":"scars"},gDeco);
+scars.forEach(function(dt,i){var x=300-i*40,y=380+i*22,cy=470+i*14;
+  var g=el("g",{"class":"scar"},gS);
+  el("path",{d:"M330,"+y+" H"+(x+12)+" L"+x+","+(y+12)+" V"+(cy)+" L"+(x+14)+","+(cy+14)+" V"+(cy+34)+" L"+x+","+(cy+48)+" V610","class":"tr new"},g);
+  el("path",{d:"M"+x+","+(cy+4)+" V"+(cy+14)+" M"+x+","+(cy+34)+" V"+(cy+44),"class":"tr old"},g);
+  el("path",{d:"M"+(x-5)+","+(cy+19)+" l10,10 m0,-10 l-10,10","class":"silkl"},g);
+  silk(x-8,cy+44,dt,{s:9.5,p:g,r:-90})});
+silk(150,372,"REROUTE ×5",{s:11,p:gS});
+
+/* 경로(기본 배선 + 통전) */
+var lit=[],len=[];
+R.forEach(function(d,i){el("path",{d:d,"class":"rt"},gRt);var p=el("path",{d:d,"class":"lit"},gLit);var L=p.getTotalLength();len[i]=L;p.style.strokeDasharray=L+" "+L;p.style.strokeDashoffset=L;lit[i]=p});
+
+/* 부품 */
+var chips={};
+function chip(id,act,x,y,w,h,label,opt){opt=opt||{};
+  var g=el("g",{"class":"chip",id:"c"+id,"data-act":act,role:"img","aria-label":label},gComp);
+  el("rect",{x:x,y:y,width:w,height:h,rx:opt.rx||4,"class":"body"},g);
+  if(!opt.nodot)el("circle",{cx:x+11,cy:y+11,r:4,fill:"#3a4044"},g);
+  g.addEventListener("click",function(){go(firstOf(act),0)});
+  chips[id]=g;return g}
+function firstOf(a){for(var i=0;i<NP;i++)if(P[i].a===a)return i;return 0}
+function legs(g,x,y,n,dx,dy,w,h){for(var i=0;i<n;i++)el("rect",{x:x+dx*i,y:y+dy*i,width:w,height:h,fill:"#a9a48f"},g)}
+
+/* SW1 전원 */
+var g=chip("SW",0,60,90,80,56,"SW1 전원 — 표지",{nodot:1});
+el("rect",{x:74,y:104,width:34,height:28,rx:3,fill:"#2b3033",stroke:"#555"},g);el("rect",{x:76,y:106,width:15,height:24,rx:2,fill:"#c9c9c0","class":"knob"},g);
+el("circle",{cx:124,cy:118,r:6,"class":"led"},g);silk(60,84,"SW1 PWR");silk(118,140,"D1",{s:9});
+/* U1 입력 커넥터 */
+g=chip("U1",0,56,220,64,170,"U1 입력 커넥터 — 1막 문제",{nodot:1});
+el("rect",{x:64,y:232,width:30,height:146,fill:"#e9e6d8",stroke:"#8a8778"},g);
+[255,305,355].forEach(function(yy){el("rect",{x:72,y:yy-8,width:14,height:16,fill:"#15181a"},g);el("rect",{x:112,y:yy-5,width:22,height:10,"class":"pad"},g)});
+el("circle",{cx:106,cy:232,r:5,"class":"led"},g);
+silk(56,214,"U1 IN");silk(48,404,"문제",{s:12}).style.fontFamily="var(--sans)";
+/* U2 */
+g=chip("U2",1,270,130,170,120,"U2 — 2막 만든 것");
+legs(g,254,146,4,0,26,16,12);legs(g,440,146,4,0,26,16,12);
+el("text",{x:355,y:186,"class":"mark","text-anchor":"middle"},g,"TR-BUILD");el("text",{x:355,y:204,"class":"mark","text-anchor":"middle","font-size":10},g,"A·B·C  2611");
+el("circle",{cx:424,cy:236,r:5,"class":"led"},g);
+silk(270,124,"U2");silk(300,124,"만든 것",{s:12}).style.fontFamily="var(--sans)";
+/* 수집기 7 헤더 */
+for(var i=0;i<7;i++){el("rect",{x:286+i*20,y:86,width:12,height:12,"class":"pad"},gComp);tr("M"+(292+i*20)+",98 V130",gDeco)}
+el("rect",{x:281,y:81,width:142,height:22,fill:"none","class":"silkl"},gComp);silk(430,97,"H1 SRC×7",{s:10});
+/* Y1 06:00 */
+el("rect",{x:300,y:272,width:54,height:20,rx:10,fill:"#c9c9c0",stroke:"#777"},gComp);silk(360,287,"Y1 06:00 KST",{s:10});tr("M327,272 V250",gDeco);
+smd(480,290,"C1");smd(478,150,"C2",1);smd(490,232,"R1");
+/* U3 */
+g=chip("U3",2,600,130,150,110,"U3 — 3막 사건과 대응");
+legs(g,584,164,2,0,45,16,12);legs(g,750,184,1,0,0,16,12);
+el("text",{x:675,y:182,"class":"mark","text-anchor":"middle"},g,"TR-EVENT");el("text",{x:675,y:200,"class":"mark","text-anchor":"middle","font-size":10},g,"ALERT×3");
+el("circle",{cx:734,cy:226,r:5,"class":"led"},g);
+silk(600,124,"U3");silk(630,124,"사건과 대응",{s:12}).style.fontFamily="var(--sans)";
+/* 알림 LED 3 */
+[["보안","#ff8f7a"],["기회","#f4d36b"],["종료","#84c9f2"]].forEach(function(a,i){var x=624+i*44;el("rect",{x:x-9,y:262,width:18,height:10,rx:2,fill:a[1],opacity:.85},gComp);var t=silk(x,286,a[0],{s:10,a:"middle"});t.style.fontFamily="var(--sans)"});
+silk(600,270,"D2-4",{s:8}).setAttribute("opacity",".0");
+/* J1 점퍼 */
+var gj=el("g",{id:"j1"},gComp);
+el("rect",{x:812,y:306,width:16,height:28,fill:"#0f3f2b"},gj);
+el("rect",{x:808,y:290,width:24,height:60,fill:"none","class":"silkl"},gj);
+el("rect",{x:812,y:294,width:16,height:14,"class":"pad"},gj);el("rect",{x:812,y:332,width:16,height:14,"class":"pad"},gj);
+el("rect",{id:"j1s",x:809,y:296,width:22,height:48,rx:3,fill:"#f4d36b",stroke:"#7a6420"},gj);
+silk(838,316,"J1");var t=silk(838,330,"사람",{s:10});t.style.fontFamily="var(--sans)";t=silk(838,343,"판단",{s:10});t.style.fontFamily="var(--sans)";
+smd(700,318,"R2");smd(760,330,"C3",1);
+/* U4 프로세서 */
+g=chip("U4",3,330,330,230,230,"U4 프로세서 — 4막 시연",{rx:6});
+legs(g,318,344,10,0,21,12,9);legs(g,560,344,10,0,21,12,9);legs(g,346,318,10,21,0,9,12);legs(g,346,560,10,21,0,9,12);
+el("rect",{x:372,y:372,width:146,height:146,rx:4,fill:"#1c2022",stroke:"#3a4044"},g);
+el("text",{x:445,y:436,id:"runt"},g,"RUN");el("text",{x:445,y:462,"class":"mark","text-anchor":"middle",id:"runs"},g,"TR-DEMO 240s");
+el("circle",{cx:540,cy:540,r:6,"class":"led"},g);
+silk(330,312,"U4");silk(360,312,"시연",{s:12}).style.fontFamily="var(--sans)";
+smd(596,360,"C4",1);smd(596,540,"C5",1);smd(300,348,"C6",1);
+/* U5 테스트 포인트 */
+g=chip("U5",4,620,462,222,74,"U5 테스트 포인트 — 5막 확인",{nodot:1,rx:2});
+g.querySelector(".body").setAttribute("fill","none");g.querySelector(".body").style.fill="none";g.querySelector(".body").setAttribute("stroke-dasharray","3 3");
+[640,700,760,820].forEach(function(x,i){el("circle",{cx:x,cy:490,r:11,"class":"pad"},g);el("circle",{cx:x,cy:490,r:4,fill:"#8a6f1e"},g);silk(x,520,"TP"+(i+1),{s:11,a:"middle",p:g})});
+el("circle",{cx:830,cy:470,r:4,"class":"led"},g);
+silk(620,456,"U5");silk(650,456,"확인",{s:12}).style.fontFamily="var(--sans)";
+/* U6 메모리 뱅크 */
+g=chip("U6",5,60,610,440,124,"U6 메모리 뱅크 — 6막 AI와 일한 방식",{nodot:1});
+var PRS=[24,68,79,28,1,4,28],DAYS=["11-17","11-18","11-19","11-20","11-21","11-22","11-23"],bars=[],cnts=[];
+PRS.forEach(function(v,k){var x=74+k*60;
+  el("rect",{x:x,y:620,width:50,height:90,rx:2,fill:"#0e1112",stroke:"#3a4044"},g);
+  var n=Math.max(1,Math.round(v/79*12));bars[k]=[];
+  for(var s=0;s<12;s++){var b=el("rect",{x:x+7,y:702-s*6.2-4.4,width:36,height:4.4,"class":"bar"+(v===79?" peak":"")},g);if(s<n)bars[k].push(b)}
+  cnts[k]=el("text",{x:x+25,y:632,"class":"cnt"},g,v);
+  el("text",{x:x+25,y:726,"class":"mark","text-anchor":"middle","font-size":11},g,DAYS[k])});
+legs(g,500,634,2,0,30,16,12);
+el("circle",{cx:490,cy:722,r:4,"class":"led"},g);
+silk(60,604,"U6");silk(90,604,"AI와 일한 방식 · MEM×7 = 날짜별 PR",{s:12}).style.fontFamily="var(--sans)";
+/* F1 퓨즈 */
+g=chip("F1",5,566,688,48,24,"F1 퓨즈 — 장애 18분",{nodot:1,rx:3});
+g.querySelector(".body").style.fill="#e9e6d8";
+el("rect",{x:566,y:688,width:9,height:24,"class":"pad"},g);el("rect",{x:605,y:688,width:9,height:24,"class":"pad"},g);
+el("path",{id:"f1wire",d:"M576,700 H604",stroke:"#555",'stroke-width':2,fill:"none"},g);
+el("path",{id:"f1cut",d:"M584,692 L590,700 L586,702 L594,709",stroke:"#c0392b",'stroke-width':3,fill:"none"},g);
+el("path",{id:"f1ok",d:"M576,700 H604",stroke:"#b8860b",'stroke-width':4,fill:"none"},g);
+silk(566,682,"F1 18분",{s:10}).style.fontFamily="var(--sans)";var t2=silk(566,728,"×4 재발",{s:11});t2.style.fontFamily="var(--sans)";
+/* RN1 에이전트 어레이 */
+g=chip("RN",5,664,688,62,24,"RN1 에이전트 어레이 — 서브에이전트 · 위키 챗봇",{nodot:1,rx:2});
+for(i=0;i<6;i++)el("rect",{x:668+i*9.5,y:714,width:6,height:8,"class":"pad"},g);
+el("text",{x:695,y:704,"class":"mark","text-anchor":"middle","font-size":10},g,"AGENT×6");
+silk(664,682,"RN1",{s:10});
+/* U7 출력 커넥터 */
+g=chip("U7",6,800,640,60,140,"U7 출력 커넥터 — 7막 사람",{nodot:1});
+el("rect",{x:824,y:650,width:28,height:120,fill:"#e9e6d8",stroke:"#8a8778"},g);
+[700,740].forEach(function(yy){el("rect",{x:832,y:yy-8,width:14,height:16,fill:"#15181a"},g);el("rect",{x:786,y:yy-5,width:22,height:10,"class":"pad"},g)});
+el("circle",{cx:812,cy:656,r:5,"class":"led"},g);
+silk(800,634,"U7 OUT");
+smd(640,600,"R3");smd(740,620,"C7");smd(200,560,"R4",1);smd(90,540,"C8");smd(700,400,"R5");
+
+/* 핀(쪽) */
+var pins=[];
+P.forEach(function(p,i){var c=A[i];
+  var g=el("g",{"class":"pin",tabindex:0,role:"button","aria-label":(i+1)+"쪽 "+ACTS[p.a].name+" — "+p.nav,"data-p":i},gPins);
+  el("circle",{cx:c[0],cy:c[1],r:15,fill:"transparent"},g);
+  el("circle",{cx:c[0],cy:c[1],r:i===11?9:6.5,"class":"p"},g);el("circle",{cx:c[0],cy:c[1],r:11,"class":"ring"},g);
+  g.addEventListener("click",function(e){e.stopPropagation();go(i,0)});
+  g.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go(i,0)}});
+  pins[i]=g});
+
+/* 전원 레일 = 세 사람 */
+var rails={},RL=[["Y","VA 김영식 · A 지키기","var(--ra)",818],["J","VB 황재웅 · B 고르기","var(--rb)",842],["S","VC 차세일 · C 옮기기 · 운영","var(--rc)",866]];
+RL.forEach(function(r){var t=el("text",{x:60,y:r[3]+5,"class":"railt"},gRails,r[1]);
+  var l=el("path",{d:"M300,"+r[3]+" H860","class":"rail",stroke:r[2]},gRails);
+  var f=el("path",{d:"M300,"+r[3]+" H860","class":"railflow"},gRails);
+  el("rect",{x:286,y:r[3]-8,width:14,height:16,"class":"pad"},gRails);
+  rails[r[0]]=[t,l,f]});
+silk(60,802,"POWER RAILS = 세 사람",{s:10,p:gRails}).style.fontFamily="var(--sans)";
+
+/* 전체 보기 라벨 */
+[[150,150,"표지 · 1"],[130,300,"U1 문제 · 2~4"],[290,262,"U2 만든 것 · 5~8"],[610,250,"U3 사건과 대응 · 9~10"],[380,530,"U4 시연 · 11~12"],[640,430,"U5 확인 · 13"],[150,650,"U6 AI와 일한 방식 · 14~17"],[640,760,"U7 사람 · 18~19"],[690,300,"J1 사람 판단"],[540,660,"F1 장애 18분"]].forEach(function(o){
+  var g=el("g",{"class":"ovl"},gOv);var w=o[2].length*13+22;el("rect",{x:o[0],y:o[1],width:w,height:26,rx:3},g);el("text",{x:o[0]+10,y:o[1]+18},g,o[2])});
+
+/* ================= 상태 · 그리기 ================= */
+var cur=0,step=0,anim=null,pulse=$("pulse");
+var t0=null,tAcc=0,tRun=false,cdEnd=null,cdLeft=225,checks=[0,0,0,0,0];
+function maxStep(i){return P[i].steps||0}
+function store(k,v){try{if(v==null)return localStorage.getItem("tr-e-"+k);if(v==="")localStorage.removeItem("tr-e-"+k);else localStorage.setItem("tr-e-"+k,v)}catch(e){return null}}
+function fillFields(root){root.querySelectorAll("[data-k]").forEach(function(f){var v=store(f.dataset.k);
+  if(v){f.textContent=v;f.classList.remove("empty")}else{f.textContent=f.dataset.d;f.classList.add("empty")}
+  f.contentEditable=document.body.classList.contains("edit")?"true":"false";
+  f.setAttribute("role","textbox");f.setAttribute("aria-label","사람이 채우는 칸");
+  f.oninput=function(){store(f.dataset.k,f.textContent.trim()===f.dataset.d?"":f.textContent.trim())};
+  f.onfocus=function(){if(f.classList.contains("empty")&&document.body.classList.contains("edit")){f.textContent="";f.classList.remove("empty")}};
+  f.onblur=function(){if(!f.textContent.trim()){f.textContent=f.dataset.d;f.classList.add("empty");store(f.dataset.k,"")}}})}
+function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+":"+("0"+s%60).slice(-2)}
+function render(){
+  var p=P[cur],act=ACTS[p.a];
+  $("pref").textContent=p.ref;$("pact").textContent=act.name;
+  $("ppin").textContent="PIN "+p.pin+" · "+(cur+1)+"/"+NP;
+  $("pt").innerHTML=p.t;$("pb").innerHTML=p.b;$("ps").textContent="출처 · "+p.s;
+  $("pb").querySelectorAll("[data-step]").forEach(function(e){e.style.display=(+e.dataset.step===step)?"":"none"});
+  fillFields($("pb"));
+  $("notesb").textContent=p.n;
+  var h=$("hand");h.textContent=p.h||"";h.classList.toggle("has",!!p.h);
+  $("spkv").innerHTML=p.who==="ALL"?'<span class="ca">영식</span> · <span class="cb">재웅</span> · <span class="cc">세일</span>':'<span class="c'+({Y:"a",J:"b",S:"c"})[p.who]+'">'+WHO[p.who]+'</span>';
+  $("tgt").textContent="· 쪽 "+p.sec+"초 · 막 "+fmt(act.sec);
+  for(var k in rails){var on=(p.who==="ALL"||p.who===k)&&!(cur===11&&false);rails[k][0].classList.toggle("on",on);rails[k][1].classList.toggle("on",on);rails[k][2].classList.toggle("on",on)}
+  /* 배선 · 핀 · 칩 */
+  lit.forEach(function(l,i){if(!(anim&&anim.i===i))l.style.strokeDashoffset=i<cur?0:len[i]});
+  pins.forEach(function(g,i){g.classList.toggle("seen",i<cur);g.classList.toggle("cur",i===cur)});
+  var ca=p.a;
+  ["SW","U1","U2","U3","U4","U5","U6","F1","RN","U7"].forEach(function(id){var c=chips[id],a=+c.getAttribute("data-act");
+    var actv=false,done=false;
+    if(id==="SW"){actv=cur===0;done=cur>0}
+    else if(id==="U1"){actv=cur>=1&&cur<=3;done=cur>3}
+    else if(id==="F1"){actv=cur===15;done=cur>15}
+    else if(id==="RN"){actv=cur===16;done=cur>16}
+    else if(id==="U6"){actv=cur===13||cur===14;done=cur>14}
+    else{actv=a===ca;done=a<ca}
+    c.classList.toggle("act",actv);c.classList.toggle("done",done)});
+  board.classList.toggle("z5",cur===4);
+  board.classList.toggle("t14",cur===13);
+  board.classList.toggle("jclosed",cur>8||(cur===8&&step>=1));
+  board.classList.toggle("fidle",cur<15);
+  board.classList.toggle("fcut",cur===15&&step===0);
+  board.classList.toggle("fok",cur>15||(cur===15&&step>=1));
+  board.classList.toggle("allon",cur===NP-1&&step>=1);
+  board.classList.toggle("run",cur===11&&(step>=1||cdEnd!=null));
+  var memOn=cur>=13;bars.forEach(function(bs,k){bs.forEach(function(b,s){
+    if(memOn&&cur===13&&!REVEAL&&!RM&&!b.classList.contains("on")){setTimeout(function(){if(cur>=13)b.classList.add("on")},700+k*90+s*25)}else b.classList.toggle("on",memOn)});cnts[k].classList.toggle("on",memOn)});
+  if(!anim){pulse.setAttribute("cx",A[cur][0]);pulse.setAttribute("cy",A[cur][1])}
+  /* 시연 */
+  if(cur===11){var btn=$("cdbtn");if(btn)btn.onclick=toggleCd;
+    $("pb").querySelectorAll("[data-c]").forEach(function(c){c.checked=!!checks[+c.dataset.c]||REVEAL;c.onchange=function(){checks[+c.dataset.c]=c.checked?1:0}});drawCd()}
+  /* 목록 */
+  document.querySelectorAll("#overlist li").forEach(function(li,i){li.classList.toggle("cur",i===cur)});
+  var hs="#p"+(cur+1)+(step?"."+step:"");if(location.hash!==hs){try{history.replaceState(null,"",location.pathname+location.search+hs)}catch(e){location.hash=hs}}
+  document.title=(cur+1)+" · "+p.nav+" — TechRadar 발표 E안";
+}
+function travel(i,fwd){ /* 경로 i를 따라 펄스 이동 */
+  if(anim){cancelAnimationFrame(anim.raf);anim=null}
+  if(RM||REVEAL){render();return}
+  var L=len[i],path=lit[i],dur=Math.min(900,Math.max(600,L*2.2)),ts=null;
+  anim={i:i};
+  function f(t){if(!ts)ts=t;var k=Math.min(1,(t-ts)/dur);var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    var d=fwd?e*L:(1-e)*L;var pt=path.getPointAtLength(d);
+    pulse.setAttribute("cx",pt.x);pulse.setAttribute("cy",pt.y);path.style.strokeDashoffset=L-d;
+    if(k<1)anim.raf=requestAnimationFrame(f);else{anim=null;render()}}
+  render();anim.raf=requestAnimationFrame(f);
+}
+function go(i,s){i=Math.max(0,Math.min(NP-1,i));var prev=cur;cur=i;step=REVEAL?maxStep(i):Math.min(s||0,maxStep(i));
+  if(i===prev+1)travel(prev,true);else if(i===prev-1)travel(i,false);else{if(anim){cancelAnimationFrame(anim.raf);anim=null}render()}}
+function next(){if(step<maxStep(cur)){step++;if(cur===11&&cdEnd==null)toggleCd();render()}else if(cur<NP-1)go(cur+1,0)}
+function prev(){if(step>0&&!REVEAL){step--;render()}else if(cur>0){var m=maxStep(cur-1);go(cur-1,m)}}
+
+/* 시계 · 카운트다운 */
+function elapsed(){return tAcc+(tRun?(Date.now()-t0)/1000:0)}
+function toggleT(reset){if(reset){tAcc=0;tRun=false;t0=null}else if(tRun){tAcc=elapsed();tRun=false}else{t0=Date.now();tRun=true}drawClock()}
+function drawClock(){var c=$("clock");c.textContent=("0"+Math.floor(elapsed()/60)).slice(-2)+":"+("0"+Math.floor(elapsed()%60)).slice(-2);c.classList.toggle("off",!tRun)}
+function toggleCd(){if(cdEnd!=null){cdLeft=Math.max(0,(cdEnd-Date.now())/1000);cdEnd=null}else{if(cdLeft<=0)cdLeft=225;cdEnd=Date.now()+cdLeft*1000}render()}
+function drawCd(){var left=cdEnd!=null?Math.max(0,(cdEnd-Date.now())/1000):cdLeft;var e=$("cd");if(e){e.textContent=fmt(left);var b=$("cdbtn");if(b)b.textContent=cdEnd!=null?"멈춤 (R)":"RUN 시작 (R)"}
+  $("runs").textContent=cdEnd!=null?fmt(left)+" 남음":"TR-DEMO 240s"}
+setInterval(function(){drawClock();if(cur===11||cdEnd!=null)drawCd()},500);
+
+/* 목록(숨은 목록 · 전체 보기 · 인쇄) */
+P.forEach(function(p,i){[$("srlist"),$("overlist")].forEach(function(ol){var li=document.createElement("li"),a=document.createElement("a");a.href="#p"+(i+1);
+  a.textContent=ACTS[p.a].ref+" "+ACTS[p.a].name+" — "+p.nav+" ("+WHO[p.who]+" · "+p.sec+"초)";
+  a.addEventListener("click",function(e){e.preventDefault();document.body.classList.remove("ovv");board.classList.remove("ov");go(i,0)});li.appendChild(a);ol.appendChild(li)})});
+window.addEventListener("beforeprint",function(){var h="";P.forEach(function(p,i){h+='<section><div class="meta">'+(i+1)+"/"+NP+" · "+ACTS[p.a].ref+" "+ACTS[p.a].name+" · 말하는 사람(제안) "+WHO[p.who]+" · "+p.sec+"초</div><h2>"+p.t.replace(/<br>/g," ")+"</h2>"+p.b+'<div class="meta">출처 · '+p.s+"</div></section>"});$("print").innerHTML=h;fillFields($("print"))});
+
+/* 키 */
+function tog(c){document.body.classList.toggle(c)}
+document.addEventListener("keydown",function(e){
+  var t=e.target,ed=t&&t.isContentEditable;
+  if(e.key==="Escape"){if(ed)t.blur();document.body.classList.remove("help","ovv","edit");board.classList.remove("ov");render();return}
+  if(ed||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(t&&(t.tagName==="INPUT"||t.tagName==="BUTTON")&&(e.key===" "||e.key==="Enter"))return;
+  var k=e.key;
+  if(k==="ArrowRight"||k===" "||k==="PageDown"||k==="Enter"){e.preventDefault();next()}
+  else if(k==="ArrowLeft"||k==="PageUp"||k==="Backspace"){e.preventDefault();prev()}
+  else if(k==="Home"){go(0,0)}else if(k==="End"){go(NP-1,0)}
+  else if(k>="1"&&k<="7"){go(firstOf(+k-1)===0&&k==="1"?1:firstOf(+k-1),0)}
+  else if(k==="t"){toggleT(false)}else if(k==="T"){toggleT(e.shiftKey)}
+  else if(k==="n"||k==="N"){tog("notes")}
+  else if(k==="s"||k==="S"){tog("spk")}
+  else if(k==="e"||k==="E"){tog("edit");render()}
+  else if(k==="o"||k==="O"){tog("ovv");board.classList.toggle("ov",document.body.classList.contains("ovv"))}
+  else if(k==="r"||k==="R"){if(cur===11){if(step<1)step=1;toggleCd()}}
+  else if(k==="?"||k==="/"||k==="h"||k==="H"){tog("help")}
+});
+function fromHash(){var m=/^#p(\d+)(?:\.(\d+))?/.exec(location.hash);if(m){var i=+m[1]-1,s=+(m[2]||0);if(i!==cur||s!==step){if(anim){cancelAnimationFrame(anim.raf);anim=null}cur=Math.max(0,Math.min(NP-1,i));step=REVEAL?maxStep(cur):Math.min(s,maxStep(cur));render()}}}
+window.addEventListener("hashchange",fromHash);
+function fit(){var s=Math.min(innerWidth/1600,innerHeight/900);var st=$("stage");st.style.transform="scale("+s+") translate(-50%,-50%)";}
+window.addEventListener("resize",fit);fit();
+if(qs.get("ov")==="1"){board.classList.add("ov")}
+if(REVEAL)step=maxStep(cur);
+if(location.hash)fromHash();
+if(REVEAL)step=maxStep(cur);
+render();
+})();
+</script>
+</body>
+</html>
