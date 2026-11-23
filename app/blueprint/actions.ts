@@ -11,6 +11,7 @@ import { hideTemplate, saveTemplate, setTemplatePublic, type TemplateInput, type
 import { markTemplateNoteHelpful, reportTemplateNote, saveTemplateNote } from "@/lib/server/template-notes";
 import type { ActionResult } from "@/lib/server/usage-notes";
 import type { NoteInput } from "@/lib/domain/usage-note";
+import { readInspectorTech, type InspectorTech } from "@/lib/server/inspector-tech";
 
 /** v2 확정(P-12e 스튜디오): 캔버스 그래프. 검사 · 관문 · 이름 다시 읽기는 DB 함수 confirm_blueprint_v2가 한다(사용자 토큰, 불변 1·4·5) */
 export async function confirmGraphAction(input: ConfirmGraphInput): Promise<ConfirmResult> {
@@ -100,4 +101,27 @@ export async function reportTemplateNoteAction(noteId: string, reason: string): 
   const c = await templateDb();
   if ("message" in c) return { ok: false, error: c.message };
   return reportTemplateNote(c.db, c.userId, noteId, reason);
+}
+
+/** Inspector 읽기 결과(P-12j H3): ok = 읽음(tech = null이면 없거나 볼 수 없음), preview = 미리보기(개발용)라 안 읽음, 그 밖 = 읽지 못함(불변 2) */
+export type InspectorRead = { ok: true; tech: InspectorTech | null } | { ok: false; preview?: true };
+/** 손님은 같은 기술이면 10분 동안 한 번만 DB에(누구나 부를 수 있는 주소라 손님 찾기와 같은 방식). 공개 목록 칸만, 내 줄 · 판단 · 관문 없음 */
+const guestInspector = unstable_cache(async (techId: string) => {
+  const db = getServiceSupabase();
+  if (!db) throw new Error("서버 키 없음");
+  return readInspectorTech(db, null, techId);
+}, ["guest-inspector-tech"], { revalidate: 600 });
+/** 청사진 속성 서랍의 기술 탭(개요 · 관계 · 검증 · 이력). 로그인은 내 토큰(내 판단 · 관문까지), 손님은 서버 키로 공개 칸만(app/tech/[id] 방식) */
+export async function inspectorTechAction(techId: string): Promise<InspectorRead> {
+  if (await isLoginPreview()) return { ok: false, preview: true }; // 미리보기(개발용)는 DB를 부르지 않는다
+  if (!/^[0-9a-f-]{36}$/i.test(String(techId))) return { ok: true, tech: null };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ok: true, tech: await guestInspector(techId) };
+    const db = await getServerSupabase();
+    return db ? { ok: true, tech: await readInspectorTech(db, user, techId) } : { ok: false };
+  } catch (e) {
+    console.error("Inspector 기술 읽기 실패", maskSecrets(e instanceof Error ? e.message : String(e)));
+    return { ok: false };
+  }
 }

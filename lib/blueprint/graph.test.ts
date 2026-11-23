@@ -5,7 +5,7 @@ import { fromNames } from "./board.ts";
 import { parseBoard, toStored } from "./stored.ts";
 import {
   addStage, applyTemplate, asFrame, autoLayout, connect, connectProblem, createStage, disconnect, emptyGraph, fromV1, layers, limitProblems, moveStages,
-  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, type Graph, type Stage,
+  nearestLink, parseDraft, parseGraph, putTech, removeStage, removeTech, renameStage, snap, toBoardView, wouldCycle, LAYOUT, LIMITS, BOX, NODE_SIZE, slotAt, stageHeight, techSlot, type Graph, type Stage,
 } from "./graph.ts";
 
 const T = (n: number) => ({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, name: `기술${n}` });
@@ -137,6 +137,30 @@ test("그래프: 확정 조건(깊이 12 · 같은 깊이 4 · 단계 · 기술 
   assert.match(limitProblems({ ...mk(["a"]), stages: [{ id: "a", name: "a", x: 0, y: 0, techs }] })[0], /"a" 단계의 기술이 9개예요\(8개까지\)/);
   assert.match(limitProblems(mk(Array.from({ length: LIMITS.stages + 1 }, (_, i) => `s${i}`)))[0], /단계는 48개까지예요\(지금 49개\)/);
   assert.match(limitProblems({ ...mk(["a", "b"]), edges: Array.from({ length: LIMITS.edges + 1 }, () => ({ from: "a", to: "b" })) })[0], /연결선은 200개까지예요/);
+});
+
+test("컨테이너(P-12j H2): 단계 높이 = 머리 + 기술 줄(없어도 한 줄) + 아래 + 메모, 자리 · 놓은 자리 번호", () => {
+  assert.equal(stageHeight({ techs: [], note: undefined }), BOX.head + BOX.row + BOX.pad);
+  assert.equal(stageHeight({ techs: [T(1), T(2), T(3)], note: "메모" }), BOX.head + 3 * BOX.row + BOX.pad + BOX.note);
+  assert.deepEqual(techSlot(2), { x: BOX.tech.x, y: BOX.head + 2 * BOX.row });
+  assert.deepEqual([slotAt(techSlot(0).y, 3), slotAt(techSlot(2).y + 10, 3), slotAt(-500, 3), slotAt(9999, 3)], [0, 2, 0, 3]);
+});
+
+test("자동 정렬은 컨테이너 높이를 본다: 기술이 많은 단계 아래 같은 순서 단계가 겹치지 않는다", () => {
+  const g = mk(["a", "b", "c"], [["a", "b"], ["a", "c"]], { a: [0, 0], b: [0, 0], c: [0, 10] });
+  const full: Graph = { ...g, stages: g.stages.map((s) => (s.id === "b" ? { ...s, techs: Array.from({ length: 8 }, (_, i) => T(i + 1)) } : s)) };
+  const l = autoLayout(full), at = (id: string) => l.stages.find((s) => s.id === id)!;
+  assert.ok(at("c").y >= at("b").y + stageHeight(at("b")), `${at("b").y} + ${stageHeight(at("b"))} <= ${at("c").y}`);
+  assert.ok(l.stages.every((s) => s.y % 8 === 0));
+});
+
+test("자동 정렬 간격(11-22 사용자): 열 사이는 겹치지 않고(32 이상), 단계 6개 사슬이 1440 화면에 0.9배 이상으로 들어간다", () => {
+  assert.ok(LAYOUT.x - NODE_SIZE.w >= 32, `열 사이 ${LAYOUT.x - NODE_SIZE.w}`);
+  const ids = ["a", "b", "c", "d", "e", "f"];
+  const l = autoLayout(mk(ids, ids.slice(1).map((id, i) => [ids[i], id] as [string, string])));
+  const right = Math.max(...l.stages.map((s) => s.x)) + NODE_SIZE.w;
+  assert.ok(right * 0.9 <= 1440 * 0.94, `판 폭 ${right} × 0.9 = ${right * 0.9}`); // 화면 맞춤 여백 3%씩(studio FIT.padding)
+  assert.ok(LAYOUT.y >= stageHeight({ techs: [], note: undefined }) + 32, "빈 단계 사이도 32 이상");
 });
 
 test("그래프: 자동 정렬은 깊이마다 열, 같은 깊이는 y 순서 유지 · 가운데 맞춤 · 8의 배수 · 고리면 그대로", () => {

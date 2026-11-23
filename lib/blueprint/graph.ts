@@ -1,6 +1,7 @@
 // 청사진 그래프 v2(P-12e): 자유 캔버스의 단계(노드) + 연결선(순서). DB · 화면(xyflow) · 서버를 모르는 순수 함수만 둔다.
 // 순서는 연결선이 정한다: 깊이 = 들어오는 선이 없는 단계에서 가장 긴 경로(0부터), 깊이가 같으면 동시. 위치(x, y)는 순서와 무관.
-// 저장 모양: { v: 2, stages: [{ id, name, x, y, techs: [{ id, name }] }], edges: [{ from, to }] } — blueprints.graph 칸(M1).
+// 저장 모양: { v: 2, stages: [{ id, name, x, y, techs: [{ id, name }] }], edges: [{ from, to }], links?: [{ from, to }] } — blueprints.graph 칸(M1).
+// links(P-12j H2) = 기술 관계선: 사용자가 그은 표시일 뿐 검증 · 호환 확인이 아니다(계획 데이터 정직성 규칙 1). 끝 = "기술id@단계id", 비면 키를 두지 않는다.
 // 기존 board 칸은 지우지 않고 toBoardView로 투영해 둔다 → 이력 · usageOf · exportText · parseBoard는 그대로 쓴다.
 // 모든 바꾸기는 새 그래프를 돌려준다(되돌리기 = 전 그래프를 그대로 다시 쓰기). 못 바꾸면 같은 그래프(===)를 돌려준다.
 //
@@ -22,7 +23,10 @@
 //     connect(g, from, to): Graph                         connectProblem이 null일 때만
 //     disconnect(g, from, to): Graph
 //     putTech(g, stageId, tech): Graph                    같은 기술은 한 번, 단계마다 8개까지(위험 등급 막기는 서버 · 서랍)
-//     removeTech(g, stageId, techId): Graph
+//     removeTech(g, stageId, techId): Graph               그 기술 끝의 관계선도 지움(removeStage도 같음)
+//     moveTechInStage(g, stageId, techId, to): Graph     단계 안 기술 순서 바꾸기(to = 새 자리, 끝을 넘으면 맨 끝)
+//     addLink(g, from, to) · removeLink(g, from, to)     기술 관계선 긋기 · 끊기(끝 = linkEnd(techId, stageId), cleanLinks 규칙)
+//     cleanLinks(g, raw): TechLink[]                      없는 기술 · 자기 자신 · 겹침을 빼고 앞에서 100개(DB 202611232200도 같은 규칙)
 //     autoLayout(g): Graph                                깊이마다 열, 같은 깊이는 지금 y 순서 유지, 열은 가운데 맞춤(사이클이면 그대로)
 //   바꿔 읽기
 //     fromV1(board): Graph                                옛 열 · 행 판 → 그래프(이웃한 열의 모든 짝을 잇는다)
@@ -42,10 +46,11 @@ export type Rect = Pos & Size;
 export type Stage = BoardStage & Pos;
 /** from → to: from이 끝나야 to를 시작한다 */
 export type Edge = { from: string; to: string };
-export type Graph = { v: 2; stages: Stage[]; edges: Edge[] };
+export type TechLink = { from: string; to: string };
+export type Graph = { v: 2; stages: Stage[]; edges: Edge[]; links?: TechLink[] };
 
 /** 확정 조건(서버 · DB 함수 blueprint_graph_clean과 같은 값). 단계 이름 1~20자 · id 1~64자는 parseGraph가 본다 */
-export const LIMITS = { depth: 12, parallel: 4, stages: 48, techs: MAX_TECHS, edges: 200 } as const;
+export const LIMITS = { depth: 12, parallel: 4, stages: 48, techs: MAX_TECHS, edges: 200, links: 100 } as const;
 export const STAGE_ID_MAX = 64;
 /** ASCII만: DB(COLLATE "C" 바이트 순)와 JS 글자 순이 같아지는 모양(같은 깊이 정렬의 마지막 기준이 id) */
 const STAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -175,7 +180,7 @@ export function snap(r: Rect, others: Rect[], reach = GUIDE_REACH): Snapped {
 }
 
 /** 단계 크기는 화면이 잰다(sizeOf로 넘김). 못 재면 이 값 */
-export const NODE_SIZE: Size = { w: 288, h: 112 }; // P-12h-2 T1: 카드 폭 260~320
+export const NODE_SIZE: Size = { w: 208, h: 112 }; // P-12j(11-22 사용자): 글자는 크게 · 폭과 간격은 좁게 → 1440 화면에 단계 6개가 0.9배 이상
 /** 붙을 자리를 보여 주는 가장자리 사이 거리(px) */
 export const LINK_REACH = 160;
 const edgeGap = (a: Rect, b: Rect) =>
@@ -211,7 +216,7 @@ export function addStage(g: Graph, stage: Stage): Graph {
   if (g.stages.length >= LIMITS.stages || !cleanName(stage.name) || has(g, stage.id)) return g;
   return { ...g, stages: [...g.stages, { ...stage, name: cleanName(stage.name) }] };
 }
-export const removeStage = (g: Graph, id: string): Graph => (has(g, id) ? { ...g, stages: g.stages.filter((s) => s.id !== id), edges: g.edges.filter((e) => e.from !== id && e.to !== id) } : g);
+export const removeStage = (g: Graph, id: string): Graph => (has(g, id) ? keepLinks({ ...g, stages: g.stages.filter((s) => s.id !== id), edges: g.edges.filter((e) => e.from !== id && e.to !== id) }) : g);
 export const renameStage = (g: Graph, id: string, name: string): Graph => (cleanName(name) ? mapStage(g, id, (s) => ({ ...s, name: cleanName(name) })) : g);
 
 /** 절대 위치로 옮긴다(여러 개 끌기도 한 번에). 바뀐 곳이 없으면 같은 그래프 */
@@ -243,43 +248,108 @@ export function setStageNote(g: Graph, id: string, note: string): Graph {
     return n ? { ...rest, note: n } : rest;
   });
 }
-export const removeTech = (g: Graph, id: string, techId: string): Graph => mapStage(g, id, (s) => (s.techs.some((t) => t.id === techId) ? { ...s, techs: s.techs.filter((t) => t.id !== techId) } : s));
+export function removeTech(g: Graph, id: string, techId: string): Graph {
+  const next = mapStage(g, id, (s) => (s.techs.some((t) => t.id === techId) ? { ...s, techs: s.techs.filter((t) => t.id !== techId) } : s));
+  return next === g ? g : keepLinks(next);
+}
+/** 단계 안 기술 순서 바꾸기(P-12j H2): to = 새 자리(0부터, 넘으면 맨 끝). 자리가 그대로면 같은 그래프 */
+export function moveTechInStage(g: Graph, id: string, techId: string, to: number): Graph {
+  return mapStage(g, id, (s) => {
+    const from = s.techs.findIndex((t) => t.id === techId), at = Math.max(0, Math.min(s.techs.length - 1, Math.trunc(to)));
+    if (from < 0 || from === at) return s;
+    const techs = s.techs.filter((t) => t.id !== techId);
+    techs.splice(at, 0, s.techs[from]);
+    return { ...s, techs };
+  });
+}
+
+// ── 기술 관계선(P-12j H2): 사용자가 그은 표시. "검증 · 호환"이 아니다 ───────────────────────────────────
+export const linkEnd = (techId: string, stageId: string): string => `${techId}@${stageId}`;
+const ends = (g: Graph) => new Set(g.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id))));
+/** 없는 기술 · 자기 자신 · 겹친 선 · 모양이 틀린 것을 빼고 앞에서 100개. 판을 버리지 않으려고 막지 않고 뺀다(DB도 같음) */
+export function cleanLinks(g: Graph, raw: unknown): TechLink[] {
+  if (!Array.isArray(raw)) return [];
+  const ok = ends(g), seen = new Set<string>(), out: TechLink[] = [];
+  for (const l of raw as { from?: unknown; to?: unknown }[]) {
+    const { from, to } = l ?? {};
+    if (out.length >= LIMITS.links) break;
+    if (typeof from !== "string" || typeof to !== "string" || from === to || !ok.has(from) || !ok.has(to) || seen.has(`${from}\n${to}`)) continue;
+    seen.add(`${from}\n${to}`);
+    out.push({ from, to });
+  }
+  return out;
+}
+/** links를 정리해 다시 단다(비면 키를 지움) */
+function withLinks(g: Graph, links: TechLink[]): Graph {
+  const { links: _old, ...rest } = g;
+  return links.length ? { ...rest, links } : rest;
+}
+/** 관계선을 정리해 다시 단다(단계 · 기술을 바꾼 뒤 부르는 쪽용) */
+export const setLinks = (g: Graph, raw: unknown): Graph => withLinks(g, cleanLinks(g, raw));
+const keepLinks = (g: Graph): Graph => (g.links ? setLinks(g, g.links) : g);
+/** 관계선 긋기: 정리 규칙에 걸리면(없는 끝 · 자기 자신 · 이미 있음 · 100개) 같은 그래프 */
+export function addLink(g: Graph, from: string, to: string): Graph {
+  const links = cleanLinks(g, [...(g.links ?? []), { from, to }]);
+  return links.length === (g.links?.length ?? 0) ? g : withLinks(g, links);
+}
+export function removeLink(g: Graph, from: string, to: string): Graph {
+  const links = (g.links ?? []).filter((l) => !(l.from === from && l.to === to));
+  return links.length === (g.links?.length ?? 0) ? g : withLinks(g, links);
+}
 
 /** 깊이마다 열(x), 같은 깊이는 지금 y 순서대로 쌓고 열마다 가운데 맞춤. 모든 값이 8의 배수.
  *  P-12h-2 T1: 카드를 키워 320 · 160 → 384 · 192. DB의 v1 → v2 변환(SQL 202611221000)은 옛 값 그대로 둔다(이미 바뀐 판을 다시 옮기지 않게) */
-export const LAYOUT = { x: 384, y: 192 } as const;
-function placeLevels(levels: string[][]): Map<string, Pos> {
-  const tallest = Math.max(0, ...levels.map((c) => c.length));
+export const LAYOUT = { x: 248, y: 160 } as const; // 열 사이 40(폭 208). 같은 열은 상자 높이 + 32, 적어도 160
+/** 단계 = 컨테이너(P-12j H2): 머리 아래 기술 노드가 한 줄에 하나씩. 화면(stage-node · tech-node CSS)이 같은 값을 쓴다 */
+export const BOX = { head: 48, row: 54, pad: 12, note: 40, tech: { x: 10, w: NODE_SIZE.w - 20, h: 48 } } as const;
+/** 단계 상자 높이: 기술이 없어도 한 줄(놓을 자리 안내), 메모가 있으면 두 줄 더 */
+export const stageHeight = (s: Pick<Stage, "techs" | "note">): number => BOX.head + Math.max(1, s.techs.length) * BOX.row + BOX.pad + (s.note ? BOX.note : 0);
+/** 단계 안 i번째 기술 노드 자리(단계 왼쪽 위 기준) */
+export const techSlot = (i: number): Pos => ({ x: BOX.tech.x, y: BOX.head + i * BOX.row });
+/** 단계 안 y(단계 기준)에 놓으면 몇 번째 자리인지(0 ~ n) */
+export const slotAt = (y: number, n: number): number => Math.max(0, Math.min(n, Math.round((y - BOX.head) / BOX.row)));
+/** 깊이마다 열. 같은 열은 상자 높이만큼 쌓되(사이 32) 적어도 LAYOUT.y 칸, 열마다 가운데 맞춤. 모든 값이 8의 배수 */
+function placeLevels(levels: string[][], heightOf: (id: string) => number): Map<string, Pos> {
+  const step = (id: string) => Math.max(LAYOUT.y, Math.ceil((heightOf(id) + 32) / GRID) * GRID);
+  const total = (col: string[]) => col.reduce((n, id) => n + step(id), 0);
+  const tallest = Math.max(0, ...levels.map(total));
   const at = new Map<string, Pos>();
-  levels.forEach((col, d) => col.forEach((id, i) => at.set(id, { x: d * LAYOUT.x, y: (i + (tallest - col.length) / 2) * LAYOUT.y })));
+  levels.forEach((col, d) => {
+    let y = (tallest - total(col)) / 2;
+    for (const id of col) { at.set(id, { x: d * LAYOUT.x, y: Math.round(y / GRID) * GRID }); y += step(id); }
+  });
   return at;
 }
 export function autoLayout(g: Graph): Graph {
   const l = layers(g);
-  return l.ok ? moveStages(g, placeLevels(l.levels)) : g;
+  const h = new Map(g.stages.map((s) => [s.id, stageHeight(s)]));
+  return l.ok ? moveStages(g, placeLevels(l.levels, (id) => h.get(id) ?? 0)) : g;
 }
 
 // ── 바꿔 읽기 ──────────────────────────────────────────────────────────────────────────────────────
 /** 옛 열 · 행 판 → 그래프. 이웃한 열의 모든 짝을 잇는다(열 12 × 나란히 4면 최대 176줄이라 한도 안). 읽으면 toBoardView가 같은 판을 돌려준다 */
 export function fromV1(board: Board): Graph {
   const cols = board.filter((c) => c.length > 0);
-  const at = placeLevels(cols.map((c) => c.map((s) => s.id)));
+  const h = new Map(cols.flat().map((s) => [s.id, stageHeight(s)]));
+  const at = placeLevels(cols.map((c) => c.map((s) => s.id)), (id) => h.get(id) ?? 0);
   const stages = cols.flat().map((s) => ({ ...s, techs: [...s.techs], ...at.get(s.id)! }));
   const edges = cols.slice(1).flatMap((col, i) => cols[i].flatMap((a) => col.map((b) => ({ from: a.id, to: b.id }))));
   return { v: 2, stages, edges };
 }
 
-/** 틀: 단계와 연결만(기술 뺌) */
-export const asFrame = (g: Graph): Graph => ({ ...g, stages: g.stages.map((s) => ({ ...s, techs: [] })) });
+/** 틀: 단계와 연결만(기술 뺌 → 관계선도 빠짐) */
+export const asFrame = (g: Graph): Graph => withLinks({ ...g, stages: g.stages.map((s) => ({ ...s, techs: [] })) }, []);
 /** 템플릿 적용: 단계 id를 새로 매겨 돌려준다(두 번 적용해도 겹치지 않게). 틀은 기술을 뺀다. 검사는 서버가 이미 한 템플릿이 전제 */
 export function applyTemplate(t: Graph, kind: TemplateKind): Graph {
   const src = kind === "frame" ? asFrame(t) : t;
   const fresh = new Map(src.stages.map((s) => [s.id, newStage(s.name).id]));
-  return {
+  const reEnd = (end: string) => { const at = end.lastIndexOf("@"); return `${end.slice(0, at)}@${fresh.get(end.slice(at + 1)) ?? ""}`; };
+  const g: Graph = {
     v: 2,
     stages: src.stages.map((s) => ({ ...s, id: fresh.get(s.id)!, techs: [...s.techs] })),
     edges: src.edges.filter((e) => fresh.has(e.from) && fresh.has(e.to)).map((e) => ({ from: fresh.get(e.from)!, to: fresh.get(e.to)! })),
   };
+  return withLinks(g, cleanLinks(g, (src.links ?? []).map((l) => ({ from: reEnd(l.from), to: reEnd(l.to) }))));
 }
 
 const bad = (message: string): ParsedGraph => ({ ok: false, message });
@@ -309,7 +379,7 @@ function parseEdge(e: unknown, ids: Set<string>, seen: Set<string>): Edge | stri
 
 /** 모양 · id · 연결선 · 개수(단계 48 · 기술 8 · 연결선 200) · 고리. 깊이 · 같은 깊이는 보지 않는다(그건 확정 조건) */
 function parseShape(raw: unknown, minStages: number): ParsedGraph {
-  const r = (raw ?? {}) as { v?: unknown; stages?: unknown; edges?: unknown };
+  const r = (raw ?? {}) as { v?: unknown; stages?: unknown; edges?: unknown; links?: unknown };
   if (r.v !== 2 || !Array.isArray(r.stages) || !Array.isArray(r.edges)) return bad("청사진 모양이 맞지 않아요.");
   if (r.stages.length < minStages || r.stages.length > LIMITS.stages) return bad(`단계는 ${minStages}~${LIMITS.stages}개여야 해요.`);
   if (r.edges.length > LIMITS.edges) return bad(`연결선은 ${LIMITS.edges}개까지예요.`);
@@ -329,7 +399,8 @@ function parseShape(raw: unknown, minStages: number): ParsedGraph {
     edges.push(p);
     pairs.add(`${p.from}\n${p.to}`);
   }
-  const graph: Graph = { v: 2, stages, edges };
+  const plain: Graph = { v: 2, stages, edges };
+  const graph = withLinks(plain, cleanLinks(plain, r.links)); // 관계선은 맞지 않으면 그 선만 뺀다(메모와 같이 판을 버리지 않음)
   const l = layers(graph);
   return l.ok ? { ok: true, graph } : bad(cycleText(graph, l.cycle));
 }

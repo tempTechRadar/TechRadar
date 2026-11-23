@@ -4,9 +4,9 @@
 // 그래프는 graph.ts 편집 함수 → apply로만 바꾼다(캔버스와 같은 상태, 되돌리기 · 저장은 studio).
 import { useMemo, useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
-import { addStage, connect, connectProblem, createStage, disconnect, putTech, removeStage, removeTech, renameStage, type Graph, type Stage } from "@/lib/blueprint/graph";
+import { addLink, addStage, connect, connectProblem, createStage, disconnect, linkEnd, moveTechInStage, putTech, removeLink, removeStage, removeTech, renameStage, LIMITS, type Graph, type Stage } from "@/lib/blueprint/graph";
 import { fitsStage } from "@/lib/blueprint/knowledge";
-import { CONNECT_KO, addStageAfter, addStageBeside, linkSaid, listRows, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
+import { moveTechToStage, CONNECT_KO, addStageAfter, addStageBeside, linkSaid, listRows, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, renamedSaid } from "@/lib/blueprint/panel-view";
 import type { PanelProps } from "./studio-types";
 import { StageChips } from "./stage-chips";
 import "./list-mode.css";
@@ -116,6 +116,7 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
         {s.techs.length ? <StageChips className="lm-chips" techs={s.techs} pool={pool} marking={marking} pickedTech={picked?.kind === "tech" && chosenStage ? picked.techId : null}
           onPick={(id) => onPick({ kind: "tech", stageId: s.id, techId: id })} onRemove={(t) => { apply(removeTech(graph, s.id, t.id), removeSaid(s.name, t.name)); stay(); }}
           onCandidate={(t) => { onCandidate(t.id, t.name); stay(); }} /> : null}{/* 고르는 동안 단추가 막혀 초점이 떨어지지 않게 카드 이름으로 */}
+        {s.techs.length ? <TechTools graph={graph} apply={apply} say={say} pool={pool} s={s} /> : null}
         {canPut.length ? (
           <div className="lm-row">
             <label>기술 넣기 <select value={tech} onChange={(e) => setTech(e.target.value)}>
@@ -127,6 +128,64 @@ function StageCard({ graph, apply, pool, picked, onPick, say, onCandidate, marki
         ) : <p className="muted">{pool.length ? "이 단계에 맞는 사용 중인 항목 · 담은 기술이 없어요." : "넣을 기술이 없어요. 지도에서 \"청사진에 담기\"를 누르면 생겨요."}</p>}
       </div>
     </li>
+  );
+}
+
+/** 캔버스 기술 노드 끌기 · 관계선 긋기의 키보드 짝(P-12j H2): 기술을 골라 위 · 아래, 다른 단계로 옮기기, 관계 표시 잇기 · 끊기. 같은 graph.ts 함수 · 같은 말 */
+function TechTools({ graph, apply, say, pool, s }: Pick<PanelProps, "graph" | "apply" | "say" | "pool"> & { s: Stage }) {
+  const [tech, setTech] = useState(""), [to, setTo] = useState(""), [rel, setRel] = useState("");
+  const i = s.techs.findIndex((x) => x.id === tech), t = s.techs[i];
+  const name = (end: string) => { for (const x of graph.stages) for (const y of x.techs) if (linkEnd(y.id, x.id) === end) return `${y.name}(${x.name})`; return end; };
+  const here = t ? linkEnd(t.id, s.id) : null;
+  const ends = graph.stages.flatMap((x) => x.techs.map((y) => linkEnd(y.id, x.id))).filter((e) => e !== here);
+  const mine = (graph.links ?? []).filter((l) => s.techs.some((y) => l.from === linkEnd(y.id, s.id)));
+  const need = () => { say("기술을 먼저 골라 주세요."); return null; };
+  const step = (d: -1 | 1) => {
+    if (!t) return need();
+    const next = moveTechInStage(graph, s.id, t.id, i + d);
+    if (next === graph) say(d < 0 ? "이미 맨 앞이에요." : "이미 맨 끝이에요."); else apply(next, `"${s.name}"에서 ${t.name}의 순서를 바꿨어요.`);
+  };
+  const move = () => {
+    if (!t) return need();
+    const dst = graph.stages.find((x) => x.id === to);
+    if (!dst) { say("옮길 단계를 먼저 골라 주세요."); return; }
+    const r = moveTechToStage(graph, s.id, dst.id, { id: t.id, grade: pool.find((p) => p.id === t.id)?.grade ?? "unknown" });
+    if (!r.ok) { say(r.message); return; }
+    apply(r.graph, `${t.name}을(를) "${s.name}"에서 "${dst.name}"(으)로 옮겼어요.`); setTech(""); setTo("");
+  };
+  const link = () => {
+    if (!here || !t) return need();
+    if (!rel) { say("관계를 표시할 기술을 골라 주세요."); return; }
+    const next = addLink(graph, here, rel);
+    if (next === graph) say((graph.links?.length ?? 0) >= LIMITS.links ? `관계 표시는 ${LIMITS.links}개까지예요.` : "이미 그은 관계이거나 같은 기술이에요.");
+    else { apply(next, `"${t.name}" → "${name(rel)}" 관계를 표시했어요(내가 그은 표시예요).`); setRel(""); }
+  };
+  return (
+    <div className="lm-part">
+      <div className="lm-row">
+        <label>기술 고르기 <select value={tech} onChange={(e) => setTech(e.target.value)}>
+          <option value="">고르기</option>{s.techs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select></label>
+        <button type="button" className="btn btn-sm" aria-disabled={t ? undefined : true} onClick={() => step(-1)}>위로</button>
+        <button type="button" className="btn btn-sm" aria-disabled={t ? undefined : true} onClick={() => step(1)}>아래로</button>
+      </div>
+      {graph.stages.length > 1 ? <div className="lm-row">
+        <label>옮길 단계 <select value={to} onChange={(e) => setTo(e.target.value)}>
+          <option value="">고르기</option>{graph.stages.filter((x) => x.id !== s.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select></label>
+        <button type="button" className="btn btn-sm" aria-disabled={t && to ? undefined : true} onClick={move}>옮기기</button>
+      </div> : null}
+      {ends.length ? <div className="lm-row">
+        <label>관계 표시(내가 긋는 표시) → <select value={rel} onChange={(e) => setRel(e.target.value)}>
+          <option value="">고르기</option>{ends.map((e) => <option key={e} value={e}>{name(e)}</option>)}
+        </select></label>
+        <button type="button" className="btn btn-sm" aria-disabled={t && rel ? undefined : true} onClick={link}>잇기</button>
+      </div> : null}
+      {mine.length ? <ul className="lm-list">{mine.map((l) => (
+        <li key={`${l.from}>${l.to}`}>{name(l.from)} → {name(l.to)} <button type="button" className="btn btn-sm" aria-label={`${name(l.from)} → ${name(l.to)} 관계 표시 지우기`}
+          onClick={() => apply(removeLink(graph, l.from, l.to), `"${name(l.from)} → ${name(l.to)}" 관계 표시를 지웠어요.`)}>끊기</button></li>
+      ))}</ul> : null}
+    </div>
   );
 }
 
