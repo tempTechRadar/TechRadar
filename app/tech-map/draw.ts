@@ -1,5 +1,5 @@
 // 캔버스 그리기(시안 docs/wireframes/radar-draw.js). 색은 tokens.css 값을 읽어 쓴다(테마를 바꾸면 같이 바뀜). 크기·모양 = 단계, 색 = 색 기준 값,
-// 보안은 기호로(위험 = 멈춘 빨간 이중 고리 + ✕, 주의 = !, 수집 오류 = 점선 고리), NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
+// 보안은 점 색 + 이름 뒤 꼬리표로(위험 = 빨간 원 + "✕ 위험", 주의 = 노란 원 + "! 주의", 찾지 못함 = 점선 테두리, P-12m), 수집 오류 = 바깥 점선 고리, NEW 표. 인기·오래됨·업데이트는 지도에 그리지 않는다.
 import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/map/layout";
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
@@ -9,6 +9,9 @@ import { ease, grow, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PI
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
 const MARK_TAG = { interest: "관심", candidate: "담음", hold: "보류" } as const;
+/** 등급 표시(P-12m 시안, 11-23 사용자): 점은 등급색으로 칠하고 이름 뒤에 꼬리표. 글자로도 말해 색에만 기대지 않는다 */
+const GRADE_FILL: Partial<Record<string, string>> = { danger: "--danger", caution: "--caution" };
+const GRADE_TAG: Partial<Record<string, string>> = { danger: "✕ 위험", caution: "! 주의" };
 // 토큰 값은 한 장 그리는 동안만 기억한다(테마가 바뀌면 다음 장부터 새 색, 첫 장에 비어 있던 값이 굳지 않게)
 let css: Record<string, string> = {};
 const col = (token: string) => css[token] ?? (css[token] = getComputedStyle(document.documentElement).getPropertyValue(token).trim() || "#888");
@@ -146,19 +149,13 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     if (g > 0 && g < 1) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - g) * 0.6; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, rp + 3 + g * 9, 0, TAU); c.stroke(); } // 떠오를 때 한 번 번지는 고리(시안의 burst)
     c.globalAlpha = a;
     if (k) { c.strokeStyle = col(it.token); c.globalAlpha = a * (1 - k) * 0.7; c.beginPath(); c.arc(x, y, rp + 4 + k * 10, 0, TAU); c.stroke(); c.globalAlpha = a; }
-    if (n.grade === "danger") { // 멈춘 실선 이중 고리(맥박 없음, P-12g map-4). 선이 처음 지날 때 한 번 울리는 것은 아래. 점선은 수집 오류에만. 흰 받침 위에(P-12m)
-      c.beginPath(); c.arc(x, y, rp + 3, 0, TAU); c.moveTo(x + rp + 5.5, y); c.arc(x, y, rp + 5.5, 0, TAU);
-      c.strokeStyle = col("--surface"); c.lineWidth = 4; c.stroke(); c.strokeStyle = col("--danger"); c.lineWidth = 1.5; c.stroke();
-    }
-    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + (n.grade === "danger" ? 8 : 3.5), 0, TAU); c.stroke(); c.setLineDash([]); }
+    if (n.collectErrorKind) { c.setLineDash([2, 2]); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.4; c.beginPath(); c.arc(x, y, rp + 3.5, 0, TAU); c.stroke(); c.setLineDash([]); }
     c.beginPath(); c.ellipse(x, y, rp * (1 + 0.28 * k), rp * (1 - 0.18 * k), 0, 0, TAU);
     if (it.hollow) { c.fillStyle = col("--paper"); c.fill(); c.strokeStyle = col(it.token); c.lineWidth = 1.6; c.stroke(); } // 분류 전 = 빈 점
-    else { c.fillStyle = col(it.token); c.fill(); }
-    if (!it.hollow || n.mine) { c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); } // 점은 밝은 고리, 사용 중은 굵게
-    if (n.grade === "caution") badge(c, x + rp + 2, y - rp - 2, "!", col("--caution"));
-    if (n.grade === "danger") badge(c, x + rp + 2, y - rp - 2, "✕", col("--danger"));
+    else { c.fillStyle = col(GRADE_FILL[n.grade] ?? it.token); c.fill(); } // 위험 · 주의는 원 자체를 등급색으로(P-12m 시안), 나머지는 범주색
+    if (!it.hollow || n.mine) { c.setLineDash(n.grade === "unknown" && !n.mine ? [2, 2] : []); c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); c.setLineDash([]); } // 찾지 못함은 점선 테두리 // 점은 밝은 고리, 사용 중은 굵게
     if (n.isNew && (z >= TIER.far || S.lit)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800);
-    if (it.id === S.sel) { const sr = rp + (n.grade !== "danger" ? 6 : n.collectErrorKind ? 11 : 8.5); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
+    if (it.id === S.sel) { const sr = rp + (n.collectErrorKind ? 8 : 6); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
     // 선 · 파동 중 먼저 닿은 때 한 번만 켜짐(P-12m, litAt): 36시간 안에 실제로 확인한 점만 ping 고리가 퍼지고(ADR 0032), 위험 · NEW는 한 번 울림
     const age = litAge(S, now, it);
     if (age >= 0 && age < PING && recentlyChecked(n, wall)) { c.strokeStyle = col("--scan"); c.globalAlpha = a * 0.9 * (1 - age / PING); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1 + ease(age / PING) * 16, 0, TAU); c.stroke(); c.globalAlpha = a; }
@@ -293,7 +290,9 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     const [x, y] = P(it), [what, facts] = det > 0.4 || solo ? describeKo(it.node) : ["", ""]; // 상자가 커지는 순간 글도 보이게(안 보이는 글이 이름표를 밀어내지 않게)
     const name = dated && it.node.addedDays !== null ? `${it.node.name} · ${it.node.addedDays ? `${it.node.addedDays}일 전` : "오늘"}` : it.node.name; // 기간 칩과 같은 기준(지금부터 24시간 = 오늘)
     c.font = `12px ${col("--font")}`;
-    const w = Math.max(c.measureText(name).width, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
+    const gt = GRADE_TAG[it.node.grade], nw = c.measureText(name).width;
+    c.font = `700 10px ${col("--font")}`; const tw = gt ? c.measureText(gt).width + 6 : 0; c.font = `12px ${col("--font")}`;
+    const w = Math.max(nw + tw, what ? c.measureText(what).width * 0.92 : 0, facts ? c.measureText(facts).width * 0.85 : 0);
     const h = 16 + (what ? 14 : 0) + (facts ? 13 : 0);
     const off = dotRadius(it, sc) + 5; // 가까이 가면 점이 커지니 점 가장자리에서 띄운다
     const right = x > S.W / 2 - 1 ? x + off + w < S.W - S.right - 4 : x - off - w < 4; // 바깥쪽에, 화면 끝에 잘리면 안쪽으로
@@ -304,6 +303,7 @@ function leafLabels({ c, S, vis, P, sc, now, z }: Frame) {
     if (a < 0.3) continue;
     c.globalAlpha = S.lit && !S.lit.has(it.id) ? 0.2 : a;
     label(c, name, box[0], y, 12, col("--on-paper"), "left", justLanded(it) ? 700 : 400);
+    if (gt) label(c, gt, box[0] + nw + 6, y, 10, col(GRADE_FILL[it.node.grade]!), "left", 700);
     if (!what) continue;
     c.globalAlpha *= solo ? 1 : Math.min(1, (det - 0.4) / 0.4 + 0.3);
     label(c, what, box[0], y + 14, 11, col("--on-paper-2"));

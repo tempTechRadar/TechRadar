@@ -3,7 +3,7 @@
 // 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
 import { useEffect, useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
-import type { LegendItem, MapLayout } from "@/lib/map/layout";
+import type { MapLayout } from "@/lib/map/layout";
 import { DEFAULT_VIEW, DIMS, DIM_KO, filterCount, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
 const MARK_CHIP: Record<MarkPick, string> = { interest: "★ 관심", candidate: "담은 기술", hold: "보류" }; // 사이드 패널 별 · 담기와 같은 말(P-12h U1)
@@ -117,7 +117,7 @@ export function Crumbs({ view, onView }: { view: ViewConfig; onView: (v: ViewCon
   );
 }
 
-/** 늘 보이는 빠른 칩(11-21 사용자: 필터를 보기 창 밖으로): 들어온 때(오늘 · 이번 주 · 이번 달) · 위험·주의 · 내 관심 · 내 기술과 비교군 · 수집 오류.
+/** 늘 보이는 빠른 칩(11-21 사용자: 필터를 보기 창 밖으로, P-12m 시안 A 순서): 들어온 때(오늘 · 이번 주 · 이번 달) · 위험·주의 · 내 관심 · 사용 중 · 수집 오류, 그 뒤 다시 보기 · 요즘 뜨는. 옛 말: 내 기술과 비교군 · 수집 오류.
  *  다시 누르면 꺼진다. 수는 들어간 분류와 상관없이 지도 전체에서 센다 */
 /** trendFailed = 요즘 뜨는 기술을 읽지 못함("없음"과 다르게 보인다) */
 export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, onReplay }: { nodes: MapNode[]; view: ViewConfig; canMine: boolean; login: boolean; trendFailed?: boolean; onView: (v: ViewConfig) => void; onReplay: () => void }) {
@@ -135,10 +135,6 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
           </button>
         ); })}
       </span>
-      {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
-      {trendFailed ? <span className="chip chip-note" role="status">요즘 뜨는 기술을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요</span>
-        : hots || f.hot ? <button type="button" className="chip" aria-pressed={f.hot} title="7일 사이 별이 크게 늘었거나 Hacker News에 오른 기술" onClick={() => set({ hot: !f.hot })}>요즘 뜨는 <b>{hots}</b></button>
-        : null /* 0개면 숨긴다(빈 칩이 시연에서 비어 보이지 않게). 못 읽음은 위처럼 따로 알린다(불변 2) */}
       <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
       {login ? <span className="map-seg" role="group" aria-label="내 판단">
         {MARK_PICKS.map((m) => { const on = f.marks.includes(m); return ( // 옛 보드의 칸(관심 · 적용 후보 · 보류)을 지도 칩으로(P-12f)
@@ -149,22 +145,11 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
       </span> : null}
       {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>사용 중 <b>{count((x) => x.mine)}</b></button> : null}
       {errs > 0 || f.err ? <button type="button" className="chip" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 <b>{errs}</b></button> : null}
+      {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
+      {trendFailed ? <span className="chip chip-note" role="status">요즘 뜨는 기술을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요</span>
+        : hots || f.hot ? <button type="button" className="chip" aria-pressed={f.hot} title="7일 사이 별이 크게 늘었거나 Hacker News에 오른 기술" onClick={() => set({ hot: !f.hot })}>요즘 뜨는 <b>{hots}</b></button>
+        : null /* 0개면 숨긴다(빈 칩이 시연에서 비어 보이지 않게). 못 읽음은 위처럼 따로 알린다(불변 2) */}
     </>
-  );
-}
-
-/** 범례: 색 기준 값을 누르면 그 값만 필터(하는 일·세부 갈래·종류일 때) */
-export function Legend({ L, view, onView }: { L: MapLayout; view: ViewConfig; onView: (v: ViewConfig) => void }) {
-  const key = (Object.keys(LIST_DIM) as ListKey[]).find((k) => LIST_DIM[k] === L.color);
-  const dot = (l: LegendItem) => <i className="map-dot" aria-hidden="true" style={l.hollow ? { border: `2px solid var(${l.token})` } : { background: `var(${l.token})` }} />;
-  return (
-    <div className="map-legend" aria-label={`범례 · 색 = ${DIM_KO[L.color]}`}>
-      <span className="muted">색 = {DIM_KO[L.color]}</span>
-      {L.legend.map((l) => key && !l.rest ? (
-        <button key={l.value} type="button" className="chip" aria-pressed={view.filter[key].includes(l.value)}
-          onClick={() => onView({ ...view, filter: { ...view.filter, [key]: view.filter[key].includes(l.value) ? view.filter[key].filter((x) => x !== l.value) : [...view.filter[key], l.value] } })}>{dot(l)}{l.value} {l.count}</button>
-      ) : <span key={l.value} className="chip">{dot(l)}{l.value} {l.count}</span>)}
-    </div>
   );
 }
 

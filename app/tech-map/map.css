@@ -151,3 +151,24 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-tab[aria-pressed="true"] { border-bottom-color: var(--scan); }
 .map-tab-add { color: var(--on-paper-2); }
 @media (pointer: coarse) { .map-tab, .map-tab-x { min-height: 44px; } }
+
+/* 왼쪽 필터 패널(P-12m Q2, 시안 C 모양 약 208px): 위 칩 줄 바로 아래(--hud-bottom, canvas-map이 잰 값)에서 시작, ‹로 접음. 범례 줄을 대신한다 */
+.map-filter { position: absolute; left: 12px; top: var(--hud-bottom, 180px); z-index: 3; width: 208px; max-height: calc(100% - var(--hud-bottom, 180px) - 56px); display: grid; grid-template-rows: auto minmax(0, 1fr); border: 1px solid var(--line-d); border-radius: var(--r-md); background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--on-paper); font-size: var(--fs-sm); }
+.map-filter:not([data-open]) { width: auto; }
+.map-filter-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 0 10px; border: 0; background: none; color: var(--on-paper); font: inherit; font-weight: 700; cursor: pointer; }
+.map-filter-body { overflow: auto; padding: 0 10px 10px; display: grid; gap: 10px; }
+.map-filter fieldset { margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid var(--line-d); display: grid; gap: 1px; }
+.map-filter legend, .map-filter-head { padding: 0; margin-bottom: 4px; font-size: var(--fs-cap); font-weight: 700; color: var(--on-paper-2); }
+.map-filter label, .map-filter-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 6px; min-height: 26px; cursor: pointer; }
+.map-filter-row { grid-template-columns: auto minmax(0, 1fr) auto; cursor: default; }
+.map-filter label > span, .map-filter-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-filter label b, .map-filter-row b { font-family: var(--mono); font-weight: 400; font-size: var(--fs-cap); color: var(--on-paper-2); }
+.map-filter input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var(--scan); }
+.map-filter-key { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line-d); color: var(--on-paper-2); }
+.map-filter-key > span:not(.map-filter-head) { display: flex; align-items: center; gap: 6px; }
+.map-dot[data-grade="danger"] { background: var(--danger); } .map-dot[data-grade="caution"] { background: var(--caution); }
+.map-dot[data-grade="unknown"] { border: 1.5px dashed var(--unknown); background: none; }
+@media (pointer: coarse) { .map-filter label, .map-filter-toggle { min-height: 44px; } }
+/* 칩 숫자는 고정폭(시안 B) */
+:is(.map-top-hud, .map-dock) .chip b { font-family: var(--mono); font-weight: 500; }
+.map-filter .map-dot { margin-top: 0; }

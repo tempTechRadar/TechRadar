@@ -6,7 +6,8 @@ import { UNSORTED, type MarkStatus, type TechMapModel } from "@/lib/map/build-ma
 import type { GroupItem, Item, TechItem } from "@/lib/map/layout";
 import { DIM_KO, type ViewConfig } from "@/lib/map/view-config";
 import { saveMarkWithToast, ToastLine, useToast } from "../undo-toast";
-import { Crumbs, Legend, QuickChips, Status, Toolbar } from "./controls";
+import { Crumbs, QuickChips, Status, Toolbar } from "./controls";
+import { FilterPanel } from "./filter-panel";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
 import { cartChanged } from "@/lib/blueprint/cart-event";
@@ -67,7 +68,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
     const st = stage.current!, cv = canvas.current!;
     const detach = ctl.attach(cv);
     requestAnimationFrame(() => window.dispatchEvent(new Event(READY_MAP))); // 첫 장을 그린 뒤 첫 화면 덮개의 "지도 보기"를 켠다
-    const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); };
+    const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); st.style.setProperty("--hud-bottom", `${m.top}px`); }; // 왼쪽 필터 패널이 위 칩 줄 바로 아래에서 시작
     const ro = new ResizeObserver(measure);
     ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);
     measure();
@@ -158,6 +159,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />
           <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} trendFailed={model.trendFailed} onView={setView} onReplay={replay} /></div>
         </div>
+        <FilterPanel L={S.L} nodes={model.nodes} view={S.view} onView={setView} />
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
           onEnter={() => { overCard.current = true; clearTimeout(tipTimer.current); }} onLeave={() => { overCard.current = false; hover("", 0, 0); }}
           onDrill={() => drill(tipItem.id)} /> : null}
@@ -170,11 +172,10 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, t) => mark(shown, s, t)} onGo={go} onTags={(tags) => ctl.setTags(shown.node.key, tags)} /> : null}
           {shown?.type === "g" ? <GroupPanel g={shown} members={ctl.groupMembers(shown)} shut={S.collapsed.has(shown.id)} onDrill={() => drill(shown.id)} onToggle={() => ctl.toggle(shown.id)} onGo={go} /> : null}
         </aside>
-        {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
+        {/* 상태 · 알림 말풍선은 지도 아래쪽에 뜬다(시안 radar.html의 dock). 범례는 왼쪽 필터 패널로(P-12m) */}
         <div ref={dock} className="map-dock">
           <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
-          <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>
       </div>
