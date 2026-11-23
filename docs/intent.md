@@ -6,9 +6,9 @@
 
 ---
 
-## I-P-12m-theme · 2026-11-23 · 블루프린트 테마 문서: ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
+## I-P-12m-theme · 2026-11-23 · 테마 문서(11:30부터 관측소, 10:00 파란 도면은 접음): ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
 - 브랜치: `docs/P-12m-theme`(feat/P-12l-blueprint-defaults 5ca75ab에서 갈라짐, 로컬. FrontLead가 feat/P-12m-blueprint-theme로 합침)
-- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md`(맨 위 "11-23 10:00 T1 결정"), Maestro 요청(11-23)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-observatory-theme.md`(11:30, `p12m-blueprint-theme.md`를 대신함), Maestro 요청(11-23)
 
 | 칸 | 내용 |
 |---|---|
@@ -18,7 +18,7 @@
 | 제약 | 로컬 커밋만, 푸시 안 함, Claude API 안 씀. 참고 이미지는 저장소에 넣지 않음. 대비는 `lib/a11y/contrast.ts`로 계산한 값만 |
 | 열린 질문 | ~~토큰 값 넷 · 추적 틀 기준~~ → FrontLead 보고로 풀림(값은 `app/tokens.css`, 추적 틀 = 지도 NEW 중 들어온 기록 있는 최근 5개) |
 
-**결과:** ADR 0044 새로, ADR 0042 6항 · design.md 5 · 6 · 16절 · GLOSSARY 반영(로컬 커밋). 대비는 다시 계산해 맞음(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). FrontLead 보고로 토큰 값 넷 · 추적 틀 기준을 ADR 0044 · design.md 5절 · GLOSSARY에 채움. 구현 결과(전체 검사 · 스크린샷 · 사람 QA)는 끝나면 ADR 0044에
+**결과(11:30 바뀜):** 관측소로 ADR 0044를 고쳐 씀(파일 이름도 바꿈), design.md 5 · 6 · 16절 관측소 값 · 컴팩트, GLOSSARY "도면 시트" 뺌 · "필터" 한 줄. 대비 다시 계산(글자 16.2 · 등급색 바탕 6.8~10.3 · 카드 5.6~8.6 · 노션 칩 6.8~8.2). 확정 hex는 FrontLead Q1 뒤. **앞선 결과(10:00 파란 도면):** ADR 0044 새로, ADR 0042 6항 · design.md 5 · 6 · 16절 · GLOSSARY 반영(로컬 커밋). 대비는 다시 계산해 맞음(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). FrontLead 보고로 토큰 값 넷 · 추적 틀 기준을 ADR 0044 · design.md 5절 · GLOSSARY에 채움. 구현 결과(전체 검사 · 스크린샷 · 사람 QA)는 끝나면 ADR 0044에
 
 ---
 
