@@ -22,8 +22,8 @@
 - herdr: `https://github.com/herdrdev/herdr`(옛 `ogulcancelik/herdr`가 여기로 넘어옴), README: "the runtime your coding agents live on" · 여러 코딩 AI 터미널 · 막힘/작업중/쉼 표시, LICENSE · README Apache-2.0, 문서 `https://herdr.dev`. 패키지: npm `herdr`는 0.0.0 이름 선점용, PyPI 없음, crates.io `herdr` 0.1.0(다른 키 규칙이라 쓰지 않음). 배포는 설치 스크립트 · Homebrew · mise · 바이너리 → 키 `github:herdrdev/herdr`.
 - 루프 하네스: `https://claude.com/resources/articles/harnessing-claudes-intelligence`(Anthropic, 2026-04-02): "An agent harness is the software scaffolding around a model: the loop, tools, context management, and guardrails". 반복 고리 설명은 `https://code.claude.com/docs/en/how-claude-code-works`(gather context → take action → verify, "agentic harness"). 키 `concept:loop-harness`(기존 `concept:harness` = 지침 파일과 다른 키).
 **못 찾은 것 · 한계:** "루프 하네스"라는 이름 그대로 쓰는 1차 출처는 못 찾았다(위 두 글을 합친 풀이). 문서에 쓴 한 줄은 위 영어 문장의 뜻이다.
-**결과:** 됨(로컬 커밋, 미푸시 · 운영 미적용). `npm test` 1795 통과 · 0 실패(새 시험 6개), tsc 0 오류, precheck 겹침 없음.
-**확인하지 못함:** 되돌림 시험 SQL 실제 실행(운영 적용 전에 Maestro가 사용자 승인으로), 지도 화면에서 두 줄이 보이는지(LS_PICKS는 FrontLead).
+**결과:** 됨(로컬 커밋, 미푸시). **운영 적용됨**(11-23, 사용자 승인, Maestro 실행, 이름 `P-12p_ls_seed`; 사용자가 "루프 하네스" 뜻도 맞다고 확인). `npm test` 1795 통과 · 0 실패(새 시험 6개), tsc 0 오류, precheck 겹침 없음.
+**확인하지 못함:** 지도 화면에서 두 줄이 보이는지(LS_PICKS는 FrontLead).
 
 ---
 
