@@ -2,7 +2,7 @@
 
 AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가 깐 기술의 목록·보안·더 나은 대안**을 한눈에 보고, 바깥 변화가 생기면 알림을 받아 **판단하고 기록**하며, 목록을 **설치 프롬프트**로 만들어 다른 컴퓨터에서도 다시 세팅할 수 있게 하는 서비스입니다. 기준 문장: **지키고, 고르고, 옮긴다.** 화면 컨셉: **지도에서 고르고, 청사진으로 옮긴다**([ADR 0032](docs/adr/0032-서비스-컨셉은-지도에서-고르고-청사진으로-옮긴다.md)).
 
-> **상태(2026-11-21, main `8adb2f7` 기준, 코드 동결 뒤 한 번 더 갱신):** 마무리 단계, **병합 마감 11-23(월) 20:00 · 코드 동결 21:00 · 제출 23:59**(11-21 바뀜). 합친 PR 199개, 열린 PR 2개(#202 화면 묶음, #203 수집 기준 P-21). 수집(OSV·GitHub·레지스트리·다운로드·스킬 폴더·다른 도구 설정)부터 알림(보안 경고·적용 기회·모델 지원 종료)·판단·기록, 대응안 초안·적용 시나리오(Claude), 첫 화면 기술 지도(로그인 전에도 보임, 운영 실측 중앙값 1.1초, 내 기술 2개로 잰 값), 알림 없는 판단(관심·적용 후보·보류), 프로젝트 수정·보관, 취향·추천, 사용기·신고, 설치 프롬프트(알파), 흐름 화면·시뮬레이터·실패 시연·채점, 관리자 화면, 위키 18쪽과 위키 챗봇까지 main과 운영에 있습니다. 남은 큰 일은 사람 QA(No Run)와 "재로그인 후 입력 유지" 검사, 발표 자료 빈칸과 숫자 하나 재기, erd 팀 대조(동결 직후), 위키 갱신(#194–#201), 제출 직전 저장소 비공개 전환·강사 초대입니다. 조각별 현황은 [plan](docs/plan.md) 4절, 제출물 현황은 [체크리스트](docs/제출물-체크리스트.md).
+> **상태(2026-11-23 오전, main `9114a8b` = 운영 `/api/version`):** 제출일. 합친 PR 209개, 열린 PR 0개. 수집(OSV·GitHub·레지스트리·다운로드·스킬 폴더·다른 도구 설정·공식 소식)부터 알림(보안 경고·적용 기회·모델 지원 종료)·판단·기록, 대응안 초안·적용 시나리오·청사진 AI 점검(Claude), 기술 지도(로그인 전에도 보임)와 청사진(고른 기술을 단계로 엮어 설치 프롬프트로 내보내기), 프로젝트 관리 보드, 흐름 화면·시뮬레이터·실패 시연·채점, 관리자 화면, 위키와 위키 챗봇까지 main과 운영에 있습니다. 제출 전 남은 일과 점검 결과는 [제출 전 레드팀 검토](docs/제출전-레드팀-1123.md), 조각별 현황은 [plan](docs/plan.md) 4절, 제출물 현황은 [체크리스트](docs/제출물-체크리스트.md).
 > 운영 배포는 앱 파일이 바뀐 병합만 GitHub Actions가 부르므로(ADR 0023) main보다 늦을 수 있습니다.
 
 ## 링크
@@ -14,6 +14,20 @@ AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가
 | QA | [QA(영역 A·B·공용)](docs/qa.md) · [QA(영역 C)](docs/qa-c.md) · [위키 챗봇 정답표](docs/wiki-chat.md). 구글 QA 시트는 없음(표를 위 md 파일로 대신함) |
 | 관리자 쓰는 법 | [관리자 사용설명서](docs/관리자-사용설명서.md) |
 | 위키 | [위키 목차](wiki/index.md) (출처 달린 팀 문서 요약 18쪽), 챗봇은 배포 주소의 `/admin/chat`(관리자만) |
+
+## 안내서 폴더 → 이 저장소의 실제 위치
+
+안내서 7장이 권하는 폴더 이름 중 일부는 Next.js 구조에 맞춰 다른 곳에 두었습니다.
+
+| 안내서 폴더 | 이 저장소 |
+|---|---|
+| `watch/` 수집 | [`watch/`](watch/)(소스 목록·샘플) + 수집 코드 `lib/server/collect-*.ts` |
+| `incident/` 사건·알림·승인 | 알림 만들기 [`lib/server/alerts.ts`](lib/server/alerts.ts)·[`opportunity-alerts.ts`](lib/server/opportunity-alerts.ts), 대응안 초안 [`draft.ts`](lib/server/draft.ts), 사람 판단 [`judgments.ts`](lib/server/judgments.ts), 화면 [`app/alerts/`](app/alerts/) |
+| `knowledge/` 기록과 찾기 | 처리 기록 [`lib/server/action-record.ts`](lib/server/action-record.ts), 비슷한 지난 판단 [`similar-judgments.ts`](lib/server/similar-judgments.ts), 화면 [`app/history/`](app/history/) |
+| `chat/` 위키 챗봇 | 화면·서버 액션 [`app/admin/chat/`](app/admin/chat/), 위키 찾기·Claude 호출 [`lib/server/chat.ts`](lib/server/chat.ts), 정답표 [`docs/wiki-chat.md`](docs/wiki-chat.md) |
+| `flow/` 흐름 | 정의 [`flow/flow.json`](flow/flow.json), 화면 [`app/admin/flow/`](app/admin/flow/), 설명 [`docs/flow.md`](docs/flow.md) |
+| `sim/`, `eval/` | [`sim/`](sim/README.md), [`eval/`](eval/result.md) |
+| `app/` | [`app/`](app/) (입력·대시보드·관리자는 `app/projects`·`app/dashboard`·`app/admin`) |
 
 ## 팀원
 
