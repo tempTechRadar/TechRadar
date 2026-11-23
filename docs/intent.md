@@ -6,6 +6,20 @@
 
 ---
 
+## I-afternoon-1123 · 2026-11-23 · 오후 문서: ADR 0045(AI 두 곳) · ADR 0044에 P-12p · 용어 4개 · README 상태 줄 · 위키 반영 계획 (DocsChecker 세션)
+- 브랜치: `docs/afternoon-1123`(origin/main a03d64b에서)
+- 출처: Maestro 배정(11-23 오후), PR #221 · #222 · #224 · #226 설명과 코드(`lib/map/presets.ts` · `lib/ai/translate-one-liners.ts` · `lib/ai/decide-ai-call.ts` · `lib/blueprint/sections.ts`), 사용자 "API 이제 써"(11-23 오후)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 오후에 합친 AI 두 곳(#224 진단 · #226 한국어 개요)과 지도 손질(#222)이 결정 기록 · 용어집에 없고, README 상태 줄은 오전 9114a8b 기준이다 |
+| 기대 결과 | ADR 0045(AI를 쓰는 두 곳), ADR 0044에 LS점프업 · 관문 삭제 · 잔잔한 레이더 한 줄씩, GLOSSARY에 LS점프업 · 한국어 개요 · 프롬프트 진단 · 섹션, README 상태 줄을 지금 main · 운영 기준으로. 위키는 반영 계획 표만 Maestro에 보냄 |
+| 영향 범위 | `docs/adr/0045-…` · `docs/adr/0044-…` · `docs/GLOSSARY.md` · `README.md` · intent · worklog. 앱 코드 · qa 문서 · wiki/는 안 건드림 |
+| 제약 | 로컬 커밋만, 푸시 X. 새 PR은 사용자 승인 뒤. 위키는 동결(21:00) 뒤 계획 확인을 받고 반영. 숫자(백필 497/500 · 호출 38)는 PR 설명 값이고 다시 세지 않음 |
+| 열린 질문 | ~~운영이 #224에 머물러 있음~~ → Maestro: 멈춘 게 아니라 Actions "production 배포"가 20분 잠잠 규칙으로 줄 서 있음(ADR 0023). README는 시점에 덜 묶인 문구로 |
+
+**결과:** ADR 0045 새로(Maestro 요청으로 PRD-NF6 넷 → 여섯 고침도 이 ADR에), ADR 0044 "뒤이어 바뀐 것(P-12p)" 절, GLOSSARY 4개 + 바뀐 기록, README 상태 줄 · 발표 자료 줄(17쪽, ▢ 11곳) 고침. 사람 QA 결과는 ADR 0045 "결과"에 끝나면.
+
 ## I-c-quality-1123 · 2026-11-23 · 영역 C 품질 루프: 역할 나눈 에이전트로 감사 → 고침 → 독립 검토 반복 (차세일)
 - 브랜치: `fix/c-quality-1123`(ecd796f 위, 로컬)
 - 출처: 사용자 지시(11-23 14:3x, 랄프 루프 · 여러 에이전트 · 전 과정 기록 · 다른 영역 간섭 금지) · `docs/plan.md` 1절 영역 C · CLAUDE.md 3 · 8절
