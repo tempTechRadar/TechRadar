@@ -181,11 +181,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 :is(.map-top-hud, .map-dock) .chip[data-tone="mine"] b { color: var(--chip-pink-ink); }
 :is(.map-top-hud, .map-dock) .chip[data-tone="err"]:not([aria-pressed="true"]) { border: 1px dashed var(--err-line); }
 /* 지도 표시 뜻 한 줄(P-12n): 오른쪽 아래, 보기 단추 위 */
-.map-dock > .map-key { justify-self: end; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 0 0 36px; padding: 2px 8px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--paper) 70%, transparent); color: var(--on-paper-2); font-size: var(--fs-sm); }
-.map-key > span { display: inline-flex; align-items: center; gap: 5px; }
-.map-key .map-dot { margin-top: 0; }
 .map-corner { display: inline-block; width: 10px; height: 10px; border-top: 2px solid var(--on-paper); border-left: 2px solid var(--on-paper); }
-@media (max-width: 640px) { .map-dock > .map-key { display: none; } }
 /* 390: 칩 줄 오른쪽 끝을 흐리게(더 있다는 표시, P-12n) */
 @media (max-width: 640px) { .map-hud > .map-chips { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); } }
 /* 첫 점검 띠: 위험·주의 보기 단추, 390에서는 요약 한 줄 + 단추 */
@@ -201,9 +197,9 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-findbar .map-search input { min-height: 40px; border-radius: var(--r-pill); padding: 0 16px; background: var(--panel); border: 1px solid var(--ring); color: var(--on-paper); box-shadow: var(--shadow-pop); }
 .map-findbar .map-results { top: auto; bottom: calc(100% + 6px); }
 .map-dock > .map-toast { margin-bottom: 52px; } /* 찾기 막대 위로 */
-.map-dock > .map-key { margin-bottom: 0; }
-@media (max-width: 1100px) { .map-dock > .map-key { margin-bottom: 48px; } } /* 가운데 찾기 막대(420px)와 겹치는 폭에서는 막대 위로 */
 .map-view-tools { display: grid; gap: 4px; }
 .map-filter-reset { min-height: 28px; padding: 0 10px; border: 0; border-top: 1px solid var(--line-d); background: none; color: var(--on-paper-2); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
 .map-filter-reset:hover { color: var(--on-paper); }
-@media (max-width: 640px) { .map-dock > .map-findbar { width: calc(100% - 16px); } }
+@media (max-width: 640px) { .map-dock > .map-findbar { left: 0; transform: none; width: calc(100% - 52px); } } /* 오른쪽 ⚙(44px) 자리를 비움 */
+.map-filter-key { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: var(--fs-sm); color: var(--on-paper-2); }
+.map-filter-key > span { display: inline-flex; align-items: center; gap: 4px; }

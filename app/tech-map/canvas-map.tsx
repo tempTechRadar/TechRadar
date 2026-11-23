@@ -183,7 +183,6 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <div className="map-findbar">{/* 찾기는 아래 가운데 떠 있는 막대(P-12p), 결과는 위로 열림 */}
             <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} /></div>
-          <p className="map-key" aria-label="지도 표시 뜻"><span><i className="map-dot" data-grade="danger" aria-hidden="true" />✕ 위험</span><span><i className="map-dot" data-grade="caution" aria-hidden="true" />! 주의</span><span><i className="map-dot" data-grade="unknown" aria-hidden="true" />찾지 못함</span><span><i className="map-corner" aria-hidden="true" />이번 주 새 기술</span></p>
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>
       </div>
