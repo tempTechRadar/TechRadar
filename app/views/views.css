@@ -2,4 +2,4 @@
 .views-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
 .views-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink); text-decoration: none; }
 .views-tabs .muted { align-self: center; }
-.views-tabs a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 700; }
+.views-tabs a[aria-current="page"] { background: var(--picked-bg); border-color: var(--picked-line); color: var(--ink); font-weight: 700; }
