@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const sql = readFileSync("supabase/migrations/202611240300_P-12r_one_liner_ko.sql", "utf8");
+const sql = readFileSync("supabase/migrations/202611240400_P-12r_one_liner_ko.sql", "utf8");
 const body = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
 test("technologies에 한국어 개요 칸 3개(길이 200 이하 제약 · 원문 src · 시각)만 더한다", () => {
