@@ -3,373 +3,877 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TechRadar 발표</title>
-<!-- 발표 자료 제출판(2026-11-23, 처음 초안 2026-11-19). 한 파일, 바깥 주소 없음(인터넷이 끊겨도 열린다). 키는 ← → Space PageUp PageDown Home End.
-     숫자와 문장은 저장소 문서·DB에서 가져온 것이고 출처를 각 슬라이드 아래에 적었다. "▢ 채울 것"은 아직 사실이 없는 자리다(지어 쓰지 않는다). -->
+<title>TechRadar 발표 · 관측 일지</title>
+<!--
+  TechRadar 발표 자료 (리뉴얼, 2026-11-23, 작업 I-slides-renewal)
+  - 한 파일: 외부 라이브러리 · CDN · 웹폰트 없음. 인터넷이 끊겨도 file:// 로 열린다. 그림은 images/ 상대 경로.
+  - 컨셉 "관측 일지": 한 장의 관측소 화면이 막마다 바뀐다. 아래 여정 레일에 7막 · 지금 위치 · 말하는 사람(제안).
+  - 단축키: → ← Space PageUp/Down Home End · O 전체 보기 · T 타이머 · N 메모 · S 화자 · D 근거 크게 · E 편집 · F 전체 화면 · ? 도움말
+  - 주소: #7(쪽) · ?view=overview · ?reveal=all · ?notes=1 · ?detail=1 · ?timer=1 · ?help=1 · ?check=1(넘침 점검)
+  - 숫자 기준: origin/main 210375b, gh · git · npm test 를 2026-11-23 17:17~17:20 KST에 다시 센 값(쪽마다 출처 줄).
+  - 구성: 11-23 화이트보드 v2 7막 기준(1 문제 영식 2분 · 2 만든 것 영식 1.5 · 3 사건과 대응 재웅 1 · 4 시연 세 사람 4 · 5 확인 재웅 1 · 6 AI와 일한 방식 세일 2.5 · 7 사람 세 사람 1.5, 여유 1.5). 낮 화이트보드와 달라진 점은 6막 1.5 → 2.5분 하나. 쪽별 초는 막 시간을 나눈 값이다.
+  - 사람만 채울 칸은 E로 화면에서 써 넣고 이 브라우저(localStorage)에 남는다.
+  - 색은 app/tokens.css(관측소 테마, ADR 0044) 값을 그대로 옮겼다.
+-->
 <style>
-  /* 색은 docs/design.md 5절(레이더 어두운 테마)의 토큰. 글자 대비는 같은 절의 값을 따른다 */
-  :root {
-    --surface: #0a0e14; --subtle: #0f151d; --surface-2: #131b25;
-    --text: #e6edf3; --muted: #8fa3b0; --brand: #2ed573; --success: #5ec8ff;
-    --danger: #f87171; --warning: #fbbf24; --dim: #5a7890; --border: #5f7384;
-    --font: "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; background: var(--surface); color: var(--text); font-family: var(--font); }
-  body { margin: 0; font-size: 20px; line-height: 1.55; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .sweep { animation: none !important; } }
-  .slide { min-height: 100vh; scroll-snap-align: start; padding: 56px max(24px, 7vw) 72px; display: flex; flex-direction: column; justify-content: center; position: relative; border-bottom: 1px solid #1c2733; }
-  .slide > * { max-width: 1100px; }
-  .kicker { font-family: var(--mono); font-size: 14px; letter-spacing: .08em; color: var(--brand); text-transform: uppercase; margin: 0 0 12px; }
-  h1 { font-size: clamp(48px, 9vw, 112px); line-height: 1.02; margin: 0 0 20px; letter-spacing: -.02em; }
-  h1 span { background: linear-gradient(90deg, var(--brand), var(--success)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  h2 { font-size: clamp(28px, 4.2vw, 48px); line-height: 1.15; margin: 0 0 22px; letter-spacing: -.01em; }
-  h3 { font-size: 16px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
-  p, li { margin: 0 0 10px; }
-  ul { margin: 0; padding-left: 1.2em; }
-  .lead { font-size: clamp(20px, 2.4vw, 28px); color: var(--text); max-width: 900px; }
-  .muted { color: var(--muted); }
-  .src { position: absolute; left: max(24px, 7vw); right: max(24px, 7vw); bottom: 20px; font-size: 13px; color: var(--muted); max-width: none; }
-  .src b { font-weight: 600; color: var(--text); }
-  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 8px; }
-  .card { background: var(--surface-2); border: 1px solid #22303e; border-radius: 12px; padding: 18px 20px; }
-  .card p, .card li { font-size: 17px; }
-  .num { font-family: var(--mono); font-size: clamp(34px, 5vw, 56px); line-height: 1; margin: 0 0 6px; }
-  .ok { color: var(--success); } .bad { color: var(--danger); } .warn { color: var(--warning); } .green { color: var(--brand); }
-  .tag { display: inline-block; font-family: var(--mono); font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); margin-right: 6px; color: var(--muted); }
-  .todo { border: 1.5px dashed var(--warning); color: var(--warning); border-radius: 10px; padding: 10px 14px; font-size: 16px; margin-top: 12px; }
-  .todo::before { content: "▢ 채울 것 — "; font-weight: 700; }
-  table { border-collapse: collapse; width: 100%; font-size: 17px; margin-top: 8px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #22303e; vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: 14px; }
-  .steps { counter-reset: s; list-style: none; padding: 0; }
-  .steps li { counter-increment: s; padding-left: 44px; position: relative; margin-bottom: 12px; }
-  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--brand); color: var(--brand); display: grid; place-items: center; font-family: var(--mono); font-size: 15px; }
-  /* 표지의 도는 선: 장식일 뿐이다(점·밝기에 뜻이 없다) */
-  .sweep { position: absolute; right: -8vw; top: 50%; width: min(60vw, 720px); aspect-ratio: 1; transform: translateY(-50%); border-radius: 50%;
-    background: repeating-radial-gradient(circle, transparent 0 56px, rgba(46,213,115,.18) 57px 58px), conic-gradient(from 0deg, rgba(46,213,115,.28), transparent 25%);
-    animation: spin 9s linear infinite; pointer-events: none; opacity: .8; }
-  @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
-  #counter { position: fixed; right: 18px; bottom: 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 6px; z-index: 5; }
-  .shot { margin: 14px 0 0; }
-  .shot img { display: block; max-width: 100%; max-height: 46vh; border: 1px solid #22303e; border-radius: 10px; }
-  .shot img[hidden] { display: none; }
-  .shot-ph { border: 1.5px dashed var(--warning); color: var(--warning); border-radius: 10px; padding: 28px 16px; font-size: 18px; text-align: center; }
-  .scene td:first-child, .nowrap { white-space: nowrap; }
-  a { color: var(--success); }
-  :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
-  @media (max-width: 640px) { body { font-size: 17px; } .slide { padding: 48px 20px 64px; } }
-  @media print { html { scroll-snap-type: none; } .slide { min-height: 0; height: 100vh; page-break-after: always; } #counter { display: none; } }
+[hidden]{display:none!important}
+:root{
+  color-scheme:dark;
+  --paper:#0b1020;--paper-2:#0e1630;--panel:#151c33;--card:#182144;--line:#26314f;--ring:#2b3a66;
+  --ink:#e8edff;--ink-2:#c3cce6;--muted:#9ba9cf;--scan:#3de0c8;--ice:#7fd4ff;
+  --danger:#ff6b6b;--bg-danger:#3a1c24;--limit:#f2b544;--bg-limit:#3a2c14;--pass:#5fd39a;
+  --sp-y:#6cb6ff;--sp-j:#b79cff;--sp-s:#ff9e6b; /* 화자: 영식 파랑 · 재웅 보라 · 세일 주황 */
+  --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",ui-monospace,Consolas,monospace;
+  --dur:.35s;
+}
+@media (prefers-reduced-motion:reduce){:root{--dur:0s}}
+*{box-sizing:border-box}
+html{font-size:min(1vw,1.7778vh)} /* 1rem = 16:9 틀 너비의 1% → 화면 크기가 달라도 같은 배치 */
+body{margin:0;font-family:var(--font);color:var(--ink);background-color:var(--paper);line-height:1.45;overflow:hidden;
+  background-image:radial-gradient(1px 1px at 23px 41px,rgba(232,237,255,.55),transparent 70%),radial-gradient(1px 1px at 151px 97px,rgba(232,237,255,.4),transparent 70%),radial-gradient(1px 1px at 89px 173px,rgba(127,212,255,.45),transparent 70%),radial-gradient(1.5px 1.5px at 211px 19px,rgba(232,237,255,.5),transparent 70%),linear-gradient(118deg,transparent 28%,rgba(61,224,200,.035) 42%,rgba(155,169,255,.06) 50%,rgba(61,224,200,.03) 58%,transparent 72%),radial-gradient(ellipse 80% 70% at 50% 35%,var(--paper-2),var(--paper) 75%);
+  background-size:293px 271px,377px 349px,431px 409px,517px 487px,100% 100%,100% 100%;background-attachment:fixed}
+:focus-visible{outline:2px solid var(--scan);outline-offset:2px}
+button{font:inherit;color:inherit}
+a{color:var(--ice)}
+code{font-family:var(--mono);font-size:.9em;color:var(--ink-2)}
+.num,.tn{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+#stage{position:fixed;inset:0;display:grid;place-items:center}
+#frame{position:relative;width:100rem;height:56.25rem}
+.slide{position:absolute;inset:0 0 5.4rem 0;padding:2.4rem 5rem .6rem;display:flex;flex-direction:column}
+.js .slide{display:none}.js .slide.active{display:flex}
+.kicker{margin:0;font-size:1.05rem;letter-spacing:.08em;color:var(--scan);display:flex;gap:.8rem;align-items:center}
+.kicker .who{color:var(--muted);letter-spacing:0}
+.kicker .who i{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.35rem;vertical-align:baseline}
+h1,h2{margin:.3rem 0 1.1rem;font-weight:800;letter-spacing:-.02em;line-height:1.18;text-wrap:balance}
+h2{font-size:2.9rem}
+h1{font-size:4.6rem}
+.slide.active h2,.slide.active h1{view-transition-name:ttl}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;gap:1.3rem;font-size:1.5rem}
+.body p{margin:0}
+.body{justify-content:space-evenly}.body>[style*="margin-top:auto"]{margin-top:0!important}
+.src{margin:.4rem 0 0;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src b{color:var(--ink-2);font-weight:600}
+.more{display:none}
+.notes{display:none}
+.row{display:flex;gap:1.2rem}
+.row>*{flex:1;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:1.1rem 1.3rem}
+.card h3{margin:0 0 .45rem;font-size:1.3rem;color:var(--ink-2);font-weight:700}
+.card p,.card li{font-size:1.4rem}
+ul{margin:0;padding-left:1.2em}
+.big{font-size:4rem;font-weight:800;line-height:1;color:var(--scan)}
+.big small{font-size:1.2rem;color:var(--muted);font-weight:500;margin-left:.4rem}
+.muted{color:var(--muted)}
+.tag{display:inline-block;padding:0 .6rem;border:1px solid var(--ring);border-radius:99px;font-size:.9rem;color:var(--ink-2);white-space:nowrap;vertical-align:middle}
+/* 정직함 표식 하나: 주황 점선 = 아직 / 한계 */
+.limit{border:1px dashed var(--limit);background:rgba(242,181,68,.07);border-radius:.6rem;padding:.6rem 1rem;font-size:1.25rem;color:var(--ink)}
+.limit::before,.lim::before{content:"△ 아직 · 한계 ";color:var(--limit);font-weight:700;font-size:.9em;letter-spacing:.02em}
+.lim{color:var(--ink)}
+.bad{color:var(--danger)}.ok{color:var(--scan)}.amb{color:var(--limit)}
+.y{color:var(--sp-y)}.j{color:var(--sp-j)}.s{color:var(--sp-s)}
+
+/* 단계 공개 */
+.js .f{opacity:0;visibility:hidden;transform:translateY(.4rem);transition:opacity var(--dur),transform var(--dur),visibility 0s var(--dur)}
+.js .f.on{opacity:1;visibility:visible;transform:none;transition:opacity var(--dur),transform var(--dur)}
+
+/* 사람만 채울 칸 */
+.slot{position:relative;border-radius:.5rem}
+.slot-v{display:none;white-space:pre-wrap}
+.slot.filled .slot-v{display:block}.slot.filled .slot-d{display:none}
+.editing .slot{outline:1px dashed var(--scan);outline-offset:.3rem}
+.editing .slot-v{display:block;min-height:1.4em;border-bottom:1px solid var(--scan);margin-bottom:.3rem}
+.editing .slot-v:empty::before{content:"여기에 직접 써 넣기 (이 브라우저에 저장)";color:var(--muted)}
+#editbadge{display:none;position:absolute;top:.8rem;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--scan);border-radius:99px;padding:.2rem 1rem;font-size:.95rem;z-index:6}
+.editing #editbadge{display:block}
+
+/* 여정 레일 */
+#rail{position:absolute;left:0;right:0;bottom:0;height:5.4rem;padding:.5rem 2rem .6rem;display:flex;align-items:flex-end;gap:1.6rem;border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(11,16,32,0),rgba(11,16,32,.85) 40%)}
+#rail .now{width:19rem;font-size:.95rem;color:var(--muted);line-height:1.3}
+#rail .now b{display:block;color:var(--ink);font-size:1.15rem}
+#rail .now .hand{color:var(--scan)}
+#acts{flex:1;display:flex;gap:.7rem;align-items:flex-end}
+.act{display:flex;flex-direction:column;gap:.3rem;flex-grow:var(--n);flex-basis:0}
+.act span{font-size:.85rem;color:var(--muted);white-space:nowrap}
+.act.cur span{color:var(--scan);font-weight:700}
+.ticks{display:flex;gap:.25rem}
+.tick{flex:1;height:.9rem;border:0;border-radius:.25rem;padding:0;cursor:pointer;background:var(--c);opacity:.38}
+.tick.done{opacity:.7}
+.tick.cur{opacity:1;box-shadow:0 0 0 .15rem var(--paper),0 0 0 .3rem var(--scan),0 0 1.2rem var(--scan)}
+.tick[data-sp=y]{--c:var(--sp-y)}.tick[data-sp=j]{--c:var(--sp-j)}.tick[data-sp=s]{--c:var(--sp-s)}
+.tick[data-sp=a]{background:linear-gradient(90deg,var(--sp-s) 33%,var(--sp-j) 33% 66%,var(--sp-y) 66%)}
+.nosp .tick{background:var(--ring)}.nosp .tick.cur{background:var(--scan)}.nosp .spk{display:none}
+#rail .meta{width:13rem;text-align:right;font-size:.85rem;color:var(--muted);line-height:1.35}
+#rail .meta b{font-size:1.5rem;color:var(--ink)}
+.legend i{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;margin:0 .2rem 0 .5rem}
+.railbtn{background:none;border:1px solid var(--ring);border-radius:.4rem;padding:0 .5rem;cursor:pointer;font-size:.85rem;color:var(--muted)}
+
+/* 발표자 도구 */
+#hud{position:absolute;top:.8rem;right:2rem;display:none;font-size:1rem;color:var(--ink-2);background:rgba(21,28,51,.92);border:1px solid var(--line);border-radius:.6rem;padding:.4rem .8rem;z-index:5;min-width:17rem}
+#hud.on{display:block}
+#hud .barw{height:.35rem;background:var(--line);border-radius:99px;margin-top:.3rem;overflow:hidden}
+#hud .bar{height:100%;width:0;background:var(--scan)}
+#hud.over .bar{background:var(--limit)}#hud.over .pg{color:var(--limit)}
+.panel{position:absolute;z-index:7;background:rgba(21,28,51,.97);border:1px solid var(--ring);border-radius:.8rem;padding:1rem 1.3rem;box-shadow:0 .8rem 2.4rem rgba(0,0,0,.5);display:none}
+.panel.on{display:block}
+.panel h4{margin:0 0 .5rem;font-size:.95rem;color:var(--scan);letter-spacing:.06em}
+#pnotes{left:2rem;bottom:6rem;width:44rem;font-size:1.25rem}
+#pnotes li{margin:.25rem 0}
+#pdetail{right:2rem;bottom:6rem;width:48rem;max-height:40rem;overflow:auto;font-size:1.15rem}
+#pdetail .srcbig{color:var(--ink-2);margin-top:.6rem;border-top:1px solid var(--line);padding-top:.6rem;font-size:1.05rem}
+#phelp{left:50%;top:50%;transform:translate(-50%,-50%);width:64rem;font-size:1.05rem}
+#phelp .xw td{font-family:var(--font);color:var(--ink);width:auto;white-space:normal;font-size:.95rem}#phelp .xw td:first-child{font-family:var(--font);color:var(--ink);width:auto}#phelp .xw td:nth-child(even){color:var(--scan)}
+#phelp table{width:100%;border-collapse:collapse}
+#phelp td{padding:.25rem .5rem;border-bottom:1px solid var(--line)}
+#phelp td:first-child{font-family:var(--mono);color:var(--scan);white-space:nowrap;width:16rem}
+#over{position:absolute;inset:0;z-index:8;background:rgba(11,16,32,.97);padding:2.5rem 4rem;display:none;overflow:auto}
+#over.on{display:block}
+#over h4{margin:0 0 1rem;font-size:1.3rem;color:var(--scan)}
+#ogrid{display:grid;grid-template-columns:repeat(6,1fr);gap:.9rem}
+.oc{text-align:left;background:var(--panel);border:1px solid var(--line);border-top:.35rem solid var(--c,var(--ring));border-radius:.6rem;padding:.7rem .8rem;height:10.5rem;cursor:pointer;display:flex;flex-direction:column;gap:.3rem;overflow:hidden}
+.oc.cur{border-color:var(--scan);box-shadow:0 0 0 .15rem var(--scan)}
+.oc b{font-size:1.6rem;color:var(--muted)}.oc em{font-style:normal;font-size:.8rem;color:var(--scan)}
+.oc span{font-size:.98rem;line-height:1.3}.oc small{margin-top:auto;font-size:.8rem;color:var(--muted)}
+
+/* 1 표지 */
+#s1 .body{flex-direction:row;align-items:center;gap:3rem}
+#s1 .left{flex:1.25}
+#radarw{flex:1;position:relative;aspect-ratio:1;max-height:34rem}
+#radar{width:100%;height:100%;display:block}
+#radarbtn{position:absolute;right:0;bottom:0}
+.stats{display:flex;gap:2.2rem;margin-top:1.8rem}
+.stats div{font-size:1rem;color:var(--muted)}
+.stats b{display:block;font-size:2.6rem;color:var(--ink);font-weight:800;line-height:1.1}
+.team{display:flex;gap:1.4rem;margin-top:1.4rem;font-size:1.25rem}
+.team i{display:inline-block;width:.8rem;height:.8rem;border-radius:50%;margin-right:.4rem}
+/* 2 인용 */
+.quote{font-size:4rem;font-weight:800;line-height:1.2;letter-spacing:-.02em;border-left:.35rem solid var(--scan);padding-left:1.4rem}
+.quote small{display:block;font-size:1rem;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:.4rem}
+/* 표 */
+table.t{width:100%;border-collapse:collapse;font-size:1.5rem}
+table.t th{text-align:left;color:var(--muted);font-weight:600;font-size:1rem;padding:.4rem .7rem;border-bottom:1px solid var(--ring)}
+table.t td{padding:.9rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+/* 5 한 장 지도 */
+#map5{width:100%;flex:1;min-height:0}
+#map5 text{fill:var(--ink);font-family:var(--font)}
+#map5 .ln{fill:none;stroke-width:2.5;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s ease}
+.js #map5 .f .ln{stroke-dashoffset:1}#map5 .f.on .ln,html:not(.js) #map5 .ln{stroke-dashoffset:0}
+#map5 .f{transform:none}
+/* 6 출처 */
+.chips{display:flex;flex-wrap:wrap;gap:.6rem}
+.chipx{background:var(--card);border:1px solid var(--ring);border-radius:99px;padding:.4rem 1.2rem;font-size:1.45rem}
+.chipx.new{border-color:var(--scan)}
+.chipx small{color:var(--muted);font-size:.85rem;margin-left:.3rem}
+/* 7 세 겹 */
+.rings{display:grid;place-items:center;border:2px solid var(--sp-y);border-radius:1.2rem;padding:.9rem 1.2rem .6rem;text-align:center;font-size:1.05rem;gap:.4rem}
+.rings>div{width:100%}
+/* 9 캡처 */
+figure{margin:0}
+figure img{display:block;height:16.2rem;width:auto;max-width:100%;margin:0 auto;border:1px solid var(--ring);border-radius:.5rem}
+figcaption{text-align:center}
+figcaption{font-size:.95rem;color:var(--muted);margin-top:.25rem}
+/* 10 시연 */
+#s10 .body{flex-direction:row;gap:2rem}
+.demo{flex:1;display:flex;flex-direction:column;gap:.8rem}
+.di{display:flex;align-items:center;gap:1rem;background:var(--panel);border:1px solid var(--line);border-radius:.7rem;padding:1rem 1.2rem}
+.di.chk{border-color:var(--scan);opacity:.72}
+.di button{width:2.6rem;height:2.6rem;border-radius:.5rem;border:2px solid var(--ring);background:var(--paper);font-size:1.5rem;cursor:pointer;flex:none;line-height:1}
+.di.chk button{border-color:var(--scan);color:var(--scan)}
+.di .tx{flex:1;font-size:1.75rem;font-weight:700;line-height:1.25}
+.di .tx small{display:block;font-size:1.1rem;font-weight:500;color:var(--muted)}
+.di a{font-family:var(--mono);font-size:1.1rem;white-space:nowrap}
+.cd{width:19rem;display:flex;flex-direction:column;align-items:center;gap:.7rem;text-align:center}
+#cdnum{font-size:6.5rem;font-weight:800;line-height:1;color:var(--scan)}
+#cdnum.over{color:var(--limit)}
+.cd button{border:1px solid var(--ring);background:var(--card);border-radius:.5rem;padding:.35rem 1rem;cursor:pointer;font-size:1rem}
+.live{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--scan);border-radius:99px;padding:.15rem .9rem;font-size:1rem;color:var(--scan)}
+.live::before{content:"";width:.6rem;height:.6rem;border-radius:50%;background:var(--scan)}
+/* 11 QA 막대 */
+.qa{display:flex;height:1.5rem;border-radius:.3rem;overflow:hidden;margin:.3rem 0 .2rem}
+.qa i{display:block;height:100%}
+.qa .p{background:var(--scan)}.qa .x{background:var(--danger)}.qa .n{background:repeating-linear-gradient(45deg,var(--limit) 0 .3rem,#8a6a2a .3rem .6rem)}.qa .e{background:var(--muted)}
+/* 12 타임라인 */
+.tl{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;height:25.5rem;align-items:end;border-bottom:1px solid var(--ring)}
+.col{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:.22rem;height:100%;position:relative}
+.bar{height:calc(var(--v)*.2rem);min-height:.3rem;background:linear-gradient(180deg,var(--ice),#2b5c8f);border-radius:.3rem .3rem 0 0;transform-origin:bottom;position:relative}
+.slide.active .bar{animation:grow .9s ease both;animation-delay:calc(var(--i)*.09s)}
+@keyframes grow{from{transform:scaleY(0)}to{transform:none}}
+.bv{text-align:center;font-size:1.5rem;font-weight:800;line-height:1}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;text-align:center;font-size:1rem;margin-top:.3rem}
+.days small{display:block;color:var(--muted);font-size:.8rem}
+.flag{display:block;width:100%;text-align:left;border:0;border-left:.3rem solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel));border-radius:0 .35rem .35rem 0;padding:.12rem .5rem;font-size:.95rem;line-height:1.35;cursor:help;position:relative;white-space:nowrap}
+.flag.turn{--c:var(--scan)}.flag.inc{--c:var(--danger)}.flag.vy{--c:var(--sp-y)}.flag.vj{--c:var(--sp-j)}.flag.vs{--c:var(--sp-s)}
+.flag .tip{display:none;position:absolute;left:0;bottom:calc(100% + .3rem);width:24rem;white-space:normal;background:var(--card);border:1px solid var(--c);border-radius:.5rem;padding:.5rem .7rem;font-size:.95rem;z-index:4;box-shadow:0 .5rem 1.5rem rgba(0,0,0,.5)}
+.col:nth-child(n+5) .flag .tip{left:auto;right:0}
+.flag:hover .tip,.flag:focus .tip{display:block}
+.lowmark{position:absolute;left:57.3%;width:28.4%;bottom:-.1rem;height:8.6rem;border:1px dashed var(--limit);border-radius:.4rem;pointer-events:none}
+.lowmark span{position:absolute;left:.6rem;right:.6rem;top:.3rem;font-size:.95rem;line-height:1.3;color:var(--limit)}
+.vib{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}
+.vib .card{padding:.5rem .9rem;border-left:.3rem solid var(--c)}
+.vib .card p,.vib .slot-v{font-size:1.1rem}.vib h3{font-size:1.1rem;margin-bottom:.15rem}
+/* 13 */
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
+.rules .card b{color:var(--scan);font-size:1.15rem;display:block}
+.strip{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:.8rem;padding:.8rem 2rem}
+.strip div{text-align:center;font-size:.95rem;color:var(--muted)}
+.strip b{display:block;font-size:2.4rem;color:var(--ink);line-height:1.1}
+/* 14 회로 */
+.circ{display:grid;grid-template-columns:repeat(6,1fr);position:relative;margin-top:2.2rem}
+.nd{position:relative;padding:0 .5rem;text-align:center}
+.nd .dot{width:5rem;height:5rem;border-radius:50%;border:.25rem solid var(--ice);background:var(--paper);display:grid;place-items:center;font-size:2rem;font-weight:800;margin:0 auto 1rem;position:relative;z-index:1}
+.nd::before{content:"";position:absolute;top:2.4rem;left:-50%;width:100%;height:.2rem;background:var(--ice);transform-origin:left;transition:transform .6s ease}
+.nd:first-child::before{display:none}
+.js .nd.f::before{transform:scaleX(0)}.js .nd.f.on::before{transform:none}
+.nd h3{margin:0;font-size:1.7rem}
+.nd p{font-size:1.15rem;color:var(--ink-2);margin-top:.5rem}
+.nd.red .dot{border-color:var(--danger);background:var(--bg-danger);box-shadow:0 0 2rem var(--danger)}
+.nd.red::before{background:linear-gradient(90deg,var(--ice),var(--danger))}.nd.red h3{color:var(--danger)}
+.nd.teal .dot{border-color:var(--scan);background:#12343a;box-shadow:0 0 2rem var(--scan)}
+.nd.teal::before{background:linear-gradient(90deg,var(--danger),var(--scan))}.nd.teal h3{color:var(--scan)}
+/* 16 */
+.ppl{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;flex:1;min-height:0}
+.ppl .card{border-top:.4rem solid var(--c);display:flex;flex-direction:column;gap:.45rem;padding:.9rem 1.1rem}
+.ppl h3{font-size:1.8rem;color:var(--ink);margin:0}
+.ppl h3 small{font-size:.9rem;color:var(--muted);font-weight:500;margin-left:.4rem}
+.hb{display:flex;align-items:center;gap:.6rem;font-size:1rem}
+.hb span{width:3.6rem;color:var(--muted)}
+.hb i{display:block;height:1.1rem;background:var(--c);border-radius:.2rem;width:calc(var(--w)*.15rem)}
+.hb i.rv{opacity:.55}
+.hb b{font-size:1.5rem}
+.ppl p,.ppl .slot-v{font-size:1.25rem}
+.ppl .lbl{font-size:1rem;color:var(--muted);margin-top:.8rem}
+.ppl .hb b{font-size:2rem}.ppl .hb i{height:1.4rem}
+
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html{font-size:12.8px}body{overflow:visible;background:var(--paper);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #stage{position:static;display:block}#frame{height:auto}
+  .js .slide,.slide{display:flex!important;position:relative;inset:auto;width:100rem;height:56.25rem;page-break-after:always;break-after:page}
+  .js .f{opacity:1!important;visibility:visible!important;transform:none!important}
+  #rail,#hud,.panel,#over,#editbadge,#radarbtn{display:none!important}
+  .bar{animation:none!important}.js .nd.f::before{transform:none}#map5 .ln{stroke-dashoffset:0!important}
+  .notes-on .notes{display:block;position:absolute;left:5rem;right:5rem;bottom:1rem;font-size:.95rem;color:var(--ink-2);border-top:1px solid var(--line);padding-top:.3rem}
+}
+@media (prefers-reduced-motion:reduce){
+  .slide.active .bar{animation:none}.nd::before,#map5 .ln{transition:none}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.26s}
+::view-transition-group(ttl){animation-duration:.3s}
 </style>
 </head>
 <body>
-<span id="counter" aria-hidden="true">1 / 17</span>
+<div id="stage"><main id="frame">
 
-<main id="deck">
-
-<section class="slide" id="s1" aria-labelledby="t1">
-  <div class="sweep" aria-hidden="true"></div>
-  <p class="kicker">프로젝트 3 · 최종 발표 2026-11-23</p>
-  <h1 id="t1"><span>TechRadar</span></h1>
-  <p class="lead">내가 깐 AI 도구가 안전한지, 더 나은 것이 나왔는지 한눈에.</p>
-  <p class="lead"><b class="green">지도에서 고르고, 청사진으로 옮긴다.</b></p>
-  <p class="muted">기준 문장: 지키고, 고르고, 옮긴다 · 김영식 · 차세일 · 황재웅</p>
-  <p class="src"><b>발표 순서:</b> 문제 → 지켜본 곳 → 입력·지도·청사진 → 사건과 대응 → 흐름 → 시연(제품·위키) → 확인 → 커넥터 → 위키·챗봇 → 서브에이전트 → 하네스 → 바이브로그 → 기여 → 다음 · <b>컨셉 출처:</b> docs/adr/0032 · README 첫 문단</p>
-</section>
-
-<section class="slide" id="s2" aria-labelledby="t2">
-  <p class="kicker">문제 1/3 · 누가, 무엇을 놓쳐, 무엇을 잃나</p>
-  <h2 id="t2">깔기는 쉬운데, 내가 뭘 깔았는지 한눈에 못 본다</h2>
-  <p class="lead"><b>AI 코딩 도구</b>(Claude Code·Cursor·Codex 등)로 직접 만드는 사람은 스킬·MCP·플러그인을 소식(쇼츠·유튜브)이나 그때그때의 필요로 하나씩 깐다.</p>
-  <div class="grid">
-    <div class="card"><h3>놓치는 것</h3><p>내가 무엇을 깔았는지 · 그게 안전한지 · 더 나은 것이 나왔는지</p></div>
-    <div class="card"><h3>그래서 잃는 것</h3><p>유명세만 보고 검증 안 된 도구를 쓴다. 컴퓨터를 바꾸면 쌓은 세팅을 못 옮기고 처음부터 다시 쌓는다.</p></div>
-    <div class="card"><h3>지금 쓰는 방법 <span class="tag">사람 인터뷰 1명의 말</span></h3><p>소식·사례로 확인하고, 저장은 휴대폰 캡처, 다시 볼 때는 "생각나면".</p></div>
+<!-- ───────── 1 표지 ───────── -->
+<section class="slide" id="s1" aria-labelledby="t1" data-act="1" data-sp="y" data-sec="15" data-short="표지">
+  <p class="kicker">1막 · 문제 · 관측 일지 2026-11-16 → 11-23</p>
+  <div class="body">
+    <div class="left">
+      <p style="font-size:1.5rem;color:var(--ink-2);font-weight:700;letter-spacing:.04em">TechRadar</p>
+      <h1 id="t1">지도에서 고르고,<br>청사진으로 옮긴다</h1>
+      <p style="font-size:1.45rem;color:var(--ink-2)">AI 코딩 도구로 직접 만드는 사람이, 깐 것을 <b class="ok">지키고 · 고르고 · 옮기게</b>.</p>
+      <div class="stats" aria-label="8일 동안의 기록">
+        <div><b class="tn" data-count="232">232</b>합친 PR</div>
+        <div><b class="tn" data-count="1793">1,793</b>커밋</div>
+        <div><b class="tn" data-count="1883">1,883</b>자동 시험 통과</div>
+        <div><b class="tn" data-count="45">45</b>결정 기록(ADR)</div>
+      </div>
+      <div class="team"><span><i style="background:var(--sp-y)"></i>김영식</span><span><i style="background:var(--sp-j)"></i>황재웅</span><span><i style="background:var(--sp-s)"></i>차세일</span><span class="muted" style="font-size:1rem">아래 레일의 색 = 말하는 사람</span></div>
+    </div>
+    <div id="radarw"><canvas id="radar" width="640" height="640" role="img" aria-label="느리게 도는 레이더 스캔 그림(장식)"></canvas><button class="railbtn" id="radarbtn" type="button" aria-pressed="false">스캔 멈춤</button></div>
   </div>
-  <p class="src"><b>출처:</b> docs/문제정의.md 1절(문제 한 문장) · interviews/2026-11-17-대표1-사람.md 2절(요약, 익명)</p>
+  <p class="src"><b>출처:</b> 컨셉 docs/adr/0032 · README 첫 문단 │ 숫자: gh pr list(합친 PR 232, #234까지) · git rev-list origin/main(1,793, 첫 커밋 11-16 15:55 ~ 11-23 17:07) · npm test(main 210375b, 실패 0) · ls docs/adr — 11-23 17:20 셈</p>
+  <ul class="notes"><li>이름 → 기준 문장 한 번 → "일곱 막으로 갑니다. 아래 레일이 지금 위치입니다." 숫자 넷은 "8일 동안 이만큼"만.</li><li>구성: 11-23 화이트보드 v2 7막 기준. 달라진 점 하나 — 6막을 1.5 → 2.5분으로 늘려 작업 과정 · 분업 · 기록을 넣었다(여유 1.5분).</li><li>안내서 12항목 · 강사 공지 4항목이 어느 막에 있는지는 ? 도움말의 대조표. 15초.</li></ul>
 </section>
 
-<section class="slide" id="s3" aria-labelledby="t3">
-  <p class="kicker">문제 2/3 · 어떻게 골랐고, 무엇을 접었고, 근거의 한계</p>
-  <h2 id="t3">가설을 나란히 두고 인터뷰로 좁혔다</h2>
-  <div class="grid">
-    <div class="card"><h3>근거</h3>
-      <ul><li><b>사람 인터뷰 2건</b>(5명, 팀 밖, 동의 문구 읽음, 익명)</li><li><b>AI 인터뷰 3건</b>은 가설용 — 실제 조사가 아니다</li></ul></div>
-    <div class="card"><h3>들은 말 <span class="tag">사람 인터뷰, 요약</span></h3>
-      <ul><li>"있는 줄 몰라서 포기"는 거의 없다 (목적을 정하고 먼저 검색)</li><li>보안 확인 = 유명세·사례 확인. 실제 점검(권한·코드·출처)은 안 한다</li><li>새 기준: 무료로 쓸 수 있는가</li></ul></div>
-    <div class="card"><h3>접거나 바꾼 것</h3>
-      <ul><li>기술 지도: 근거가 가장 약해 "대신 작게" → 11-20 첫 화면이 되고(ADR 0026), 11-21 컨셉을 다시 정하며 중심으로(ADR 0032)</li><li>빈도·손해 수치화: 하지 않음 (ADR 0011)</li><li>가설들 → 통합안 승인 (ADR 0005·0013)</li></ul></div>
-    <div class="card"><h3>한계</h3>
-      <ul><li>표본이 작다</li><li>한 응답자는 인터뷰 전에 주제를 알고 있었고 "일부러 삐딱하게 답변"한다고 말했다</li><li>AI 인터뷰는 근거로 세지 않는다</li></ul></div>
+<!-- ───────── 2 문제 ───────── -->
+<section class="slide" id="s2" aria-labelledby="t2" data-act="1" data-sp="y" data-sec="40" data-short="들은 말 2개">
+  <p class="kicker">1막 · 문제</p>
+  <h2 id="t2">깔기는 쉬운데, 뭘 깔았는지 한눈에 못 본다</h2>
+  <div class="body">
+    <p class="quote f" data-f="1">"중구난방 다 깔려 있다"<small>[사람 인터뷰] 그룹1 P1 · 팀 밖 수강생 · 2026-11-17</small></p>
+    <p class="quote f" data-f="2">"막막해서 그냥 제로부터 시작할 생각"<small>[사람 인터뷰] 그룹1 P3 · 발화자는 추정 · 2026-11-17</small></p>
+    <div class="row f" data-f="3" style="margin-top:auto">
+      <div class="card"><h3>누가</h3><p>AI 코딩 도구(Claude Code · Cursor · Codex 등)로 직접 만드는 사람</p></div>
+      <div class="card"><h3>언제</h3><p>스킬 · MCP · 플러그인을 하나씩 깔다가, 컴퓨터를 바꿀 때</p></div>
+      <div class="card"><h3>잃는 것</h3><p>쌓은 세팅을 못 옮기고 처음부터. 안전한지도 모른 채 쓴다</p></div>
+    </div>
   </div>
-  <p class="src"><b>출처:</b> docs/문제정의.md · docs/adr/0005·0011·0013·0026·0032 · docs/design.md 10절 · interviews/ (이름·연락처 없음)</p>
+  <p class="src"><b>출처:</b> docs/문제정의.md 3절 판정 표(56줄, 원문 그대로) · 1절 문제 한 문장 · interviews/2026-11-17-그룹1-사람.md(익명, 전사 끝부분만 있음)</p>
+  <div class="more"><p>두 인용은 같은 인터뷰(그룹1, 4명)에서 나왔다. P1은 노트북 반납 전에 "싹 정리하고 가지고 나갈" 계획이라고 했다. 가장 강한 근거는 "변화를 놓침"이 아니라 "목록이 없음"이다(docs/문제정의.md).</p></div>
+  <ul class="notes"><li>인용 둘을 그대로 읽는다. 설명을 덧붙이지 않는다.</li><li>"깐 것의 목록조차 없다"가 우리가 들은 가장 강한 말.</li><li>누가 · 언제 · 잃는 것 한 줄씩. 40초.</li></ul>
 </section>
 
-<section class="slide" id="s4" aria-labelledby="t4">
-  <p class="kicker">문제 3/3 · 좋아졌는지 잴 숫자 하나</p>
-  <h2 id="t4">같은 저장소를 손으로 vs 앱으로, 걸린 시간</h2>
-  <p class="lead">빈도·손해는 수치로 딸 수 없다고 판단해 <b>당사자 말</b>로 대신한다. 발표의 숫자 하나는 실제로 재는 <b>비교 작업</b>이다.</p>
+<!-- ───────── 3 가설 판정 ───────── -->
+<section class="slide" id="s3" aria-labelledby="t3" data-act="1" data-sp="y" data-sec="40" data-short="가설 판정">
+  <p class="kicker">1막 · 문제 · 어떻게 골랐고 무엇을 접었나</p>
+  <h2 id="t3">가설 셋을 인터뷰로 판정했고, 가설 B가 접혔다</h2>
+  <div class="body">
+    <table class="t">
+      <tr><th>가설의 주장</th><th>처음 나온 곳</th><th>팀 밖에서 말한 사람</th><th>판정 (11-17)</th></tr>
+      <tr class="f" data-f="1"><td>깐 것을 한눈에 보지 못한다</td><td>A · C</td><td class="tn"><b>2명</b> (추정)</td><td class="ok"><b>중심으로 올림</b></td></tr>
+      <tr class="f" data-f="1"><td>무엇이 안전한지 모른 채 깐다</td><td>A</td><td class="tn">1명</td><td>남김 → 보안 등급 · 경고</td></tr>
+      <tr class="f" data-f="2"><td>몰라서 원하는 결과물을 포기한다</td><td>B</td><td class="tn amb"><b>0명</b></td><td class="amb"><b>중심에서 내림</b> — 중단 기준: 구체 사례 2명 미만</td></tr>
+    </table>
+    <p class="f" data-f="3">→ 11-18 회의에서 통합안 승인(D1~D12). 사람 인터뷰 <b>2건 · 5명</b>만 세고, AI 인터뷰 3건은 가설용으로만.</p>
+    <div class="limit f" data-f="4" style="margin-top:auto">표본이 작다(5명) · 그룹1은 전사 끝부분만 있고 발화자는 추정 · 대표1은 주제를 미리 알았고 "일부러 삐딱하게 답변"</div>
+  </div>
+  <p class="src"><b>출처:</b> docs/문제정의.md 50~68줄(판정 규칙 · 표 · 한계) · docs/adr/0005 · 0013 · docs/팀토론-문제정의-승인.md(11-18 회의, D1~D12 확정)</p>
+  <div class="more"><p>가설 A = 소식 · 보안 지켜보기, B = 필요 → 검색 · 추천(문제정의 v5), C = 둘을 합친 안(ADR 0005). 규칙: 팀 밖 사람 2명 이상에게서 나온 주장을 중심에 둔다. 팀원 본인과 AI 인터뷰는 세지 않는다. 빈도 · 손해 수치화는 하지 않기로 했다(ADR 0011).</p></div>
+  <ul class="notes"><li>"팀원이 낸 가설 B는 팀 밖에서 말한 사람이 0명이라 중심에서 내렸습니다." 말로 짧게.</li><li>접은 것을 먼저 말하고, 남은 것(한눈에 못 본다)을 중심으로.</li><li>한계 세 가지는 화면 그대로 한 번에. 40초.</li></ul>
+</section>
+
+<!-- ───────── 4 숫자 하나 ───────── -->
+<section class="slide" id="s4" aria-labelledby="t4" data-act="1" data-sp="y" data-sec="25" data-short="숫자 하나">
+  <p class="kicker">1막 · 문제 · 좋아졌는지 잴 숫자 하나</p>
+  <h2 id="t4">같은 저장소를 손으로 vs 앱으로</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card"><h3>① 손으로</h3><p class="muted">파일을 열어 깐 것을 적고, 기술마다 취약점 · 최근 업데이트를 검색</p>
+        <div class="slot" style="margin-top:1rem"><div class="slot-v big" data-edit="p4-hand" aria-label="손으로 걸린 시간"></div><div class="slot-d"><span class="big amb" style="font-size:2.4rem">아직 재지 않았다</span><p class="muted" style="margin-top:.5rem">재는 방법: 같은 저장소 하나를 스톱워치로</p></div></div></div>
+      <div class="card"><h3>② 앱으로</h3><p class="muted">저장소 등록 → 사용 중인 항목 목록 → 등급과 이유 확인</p>
+        <div class="slot" style="margin-top:1rem"><div class="slot-v big" data-edit="p4-app" aria-label="앱으로 걸린 시간"></div><div class="slot-d"><span class="big amb" style="font-size:2.4rem">아직 재지 않았다</span><p class="muted" style="margin-top:.5rem">재는 방법: 같은 저장소를 앱에 등록해 등급 확인까지</p></div></div></div>
+    </div>
+    <div class="limit">사용자가 없다 — 앱 안의 숫자는 시연 계정 값뿐이다. 빈도 · 손해는 수치로 따지 않고 당사자 말로 대신한다.</div>
+  </div>
+  <p class="src"><b>출처:</b> docs/adr/0011(비교 작업 · 찾은 위험 수) · 화면 말 "사용 중인 항목" docs/adr/0043 │ 시간 2칸은 사람이 재서 E 키로 써 넣는다(지어 쓰지 않음)</p>
+  <ul class="notes"><li>값을 쟀으면 숫자를, 못 쟀으면 "아직 재지 않았습니다, 재는 방법은 이것"을 그대로.</li><li>사용자가 없다는 한계를 먼저 말한다.</li><li>25초. 넘치면 말로 넘기는 쪽.</li></ul>
+</section>
+
+<!-- ───────── 5 한 장 지도 ───────── -->
+<section class="slide" id="s5" aria-labelledby="t5" data-act="2" data-sp="y" data-sec="35" data-short="한 장 지도">
+  <p class="kicker">2막 · 만든 것 · 서비스 한 장 지도</p>
+  <h2 id="t5">세 마디가 곧 영역 셋, 사람 셋이다</h2>
+  <div class="body">
+    <svg id="map5" viewBox="0 0 1000 400" role="img" aria-label="지킨다는 영역 A 김영식, 고른다는 영역 B 황재웅, 옮긴다는 영역 C 차세일로 이어지고, 셋이 프로젝트 · 지도 · 청사진 메뉴로 모인다">
+      <g class="f" data-f="1">
+        <circle cx="170" cy="46" r="42" fill="#12233f" stroke="#6cb6ff" stroke-width="3"/><text x="170" y="53" text-anchor="middle" font-size="20" font-weight="800">지키고</text>
+        <path class="ln" pathLength="1" d="M170 88 V128" stroke="#6cb6ff"/>
+        <rect x="30" y="128" width="280" height="150" rx="12" fill="#151c33" stroke="#6cb6ff" stroke-width="2"/>
+        <text x="50" y="160" font-size="15" fill="#6cb6ff" style="fill:#6cb6ff">영역 A · 지키기 + 공용 뼈대</text>
+        <text x="50" y="192" font-size="24" font-weight="800">김영식</text>
+        <text x="50" y="222" font-size="15" style="fill:#c3cce6">저장소 읽기 · 수집기 · 보안 등급</text>
+        <text x="50" y="246" font-size="15" style="fill:#c3cce6">지도 · 청사진 · DB · 계정</text>
+        <text x="50" y="268" font-size="12" style="fill:#9ba9cf">#33 · #87 · #178 · #204 · #208</text>
+      </g>
+      <g class="f" data-f="2">
+        <path class="ln" pathLength="1" d="M212 46 H458" stroke="#b79cff"/>
+        <circle cx="500" cy="46" r="42" fill="#231d3f" stroke="#b79cff" stroke-width="3"/><text x="500" y="53" text-anchor="middle" font-size="20" font-weight="800">고르고</text>
+        <path class="ln" pathLength="1" d="M500 88 V128" stroke="#b79cff"/>
+        <rect x="360" y="128" width="280" height="150" rx="12" fill="#151c33" stroke="#b79cff" stroke-width="2"/>
+        <text x="380" y="160" font-size="15" style="fill:#b79cff">영역 B · 고르기</text>
+        <text x="380" y="192" font-size="24" font-weight="800">황재웅</text>
+        <text x="380" y="222" font-size="15" style="fill:#c3cce6">알림 · 판단 · Claude 초안</text>
+        <text x="380" y="246" font-size="15" style="fill:#c3cce6">적용 기회 · 추천 · 사용기 · 사람 QA</text>
+        <text x="380" y="268" font-size="12" style="fill:#9ba9cf">#37 · #43 · #120 · #139 · #184</text>
+      </g>
+      <g class="f" data-f="3">
+        <path class="ln" pathLength="1" d="M542 46 H788" stroke="#ff9e6b"/>
+        <circle cx="830" cy="46" r="42" fill="#3a2418" stroke="#ff9e6b" stroke-width="3"/><text x="830" y="53" text-anchor="middle" font-size="20" font-weight="800">옮긴다</text>
+        <path class="ln" pathLength="1" d="M830 88 V128" stroke="#ff9e6b"/>
+        <rect x="690" y="128" width="280" height="150" rx="12" fill="#151c33" stroke="#ff9e6b" stroke-width="2"/>
+        <text x="710" y="160" font-size="15" style="fill:#ff9e6b">영역 C · 옮기기 · 운영</text>
+        <text x="710" y="192" font-size="24" font-weight="800">차세일</text>
+        <text x="710" y="222" font-size="15" style="fill:#c3cce6">실행 기록 · 흐름 화면 · 시뮬레이터</text>
+        <text x="710" y="246" font-size="15" style="fill:#c3cce6">채점 · 관리자 · 설치 프롬프트 · 위키</text>
+        <text x="710" y="268" font-size="12" style="fill:#9ba9cf">#30 · #46 · #40 · #125 · #227</text>
+      </g>
+      <g class="f" data-f="4">
+        <path class="ln" pathLength="1" d="M170 278 V318 H500 V338" stroke="#3de0c8"/>
+        <path class="ln" pathLength="1" d="M500 278 V338" stroke="#3de0c8"/>
+        <path class="ln" pathLength="1" d="M830 278 V318 H500" stroke="#3de0c8"/>
+        <rect x="250" y="338" width="500" height="52" rx="26" fill="#12343a" stroke="#3de0c8" stroke-width="2"/>
+        <text x="500" y="371" text-anchor="middle" font-size="20" font-weight="700">화면 메뉴 │ 프로젝트 · 지도 · 청사진</text>
+        <text x="30" y="380" font-size="13" style="fill:#9ba9cf">층(프론트 / 백엔드)이 아니라</text><text x="30" y="397" font-size="13" style="fill:#9ba9cf">기능 영역으로 나눴다</text>
+        <text x="970" y="380" text-anchor="end" font-size="13" style="fill:#9ba9cf">각자 화면 · 서버 ·</text><text x="970" y="397" text-anchor="end" font-size="13" style="fill:#9ba9cf">데이터 · QA를 모두</text>
+      </g>
+    </svg>
+  </div>
+  <p class="src"><b>출처:</b> docs/plan.md 8줄 · 10~14줄(영역 = 기능, 각자 화면 · 서버 · 데이터 · QA) · docs/adr/0032(컨셉) · 0037 · 0041(메뉴) · 대표 PR은 gh pr list 제목 기준</p>
+  <div class="more"><p>공용 파일은 주인을 정했다: <code>lib/server/</code> 뼈대는 김영식, <code>flow/flow.json</code>은 차세일만. 마이그레이션은 조각 담당자가 새 파일로 쓰고 김영식 리뷰가 필수(docs/plan.md 16~18줄). M0 사슬: 뼈대를 기다리는 동안 B · C는 DB 없이 함수 · 화면부터(53줄).</p></div>
+  <ul class="notes"><li>세 마디를 하나씩 켜며 "이 말이 곧 영역이고, 사람이고, 오늘 발표 순서입니다."</li><li>층이 아니라 기능으로 나눠서 각자 화면부터 DB까지 다 했다.</li><li>알림 세 종류와 "판단은 사람"은 3막에서 재웅 님이 이어 말한다고 예고. 35초.</li></ul>
+</section>
+
+<!-- ───────── 6 지켜본 곳 ───────── -->
+<section class="slide" id="s6" aria-labelledby="t6" data-act="2" data-sp="y" data-sec="35" data-short="출처 7곳">
+  <p class="kicker">2막 · 만든 것 · 지키기 — 지켜본 곳과 데이터</p>
+  <h2 id="t6">서로 다른 출처 7곳을 매일 읽고, 실패는 "수집 오류"로 남긴다</h2>
+  <div class="body">
+    <div class="chips f" data-f="1">
+      <span class="chipx">OSV 취약점</span><span class="chipx">GitHub 저장소 정보</span><span class="chipx">공식 MCP 레지스트리</span><span class="chipx">npm · PyPI 다운로드</span>
+      <span class="chipx new">별 후보 검색<small>11-21 뒤</small></span><span class="chipx new">Hacker News<small>11-21 뒤</small></span><span class="chipx new">바깥 소식(공식 피드)<small>11-21 뒤</small></span>
+    </div>
+    <div class="row f" data-f="2">
+      <div class="card"><div class="big tn" data-count="66788">66,788</div><p>레지스트리 서버 수 — 하루 몫으로 이어 읽는다 <span class="muted">(11-18 확인)</span></p></div>
+      <div class="card"><div class="big tn"><span data-count="3166">3,166</span><small>개 · 64초</small></div><p>운영 첫 실수집 <span class="muted">(11-19)</span></p></div>
+      <div class="card"><div class="big tn"><span data-count="4823">4,823</span><small>건 · 125초</small></div><p>관리자 "지금 한 번 실행" <span class="muted">(11-22)</span></p></div>
+    </div>
+    <p class="f" data-f="3"><b>매일 06:00</b>(한국 시간) + 관리자 실행. 수집 자료는 모두 같은 모양 한 줄: <span class="ok">시각 · 대상 · 지표 · 이전 값 → 현재 값 · 바뀐 정도 · 출처</span></p>
+    <div class="limit f" data-f="4" style="margin-top:auto">11-23 06:07 정기 실행: 단계 25개 중 수집 오류 2개. 그런데 상태 줄은 "오류 0"이라고 보였다 → 찾아서 고침. 실패한 수집은 다음 시도 시각만 기록한다.</div>
+  </div>
+  <p class="src"><b>출처:</b> lib/schedule/collectors.ts:13(수집기 7개) · vercel.json(0 21 * * * UTC) · docs/spec.md:270 · SPEC-8 · docs/qa.md:79 · docs/connectors.md:12 · docs/debug-note.md:56 · docs/adr/0033 · 0038</p>
+  <div class="more"><p><b>막혔을 때 3가지:</b> ① 수집기들이 같은 상태 칸을 서로 되돌림 → "누가 정했는지" 표시(ADR 0021) ② 정기 실행 첫날 안 돎(CRON_SECRET 없음, #104) → 운영 설정부터 확인 ③ 레지스트리가 너무 커서 → 얇게 시작 · 이어 읽기(ADR 0019). 11-22 두 번째 실행은 172초 4,921건, 새 줄 0.</p></div>
+  <ul class="notes"><li>처음 4곳, 컨셉을 다시 정한 11-21 뒤에 3곳을 더했다.</li><li>읽기 실패를 "변화 없음"으로 치지 않는다(불변 규칙 2) — 오늘 아침에도 이 규칙 위반을 하나 찾아 고쳤다.</li><li>"자동 재시도"라고 말하지 않는다. 다음 시도 시각 기록만. 35초.</li></ul>
+</section>
+
+<!-- ───────── 7 입력 · 권한 ───────── -->
+<section class="slide" id="s7" aria-labelledby="t7" data-act="2" data-sp="y" data-sec="20" data-short="등록 · 권한" data-hand="사건과 대응은 재웅 님">
+  <p class="kicker">2막 · 만든 것 · 직접 입력과 운영 화면</p>
+  <h2 id="t7">등록하면 내 목록에, 권한은 세 곳에서 막는다</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card f" data-f="1"><h3>직접 입력</h3><p>저장소 주소나 설치 목록을 붙여 넣으면 <b>사용 중인 항목</b>이 된다. 수집한 기술과 같은 키로 이어져 변화가 내 목록 · 알림에 나타난다.</p></div>
+      <div class="card f" data-f="2"><h3>프로젝트 보드 · 관리자</h3><p>보드: 숫자 띠 + 판 4개. 관리자: 관제 요약 + 관리자 지정 · 되돌리기. <b>판단 단추는 관리자 화면 어디에도 없다.</b></p></div>
+      <div class="f" data-f="3">
+        <div class="rings">화면<div class="rings" style="border-color:var(--ice)">서버<div class="rings" style="border-color:var(--scan);padding-bottom:.9rem"><b>DB (RLS)</b><span style="font-size:.95rem">내 데이터는 나만</span></div></div></div>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:auto">화면은 잠시 뒤 시연에서 직접 봅니다.</p>
+  </div>
+  <p class="src"><b>출처:</b> docs/prd.md PRD-F46 · docs/adr/0043(프로젝트 보드 · "사용 중인 항목") · PR #208 · #210 · #212 · #215 · #227 · #229 · CLAUDE.md 3절 불변 규칙 5 · supabase/tests/rls_m0 · m1.sql</p>
+  <div class="more"><p>보드 숫자 띠: 오늘의 새 기술 · 진행 중 프로젝트 · 사용 중인 항목 · 위험 발생 · 판단 대기 · 완료. 판 4개: 진행 중 프로젝트 · 지도 · 소식 · 청사진 · 직접 추가. 관리자 첫 화면 관제 요약은 못 읽으면 "읽지 못함"으로 보인다. 11-23에 찾기 · 넣기(capture)를 뺐다(기본 배치가 화면의 2.9배였다, ADR 0043).</p></div>
+  <ul class="notes"><li>등록 → 사용 중인 항목 → 수집한 것과 이어진다. 한 문장으로.</li><li>권한은 화면만이 아니라 서버 · DB에서도. 관리자도 판단을 대신 못 한다.</li><li>20초. "사건이 생기면 어떻게 되는지는 재웅 님이."</li></ul>
+</section>
+
+<!-- ───────── 8 사건과 대응 ───────── -->
+<section class="slide" id="s8" aria-labelledby="t8" data-act="3" data-sp="j" data-sec="60" data-short="알림 세 종류" data-hand="이제 세일 님이 직접 쏩니다">
+  <p class="kicker">3막 · 사건과 대응</p>
+  <h2 id="t8">알림은 세 종류, 조치는 사람이 판단한 뒤에만</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card f" data-f="1" style="border-top:.3rem solid var(--danger)"><h3 class="bad">보안 경고</h3><p>쓰는 기술의 등급이 <b>위험</b>이 되면. 이전 값 → 현재 값 · 쉬운 이유 · 근거 링크.</p></div>
+      <div class="card f" data-f="2" style="border-top:.3rem solid var(--ice)"><h3>적용 기회</h3><p>넷이 <b>모두</b> 맞을 때만: 같은 역할로 확정 · 내가 등록한 뒤에 들어옴 · 위험 아님 · 별 100 이상(알려진 경우만).</p></div>
+      <div class="card f" data-f="2" style="border-top:.3rem solid var(--muted)"><h3>모델 종료</h3><p>모델의 지원 종료일 · 공식 추천 대체 · 내 코드의 어디에서 쓰는지.</p></div>
+    </div>
+    <div class="row f" data-f="3" style="align-items:center;text-align:center;font-size:1.5rem;font-weight:700">
+      <div class="card">알림</div><div style="flex:none">→</div><div class="card" style="border-color:var(--scan)">사람 판단<br><span style="font-size:1.05rem;font-weight:500" class="muted">적용 후보 / 보류(사유)</span></div><div style="flex:none">→</div><div class="card">기록</div>
+    </div>
+    <div class="row f" data-f="4" style="margin-top:auto">
+      <div class="card" style="flex:1.2"><h3>지키는 규칙</h3><p style="font-size:1.05rem">판단 전에는 아무것도 바뀌지 않는다 · 같은 변경은 알림 한 번 · 저장이 실패하면 "처리 완료"로 보이지 않는다 · 대응안 초안은 참고한 출처와 함께</p></div>
+      <div class="card" style="border-left:.3rem solid var(--danger)"><h3 class="bad">합친 뒤 깨진 일 하나 — 11-19 운영 장애 약 18분</h3><p style="font-size:1.05rem">코드(#133)가 마이그레이션보다 먼저 올라가 관리자 분류 탭이 조회 실패 → 칸이 없을 때만 그 부분을 끄게 고치고(#135) 규칙으로(#138)</p></div>
+    </div>
+  </div>
+  <p class="src"><b>출처:</b> lib/alerts/to-alert-view.ts:82~84(세 종류) · docs/spec.md SPEC-3.2(조건 넷, 조건 4는 11-21 추가) · SPEC-4 · 5 · CLAUDE.md 3절 불변 규칙 1 · 3 · 4 · docs/adr/0012 · 0014 · 0033 · docs/debug-note.md:30(#133)</p>
+  <div class="more"><p>Claude 연결: 키는 운영에만 있고 운영 시뮬레이터로 실제 호출이 성공했다(초안 584자, 11-19, docs/connectors.md). 보안 경고인데 고친 버전이 없으면 판단은 보류만 된다(ADR 0012). 적용 기회의 "같은 역할 확정"은 관리자 확인으로만(ADR 0015). 모델 종료 사건은 3순위라 아직 실제로 생기지 않았다(lib 주석).</p></div>
+  <ul class="notes"><li>세 종류를 하나씩. 적용 기회는 조건 넷이 모두 맞아야 울린다 — 덜 울리게 만든 것.</li><li>핵심 한 문장: "사람이 판단하기 전에는 아무것도 바뀌지 않습니다. 관리자도 건너뛸 수 없습니다."</li><li>깨진 일 하나: #133 장애 18분 — 무엇이 깨졌고 어떻게 막았나. "다음 시연이 그 증명입니다." 60초. (모델 종료는 실제 사건이 아직 없다)</li></ul>
+</section>
+
+<!-- ───────── 9 흐름 화면 ───────── -->
+<section class="slide" id="s9" aria-labelledby="t9" data-act="4" data-sp="s" data-sec="20" data-short="흐름 화면">
+  <p class="kicker">4막 · 시연 · 자동화 흐름 화면</p>
+  <h2 id="t9">미리 그린 그림이 아니라, 실행 기록에서 그린다</h2>
+  <div class="body" style="gap:.7rem">
+    <figure><img src="images/flow-sim-success-1120.png" alt="관리자 흐름 화면: 시뮬레이터 실행이 끝까지 성공해 상자가 차례로 켜진 모습"><figcaption><b class="ok">성공</b> — 11-20 운영 실제 실행(시뮬레이터). 11-23 테마를 바꾸기 전 화면이다.</figcaption></figure>
+    <figure class="f" data-f="1"><img src="images/flow-fail-demo-1120.png" alt="관리자 흐름 화면: 깨진 시연 저장소를 등록해 한 상자가 빨갛게 실패한 모습"><figcaption><b class="bad">실패</b> — 11-20 운영 실제 실행(깨진 package.json 시연 저장소). 빨간 상자와 오류 기록.</figcaption></figure>
+  </div>
+  <p class="src"><b>출처:</b> docs/images/flow-sim-success-1120.png · flow-fail-demo-1120.png(docs/flow.md 115 · 119줄) · CLAUDE.md 3절 불변 규칙 6(runs · run_steps에서 그림) · docs/adr/0024(제안 상태)</p>
+  <ul class="notes"><li>"이 상자들은 그림이 아니라 방금 돈 실행 기록입니다."</li><li>성공 한 장, 실패 한 장. 실패도 같은 화면에서 빨갛게.</li><li>20초. 바로 시뮬레이터로 넘어간다(자동화 흐름 화면 = 강사 공지).</li></ul>
+</section>
+
+<!-- ───────── 10 시연 ───────── -->
+<section class="slide" id="s10" aria-labelledby="t10" data-act="4" data-sp="a" data-sec="220" data-short="시연 중" data-hand="확인은 재웅 님">
+  <p class="kicker">4막 · 시연 <span class="live">시연 중</span></p>
+  <h2 id="t10">가짜 사건 하나가 끝까지 돈다</h2>
+  <div class="body">
+    <div class="demo" id="demo">
+      <div class="di"><button type="button" aria-pressed="false" aria-label="1번 끝남 표시"></button><div class="tx">① 시뮬레이터로 가짜 위험 변경 1건<small><span class="s">차세일</span> · ①②에 1.5분</small></div><a href="https://techradar-theta.vercel.app/admin/simulator" target="_blank" rel="noopener">/admin/simulator ↗</a></div>
+      <div class="di"><button type="button" aria-pressed="false" aria-label="2번 끝남 표시"></button><div class="tx">② 흐름 화면: 상자가 실행 기록대로 켜진다<small><span class="s">차세일</span></small></div><a href="https://techradar-theta.vercel.app/admin/flow" target="_blank" rel="noopener">/admin/flow ↗</a></div>
+      <div class="di"><button type="button" aria-pressed="false" aria-label="3번 끝남 표시"></button><div class="tx">③ 알림 상세 → 판단 저장 → 비슷한 지난 판단<small><span class="j">황재웅</span> · 0.5분 · 시연 계정으로 로그인</small></div><a href="https://techradar-theta.vercel.app/alerts" target="_blank" rel="noopener">/alerts ↗</a></div>
+      <div class="di"><button type="button" aria-pressed="false" aria-label="4번 끝남 표시"></button><div class="tx">④ 지도에서 고르고 → 청사진 → 설치 프롬프트<small><span class="y">김영식</span> · 1분</small></div><a href="https://techradar-theta.vercel.app/" target="_blank" rel="noopener">/ ↗</a> <a href="https://techradar-theta.vercel.app/blueprint" target="_blank" rel="noopener">/blueprint ↗</a></div>
+      <div class="di"><button type="button" aria-pressed="false" aria-label="5번 끝남 표시"></button><div class="tx">⑤ 위키 챗봇에 Q5: 두 문서가 다르면 양쪽 출처를 말하는가<small><span class="s">차세일</span> · 1분 · "한 사람 하루 20개 한도는 어느 표를 세서 거나요?"</small></div><a href="https://techradar-theta.vercel.app/admin/chat" target="_blank" rel="noopener">/admin/chat ↗</a></div>
+      <p class="muted" style="font-size:1rem">덤: Tutorial <a href="https://techradar-theta.vercel.app/guide" target="_blank" rel="noopener">/guide ↗</a>(#234) — <span class="lim">11-23 17:20 운영에는 아직 없었다. 배포 확인 뒤에만 연다.</span></p>
+    </div>
+    <div class="cd">
+      <div id="cdnum" class="tn" role="timer" aria-live="off">3:40</div>
+      <p class="muted" style="font-size:1rem">제품 3분 + 위키 1분(이 쪽 220초) · 넘으면 주황</p>
+      <div><button type="button" id="cdgo">시작</button> <button type="button" id="cdre">처음으로</button></div>
+      <p class="muted" style="font-size:.95rem;margin-top:auto">끝나면 이 창으로 돌아와 Space</p>
+    </div>
+  </div>
+  <p class="src"><b>출처:</b> docs/flow.md · docs/wiki-chat.md 정답표 Q5 · docs/관리자-사용설명서.md 5-3 · sim/README.md 21줄 · 운영 주소 curl 11-23 17:17~17:20(/guide 404, 지도는 /) · 시간은 팀 추정(리허설 전)</p>
+  <div class="more"><p><b>리허설 주의 3가지:</b> ① 리허설에서 돌린 시뮬레이터 변경을 지우지 않는다(같은 입력의 Claude 호출은 하루 1번 — 지우고 다시 돌리면 대응안 초안이 안 나온다). ② 판단은 시연 계정으로 로그인해서(관리자는 남의 알림을 못 본다, 브라우저 프로필 2개에 미리 로그인). ③ 운영에서는 실패 시연 ① ② ⑤가 꺼져 있다 → 미리 돌려 둔 실패 실행(9쪽 캡처, 시연 저장소 방식)을 보여 준다. Q5는 11-20 운영에서 맞았고 11-23 위키 변경 뒤 재확인 전이다.</p></div>
+  <ul class="notes"><li>주의 ① 리허설에서 만든 시뮬레이터 변경을 지우지 말 것(지우면 초안이 안 나온다).</li><li>주의 ② 판단(③)은 시연 계정으로 로그인. 관리자는 남의 알림을 못 본다.</li><li>주의 ③ 운영에서 실패 시연 ①②⑤는 꺼져 있다 → 미리 돌려 둔 실패 실행을 보여 준다. /guide는 배포 확인 뒤.</li></ul>
+</section>
+
+<!-- ───────── 11 확인 ───────── -->
+<section class="slide" id="s11" aria-labelledby="t11" data-act="5" data-sp="j" data-sec="60" data-short="확인" data-hand="어떻게 일했는지는 세일 님">
+  <p class="kicker">5막 · 확인</p>
+  <h2 id="t11">놓침 0 · 잘못 울림 0 — 그런데 합친 뒤에 깨졌다</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card f" data-f="1"><div class="big tn"><span data-count="56">56</span><small>사례 채점</small></div><p><b class="ok">놓침 0 · 잘못 울림 0</b><br>등급 12 / 12 맞음 <span class="muted">(11-21, 사례 12 + 경계 44)</span></p></div>
+      <div class="card f" data-f="2"><div class="big tn"><span data-count="1883">1,883</span><small>시험 통과</small></div><p>실패 0 · 시험 파일 245개<br><span class="muted">main 210375b, 11-23</span></p></div>
+      <div class="card f" data-f="3" style="flex:1.5"><h3>QA 표 — 안 돌린 줄도 그대로</h3>
+        <p style="font-size:1rem">Claude QA 135줄 · Pass 121 · Fail 9(8건 고침) · No Run 4</p>
+        <div class="qa" role="img" aria-label="Claude QA 135줄 중 Pass 121, Fail 9, No Run 4, 설계대로 1"><i class="p" style="width:89.6%"></i><i class="x" style="width:6.7%"></i><i class="n" style="width:3%"></i><i class="e" style="width:.7%"></i></div>
+        <p style="font-size:1rem">사람 QA 47줄 · Pass 13 · Fail 12 · <b class="amb">No Run 21</b></p>
+        <div class="qa" role="img" aria-label="사람 QA 47줄 중 Pass 13, Fail 12, No Run 21, 일부 Pass 1"><i class="p" style="width:27.7%"></i><i class="x" style="width:25.5%"></i><i class="n" style="width:44.7%"></i><i class="e" style="width:2.1%"></i></div>
+      </div>
+    </div>
+    <div class="f" data-f="4" style="margin-top:auto">
+      <p style="font-weight:700;margin-bottom:.4rem" class="bad">시험이 통과해도, 합친 뒤에 깨진 것 3건</p>
+      <div class="row" style="font-size:1.1rem">
+        <div class="card" style="border-left:.3rem solid var(--danger)"><b>11-19 · #133</b> 코드가 마이그레이션보다 먼저 올라가 운영 장애 약 18분</div>
+        <div class="card" style="border-left:.3rem solid var(--danger)"><b>11-19 · #153</b> 가짜 DB 시험은 통과, 운영은 칸 권한 때문에 늘 실패</div>
+        <div class="card" style="border-left:.3rem solid var(--danger)"><b>11-23</b> 상태 줄 "오류 0" — 실제 수집 오류 2개</div>
+      </div>
+    </div>
+  </div>
+  <p class="src"><b>출처:</b> eval/result.md:3-5 · 24 · 90(11-21 19:26 채점) · npm test(main 210375b) · find lib -name '*.test.ts' · docs/qa.md 상태 칸(11-23 14:38) · docs/debug-note.md:30 · 31 · 34 · 56</p>
+  <div class="more"><p>채점: 등급 사례 12건(맞게 울림 6 · 맞게 조용함 6) + 경계 사례 44건(18 · 26), 결과 다름 0. 그 뒤 다시 채점한 기록은 없다. 사람 QA Fail 12건은 11-23 화면 문구 · 쓰기 쉬움 점검이다. PR #220 제목의 "사람 QA Pass 19 → 33"은 QA 시트 사본 기준으로 보이고 docs/qa.md(Pass 13)와 다르다 — 어느 쪽이 발표 기준인지는 확인 전. 11-22~23 화면 변화는 사람 QA가 얇다.</p></div>
+  <ul class="notes"><li>좋은 숫자 먼저: 56사례 놓침 0 · 잘못 울림 0, 시험 1,883.</li><li>바로 뒤집는다: "사람 QA는 21줄을 아직 안 돌렸고, 시험이 통과해도 운영에서 세 번 깨졌습니다."</li><li>커넥터는 말로 짧게(6종 · 122행 기록, 15쪽에 카드). "어떻게 일했는지는 세일 님이." 60초.</li></ul>
+</section>
+
+<!-- ───────── 12 7일 타임라인 ───────── -->
+<section class="slide" id="s12" aria-labelledby="t12" data-act="6" data-sp="s" data-sec="50" data-short="7일 타임라인">
+  <p class="kicker">6막 · AI와 일한 방식 · 7일의 작업 과정과 바이브로그</p>
+  <h2 id="t12">7일, PR <span class="tn" data-count="232">232</span>개 — 방향을 다섯 번 틀었다</h2>
+  <div class="body" style="gap:.5rem">
+    <div style="position:relative">
+    <div class="tl" role="group" aria-label="날짜별 합친 PR 수와 그날의 깃발">
+      <div class="col">
+        <button type="button" class="flag turn f" data-f="1">▸ 가설 판정<span class="tip">가설 A · B · C를 사람 인터뷰 2건(5명)으로 판정, B를 보조로 내림 — docs/문제정의.md 50~68줄 · ADR 0005</span></button>
+        <div class="bv tn">24</div><div class="bar" style="--v:24;--i:0"></div></div>
+      <div class="col">
+        <button type="button" class="flag vy f" data-f="3">● 영식 · 기록 문서 충돌<span class="tip">병합 59개 중 8개 · 충돌 20곳이 모두 기록 문서 → merge=union + 작업 ID(ADR 0017 · #55 · #57 · #64) — worklog · debug-note 기준, 본인 vibelog 확인 전</span></button>
+        <div class="bv tn">68</div><div class="bar" style="--v:68;--i:1"></div></div>
+      <div class="col">
+        <button type="button" class="flag vs f" data-f="3">● 세일 · 장애의 당사자<span class="tip">#133 장애 → #135 고침 → #138 규칙(14쪽에서 자세히) — worklog · debug-note 기준, 본인 vibelog 확인 전</span></button>
+        <button type="button" class="flag inc f" data-f="2">■ 운영 장애 18분<span class="tip">#133이 마이그레이션보다 먼저 배포, 14:43 → 15:01 — docs/debug-note.md:30 · #135 · #138 · #156</span></button>
+        <div class="bv tn">79</div><div class="bar" style="--v:79;--i:2"></div></div>
+      <div class="col">
+        <button type="button" class="flag inc f" data-f="2">■ 규칙 4번 더 깨짐 (~11-23)<span class="tip">#178 · #182 · #184/#187 · #215 — 경고가 떠도 운영 적용 전에 합쳐짐. docs/debug-note.md:41 · 45 · 57</span></button>
+        <button type="button" class="flag turn f" data-f="1">▸ 지도가 첫 화면으로<span class="tip">"근거가 약해 작게" → 첫 화면, 목적을 "기술 지형 조망"으로 넓힘 — ADR 0026 · 0027 · 0028 · #178 · #188</span></button>
+        <div class="bv tn">28</div><div class="bar" style="--v:28;--i:3"></div></div>
+      <div class="col">
+        <button type="button" class="flag turn f" data-f="1">▸ 컨셉 재정의<span class="tip">"지도에서 고르고, 청사진으로 옮긴다" — ADR 0032. 수집 기준도 별 하나에서 관문 + 점수로(ADR 0033). 묶음 PR #202</span></button>
+        <div class="bv tn">1</div><div class="bar" style="--v:1;--i:4"></div></div>
+      <div class="col">
+        <button type="button" class="flag inc f" data-f="2">■ 승인 뒤 커밋 빠짐<span class="tip">11-22 #204에 14커밋 → #206, 11-23 #208 → #210. 같은 꼴이 11-17에도(#14 · #16) — docs/debug-note.md:52 · 55</span></button>
+        <div class="bv tn">4</div><div class="bar" style="--v:4;--i:5"></div></div>
+      <div class="col">
+        <button type="button" class="flag vj f" data-f="3">● 재웅 · QA 중 찾은 버그<span class="tip">사람 QA 중 운영 /taste 저장 권한 오류 발견 → #214 — docs/worklog.md I-P-23-taste-save-permission 기준, 본인 vibelog 확인 전</span></button>
+        <button type="button" class="flag turn f" data-f="1">▸ 테마 1시간 반 만에 교체<span class="tip">10:00 파란 도면 테마 → 11:30 관측소 테마. "글자가 붕 떠 보여" — ADR 0044 · #216</span></button>
+        <button type="button" class="flag turn f" data-f="1">▸ 보드 개편<span class="tip">찾기 · 넣기 삭제, 컴팩트 보드, "사용 중인 항목" — ADR 0043 · #208 · #210</span></button>
+        <div class="bv tn">28</div><div class="bar" style="--v:28;--i:6"></div></div>
+    </div>
+    <div class="lowmark f" data-f="4"><span>△ PR 1 · 4개지만 수십 커밋 묶음(#202 · #204)<br>PR 수는 무게가 아니다</span></div>
+    </div>
+    <div class="days"><div>11-17 화<small>커밋 81 · 기획</small></div><div>11-18 수<small>커밋 277 · 개발 첫날</small></div><div>11-19 목<small>커밋 394 · 운영</small></div><div>11-20 금<small>커밋 180</small></div><div>11-21 토<small>커밋 277</small></div><div>11-22 일<small>커밋 290</small></div><div>11-23 월<small>커밋 291 · 제출</small></div></div>
+    <div class="vib f" data-f="3">
+      <div class="card" style="--c:var(--sp-y)"><h3 class="y">김영식 · 내 판단</h3><div class="slot"><div class="slot-v" data-edit="p12-y" aria-label="김영식 내 판단"></div><p class="slot-d muted">아직 적지 않았다 — 본인이 한 문장으로 채운다</p></div></div>
+      <div class="card" style="--c:var(--sp-s)"><h3 class="s">차세일 · 내 판단</h3><div class="slot"><div class="slot-v" data-edit="p12-s" aria-label="차세일 내 판단"></div><p class="slot-d muted">아직 적지 않았다 — 본인이 한 문장으로 채운다</p></div></div>
+      <div class="card" style="--c:var(--sp-j)"><h3 class="j">황재웅 · 내 판단</h3><div class="slot"><div class="slot-v" data-edit="p12-j" aria-label="황재웅 내 판단"></div><p class="slot-d muted">아직 적지 않았다 — 본인이 한 문장으로 채운다</p></div></div>
+    </div>
+  </div>
+  <p class="src"><b>출처:</b> gh pr list --state merged(KST 날짜별 24 · 68 · 79 · 28 · 1 · 4 · 28 = 232) · git log --date=short(커밋) · 깃발 근거는 깃발에 초점을 주면 뜬다(ADR · PR 번호) │ ● 바이브로그 장면은 worklog · debug-note 기준 후보, 본인 vibelog 확인 전</p>
+  <div class="more"><p>11-16(월)은 합친 PR 0 · 커밋 3: 안내서를 읽고 팀 하네스(CLAUDE.md)를 만든 날이다. 11-17의 24개(#1~#24)는 남의 리뷰 없이 합쳤고 main 보호는 11-18부터다. 11-21 밤~22에 메뉴를 현황 · 지도 · 청사진으로, 22일 밤 "현황" → "프로젝트"(ADR 0037 · 0041). 11-23 오후에는 AI를 쓰는 두 곳(프롬프트 진단 · 한국어 개요)을 "AI 제안 · 검증 아님" 표시와 함께 더했다(ADR 0045 · #224 · #226).</p></div>
+  <ul class="notes"><li>막대 먼저: "가장 바빴던 11-19 하루에 79개." 그다음 청록 깃발 다섯 개 = 방향 전환.</li><li>빨간 깃발 = 사고 셋. 숨기지 않는다. 그다음 ● 바이브로그 깃발 셋 — 세 사람의 막힌 장면(강사 공지: 바이브로그는 슬라이드에 녹여서).</li><li>11-21 · 22는 PR이 1 · 4개지만 커밋은 277 · 290 — PR 수는 무게가 아니다. 50초.</li></ul>
+</section>
+
+<!-- ───────── 13 규칙과 기록 ───────── -->
+<section class="slide" id="s13" aria-labelledby="t13" data-act="6" data-sp="s" data-sec="25" data-short="규칙과 기록">
+  <p class="kicker">6막 · AI와 일한 방식 · 일하는 규칙과 기록</p>
+  <h2 id="t13">셋이 같은 규칙으로 일했다</h2>
+  <div class="body">
+    <div class="rules f" data-f="1">
+      <div class="card"><b>① 영역</b><p>층이 아니라 기능 영역. 각자 화면 · 서버 · 데이터 · QA</p></div>
+      <div class="card"><b>② 조각 = 브랜치</b><p>하루 안에 끝낼 크기, 만든 사람이 아닌 1명 승인</p></div>
+      <div class="card"><b>③ 공용 파일은 주인제</b><p>뼈대는 김영식, 흐름 정의는 차세일만 고친다</p></div>
+      <div class="card"><b>④ 기록 문서는 합쳐지게</b><p>기록 5문서 merge=union + 작업 ID</p></div>
+      <div class="card"><b>⑤ main은 자동으로 따라오게</b><p>열린 PR에 main 자동 합치기 + precheck</p></div>
+      <div class="card"><b>⑥ 요구마다 출처 ID</b><p>PR 설명에 "어느 문서의 어느 요구"</p></div>
+    </div>
+    <div class="strip f" data-f="2" aria-label="기록의 양">
+      <div><b class="tn" data-count="280">280</b>의도 기록(intent)</div><div><b class="tn" data-count="45">45</b>결정(ADR)</div><div><b class="tn" data-count="168">168</b>서브에이전트 기록</div><div><b class="tn" data-count="122">122</b>커넥터 기록</div><div><b class="tn" data-count="55">55</b>디버그 노트</div><div><b class="tn" data-count="41">41</b>마이그레이션</div>
+    </div>
+    <div class="limit f" data-f="3" style="margin-top:auto">처음 #1~#24는 남의 리뷰 없이 합쳤다(main 보호는 11-18부터). 무료 배포 한도에 두 번 막혀 배포 횟수를 아끼는 규칙도 뒤늦게 만들었다.</div>
+  </div>
+  <p class="src"><b>출처:</b> docs/plan.md 8 · 16~18 · 24~27줄 · docs/adr/0017 · 0018 · 0023 · .gitattributes · PR #55 · #71 · #106 · #68 · #76 · #159 · CLAUDE.md 24~28줄 · 숫자는 grep -c / ls(11-23) · README.md 42줄</p>
+  <div class="more"><p>팀 스킬 2개(stage-check: 안내서 요건 점검, abbs-log: 화면과 함께 기록), GitHub Actions 2개(production 배포, PR 브랜치에 main 합치기). git 기록에 자동 합치기 봇 커밋이 92개 있다. 배포: PR 미리보기 끔(#68) → 문서만 바뀐 병합 건너뜀(#76) → 20분 잠잠하면 한 번 배포(#159 · #176).</p></div>
+  <ul class="notes"><li>여섯 줄을 다 읽지 않는다. ① ③ ④만 짚는다.</li><li>기록 숫자 띠: "결정 45개, 의도 기록 280개가 저장소에 있습니다."</li><li>"규칙을 만들고도 깨진 이야기가 다음 쪽입니다." 25초.</li></ul>
+</section>
+
+<!-- ───────── 14 장애 → 규칙 → 도구 ───────── -->
+<section class="slide" id="s14" aria-labelledby="t14" data-act="6" data-sp="s" data-sec="40" data-short="장애 18분">
+  <p class="kicker">6막 · AI와 일한 방식 · 하네스가 고쳐진 과정</p>
+  <h2 id="t14">장애 18분 → 규칙 → 도구 → 그래도 4번 → 실패로 바꿈</h2>
+  <div class="body">
+    <div class="circ">
+      <div class="nd f" data-f="1"><div class="dot">1</div><h3>장애 18분</h3><p>11-19 14:43 → 15:01<br>코드가 마이그레이션보다 먼저 운영에 (#133)</p></div>
+      <div class="nd f" data-f="1"><div class="dot">2</div><h3>고침</h3><p>칸이 없을 때만 그 부분을 끄고 안내 (#135)</p></div>
+      <div class="nd f" data-f="2"><div class="dot">3</div><h3>규칙</h3><p>"합치기 전에 운영에 먼저" (#138)</p></div>
+      <div class="nd f" data-f="2"><div class="dot">4</div><h3>도구</h3><p>precheck가 경고 + 운영 점검표 (#156)</p></div>
+      <div class="nd red f" data-f="3"><div class="dot">5</div><h3>그래도 4번 더</h3><p>#178 · #182 · #184/#187 · #215<br>11-20 ~ 11-23</p></div>
+      <div class="nd teal f" data-f="4"><div class="dot">6</div><h3>실패로 바꿈</h3><p>번호 겹침은 경고가 아니라 precheck 실패 (11-22)</p></div>
+    </div>
+    <p class="f" data-f="3" style="font-size:3.2rem;font-weight:800;text-align:center;margin-top:3rem">경고만으로는 못 막는다.</p>
+    <div class="limit f" data-f="4" style="margin-top:auto">운영 적용 <b>순서</b>는 아직 장치가 없다 — PR 설명 맨 위 "운영 적용 전에는 합치지 말아 주세요"로 사람이 막는다. 승인 뒤 커밋이 빠진 일도 재발 방지책을 적고 다시 났다(#204 · #208).</div>
+  </div>
+  <p class="src"><b>출처:</b> docs/debug-note.md:30 · 41 · 45 · 47~52 · 55 · 57 · PR #133 · #135 · #138 · #156 · CLAUDE.md 10절 · supabase/precheck-migrations.mts · docs/intent.md:2039</p>
+  <div class="more"><p>4번의 내용: #178 시드가 5분 늦음 · #182 <code>user_tastes</code> 표 없이 00:03 배포 → 09시대 적용(취향 · 추천 불러오기 실패) · #184/#187 배포 뒤 적용 · #215 운영에 함수 없음(제출 전 stage-check에서 찾음). 번호 겹침은 11-21 · 11-22 두 번(세션 여럿이 같은 시각대 번호를 고름) → precheck 종료 코드 1 + 시험 5개. PR에 커밋이 빠진 일은 #3 · #14 · #16 · #33 · #191 · #204 · #208에서 났다.</p></div>
+  <ul class="notes"><li>당사자로 말한다: "제 PR #133이 운영을 18분 멈췄습니다."</li><li>규칙 → 도구까지 하루. 그런데 네 번 더 깨졌다 → 빨간 불에서 잠깐 멈춘다.</li><li>"그래서 경고를 실패로 바꿨고, 순서는 아직 사람이 막습니다." 40초.</li></ul>
+</section>
+
+<!-- ───────── 15 AI 활용 ───────── -->
+<section class="slide" id="s15" aria-labelledby="t15" data-act="6" data-sp="s" data-sec="35" data-short="AI와 일한 방식" data-hand="마지막은 세 사람이 함께">
+  <p class="kicker">6막 · AI와 일한 방식 · 서브에이전트 · 커넥터 · 위키와 챗봇</p>
+  <h2 id="t15">AI에게 맡기되, 확인한 뒤에만 합쳤다</h2>
+  <div class="body">
+    <div class="row">
+      <div class="card f" data-f="1"><h3>서브에이전트 · <span class="tn" data-count="168">168</span>행 기록</h3><p>만든 쪽과 검토하는 쪽을 나눈다. <span class="amb">잘 안 된 점:</span> 검토가 "복사가 세 번째"라 했는데 코드로 보니 두 번째였다 → 검토 결과도 확인 뒤 반영.</p></div>
+      <div class="card f" data-f="2"><h3>다중 세션 · Workflow</h3><p>역할을 나눈 세션(정리 · 화면 · 수집 · 문서), 11-22 테마 탐색에 에이전트 <b class="tn">54</b>개. <span class="amb">부딪힘:</span> 같은 기능을 두 세션이 만들어 13파일 충돌, 번호 겹침 2번.</p></div>
+    </div>
+    <div class="row">
+      <div class="card f" data-f="3"><h3>커넥터 6종 · <span class="tn">122</span>행 기록</h3><p>Supabase · Vercel · abbsbook · Slack · GitHub · 내장 브라우저. 외부를 바꾸는 일은 확인 뒤에만, 비밀값은 기록하지 않는다.</p></div>
+      <div class="card f" data-f="3"><h3>위키 <span class="tn">18</span>쪽 · 챗봇</h3><p>정답표 <b class="amb tn">4 / 5</b> → 고친 뒤 <b class="ok tn">5 / 5</b>(11-20). 틀린 Q5: 쪽마다 앞 2000자만 넘겨 충돌 문단이 잘렸다(#131).</p></div>
+    </div>
+    <p class="f" data-f="4" style="margin-top:auto"><span class="tag">오늘 11-23</span> 관리자 리뉴얼(#227 · #229) · Tutorial <code>/guide</code>(#234) · 품질 루프: 영역 C만, 서브에이전트 11개 · 최대 3바퀴</p>
+  </div>
+  <p class="src"><b>출처:</b> docs/agents.md(날짜 행 168 · 11-19 P-9b 2차 검토 행 · 141~163줄) · docs/adr/0039:9 · docs/debug-note.md:46 · 49 · 50 · docs/connectors.md(122행) · docs/wiki-chat.md:24~34 · docs/quality-loop/README.md · PR #227 · #229 · #234</p>
+  <div class="more"><p>세션 역할 이름: Maestro(정리 · 배정) · FrontLead(지도 · 청사진) · DevAssi(만드는 도우미) · DataCollector(수집) · DocsChecker(문서) — 주로 김영식 쪽 세션의 기록이다(팀 전체 방식처럼 말하지 않는다). 팀 서브에이전트 정의 파일은 0개이고 기본 제공 도우미를 불러 썼다. 품질 루프는 감사 3 · 분석 1 · 만들기 5 · 검토 2, 영역 경계 파일 목록 105개 + 조심 파일 9개. 위키 Q5는 11-23 위키 변경 뒤 운영 재질문 전이다.</p></div>
+  <ul class="notes"><li>서브에이전트는 "검토도 틀린다"는 사례 하나로. 다중 세션은 주로 영식 님 쪽 방식이었다고 한정해서.</li><li>위키 챗봇 한 문장 — "틀린 답 하나를 찾았고, 원인은 쪽 찾기가 아니라 잘린 글이었습니다."</li><li>오늘 한 일 한 줄로 닫는다. 35초.</li></ul>
+</section>
+
+<!-- ───────── 16 사람 ───────── -->
+<section class="slide" id="s16" aria-labelledby="t16" data-act="7" data-sp="a" data-sec="60" data-short="세 사람" data-hand="기여와 다음은 재웅 님">
+  <p class="kicker">7막 · 사람 · 팀원별 기여</p>
+  <h2 id="t16">세 사람 모두 만들고, 모두 리뷰했다</h2>
+  <div class="body">
+    <div class="ppl">
+      <div class="card" style="--c:var(--sp-y)"><h3>김영식<small>sikomar00 · A 지키기 + 공용</small></h3>
+        <div class="hb"><span>PR</span><i style="--w:133"></i><b class="tn" data-count="133">133</b></div>
+        <div class="hb"><span>리뷰</span><i class="rv" style="--w:79"></i><b class="tn" data-count="79">79</b></div>
+        <p><b>결과물</b> 저장소 읽기 · 수집기 · 등급, 지도, 청사진, 팀 하네스</p>
+        <p class="muted">#33 · #87 · #178 · #204 · #208</p>
+        <p class="lbl">GitHub에 안 남는 일 <span class="tag">문서 근거 · 본인 확인</span></p>
+        <div class="slot"><div class="slot-v" data-edit="p16-y" aria-label="김영식 GitHub에 안 남는 일"></div><p class="slot-d">Supabase · Vercel · 구글 로그인 · 환경변수 설정, 운영 마이그레이션 적용 담당</p></div></div>
+      <div class="card" style="--c:var(--sp-j)"><h3>황재웅<small>hjw12345-git · B 고르기</small></h3>
+        <div class="hb"><span>PR</span><i style="--w:43"></i><b class="tn" data-count="43">43</b></div>
+        <div class="hb"><span>리뷰</span><i class="rv" style="--w:100"></i><b class="tn" data-count="100">100</b><span class="tag" style="width:auto">최다</span></div>
+        <p><b>결과물</b> 알림 · 판단, Claude 초안 · 시나리오, 적용 기회, 추천 · 사용기, 사람 QA</p>
+        <p class="muted">#37 · #43 · #120 · #139 · #184 · #220</p>
+        <p class="lbl">GitHub에 안 남는 일 <span class="tag">본인이 채울 칸</span></p>
+        <div class="slot"><div class="slot-v" data-edit="p16-j" aria-label="황재웅 GitHub에 안 남는 일"></div><p class="slot-d"><span class="lim">아직 적지 않았다 — 본인이 발표 전에 직접 써 넣는다</span></p></div></div>
+      <div class="card" style="--c:var(--sp-s)"><h3>차세일<small>csaeil · C 옮기기 · 운영</small></h3>
+        <div class="hb"><span>PR</span><i style="--w:56"></i><b class="tn" data-count="56">56</b></div>
+        <div class="hb"><span>리뷰</span><i class="rv" style="--w:38"></i><b class="tn" data-count="38">38</b></div>
+        <p><b>결과물</b> 실행 기록 · 흐름 화면, 시뮬레이터 · 채점, 관리자, 설치 프롬프트, 위키 · 챗봇, Tutorial</p>
+        <p class="muted">#30 · #46 · #40 · #125 · #227 · #234</p>
+        <p class="lbl">GitHub에 안 남는 일 <span class="tag">문서 근거 · 본인 확인</span></p>
+        <div class="slot"><div class="slot-v" data-edit="p16-s" aria-label="차세일 GitHub에 안 남는 일"></div><p class="slot-d">11-18 회의 기록, 문제정의 v5와 가설 B, 인터뷰 질문지, 강사 확인 · 공지 전달, 발표 주소 배포</p></div></div>
+    </div>
+    <p class="muted" style="font-size:1rem">합친 PR 232 = 133 + 43 + 56 · 리뷰 = 남의 PR에 리뷰를 남긴 PR 수(모두 승인). <span class="lim">처음 #1~#24는 남의 리뷰 없이 합쳤다. PR 수는 무게가 아니다.</span></p>
+  </div>
+  <p class="src"><b>출처:</b> gh pr list --state merged --json number,author,reviews(11-23 17:17, #234까지, 작성자 · 리뷰어 아이디 기준) · docs/plan.md 영역 표 · 6절 · docs/차세일-의견-피드백-정리.md 1 · 2절 · 대표 PR은 제목으로 고름</p>
+  <div class="more"><p>리뷰 수는 본인 PR 제외, PR당 1번. 전체 PR 234 = 합침 232 + 닫힘 2(#116 · #160), 열린 PR 0. 이름과 GitHub 아이디의 대응 · 커밋 작성자 이름은 본인 확인이 필요해 사람별 커밋 수는 싣지 않았다.</p></div>
+  <ul class="notes"><li>각자 20초 소감: 영식 → 재웅 → 세일. 내 영역 한 문장 + GitHub에 안 남는 일 한 문장.</li><li>재웅: 리뷰 100개 — 가장 많이 읽은 사람. 재웅 칸은 본인이 E로 직접 채운다.</li><li>"처음 24개는 리뷰 없이 합쳤다"도 그대로 말한다. 60초. 기여 표와 다음은 재웅 님이 정리.</li></ul>
+</section>
+
+<!-- ───────── 17 다음 ───────── -->
+<section class="slide" id="s17" aria-labelledby="t17" data-act="7" data-sp="j" data-sec="30" data-short="다음">
+  <p class="kicker">7막 · 사람 · 다음에 해 볼 것</p>
+  <h2 id="t17">다음은, 사람에게 다시 묻기</h2>
+  <div class="body">
+    <div class="card f" data-f="1" style="border-left:.35rem solid var(--scan)"><h3>사람 인터뷰로 확인할 것</h3><p style="font-size:1.5rem">그룹1 중 1명에게 <b>노트북 반납 뒤</b> 다시 묻는다 — 정말 처음부터 다시 쌓았는가. 설치 프롬프트를 함께 써 본다.</p><p class="lim" style="font-size:1rem;margin-top:.3rem">11-18 회의에서 정한 일(담당 차세일 제안)이고, 했다는 기록은 저장소에서 찾지 못했다.</p></div>
+    <div class="row f" data-f="2">
+      <div class="card"><h3>다음 개선 하나</h3><p>마지막 활동을 푸시가 아니라 <b>릴리스</b>로 본다 — 봇만 푸시하는 죽은 저장소를 걸러낸다.</p></div>
+      <div class="card" style="border:1px dashed var(--limit)"><h3 class="amb">△ 남은 한계</h3><p>사용자가 없다 · 인터뷰 표본 5명 · 사람 QA No Run 21줄 · 운영 적용 순서는 사람이 막는다</p></div>
+    </div>
+    <p class="f" data-f="3" style="margin-top:auto;font-size:2.2rem;font-weight:800">지켜보고, 판단하고, 기록했습니다. <span class="ok">고맙습니다.</span> <span class="muted" style="font-size:1.1rem;font-weight:500">techradar-theta.vercel.app</span></p>
+  </div>
+  <p class="src"><b>출처:</b> docs/팀토론-문제정의-승인.md 1부 표(25줄: 그룹1에게 반납 뒤 다시 묻기, 차세일 · 제안) · docs/adr/0021 알려진 한계 · docs/qa.md 사람 QA(No Run 21) · docs/debug-note.md:57</p>
+  <div class="more"><p>그 밖의 다음 일: 상태를 정한 출처별로 따로 저장해 계산(ADR 0021) · 뺀 "찾기 · 넣기"를 커스텀 기술 추가로 다시 설계(ADR 0043 결정 5) · 화면 말 정리("못 읽었다"를 부르는 말이 여럿) · 사람 QA에서 안 돌린 줄. ADR 0023 · 0025는 아직 "제안" 상태다.</p></div>
+  <ul class="notes"><li>처음 인용으로 돌아간다: "막막해서 제로부터"라던 그분에게 다시 묻는 것이 다음 일.</li><li>개선 하나, 한계 한 줄. 변명 없이.</li><li>"지켜보고, 판단하고, 기록했습니다." 30초. 질문 받기.</li></ul>
+</section>
+
+<!-- 여정 레일 · 발표자 도구 -->
+<div id="editbadge">편집 모드 — 점선 칸을 눌러 써 넣기 · Esc로 끝</div>
+<div id="hud" aria-live="off"><span class="tot tn">00:00</span> / <span class="tn" id="hudall"></span> · <span class="pg tn"></span><div class="barw"><div class="bar"></div></div></div>
+<nav id="rail" aria-label="여정 레일">
+  <div class="now"><b id="rname"></b><span id="rhand"></span></div>
+  <div id="acts"></div>
+  <div class="meta"><b class="tn" id="rpage"></b><br><span class="spk legend"><i style="background:var(--sp-y)"></i>영식<i style="background:var(--sp-j)"></i>재웅<i style="background:var(--sp-s)"></i>세일</span> <button class="railbtn" id="helpbtn" type="button" aria-label="단축키 도움말">?</button></div>
+</nav>
+<aside class="panel" id="pnotes" aria-label="발표자 메모"><h4>발표자 메모 · N</h4><ul id="notesul"></ul></aside>
+<aside class="panel" id="pdetail" aria-label="근거 자세히"><h4>근거 · 자세히 · D</h4><div id="detailbody"></div></aside>
+<aside class="panel" id="phelp" role="dialog" aria-label="단축키 도움말"><h4>단축키 · ?</h4>
   <table>
-    <tr><th>방법</th><th>하는 일</th><th>걸린 시간</th></tr>
-    <tr><td>① 손으로</td><td>파일을 열어 깐 것을 적고, 기술마다 취약점·최근 업데이트를 검색</td><td class="warn">▢ 재서 채울 것</td></tr>
-    <tr><td>② 앱으로</td><td>저장소 등록 → 사용 중인 항목 목록 → 등급과 이유 확인</td><td class="warn">▢ 재서 채울 것</td></tr>
+    <tr><td>→ Space PageDown</td><td>다음 조각 / 다음 쪽</td></tr><tr><td>← PageUp</td><td>이전 쪽</td></tr><tr><td>Home · End · #7</td><td>처음 · 끝 · 주소로 바로 가기</td></tr>
+    <tr><td>O</td><td>전체 보기(눌러 이동)</td></tr><tr><td>T · R</td><td>타이머 켜기/끄기 · 처음부터</td></tr><tr><td>N</td><td>발표자 메모</td></tr>
+    <tr><td>D</td><td>근거(출처) 크게 + 자세히</td></tr><tr><td>S</td><td>화자 색 켜기/끄기</td></tr><tr><td>E</td><td>사람만 채울 칸 편집(이 브라우저에 저장)</td></tr>
+    <tr><td>F · P</td><td>전체 화면 · 표지 레이더 멈춤</td></tr><tr><td>Esc</td><td>열린 창 닫기</td></tr>
   </table>
-  <div class="todo">아직 재지 않았다. 사람이 한 번 재고 여기에 쓴다. 사용자가 없어 앱 안의 숫자는 시연 계정 값뿐이라는 한계도 함께 말한다.</div>
-  <p class="src"><b>출처:</b> docs/adr/0011 · 화면 말 "사용 중인 항목"은 docs/adr/0043 결정 6(커밋 bd34887)</p>
-</section>
+  <p class="muted" style="font-size:.95rem;margin:.6rem 0 0">터치: 좌우로 쓸기. 구성은 11-23 화이트보드 v2 7막 기준(6막만 1.5 → 2.5분). 쪽별 초는 막 시간을 나눈 값이다.</p>
+  <h4 style="margin-top:.9rem">안내서 11장 12항목 · 강사 공지 4항목 ↔ 막(쪽)</h4>
+  <table class="xw">
+    <tr><td>문제</td><td>1막 · 1~4쪽</td><td>지켜본 곳과 데이터</td><td>2막 · 6쪽</td></tr>
+    <tr><td>직접 입력과 운영 화면</td><td>2막 · 5 · 7쪽</td><td>사건과 대응</td><td>3막 · 8쪽</td></tr>
+    <tr><td>시연(성공 · 일부러 실패 · 과거 기록)</td><td>4막 · 9 · 10쪽</td><td>확인</td><td>5막 · 11쪽</td></tr>
+    <tr><td>커넥터</td><td>5막 말로 · 6막 15쪽</td><td>문서 위키와 챗봇</td><td>4막 10쪽 ⑤ · 6막 15쪽</td></tr>
+    <tr><td>서브에이전트</td><td>6막 · 15쪽</td><td>하네스</td><td>6막 · 13 · 14쪽</td></tr>
+    <tr><td>팀원별 기여</td><td>7막 · 16쪽(+ 5쪽 분업)</td><td>다음에 해 볼 것</td><td>7막 · 17쪽</td></tr>
+    <tr><td>공지: 바이브로그</td><td>6막 · 12쪽 ● 깃발</td><td>공지: 자동화 흐름 화면</td><td>4막 · 9쪽 · 10쪽 ②</td></tr>
+    <tr><td>공지: LLM 위키 시연</td><td>4막 · 10쪽 ⑤</td><td>공지: 제품 시연 · 12~15분</td><td>4막 · 합계 13.5분 + 여유 1.5</td></tr>
+  </table></aside>
+<div id="over" role="dialog" aria-label="전체 보기"><h4>전체 보기 · 17쪽 · 13분 30초 + 여유 1분 30초(11-23 화이트보드 v2 7막) — 눌러 이동, Esc로 닫기</h4><div id="ogrid"></div></div>
 
-<section class="slide" id="s5" aria-labelledby="t5">
-  <p class="kicker">지켜본 곳과 데이터</p>
-  <h2 id="t5">서로 다른 출처 4곳을 매일 저절로 읽는다</h2>
-  <div class="grid">
-    <div class="card"><h3>공식 MCP 레지스트리</h3><p>서버 66,788개 중 하루 60초 몫으로 이어 읽는다. 첫 실행: 3,200개 → 전체 약 21번.</p></div>
-    <div class="card"><h3>GitHub 저장소 정보</h3><p>마지막 푸시·라이선스·별·보관·사라짐. 저장소마다 1번.</p></div>
-    <div class="card"><h3>OSV 취약점</h3><p>등록한 (기술, 버전)을 매일 다시 묻고 새로 위험해지면 알림.</p></div>
-    <div class="card"><h3>npm·PyPI 다운로드</h3><p>주간 다운로드 수.</p></div>
-  </div>
-  <ul style="margin-top:18px">
-    <li><b>간격:</b> 매일 06:00(한국 시간) + 관리자 "지금 한 번 실행". 읽기 실패는 "변화 없음"이 아니라 <b>수집 오류</b>.</li>
-    <li><b>같은 모양:</b> 수집 자료 한 줄 = 시각 · 대상 · 지표 · 이전 값 → 현재 값 · 바뀐 정도 · 출처.</li>
-    <li><b>막혔을 때:</b> ① 수집기들이 같은 상태 칸을 서로 되돌림 → "누가 정했는지" 표시(ADR 0021) ② 정기 실행 첫날 안 돎(<code>CRON_SECRET</code> 없음) → "운영 설정부터 확인" ③ 레지스트리가 너무 커서 → 얇게 시작·이어 읽기.</li>
-    <li><b>실수집:</b> 11-19 운영 DB 첫 실행 64초, 실제 기술 3,166개가 쌓임.</li>
-  </ul>
-  <p class="src"><b>출처:</b> docs/spec.md SPEC-8 · docs/qa.md 11-19 행 · docs/adr/0019·0021 · docs/worklog.md 11-19 · watch/samples/</p>
-</section>
-
-<section class="slide" id="s6" aria-labelledby="t6">
-  <p class="kicker">직접 입력과 운영 화면</p>
-  <h2 id="t6">등록하면 내 목록에, 수집한 것과 이어진다</h2>
-  <div class="grid">
-    <div class="card"><h3>직접 입력</h3><p>저장소 주소나 설치 목록을 붙여 넣어 쓰는 기술을 등록한다. 저장되고 새로고침해도 남는다.</p></div>
-    <div class="card"><h3>외부 자료와 연결</h3><p>등록한 기술과 수집한 기술이 같은 키로 이어져, 변경이 내 목록·알림에 나타난다.</p></div>
-    <div class="card"><h3>프로젝트 보드·관리자</h3><p>대시보드는 <b>프로젝트 보드</b>로 바뀌었다(ADR 0043): 위 숫자 띠(오늘의 새 기술 · 진행 중 프로젝트 · 사용 중인 항목 · 위험 발생 · 판단 대기 · 완료, 기간 하나로 거르기) + 걸린 판 4개(진행 중 프로젝트 · 지도·소식 · 청사진 · 직접 추가). 관리자: 첫 화면 <b>관제 요약</b>(마지막 정기 실행 · 수집 오류 · 판단 대기 · 신고 · 분류 거리, 못 읽으면 "읽지 못함") + 묶음 메뉴 4개(지켜보기 · 사람 판단 현황 · 운영 관리 · 시연과 지식). 판단 단추는 어디에도 없다.</p></div>
-    <div class="card"><h3>권한</h3><p>내 데이터는 나만. 화면뿐 아니라 서버와 DB(RLS)에서도 막는다.</p></div>
-  </div>
-  <h3 style="margin-top:20px">서비스 컨셉: 지도에서 고르고, 청사진으로 옮긴다 (ADR 0032, 11-21 확정)</h3>
-  <ol class="steps">
-    <li><b>지도</b>(<code>/tech-map</code>, 로그인 전에도 보임)에서 사용 중인 항목과 새 기술을 보고 <b>고른다</b>. 도는 선이 지나가 밝아진 점은 최근 실제로 확인한 기술뿐이다(수집 오류는 밝아지지 않음).</li>
-    <li>고른 기술을 <b>청사진</b>(<code>/blueprint</code>)에 담아 단계로 엮는다. 담기는 적용 후보 저장이고, 확정 전에는 바뀌는 것을 미리 보여 준다(사람 판단 먼저).</li>
-    <li>확정한 청사진을 <b>설치 프롬프트</b>로 내보내 다른 컴퓨터에서 다시 세팅한다(<b>옮긴다</b>).</li>
-  </ol>
-  <div class="todo">화면 캡처 4장(등록, 사용 중인 항목 목록, 프로젝트 보드, 관리자) + 지도·청사진 각 1장. 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
-  <p class="src"><b>출처:</b> docs/prd.md PRD-F46 · docs/ia.md · supabase/tests/rls_m0·m1.sql · docs/adr/0032 · docs/adr/0043(프로젝트 보드, 화면 말 "사용 중인 항목") · docs/design.md 1절 · README 첫 문단</p>
-</section>
-
-<section class="slide" id="s7" aria-labelledby="t7">
-  <p class="kicker">사건과 대응</p>
-  <h2 id="t7">알림은 두 종류, 조치는 사람이 판단한 뒤에만</h2>
-  <div class="grid">
-    <div class="card"><h3 class="bad">보안 경고</h3><p>쓰는 기술의 등급이 <b>위험</b>이 되면 알림. 이전 값 → 현재 값, 쉬운 이유, 근거 링크.</p></div>
-    <div class="card"><h3 class="green">적용 기회</h3><p>같은 역할의 새 기술이 나왔고 조건을 모두 만족할 때만(확정된 같은 역할·등록 이후·위험 아님).</p></div>
-    <div class="card"><h3>판단 → 기록</h3><p><b>적용 후보</b>(설치 프롬프트에 기본 포함) 또는 <b>보류</b>(사유 기록). 판단 전에는 아무것도 바뀌지 않고, 관리자도 건너뛸 수 없다.</p></div>
-  </div>
-  <ul style="margin-top:18px">
-    <li>같은 변경을 다시 읽어도 알림은 두 번 생기지 않는다. 저장이 실패하면 "처리 완료"로 보이지 않는다.</li>
-    <li>대응안 초안은 Claude가 쓰고 <b>참고한 출처를 함께</b> 보여 준다. 출처가 없으면 "찾지 못함".</li>
-  </ul>
-  <p class="muted" style="margin-top:14px">Claude 연결은 켜졌다: 키는 운영(Production)에만 있고, 운영 시뮬레이터로 실제 호출 1번이 성공했다(초안 584자, <code>ai_calls</code> succeeded, 11-19).</p>
-  <div class="todo">실제 초안 화면 캡처 1장(알림 상세의 대응안 초안과 참고한 출처). 사람이 운영에서 찍는다.</div>
-  <p class="src"><b>출처:</b> docs/spec.md SPEC-1·3·4·5 · docs/prd.md PRD-F15 · CLAUDE.md 3절 불변 규칙 1·3·4 · docs/connectors.md 11-19 Vercel·Anthropic API·Supabase 행 · docs/qa.md P-13 행</p>
-</section>
-
-<section class="slide" id="s8" aria-labelledby="t8">
-  <p class="kicker">시연 (시뮬레이터로)</p>
-  <h2 id="t8">상자가 차례로 켜지는 걸 보여 준다</h2>
-  <ol class="steps">
-    <li>시뮬레이터 버튼으로 가짜 위험 변경 1건을 만든다.</li>
-    <li><b>흐름 화면</b>에서 상자가 차례로 켜진다 — 미리 그린 그림이 아니라 실제 실행 기록(<code>runs</code>·<code>run_steps</code>)에서 그린다.</li>
-    <li>알림 상세: 이전 → 현재 값, 출처, 대응안 초안.</li>
-    <li>판단(적용 후보 / 보류)을 저장하면 "조치와 기록" 상자가 켜진다.</li>
-    <li><b>일부러 실패</b>시킨다: 빨간 상자와 오류 기록. 실패 시연 5가지 중 ①②⑤는 운영에서 일부러 꺼 두어 <b>로컬에서만</b> 돈다(③④는 운영에서도 됨). 배포 주소에서는 package.json을 깨 둔 시연용 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(시연 저장소 github.com/csaeil/techradar-fail-demo, ADR 0024 제안).</li>
-    <li>비슷한 지난 판단을 찾아 보여 준다.</li>
-  </ol>
-  <!-- 캡처는 사용자가 slides/images/flow.png 로 넣는다. 파일이 없으면 그림을 숨기고 아래 자리 표시가 보인다 -->
-  <figure class="shot">
-    <img src="images/flow.png" alt="관리자 흐름 화면: 실제 실행 기록으로 상자가 차례로 켜진 모습" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
-    <div class="shot-ph" hidden>▢ 흐름 화면 캡처(관리자 /admin/flow)</div>
-  </figure>
-  <div class="todo">리허설로 순서와 시간을 잰다. 인터넷이 끊길 때를 대비해 시연 화면 녹화도 챙긴다. 발표 당일 리허설에서 시뮬레이터를 돌렸다가 지우고 다시 돌리면 대응안 초안이 만들어지지 않는다(같은 입력의 Claude 호출은 하루 1번, <code>already_tried_today</code>). 그래서 리허설에서 만든 변경을 지우지 말고 그대로 시연에 쓰거나, 리허설에서는 시뮬레이터를 돌리지 않는다.</div>
-  <p class="src"><b>출처:</b> docs/flow.md · docs/qa.md "남은 오류" 11-20 시연 날 주의 · app/admin/simulator · app/admin/demo · lib/demo/demo-switch.ts · docs/관리자-사용설명서.md 5-3</p>
-</section>
-
-<section class="slide" id="s8b" aria-labelledby="t8b">
-  <p class="kicker">시연 순서 · 제품 3분 + 위키 1분</p>
-  <h2 id="t8b">제품 시연 다음에 위키 챗봇 시연</h2>
-  <!-- 걸리는 시간은 팀 추정(리허설 전). 장별 예상(분, 화면 쪽 번호 1~17): 1 표지 0.5 · 2 문제 1 · 3 가설 0.5 · 4 숫자 0.5 · 5 지켜본 곳 0.5 · 6 입력·지도·청사진 1 · 7 사건과 대응 1 · 8 흐름 0.5 ·
-       9 시연(이 장) 4 · 10 확인 1 · 11 커넥터 0.5 · 12 위키·챗봇 0.5 · 13 서브에이전트 0.5 · 14 하네스 1 · 15 바이브로그 1 · 16 기여 0.5 · 17 다음 0.5
-       = 합계 15분 → 12~15분 안(위쪽 끝). 넘치면 3·4·11·13쪽을 말로 줄인다. 리허설로 재서 고친다. -->
-  <table>
-    <tr><th class="nowrap">순서</th><th>보여 줄 것</th><th>화면</th><th class="nowrap">분(팀 추정)</th></tr>
-    <tr><td>1</td><td>시뮬레이터 버튼으로 가짜 위험 변경 1건 만들기</td><td><code>/admin/simulator</code></td><td>0.5</td></tr>
-    <tr><td>2</td><td>흐름 화면에서 상자가 실제 실행 기록대로 켜짐</td><td><code>/admin/flow</code></td><td>1</td></tr>
-    <tr><td>3</td><td><b>시연 계정으로 바꿔 로그인</b> → 알림 상세(이전 → 현재 값, 출처, 대응안 초안) → 판단 저장(관리자는 남의 알림을 못 봄)</td><td><code>/alerts</code></td><td>0.5</td></tr>
-    <tr><td>4</td><td>지도에서 고른 기술을 청사진에 담고 설치 프롬프트로 내보내기</td><td><code>/tech-map</code> → <code>/blueprint</code></td><td>1</td></tr>
-    <tr><td>5</td><td>위키 챗봇에 정답표 Q5 묻기: "챗봇 '한 사람 하루 20개' 한도는 어느 표를 세서 거나요?" → 두 문서가 다르다고 <b>양쪽 출처</b>를 함께 답하는지</td><td><code>/admin/chat</code></td><td>1</td></tr>
-  </table>
-  <p class="muted" style="margin-top:12px">합계 4분. Q5는 11-20 운영에서 두 출처를 모두 말해 맞았다(docs/wiki-chat.md). 그 뒤 위키가 바뀌었으므로 발표 전에 한 번 다시 묻는다.</p>
-  <div class="todo">리허설로 순서별 시간을 재서 위 "분" 칸을 고친다. 인터넷이 끊길 때를 대비한 녹화 파일 위치.</div>
-  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 Q5·11-20 재질문 행 · docs/flow.md · docs/관리자-사용설명서.md · 강사 공지 11-22(제품 시연·위키 시연·12~15분) · 시간은 팀 추정</p>
-</section>
-
-<section class="slide" id="s9" aria-labelledby="t9">
-  <p class="kicker">확인</p>
-  <h2 id="t9">정답 사례로 채점하고, 합친 뒤 오류를 잡는다</h2>
-  <div class="grid">
-    <div class="card"><p class="num ok">6 · 6</p><h3>맞게 울림 · 맞게 조용함 (사례 12)</h3><p><b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b>, 등급 12/12 맞음 (11-21 채점). 경계 사례 44건도 <b class="ok">놓침 0</b> · <b class="ok">잘못 울림 0</b> · 결과 다름 0.</p></div>
-    <div class="card"><p class="num green">1,796<span class="muted" style="font-size:.5em"> / 1,796</span></p><h3>자동 시험 통과 (11-23 오후 main 5f16103, 실패 0)</h3><p>핵심 동작을 일부러 틀리게 고쳐 시험이 잡는지 보는 점검도 여러 조각에서 했다(docs/qa.md 22행).</p></div>
-    <div class="card"><h3>QA 표 (11-23, docs/qa.md)</h3><p>Claude QA 135줄: Pass 121 · Fail 9 · No Run 4 · 설계대로 1<br>사람 QA 47줄: Pass 13 · Fail 12 · No Run 21 · 일부 Pass 1</p><p class="muted">상태 칸 맨 앞 표기로 셌다. Claude QA Fail 9건 중 8건은 "Fail → 고침"으로 함께 적혀 있다. 사람 QA Fail 12건은 11-23 화면 문구·쓰기 쉬움 점검이다. No Run은 숨기지 않고 "아직 안 돌렸다"로 둔다.</p></div>
-  </div>
-  <ul style="margin-top:18px">
-    <li><b>합친 뒤 잡은 오류</b> (docs/debug-note.md에서 3건):
-      <ul>
-        <li><b>#133 → #135:</b> 새 칸을 만드는 마이그레이션보다 코드가 먼저 운영에 올라가 관리자 분류 탭 전체가 조회 실패. 칸이 없을 때만 그 부분을 끄게 고치고 마이그레이션을 적용. 장애 약 18분(14:43 → 15:01).</li>
-        <li><b>#153:</b> 운영에서 "적용 시나리오 만들기"가 늘 실패(<code>permission denied for table scenarios</code>). 코드가 DB가 열어 주지 않은 칸까지 보냄. 가짜 DB 시험은 칸 권한을 몰라 통과했다 → 권한과 보내는 칸을 맞대는 시험 추가.</li>
-        <li><b>설정:</b> 정기 실행 첫날 안 돎(<code>CRON_SECRET</code> 없음) → 사람이 넣고 다시 배포.</li>
-      </ul></li>
-  </ul>
-  <p class="src"><b>출처:</b> eval/result.md(11-21 19:26 채점) · docs/qa.md(Claude QA·사람 QA 표 상태 칸, 11-23 셈) · docs/qa-c.md · docs/debug-note.md 11-19 행(#133·#135, #153, CRON_SECRET) · npm test (main)</p>
-</section>
-
-<section class="slide" id="s10" aria-labelledby="t10">
-  <p class="kicker">커넥터</p>
-  <h2 id="t10">실제 일에 쓴 주요 서비스 6개</h2>
-  <table>
-    <tr><th>서비스</th><th>실제로 한 일</th><th>앱 실행에도?</th></tr>
-    <tr><td>Supabase</td><td>DB 구조·줄 수 조회, 마이그레이션 적용, 실제 DB 시험의 전후 확인</td><td>예(서버 키 코드)</td></tr>
-    <tr><td>Vercel</td><td>배포 상태, 환경변수 <b>이름</b> 확인(값은 안 읽음)</td><td>예(배포)</td></tr>
-    <tr><td>abbsbook</td><td>단계마다 진행 기록(화면 + 메모)</td><td>아니오</td></tr>
-    <tr><td>Slack</td><td>담당 팀원에게 발견한 문제 5건 전달(사용자 지시·초안 확인 뒤)</td><td>아니오</td></tr>
-    <tr><td>GitHub (<code>gh api</code>, 읽기만)</td><td>수집 기준을 정하려고 태그별 별 개수·새 저장소 검색, 공개 저장소의 <code>.cursor/mcp.json</code> 찾기, 등급 원인 확인</td><td>예(수집기가 GitHub API를 부름)</td></tr>
-    <tr><td>내장 브라우저 (ego-browser)</td><td>운영 화면 읽기 점검, 첫 화면 속도 재기, 응답에 비밀값이 있는지 점검, 흐름 화면 색 확인</td><td>아니오(점검용)</td></tr>
-  </table>
-  <p class="muted" style="margin-top:14px">외부를 바꾸는 일(알림 보내기·일정 만들기)은 대상과 내용을 확인한 뒤에만, 토큰은 기록에 적지 않는다.</p>
-  <p class="src"><b>출처:</b> docs/connectors.md(GitHub 11-21 행, ego-browser 11-19·11-20 행). 대응안 초안의 Anthropic API 등 그 밖의 서비스도 같은 문서에 있다</p>
-</section>
-
-<section class="slide" id="s11" aria-labelledby="t11">
-  <p class="kicker">위키·챗봇</p>
-  <h2 id="t11">쪽마다 출처가 달린 위키와, 그 위에서 답하는 챗봇</h2>
-  <p class="lead">관리자·팀원 전용. 서버가 위키에서 관련 쪽을 찾아 그 쪽만 Claude에 주고, 없으면 "위키에 없습니다". 위키 글이 지시처럼 보여도 따르지 않는다.</p>
-  <div class="grid">
-    <div class="card"><h3>위키 18쪽 (#126)</h3><p>주제 15쪽 + <code>index</code>·<code>log</code>·<code>연결지도</code>. 사실마다 출처, 문서끼리 다른 곳은 한쪽으로 정리하지 않고 양쪽을 적음.</p></div>
-    <div class="card"><h3>챗봇 (#125)</h3><p>관리자 탭 <code>/admin/chat</code>. 위키 쪽만 근거로 답하고 출처 쪽을 붙인다.</p></div>
-    <div class="card"><p class="num ok">4 / 5</p><h3>질문 5개 정답표 (운영, 11-19) → 고친 뒤 Q5도 맞음(11-20 운영 재질문)</h3><p>답 있음 3 · 없음 1 · 문서끼리 어긋남 1. Q1–Q4 맞음(없는 질문엔 "위키에 없습니다", 지어내지 않음).</p></div>
-    <div class="card"><h3 class="warn">틀린 답 하나와 고친 방법</h3><p><b>Q5</b>(한도를 어느 표로 세나, 문서끼리 다름)에 "위키에 없습니다". 맞는 쪽은 찾았는데 쪽마다 <b>앞 2000자만</b> 넘겨 충돌 문단이 잘렸다. → 질문 낱말이 든 줄을 골라 넘기게 고침(#131, 넘기는 양은 그대로). 실제 위키로 Q1–Q5를 확인하는 시험 6개, 고치기 전 Q4·Q5 실패 확인. 11-20 운영에서 다시 물으니 두 출처를 모두 말했다.</p></div>
-  </div>
-  <div class="todo">위키가 11-23에 바뀌어 발표 전 운영에서 Q5를 다시 묻는다. 화면 캡처 2장(연결 지도, 출처와 함께 답하는 화면).</div>
-  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 · 11-19 재확인 표 마지막 행(11-20 11:02 Q5 재질문) · git log wiki/(11-23 29826b0) · docs/qa-c.md H14 · wiki/ · PR #125·#126·#131 설명 · CLAUDE.md 4절</p>
-</section>
-
-<section class="slide" id="s12" aria-labelledby="t12">
-  <p class="kicker">서브에이전트</p>
-  <h2 id="t12">검토는 만든 쪽과 나눠서, 결과는 코드로 확인한 뒤에만 반영</h2>
-  <div class="grid">
-    <div class="card"><h3>쓴 방식</h3><p>읽기 전용 검토 도우미에게 코드·문서를 맡기고, 메인이 주장을 <b>코드로 확인</b>한 뒤 고치거나 "열린 질문"으로 기록한다. 161건 기록(11-23 기준, docs/agents.md 표에서 날짜로 시작하는 행 수).</p></div>
-    <div class="card"><h3 class="warn">잘 안 된 점 하나</h3><p>검토가 "비슷한 도우미 복사가 세 번째"라고 했는데 코드로 보니 <b>두 번째</b>였다. 그대로 믿고 합쳤으면 쓸데없는 변경이 됐다. → 검토 결과도 확인 뒤 반영.</p></div>
-  </div>
-  <p class="src"><b>출처:</b> docs/agents.md (표의 날짜 행 161개, 11-23 셈 · 2026-11-19 P-9b 2차 검토 행)</p>
-</section>
-
-<section class="slide" id="s13" aria-labelledby="t13">
-  <p class="kicker">하네스</p>
-  <h2 id="t13">같은 규칙과 스킬로 셋이 일한다</h2>
-  <div class="grid">
-    <div class="card"><h3>팀 규칙 (CLAUDE.md)</h3><p>제품 불변 규칙 6개를 코드 변경마다 시험으로 확인, 기록 루틴(intent·worklog·ADR), 커밋·푸시·배포는 묻고 한다.</p></div>
-    <div class="card"><h3>스킬</h3><p><b>stage-check</b>: 안내서 요건 대비 산출물을 표로 점검(고치지 않음). <b>abbs-log</b>: 단계마다 화면과 함께 기록.</p></div>
-    <div class="card"><h3>개선 사례</h3><p>기록 문서가 매번 충돌 → 합치는 규칙(ADR 0017)을 거쳐 <b>자동으로 main을 합치는 Action</b>(#106)으로 고침.</p></div>
-  </div>
-  <h3 style="margin-top:20px">운영 장애 → 규칙 → 도구 (11-19 하루)</h3>
-  <ol class="steps">
-    <li><b>장애 (#133):</b> 마이그레이션보다 코드가 먼저 운영에 올라가 관리자 분류 탭이 조회 실패, 약 18분.</li>
-    <li><b>고침 (#135):</b> 새 칸이 없을 때만 그 부분을 끄고 안내, 다른 오류는 그대로 조회 실패(불변 2).</li>
-    <li><b>규칙 (#138):</b> CLAUDE.md 10절에 "새 칸·표 마이그레이션은 합치기 전에 운영에 먼저, 코드는 새 칸이 없어도 안 깨지게".</li>
-    <li><b>도구 (#156):</b> <code>npm run precheck</code>가 브랜치의 마이그레이션 파일을 찾아 이 규칙을 알리고, 합친 뒤 도는 <code>docs/운영-점검표.md</code>에 이 장애를 점검 줄(S2)로.</li>
-    <li><b>재검사 (11-20 ~ 11-23):</b> 경고가 떠도 운영 적용 전에 합쳐진 일이 또 있었다(#178 · #182 · #184/#187 · #215). <b>경고만으로는 못 막는다</b>는 것을 확인했다.</li>
-    <li><b>다시 고침 (11-22):</b> 마이그레이션 번호 겹침(11-21 · 11-22 두 번)은 경고가 아니라 <code>precheck</code> <b>실패</b>로 바꿨다. 운영 적용 순서는 PR 설명 맨 위 "운영 적용 전에는 합치지 말아 주세요"로 사람이 막는다.</li>
-  </ol>
-  <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 · 11-20 #178 · #182 · 11-22 번호 겹침 · 11-23 #215 행 · docs/worklog.md · docs/intent.md I-p24-prod-apply(#184 · #187) · docs/제출물-체크리스트.md 하네스 개선 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · lib/records/migration-numbers.ts</p>
-</section>
-
-<section class="slide" id="s13b" aria-labelledby="t13b">
-  <p class="kicker">바이브로그 · 세 사람의 장면 하나씩</p>
-  <h2 id="t13b">막혔던 순간과 푼 방법</h2>
-  <!-- 차세일 장면 후보(확정은 사용자, 출처 docs/worklog.md):
-       ① 2026-11-19 I-fail-demo-prod — 막힌 것: 실패 시연 버튼이 운영에서 일부러 꺼져 있어 배포 주소에서 빨간 상자를 보여 줄 수 없었다.
-          푼 방법: 운영 동작은 그대로 두고, package.json만 깨진 공개 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(ADR 0024 제안, 관리자 사용설명서 5-3).
-       ② 2026-11-19 I-qa-c-q5-recheck — 막힌 것: 위키 챗봇이 문서 충돌 질문(Q5)에 "위키에 없습니다"라고 답했다.
-          푼 방법: 원인은 쪽 찾기가 아니라 쪽마다 앞 2000자만 넘긴 것 → 질문 낱말이 든 줄을 골라 넘기게 고침(#131), 11-20 운영 재질문에서 두 출처를 모두 말함. -->
-  <table class="scene">
-    <tr><th>사람</th><th>날짜</th><th>막힌 것</th><th>푼 방법</th></tr>
-    <tr><td>김영식</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
-    <tr><td>차세일</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
-    <tr><td>황재웅</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
-  </table>
-  <div class="todo">각자 vibelog에서 장면 하나(날짜·막힌 것·푼 방법)와 그때 화면 1장. 차세일 후보 2개는 이 장의 HTML 주석에 출처와 함께 있다.</div>
-  <p class="src"><b>출처:</b> 각자 vibelog · docs/worklog.md · 강사 공지 11-22(바이브로그는 슬라이드에 녹여서)</p>
-</section>
-
-<section class="slide" id="s14" aria-labelledby="t14">
-  <p class="kicker">팀원별 기여</p>
-  <h2 id="t14">합친 PR 222개, 세 사람 모두 PR과 리뷰</h2>
-  <!-- 집계 규칙(2026-11-23 오후 14:41 다시 셈, 합친 PR 222개, #224까지. 같은 날 오전은 209개·#211까지, 처음 집계 11-19 17:29는 169개): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`.
-       합친 PR = 작성자 아이디별 개수. 리뷰한 PR = 남의 PR에 리뷰를 1번 이상 남긴 PR 수(한 PR에 여러 번 남겨도 1, 본인 PR에 남긴 것은 뺌).
-       초기 #1–#24는 남의 리뷰 기록이 없다. -->
-  <table>
-    <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>리뷰한 PR</th><th>GitHub에 안 남는 일</th></tr>
-    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">127</td><td class="num" style="font-size:28px">75</td><td class="warn">▢</td></tr>
-    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">53</td><td class="num" style="font-size:28px">33</td><td class="warn">▢</td></tr>
-    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">42</td><td class="num" style="font-size:28px">99</td><td class="warn">▢</td></tr>
-  </table>
-  <p class="muted" style="margin-top:10px">리뷰한 PR = 남의 PR에 리뷰를 남긴 PR 수(본인 PR 제외, 한 PR은 1번). 처음 #1–#24는 남의 리뷰 없이 합쳐졌다.</p>
-  <div class="todo">대표 PR·리뷰 번호와, 인터뷰·시나리오·도운 일처럼 GitHub에 안 남는 일을 각자 쓴다. 이름과 아이디가 맞는지도 확인한다.</div>
-  <p class="src"><b>출처:</b> gh pr list --state merged (11-23 오후 합친 PR 222개·#224까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
-</section>
-
-<section class="slide" id="s15" aria-labelledby="t15">
-  <p class="kicker">다음에 해 볼 것</p>
-  <h2 id="t15">지금은 읽기만. 다음은 더 믿을 근거와 더 쉬운 판단</h2>
-  <ul class="lead">
-    <li>마지막 활동을 푸시 말고 <b>릴리스</b>로(봇이 푸시하는 죽은 저장소를 걸러냄)</li>
-    <li>상태를 정한 출처별로 따로 저장해 계산(지금은 한 칸이라 둘이 같은 판단을 해도 구분 못 함)</li>
-    <li>뺀 "찾기·넣기"를 <b>커스텀 기술 추가</b>로 다시 설계</li>
-    <li>화면 말 정리: 같은 상태를 부르는 말이 여럿("못 읽었다" 5가지), 보안 등급 이름이 화면마다 다름</li>
-    <li>사람 QA에서 아직 안 돌린 줄(일반 계정·시연 계정 화면, 사용기 쓰기 등)</li>
-  </ul>
-  <p class="src"><b>출처:</b> docs/adr/0021 알려진 한계 · docs/adr/0043 결정 5 · docs/intent.md I-P-12k-no-capture·I-qa-sheet-copy-1123 열린 질문 · docs/qa.md 사람 QA(11-23 Fail·No Run 행)</p>
-</section>
-
-</main>
+</main></div>
 
 <script>
-(function () {
-  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
-  var counter = document.getElementById("counter");
-  var cur = 0;
-  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function show(i) { counter.textContent = (i + 1) + " / " + slides.length; }
-  function go(i) {
-    cur = Math.max(0, Math.min(slides.length - 1, i));
-    slides[cur].scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    show(cur);
-    try { history.replaceState(null, "", "#" + (cur + 1)); } catch (e) { /* 파일로 열면 막힐 수 있다 */ }
-  }
-  if ("IntersectionObserver" in window) {
-    var seen = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { cur = slides.indexOf(e.target); show(cur); } });
-    }, { threshold: 0.6 });
-    slides.forEach(function (s) { seen.observe(s); });
-  }
-  document.addEventListener("keydown", function (e) {
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
-    var key = e.key;
-    if (key === "ArrowRight" || key === "ArrowDown" || key === "PageDown" || key === " ") { e.preventDefault(); go(cur + 1); }
-    else if (key === "ArrowLeft" || key === "ArrowUp" || key === "PageUp") { e.preventDefault(); go(cur - 1); }
-    else if (key === "Home") { e.preventDefault(); go(0); }
-    else if (key === "End") { e.preventDefault(); go(slides.length - 1); }
-  });
-  var n = parseInt((location.hash || "").slice(1), 10);
-  if (n >= 1 && n <= slides.length) go(n - 1); else show(0);
+window.__err='';window.addEventListener('error',function(e){window.__err+=e.message+'@'+e.lineno+';'});
+(function(){
+'use strict';
+document.documentElement.classList.add('js');
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return [].slice.call((r||document).querySelectorAll(s))};
+var slides=$$('.slide'),N=slides.length,cur=0,step=0;
+var q=new URLSearchParams(location.search);
+var reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+var revealAll=q.get('reveal')==='all';
+var ACTS=['','문제','만든 것','사건과 대응','시연','확인','AI와 일한 방식','사람'];
+var SPN={y:'김영식',j:'황재웅',s:'차세일',a:'세 사람'};
+var total=slides.reduce(function(a,s){return a+(+s.dataset.sec)},0);
+function mmss(t){t=Math.max(0,Math.floor(t));return (t/60|0)+':'+('0'+t%60).slice(-2)}
+function comma(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem('tr-slides:'+k);localStorage.setItem('tr-slides:'+k,v)}catch(e){return null}}
+
+/* 화자 표시(쪽 머리) */
+slides.forEach(function(s){var k=$('.kicker',s),sp=s.dataset.sp,w=document.createElement('span');w.className='who spk';
+  w.innerHTML=(sp==='a'?'세 사람':'<i style="background:var(--sp-'+sp+')"></i>'+SPN[sp])+' · 목표 '+s.dataset.sec+'초';k.appendChild(w)});
+
+/* 레일 */
+var acts=$('#acts'),ticks=[];
+(function(){var g=null,last=-1;slides.forEach(function(s,i){var a=+s.dataset.act;
+  if(a!==last){g=document.createElement('div');g.className='act';g.dataset.a=a;g.innerHTML='<span>'+a+' '+ACTS[a]+'</span><div class="ticks"></div>';acts.appendChild(g);last=a}
+  var b=document.createElement('button');b.type='button';b.className='tick';b.dataset.sp=s.dataset.sp;b.title=(i+1)+'쪽 · '+s.dataset.short+' · '+SPN[s.dataset.sp];
+  b.setAttribute('aria-label',(i+1)+'쪽 '+s.dataset.short+', 말하는 사람 '+SPN[s.dataset.sp]);b.onclick=function(){go(i)};$('.ticks',g).appendChild(b);ticks.push(b);
+  g.style.setProperty('--n',$$('.tick',g).length)})})();
+
+/* 전체 보기 */
+var og=$('#ogrid');
+slides.forEach(function(s,i){var b=document.createElement('button');b.type='button';b.className='oc';var sp=s.dataset.sp;
+  b.style.setProperty('--c',sp==='a'?'var(--scan)':'var(--sp-'+sp+')');
+  b.innerHTML='<b class="tn">'+(i+1)+'</b><em>'+ACTS[+s.dataset.act]+'</em><span>'+($('h1,h2',s).textContent.replace(/\s+/g,' '))+'</span><small>'+SPN[sp]+' · '+s.dataset.sec+'초</small>';
+  b.onclick=function(){toggle('over',false);go(i)};og.appendChild(b)});
+
+/* 숫자 세기(한 번) */
+function runCounts(root){$$('[data-count]',root).forEach(function(el){
+  if(el._done)return;var f=el.closest('.f');if(f&&!f.classList.contains('on'))return;el._done=1;
+  var to=+el.dataset.count;if(reduced||revealAll){el.textContent=comma(to);return}
+  var t0=performance.now(),d=900;(function tick(t){var p=Math.min(1,(t-t0)/d);p=1-Math.pow(1-p,3);el.textContent=comma(Math.round(to*p));if(p<1)requestAnimationFrame(tick)})(t0)})}
+
+function maxStep(s){return $$('.f',s).reduce(function(m,e){return Math.max(m,+e.dataset.f||1)},0)}
+function applyStep(){var s=slides[cur];$$('.f',s).forEach(function(e){e.classList.toggle('on',(+e.dataset.f||1)<=step)});runCounts(s)}
+var tPage=Date.now();
+function render(){
+  slides.forEach(function(s,i){s.classList.toggle('active',i===cur)});applyStep();
+  var s=slides[cur],a=+s.dataset.act;
+  ticks.forEach(function(t,i){t.classList.toggle('cur',i===cur);t.classList.toggle('done',i<cur);if(i===cur)t.setAttribute('aria-current','step');else t.removeAttribute('aria-current')});
+  $$('.act').forEach(function(g){g.classList.toggle('cur',+g.dataset.a===a)});
+  $('#rname').textContent=a+'막 · '+ACTS[a];
+  var nx=slides[cur+1],h=s.dataset.hand||'';
+  $('#rhand').innerHTML=h?'<span class="hand spk">넘김 → "'+h+'"</span>':(nx?'<span class="spk">다음: '+nx.dataset.short+' · '+SPN[nx.dataset.sp]+'</span>':'끝');
+  $('#rpage').textContent=(cur+1)+' / '+N;
+  $('#notesul').innerHTML=($('.notes',s)||{innerHTML:''}).innerHTML;
+  var m=$('.more',s);$('#detailbody').innerHTML=(m?m.innerHTML:'')+'<div class="srcbig">'+$('.src',s).innerHTML+'</div>';
+  $$('.oc').forEach(function(o,i){o.classList.toggle('cur',i===cur)});
+  document.title=(cur+1)+' · '+s.dataset.short+' — TechRadar 발표';
+  if(location.hash!=='#'+(cur+1))try{history.replaceState(null,'',location.pathname+location.search+'#'+(cur+1))}catch(e){location.hash=cur+1}
+  radarState();
+}
+function go(n,back){n=Math.max(0,Math.min(N-1,n));if(n===cur&&!back)return;
+  var f=function(){cur=n;step=(back||revealAll)?maxStep(slides[n]):0;tPage=Date.now();render()};
+  if(document.startViewTransition&&!reduced)document.startViewTransition(f);else f()}
+function next(){if(step<maxStep(slides[cur])){step++;applyStep()}else if(cur<N-1)go(cur+1)}
+function prev(){if(cur>0)go(cur-1,true)}
+
+/* 패널 */
+var P={notes:$('#pnotes'),detail:$('#pdetail'),help:$('#phelp'),over:$('#over'),timer:$('#hud')};
+function toggle(k,v){var el=P[k],on=v===undefined?!el.classList.contains('on'):v;el.classList.toggle('on',on);
+  if(k==='notes')document.body.classList.toggle('notes-on',on);
+  if(k==='timer'&&on&&!t0)t0=Date.now();
+  if(k==='over'&&on){var c=$('.oc.cur');c&&c.focus()}}
+$('#helpbtn').onclick=function(){toggle('help')};
+
+/* 타이머 */
+var t0=0;$('#hudall').textContent=mmss(total);
+setInterval(function(){if(!P.timer.classList.contains('on'))return;var sec=+slides[cur].dataset.sec,e=(Date.now()-tPage)/1000;
+  $('.tot',P.timer).textContent=mmss((Date.now()-t0)/1000);$('.pg',P.timer).textContent='이 쪽 '+Math.floor(e)+' / '+sec+'초';
+  $('.bar',P.timer).style.width=Math.min(100,e/sec*100)+'%';P.timer.classList.toggle('over',e>sec)},250);
+
+/* 편집 칸 */
+var editing=false,slots=$$('[data-edit]');
+slots.forEach(function(el){var v=ls(el.dataset.edit);if(v){el.textContent=v;el.parentNode.classList.add('filled')}
+  el.addEventListener('input',function(){var t=el.textContent.trim();if(!t)el.textContent='';ls(el.dataset.edit,t);el.parentNode.classList.toggle('filled',!!t)})});
+function setEdit(on){editing=on;document.body.classList.toggle('editing',on);slots.forEach(function(el){if(on){el.setAttribute('contenteditable','true');el.setAttribute('role','textbox')}else{el.removeAttribute('contenteditable');el.blur()}})}
+
+/* 시연 체크 · 카운트다운 */
+$$('#demo .di button').forEach(function(b){b.onclick=function(){var on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);b.textContent=on?'✓':'';b.parentNode.classList.toggle('chk',on)}});
+var cdLeft=220,cdRun=null,cdEl=$('#cdnum');
+function cdShow(){cdEl.textContent=(cdLeft<0?'+':'')+mmss(Math.abs(cdLeft));cdEl.classList.toggle('over',cdLeft<0)}
+$('#cdgo').onclick=function(){if(cdRun){clearInterval(cdRun);cdRun=null;this.textContent='이어서'}else{var end=Date.now()+cdLeft*1000;cdRun=setInterval(function(){cdLeft=Math.round((end-Date.now())/1000);cdShow()},250);this.textContent='멈춤'}};
+$('#cdre').onclick=function(){clearInterval(cdRun);cdRun=null;cdLeft=220;cdShow();$('#cdgo').textContent='시작'};
+
+/* 표지 레이더(12초에 한 바퀴, 멈춤 가능, 줄인 움직임이면 정지 그림) */
+var cv=$('#radar'),cx=cv.getContext('2d'),radarPaused=false,raf=0,rStart=performance.now(),rHold=0;
+var blips=[];(function(){var seed=7;function r(){seed=(seed*16807)%2147483647;return seed/2147483647}
+  for(var i=0;i<46;i++)blips.push({a:r()*Math.PI*2,d:.14+r()*.8,c:r()<.12?'#ff6b6b':r()<.3?'#f2b544':r()<.6?'#7fd4ff':'#e8edff',s:1.5+r()*2.5})})();
+function drawRadar(ang){var W=cv.width,c=W/2,R=c-14;cx.clearRect(0,0,W,W);
+  cx.strokeStyle='#2b3a66';cx.lineWidth=1.5;for(var i=1;i<=4;i++){cx.beginPath();cx.arc(c,c,R*i/4,0,7);cx.stroke()}
+  cx.beginPath();cx.moveTo(c-R,c);cx.lineTo(c+R,c);cx.moveTo(c,c-R);cx.lineTo(c,c+R);cx.stroke();
+  if(cx.createConicGradient){var g=cx.createConicGradient(ang-1.1,c,c);g.addColorStop(0,'rgba(61,224,200,0)');g.addColorStop(1.1/(Math.PI*2),'rgba(61,224,200,.28)');g.addColorStop(1.1/(Math.PI*2)+.0001,'rgba(61,224,200,0)');g.addColorStop(1,'rgba(61,224,200,0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(c,c,R,0,7);cx.fill()}
+  cx.strokeStyle='#3de0c8';cx.lineWidth=2.5;cx.beginPath();cx.moveTo(c,c);cx.lineTo(c+Math.cos(ang)*R,c+Math.sin(ang)*R);cx.stroke();
+  blips.forEach(function(b){var d=((ang-b.a)%(Math.PI*2)+Math.PI*2)%(Math.PI*2),al=.28+.72*Math.max(0,1-d/3.2);
+    cx.globalAlpha=al;cx.fillStyle=b.c;cx.beginPath();cx.arc(c+Math.cos(b.a)*R*b.d,c+Math.sin(b.a)*R*b.d,b.s*2,0,7);cx.fill()});cx.globalAlpha=1;
+  cx.fillStyle='#3de0c8';cx.beginPath();cx.arc(c,c,5,0,7);cx.fill()}
+function radarLoop(t){drawRadar(((t-rStart)/12000)*Math.PI*2-Math.PI/2);raf=requestAnimationFrame(radarLoop)}
+function radarState(){cancelAnimationFrame(raf);raf=0;if(cur!==0)return;
+  if(reduced||radarPaused){drawRadar(rHold||-0.6);return}raf=requestAnimationFrame(radarLoop)}
+function radarToggle(){radarPaused=!radarPaused;var b=$('#radarbtn');b.setAttribute('aria-pressed',radarPaused);b.textContent=radarPaused?'스캔 다시':'스캔 멈춤';
+  if(radarPaused)rHold=((performance.now()-rStart)/12000)*Math.PI*2-Math.PI/2;else rStart=performance.now()-((rHold+Math.PI/2)/(Math.PI*2))*12000;radarState()}
+$('#radarbtn').onclick=radarToggle;if(reduced)$('#radarbtn').hidden=true;
+
+/* 키 · 터치 · 해시 */
+document.addEventListener('keydown',function(e){
+  var t=e.target;
+  if(e.key==='Escape'){if(editing)setEdit(false);['help','over','notes','detail'].forEach(function(k){toggle(k,false)});return}
+  if(t.isContentEditable||/INPUT|TEXTAREA/.test(t.tagName))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  var k=e.key,ov=P.over.classList.contains('on');
+  if(ov&&(k==='Enter'||k===' '||k.indexOf('Arrow')===0||k==='Tab'))return; /* 전체 보기 안에서는 단추 조작 그대로 */
+  if(k===' '&&/BUTTON|A/.test(t.tagName)&&!t.classList.contains('flag')&&!t.classList.contains('tick'))return;
+  switch(k){
+    case 'ArrowRight':case ' ':case 'PageDown':e.preventDefault();next();break;
+    case 'ArrowLeft':case 'PageUp':e.preventDefault();prev();break;
+    case 'Home':go(0);break;case 'End':go(N-1);break;
+    case 'o':case 'O':toggle('over');break;case 't':case 'T':toggle('timer');break;
+    case 'r':case 'R':t0=Date.now();tPage=Date.now();break;
+    case 'n':case 'N':toggle('notes');break;case 'd':case 'D':toggle('detail');break;
+    case 's':case 'S':document.body.classList.toggle('nosp');break;
+    case 'e':case 'E':e.preventDefault();setEdit(!editing);if(editing){var f=$('[data-edit]',slides[cur]);f&&f.focus()}break;
+    case 'f':case 'F':if(document.fullscreenElement)document.exitFullscreen();else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();break;
+    case 'p':case 'P':if(cur===0)radarToggle();break;
+    case '?':case '/':toggle('help');break;
+  }});
+var tx=null;document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX},{passive:true});
+document.addEventListener('touchend',function(e){if(tx===null)return;var dx=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(dx)>50&&!editing){if(dx<0)next();else prev()}},{passive:true});
+window.addEventListener('hashchange',function(){var n=parseInt(location.hash.slice(1),10);if(n&&n-1!==cur)go(n-1)});
+window.addEventListener('beforeprint',function(){slides.forEach(function(s){$$('[data-count]',s).forEach(function(el){el._done=1;el.textContent=comma(+el.dataset.count)})})});
+
+/* 시작 */
+var h=parseInt(location.hash.slice(1),10);if(h>=1&&h<=N)cur=h-1;
+if(revealAll)step=maxStep(slides[cur]);
+if(q.get('notes'))toggle('notes',true);if(q.get('detail'))toggle('detail',true);if(q.get('timer'))toggle('timer',true);if(q.get('edit'))setEdit(true);if(q.get('help'))toggle('help',true);
+render();if(q.get('view')==='overview')toggle('over',true);
+/* 점검용(?check=1): 쪽마다 넘침을 재서 #chk에 적는다 */
+if(q.get('check')){var out=[],c0=cur;slides.forEach(function(sl,i){cur=i;step=maxStep(sl);render();var b=$('.body',sl),sr=$('.src',sl),fr=$('#frame').getBoundingClientRect(),bad=[];
+  if(b.scrollHeight>b.clientHeight+1)bad.push('body+'+(b.scrollHeight-b.clientHeight));if(sr.scrollWidth>sr.clientWidth+1)bad.push('src잘림');
+  $$('.body *',sl).forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&(r.right>fr.right+1||r.left<fr.left-1||r.bottom>b.getBoundingClientRect().bottom+2)&&!e.closest('.tip'))bad.push(e.tagName+'.'+e.className+':'+Math.round(r.right-fr.right)+','+Math.round(r.bottom-b.getBoundingClientRect().bottom))});
+  out.push((i+1)+':'+(bad.length?bad.slice(0,4).join('|'):'ok'))});cur=c0;render();var d=document.createElement('pre');d.id='chk';d.hidden=true;d.textContent=out.join('\n')+'\nERR:'+(window.__err||'0');document.body.appendChild(d)}
 })();
 </script>
 </body>

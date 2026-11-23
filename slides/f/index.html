@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TechRadar 결정 지도</title>
+<style>
+/* 배치: 1600×900 무대를 화면에 맞춰 한 번만 맞춘다. 왼쪽 원형 레이더, 오른쪽 큰 글자 카드, 아래 범례/날짜 띠 */
+:root{
+  --paper:#FAFAF6; --ink:#111111; --soft:#55554F; --line:#C9C8C0; --wash:#EEEDE6;
+  --q1:#0A4BD0; --q2:#D4241C; --q3:#FFC800; --q4:#0A7A3C;
+  --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#fit{position:absolute;left:0;top:0;transform-origin:0 0}
+#stage{position:relative;width:1600px;height:900px;background:var(--paper);overflow:hidden}
+
+/* 머리띠 */
+#mast{position:absolute;left:30px;right:24px;top:0;height:54px;display:flex;align-items:center;gap:18px;border-bottom:3px solid var(--ink)}
+#mast h1{font-size:22px;font-weight:900;letter-spacing:.5px;margin:0;white-space:nowrap}
+#mast .sub{font-size:14px;color:var(--soft);white-space:nowrap}
+#acts{margin-left:auto;display:flex;gap:0}
+#acts button{font-size:14px;font-weight:700;padding:7px 10px;border:2px solid var(--ink);margin-left:-2px;background:var(--paper);white-space:nowrap}
+#acts button[aria-current="true"]{background:var(--ink);color:var(--paper)}
+#acts button small{font-weight:400;font-size:12px;margin-left:4px}
+#modeBtn{font-size:14px;font-weight:800;padding:7px 12px;border:2px solid var(--ink);background:var(--q3)}
+
+/* 레이더 */
+#radarWrap{position:absolute;left:30px;top:64px;width:694px;height:694px;transition:opacity .3s}
+#radar{width:100%;height:100%;display:block}
+.front #radarWrap{opacity:.32}
+.blip{cursor:pointer;transition:opacity .3s}
+.blip.dim{opacity:.13}
+.blip.mid{opacity:.42}
+.blip.off{opacity:0;pointer-events:none}
+.blip.sel .shape{stroke-width:4}
+.blip text{font-size:12.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.ringname{font-size:13px;font-weight:800;text-anchor:middle;dominant-baseline:central;fill:var(--ink)}
+.qname{font-size:21px;font-weight:900;fill:var(--ink)}
+.qsub{font-size:12.5px;fill:var(--soft);font-weight:600}
+.ringfill{fill:none;transition:fill .3s}
+.ringfill.lit{fill:var(--wash)}
+.qarc{transition:opacity .3s}
+.qarc.dim{opacity:.18}
+
+/* 레이더 아래: 범례 또는 날짜 띠 */
+#under{position:absolute;left:30px;top:764px;width:694px;height:86px}
+#legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;font-size:12.5px;line-height:1.35;padding-top:6px}
+#legend b{font-weight:800}
+#legend svg{vertical-align:-4px}
+#band{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:86px;align-items:end}
+#band button{position:relative;height:86px;border-bottom:3px solid var(--ink);text-align:left}
+#band .bar{position:absolute;left:0;right:0;bottom:0;background:var(--line)}
+#band button[aria-current="true"] .bar{background:var(--ink)}
+#band button.past .bar{background:var(--soft)}
+#band .lab{position:absolute;left:4px;top:0;font-size:13px;font-weight:800;line-height:1.2}
+#band .lab small{display:block;font-weight:600;color:var(--soft);font-size:12px}
+
+/* 카드 */
+#card{position:absolute;left:752px;top:64px;width:824px;height:786px;padding:6px 0 0 0;display:flex;flex-direction:column;gap:12px;background:var(--paper)}
+.front #card{left:330px;width:1246px;padding-left:26px;border-left:3px solid var(--ink)}
+.eyebrow{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800}
+.eyebrow .act{background:var(--ink);color:var(--paper);padding:3px 10px}
+.eyebrow .sec{color:var(--soft);font-weight:600}
+#card h2{font-size:58px;line-height:1.1;font-weight:900;letter-spacing:-1.5px;margin:0;text-wrap:balance;word-break:keep-all}
+#card h2.m{font-size:46px}
+#card h2.s{font-size:38px;letter-spacing:-1px}
+.body{font-size:20px;line-height:1.45;display:flex;flex-direction:column;gap:10px;min-height:0;word-break:keep-all}
+.body p{margin:0}
+.body ul,.body ol{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:4px}
+.small{font-size:16px;color:var(--soft)}
+.src{font-size:14px;color:var(--soft);line-height:1.35;margin-top:auto;border-top:1px solid var(--line);padding-top:6px}
+.tag{display:inline-block;font-size:13px;font-weight:800;border:2px solid var(--ink);padding:0 6px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag.k{background:var(--ink);color:var(--paper)}
+.tag.y{background:var(--q3)}
+blockquote{margin:0;padding:6px 0 6px 18px;border-left:10px solid var(--ink);font-size:40px;font-weight:900;line-height:1.15;letter-spacing:-1px}
+blockquote cite{display:block;font-size:16px;font-weight:600;font-style:normal;color:var(--soft);letter-spacing:0;margin-top:6px}
+table.t{border-collapse:collapse;width:100%;font-size:18px;line-height:1.3}
+table.t th,table.t td{text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+table.t th{font-size:14px;color:var(--soft);font-weight:700;border-bottom:2px solid var(--ink)}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:800;padding-right:14px}
+.nums{display:flex;flex-wrap:wrap;gap:8px 26px}
+.nums div{font-size:15px;color:var(--soft);font-weight:600;line-height:1.2}
+.nums b{display:block;font-size:44px;font-weight:900;color:var(--ink);letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.05}
+.chain{display:flex;gap:0;align-items:stretch}
+.chain div{flex:1;border:3px solid var(--ink);margin-left:-3px;padding:8px 10px;font-size:17px;line-height:1.3}
+.chain div:first-child{margin-left:0}
+.chain b{display:block;font-size:22px;font-weight:900}
+.steps6{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.steps6 div{border-top:6px solid var(--ink);padding-top:4px;font-size:16.5px;line-height:1.3}
+.steps6 b{display:block;font-size:19px}
+.steps6 .bad{border-top-color:var(--q2)}
+.steps6 .ok{border-top-color:var(--q4)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cell{border:3px solid var(--ink);padding:10px 14px}
+.cell .k{font-size:15px;font-weight:800}
+.cell .v{font-size:30px;font-weight:900;line-height:1.2;min-height:38px}
+.ed{border-bottom:2px dotted var(--soft)}
+.editing .ed{outline:2px dashed var(--q2);outline-offset:2px;background:#fff;cursor:text}
+.shots{display:flex;flex-direction:column;gap:6px}
+.shots figure{margin:0}
+.shots img{display:block;width:100%;max-width:1010px;border:2px solid var(--ink)}
+.shots figcaption{font-size:14px;color:var(--soft);margin-top:2px}
+.lit{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lit .cap{font-size:13px;font-weight:800;color:var(--soft);margin-right:2px}
+.chip{font-size:14px;font-weight:700;border:2px solid var(--ink);padding:2px 8px 2px 4px;display:inline-flex;align-items:center;gap:5px;background:var(--paper);white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.chip .no{display:inline-block;min-width:22px;text-align:center;font-size:12px;font-weight:900;padding:1px 2px}
+.c0{background:var(--q1);color:#fff}.c1{background:var(--q2);color:#fff}.c2{background:var(--q3);color:#111}.c3{background:var(--q4);color:#fff}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.minis figure{margin:0;border-top:6px solid var(--ink);padding-top:4px}
+.minis svg{width:100%;height:auto;display:block}
+.minis figcaption{font-size:16px;line-height:1.3}
+.minis figcaption b{font-size:22px;font-weight:900}
+.minis .pr{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.day h3{font-size:30px;font-weight:900;margin:0;letter-spacing:-.5px}
+.day ul{font-size:18.5px}
+
+/* 탐색 모드 */
+.filters{display:grid;grid-template-columns:70px 1fr;gap:6px 8px;align-items:center;font-size:14px;font-weight:800}
+.filters .row{display:flex;flex-wrap:wrap;gap:6px}
+#xlist{display:grid;grid-template-columns:repeat(3,1fr);gap:3px 8px;align-content:start;font-size:14px}
+#xlist button{display:flex;gap:6px;align-items:center;text-align:left;padding:2px 2px;min-width:0;border-bottom:1px solid var(--line)}
+#xlist button span.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#xlist button[aria-current="true"]{background:var(--ink);color:var(--paper)}
+#xlist .no{flex:none;min-width:22px;text-align:center;font-size:12px;font-weight:900}
+
+/* 점 카드 */
+#detail{position:absolute;left:752px;bottom:50px;width:824px;border:3px solid var(--ink);background:var(--paper);padding:12px 16px 12px 16px;z-index:5}
+#detail h3{margin:0 40px 4px 0;font-size:27px;font-weight:900;line-height:1.2;letter-spacing:-.5px;word-break:keep-all}
+#detail p{margin:0 0 6px 0;font-size:18px;line-height:1.4;word-break:keep-all}
+#detail dl{margin:0;display:grid;grid-template-columns:64px 1fr 64px 1fr;gap:2px 8px;font-size:15px;line-height:1.35}
+#detail dt{font-weight:800;color:var(--soft)}
+#detail dd{margin:0}
+#detail .x{position:absolute;right:8px;top:6px;font-size:16px;font-weight:900;border:2px solid var(--ink);padding:0 8px}
+
+/* 바닥 줄 */
+#foot{position:absolute;left:30px;right:24px;bottom:0;height:44px;border-top:3px solid var(--ink);display:flex;align-items:center;gap:14px;font-size:15px}
+#spk{font-weight:900;background:var(--ink);color:var(--paper);padding:3px 10px;white-space:nowrap}
+#hand{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+#pos{margin-left:auto;font-weight:800;white-space:nowrap}
+#timer{font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap;border:2px solid var(--ink);padding:1px 8px}
+#timer.run{background:var(--ink);color:var(--paper)}
+#timer.over{background:var(--q2);color:#fff;border-color:var(--q2)}
+#keys{color:var(--soft);font-size:13px;white-space:nowrap}
+
+#notes{position:absolute;left:752px;bottom:50px;width:824px;background:var(--ink);color:var(--paper);padding:12px 16px;font-size:17px;line-height:1.45;z-index:6}
+#notes b{color:var(--q3)}
+#help{position:absolute;inset:54px 24px 44px 30px;background:var(--paper);z-index:9;padding:14px 4px;display:grid;grid-template-columns:400px 1fr;gap:26px;overflow:auto}
+#help h2{font-size:24px;font-weight:900;margin:0 0 8px 0}
+#help table{border-collapse:collapse;font-size:14.5px;line-height:1.3;width:100%}
+#help td,#help th{border-bottom:1px solid var(--line);padding:3px 8px 3px 0;text-align:left;vertical-align:top}
+#help th{border-bottom:2px solid var(--ink)}
+kbd{font-family:inherit;font-weight:800;border:2px solid var(--ink);padding:0 5px;font-size:13px;white-space:nowrap}
+
+#poster{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@media print{
+  @page{size:A3 landscape;margin:10mm}
+  html,body{height:auto;overflow:visible;background:#fff}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #fit{position:static;transform:none!important;float:left;width:250mm}
+  #stage{width:250mm;height:auto;overflow:visible;background:#fff}
+  #mast,#card,#detail,#foot,#notes,#help,#band{display:none!important}
+  #radarWrap{position:static;width:250mm;height:250mm;opacity:1!important}
+  #under{position:static;width:250mm;height:auto}
+  #legend{display:grid!important;font-size:9pt}
+  .blip,.qarc{opacity:1!important}
+  #poster{position:static;width:auto;height:auto;overflow:visible;clip:auto;margin-left:256mm}
+  #poster h2{font-size:20pt;font-weight:900;margin:0 0 2mm 0}
+  #poster p{font-size:8pt;margin:0 0 2mm 0}
+  #poster table{border-collapse:collapse;width:100%;font-size:6.6pt;line-height:1.22}
+  #poster th,#poster td{border-bottom:.3pt solid #999;padding:.5mm 1mm .5mm 0;text-align:left;vertical-align:top}
+  #poster th{border-bottom:1pt solid #000}
+  #poster .pl{display:none}
+}
+</style>
+</head>
+<body>
+<div id="fit"><div id="stage">
+  <header id="mast">
+    <h1>TECHRADAR 결정 지도</h1>
+    <span class="sub">제1호 · 2026-11-23 · 7일 동안 팀이 내린 결정 <span id="blipCount"></span>개</span>
+    <nav id="acts" aria-label="막 이동"></nav>
+    <button id="modeBtn" type="button" aria-pressed="false">X 탐색</button>
+  </header>
+
+  <div id="radarWrap"><svg id="radar" viewBox="0 0 720 720" role="group" aria-label="결정 레이더. 같은 내용의 표가 문서 끝에 있습니다."></svg></div>
+
+  <div id="under">
+    <div id="legend"></div>
+    <div id="band" hidden role="group" aria-label="날짜 띠: 날짜별 합친 PR 수"></div>
+  </div>
+
+  <main id="card" aria-live="polite"></main>
+  <aside id="detail" hidden aria-label="점 카드"></aside>
+  <div id="notes" hidden></div>
+  <div id="help" hidden></div>
+
+  <footer id="foot">
+    <span id="spk"></span>
+    <span id="hand"></span>
+    <span id="pos"></span>
+    <span id="timer" title="T 시작/멈춤 · 0 처음으로">0:00</span>
+    <span id="keys">→ ← · 1~7 막 · X 탐색 · T N S E · ?</span>
+  </footer>
+</div></div>
+
+<section id="poster" aria-label="레이더의 모든 점 목록"></section>
+
+<script>
+(function(){
+'use strict';
+var Q=[
+  {n:'① 지키고',sub:'영역 A · 수집 · 등급',shape:'동그라미',pat:'민무늬'},
+  {n:'② 고르고',sub:'영역 B · 알림 · 판단',shape:'네모',pat:'빗금'},
+  {n:'③ 옮긴다 · 운영',sub:'영역 C · 흐름 · 청사진 · 관리자 · 위키',shape:'마름모',pat:'점'},
+  {n:'④ 일하는 방식',sub:'규칙 · 기록 · AI 활용',shape:'육각형',pat:'가로줄'}
+];
+var QCOL=['var(--q1)','var(--q2)','var(--q3)','var(--q4)'], QTXT=['#fff','#fff','#111','#fff'];
+var R=[
+  {n:'채택',d:'지금 제품 · 팀에 자리 잡은 것'},
+  {n:'시험',d:'해 보는 중 · 일부만'},
+  {n:'평가',d:'근거가 아직 약함 · 다음에 확인'},
+  {n:'보류',d:'접었거나 빼거나 미뤄 둔 것'}
+];
+var WHO={Y:'김영식',J:'황재웅',S:'차세일'};
+var DAYS=['11-17','11-18','11-19','11-20','11-21','11-22','11-23'], DOW=['화','수','목','금','토','일','월'], PRS=[24,68,79,28,1,4,28];
+function di(d){var i=DAYS.indexOf(d);return i<0?0:i;}
+
+/* 점: [키, 사분면, 고리, 이름, 한 줄, 날짜, 근거, 사람, 옮김{r,d,why}] — 전부 저장소 기록에서 */
+var B=[
+ ['grade',0,0,'보안 등급은 코드 규칙으로','커뮤니티 평판은 참고로만 쓴다.','11-16','ADR 0003','Y'],
+ ['collerr',0,0,'실패는 "수집 오류"로 적는다','"변화 없음" · "삭제됨"으로 단정하지 않는다.','11-18','CLAUDE.md 불변 규칙 2 · #33','Y'],
+ ['seven',0,0,'수집기 7개, 매일 06:00','OSV · GitHub · 별 후보 검색 · 공식 MCP 레지스트리 · npm/PyPI 다운로드 · Hacker News · 바깥 소식.','11-22','lib/schedule/collectors.ts:13 · vercel.json · #96 · #103 · #203','Y'],
+ ['gate',0,0,'들이는 기준은 관문 + 점수 + 의심 거르기','별 개수 하나로 정하지 않는다. 별은 누적이고 부풀릴 수 있다.','11-21','ADR 0033','Y'],
+ ['map',0,0,'지도를 첫 화면으로','"근거가 약해 작게" 두었던 지도를 팀 승인으로 첫 화면에 올렸다. 주소는 /.','11-20','ADR 0026 · 0027 · 0028(11-20 팀 승인) · #178 · #188','Y',{r:2,d:'11-17',why:'11-17 "근거가 약해 작게"(평가) → 11-20 첫 화면(채택)'}],
+ ['errzero',0,0,'상태 줄이 수집 오류까지 센다','06:07 정기 실행을 "오류 0"으로 보이던 것을 고쳤다. 실제로는 25단계 중 수집 오류 2개.','11-23','docs/debug-note.md:56',''],
+ ['retry',0,2,'실패한 수집을 다시 돌리기','다음 시도 시각만 적는다. 실제로 다시 돌리는 코드는 없다(다음 정기 실행이 다시 읽음).','11-21','docs/제출물-체크리스트.md:62 (11-21 stage-check)',''],
+
+ ['judge',1,0,'사람이 판단하기 전에는 아무것도 바꾸지 않는다','관리자도 건너뛸 수 없다. "승인"이 아니라 "판단"이라고 부른다.','11-16','CLAUDE.md 불변 규칙 1 · docs/worklog.md 11-16 · #43','J'],
+ ['three',1,0,'알림은 세 종류','보안 경고 · 적용 기회 · 모델 종료.','11-18','#37 · #38 (종류 수는 공통 지시 기준)','J'],
+ ['scen',1,0,'적용 시나리오는 조치가 아니라 참고 자료','조치는 판단을 거친 뒤에만 한다.','11-17','ADR 0010 · #120','J'],
+ ['cond',1,1,'적용 기회 조건: 셋에서 넷으로','11-18에 조건 4를 v1에서 뺐고, 11-21에 조건 4(별 100 이상)를 넣었다. 두 조건 4가 같은 것인지는 원문 대조 전이다.','11-21','ADR 0014 · docs/worklog.md 11-21 I-P-21c','',{r:3,d:'11-18',why:'11-18 v1에서 뺌(보류) → 11-21 조건 4 추가(시험)'}],
+ ['review',1,1,'사용기 · 신고','11-23 사람 QA 중에 숨긴 사용기가 보이는 것을 찾아 고쳤다(#217).','11-20','#184 · #187 · #193 · #217','J'],
+ ['taste',1,1,'취향 · 추천','표 없이 배포되어 약 9시간 불러오기에 실패했고(11-20), 11-23에 취향 저장 권한 오류를 고쳤다.','11-20','#182 · #214 · docs/debug-note.md:41 · 45','J'],
+ ['hypoB',1,3,'가설 B "몰라서 포기"','팀 밖 0명. 중단 기준(구체 사례 2명 미만)에 걸려 보조로 내렸다.','11-17','docs/문제정의.md 54~66줄 · ADR 0005','S'],
+ ['refind',1,3,'"저장해 두고 다시 못 찾는다"','못 찾은 장면이 인터뷰에 없었다. 판정 표의 판정은 "보류".','11-17','docs/문제정의.md 판정 표',''],
+
+ ['flow',2,0,'흐름 화면은 실행 기록으로 그린다','미리 그린 가짜 불빛은 안 된다. runs · run_steps를 읽는다.','11-18','CLAUDE.md 불변 규칙 6 · #30 · #46','S'],
+ ['sim',2,0,'시뮬레이터 · 실패 시연 · 채점','56사례를 채점해 놓침 0 · 잘못 울림 0 (11-21 19:26, 등급 규칙 v1).','11-18','#40 · #54 · #172 · eval/result.md','S'],
+ ['prompt',2,0,'알파는 설치 프롬프트','노트북 반납 전 옮기기가 막막하다는 말에 가장 직접 답한다. 노션 보내기는 다음 버전으로 미뤘다.','11-17','ADR 0009 · 11-18 회의 D2 · #53','S'],
+ ['concept',2,0,'"지도에서 고르고, 청사진으로 옮긴다"','인터뷰의 "싹 정리해서 가지고 나가"에서 나왔다. 레이더 이름 겹침도 이유.','11-21','ADR 0032 · docs/worklog.md 99줄','Y'],
+ ['theme',2,0,'관측소 테마','남색 밤하늘 · 청록 강조 · 컴팩트. 11:30에 확정.','11-23','ADR 0044 · #216','Y'],
+ ['admin',2,0,'관리자 지정 · 되돌리기 · 화면 리뉴얼','#215는 운영에 함수가 없는 것을 제출 전 점검에서 찾았다.','11-23','#212 · #215 · #227 · #229','S'],
+ ['board',2,1,'청사진 스튜디오 · 컴팩트 프로젝트 보드','11-22~23의 화면 변화는 사람 QA가 얇다.','11-23','ADR 0035 · 0040 · 0043 · #204 · #208 · #210 · docs/제출전-레드팀-1123.md 47줄','Y'],
+ ['wiki',2,1,'위키 18쪽 · 챗봇','11-19 5개 중 4개(Q5 틀림) → #131 → 11-20 운영 5/5. 11-23 위키가 바뀐 뒤 운영 재질문은 확인하지 못했다.','11-19','#125 · #126 · #131 · docs/wiki-chat.md','S'],
+ ['guide',2,1,'Tutorial (/guide)','11-23 17:20 기준 운영은 404였다(#234 배포 대기). 발표 직전에 다시 볼 것.','11-23','#234 · 숫자 보고 4절(curl)','S'],
+ ['ai',2,1,'AI를 쓰는 두 곳: 프롬프트 진단 · 한국어 개요','"AI 제안 · 검증 아님"으로 표시하고 결과는 사람이 복사한다. 사람 QA 전.','11-23','ADR 0045 · #224 · #226','Y'],
+ ['faildemo',2,2,'배포 주소의 실패 시연은 진짜 입력으로','ADR 상태가 "제안"이다. 운영에서는 실패 시연 ①②⑤가 꺼져 있다.','11-19','ADR 0024 · #169','S'],
+ ['capture',2,3,'capture(찾기 · 넣기)','기본 배치가 화면의 2.9배였다. 지웠다.','11-23','ADR 0043 9~12줄 · #208 · #210','Y'],
+ ['blue',2,3,'파란 도면 테마','10:00에 고르고 11:30에 접었다. "글자가 붕 떠 보여".','11-23','ADR 0044 4 · 10줄','Y'],
+
+ ['area',3,0,'층이 아니라 기능 영역으로 나눈다','A 지키기 · B 고르기 · C 옮기기 · 운영. 각자 화면 · 서버 · 데이터 · QA를 모두 한다.','11-18','docs/plan.md 8줄 · #26','YJS'],
+ ['pr1',3,0,'조각 = 브랜치, 승인 1','main 보호는 11-18부터라 #1~#24는 남의 리뷰 없이 합쳐졌다.','11-18','docs/plan.md 24~27줄 · README.md 42줄','YJS'],
+ ['union',3,0,'기록 문서는 merge=union','병합 59개 중 8개 · 충돌 20곳이 모두 기록 문서였다. 작업 ID는 브랜치 이름으로.','11-18','ADR 0017 · #55 · #57 · #64','Y'],
+ ['precheck',3,0,'precheck: 번호 겹침은 실패','마이그레이션 번호가 두 번 겹친 뒤(11-21 · 11-22) 경고에서 실패(종료 코드 1)로 바꿨다.','11-22','docs/debug-note.md:51 · #71','Y'],
+ ['migr',3,1,'마이그레이션은 합치기 전에 운영 먼저','장애 18분 뒤에 만든 규칙. 경고만으로 4번 더 깨졌다(#178 · #182 · #184/#187 · #215).','11-19','#138 · #156 · docs/debug-note.md:30 · 41 · 45 · 57','S'],
+ ['actions',3,1,'production 배포는 GitHub Actions가 부른다','#159 · #176으로 돌고 있지만 ADR 상태는 아직 "제안"이다.','11-19','ADR 0023','Y'],
+ ['multi',3,1,'다중 에이전트 세션','Maestro · FrontLead · DevAssi · DataCollector · DocsChecker. 13파일 충돌 1번, 번호 겹침 2번.','11-21','docs/agents.md 141~163줄 · docs/debug-note.md:46 · 49 · 50','Y'],
+ ['loop',3,1,'품질 루프 (영역 C)','최대 3바퀴, 서브에이전트 11개(감사 3 · 분석 1 · 만들기 5 · 검토 2).','11-23','docs/quality-loop/README.md 4~22줄 · #227','S'],
+ ['time',3,2,'숫자 하나: 손으로 vs 앱으로','아직 재지 않았다. 재는 방법만 정해 두었다.','11-18','ADR 0011',''],
+ ['reask',3,2,'사람 인터뷰로 다시 확인','그룹1 중 1명에게 노트북 반납 뒤 다시 묻고, 설치 프롬프트 수작업 시험을 함께 해 본다(제안).','11-18','docs/팀토론-문제정의-승인.md 25줄','S'],
+ ['humanqa',3,2,'사람 QA','47줄 중 No Run 21. #220 제목의 "Pass 33"과 docs/qa.md의 Pass 13이 어긋나 있다.','11-21','docs/qa.md · docs/qa-final.md · #220','J'],
+ ['freq',3,3,'빈도 · 손해 수치화','수치화하지 않기로 했다. 대신 실제로 재는 비교 작업 하나.','11-18','ADR 0011 · 11-18 회의 D4','YJS'],
+ ['qasheet',3,3,'QA 시트 대신 저장소 md 표를 정본으로','ADR 상태가 "제안"이다. "결정은 팀이 한다"에서 멈춰 있다.','11-19','ADR 0025','S']
+].map(function(a){return {k:a[0],q:a[1],r:a[2],name:a[3],line:a[4],date:a[5],ev:a[6],who:a[7],from:a[8]||null,isNew:a[5]==='11-23'};});
+B.sort(function(a,b){return a.q-b.q||a.r-b.r;});
+B.forEach(function(b,i){b.no=i+1;});
+var BK={};B.forEach(function(b){BK[b.k]=b;});
+document.getElementById('blipCount').textContent=B.length;
+
+/* ───── 레이더 그리기 ───── */
+var CX=360,CY=360, RING=[[0,150],[150,226],[226,286],[286,340]], LANES=[[124,90,56],[207,171],[256],[313]];
+var QANG=[180,270,0,90];
+function pol(r,deg){var a=deg*Math.PI/180;return [CX+r*Math.cos(a),CY+r*Math.sin(a)];}
+function layout(){
+  var groups={};
+  function add(q,r,item){var k=q+'-'+r;(groups[k]=groups[k]||[]).push(item);}
+  B.forEach(function(b){add(b.q,b.r,{b:b,ghost:false}); if(b.from)add(b.q,b.from.r,{b:b,ghost:true});});
+  Object.keys(groups).forEach(function(k){
+    var q=+k.split('-')[0], r=+k.split('-')[1], items=groups[k], lanes=LANES[r], rest=items.slice(), li=0;
+    var per=Math.ceil(items.length/lanes.length);
+    lanes.forEach(function(rad,idx){
+      if(!rest.length)return;
+      var m=Math.asin(24/rad)*180/Math.PI, span=90-2*m, cap=Math.max(1,Math.floor(span*Math.PI/180*rad/31));
+      var want=(idx===lanes.length-1)?rest.length:Math.min(cap,Math.max(per,rest.length-capRest(lanes,idx+1)));
+      var take=rest.splice(0,Math.min(want,rest.length));
+      take.forEach(function(it,i){
+        var ang=QANG[q]+m+(i+.5)*span/take.length, p=pol(rad,ang);
+        if(it.ghost){it.b.gx=p[0];it.b.gy=p[1];}else{it.b.x=p[0];it.b.y=p[1];}
+      });
+    });
+  });
+  function capRest(lanes,from){var s=0;for(var i=from;i<lanes.length;i++){var m=Math.asin(24/lanes[i]);s+=Math.max(1,Math.floor((Math.PI/2-2*m)*lanes[i]/31));}return s;}
+}
+layout();
+function shape(q,x,y,r,extra){
+  extra=extra||'';
+  if(q===0)return '<circle class="shape" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" '+extra+'/>';
+  if(q===1){var s=r*.9;return '<rect class="shape" x="'+(x-s).toFixed(1)+'" y="'+(y-s).toFixed(1)+'" width="'+(2*s)+'" height="'+(2*s)+'" '+extra+'/>';}
+  var pts=[],n=q===2?4:6,rr=q===2?r*1.18:r*1.08,off=q===2?0:30;
+  for(var i=0;i<n;i++){var a=(off+i*360/n)*Math.PI/180;pts.push((x+rr*Math.cos(a)).toFixed(1)+','+(y+rr*Math.sin(a)).toFixed(1));}
+  return '<polygon class="shape" points="'+pts.join(' ')+'" '+extra+'/>';
+}
+function arcPath(r0,r1,a0,a1){
+  var p1=pol(r1,a0),p2=pol(r1,a1),p3=pol(r0,a1),p4=pol(r0,a0);
+  return 'M'+p1+' A'+r1+' '+r1+' 0 0 1 '+p2+' L'+p3+(r0>0?' A'+r0+' '+r0+' 0 0 0 '+p4:'')+' Z';
+}
+function marks(b,x,y,sc){
+  var s='';sc=sc||1;
+  if(b.isNew)s+='<polygon points="'+(x+9*sc)+','+(y-9*sc)+' '+(x+19*sc)+','+(y-9*sc)+' '+(x+14*sc)+','+(y-18*sc)+'" fill="#111"/>';
+  if(b.from)s+='<circle cx="'+(x+14*sc)+'" cy="'+(y-13*sc)+'" r="'+6*sc+'" fill="#FAFAF6" stroke="#111" stroke-width="1.5"/><path d="M'+(x+14*sc)+' '+(y-19*sc)+' a'+6*sc+' '+6*sc+' 0 0 0 0 '+12*sc+' Z" fill="#111"/>';
+  return s;
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function whoText(b){return b.who?b.who.split('').map(function(c){return WHO[c];}).join(' · '):'기록에서 이름을 확인하지 못함';}
+function drawRadar(){
+  var s='<defs>'+
+   '<pattern id="p1" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#D4241C"/><rect width="3" height="8" fill="#FAFAF6"/></pattern>'+
+   '<pattern id="p2" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#FFC800"/><circle cx="4" cy="4" r="1.8" fill="#111"/></pattern>'+
+   '<pattern id="p3" width="8" height="6" patternUnits="userSpaceOnUse"><rect width="8" height="6" fill="#0A7A3C"/><rect width="8" height="2" fill="#FAFAF6"/></pattern></defs>';
+  var fills=['#0A4BD0','url(#p1)','url(#p2)','url(#p3)'];
+  for(var r=3;r>=0;r--)s+='<circle class="ringfill" data-r="'+r+'" cx="360" cy="360" r="'+RING[r][1]+'"/>';
+  for(r=0;r<4;r++)s+='<circle cx="360" cy="360" r="'+RING[r][1]+'" fill="none" stroke="#111" stroke-width="'+(r===3?3:1.5)+'"/>';
+  for(var q=0;q<4;q++)s+='<path class="qarc" data-q="'+q+'" d="'+arcPath(344,356,QANG[q]+1.2,QANG[q]+88.8)+'" fill="'+fills[q]+'" stroke="#111" stroke-width="1.5"/>';
+  s+='<rect x="4" y="349" width="712" height="22" fill="#FAFAF6"/><rect x="349" y="4" width="22" height="712" fill="#FAFAF6"/>';
+  s+='<line x1="4" y1="360" x2="716" y2="360" stroke="#111" stroke-width="1"/><line x1="360" y1="4" x2="360" y2="716" stroke="#111" stroke-width="1"/>';
+  for(r=0;r<4;r++){var mid=(RING[r][0]+RING[r][1])/2;if(r===0)mid=96;
+    [-1,1].forEach(function(sg){var x=360+sg*mid;s+='<rect x="'+(x-19)+'" y="350" width="38" height="20" fill="#FAFAF6"/><text class="ringname" x="'+x+'" y="360.5">'+R[r].n+'</text>';});}
+  var lab=[[8,26,'start'],[712,26,'end'],[712,694,'end'],[8,694,'start']];
+  for(q=0;q<4;q++)s+='<text class="qname" x="'+lab[q][0]+'" y="'+lab[q][1]+'" text-anchor="'+lab[q][2]+'">'+Q[q].n+'</text><text class="qsub" x="'+lab[q][0]+'" y="'+(lab[q][1]+(q<2?18:18))+'" text-anchor="'+lab[q][2]+'">'+Q[q].sub+'</text>';
+  B.forEach(function(b){ if(!b.from)return;
+    s+='<g class="blip ghost" data-g="'+b.k+'" aria-hidden="true"><line x1="'+b.gx.toFixed(1)+'" y1="'+b.gy.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+'" stroke="#111" stroke-width="1.5" stroke-dasharray="4 4" class="gl"/>'+
+      shape(b.q,b.gx,b.gy,11,'fill="#FAFAF6" stroke="#111" stroke-width="1.5" stroke-dasharray="3 3"')+'<text x="'+b.gx.toFixed(1)+'" y="'+(b.gy+.5).toFixed(1)+'" fill="#111">'+b.no+'</text></g>';});
+  B.forEach(function(b){
+    var lbl=b.no+'번 '+b.name+'. '+Q[b.q].n+', '+R[b.r].n+', '+b.date+(b.isNew?', 11-23에 새로 들어온 점':'')+(b.from?', 고리를 옮긴 점':'');
+    s+='<g class="blip" data-k="'+b.k+'" role="button" tabindex="-1" aria-label="'+esc(lbl)+'">'+
+      shape(b.q,b.x,b.y,12,'fill="'+['#0A4BD0','#D4241C','#FFC800','#0A7A3C'][b.q]+'" stroke="#111" stroke-width="1.5"')+
+      '<text x="'+b.x.toFixed(1)+'" y="'+(b.y+.5).toFixed(1)+'" fill="'+QTXT[b.q]+'">'+b.no+'</text>'+marks(b,b.x,b.y)+'</g>';
+  });
+  document.getElementById('radar').innerHTML=s;
+}
+drawRadar();
+function miniRadar(w){
+  var s='<svg viewBox="0 0 720 720" role="img" aria-label="'+WHO[w]+'의 점 분포">';
+  for(var r=0;r<4;r++)s+='<circle cx="360" cy="360" r="'+RING[r][1]+'" fill="none" stroke="#111" stroke-width="'+(r===3?5:2.5)+'"/>';
+  s+='<line x1="20" y1="360" x2="700" y2="360" stroke="#111" stroke-width="2.5"/><line x1="360" y1="20" x2="360" y2="700" stroke="#111" stroke-width="2.5"/>';
+  B.forEach(function(b){var mine=b.who.indexOf(w)>=0;
+    s+=mine?shape(b.q,b.x,b.y,19,'fill="'+['#0A4BD0','#D4241C','#FFC800','#0A7A3C'][b.q]+'" stroke="#111" stroke-width="2.5"'):'<circle cx="'+b.x.toFixed(1)+'" cy="'+b.y.toFixed(1)+'" r="4" fill="#C9C8C0"/>';});
+  return s+'</svg>';
+}
+
+/* 범례 */
+(function(){
+  var h='';
+  R.forEach(function(r,i){h+='<div><b>'+r.n+'</b> '+r.d+(i===0?' (가장 안쪽)':'')+'</div>';});
+  h+='<div><svg width="20" height="20" viewBox="-2 -22 24 24"><polygon points="2,-2 18,-2 10,-18" fill="#111"/></svg> <b>▲</b> 11-23에 새로 들어온 점</div>';
+  h+='<div><svg width="20" height="20" viewBox="-10 -10 20 20"><circle r="8" fill="#FAFAF6" stroke="#111" stroke-width="2"/><path d="M0 -8 a8 8 0 0 0 0 16 Z" fill="#111"/></svg> <b>◐</b> 고리를 옮긴 점(점선 = 옛 자리)</div>';
+  h+='<div style="grid-column:1/3">모양: <b>동그라미</b> 지키고 · <b>네모</b> 고르고 · <b>마름모</b> 옮긴다 · <b>육각형</b> 일하는 방식. 점을 누르면 근거(ADR · PR 번호)가 나온다.</div>';
+  document.getElementById('legend').innerHTML=h;
+})();
+
+/* ───── 편집 칸 ───── */
+function lsGet(k){try{return localStorage.getItem('trf:'+k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem('trf:'+k,v);}catch(e){}}
+function ed(key,def){var v=lsGet(key);return '<span class="ed" data-ed="'+key+'" data-def="'+esc(def)+'">'+esc(v!==null&&v!==''?v:def)+'</span>';}
+
+/* ───── 발표 순서: 화이트보드 v2 7막 ───── */
+var ACTS=[{n:'① 문제',t:120,sp:'김영식'},{n:'② 만든 것',t:90,sp:'김영식'},{n:'③ 사건과 대응',t:60,sp:'황재웅'},{n:'④ 시연',t:240,sp:'세 사람'},{n:'⑤ 확인',t:60,sp:'황재웅'},{n:'⑥ AI와 일한 방식',t:150,sp:'차세일'},{n:'⑦ 사람',t:90,sp:'세 사람'}];
+var VIBE={1:{w:'김영식',t:'기록 문서가 합칠 때마다 충돌 → merge=union과 작업 ID(ADR 0017, #55)',k:'vibeY'},2:{w:'차세일',t:'#133 장애 약 18분 → #135 → 규칙 #138',k:'vibeS'},6:{w:'황재웅',t:'사람 QA 중 취향 저장 권한 오류를 찾음 → #214',k:'vibeJ'}};
+var DAYINFO=[
+ {ev:['11-16 시작: 안내서를 읽고 팀 하네스(CLAUDE.md)를 만들었다','사람 인터뷰 2건(5명), 기획 문서 초안(#13 ~ #24)','24개 모두 남의 리뷰 없이 합쳐졌다(main 보호 전)'],turn:'가설 A · B · C를 인터뷰로 판정, B를 보조로 내림(ADR 0005)',acc:'합쳐진 PR에 푸시해 커밋이 빠짐(#3 · #14 · #16)'},
+ {ev:['10:00 회의에서 통합안 승인(D1~D12), plan 확정, 영역 A · B · C','M0 한 줄: 수집 → 등급 → 알림 → 판단 → 흐름 → 시뮬레이터 → 채점(#30 ~ #54)'],turn:'빈도 · 손해를 수치화하지 않기로(ADR 0011)',acc:'기록 문서 충돌 → merge=union(#55), 무료 Vercel 한도 → 미리보기 끔(#68)'},
+ {ev:['가장 많이 합친 날. 운영 첫 실수집 3,166개(#108)','위키 18쪽 · 챗봇(#125 · #126), Q5 틀림 → #131'],turn:'배포를 GitHub Actions로(#159, ADR 0023 제안)',acc:'#133 장애 약 18분(14:43 → 15:01) → #135 → 규칙 #138 → 도구 #156. 첫 정기 실행이 안 돎(CRON_SECRET, #104)'},
+ {ev:['위키 Q5 운영 재질문 5/5(11:02)','취향 · 추천(#182), 사용기 · 신고(#184 · #187 · #193)'],turn:'지도를 첫 화면으로, 1차 목적을 "기술 지형 조망과 스스로 판단"으로(ADR 0026 ~ 0029)',acc:'마이그레이션 규칙을 다시 어김(#178 5분 · #182 약 9시간 · #184/#187)'},
+ {ev:['합침은 묶음 PR 1개(#202), 로컬 커밋은 277개','채점 12/12 · 56사례 놓침 0 · 잘못 울림 0(19:26)'],turn:'컨셉을 "지도에서 고르고, 청사진으로 옮긴다"로(ADR 0032), 수집 기준 개정(ADR 0033)',acc:'마이그레이션 번호 겹침 1차'},
+ {ev:['#203 백엔드 묶음(별 후보 · HN), #204 청사진 스튜디오 · 앱 구조','PR 수는 4개지만 수십 커밋짜리 묶음이다'],turn:'메뉴를 현황 · 지도 · 청사진으로, 밤에 "현황"을 "프로젝트"로(ADR 0037 · 0041)',acc:'번호 겹침 2차 → precheck를 실패로. #204에 14커밋이 빠져 #206으로 다시'},
+ {ev:['제출일: 보드 · 관리자 지정/되돌리기 · Tutorial · AI를 쓰는 두 곳','사람 QA 중 찾은 버그 #214 · #217'],turn:'파란 도면 테마를 1시간 반 만에 접고 관측소로(ADR 0044), capture 삭제(ADR 0043)',acc:'#208 승인 뒤 커밋 빠짐 → #210, 상태 줄 "오류 0" 표시'}
+];
+function contribTable(){
+  var rows=[['Y','A 지키기 + 공용',133,79,'#33 · #87 · #178 · #204 · #208','gY','Supabase · Vercel · 구글 OAuth · 환경변수, 운영 마이그레이션 적용(docs/plan.md) — 본인 확인 전'],
+            ['J','B 고르기',43,100,'#37 · #38 · #43 · #120 · #139 · #184','gJ','사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198) — 근거가 약하다. 본인이 채울 칸'],
+            ['S','C 옮기기 · 운영',56,38,'#30 · #46 · #40 · #125 · #227','gS','11-18 회의 기록자, 질문지 작성, 발표 주소 배포, 실패 시연 저장소(docs/plan.md 6절) — 본인 확인 전']];
+  var h='<div class="minis">';
+  rows.forEach(function(r){var mine=B.filter(function(b){return b.who.indexOf(r[0])>=0;});
+    var per=[0,1,2,3].map(function(i){return mine.filter(function(b){return b.r===i;}).length;});
+    h+='<figure>'+miniRadar(r[0])+'<figcaption><b>'+WHO[r[0]]+'</b> · '+r[1]+'<br><span class="pr">PR '+r[2]+' / 리뷰 '+r[3]+'</span><br>점 '+mine.length+'개: 채택 '+per[0]+' · 시험 '+per[1]+' · 평가 '+per[2]+' · 보류 '+per[3]+'<br><span class="small">대표 PR '+r[4]+'</span><br><span class="small">GitHub 밖: '+ed(r[5],r[6])+'</span></figcaption></figure>';});
+  return h+'</div>';
+}
+var STEPS=[
+ /* ① 문제 */
+ {a:0,t:15,sp:'Y',hc:'',h:'지도에서 고르고, 청사진으로 옮긴다',hi:'all',
+  body:function(){return '<p>서비스 이름이 TechRadar이니, 발표도 우리 팀을 레이더에 올려 본다. 7일 동안 내린 결정 '+B.length+'개를 <b>채택 · 시험 · 평가 · 보류</b> 네 고리에 놓았다.</p><p>무엇을 채택했고, 무엇을 시험했고, 무엇을 접었나. 이 순서로 말한다.</p><table class="t"><tr><th>막</th><th>말하는 사람</th><th class="n">시간</th></tr>'+ACTS.map(function(a){return '<tr><td>'+a.n+'</td><td>'+a.sp+'</td><td class="n">'+(a.t/60)+'분</td></tr>';}).join('')+'</table>';},
+  src:'구성: 11-23 화이트보드 v2 7막 기준(합계 13.5분 + 여유 1.5분). 점의 근거는 docs/adr/ 45개 · PR · docs/debug-note.md',
+  note:'<b>구성: 11-23 화이트보드 v2 7막 기준.</b> 낮 화이트보드와 달라진 점은 하나다. ⑥을 1.5분에서 2.5분으로 늘려 작업과정 · 분업 · 기록을 넣었다(여유 2.5 → 1.5분). 표지는 15초. 레이더 읽는 법(안쪽이 채택, 바깥이 보류)만 말하고 넘어간다.'},
+ {a:0,t:40,sp:'Y',front:true,hc:'m',h:'깔기는 쉬운데, 뭘 깔았는지 한눈에 못 본다',hi:'none',
+  body:function(){return '<blockquote>"중구난방 다 깔려 있다"<cite>[사람 인터뷰] 그룹1 P1 · 정리해 둔 것 없음, 노트북 반납 전에 "싹 정리하고 가지고 나갈" 계획</cite></blockquote><blockquote>"막막해서 그냥 제로부터 시작할 생각"<cite>[사람 인터뷰] 그룹1 P3 (발화자는 추정)</cite></blockquote><table class="t"><tr><th>누가</th><th>언제</th><th>잃는 것</th></tr><tr><td>AI 코딩 도구를 쓰는 초심자(수강생)</td><td>노트북을 반납하고 옮겨야 할 때</td><td>깐 것의 큰 그림. 정리해 둔 것이 없어 처음부터 다시</td></tr></table>';},
+  src:'docs/문제정의.md 56줄(판정 표) · interviews/2026-11-17-그룹1-사람.md. 한계: 그룹1은 전사 끝부분만 있고 발화자는 말투로 추정했다',
+  note:'인용은 원문 그대로 읽는다. 가장 강한 근거는 "변화를 놓침"이 아니라 "목록이 없음"이다(문제정의 232줄). 인터뷰 대상의 신원은 말하지 않는다.'},
+ {a:0,t:40,sp:'Y',hc:'m',h:'가설 셋을 인터뷰로 좁혔고, 하나는 접었다',hi:['hypoB','refind','freq','map','prompt'],
+  body:function(){return '<table class="t"><tr><th>가설</th><th>인터뷰(팀 밖)</th><th>판정</th></tr><tr><td><b>A</b> 소식 · 보안 지켜보기</td><td>큰 그림이 없다: 2명(추정)</td><td>남김. 큰 그림을 "내가 깐 것"으로 좁혀 중심에</td></tr><tr><td><b>B</b> 필요 → 검색 · 추천</td><td>"몰라서 포기": <b>0명</b></td><td><b>보조로 내림</b>(구체 사례 2명 미만)</td></tr><tr><td><b>C</b> 둘을 합친 안</td><td>공개 저장소 등록</td><td>남김 → 통합안(11-18 회의 승인)</td></tr></table><p class="small">규칙: 팀 밖 2명 이상에게서 나온 주장만 중심에 둔다. 팀원 본인과 AI 인터뷰는 세지 않는다.<br>한계: 그룹1은 전사 끝부분만 · 초심자 근거는 그룹1뿐 · 대표1은 주제를 미리 알았고 "일부러 삐딱하게 답변".</p>';},
+  src:'docs/문제정의.md 50~68줄 · ADR 0005 · ADR 0013',
+  note:'접은 것과 한계는 말로 짧게. 레이더의 바깥 고리(보류)에 놓인 점 셋이 이때 접은 것이다. 지도는 이때 "평가"였다가 11-20에 "채택"으로 옮겼다(◐).'},
+ {a:0,t:25,sp:'Y',hc:'m',h:'숫자 하나: 손으로 vs 앱으로',hi:['time','freq'],ring:2,
+  body:function(){return '<div class="two"><div class="cell"><div class="k">손으로 걸린 시간</div><div class="v">'+ed('timeHand','아직 재지 않았다')+'</div></div><div class="cell"><div class="k">앱으로 걸린 시간</div><div class="v">'+ed('timeApp','아직 재지 않았다')+'</div></div></div><p><b>재는 방법</b> 같은 저장소 하나를 두고 ① 손으로(파일을 열어 깐 것을 적고, 기술마다 취약점 · 최근 업데이트를 검색) ② 앱으로(등록 → 내 기술 목록과 등급) 걸린 시간을 잰다.</p><p><b>한계</b> 사용자가 없어 앱 안의 숫자는 시연 계정 값뿐이다. 빈도 · 손해는 수치화하지 않기로 했다.</p><p class="small">E 키를 누르면 두 칸에 잰 값을 써 넣을 수 있다(이 브라우저에 저장).</p>';},
+  src:'ADR 0011 · 11-18 회의 D4. 이 점은 "평가" 고리에 있다: 근거가 아직 없다',
+  note:'값이 없으면 "아직 재지 않았습니다. 재는 방법은 이것이고 한계는 사용자가 없다는 점입니다"라고 그대로 말한다. 지어내지 않는다.'},
+ /* ② 만든 것 */
+ {a:1,t:30,sp:'Y',hc:'m',h:'기준 문장 세 마디가 곧 영역 셋이다',hi:['area','pr1','concept'],quads:[0,1,2],
+  body:function(){return '<table class="t"><tr><th>기준 문장</th><th>영역</th><th>사람</th><th>메뉴</th></tr><tr><td><span class="no chip c0">①</span> <b>지키고</b></td><td>A 지키기 + 공용 뼈대</td><td>김영식</td><td>프로젝트</td></tr><tr><td><span class="no chip c1">②</span> <b>고르고</b></td><td>B 고르기</td><td>황재웅</td><td>지도</td></tr><tr><td><span class="no chip c2">③</span> <b>옮긴다 · 운영</b></td><td>C 옮기기 · 운영</td><td>차세일</td><td>청사진</td></tr></table><p>층(프론트 / 백엔드)으로 나누지 않고 기능 영역으로 나눴다. 각자 화면 · 서버 · 데이터 · QA를 모두 한다.</p><p class="small">레이더의 사분면 셋이 이 영역이고, 네 번째 사분면은 셋이 함께 쓴 일하는 방식이다.</p>';},
+  src:'docs/plan.md 8줄 · 10~14줄 · #26 · ADR 0032',
+  note:'분업을 따로 설명하지 않는다. 이 한 장이 분업이고, 발표 순서도 이 영역을 따른다.'},
+ {a:1,t:30,sp:'Y',hc:'m',h:'일곱 곳을 매일 06시에 읽고, 실패는 수집 오류로',hi:['seven','collerr','grade','gate','retry','errzero'],
+  body:function(){return '<p><b>수집기 7개</b> OSV 취약점 · GitHub 저장소 정보 · 별 후보 검색 · 공식 MCP 레지스트리 · npm/PyPI 주간 다운로드 · Hacker News · 바깥 소식(공식 피드)</p><div class="nums"><div><b>3,166</b>11-19 운영 첫 실수집 기술 수(64초)</div><div><b>4,921</b>11-22 "지금 한 번 실행" 2번째(172초, 새 줄 0)</div></div><ul><li>읽지 못하면 "수집 오류"로 적는다. "변화 없음"으로 단정하지 않는다.</li><li>실패한 수집은 다음 시도 시각만 적는다. 다음 정기 실행이 다시 읽는다.</li></ul>';},
+  src:'lib/schedule/collectors.ts:13 · vercel.json(0 21 * * * UTC) · docs/qa.md:79 · docs/connectors.md:12 · docs/제출물-체크리스트.md:62. 지금 운영 DB의 기술 수는 확인하지 못했다',
+  note:'"처음 4곳"이 아니라 지금은 7개다. 다시 돌리는 코드는 없으니 그 말은 하지 않는다. 다음 시도 시각 기록만 있다.'},
+ {a:1,t:30,sp:'Y',hc:'m',h:'등록하면 내 목록에. 알림은 세 종류, 판단은 사람이',hi:['map','board','admin','three','judge','prompt'],
+  body:function(){return '<div class="chain"><div><b>등록</b>공개 저장소 주소</div><div><b>내 목록</b>기술마다 등급과 쉬운 이유</div><div><b>지도</b>첫 화면, 주소는 /</div><div><b>청사진</b>골라서 설치 프롬프트로</div></div><ul><li><b>운영 화면</b> 프로젝트 보드 · 관리자(지정 · 되돌리기). 권한은 화면 · 서버 · DB 세 곳에서 막는다.</li><li><b>알림 세 종류</b> 보안 경고 · 적용 기회 · 모델 종료.</li><li><b>판단은 사람이</b> 사람이 판단하기 전에는 아무것도 바꾸지 않는다.</li></ul><p class="small">화면은 ④ 시연에서 운영 주소로 직접 봅니다.</p>';},
+  src:'CLAUDE.md 불변 규칙 1 · 5 · ADR 0026 · 0043 · #212 · #215 · #37 · #38',
+  hand:'사건이 생기면 어떻게 되는지는 재웅 님이 이어 갑니다.',
+  note:'캡처 대신 "시연에서 봅니다"로 넘긴다. 지도 주소는 / 이다.'},
+ /* ③ 사건과 대응 */
+ {a:2,t:35,sp:'J',hc:'m',h:'사건 → 알림 → 사람 판단 → 조치와 기록',hi:['judge','three','scen','cond'],
+  body:function(){return '<div class="chain"><div><b>사건 기준</b>내 기술이 "위험"으로 바뀜, 조건이 맞는 새 기술</div><div><b>알림</b>보안 경고 · 적용 기회 · 모델 종료</div><div><b>사람 판단</b>관리자도 건너뛸 수 없다</div><div><b>조치와 기록</b>지난 판단으로 다시 찾는다</div></div><ul><li>같은 변경을 다시 읽어도 사건 · 조치가 두 번 생기지 않는다.</li><li>거절 · 저장 실패 때는 기존 값을 두고 "처리 완료"로 표시하지 않는다.</li><li>적용 시나리오는 조치가 아니라 참고 자료다.</li></ul>';},
+  src:'CLAUDE.md 불변 규칙 1 · 3 · 4 · ADR 0010 · ADR 0014 · #43 · #120',
+  note:'알림 종류는 셋이다. 적용 기회 조건은 11-21에 넷이 됐다(시험 고리, 원문 대조 전).'},
+ {a:2,t:25,sp:'J',hc:'m',h:'합친 뒤 깨졌다: 운영 장애 약 18분',hi:['migr','precheck'],
+  body:function(){return '<div class="nums"><div><b>14:43 → 15:01</b>11-19, #133을 합친 뒤 관리자 분류 탭 전체가 조회 실패</div></div><ul><li><b>무엇이</b> 새 칸을 만드는 마이그레이션보다 코드가 먼저 운영에 올라갔다.</li><li><b>어떻게 막았나</b> #135: 칸 없음 오류일 때만 그 부분을 끄고 안내 → 규칙 #138(합치기 전에 운영 먼저) → 도구 #156(precheck 경고 + 운영 점검표).</li></ul><p>말로 한 것이 실제로 도는지는 다음 시연이 보여 준다.</p>';},
+  src:'docs/debug-note.md:30 · #133 · #135 · #138 · #156',
+  hand:'세일 님이 가짜 사건을 직접 쏩니다.',
+  note:'그 뒤 4번 더 깨진 이야기는 ⑥에서 세일 님이 한다. 여기서는 장애 하나와 막은 방법만.'},
+ /* ④ 시연 */
+ {a:3,t:90,sp:'S',front:true,hc:'s',h:'시연 1 · 시뮬레이터 → 흐름 화면: 실행 기록에서 그린다',hi:['flow','sim','faildemo'],
+  body:function(){return '<div class="shots"><figure><img src="images/flow-sim-success-1120.png" alt="흐름 화면: 시뮬레이터가 쏜 사건이 끝까지 돈 실행 기록"><figcaption>11-20 운영 실제 실행 · 성공 (11-23 테마 변경 전 화면)</figcaption></figure><figure><img src="images/flow-fail-demo-1120.png" alt="흐름 화면: 실패한 단계가 빨간 상자로 보이는 실행 기록"><figcaption>11-20 운영 실제 실행 · 일부러 실패, 빨간 상자</figcaption></figure></div><p class="small">순서: 시뮬레이터에서 가짜 사건 하나 → 흐름 화면에서 단계가 채워지는 것. 주의: 같은 입력은 하루 1번만 대응안 초안이 나온다. 운영에서는 실패 시연 ①②⑤가 꺼져 있다.</p>';},
+  src:'docs/images/flow-*-1120.png · docs/flow.md 115 · 119줄 · sim/README.md 21줄 · CLAUDE.md 불변 규칙 6',
+  hand:'알림은 재웅 님이 설명합니다.',
+  note:'강사 공지 "자동화 흐름 화면". 운영 주소로 한다. 시뮬레이터를 돌렸다 지우고 다시 돌리면 초안이 안 나오니 리허설 입력과 다른 입력을 쓴다. 막히면 이 캡처 두 장으로 말한다.'},
+ {a:3,t:30,sp:'J',front:true,hc:'m',h:'시연 2 · 알림 상세 → 판단 저장 → 지난 판단',hi:['judge','three','scen'],
+  body:function(){return '<ol><li>방금 생긴 알림을 연다: 무엇이 바뀌었고 왜 울렸는지.</li><li>판단을 저장한다: 저장하기 전에는 아무것도 바뀌지 않는다.</li><li>지난 판단에서 과거 기록을 찾는다.</li></ol><p class="small">주의: 관리자는 남의 알림을 볼 수 없다. 시연 계정으로 로그인한 브라우저를 미리 열어 둔다(#185).</p>';},
+  src:'CLAUDE.md 불변 규칙 1 · ADR 0016 · #43 · #185',
+  hand:'지도와 청사진은 영식 님이 설명합니다.',
+  note:'안내서 시연 항목의 "과거 기록 찾기"가 이 3번이다. 조작은 한 사람이 고정으로 한다.'},
+ {a:3,t:60,sp:'Y',front:true,hc:'m',h:'시연 3 · 지도 → 청사진 → 설치 프롬프트',hi:['map','concept','prompt','board'],
+  body:function(){return '<ol><li><b>지도</b>(주소 /): 기술 지형을 한눈에 보고 고른다. 색은 분류, 등급은 기호.</li><li><b>청사진</b>: 고른 기술을 단계에 놓는다.</li><li><b>설치 프롬프트</b>: 새 컴퓨터로 옮길 문장을 복사한다.</li></ol><p class="small">11-23 오후에 들어온 AI 진단 · 한국어 개요 · Tutorial(/guide)은 운영에 올라갔는지 발표 직전에 확인한 뒤에만 보여 준다. 17:20 기준 /guide는 404였다.</p>';},
+  src:'ADR 0026 · 0032 · 0035 · 0009 · 숫자 보고 4절(17:17~17:20 curl)',
+  hand:'마지막은 위키입니다. 세일 님.',
+  note:'운영이 main보다 뒤일 수 있다. /api/version이 210375b인지 먼저 본다.'},
+ {a:3,t:60,sp:'S',front:true,hc:'m',h:'시연 4 · 위키 챗봇에게 Q5를 묻는다',hi:['wiki'],
+  body:function(){return '<p><b>Q5</b>는 문서끼리 서로 다르게 말하는 질문이다. 맞는 답은 한쪽으로 정리하지 않고 <b>두 출처를 모두</b> 말하는 것이다.</p><table class="t"><tr><th>언제</th><th>결과</th></tr><tr><td>11-19 14:00 운영</td><td>5개 중 4개. Q5에 "위키에 없습니다"</td></tr><tr><td>11-19 #131</td><td>질문 낱말이 든 줄만 골라 1900자 안으로 넘기게 고침</td></tr><tr><td>11-20 11:02 운영</td><td>Q5가 두 출처를 모두 말함 → 5/5</td></tr><tr><td>11-23</td><td>위키가 바뀐 뒤 운영 재질문은 '+ed('q5recheck','확인 전')+'</td></tr></table>';},
+  src:'docs/wiki-chat.md:3 · 24~26 · 30~34 · #125 · #131. 위키는 md 18쪽',
+  hand:'숫자는 재웅 님이 정리합니다.',
+  note:'강사 공지 "md 기반 LLM 위키 시연". 틀리면 틀린 대로 보여 주고 ⑥에서 이유를 말한다.'},
+ /* ⑤ 확인 */
+ {a:4,t:35,sp:'J',hc:'m',h:'놓침 0 · 잘못 울림 0. 사람 QA는 덜 돌았다',hi:['sim','humanqa'],
+  body:function(){return '<div class="nums"><div><b>56</b>채점 사례(등급 12 + 경계 44)</div><div><b>0 · 0</b>놓침 · 잘못 울림</div><div><b>1,883</b>자동 시험 통과, 실패 0</div></div><table class="t"><tr><th>QA 표</th><th class="n">줄</th><th class="n">Pass</th><th class="n">Fail</th><th class="n">No Run</th><th>그 밖</th></tr><tr><td>Claude QA</td><td class="n">135</td><td class="n">121</td><td class="n">9</td><td class="n">4</td><td>Fail 8건은 고침 · 설계대로 1</td></tr><tr><td>사람 QA</td><td class="n">47</td><td class="n">13</td><td class="n">12</td><td class="n">21</td><td>일부 Pass 1</td></tr></table>';},
+  src:'eval/result.md:3~5 · 24 · 90(11-21 19:26, 규칙 v1, 그 뒤 재채점 기록 없음) · npm test(main 210375b) · docs/qa.md(11-23 14:38). #220 제목의 "Pass 33"과는 기준이 다르다',
+  note:'No Run 21은 숨기지 않고 그대로 말한다. 11-22~23 화면 변화는 사람 QA가 얇다.'},
+ {a:4,t:25,sp:'J',hc:'m',h:'시험은 통과했는데 운영에서 깨진 것들',hi:['migr','taste','errzero','review'],
+  body:function(){return '<ul><li><b>#133</b> 장애 약 18분(11-19).</li><li><b>#153</b> 가짜 DB 시험은 통과, 운영에서는 적용 시나리오가 늘 실패했다. 가짜 DB는 칸 권한을 모른다.</li><li><b>상태 줄 "오류 0"</b> 실제 수집 오류 2건이 안 보였다(11-23에 찾아 고침).</li><li><b>사람 QA에서 찾은 것</b> 취향 저장 권한 오류 #214, 숨긴 사용기 노출 #217.</li></ul><p><b>커넥터</b> 쓴 기록 122행. Supabase 약 88 · Vercel 약 18 · 내장 브라우저 약 10 · abbsbook 7 · Slack 2 (한 행에 여럿이 섞여 어림값).</p>';},
+  src:'docs/debug-note.md:30 · 31 · 34 · 56 · docs/connectors.md · #214 · #217',
+  hand:'어떻게 만들었는지는 세일 님이 이어 갑니다.',
+  note:'커넥터는 말로 짧게. 토큰이나 주소 같은 값은 말하지 않는다.'},
+ /* ⑥ AI와 일한 방식 */
+ {a:5,t:60,sp:'S',hc:'s',h:'PR을 합친 7일, 232개. 레이더가 채워진 순서',hi:'timeline',timeline:true,
+  body:function(){var d=state.day,i=DAYINFO[d],v=VIBE[d];
+    var born=B.filter(function(b){return di(b.date)===d;}).length;
+    return '<div class="day"><h3>'+(d===0?'11-16 ~ 17':DAYS[d])+' ('+DOW[d]+') · 합친 PR '+PRS[d]+'개 · 새 점 '+born+'개</h3></div><ul>'+i.ev.map(function(e){return '<li>'+e+'</li>';}).join('')+'</ul><p><span class="tag y">방향 전환</span>'+i.turn+'</p><p><span class="tag k">사고</span>'+i.acc+'</p>'+
+    (v?'<p><span class="tag">바이브로그 · '+v.w+'</span>'+v.t+'<br><span class="small">저장소 기록에서 뽑은 후보 · 본인 vibelog 확인 전. 내 판단: '+ed(v.k,'본인이 한 문장으로 채울 칸(E 키)')+'</span></p>':'')+
+    '<p class="small">→ 를 누르면 다음 날로 간다. 날짜 띠의 막대는 그날 합친 PR 수(가장 많은 날 79). PR 수는 무게가 아니다: 11-21 · 22는 수십 커밋짜리 묶음이다.</p>';},
+  src:'gh pr list(11-23 17:17, 합친 PR 232개 · #234까지) · docs/worklog.md · docs/debug-note.md · ADR 날짜',
+  note:'강사 공지 "바이브로그는 슬라이드에 녹여서". 날짜마다 한 문장씩만. 바이브로그 장면은 11-18 영식, 11-19 세일, 11-23 재웅. 각자의 "내 판단" 문장은 본인이 E 키로 써 넣는다. 첫 커밋은 11-16 15:55다.'},
+ {a:5,t:25,sp:'S',hc:'m',h:'셋이 같은 규칙으로 일하고, 전부 적었다',hi:['area','pr1','union','precheck','actions'],
+  body:function(){return '<ul><li>영역으로 나누고, 공용 파일은 주인을 정했다(lib/server 뼈대는 김영식, flow/flow.json은 차세일).</li><li>조각 하나 = 브랜치 하나, 만든 사람이 아닌 1명의 승인.</li><li>요구마다 출처 ID를 달고 PR 설명에 어느 문서의 어느 요구인지 쓴다.</li><li>기록 문서 5개는 합쳐도 충돌하지 않게(merge=union).</li></ul><div class="nums"><div><b>280</b>작업 의도(intent)</div><div><b>45</b>ADR</div><div><b>168</b>서브에이전트 기록 행</div><div><b>122</b>커넥터 기록 행</div><div><b>55</b>오류 기록 행</div></div>';},
+  src:'docs/plan.md 16~18 · 24~27줄 · CLAUDE.md 2절 · 9절 · ADR 0017 · docs/agents.md · docs/connectors.md · docs/debug-note.md',
+  note:'안내서 "팀 공동 사용"의 근거. 숫자는 11-23에 다시 센 값이다.'},
+ {a:5,t:25,sp:'S',hc:'m',h:'규칙을 만들고도 네 번 더 깨졌다. 그래서 실패로 바꿨다',hi:['migr','precheck','multi'],
+  body:function(){return '<div class="steps6"><div class="bad"><b>1 장애 18분</b>11-19 #133. 코드가 마이그레이션보다 먼저</div><div><b>2 고침</b>#135. 칸 없음 오류만 그 부분을 끔</div><div><b>3 규칙</b>#138. 합치기 전에 운영 먼저</div><div><b>4 도구</b>#156. precheck가 경고</div><div class="bad"><b>5 네 번 더</b>#178 · #182 · #184/#187 · #215</div><div class="ok"><b>6 실패로</b>11-22. 번호 겹침은 종료 코드 1</div></div><p>경고만으로는 못 막는다는 것을 확인했다. 실패로 바꾼 것은 번호 겹침뿐이고, 순서 자체를 막는 장치는 아직 없다.</p>';},
+  src:'docs/debug-note.md:30 · 41 · 45 · 47 · 49~51 · 57 · CLAUDE.md 10절',
+  note:'#133 · #135 · #138의 당사자가 직접 말한다. "시험" 고리에 있는 이유가 5번이다.'},
+ {a:5,t:20,sp:'S',hc:'m',h:'AI에게 맡기되, 확인한 뒤에만 합쳤다',hi:['multi','loop','ai'],
+  body:function(){return '<ul><li><b>서브에이전트</b> 기록 168행. 만드는 도우미와 검토하는 도우미를 나눴다.</li><li><b>다중 세션</b> Maestro(정리 · 배정) · FrontLead · DevAssi · DataCollector · DocsChecker. 주로 김영식 쪽 세션의 방식이다.</li><li><b>품질 루프</b> 영역 C만, 최대 3바퀴, 서브에이전트 11개.</li></ul><p><span class="tag k">잘 안 된 점</span>같은 기능을 두 세션이 따로 만들어 13파일이 충돌했고(11-20), 마이그레이션 번호가 두 번 겹쳤다(11-21 · 22).</p>';},
+  src:'docs/agents.md 5 · 141~163줄 · docs/quality-loop/README.md 4~22줄 · docs/debug-note.md:46 · 49 · 50',
+  note:'팀 전체가 다중 세션으로 일한 것처럼 말하지 않는다. 팀 서브에이전트 정의는 0개이고 기본 제공 도우미를 불러 썼다.'},
+ {a:5,t:20,sp:'S',hc:'m',h:'챗봇이 틀린 답을 했고, 원인을 처음엔 잘못 짚었다',hi:['wiki'],
+  body:function(){return '<ul><li><b>틀린 답</b> 11-19, 문서끼리 다른 질문 Q5에 "위키에 없습니다".</li><li><b>처음 추측</b> 쪽 찾기 탓이라고 봤다. 틀렸다.</li><li><b>진짜 원인</b> 쪽은 맞게 찾았는데 쪽마다 앞 2000자만 넘겨 충돌 문단이 잘렸다.</li><li><b>고친 방법</b> #131: 질문 낱말이 든 줄만 골라 넘기고, "충돌은 양쪽 출처와 함께"를 지시에 넣었다.</li></ul><p class="small">위키 규칙: 원본은 읽기만, 반영 전에 계획부터 보이고, 두 문서가 다르면 양쪽 출처와 함께 충돌로 적는다.</p>';},
+  src:'docs/wiki-chat.md:24~26 · 30~34 · #131 · CLAUDE.md 4절',
+  hand:'누가 무엇을 했는지는 재웅 님이 정리합니다.',
+  note:'⑥의 마무리 문장: 틀린 것 · 깨진 것도 숨기지 않고 적었다.'},
+ /* ⑦ 사람 */
+ {a:6,t:20,sp:'J',front:true,hc:'s',h:'세 사람 모두 PR과 리뷰. 각자의 레이더',hi:'all',
+  body:function(){return contribTable()+'<p class="small">합친 PR 232개(#234까지, 닫기만 한 2개 제외). 리뷰 수는 남의 PR에 1번 이상 리뷰를 남긴 PR 수이고 모두 승인이었다. 색 점은 그 사람이 근거 기록에 이름으로 나오는 결정, 회색 점은 나머지. 점의 수는 기여의 크기가 아니다.</p>';},
+  src:'gh pr list(11-23 17:17) · 전략 보고 3절 · docs/plan.md. GitHub 밖 칸은 E 키로 본인이 고친다',
+  note:'PR 수는 무게가 아니다. 사람별 커밋 수는 말하지 않는다. 황재웅의 GitHub 밖 칸은 근거가 약하니 본인이 채운다.'},
+ {a:6,t:10,sp:'J',hc:'m',h:'다음 호 레이더에서 옮기고 싶은 점',hi:['reask','time','humanqa','ai','guide','migr'],ring:2,
+  body:function(){return '<table class="t"><tr><th>점</th><th>지금</th><th>옮기려면</th></tr><tr><td><b>사람 인터뷰로 다시 확인</b></td><td>평가</td><td>그룹1 중 1명에게 노트북 반납 뒤 다시 묻는다</td></tr><tr><td>손으로 vs 앱으로</td><td>평가</td><td>같은 저장소로 시간을 잰다</td></tr><tr><td>AI를 쓰는 두 곳 · Tutorial</td><td>시험</td><td>사람 QA를 돈다</td></tr><tr><td>마이그레이션 규칙</td><td>시험</td><td>'+ed('nextOne','경고가 아니라 순서를 막는 장치 (후보 · 팀 확인 전)')+'</td></tr></table>';},
+  src:'docs/팀토론-문제정의-승인.md 25줄 · ADR 0011 · ADR 0045 45줄 · docs/debug-note.md:57',
+  hand:'마지막으로 한 사람씩 소감입니다. 영식 님부터.',
+  note:'안내서 "다음에 해 볼 것": 사람 인터뷰로 확인할 것 하나 + 다음 개선 하나.'},
+ {a:6,t:60,sp:'YJS',hc:'',h:'채택 '+B.filter(function(b){return b.r===0;}).length+' · 시험 '+B.filter(function(b){return b.r===1;}).length+' · 평가 '+B.filter(function(b){return b.r===2;}).length+' · 보류 '+B.filter(function(b){return b.r===3;}).length,hi:'all',
+  body:function(){return '<p>7일 동안 레이더에 올린 결정 '+B.length+'개. 접은 것과 아직 근거가 약한 것도 같은 지도에 남겼다.</p><table class="t"><tr><th>소감 20초씩</th><th></th></tr><tr><td><b>김영식</b></td><td>'+ed('wrapY','(본인이 말로)')+'</td></tr><tr><td><b>황재웅</b></td><td>'+ed('wrapJ','(본인이 말로)')+'</td></tr><tr><td><b>차세일</b></td><td>'+ed('wrapS','(본인이 말로)')+'</td></tr></table><p><b>질문을 받습니다.</b> X 키로 탐색 모드: 사분면 · 고리 · 사람으로 걸러 점을 누르면 근거가 나옵니다.</p>';},
+  src:'점 '+B.length+'개의 근거: docs/adr/ · PR · docs/debug-note.md · docs/문제정의.md. 인쇄하면 A3 포스터 한 장',
+  note:'소감은 영식 → 재웅 → 세일 순서로 20초씩. 질문이 오면 X를 눌러 해당 점을 연다.'}
+];
+STEPS.forEach(function(s,i){s.i=i;});
+
+/* ───── 상태 ───── */
+var params=new URLSearchParams(location.search), REVEAL=params.get('reveal')==='all';
+var state={i:0,day:REVEAL?6:0,explore:false,sel:null,fq:null,fr:null,fw:null,notes:false,help:false,spk:true,edit:false,t0:null,acc:0};
+var $=function(id){return document.getElementById(id);};
+var stage=$('stage');
+
+function fit(){var s=Math.min(innerWidth/1600,innerHeight/900);var f=$('fit');f.style.transform='scale('+s+')';f.style.left=((innerWidth-1600*s)/2)+'px';f.style.top=((innerHeight-900*s)/2)+'px';}
+addEventListener('resize',fit);fit();
+
+(function(){var h='';ACTS.forEach(function(a,i){h+='<button type="button" data-act="'+i+'">'+a.n+'<small>'+(a.t/60)+'분</small></button>';});$('acts').innerHTML=h;})();
+
+function litKeys(){
+  if(state.explore){return B.filter(function(b){return (state.fq===null||b.q===state.fq)&&(state.fr===null||b.r===state.fr)&&(state.fw===null||b.who.indexOf(state.fw)>=0);}).map(function(b){return b.k;});}
+  var s=STEPS[state.i];
+  if(s.hi==='all')return B.map(function(b){return b.k;});
+  if(s.hi==='none')return [];
+  if(s.hi==='timeline')return B.filter(function(b){return di(b.date)===state.day;}).map(function(b){return b.k;});
+  return s.hi;
+}
+function paint(){
+  var s=STEPS[state.i], lit=litKeys(), tl=!state.explore&&s.timeline, d=state.day;
+  document.querySelectorAll('#radar .blip').forEach(function(g){
+    var ghost=g.classList.contains('ghost'), b=BK[ghost?g.getAttribute('data-g'):g.getAttribute('data-k')], c='';
+    if(tl){
+      var born=di(b.date), gborn=b.from?di(b.from.d):99;
+      if(ghost){ c = d<gborn?'off':(d<born?(d===gborn?'':'mid'):'mid'); g.querySelector('.gl').style.display=d<born?'none':''; }
+      else c = d<born?'off':(d===born?'':'mid');
+    }else{
+      if(ghost){g.querySelector('.gl').style.display='';c=lit.indexOf(b.k)>=0?'':'dim';}
+      else c=lit.indexOf(b.k)>=0?'':'dim';
+    }
+    g.setAttribute('class','blip'+(ghost?' ghost':'')+(c?' '+c:'')+(!ghost&&state.sel===b.k?' sel':''));
+    if(!ghost)g.setAttribute('tabindex',state.explore&&!c?'0':'-1');
+  });
+  var ring=state.explore?state.fr:(s.ring!==undefined?s.ring:null);
+  document.querySelectorAll('.ringfill').forEach(function(c){var r=+c.getAttribute('data-r');c.setAttribute('class','ringfill'+(ring!==null&&r===ring?' lit':''));});
+  /* 고리 채움은 겹치므로: 켜진 고리 안쪽은 종이색으로 다시 덮는다 */
+  document.querySelectorAll('.ringfill').forEach(function(c){var r=+c.getAttribute('data-r');if(ring!==null&&r<ring)c.style.fill='#FAFAF6';else c.style.fill='';});
+  var quads=state.explore?(state.fq===null?null:[state.fq]):(s.quads||null);
+  document.querySelectorAll('.qarc').forEach(function(a){var q=+a.getAttribute('data-q');a.setAttribute('class','qarc'+(quads&&quads.indexOf(q)<0?' dim':''));});
+}
+function chipFor(b){return '<button type="button" class="chip" data-open="'+b.k+'"><span class="no c'+b.q+'">'+b.no+'</span>'+esc(b.name.length>22?b.name.slice(0,21)+'…':b.name)+(b.isNew?' ▲':'')+(b.from?' ◐':'')+'</button>';}
+function renderCard(){
+  var c=$('card'), s=STEPS[state.i];
+  stage.classList.toggle('front',!state.explore&&!!s.front);
+  stage.classList.toggle('editing',state.edit);
+  if(state.explore){
+    var lit=litKeys(), h='<div class="eyebrow"><span class="act">탐색 모드</span><span class="sec">질문 받을 때 · 걸러서 점을 누른다 · X로 발표 순서로 돌아간다</span></div><div class="filters">';
+    h+='<span>사분면</span><div class="row">'+Q.map(function(q,i){return '<button type="button" class="chip" data-f="q" data-v="'+i+'" aria-pressed="'+(state.fq===i)+'"><span class="no c'+i+'">'+(i+1)+'</span>'+q.n.slice(2)+' <small>('+q.shape+')</small></button>';}).join('')+'</div>';
+    h+='<span>고리</span><div class="row">'+R.map(function(r,i){return '<button type="button" class="chip" data-f="r" data-v="'+i+'" aria-pressed="'+(state.fr===i)+'">&nbsp;'+r.n+'</button>';}).join('')+'</div>';
+    h+='<span>사람</span><div class="row">'+['Y','J','S'].map(function(w){return '<button type="button" class="chip" data-f="w" data-v="'+w+'" aria-pressed="'+(state.fw===w)+'">&nbsp;'+WHO[w]+'</button>';}).join('')+'<button type="button" class="chip" data-f="clear">&nbsp;모두 보기</button></div></div>';
+    h+='<div class="small" style="font-weight:800;color:var(--ink)">'+lit.length+'개의 점</div><div id="xlist">'+lit.map(function(k){var b=BK[k];return '<button type="button" data-open="'+k+'" aria-current="'+(state.sel===k)+'" title="'+esc(b.name)+'"><span class="no c'+b.q+'">'+b.no+'</span><span class="nm">'+esc(b.name)+'</span></button>';}).join('')+'</div>';
+    c.innerHTML=h;
+  }else{
+    var inAct=STEPS.filter(function(x){return x.a===s.a;}), idx=inAct.indexOf(s)+1;
+    var h2='<div class="eyebrow"><span class="act">'+ACTS[s.a].n+'</span><span class="sec">'+idx+' / '+inAct.length+' · 목표 '+s.t+'초'+(s.timeline?' · '+(state.day+1)+' / 7일째':'')+'</span></div><h2 class="'+(s.hc||'')+'">'+s.h+'</h2><div class="body">'+s.body()+'</div>';
+    var lit2=(s.hi==='all'||s.hi==='none')?[]:litKeys();
+    if(lit2.length)h2+='<div class="lit"><span class="cap">'+(s.timeline?'이날 생긴 점':'비추는 점')+'</span>'+lit2.map(function(k){return chipFor(BK[k]);}).join('')+'</div>';
+    h2+='<div class="src">출처: '+s.src+'</div>';
+    c.innerHTML=h2;
+  }
+  c.querySelectorAll('.ed').forEach(function(e){e.contentEditable=state.edit?'true':'false';if(state.edit)e.setAttribute('role','textbox');});
+}
+function renderBand(){
+  var s=STEPS[state.i], on=!state.explore&&!!s.timeline;
+  $('band').hidden=!on;$('legend').style.display=on?'none':'';
+  if(!on)return;
+  var h='';DAYS.forEach(function(d,i){var ht=Math.max(3,Math.round(PRS[i]/79*46));
+    h+='<button type="button" data-day="'+i+'" class="'+(i<state.day?'past':'')+'" aria-current="'+(i===state.day)+'" aria-label="'+d+' 합친 PR '+PRS[i]+'개"><span class="lab">'+d+' '+DOW[i]+'<small>PR '+PRS[i]+'</small></span><span class="bar" style="height:'+ht+'px"></span></button>';});
+  $('band').innerHTML=h;
+}
+function spName(sp){return sp.split('').map(function(c){return WHO[c];}).join(' → ');}
+function fmt(sec){sec=Math.max(0,Math.floor(sec));return Math.floor(sec/60)+':'+('0'+sec%60).slice(-2);}
+function elapsed(){return state.acc+(state.t0?(Date.now()-state.t0)/1000:0);}
+function renderFoot(){
+  var s=STEPS[state.i];
+  $('spk').textContent=state.explore?'질문 · 탐색':'말하는 사람 '+spName(s.sp);
+  $('hand').textContent=(!state.explore&&state.spk&&s.hand)?'넘김 문장(제안): "'+s.hand+'"':'';
+  var cum=0;for(var i=0;i<=state.i;i++)cum+=STEPS[i].t;
+  $('pos').textContent=(state.i+1)+' / '+STEPS.length+' · '+ACTS[s.a].n;
+  var e=elapsed(),t=$('timer');
+  t.textContent=fmt(e)+' / 여기까지 '+fmt(cum);
+  t.className=(state.t0?'run':'')+(e>cum+15?' over':'');
+  document.querySelectorAll('#acts button').forEach(function(b){b.setAttribute('aria-current',String(!state.explore&&+b.getAttribute('data-act')===s.a));});
+  $('modeBtn').setAttribute('aria-pressed',String(state.explore));
+  $('modeBtn').textContent=state.explore?'X 발표 순서로':'X 탐색';
+}
+setInterval(function(){if(state.t0)renderFoot();},1000);
+function renderDetail(){
+  var d=$('detail');
+  if(!state.sel){d.hidden=true;return;}
+  var b=BK[state.sel];
+  d.innerHTML='<button type="button" class="x" data-close="1" aria-label="점 카드 닫기">닫기 Esc</button><h3><span class="chip c'+b.q+'" style="border-color:#111;font-size:18px;padding:0 7px;vertical-align:3px">'+b.no+'</span> '+esc(b.name)+(b.isNew?' ▲':'')+(b.from?' ◐':'')+'</h3><p>'+esc(b.line)+'</p><dl><dt>고리</dt><dd><b>'+R[b.r].n+'</b> · '+R[b.r].d+'</dd><dt>사분면</dt><dd>'+Q[b.q].n+'</dd><dt>날짜</dt><dd>'+b.date+(b.isNew?' (새로 들어온 점)':'')+'</dd><dt>사람</dt><dd>'+whoText(b)+'</dd><dt>근거</dt><dd style="grid-column:2/5">'+esc(b.ev)+'</dd>'+(b.from?'<dt>옮김</dt><dd style="grid-column:2/5">'+esc(b.from.why)+'</dd>':'')+'</dl>';
+  d.hidden=false;
+}
+function renderNotes(){
+  var n=$('notes'),s=STEPS[state.i];
+  n.hidden=!state.notes||state.explore;
+  if(!n.hidden)n.innerHTML='<b>발표자 메모 · '+ACTS[s.a].n+'</b><br>'+s.note;
+}
+function renderHelp(){
+  var h=$('help');h.hidden=!state.help;if(h.hidden||h.innerHTML)return;
+  var keys=[['→ · Space','다음 (타임라인에서는 다음 날)'],['←','이전'],['1 ~ 7','막으로 이동'],['X','탐색 모드: 사분면 · 고리 · 사람 필터, 점 누르기 / Tab'],['T','경과 시간 시작 · 멈춤 (0: 처음으로)'],['N','발표자 메모'],['S','화자 넘김 문장 보이기 · 숨기기'],['E','사람이 채울 칸 편집 (이 브라우저에 저장)'],['Esc','점 카드 · 메모 · 도움말 닫기'],['?','이 도움말'],['주소','#s5 · #s16-3(타임라인 3일째) · #x(탐색). ?reveal=all 은 연출 끝 상태']];
+  var map=[['문제(가장 크게)','① 문제'],['지켜본 곳과 데이터','② 만든 것'],['직접 입력과 운영 화면','② 만든 것 · ④ 시연 3'],['사건과 대응','③ 사건과 대응'],['시연: 성공','④ 시연 1'],['시연: 일부러 실패','④ 시연 1(빨간 상자)'],['시연: 과거 기록 찾기','④ 시연 2(지난 판단)'],['확인','⑤ 확인'],['커넥터','⑤ 확인(말로 짧게)'],['문서 위키와 챗봇','④ 시연 4 · ⑥ 틀린 답 Q5'],['서브에이전트','⑥ AI에게 맡기되'],['하네스','⑥ 규칙을 만들고도'],['팀원별 기여','⑦ 사람'],['다음에 해 볼 것','⑦ 다음 호 레이더'],['공지: 바이브로그를 슬라이드에','⑥ 7일 타임라인(11-18 · 11-19 · 11-23)'],['공지: 자동화 흐름 화면','④ 시연 1'],['공지: md 기반 LLM 위키 시연','④ 시연 4'],['공지: 제품 시연 · 12~15분','④ 시연 4분 · 전체 13.5분 + 여유 1.5분']];
+  h.innerHTML='<div><h2>조작 키</h2><table>'+keys.map(function(k){return '<tr><td><kbd>'+k[0]+'</kbd></td><td>'+k[1]+'</td></tr>';}).join('')+'</table><p style="font-size:14px;line-height:1.4">구성: 11-23 화이트보드 v2 7막 기준. 화자와 시간은 그 표를 따랐고, 넘김 문장은 제안이다.</p></div><div><h2>안내서 11장 12항목 + 강사 공지 4항목 ↔ 막</h2><table><tr><th>항목</th><th>어느 막에 있나</th></tr>'+map.map(function(m){return '<tr><td>'+m[0]+'</td><td>'+m[1]+'</td></tr>';}).join('')+'</table><h2 style="margin-top:12px">7막</h2><table><tr><th>막</th><th>말하는 사람</th><th>시간</th></tr>'+ACTS.map(function(a){return '<tr><td>'+a.n+'</td><td>'+a.sp+'</td><td>'+(a.t/60)+'분</td></tr>';}).join('')+'</table></div>';
+}
+function setHash(){
+  var s=STEPS[state.i],h=state.explore?'x':'s'+(state.i+1)+(s.timeline?'-'+(state.day+1):'');
+  try{history.replaceState(null,'',location.pathname+location.search+'#'+h);}catch(e){location.hash=h;}
+}
+function render(){paint();renderCard();renderBand();renderFoot();renderDetail();renderNotes();renderHelp();setHash();}
+function go(i,fromBack){
+  i=Math.max(0,Math.min(STEPS.length-1,i));
+  state.i=i;state.sel=null;
+  if(STEPS[i].timeline)state.day=(fromBack||REVEAL)?6:0;
+  render();
+}
+function next(){var s=STEPS[state.i];if(state.explore)return;if(s.timeline&&state.day<6){state.day++;state.sel=null;render();return;}go(state.i+1);}
+function prev(){var s=STEPS[state.i];if(state.explore)return;if(s.timeline&&state.day>0){state.day--;state.sel=null;render();return;}go(state.i-1,true);}
+function toggleExplore(v){state.explore=v===undefined?!state.explore:v;state.sel=null;render();}
+function readHash(){
+  var h=location.hash.replace('#','');
+  if(h==='x'){state.explore=true;return;}
+  var m=/^s(\d+)(?:-(\d+))?$/.exec(h);
+  if(m){state.i=Math.max(0,Math.min(STEPS.length-1,+m[1]-1));if(STEPS[state.i].timeline)state.day=m[2]?Math.max(0,Math.min(6,+m[2]-1)):(REVEAL?6:0);}
+}
+addEventListener('hashchange',function(){state.explore=false;readHash();render();});
+
+/* ───── 입력 ───── */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-open],[data-k],[data-close],[data-act],[data-f],[data-day],#modeBtn');
+  if(!t)return;
+  if(t.id==='modeBtn'){toggleExplore();return;}
+  if(t.hasAttribute('data-close')){state.sel=null;render();return;}
+  if(t.hasAttribute('data-act')){state.explore=false;var a=+t.getAttribute('data-act');go(STEPS.findIndex(function(s){return s.a===a;}));return;}
+  if(t.hasAttribute('data-day')){state.day=+t.getAttribute('data-day');state.sel=null;render();return;}
+  if(t.hasAttribute('data-f')){var f=t.getAttribute('data-f'),v=t.getAttribute('data-v');
+    if(f==='clear'){state.fq=state.fr=state.fw=null;}
+    else if(f==='w'){state.fw=state.fw===v?null:v;}
+    else{v=+v;state['f'+f]=state['f'+f]===v?null:v;}
+    state.sel=null;render();var again=document.querySelector('#card [data-f="'+f+'"]'+(v!==null&&f!=='clear'?'[data-v="'+v+'"]':''));if(again)again.focus();return;}
+  var k=t.getAttribute('data-open')||t.getAttribute('data-k');
+  if(k){state.sel=state.sel===k?null:k;render();}
+});
+document.addEventListener('input',function(e){var t=e.target.closest&&e.target.closest('.ed');if(t)lsSet(t.getAttribute('data-ed'),t.textContent.trim());});
+document.addEventListener('keydown',function(e){
+  var inEd=e.target&&e.target.isContentEditable;
+  if(inEd){if(e.key==='Escape'){e.target.blur();state.edit=false;render();}return;}
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  var k=e.key;
+  if((k==='Enter'||k===' ')&&e.target.closest&&e.target.closest('.blip')){e.preventDefault();var kk=e.target.closest('.blip').getAttribute('data-k');state.sel=state.sel===kk?null:kk;render();var g=document.querySelector('.blip[data-k="'+kk+'"]');if(g)g.focus();return;}
+  if((k==='Enter'||k===' ')&&e.target.tagName==='BUTTON')return;
+  if(k==='Escape'){if(state.help)state.help=false;else if(state.sel)state.sel=null;else if(state.notes)state.notes=false;else if(state.edit)state.edit=false;render();return;}
+  if(k==='?'||(k==='/'&&e.shiftKey)){state.help=!state.help;render();return;}
+  if(state.help)return;
+  if(k==='ArrowRight'||k===' '||k==='PageDown'){e.preventDefault();next();}
+  else if(k==='ArrowLeft'||k==='PageUp'){e.preventDefault();prev();}
+  else if(k>='1'&&k<='7'){state.explore=false;var a=+k-1;go(STEPS.findIndex(function(s){return s.a===a;}));}
+  else if(k==='x'||k==='X'||k==='ㅌ'){toggleExplore();}
+  else if(k==='t'||k==='T'||k==='ㅅ'){if(state.t0){state.acc+=(Date.now()-state.t0)/1000;state.t0=null;}else state.t0=Date.now();renderFoot();}
+  else if(k==='0'){state.acc=0;state.t0=state.t0?Date.now():null;renderFoot();}
+  else if(k==='n'||k==='N'||k==='ㅜ'){state.notes=!state.notes;render();}
+  else if(k==='s'||k==='S'||k==='ㄴ'){state.spk=!state.spk;renderFoot();}
+  else if(k==='e'||k==='E'||k==='ㄷ'){state.edit=!state.edit;render();if(state.edit){var f=document.querySelector('#card .ed');if(f){e.preventDefault();f.focus();}}}
+  else if(k==='Home'){go(0);}
+  else if(k==='End'){go(STEPS.length-1);}
+});
+
+/* ───── 같은 내용의 표(화면 낭독기 · 인쇄 포스터) ───── */
+(function(){
+  var h='<h2>TechRadar 결정 지도 · 제1호 (2026-11-23)</h2><p>김영식 · 황재웅 · 차세일. 7일 동안 내린 결정 '+B.length+'개. 고리: 채택(자리 잡은 것) · 시험(해 보는 중) · 평가(근거가 약함) · 보류(접었거나 미뤄 둔 것). ▲ 11-23에 새로 들어온 점, ◐ 고리를 옮긴 점.</p><table><caption class="sr">레이더의 모든 점</caption><tr><th>번호</th><th>이름</th><th>사분면</th><th>고리</th><th>날짜</th><th class="pl">한 줄</th><th>근거</th><th>사람</th></tr>';
+  B.forEach(function(b){h+='<tr><td>'+b.no+(b.isNew?' ▲':'')+(b.from?' ◐':'')+'</td><td>'+esc(b.name)+'</td><td>'+Q[b.q].n+'</td><td>'+R[b.r].n+'</td><td>'+b.date+'</td><td class="pl">'+esc(b.line)+(b.from?' ('+esc(b.from.why)+')':'')+'</td><td>'+esc(b.ev)+'</td><td>'+(b.who?whoText(b):'—')+'</td></tr>';});
+  $('poster').innerHTML=h+'</table>';
+})();
+
+readHash();render();
+})();
+</script>
+</body>
+</html>
