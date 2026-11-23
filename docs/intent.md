@@ -22,6 +22,70 @@
 
 ---
 
+## I-P-12m-compact · 2026-11-23 · 관측소 테마 · 컴팩트: 프로젝트 보드 · 레포 상세 · 알림 · 기록 · 설정 · 관리자 (P-12m Q2', DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12m-compact`(feat/P-12m-blueprint-theme 327755a = Q1 토큰 · 셸 위, 로컬. FrontLead가 Q3에서 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-observatory-theme.md`(11:30), 시안 "A 관측소 · 프로젝트 보드", Maestro 배정 · 답(흐름 그림은 밝은 종이 판 그대로, 판 고리 지움), 고칠 곳 목록 `.claude/plans-share/p12m-q2prime-list.md`. ADR 0044 · PRD-NF5(대비) · PRD-F22 · IA-2 · 3
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | Q1에서 토큰이 어두운 한 벌이 됐지만 보드 · 관리자 CSS에 흰 면 · 밝은 바탕 전제(타공 구멍 · 고리 · #fff · 옅은 그림자)와 44px · 28px 고정 크기가 남아 있다. 화면 말 "거르기"가 남아 있다 |
+| 기대 결과 | 보드 판은 어두운 판(--panel) + 옅은 별점, 판 고리 없음, 제목 막대 36 · 표 행 32 · 단추 --hit(마우스 34 / 손가락 44), 숫자는 고정폭 · 색은 상태에만. 알림 · 기록 · 설정 · 관리자도 어두운 면 · 컴팩트. 화면 말 "거르기" → "필터" |
+| 영향 범위 | app/dashboard/board.css · app/page.css · app/admin/admin.css · 관리자 인라인 색(demo · flow 테두리) · 관리자 · 알림 tsx 문구, 고친 시험 |
+| 제약 | 기능 · 서버 · DB 그대로(CSS · 문구만). 흐름 그림 6상태 색(lib/flow/look.ts)과 대비 시험은 그대로. 메뉴 · 필터 폼 입력칸 44px(tap-targets 시험)은 그대로. 지도 · 청사진은 FrontLead. Claude API 없음, 고친 시험 · tsc만 |
+| 열린 질문 | 손가락 화면의 실제 체감 · 화면 읽기 프로그램은 사람 QA |
+
+**결과:** 로컬 커밋(feat · test · 이 docs). 보드: 판 --panel · 테두리 --line-d · 모서리 10 · 그림자, 옅은 별점(--line-d 1px, 스냅 칸 그대로), 고리 지움(Maestro 결정), 제목 막대 36, 표 행 --row, 단추 · 입력칸 --hit(3108 측정 34px), 숫자 띠 고정폭 · 새 기술 --scan · 위험 · 판단 대기만 색, 팝업 --card. 보드 화면은 일반 화면 판(tokens.css)을 걷고 판이 밤하늘 위에 바로. page.css: 선택 · 입력칸 · 설정 · 고르기 --hit, alert-row 56 → 40, 카드 --card, 대화상자 어두운 면, 따로 정하지 않은 글 입력칸도 어두운 면(:where), 필터 폼 단추가 늘어나지 않게 아래 맞춤. 관리자: 판 한 장(--panel), #fff → --sunken, 인라인 minHeight 44 → "var(--hit)" 12파일, 흐름 그림 테두리만 --ring(색 · 대비 시험 그대로, Maestro 결정). "거르기" → "필터": 관리자 필터 단추 · 신고 aria, 알림 빠른 필터 · 폼 이름 · 단추 · 필터 풀기. 시험: b-screens-scan의 44px 규칙이 "var(--hit)"도 받게(문구 · 식만). tsc 통과, 고친 영역 시험(a11y · admin · alerts · flow · records) 244개 통과. 3108(로그인 미리보기)에서 보드 · 레포 등록 입력칸 · 관리자 신고 샘플 · 흐름 샘플 · 알림 · 기록 · 설정을 1440 · 390 폭으로 봄(390에서 옆 밀림 없음).
+**확인하지 못함:** 실제 관리자 계정의 /admin 탭 하나하나(미리보기 사용자는 관리자가 아니라 샘플 화면으로 봄), 손가락 기기(44px), 화면 읽기 프로그램, 전체 시험 · 빌드(Q3에서 몰아서). 필터 폼 글 입력칸은 tap-targets 시험이 44px 글자를 잡고 있어 FrontLead처럼 그대로 둠(선택 칸 34와 높이가 다름).
+
+## I-P-12m-blueprint-theme · 2026-11-23 · 파란 도면 테마 + 레이더 선 · 파동 (P-12m, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12m-blueprint-theme`(feat/P-12l-blueprint-defaults 5ca75ab 위, 문서 docs/P-12m-theme b76bd81을 받음, 로컬. P-12l과 PR 하나로)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md` "11-23 10:00 T1 결정", 톤 사진 · 레이더 시안 Radar.dc.html, Maestro 배정. ADR 0044 · design.md 5 · 6 · 16절 · PRD-NF5(대비) · 불변 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 앱 바탕이 흰 면 하나라 컨셉(워크벤치 · 레이더)이 보이지 않는다. 레이더 처음 연출이 선이나 파동 한 가지고, 이번 주 새 기술이 지도에서 눈에 띄지 않는다 |
+| 기대 결과 | 바탕은 파란 도면(#0e5ba3)과 흰 격자, 카드 · 판 · 패널은 흰 면 그대로. 일반 화면은 흰 도면 시트 위, 메뉴는 흰 글자. 지도는 흰 고리 · 흰 점 테두리, 처음 연출 기본은 "선 + 파동"(선 두 바퀴 + 파동 세 번). 36시간 안에 확인한 점은 먼저 닿은 때 한 번 켜지고(ping), 이번 주 새 기술 최근 5개에 흰 추적 틀이 걸린다 |
+| 영향 범위 | app/tokens.css(토큰 5개 · 바탕 격자 · 도면 시트) · site-nav.css · page.css(.notice 흰 면) · tech-map(draw.ts · controller.ts · radar-settings · map.css · radar-settings.css) · blueprint(blueprint.css · studio.css · studio.tsx) · lib/map/motion.ts, 시험 2파일 |
+| 제약 | 등급색은 도면 위 대비 1.2~1.9라 흰 면 · 흰 받침 위에만. --surface · --sunken · --ink 계열 값은 그대로. 저장해 둔 움직임 설정은 존중. 보드 구멍 무늬는 #210 병합 뒤. Claude API 없음. 고친 시험 · tsc만(전체는 끝에) |
+| 열린 질문 | 도면 시트 구석 제목 칸(REV · 날짜)은 실제 기록이 없어 지어낸 값이 되므로 넣지 않음(사용자 점검 때 다시). 보드(#210)는 병합 뒤 |
+
+**결과:** 로컬 커밋(feat · test · 이 docs). 토큰 --paper #0e5ba3 · --on-paper #ffffff · --grid #3e7cb5 · --grid-2 #6e9dc8 · --scan #8ed8ff. tsc 통과, 고친 시험 · 대비 · 기록 검사 51개 통과. 대비 시험이 메뉴 눌림 바탕(--grid 위 흰 글자 4.42)을 잡아 칠하기 대신 흰 테두리로 바꿈. 1440×900 지도 · 청사진 · 알림, 390 지도를 손님 화면으로 찍어 확인.
+**확인하지 못함:** 로그인 화면(사용 중 굵은 흰 고리 · 판단 꼬리표 · 보드), 다른 일반 화면 하나하나, 실제 기기 움직임 느낌, 전체 시험 · 빌드(끝에 몰아서).
+**뒤이어(11-23 11:30 사용자 결정으로 관측소 테마로 바꿈, 계획 p12m-observatory-theme.md):** Q1 토큰 어두운 한 벌 · 밤하늘 바탕 · 컴팩트 · 메뉴 상태 줄(마지막 정기 수집 runs · run_steps만, 수집 오류는 collect_error · error_kind · failed로 셈), Q2 지도(비교군 빼기 · 왼쪽 필터 패널 · 위 한 줄 · 등급 원과 꼬리표 · 노션 칩 · 꼬리표 겹침 정리), Q3 청사진(카드 · 청록 궤도선 · 번호 01) · DevAssi1 Q2' · origin/main 합침. 전체 시험 1,784 · tsc · build · precheck 통과. 파란 도면 토큰(--grid · --grid-2 · --paper-deep)은 지움.
+**확인하지 못함(관측소):** 관리자 실계정 화면 · 손가락 기기 · 화면 읽기(사람 QA로).
+
+## I-P-12m-theme · 2026-11-23 · 테마 문서(11:30부터 관측소, 10:00 파란 도면은 접음): ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
+- 브랜치: `docs/P-12m-theme`(feat/P-12l-blueprint-defaults 5ca75ab에서 갈라짐, 로컬. FrontLead가 feat/P-12m-blueprint-theme로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-observatory-theme.md`(11:30, `p12m-blueprint-theme.md`를 대신함), Maestro 요청(11-23)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 사용자가 블루프린트 파랑 바탕을 골랐는데, ADR 0042 6항은 "색 그대로, 다크 테마 안 넣음"이고 design.md 5절은 11-18 어두운 테마 제안이다. 파랑 위 등급색 대비가 못 미치는 것도 규칙으로 남겨야 한다 |
+| 기대 결과 | ADR 0044(바탕 #0E5BA3 · 무늬 · 흰 면 규칙 · 레이더 선과 파동 · 대비 표 · 고민한 것), ADR 0042 6항 개정 표시, design.md 5 · 6 · 16절 새 토큰, GLOSSARY "도면 시트" · "추적 틀" |
+| 영향 범위 | docs만(앱 코드 · qa 문서 · wiki 안 고침) |
+| 제약 | 로컬 커밋만, 푸시 안 함, Claude API 안 씀. 참고 이미지는 저장소에 넣지 않음. 대비는 `lib/a11y/contrast.ts`로 계산한 값만 |
+| 열린 질문 | ~~토큰 값 넷 · 추적 틀 기준~~ → FrontLead 보고로 풀림(값은 `app/tokens.css`, 추적 틀 = 지도 NEW 중 들어온 기록 있는 최근 5개) |
+
+**결과(11:30 바뀜):** 관측소로 ADR 0044를 고쳐 씀(파일 이름도 바꿈), design.md 5 · 6 · 16절 관측소 값 · 컴팩트, GLOSSARY "도면 시트" 뺌 · "필터" 한 줄. 대비 다시 계산(글자 16.2 · 등급색 바탕 6.8~10.3 · 카드 5.6~8.6 · 노션 칩 6.8~8.2). FrontLead Q1 확정 값(옛 이름 어두운 값 · 컴팩트 토큰 · 상태 줄 읽는 범위)까지 채움. 구현 결과(전체 검사 · 스크린샷 · 사람 QA)는 끝나면. **앞선 결과(10:00 파란 도면):** ADR 0044 새로, ADR 0042 6항 · design.md 5 · 6 · 16절 · GLOSSARY 반영(로컬 커밋). 대비는 다시 계산해 맞음(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). FrontLead 보고로 토큰 값 넷 · 추적 틀 기준을 ADR 0044 · design.md 5절 · GLOSSARY에 채움. 구현 결과(전체 검사 · 스크린샷 · 사람 QA)는 끝나면 ADR 0044에
+
+---
+
+## I-P-12l-blueprint-defaults · 2026-11-23 · 청사진 기본 화면: 빈 카드 하나 · 하단 패널 30% · 탭 2개 · 위 막대 "불러오기 ▾" (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12l-blueprint-defaults`(origin/main 00fbba0 위, 로컬)
+- 출처: 사용자 요청 · 승인 계획(Maestro 배정 P-12l). IA-4(청사진) · PRD-F 청사진 편집 · 불변 4(불러오기 전 판은 되돌리기로)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 처음 열면 6단계 템플릿이 깔려 있어 내 판을 시작하려면 지워야 한다. 하단 패널 탭 4개 · 위 막대 "검증"이 겹치고, 불러오기가 아래 탭에 숨어 있다 |
+| 기대 결과 | 저장된 초안이 없으면 "새 단계" 빈 카드 하나. 하단 패널은 화면 높이 30%로 시작, 탭 = 기술 · 변경 이력. 위 막대 "검증" 뺌. "＋ 단계" 옆 "불러오기 ▾": 템플릿 3개(바로 적용, 되돌리기 한 칸) · 질문으로 틀 만들기 · 내 청사진 · 템플릿 창 |
+| 영향 범위 | app/blueprint(dock · load-menu 새 파일 · studio · inspector · inspector-tabs · studio-types · use-studio-graph · dialogs · studio.css), lib/blueprint/draft(blankGraph), app/dev/studio-panels-sample |
+| 제약 | 새 라이브러리 · DB 변경 없음. Claude API 없음. 확정 창 "고칠 것"(validateGraph) · 속성 서랍 검증 탭은 그대로. 고친 시험 · tsc만, 전체는 끝에 |
+| 열린 질문 | 없음 |
+
+**결과:** 로컬 커밋 3494008 feat · ab6ba9b test · 이 docs(main에 들어 있던 작업 로그 겹친 줄 I-P-12h-blueprint-revamp 하나 지움 — 두 줄이 글자까지 같았음). tsc 0, 고친 시험 draft 7 · 기록 16 통과. 3014 손님 화면(새 작업 폴더, .env.local 없음)에서 확인: 처음 판 "새 단계" 하나 · 탭 기술 · 변경 이력 · 패널 243px(화면 805의 30%) · 위 막대에 "검증" 없음 · "불러오기 ▾" Enter로 열림(초점 첫 템플릿) · ↓ · ↑ 돌기 · Esc로 닫고 초점 단추로 · 템플릿 3개 적용(이름도 바뀜) 뒤 되돌리기 3번으로 처음 판까지 · "내 청사진 · 템플릿…" 창(손님 안내) · "질문으로 틀 만들기" 창.
+**확인하지 못함:** 로그인 화면(창 안 템플릿 저장 · 내 이력 불러오기 뒤 창 닫힘), 휴대폰 폭 · 읽기 전용 "그림으로 보기"에서 막힘 안내, 화면 읽기 낭독. 되돌리기는 화면 시험만(훅은 단위 시험 틀이 없음).
+
+---
 ## I-P-admin-revoke · 2026-11-23 · 관리자를 일반 계정으로 되돌리기 (차세일 · Claude)
 - 브랜치: `feat/P-admin-revoke`(origin/main 0b19dbe에서 갈라짐)
 - 출처: 사용자 요청(11-23 "관리자를 일반 계정으로 돌리는 기능도 추가"), `I-P-admin-grant`의 열린 질문(낮추기), IA-12, 안내서 2장 관리자 페이지, 불변 5

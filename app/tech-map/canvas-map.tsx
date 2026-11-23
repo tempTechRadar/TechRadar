@@ -6,7 +6,9 @@ import { UNSORTED, type MarkStatus, type TechMapModel } from "@/lib/map/build-ma
 import type { GroupItem, Item, TechItem } from "@/lib/map/layout";
 import { DIM_KO, type ViewConfig } from "@/lib/map/view-config";
 import { saveMarkWithToast, ToastLine, useToast } from "../undo-toast";
-import { Crumbs, Legend, QuickChips, Status, Toolbar } from "./controls";
+import { Crumbs, QuickChips, Status, ViewTools } from "./controls";
+import { MapSearch } from "./map-search";
+import { FilterPanel } from "./filter-panel";
 import { createMapController } from "./controller";
 import { attachInput } from "./input";
 import { cartChanged } from "@/lib/blueprint/cart-event";
@@ -30,6 +32,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   const [tip, setTip] = useState<Tip>({ id: "", x: 0, y: 0 });
   const { toast, say, clear: clearToast } = useToast();
   const [busy, setBusy] = useState(false);
+  const [searchKey, setSearchKey] = useState(0); // 보기 초기화 때 찾기 칸도 비운다(새로 그림)
   const lastFocus = useRef<Element | null>(null);
   // 묶음 카드의 "이 분류만 보기"로 포인터가 옮겨 가는 동안(0.3초) 카드를 남긴다
   const tipTimer = useRef(0), overCard = useRef(false);
@@ -67,7 +70,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
     const st = stage.current!, cv = canvas.current!;
     const detach = ctl.attach(cv);
     requestAnimationFrame(() => window.dispatchEvent(new Event(READY_MAP))); // 첫 장을 그린 뒤 첫 화면 덮개의 "지도 보기"를 켠다
-    const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); };
+    const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); st.style.setProperty("--hud-bottom", `${m.top}px`); }; // 왼쪽 필터 패널이 위 칩 줄 바로 아래에서 시작
     const ro = new ResizeObserver(measure);
     ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);
     measure();
@@ -152,12 +155,16 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
     <div className="map-wrap">
       <div ref={stage} className={`map-stage${sel ? " open" : ""}`}>
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
+        {/* 위는 한 줄(P-12m 사용자 점검): 찾기 + 경로 칩 + 빠른 칩(모자라면 칩만 줄바꿈) + 로그인 띠. 필터 · 저장한 보기는 왼쪽 패널, 보기 · 보기 초기화는 오른쪽 아래 */}
         <div ref={hud} className="map-top-hud">
-          {top ? <div className="map-top">{top}</div> : null}
-          <Toolbar nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} tagsFailed={model.tagsFailed} onView={setView} onReset={() => { close(); clearTip(); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} onFind={find} onGo={go} />
-          <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />
-          <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} trendFailed={model.trendFailed} onView={setView} onReplay={replay} /></div>
+          <div className="map-hud">
+            <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} />
+            <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} trendFailed={model.trendFailed} onView={setView} onReplay={replay} /></div>
+            {top ? <div className="map-top">{top}</div> : null}
+          </div>
         </div>
+        <FilterPanel L={S.L} nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} tagsFailed={model.tagsFailed} onView={setView}
+          saved={<ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />} />
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
           onEnter={() => { overCard.current = true; clearTimeout(tipTimer.current); }} onLeave={() => { overCard.current = false; hover("", 0, 0); }}
           onDrill={() => drill(tipItem.id)} /> : null}
@@ -170,11 +177,11 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           {shown?.type === "t" ? <TechPanel item={shown} compare={compare} login={login} busy={busy} onMark={(s, t) => mark(shown, s, t)} onGo={go} onTags={(tags) => ctl.setTags(shown.node.key, tags)} /> : null}
           {shown?.type === "g" ? <GroupPanel g={shown} members={ctl.groupMembers(shown)} shut={S.collapsed.has(shown.id)} onDrill={() => drill(shown.id)} onToggle={() => ctl.toggle(shown.id)} onGo={go} /> : null}
         </aside>
-        {/* 범례 · 상태는 지도 아래쪽에 뜬다(시안 radar.html의 dock). 알림 말풍선은 그 바로 위에 쌓여 범례를 덮지 않는다 */}
+        {/* 상태 · 알림 말풍선은 지도 아래쪽에 뜬다(시안 radar.html의 dock). 범례는 왼쪽 필터 패널로(P-12m) */}
         <div ref={dock} className="map-dock">
+          <ViewTools view={S.view} canMine={canMine} onView={setView} onReset={() => { close(); clearTip(); setSearchKey((k) => k + 1); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} />
           <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
-          <Legend L={S.L} view={S.view} onView={setView} />
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>
       </div>

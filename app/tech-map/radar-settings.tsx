@@ -1,11 +1,11 @@
 "use client";
-// 오른쪽 아래 ⚙ 지도 설정(P-12f에서 이름 바꿈): 처음 연출 방식(선 · 파동 · 끄기). 분위기 칸은 P-12g에서 지움(연출 뒤 선이 멈춰 고를 것이 없다, 사용자 승인).
+// 오른쪽 아래 ⚙ 지도 설정(P-12f에서 이름 바꿈): 처음 연출 방식(선 · 파동 · 선 + 파동 · 끄기, P-12m에서 선 + 파동을 더해 기본으로). 분위기 칸은 P-12g에서 지움(연출 뒤 선이 멈춰 고를 것이 없다, 사용자 승인).
 // 값은 컨트롤러가 이 브라우저에 기억한다(techradar-map-motion).
 import { useEffect, useId, useRef, useState } from "react";
 import type { Motion } from "./controller";
 import "./radar-settings.css";
 
-const MOTION_KO: [Motion, string][] = [["sweep", "선"], ["ripple", "파동"], ["off", "끄기"]];
+const MOTION_KO: [Motion, string][] = [["sweep", "선"], ["ripple", "파동"], ["both", "선 + 파동"], ["off", "끄기"]];
 
 export function RadarSettings({ motion, still, onMotion }: { motion: Motion; still: boolean; onMotion: (m: Motion) => void }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +33,7 @@ export function RadarSettings({ motion, still, onMotion }: { motion: Motion; sti
             {MOTION_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : motion) === v} onChange={() => onMotion(v)} /> {k}</label>)}
           </fieldset>
           {still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
-          <p className="muted">처음 연출에서 선이 지날 때 밝아지는 점은 36시간 안에 실제로 확인한 기술이에요.</p>
+          <p className="muted">처음 연출에서 선이나 파동이 닿아 켜지는 점은 36시간 안에 실제로 확인한 기술이에요. 흰 틀은 이번 주 새로 들어온 기술이에요.</p>
           <p className="muted">점 왼쪽 아래 꼬리표(관심 · 후보 · 보류)는 내 판단이에요.</p>
         </div>
       ) : null}

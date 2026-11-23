@@ -4,7 +4,7 @@
 .map-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-decoration: none; cursor: pointer; }
 .map-chip strong { font-size: var(--fs-h2); }
 
-.map-stage { position: relative; height: max(520px, calc(100dvh - 210px)); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--surface); }
+.map-stage { position: relative; height: max(520px, calc(100dvh - 210px)); overflow: hidden; border: 1px solid var(--on-paper); border-radius: var(--r-xl); background: var(--paper); }
 .map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; }
 .map-canvas.on-item { cursor: pointer; } .map-canvas.dragging { cursor: grabbing; }
 .map-stage.hand .map-canvas { cursor: grab; } .map-stage.hand.panning .map-canvas { cursor: grabbing; }
@@ -21,7 +21,8 @@
 .map-pop { position: relative; }
 .map-pop > .btn[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .map-pop-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 6; width: min(320px, calc(100vw - 48px)); max-height: 60vh; overflow: auto; padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
-.map-seg-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-sm); color: var(--ink-2); }
+.map-seg-label { align-self: center; padding: 0 4px 0 2px; font-size: var(--fs-sm); color: var(--on-paper); } /* 밤하늘 위 글자(P-12m) */
+.map-legend > .muted { color: var(--on-paper); }
 /* 보기 창은 펼친 채 두는 창(F①)이라 도구 줄 · 보기 묶음 · 칩을 덮지 않게 HUD 전체 아래 왼쪽에 띄운다(감싼 칸을 static으로 해 기준을 HUD로) */
 .map-pop-view { position: static; }
 .map-pop-view > .map-pop-panel { z-index: 5; max-height: 45vh; }
@@ -119,3 +120,77 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
   .map-tabs > *, .map-chips > * { flex: none; }
 }
 .chip.chip-note { cursor: default; } /* 알림 글을 담은 칩: 눌러지는 칩처럼 보이지 않게 */
+
+/* P-12m 지도 위 부품(11-23 사용자: "요소들이 붕 떠 보여 · 더 컴팩트하게"): 흰 알약 대신 밤하늘에 붙은 판.
+   어두운 판(--panel) + 옅은 테두리(--ring) + 모서리 4px + 밝은 글자, 높이 32px(마우스 기준, 터치는 아래에서 44px). 눌림 · 펼침은 청록 채움에 바탕색 글자.
+   펼친 창 · 찾기 결과 · 카드 · 사이드바 안은 흰 면 그대로라 건드리지 않는다 */
+:is(.map-top-hud, .map-dock, .map-top-flat) :is(.btn, .chip, .map-chip):not(:is(.map-pop-panel, .map-results, .map-card, .map-side) *) {
+  min-height: 32px; padding: 0 10px; gap: 6px; border: 1px solid var(--ring); border-radius: 4px; background: var(--panel); color: var(--on-paper);
+  font-size: var(--fs-sm); font-weight: 600; box-shadow: none; font-variant-numeric: tabular-nums;
+}
+:is(.map-top-hud, .map-dock, .map-top-flat) :is(.btn, .chip):not(:is(.map-pop-panel, .map-results, .map-card, .map-side) *):is([aria-pressed="true"], [aria-expanded="true"], .btn-primary) { background: var(--scan); border-color: var(--scan); color: var(--paper); box-shadow: none; }
+:is(.map-top-hud, .map-dock) :is(.btn, .chip):not(:is(.map-pop-panel, .map-results, .map-card, .map-side) *):is(:hover, :focus-visible) { border-color: var(--scan); }
+:is(.map-top-hud, .map-dock) .chip:disabled { color: var(--on-paper-2); border-color: var(--line-d); }
+:is(.map-top-hud, .map-dock, .map-top-flat) :focus-visible { outline-color: var(--scan); }
+.map-top-hud .map-search input { min-height: 32px; padding: 0 10px; border: 1px solid var(--ring); border-radius: 4px; background: var(--panel); color: var(--on-paper); font-size: var(--fs-sm); }
+.map-top-hud .map-search input::placeholder { color: var(--on-paper-2); }
+.map-seg .chip:first-of-type, .map-seg .chip:last-child { border-radius: 4px; }
+.map-seg .chip:first-of-type { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.map-seg .chip:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.map-top-hud, .map-hud, .map-chips { gap: 6px; }
+.map-legend { gap: 4px 6px; }
+.map-legend .chip { min-height: 28px; padding: 0 8px; }
+.map-dock .map-dot { box-shadow: 0 0 0 1.5px var(--on-paper); }
+@media (pointer: coarse) {
+  :is(.map-top-hud, .map-dock, .map-top-flat) :is(.btn, .chip, .map-chip):not(:is(.map-pop-panel, .map-results, .map-card, .map-side) *), .map-top-hud .map-search input { min-height: 44px; } /* 손가락은 44px(WCAG 2.5.5) */
+}
+/* 보기 묶음 탭은 판 없이 글자만(눌림은 청록 밑줄) */
+.map-tab-wrap { background: none; }
+.map-tab, .map-tab-x { min-height: 32px; color: var(--on-paper-2); }
+.map-tab:hover, .map-tab-x:hover, .map-tab[aria-pressed="true"] { color: var(--on-paper); }
+.map-tab[aria-pressed="true"] { border-bottom-color: var(--scan); }
+.map-tab-add { color: var(--on-paper-2); }
+@media (pointer: coarse) { .map-tab, .map-tab-x { min-height: 44px; } }
+
+/* 왼쪽 필터 패널(P-12m Q2, 시안 C 모양 약 208px): 위 칩 줄 바로 아래(--hud-bottom, canvas-map이 잰 값)에서 시작, ‹로 접음. 범례 줄을 대신한다 */
+.map-filter { position: absolute; left: 12px; top: var(--hud-bottom, 180px); z-index: 3; width: 208px; max-height: calc(100% - var(--hud-bottom, 180px) - 56px); display: grid; grid-template-rows: auto minmax(0, 1fr); border: 1px solid var(--line-d); border-radius: var(--r-md); background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--on-paper); font-size: var(--fs-sm); }
+.map-filter:not([data-open]) { width: auto; }
+.map-filter-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 0 10px; border: 0; background: none; color: var(--on-paper); font: inherit; font-weight: 700; cursor: pointer; }
+.map-filter-body { overflow: auto; padding: 0 10px 10px; display: grid; gap: 10px; }
+.map-filter fieldset { margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid var(--line-d); display: grid; gap: 1px; }
+.map-filter legend, .map-filter-head { padding: 0; margin-bottom: 4px; font-size: var(--fs-cap); font-weight: 700; color: var(--on-paper-2); }
+.map-filter label, .map-filter-row { display: flex; align-items: center; gap: 6px; min-height: 26px; cursor: pointer; } /* 점이 있는 줄 · 없는 줄 모두 이름은 남은 폭, 수는 오른쪽 끝(자체 리뷰) */
+.map-filter-row { cursor: default; }
+.map-filter label > span, .map-filter-row > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-filter label b, .map-filter-row b { font-family: var(--mono); font-weight: 400; font-size: var(--fs-cap); color: var(--on-paper-2); }
+.map-filter input[type="checkbox"] { width: 14px; height: 14px; margin: 0; accent-color: var(--scan); }
+.map-filter-key { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line-d); color: var(--on-paper-2); }
+.map-filter-key > span:not(.map-filter-head) { display: flex; align-items: center; gap: 6px; }
+.map-dot[data-grade="danger"] { background: var(--danger); } .map-dot[data-grade="caution"] { background: var(--caution); }
+.map-dot[data-grade="unknown"] { border: 1.5px dashed var(--unknown); background: none; }
+@media (pointer: coarse) { .map-filter label, .map-filter-toggle { min-height: 44px; } }
+/* 칩 숫자는 고정폭(시안 B) */
+:is(.map-top-hud, .map-dock) .chip b { font-family: var(--mono); font-weight: 500; }
+.map-filter .map-dot { margin-top: 0; }
+/* P-12m 사용자 점검: 위쪽 한 줄 — 찾기 + 경로 칩 + 빠른 칩(칩만 줄바꿈) + 로그인 띠(오른쪽 끝, 얇게) */
+.map-hud > .map-search { flex: 0 1 240px; }
+.map-hud > .map-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-left: auto; }
+.map-top .map-chip-note { min-height: 28px; padding: 0 8px; border: 0; background: none; color: var(--on-paper-2); font-weight: 400; }
+/* 첫 점검 띠도 지도 위에서는 한 줄로 얇게 */
+.map-page > .first-check { display: flex; align-items: center; gap: var(--sp-3); padding: 4px var(--sp-3); font-size: var(--fs-sm); }
+.map-page > .first-check :is(h2, h3, p) { margin: 0; font-size: inherit; }
+.map-page > .first-check .btn { min-height: 28px; padding: 0 10px; }
+/* 보기 · 보기 초기화: 오른쪽 아래 ⚙ 왼쪽, 창은 위로 */
+.map-dock > .map-view-tools { position: absolute; right: 52px; bottom: calc(100% + 6px); display: flex; gap: 6px; }
+.map-pop-up > .map-pop-panel { top: auto; bottom: calc(100% + 6px); left: auto; right: 0; }
+/* 왼쪽 패널 맨 위 저장한 보기(옛 보기 묶음 탭) */
+.map-filter-saved { display: grid; gap: 2px; padding-top: 4px; }
+.map-filter-saved .map-tabs { gap: 0 2px; }
+.map-filter-saved .map-tab { min-height: 26px; padding: 0 6px; }
+.map-filter .map-filter-select { display: flex; gap: 6px; }
+.map-filter .map-filter-select select { flex: 1; min-width: 0; }
+.map-filter .btn { min-height: 28px; justify-self: start; }
+.map-filter-toggle b { font-family: var(--mono); color: var(--scan); }
+.map-filter select { min-height: 26px; padding: 0 4px; font-size: var(--fs-sm); }
+.map-hud > .map-chips { flex: 1 1 auto; min-width: 0; } /* 좁은 화면(≤640)에서는 위 규칙대로 한 줄 가로 밀기 */
+@media (max-width: 640px) { .map-hud > .map-top { order: -1; margin-left: 0; } } /* 좁으면 로그인 · 시작하기 줄을 맨 위로(칩 가로 밀기 밖으로 밀리지 않게, P-12m Q3) */

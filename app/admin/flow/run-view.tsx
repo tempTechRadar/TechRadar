@@ -49,7 +49,7 @@ function RunTable({ flow, runs, picked, basePath }: Pick<Props, "flow" | "runs" 
             const on = r.id === picked?.id;
             return (
               <tr key={r.id} aria-current={on ? "true" : undefined} style={{ background: on ? "var(--sunken)" : undefined, fontWeight: on ? 700 : 400 }}>
-                <td style={{ padding: "6px 10px" }}><Link href={href(basePath, r.id)} style={{ display: "inline-block", minHeight: 44, lineHeight: "44px" }}>{line.when}</Link></td>
+                <td style={{ padding: "0 10px" }}><Link href={href(basePath, r.id)} style={{ display: "inline-block", minHeight: "var(--hit)", lineHeight: "var(--hit)" }}>{line.when}</Link></td>
                 <td style={{ padding: "6px 10px" }}>{line.start}</td>
                 <td style={{ padding: "6px 10px" }}>{line.status}</td>
                 <td style={{ padding: "6px 10px" }}>{line.took}</td>

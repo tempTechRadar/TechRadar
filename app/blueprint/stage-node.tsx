@@ -43,7 +43,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           aria-label={`${stage.name} ${dir < 0 ? "앞" : "다음"} 단계 더하기`} onClick={() => data.edit!.onSide(stage.id, dir)}>+</button>
       )) : null}
       <header className="sn-head">
-        <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : data.order + 1}</span>
+        <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : String(data.order + 1).padStart(2, "0")}</span>
         {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
           : <b className="sn-name" onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? "두 번 누르면 이름 바꾸기(F2)" : undefined}>{stage.name}</b>}
         <span className="sn-count">{stage.techs.length}/{LIMITS.techs}</span>

@@ -61,7 +61,7 @@ export default async function FlowSamplePage({ searchParams }: { searchParams: P
   return (
     <main>
       <h1>흐름 그림 샘플 (실제 기록 아님)</h1>
-      <p role="note" style={{ background: "#fff1d6", padding: "8px 12px", borderRadius: 8 }}>
+      <p role="note" style={{ background: "var(--bg-caution)", color: "var(--ink-caution)", padding: "8px 12px", borderRadius: 8 }}>
         개발 컴퓨터에서만 보이는 화면이에요. 색은 아래 장면용 가짜 기록으로 칠했어요. 실제 화면은 <Link href="/admin/flow">/admin/flow</Link>입니다.
       </p>
       <nav style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>

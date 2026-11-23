@@ -1,13 +1,13 @@
 // 사용기 신고의 고치기 폼(P-24 24b). 사유를 꼭 받고, 서버 동작이 관리자 확인·검사·기록을 맡는다. 자바스크립트 없이도 동작하는 기본 폼.
 import { handleReportsAction, hideNoteAction, unhideNoteAction } from "./actions";
 
-const BTN = { minHeight: 44, minWidth: 44 } as const;
+const BTN = { minHeight: "var(--hit)", minWidth: "var(--hit)" } as const;
 const ROW = { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end", marginTop: 8 } as const;
 
 function Reason({ id }: { id: string }) {
   return (
     <label>
-      사유 <input name="reason" id={id} required minLength={5} maxLength={300} placeholder="왜 바꾸는지 5자 이상" style={{ minHeight: 44, minWidth: 240 }} />
+      사유 <input name="reason" id={id} required minLength={5} maxLength={300} placeholder="왜 바꾸는지 5자 이상" style={{ minHeight: "var(--hit)", minWidth: 240 }} />
     </label>
   );
 }

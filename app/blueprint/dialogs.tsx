@@ -1,5 +1,5 @@
 "use client";
-// 청사진 대화상자: 질문으로 틀 만들기(한 번에 한 질문, 첫 보기가 추천). 확정 · 내보내기 · AI 점검은 결과물 창(result-dialog.tsx), 템플릿은 하단 패널 불러오기 탭
+// 청사진 대화상자: 질문으로 틀 만들기(한 번에 한 질문, 첫 보기가 추천). 확정 · 내보내기 · AI 점검은 결과물 창(result-dialog.tsx), 템플릿은 위 막대 "불러오기 ▾"(load-menu.tsx)
 import { useState } from "react";
 import { buildFromAnswers, QUESTIONS } from "@/lib/blueprint/knowledge";
 import { Dialog } from "../c-dialog";
