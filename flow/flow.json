@@ -25,7 +25,7 @@
     { "id": "fetch_popularity", "type": "api", "name": "인기 신호 가져오기", "badge": "HN", "priority": 3, "config": { "source": ["hn"] } },
     { "id": "fetch_news", "type": "api", "name": "바깥 소식 가져오기", "badge": "공식 피드", "priority": 3, "config": { "source": "news", "feeds": "약관을 확인한 4곳", "once_per": "day" } },
 
-    { "id": "fetch_repo", "type": "api", "name": "내 저장소 파일 읽기", "badge": "GitHub", "priority": 1, "config": { "files": ["package.json", "requirements.txt", ".mcp.json", ".claude/skills/*/"] } },
+    { "id": "fetch_repo", "type": "api", "name": "내 저장소 파일 읽기", "badge": "GitHub", "priority": 1, "config": { "files": ["package.json", ".mcp.json", "requirements.txt", ".cursor/mcp.json", ".vscode/mcp.json", ".gemini/settings.json"], "skills": ".claude/skills/<이름>/SKILL.md (폴더 목록 1번 + 폴더마다 1번, 30개까지)", "skill_scan": "스킬 폴더 안 다른 파일(위험 패턴 검사, 200개까지)", "code_files": "파일 목록 1번 + 코드 파일 100개까지(지원 종료 모델 · 연동 서비스 찾기)" } },
     { "id": "extract_my_tech", "type": "transform", "name": "내 기술 뽑기 (기술 키)", "priority": 1, "config": { "rules": "SPEC-7", "allowlist": "rule_lists.allow_package" } },
 
     { "id": "normalize", "type": "transform", "name": "같은 모양으로", "priority": 1, "config": { "fields": ["source", "tech_key", "metric", "prev_value", "curr_value", "change_size", "observed_at"] } },
@@ -68,7 +68,8 @@
     { "from": "start_user_reread", "to": "fetch_repo", "when": "항상" },
     { "from": "fetch_repo", "to": "extract_my_tech", "when": "읽기 성공" },
     { "from": "fetch_repo", "to": "collect_error", "when": "읽기 실패" },
-    { "from": "extract_my_tech", "to": "grade", "when": "내 기술마다" },
+    { "from": "extract_my_tech", "to": "fetch_osv", "when": "npm·PyPI 기술(처음 읽기 · 다시 읽기, first-read.ts 단계 순서)" },
+    { "from": "extract_my_tech", "to": "grade", "when": "스킬(OSV를 부르지 않고 위험 패턴으로 등급)" },
 
     { "from": "fetch_osv", "to": "normalize", "when": "성공" },
     { "from": "fetch_registry", "to": "normalize", "when": "성공" },
@@ -76,6 +77,7 @@
     { "from": "fetch_downloads", "to": "normalize", "when": "성공" },
     { "from": "fetch_stars", "to": "normalize", "when": "성공" },
     { "from": "fetch_popularity", "to": "normalize", "when": "성공" },
+    { "from": "fetch_osv", "to": "grade", "when": "처음 읽기 · 다시 읽기: 받은 취약점으로 바로 등급(같은 모양 · 비교를 거치지 않음)" },
     { "from": "fetch_osv", "to": "collect_error", "when": "실패" },
     { "from": "fetch_registry", "to": "collect_error", "when": "실패" },
     { "from": "fetch_github", "to": "collect_error", "when": "실패" },
