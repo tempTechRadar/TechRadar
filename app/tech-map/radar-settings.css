@@ -10,3 +10,8 @@
 .radar-set-panel label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .radar-set-panel input[type="radio"] { width: 18px; height: 18px; }
 .radar-set-panel p { margin: 0; font-size: var(--fs-sm); }
+.radar-set-panel .radar-set-range { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; min-height: 0; padding: 2px 0; }
+.radar-set-range output { font-variant-numeric: tabular-nums; color: var(--on-paper-2); font-size: var(--fs-sm); }
+.radar-set-range input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--scan); }
+.radar-set-range:has(input:disabled) { opacity: .5; }
+.radar-set-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--scan); }

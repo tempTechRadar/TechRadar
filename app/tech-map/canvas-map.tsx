@@ -179,7 +179,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         </aside>
         {/* 상태 · 알림 말풍선은 지도 아래쪽에 뜬다(시안 radar.html의 dock). 범례는 왼쪽 필터 패널로(P-12m) */}
         <div ref={dock} className="map-dock">
-          <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
+          <RadarSettings prefs={S.radar} still={S.still} onChange={ctl.setRadar} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <div className="map-findbar">{/* 찾기는 아래 가운데 떠 있는 막대(P-12p), 결과는 위로 열림 */}
             <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} /></div>

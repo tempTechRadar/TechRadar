@@ -1,13 +1,17 @@
 "use client";
-// 오른쪽 아래 ⚙ 지도 설정(P-12f에서 이름 바꿈): 처음 연출 방식(선 · 파동 · 선 + 파동 · 끄기, P-12m에서 선 + 파동을 더해 기본으로). 분위기 칸은 P-12g에서 지움(연출 뒤 선이 멈춰 고를 것이 없다, 사용자 승인).
-// 값은 컨트롤러가 이 브라우저에 기억한다(techradar-map-motion).
+// 오른쪽 아래 ⚙ 지도 설정(P-12p 사용자 "잔잔하게"): 처음 연출(파동 · 끄기) + 뒤에서 도는 옅은 선(켜기 · 여운 · 속도 · 밝기 · 굵기) + [기본값으로].
+// 값은 컨트롤러가 이 브라우저에 JSON 하나로 기억한다(radar-prefs.ts RADAR_KEY).
 import { useEffect, useId, useRef, useState } from "react";
-import type { Motion } from "./controller";
+import { RADAR_DEFAULT, RADAR_RANGE, type RadarPrefs } from "@/lib/map/radar-prefs";
 import "./radar-settings.css";
 
-const MOTION_KO: [Motion, string][] = [["sweep", "선"], ["ripple", "파동"], ["both", "선 + 파동"], ["off", "끄기"]];
+const INTRO_KO: [RadarPrefs["intro"], string][] = [["ripple", "파동"], ["off", "끄기"]];
+/** 미끄럼 막대: [값 이름, 글, 한 칸, 보이는 값] */
+const SLIDERS: [keyof typeof RADAR_RANGE, string, number, (v: number) => string][] = [
+  ["trail", "여운", 5, (v) => `${v}°`], ["speed", "속도(한 바퀴)", 1, (v) => `${v}초`], ["alpha", "밝기", 0.01, (v) => `${Math.round(v * 100)}%`], ["width", "굵기", 0.5, (v) => `${v}px`],
+];
 
-export function RadarSettings({ motion, still, onMotion }: { motion: Motion; still: boolean; onMotion: (m: Motion) => void }) {
+export function RadarSettings({ prefs, still, onChange }: { prefs: RadarPrefs; still: boolean; onChange: (p: RadarPrefs) => void }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null), btn = useRef<HTMLButtonElement>(null), id = useId();
   useEffect(() => {
@@ -30,10 +34,18 @@ export function RadarSettings({ motion, still, onMotion }: { motion: Motion; sti
       {open ? (
         <div id={id} className="radar-set-panel" role="group" aria-label="지도 설정">
           <fieldset disabled={still}><legend>처음 연출</legend>
-            {MOTION_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : motion) === v} onChange={() => onMotion(v)} /> {k}</label>)}
+            {INTRO_KO.map(([v, k]) => <label key={v}><input type="radio" name={`${id}-m`} checked={(still ? "off" : prefs.intro) === v} onChange={() => onChange({ ...prefs, intro: v })} /> {k}</label>)}
           </fieldset>
+          <fieldset disabled={still}><legend>뒤에서 도는 선</legend>
+            <label><input type="checkbox" checked={!still && prefs.idle} onChange={(e) => onChange({ ...prefs, idle: e.target.checked })} /> 켜기</label>
+            {SLIDERS.map(([k, name, step, show]) => (
+              <label key={k} className="radar-set-range">{name} <output>{show(prefs[k])}</output>
+                <input type="range" min={RADAR_RANGE[k][0]} max={RADAR_RANGE[k][1]} step={step} value={prefs[k]} disabled={!prefs.idle} onChange={(e) => onChange({ ...prefs, [k]: Number(e.target.value) })} /></label>
+            ))}
+          </fieldset>
+          <button type="button" className="btn" disabled={still} onClick={() => onChange(RADAR_DEFAULT)}>기본값으로</button>
           {still ? <p className="muted">기기 설정(움직임 줄이기)으로 꺼져 있어요.</p> : null}
-          <p className="muted">처음 연출에서 선이나 파동이 닿아 켜지는 점은 36시간 안에 실제로 확인한 기술이에요. 흰 틀은 이번 주 새로 들어온 기술이에요.</p>
+          <p className="muted">처음 연출에서 파동이 닿아 떠오르며 켜지는 점은 36시간 안에 실제로 확인한 기술이에요. 흰 틀은 이번 주 새로 들어온 기술이에요.</p>
           <p className="muted">점 왼쪽 아래 꼬리표(관심 · 후보 · 보류)는 내 판단이에요.</p>
         </div>
       ) : null}

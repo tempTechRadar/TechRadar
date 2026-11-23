@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { ease, grow, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, placeTags, recentlyChecked, type Box, ringGrow, rippleR, sweepAlpha, sweepAngle, trackTargets, WAVES } from "@/lib/map/motion";
+import { ease, grow, idleAngle, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, placeTags, recentlyChecked, riseAt, type Box, ringGrow, rippleR, trackTargets, WAVES } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
@@ -57,7 +57,8 @@ export function draw(c: Ctx, S: MapState, now: number) {
   c.fillStyle = col("--paper"); c.fillRect(0, 0, W, H);
   const [ox, oy] = toS(0, 0);
   // 펼침(11-21 사용자: 가운데서 튀어나오기보다 레이더가 지나간 자리에서 떠오르게): 자리는 그대로, 크기 · 진하기만 grow로(drawTechs · drawHubs)
-  const P = home;
+  // P-12p: 점은 파동에 닿을 때 아래에서 떠올라 흔들리다 멈춘다(riseAt). 닿기 전 · 연출 없음(litAge < 0)은 제자리
+  const P = (it: Item): Pt => { const p = home(it); if (it.type !== "t") return p; const t = litAge(S, now, it); return t < 0 ? p : [p[0], p[1] + riseAt(t)]; };
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
   const alphaOf = (it: Item) => Math.min(1, grow(S, now, it) * 1.6) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
   const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / S.homeK, track: trackTargets(vis.filter((v): v is TechItem => v.type === "t")), boxes: [] };
@@ -65,9 +66,8 @@ export function draw(c: Ctx, S: MapState, now: number) {
 
   sectorLight(F, [ox, oy]);
   rings(F, [ox, oy]);
-  const sa = sweepAlpha(S, now);
-  if (moving(S) && S.motion !== "sweep") ripples(F, [ox, oy]);
-  if (sa > 0.01) sweep(F, [ox, oy], sa);
+  if (S.radar.idle && !S.still) idleLine(F, [ox, oy]);
+  if (moving(S)) ripples(F, [ox, oy]);
 
   // 선: 위아래 단계(가운데 → 1단계 → … → 기술). 비교군 선은 지도에 없음(P-12m, 사이드 패널에서만)
   for (const it of vis) {
@@ -116,25 +116,24 @@ function ringLabels(F: Frame, [ox, oy]: Pt) {
 
 /** 화면 끝까지의 거리(화면 좌표): 선 · 파동은 지도 끝이 아니라 화면 끝까지(경계 없는 판) */
 const farOf = (S: MapState, [ox, oy]: Pt) => Math.max(Math.hypot(ox, oy), Math.hypot(S.W - ox, oy), Math.hypot(ox, S.H - oy), Math.hypot(S.W - ox, S.H - oy)) + 40;
-/** 퍼지는 파동(P-12m 시안): 가운데에서 WAVES초마다 세 번, 각 고리는 펼침 동안 지도 끝까지 · 그 뒤 화면 끝까지 옅어지며 한 번 */
+/** 퍼지는 파동(P-12m 시안, P-12p 잔잔하게): 파동 하나 + 더 옅은 잔물결 하나. 각 고리는 펼침 동안 지도 끝까지 · 그 뒤 화면 끝까지 옅어지며 한 번 */
 function ripples({ c, S, sc, now }: Frame, o: Pt) {
   c.strokeStyle = col("--scan"); c.lineWidth = 1.5;
   for (const d of WAVES) {
     const { r, fade } = rippleR(S, now - d, farOf(S, o) / sc);
     if (r <= 0) continue;
-    c.globalAlpha = 0.8 * fade; c.beginPath(); c.arc(o[0], o[1], r * sc, 0, TAU); c.stroke();
+    c.globalAlpha = (d ? 0.18 : 0.45) * fade; c.beginPath(); c.arc(o[0], o[1], r * sc, 0, TAU); c.stroke();
   }
   c.globalAlpha = 1;
 }
 
-/** 도는 선(P-12m 시안의 conic): 뒤로 75°(285° → 358°) 옅어지는 --scan 부채꼴 꼬리 + 끝은 흰 선. TURNS 바퀴 뒤 감속하며 옅어진다 */
-function sweep({ c, S, now }: Frame, [ox, oy]: Pt, sa: number) {
-  const ang = sweepAngle(S, now), far = farOf(S, [ox, oy]), scan = col("--scan"), tail = c.createConicGradient(ang, ox, oy);
-  tail.addColorStop(285 / 360, rgba(scan, 0)); tail.addColorStop(358 / 360, rgba(scan, 0.42)); tail.addColorStop(1, rgba(col("--on-paper"), 0.95));
-  c.globalAlpha = sa; c.fillStyle = tail;
-  c.beginPath(); c.moveTo(ox, oy); c.arc(ox, oy, far, ang - (75 / 180) * Math.PI, ang); c.closePath(); c.fill();
-  c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + far * Math.cos(ang), oy + far * Math.sin(ang)); c.stroke();
-  c.globalAlpha = 1;
+/** 뒤에서 늘 도는 옅은 선(P-12p, ⚙ 여운 · 속도 · 밝기 · 굵기): 꾸밈이라 점을 켜지 않는다. 뒤로 trail도 옅어지는 --scan 꼬리 + 끝 선 */
+function idleLine({ c, S, now }: Frame, [ox, oy]: Pt) {
+  const { trail, speed, alpha, width } = S.radar, ang = idleAngle(now, speed), far = farOf(S, [ox, oy]), scan = col("--scan");
+  const tail = c.createConicGradient(ang, ox, oy);
+  tail.addColorStop(1 - trail / 360, rgba(scan, 0)); tail.addColorStop(1, rgba(scan, alpha));
+  c.fillStyle = tail; c.beginPath(); c.moveTo(ox, oy); c.arc(ox, oy, far, ang - (trail / 180) * Math.PI, ang); c.closePath(); c.fill();
+  c.strokeStyle = rgba(scan, Math.min(1, alpha * 2.5)); c.lineWidth = width; c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox + far * Math.cos(ang), oy + far * Math.sin(ang)); c.stroke();
 }
 
 function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
@@ -158,7 +157,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
     if (!it.hollow || n.mine) { c.setLineDash(n.grade === "unknown" && !n.mine ? [2, 2] : []); c.strokeStyle = col("--on-paper"); c.lineWidth = n.mine ? 3 : 1.5; c.stroke(); c.setLineDash([]); } // 찾지 못함은 점선 테두리 // 점은 밝은 고리, 사용 중은 굵게
     if (n.isNew && (z >= TIER.far || S.lit) && !track.includes(it)) label(c, "NEW", x - rp - 2, y - rp - 3, 9, col("--on-paper"), "right", 800); // 추적 틀이 걸린 점은 꼬리표가 같은 뜻이라 NEW 없음
     if (it.id === S.sel) { const sr = rp + (n.collectErrorKind ? 8 : 6); c.strokeStyle = col("--on-paper"); c.lineWidth = 2; c.beginPath(); c.arc(x, y, sr, 0, TAU); c.stroke(); } // 위험 이중 고리 · 오류 점선 바깥에
-    // 선 · 파동 중 먼저 닿은 때 한 번만 켜짐(P-12m, litAt): 36시간 안에 실제로 확인한 점만 ping 고리가 퍼지고(ADR 0032), 위험 · NEW는 한 번 울림
+    // 첫 파동이 닿은 때 한 번만 켜짐(P-12p, litAt): 36시간 안에 실제로 확인한 점만 ping 고리가 퍼지고(ADR 0032), 위험 · NEW는 한 번 울림
     const age = litAge(S, now, it);
     if (age >= 0 && age < PING && recentlyChecked(n, wall)) { c.strokeStyle = col("--scan"); c.globalAlpha = a * 0.9 * (1 - age / PING); c.lineWidth = 2; c.beginPath(); c.arc(x, y, rp + 1 + ease(age / PING) * 16, 0, TAU); c.stroke(); c.globalAlpha = a; }
     if (age >= 0 && age < 0.6 && (n.grade === "danger" || n.isNew)) {
