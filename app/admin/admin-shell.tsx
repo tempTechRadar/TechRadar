@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./admin.css";
 
 export const ADMIN_TABS = [
-  { id: "members", href: "/admin/members", label: "회원별 등록" },
+  { id: "members", href: "/admin/members", label: "회원과 권한" },
   { id: "observations", href: "/admin/observations", label: "수집 자료" },
   { id: "alerts", href: "/admin/alerts", label: "알림과 처리 현황" },
   { id: "runs", href: "/admin/runs", label: "수집 실행과 오류" },
