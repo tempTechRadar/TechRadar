@@ -8,7 +8,8 @@ import { colorize } from "@/lib/flow/status";
 import type { Flow, RunListRow, StepDetail } from "@/lib/flow/types";
 import { FlowDiagram, Legend } from "./flow-diagram";
 
-type Props = { flow: Flow; runs: RunListRow[]; picked: RunListRow | null; steps: StepDetail[]; node?: string; basePath: string };
+/** stepsError: 고른 실행의 run_steps를 못 읽음 → 그림 대신 안내(회색 = "안 돎"으로 읽히지 않게, 불변 2), 실행 목록은 남겨 다른 실행을 고를 수 있게 */
+type Props = { flow: Flow; runs: RunListRow[]; picked: RunListRow | null; steps: StepDetail[]; node?: string; basePath: string; stepsError?: string | null };
 
 const href = (basePath: string, run?: string, node?: string) => {
   const q = new URLSearchParams();
@@ -63,16 +64,18 @@ function RunTable({ flow, runs, picked, basePath }: Pick<Props, "flow" | "runs" 
   );
 }
 
-export function RunView({ flow, runs, picked, steps, node, basePath }: Props) {
+export function RunView({ flow, runs, picked, steps, node, basePath, stepsError }: Props) {
   const colored = colorize(flow, picked, steps);
   const selectedNode = node ? flow.nodes.find((n) => n.id === node) : undefined;
   return (
     <>
+      {stepsError ? <p role="alert" className="admin-note danger">이 실행의 단계를 읽지 못했어요(없는 게 아니에요): {stepsError}</p> : <>
       <Legend />
       <p style={{ fontSize: 14, color: "var(--muted)" }}>상자를 누르면 설정과 이 실행의 기록(들어온 것·나간 것·호출·오류)이 아래에 나와요. 화살표 위 숫자는 넘어간 건수예요. 시작 상자(예약·지금 실행·시뮬레이터 등)를 누르면 그 시작에서 갈 수 있는 길이 파란 점선으로 보이고, 다시 누르면 풀려요.</p>
       <FlowDiagram flow={flow} colored={colored} edgeLabels={edgeLabels(flow, steps)}
         nodeHref={(id) => href(basePath, picked?.id, id)} selected={selectedNode?.id} />
       {selectedNode ? <DetailPanel detail={nodeDetail(selectedNode, steps)} /> : null}
+      </>}
       <h2>실행 목록</h2>
       <RunTable flow={flow} runs={runs} picked={picked} basePath={basePath} />
     </>

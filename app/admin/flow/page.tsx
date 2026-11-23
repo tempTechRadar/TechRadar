@@ -27,14 +27,13 @@ export default async function AdminFlowPage({ searchParams }: { searchParams: Pr
   const picked = runs.find((r) => r.id === wanted) ?? runs[0] ?? null;
   const stepsRes = picked ? await supabase.from("run_steps").select(STEP_COLUMNS).eq("run_id", picked.id).order("created_at") : null;
   const steps = (stepsRes?.data ?? []) as StepDetail[];
-  const readError = runsRes.error?.message ?? stepsRes?.error?.message;
 
-  // 관리자 틀 안(P-12n R3-5: 탭 · 제목 · 읽기 실패 안내가 다른 관리자 탭과 같게). 못 읽으면 틀이 안내하고 그림은 그리지 않는다(회색 = "안 돎"으로 읽히지 않게, 불변 2)
+  // 관리자 틀 안(P-12n R3-5: 탭 · 제목 · 읽기 실패 안내가 다른 관리자 탭과 같게). 실행 목록을 못 읽으면 틀이 안내하고, 고른 실행의 단계만 못 읽으면 그림 자리에 안내 · 목록은 남김(불변 2)
   return (
-    <AdminShell tab="flow" title={TITLE} lead={LEAD} error={readError ?? null}>
+    <AdminShell tab="flow" title={TITLE} lead={LEAD} error={runsRes.error?.message ?? null}>
       <p className="admin-lead"><Link href="/admin/simulator">시뮬레이터</Link> · <Link href="/admin/run-now">지금 한 번 실행</Link> · <Link href="/admin/demo">실패 시연</Link></p>
       {!picked ? <p>아직 실행 기록이 없어요. 시뮬레이터나 지금 한 번 실행을 돌리면 여기에 생겨요.</p> : null}
-      <RunView flow={flow} runs={runs} picked={picked} steps={steps} node={node} basePath="/admin/flow" />
+      <RunView flow={flow} runs={runs} picked={picked} steps={steps} node={node} basePath="/admin/flow" stepsError={stepsRes?.error?.message ?? null} />
     </AdminShell>
   );
 }

@@ -6,7 +6,7 @@ import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
 import { nextPendingId } from "@/lib/alerts/next-pending";
-import { getMyAlert, listMyAlerts } from "@/lib/server/alert-queries";
+import { getMyAlert, nextPendingAlertId } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readScenarioState } from "@/lib/server/scenario-queries";
 import { readSimilarJudgments } from "@/lib/server/similar-judgments";
@@ -44,7 +44,7 @@ export default async function AlertDetailPage({ params, searchParams }: { params
   const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
   // 판단한 카드의 [다음 판단 대기 →](P-12n R3-2): 판단했을 때만 목록을 읽는다. 못 읽으면 undefined → 판단 대기 목록으로(없다고 단정하지 않음, 불변 2)
   const next = !view.judgmentLine ? undefined : !supabase ? nextPendingId(SAMPLE_ALERTS, id)
-    : await listMyAlerts(supabase, user.id).then((all) => nextPendingId(all, id), (e) => { console.error("다음 판단 대기 조회 실패", e); return undefined; });
+    : await nextPendingAlertId(supabase, user.id, id).catch((e) => { console.error("다음 판단 대기 조회 실패", e); return undefined; });
   const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
