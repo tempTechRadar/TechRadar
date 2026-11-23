@@ -466,6 +466,35 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .lgB:hover{background:rgba(121,180,196,.18)}
 /* 등장은 JS가 시간으로 계산해 그린다(헤드리스 캡처에서도 같은 그림) */
 @media (prefers-reduced-motion:reduce){.lg{transition:none}}
+
+/* T-21 엔딩 고르기: 1 크레디트(기본) · 2 잠수 · 3 이륙. ② ③은 화면 전체를 덮는 오버레이(canvas + SVG + 글자), 한 번 재생 뒤 끝 장면에서 멈춤 */
+.edChip{position:absolute;right:35.6rem;bottom:1rem;z-index:6;display:none;align-items:center;gap:.15rem;font-family:var(--mono);font-size:.7rem;color:var(--dim);
+  background:rgba(15,22,34,.7);border:1px solid var(--line);padding:.12rem .3rem;opacity:.6;transition:opacity .2s}
+.c21 .edChip{display:flex}.edOn .edChip{position:fixed;right:1rem;bottom:1rem;z-index:61;opacity:.85}
+.edChip:hover,.edChip:focus-within{opacity:1}
+.edChip button{font:inherit;color:inherit;background:none;border:0;padding:.1rem .3rem;cursor:pointer}
+.edChip button b{font-weight:700;color:var(--amb);margin-right:.25em}
+.edChip button[aria-pressed="true"]{color:var(--hi)}
+.ed{position:fixed;inset:0;z-index:60;background:#0f1622;overflow:hidden}
+.ed canvas{position:absolute;inset:0;width:100%;height:100%}
+.edSub{position:absolute;left:0;top:0;width:22rem;height:6.6rem;overflow:visible;visibility:hidden}
+.edSub path{fill:none;stroke:#79b4c4;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.edSub .hl{fill:#06111a}
+.edTg{position:absolute;width:1rem;height:1rem;margin:-.5rem 0 0 -.5rem;border-radius:50%;background:#bdf5dd;box-shadow:0 0 .9rem .25rem rgba(96,214,170,.65);display:none;animation:edBl 1.3s ease-in-out infinite}
+.edTg.on{display:block}
+@keyframes edBl{0%,100%{opacity:1}50%{opacity:.15}}
+.edTx{position:absolute;opacity:0;pointer-events:none}
+.edTx p,.edTx h2{margin:0}
+.edTx .k{font-family:var(--mono);font-size:1.05rem;letter-spacing:.12em}
+.edTx h2{margin-top:.7rem;font-size:3.3rem;font-weight:800;line-height:1.1;letter-spacing:-.01em}
+.edTx .w{margin-top:.8rem;font-size:1.3rem;line-height:1.4}
+.edTx .nm{margin-top:1.1rem;font-size:.95rem;letter-spacing:.14em}
+.edTx.s{left:calc(50% - 29rem);top:50%;width:31rem;transform:translateY(-50%)}
+.edTx.s h2{font-size:2.8rem;white-space:nowrap}.edTx.j h2{font-size:3rem}
+.edTx.s .k{color:#60d6aa}.edTx.s h2{color:var(--hi)}.edTx.s .w{color:var(--tx)}.edTx.s .nm{color:var(--dim)}
+.edTx.j{left:50%;top:calc(50% + 9.6rem);width:44rem;margin-left:-22rem;text-align:center;text-shadow:0 0 .9rem rgba(255,255,255,.75)}
+.edTx.j .k{color:#0b4a5a;font-weight:700}.edTx.j h2{color:#06243a}.edTx.j .w{color:#0b2a3a}.edTx.j .nm{color:#2a4a5e}
+.ed.still .edTg{animation:none}
 </style>
 </head>
 <body>
@@ -533,6 +562,19 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
     <button type="button" class="lbX" id="lbBtn" aria-label="짚어 보기 닫기">×</button>
   </div>
 
+  <div class="edChip" id="edChip" role="group" aria-label="엔딩 고르기"><button type="button" data-e="1" aria-pressed="true"><b>1</b>크레디트</button>·<button type="button" data-e="2" aria-pressed="false"><b>2</b>잠수</button>·<button type="button" data-e="3" aria-pressed="false"><b>3</b>이륙</button></div>
+
+  <div class="ed" id="ed" role="region" aria-label="엔딩 연출" hidden>
+    <canvas id="edCv" aria-hidden="true"></canvas>
+    <svg class="edSub" id="edSub" viewBox="0 0 200 60" aria-hidden="true">
+      <path class="hl" d="M12 38 Q12 28 34 27 L158 27 Q188 28 192 38 Q188 48 158 49 L34 49 Q12 48 12 38Z"/>
+      <path class="hl" d="M72 27 L78 12 L106 12 L110 27"/>
+      <path d="M94 12 V3 H101 M12 38 L3 29 M12 38 L3 47 M6 34 V42 M40 38 H150 M160 33 h4 M170 33 h4"/>
+    </svg>
+    <i class="edTg" id="edTg" aria-hidden="true"></i>
+    <div class="edTx" id="edTx" aria-live="polite"></div>
+  </div>
+
   <div class="help" id="help" role="dialog" aria-label="도움말">
     <div class="cols">
       <div>
@@ -550,6 +592,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
           <tr><td><kbd>E</kbd> · <kbd>Esc</kbd></td><td>사람 칸 편집(이 브라우저에 저장) · 끝</td></tr>
           <tr><td><kbd>C</kbd></td><td>시연 240초 카운트다운 시작 · 멈춤</td></tr>
           <tr><td><kbd>L</kbd></td><td>랜딩(시작 화면) 다시 띄우기 · 시작하면 T-02로</td></tr>
+          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> (T-21)</td><td>엔딩: 크레디트 · 잠수 · 이륙(<kbd>Esc</kbd> 닫기 · 주소 <span class="mono">#T-21&amp;e=2</span>)</td></tr>
           <tr><td><kbd>?</kbd></td><td>이 도움말</td></tr>
           <tr><td><span class="mono">#T-15</span></td><td>주소 해시로 위치 공유</td></tr>
           <tr><td><span class="mono">?reveal=all</span></td><td>연출 끝 상태(캡처용 정지 그림)</td></tr>
@@ -1018,6 +1061,7 @@ var lastHit=T.map(function(){return -1e9;}),lastAng=0;
 function sweep(now){ if(STILL) return T[cur].b+ (T[cur].center?40:0); if(paused) return pauseAng; return ((now-t0)/PERIOD*360)%360; }
 
 function go(i,instant){
+  edClose(); /* 엔딩 ② ③ 오버레이가 떠 있으면 장을 옮기기 전에 닫고 정리 */
   i=Math.max(0,Math.min(T.length-1,i));
   if(i===cur&&pending===null){return;}
   if(pending){clearTimeout(pending.h);pending=null;}
@@ -1033,6 +1077,7 @@ function lock(i){
   var t=T[i];
   if(t.k==="inc"){alarmAt=lockAt;alarmAct=t.act;}else{alarmAct=-1;}
   if(t.close) lastAng=0; /* 마지막 한 바퀴가 0도에서 출발: 들어올 때 한꺼번에 깜빡이지 않게 */
+  edClose();edSel=1; /* 클로징에 들어오면 언제나 엔딩 ①(크레디트)부터 */
   render();
   if(history.replaceState) history.replaceState(null,"","#"+t.id); else location.hash=t.id;
   segStart=Date.now();tick();
@@ -1096,6 +1141,7 @@ function render(){
   $("tCur").textContent=t.id;$("tTrk").textContent=("0"+(cur+1)).slice(-2)+"/"+T.length;
   $("tGoal").textContent=t.sec;$("tCum").textContent=mmss(t.cum);
   wrap.classList.toggle("demo",!!t.demo);wrap.classList.toggle("fin",!!t.fin);
+  stage.classList.toggle("c21",!!t.close);edChipUpd();
   if(t.demo) bindCd(n);
   renderList();
 }
@@ -1341,6 +1387,7 @@ document.addEventListener("keydown",function(e){
     return;
   }
   var inEdit=e.target&&e.target.isContentEditable;
+  if(e.key==="Escape"&&edOn){e.preventDefault();edClose();return;}
   if(e.key==="Escape"){if(editing)setEdit(false);stage.classList.remove("showH","ov");mode();return;}
   if(inEdit||e.ctrlKey||e.metaKey||e.altKey) return;
   var k=e.key,target=pending?pending.i:cur;
@@ -1349,6 +1396,7 @@ document.addEventListener("keydown",function(e){
   if(k==="ArrowRight"||k===" "||k==="PageDown"||k==="Enter"){e.preventDefault();go(target+1);}
   else if(k==="ArrowLeft"||k==="PageUp"||k==="Backspace"){e.preventDefault();go(target-1,true);}
   else if(k==="Home"){go(0,true);}else if(k==="End"){go(T.length-1,true);}
+  else if(T[cur].close&&!pending&&(k==="1"||k==="2"||k==="3")){e.preventDefault();edPick(+k);} /* 클로징에서만 1 · 2 · 3 = 엔딩 고르기 */
   else if(k>="1"&&k<="7"){go(actFirst(+k-1),true);}
   else if(k==="0"){go(0,true);}
   else if(k==="]"){var a=T[cur].center?0:T[cur].act+1;if(a<7)go(actFirst(a),true);}
@@ -1371,6 +1419,234 @@ window.addEventListener("beforeprint",function(){
   $("print").innerHTML="<h1>TechRadar 발표 — SCOPE (표적 "+T.length+"개)</h1>"+T.map(function(t){return "<section><p><b>"+t.id+"</b> · "+(t.center?"표지":ACTS[t.act].n)+"</p>"+bodyOf(t)+"<p><small>출처: "+t.src+"</small></p><p><small>메모: "+t.notes+"</small></p></section>";}).join("");
   var tl=$("print").querySelector("#tl");if(tl)tl.innerHTML=tlHTML();fillEdits($("print"));
 });
+
+/* ---------- 엔딩 ② 잠수 · ③ 이륙(T-21에서 1 · 2 · 3) ----------
+   ① = 지금 크레디트(장이 열리면 자동). ② ③ = 화면 전체 오버레이를 처음부터 한 번 재생하고 끝 장면에서 멈춘다(rAF · 타이머 정리).
+   Esc · 다른 엔딩 · 장 이동이면 닫는다. 정지 그림(STILL)이면 끝 장면을 바로 그린다. 주소 #T-21&e=2 · e=3 으로 바로 열 수 있다 */
+var ed=$("ed"),edCv=$("edCv"),edX=edCv.getContext("2d"),edSub=$("edSub"),edTg=$("edTg"),edTx=$("edTx");
+var edOn=0,edSel=1,edRaf=0,edTk=0,edT0=0,edTxOn=false,EW=0,EH=0,EU=16,eDpr=1;
+var MONO='"JetBrains Mono","D2Coding",Consolas,monospace';
+function edRng(sd){return function(){sd=(sd*16807)%2147483647;return (sd-1)/2147483646;};}
+function c01(x){return x<0?0:x>1?1:x;}
+function sm(x){x=c01(x);return x*x*(3-2*x);}
+function mixC(a,b,p){return "rgb("+a.map(function(v,i){return Math.round(v+(b[i]-v)*p);}).join(",")+")";}
+function mixA(a,b,p,al){return "rgba("+a.map(function(v,i){return Math.round(v+(b[i]-v)*p);}).join(",")+","+al.toFixed(3)+")";}
+function fmt(n){return Math.round(n).toLocaleString("en-US");}
+var SB=(function(){var r=edRng(7),a=[];for(var i=0;i<70;i++)a.push({x:r(),y:r(),s:.6+r()*1.6,z:.08+r()*.2,ph:r()*6.3,a:r()});return a;})();
+var JS=(function(){var r=edRng(11),a=[];for(var i=0;i<150;i++)a.push({a:r()*6.2832,z:r(),s:.5+r()*.9});return a;})();
+var JC=(function(){var r=edRng(23),a=[];for(var i=0;i<26;i++)a.push({x:r(),y:r(),w:.14+r()*.26,a:.45+r()*.55});return a;})();
+var JL=(function(){var r=edRng(5),a=[];for(var i=0;i<90;i++)a.push({a:r()*6.2832,p:r(),l:.06+r()*.16});return a;})();
+var NMS='<p class="nm">김영식 · 황재웅 · 차세일</p>';
+var ED={
+ 2:{d:10.6,txAt:8.7,cls:"s",lab:"엔딩 ② 잠수 — 발표 끝, 다시 심해로. 새 미션을 찾아서",f:subF,
+    tx:'<p class="k">NEW MISSION · 다음 표적 탐색 중…</p><h2>TechRadar — 잠항 개시</h2><p class="w">레이더는 껐고, 소나는 켰습니다.<br>다음 변화도 우리가 먼저 듣겠습니다.</p>'+NMS},
+ 3:{d:9.8,txAt:8.5,cls:"j",lab:"엔딩 ③ 이륙 — 맑은 창공으로, 마하 10",f:jetF,
+    tx:'<p class="k">MISSION COMPLETE · 다음 목적지로</p><h2>TechRadar — 이륙</h2><p class="w">지켰고, 골랐고, 옮겼습니다 — 다음 목적지까지 마하 10</p>'+NMS}
+};
+function edSize(){
+  EW=window.innerWidth;EH=window.innerHeight;eDpr=window.devicePixelRatio||1;
+  EU=parseFloat(getComputedStyle(document.documentElement).fontSize)||16;
+  edCv.width=Math.round(EW*eDpr);edCv.height=Math.round(EH*eDpr);
+}
+function edFrame(now){
+  var o=ED[edOn],t=STILL?o.d:Math.min(o.d,(now-edT0)/1000);
+  o.f(t);
+  if(t>=o.txAt&&!edTxOn){edTxOn=true;edTx.innerHTML=o.tx;} /* 끝 문구는 한 번만 넣는다 → aria-live가 한 번 읽음 */
+  edTx.style.opacity=STILL?"1":sm((t-o.txAt)/1.2).toFixed(3);
+  edTx.style.transform=edTx.classList.contains("s")?"translateY(calc(-50% + "+((1-sm((t-o.txAt)/1.2))*.8).toFixed(3)+"rem))":"translateY("+((1-sm((t-o.txAt)/1.2))*.8).toFixed(3)+"rem)";
+  return t>=o.d;
+}
+function edStop(){cancelAnimationFrame(edRaf);clearTimeout(edTk);edRaf=0;edTk=0;}
+function edLoop(now){if(!edOn)return;if(edFrame(now)){edStop();return;}edRaf=requestAnimationFrame(edLoop);}
+/* rAF가 느려지는 환경(헤드리스 캡처 등)에서도 시간대로 그리는 보조 시계. 끝나면 함께 멈춘다 */
+function edTick(){if(!edOn||!edRaf)return;if(edFrame(performance.now())){edStop();return;}edTk=setTimeout(edTick,200);}
+function edPlay(n){
+  edClose();edOn=n;var o=ED[n];
+  ed.setAttribute("aria-label",o.lab);ed.classList.toggle("still",STILL);
+  edTx.className="edTx "+o.cls;edTx.innerHTML="";edTxOn=false;edTx.style.opacity="0";
+  edSub.style.visibility="hidden";edTg.classList.remove("on");
+  ed.hidden=false;stage.classList.add("edOn");edSize();edT0=performance.now();
+  if(STILL) edFrame(edT0); else {edFrame(edT0);edRaf=requestAnimationFrame(edLoop);edTk=setTimeout(edTick,200);}
+}
+function edClose(){
+  if(!edOn) return;
+  edStop();edOn=0;ed.hidden=true;stage.classList.remove("edOn");
+  edTx.innerHTML="";edTxOn=false;edTg.classList.remove("on");edSub.style.visibility="hidden";
+  edX.setTransform(1,0,0,1,0,0);edX.clearRect(0,0,edCv.width,edCv.height);
+}
+function edChipUpd(){[].forEach.call($("edChip").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",+b.dataset.e===edSel?"true":"false");});}
+function edPick(n){
+  if(!T[cur].close) return;
+  edSel=n;edChipUpd();
+  if(n===1){edClose();lockAt=performance.now();lastAng=0;render();if(STILL)draw(performance.now());return;} /* 엔딩 ①: 크레디트와 스캔 한 바퀴를 처음부터 */
+  edPlay(n);
+}
+$("edChip").addEventListener("click",function(e){var b=e.target.closest("button[data-e]");if(b)edPick(+b.dataset.e);});
+window.addEventListener("resize",function(){if(!edOn)return;edSize();if(!edRaf)edFrame(performance.now());});
+
+/* ② 잠수: 소나 핑(0~3초) → 가라앉기(빛줄기 멀어짐 · 거품 · 수심 0 → 3,000m) → 깊은 바다에 소나 원 하나 + 새 표적 깜빡임 */
+function subF(t){
+  var c=edX,w=EW,h=EH,u=EU,cx=w/2,cy=h/2,i,g,fa=sm(t/.7);
+  c.setTransform(eDpr,0,0,eDpr,0,0);c.globalAlpha=1;c.fillStyle="#0f1622";c.fillRect(0,0,w,h);
+  var wa=sm((t-2.7)/1.2),dp=sm((t-3.2)/5.6),son=1-sm((t-3)/1.6),G="96,214,170";
+  c.globalAlpha=fa;
+  c.fillStyle="#04161a";c.fillRect(0,0,w,h);
+  g=c.createRadialGradient(cx,cy,0,cx,cy,20*u);g.addColorStop(0,"rgba(40,130,105,.2)");g.addColorStop(1,"rgba(40,130,105,0)");c.fillStyle=g;c.fillRect(0,0,w,h);
+  if(wa>0){
+    c.globalAlpha=fa*wa;
+    g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,mixC([18,74,96],[2,6,14],dp));g.addColorStop(1,mixC([6,32,46],[0,1,4],dp));c.fillStyle=g;c.fillRect(0,0,w,h);
+    /* 수면 빛줄기: 가라앉을수록 위로 멀어지고 옅어진다 */
+    var ra=.14*Math.pow(1-dp,1.6),oy=-dp*h*.9;
+    if(ra>.003){
+      for(i=0;i<7;i++){var x0=w*(.1+i*.135),sk=(i-3)*.05*w;
+        g=c.createLinearGradient(0,oy,0,oy+h*1.1);g.addColorStop(0,"rgba(190,235,245,"+ra.toFixed(3)+")");g.addColorStop(1,"rgba(190,235,245,0)");
+        c.fillStyle=g;c.beginPath();c.moveTo(x0-1.2*u,oy);c.lineTo(x0+1.2*u,oy);c.lineTo(x0+sk+4.5*u,oy+h*1.1);c.lineTo(x0+sk-4.5*u,oy+h*1.1);c.closePath();c.fill();}
+      c.fillStyle="rgba(200,240,250,"+(ra*1.5).toFixed(3)+")";c.fillRect(0,oy,w,.22*u);
+    }
+    /* 거품: 아래에서 위로 */
+    var H2=h+4*u;c.lineWidth=.06*u;
+    for(i=0;i<SB.length;i++){var b=SB[i],adv=b.s*u*(Math.max(0,t-2.7)*2.2+dp*48),y=h+2*u-((b.y*H2+adv)%H2),x=b.x*w+Math.sin(t*1.7+b.ph)*.35*u;
+      c.beginPath();c.arc(x,y,b.z*u*(1+b.s*.4),0,7);c.strokeStyle="rgba(190,235,245,"+((.16+.3*b.a)*(1-.65*dp)).toFixed(3)+")";c.stroke();}
+    /* 수심계(왼쪽) */
+    var gx=cx-37*u,gt=cy-13*u,gb=cy+13*u,dep=3000*dp,ppm=26*u/1400,m;
+    c.save();c.beginPath();c.rect(gx-.5*u,gt,7*u,gb-gt);c.clip();
+    c.font=(.62*u)+"px "+MONO;c.textAlign="left";c.textBaseline="middle";c.lineWidth=.07*u;
+    for(m=Math.max(0,Math.floor((dep-800)/100)*100);m<=dep+800;m+=100){var yy=cy+(m-dep)*ppm,big=m%500===0;
+      c.beginPath();c.moveTo(gx,yy);c.lineTo(gx+(big?1.3:.6)*u,yy);c.strokeStyle="rgba(121,180,196,"+(big?.85:.45)+")";c.stroke();
+      if(big){c.fillStyle="rgba(200,211,224,.75)";c.fillText(fmt(m),gx+1.7*u,yy);}}
+    c.restore();
+    c.strokeStyle="rgba(121,180,196,.6)";c.lineWidth=.08*u;c.beginPath();c.moveTo(gx,gt);c.lineTo(gx,gb);c.stroke();
+    c.fillStyle="#79b4c4";c.beginPath();c.moveTo(gx-.2*u,cy);c.lineTo(gx-1*u,cy-.5*u);c.lineTo(gx-1*u,cy+.5*u);c.closePath();c.fill();
+    c.font="600 "+(.66*u)+"px "+MONO;c.fillStyle="rgba(132,148,171,.95)";c.textAlign="left";c.textBaseline="alphabetic";c.fillText("DEPTH · 수심",gx-1*u,gt-1*u);
+    c.font="700 "+(1.5*u)+"px "+MONO;c.fillStyle="#e8eef5";c.fillText(fmt(dep)+" m",gx-1*u,gb+2.2*u);
+  }
+  c.globalAlpha=fa;
+  /* 소나 화면 + 핑 세 번 */
+  if(son>0){
+    var R=17*u;c.lineWidth=.07*u;
+    for(i=1;i<=4;i++){c.beginPath();c.arc(cx,cy,R*i/4,0,7);c.strokeStyle="rgba("+G+","+(.35*son).toFixed(3)+")";c.stroke();}
+    c.strokeStyle="rgba("+G+","+(.22*son).toFixed(3)+")";c.beginPath();c.moveTo(cx-R,cy);c.lineTo(cx+R,cy);c.moveTo(cx,cy-R);c.lineTo(cx,cy+R);c.stroke();
+    for(i=0;i<360;i+=10){var an=i*Math.PI/180,r1=R*(i%30?.975:.95);c.beginPath();c.moveTo(cx+r1*Math.sin(an),cy-r1*Math.cos(an));c.lineTo(cx+R*Math.sin(an),cy-R*Math.cos(an));c.stroke();}
+    c.font="600 "+(.7*u)+"px "+MONO;c.textAlign="left";c.textBaseline="alphabetic";c.fillStyle="rgba("+G+","+(.85*son).toFixed(3)+")";c.fillText("SONAR · ACTIVE — 능동 탐색",cx-R,cy-R-1*u);
+    [.35,1.5,2.65].forEach(function(p0){var e=(t-p0)/1.9;if(e<0||e>=1)return;
+      c.beginPath();c.arc(cx,cy,R*1.02*e,0,7);c.strokeStyle="rgba(150,240,205,"+(.85*(1-e)*son).toFixed(3)+")";c.lineWidth=.22*u*(1-e*.5);c.stroke();
+      var ta=e<.12?e/.12:1-sm((e-.12)/.5);c.font="700 "+(1.6*u)+"px "+MONO;c.textAlign="center";c.textBaseline="middle";
+      c.fillStyle="rgba(175,250,220,"+(ta*son).toFixed(3)+")";c.fillText("PING",cx,cy-2.4*u);});
+    c.beginPath();c.arc(cx,cy,.3*u,0,7);c.fillStyle="rgba(150,240,205,"+son.toFixed(3)+")";c.fill();
+  }
+  /* 잠수함: 위에서 미끄러져 내려와 오른쪽 가운데에 선다 */
+  var sp=1-Math.pow(1-c01((t-3.4)/4.2),3),sx=cx+14*u,sy=-10*u+(cy+4*u+10*u)*sp;
+  if(t>=3.4){edSub.style.visibility="visible";edSub.style.transform="translate("+(sx-11*u).toFixed(1)+"px,"+(sy-3.3*u).toFixed(1)+"px)";}
+  /* 끝: 소나 원 하나 + 멀리 새 표적 */
+  var ea=sm((t-8.3)/1.1);
+  if(ea>0){
+    c.globalAlpha=1;c.lineWidth=.1*u;c.strokeStyle="rgba("+G+","+(.55*ea).toFixed(3)+")";c.beginPath();c.arc(sx,sy,12*u,0,7);c.stroke();
+    c.lineWidth=.05*u;c.strokeStyle="rgba("+G+","+(.2*ea).toFixed(3)+")";c.beginPath();c.arc(sx,sy,6*u,0,7);c.stroke();
+    var tx=sx+12*u*Math.cos(-.7),ty=sy+12*u*Math.sin(-.7);
+    c.font="600 "+(.66*u)+"px "+MONO;c.textAlign="left";c.textBaseline="middle";c.fillStyle="rgba(189,245,221,"+(.9*ea).toFixed(3)+")";c.fillText("NEW CONTACT · 새 표적",tx+1.3*u,ty-1.2*u);
+    edTg.style.left=tx.toFixed(1)+"px";edTg.style.top=ty.toFixed(1)+"px";
+    edTg.classList.toggle("on",t>=9.2);
+  }
+}
+
+/* ③ 이륙: 조종석 HUD → 활주로 가속 · V1 · ROTATE → 기수 들림 → 구름 뚫고 맑은 하늘(1.8초에 걸쳐) → MACH 1 → 5 → 10 · 속도선 */
+function jetF(t){
+  var c=edX,w=EW,h=EH,u=EU,cx=w/2,cy=h/2,i,g,fa=sm(t/.7);
+  c.setTransform(eDpr,0,0,eDpr,0,0);c.globalAlpha=1;c.fillStyle="#0f1622";c.fillRect(0,0,w,h);c.globalAlpha=fa;
+  var acc=c01((t-.4)/3.3),kt=t<3.7?165*acc*acc:165+255*sm((t-3.7)/2.5);
+  var mach=t<6.2?kt/661:t<7?kt/661+(1-kt/661)*sm((t-6.2)/.8):t<7.9?1+4*sm((t-7)/.9):5+5*sm((t-7.9)/1);
+  if(t>=6.2) kt=mach*661;
+  var pitch=14*sm((t-3.7)/1.3)-4*sm((t-7)/1.5),ppd=u,hy=cy+pitch*ppd;
+  var b=sm((t-4.9)/1.8),alt=t<3.9?0:3000*sm((t-3.9)/2.3)+57000*sm((t-6.2)/2.8);
+  /* 하늘 · 땅(밝아지면 구름 바다) */
+  g=c.createLinearGradient(0,0,0,Math.max(1,hy));g.addColorStop(0,mixC([8,12,20],[40,130,208],b));g.addColorStop(1,mixC([22,32,46],[200,234,252],b));
+  c.fillStyle=g;c.fillRect(0,0,w,hy);
+  g=c.createLinearGradient(0,hy,0,h);g.addColorStop(0,mixC([16,22,30],[236,244,250],b));g.addColorStop(1,mixC([7,10,14],[206,222,236],b));
+  c.fillStyle=g;c.fillRect(0,hy,w,h-hy);
+  /* 활주로: 중앙선이 원근으로 흘러온다 */
+  var ra=1-sm((t-4.4)/.9);
+  if(ra>0){
+    var A=12*u,B=26*u,zf=70,zn=.25,y=function(z){return hy+A/z;},xo=function(z){return B/z;};
+    c.globalAlpha=fa*ra;c.fillStyle="#141a22";c.beginPath();c.moveTo(cx-xo(zf),y(zf));c.lineTo(cx+xo(zf),y(zf));c.lineTo(cx+xo(zn),y(zn));c.lineTo(cx-xo(zn),y(zn));c.closePath();c.fill();
+    c.strokeStyle="rgba(200,211,224,.55)";c.lineWidth=.1*u;c.beginPath();c.moveTo(cx-xo(zf),y(zf));c.lineTo(cx-xo(zn),y(zn));c.moveTo(cx+xo(zf),y(zf));c.lineTo(cx+xo(zn),y(zn));c.stroke();
+    var D=t<3.7?40*acc*acc*acc:40+(t-3.7)*36,L=3,off=D%L;
+    c.fillStyle="rgba(232,238,245,.8)";
+    for(i=1;i<26;i++){var z1=i*L-off,z2=z1+1.5;if(z1<zn)continue;var hw1=B*.025/z1,hw2=B*.025/z2;
+      c.beginPath();c.moveTo(cx-hw1,y(z1));c.lineTo(cx+hw1,y(z1));c.lineTo(cx+hw2,y(z2));c.lineTo(cx-hw2,y(z2));c.closePath();c.fill();
+      var lx=xo(z1)*.97;c.fillStyle="rgba(240,210,150,.7)";c.beginPath();c.arc(cx-lx,y(z1),Math.min(.35*u,.12*u/z1*3),0,7);c.arc(cx+lx,y(z1),Math.min(.35*u,.12*u/z1*3),0,7);c.fill();c.fillStyle="rgba(232,238,245,.8)";}
+    c.globalAlpha=fa;
+  }
+  /* 구름층: 아래로 지나간다(올라가는 중). 번쩍이지 않게 최대 0.55 */
+  var ca=sm((t-4.3)/.8)*(1-sm((t-5.6)/1));
+  if(ca>0){
+    c.fillStyle="rgba(205,216,228,"+(ca*.35).toFixed(3)+")";c.fillRect(0,0,w,h);
+    for(i=0;i<JC.length;i++){var q=JC[i],qy=(((q.y+(t-4.3)*1.1)%1.4)-.2)*h,qr=q.w*w*(.6+(t-4.3)*.25);
+      g=c.createRadialGradient(q.x*w,qy,0,q.x*w,qy,qr);g.addColorStop(0,"rgba(226,233,240,"+(ca*.55*q.a).toFixed(3)+")");g.addColorStop(1,"rgba(226,233,240,0)");
+      c.fillStyle=g;c.fillRect(q.x*w-qr,qy-qr,qr*2,qr*2);}
+  }
+  /* 원근 점: 가운데에서 바깥으로 스친다 */
+  var sa=sm((t-6.3)/.8),diag=Math.hypot(w,h)/2;
+  if(sa>0){
+    var Dz=(t-6.3)*.22+(mach-1)/9*1.1;c.lineCap="round";
+    for(i=0;i<JS.length;i++){var st=JS[i],z=1-((st.z+Dz*st.s)%1);if(z<.03)continue;
+      var rr=1.6*u/z*st.s,r0=rr*(1-.3*sa*(.25+mach/10));if(rr<6*u||r0>diag)continue;
+      c.strokeStyle="rgba(255,255,255,"+(.6*sa*Math.min(1,.2/z)).toFixed(3)+")";c.lineWidth=Math.min(.1*u,.04*u/Math.sqrt(z));
+      c.beginPath();c.moveTo(cx+Math.cos(st.a)*r0,cy+Math.sin(st.a)*r0);c.lineTo(cx+Math.cos(st.a)*rr,cy+Math.sin(st.a)*rr);c.stroke();}
+  }
+  /* 속도선: 화면 가장자리에 길게 */
+  var sl=sm((t-6.8)/1.4);
+  if(sl>0){
+    c.lineWidth=.09*u;
+    for(i=0;i<JL.length;i++){var ln=JL[i],fr=(ln.p+(t-6.8)*1.6)%1,ri=diag*(.6+.45*fr),ro=ri+diag*ln.l*sl*(1+mach/10);
+      c.strokeStyle="rgba(255,255,255,"+(.55*sl*(1-fr*.6)).toFixed(3)+")";
+      c.beginPath();c.moveTo(cx+Math.cos(ln.a)*ri,cy+Math.sin(ln.a)*ri);c.lineTo(cx+Math.cos(ln.a)*ro,cy+Math.sin(ln.a)*ro);c.stroke();}
+    c.lineCap="butt";
+  }
+  /* HUD: 밝아지면 진한 청록으로 바뀐다 */
+  var ha=sm(t/.8),hc=function(al){return mixA([150,225,238],[8,74,92],b,al*ha);};
+  c.lineCap="butt";c.lineWidth=.1*u;c.strokeStyle=hc(.95);c.fillStyle=hc(.95);
+  /* 수평선 · 피치 사다리(가운데 창 안) */
+  c.save();c.beginPath();c.rect(cx-12*u,cy-14*u,24*u,(28-5.5*b)*u);c.clip(); /* 밝아지면 아래 끝 문구 자리를 비운다 */
+  c.beginPath();c.moveTo(cx-12*u,hy);c.lineTo(cx-2.5*u,hy);c.moveTo(cx+2.5*u,hy);c.lineTo(cx+12*u,hy);c.stroke();
+  c.font="600 "+(.62*u)+"px "+MONO;c.textBaseline="middle";
+  for(var dg=-20;dg<=30;dg+=5){if(!dg)continue;var py=hy-dg*ppd;if(py<cy-14*u||py>cy+14*u)continue;
+    c.setLineDash(dg<0?[.5*u,.35*u]:[]);c.beginPath();c.moveTo(cx-8*u,py);c.lineTo(cx-3*u,py);c.moveTo(cx+3*u,py);c.lineTo(cx+8*u,py);
+    var tk=dg>0?.6*u:-.6*u;c.moveTo(cx-8*u,py);c.lineTo(cx-8*u,py+tk);c.moveTo(cx+8*u,py);c.lineTo(cx+8*u,py+tk);c.stroke();
+    c.textAlign="right";c.fillText(Math.abs(dg),cx-8.5*u,py);c.textAlign="left";c.fillText(Math.abs(dg),cx+8.5*u,py);}
+  c.setLineDash([]);c.restore();
+  /* 비행 경로 표시 + 조준점 */
+  c.beginPath();c.arc(cx,cy,.55*u,0,7);c.moveTo(cx-.55*u,cy);c.lineTo(cx-1.8*u,cy);c.moveTo(cx+.55*u,cy);c.lineTo(cx+1.8*u,cy);c.moveTo(cx,cy-.55*u);c.lineTo(cx,cy-1.2*u);c.stroke();
+  c.beginPath();c.arc(cx,cy,.1*u,0,7);c.fill();
+  c.beginPath();c.moveTo(cx-1.2*u,cy-3*u);c.lineTo(cx-.6*u,cy-2.4*u);c.lineTo(cx,cy-3*u);c.lineTo(cx+.6*u,cy-2.4*u);c.lineTo(cx+1.2*u,cy-3*u);c.stroke();
+  /* 방위 띠(위) */
+  c.font="600 "+(.62*u)+"px "+MONO;c.textAlign="center";c.textBaseline="alphabetic";
+  for(i=-5;i<=5;i++){var hx=cx+i*1.8*u;c.beginPath();c.moveTo(hx,cy-16.2*u);c.lineTo(hx,cy-16.2*u+(i%2?.4:.8)*u);c.stroke();if(!(i%2))c.fillText(("0"+(27+i/2*1)%36).slice(-2),hx,cy-16.6*u);}
+  c.beginPath();c.moveTo(cx,cy-15.1*u);c.lineTo(cx-.4*u,cy-14.5*u);c.lineTo(cx+.4*u,cy-14.5*u);c.closePath();c.fill();
+  /* 속도 · 고도 테이프 */
+  function tape(x0,dir,val,step,lab,read,sub){
+    var top=cy-12*u,bot=cy+12*u,pp=1.6*u/step,v;
+    c.save();c.beginPath();c.rect(x0-(dir<0?5*u:0),top,5*u,bot-top);c.clip();
+    c.font="600 "+(.62*u)+"px "+MONO;c.textBaseline="middle";c.textAlign=dir<0?"right":"left";
+    for(v=Math.floor((val-8*step)/step)*step;v<=val+8*step;v+=step){if(v<0)continue;var yy=cy-(v-val)*pp,big=(v/step)%5===0;
+      c.beginPath();c.moveTo(x0,yy);c.lineTo(x0+dir*(big?1:.5)*u,yy);c.stroke();if(big)c.fillText(fmt(v),x0+dir*1.4*u,yy);}
+    c.restore();
+    c.beginPath();c.moveTo(x0,top);c.lineTo(x0,bot);c.stroke();
+    var bw=5.4*u,bx=dir<0?x0-bw-.3*u:x0+.3*u;
+    c.fillStyle=mixA([8,14,22],[230,244,252],b,.82*ha);c.fillRect(bx,cy-.9*u,bw,1.8*u);c.strokeRect(bx,cy-.9*u,bw,1.8*u);
+    c.fillStyle=hc(1);c.font="700 "+(1*u)+"px "+MONO;c.textAlign="center";c.fillText(read,bx+bw/2,cy+.05*u);
+    c.font="600 "+(.62*u)+"px "+MONO;c.fillText(lab,x0+dir*2.6*u,top-.9*u);
+    if(sub){c.font="700 "+(1.25*u)+"px "+MONO;c.fillText(sub,x0+dir*2.9*u,bot+1.6*u);}
+  }
+  tape(cx-21*u,-1,kt,t<6.2?10:200,"KT",fmt(kt),mach>=1?"MACH "+(mach>=9.95?"10":mach.toFixed(1)):"M "+mach.toFixed(2));
+  tape(cx+21*u,1,alt,t<6.2?100:2000,"ALT FT",fmt(alt),null);
+  /* 알림: V1 · ROTATE · 상승 */
+  var msg=[[2.7,3.5,"V1"],[3.3,4.7,"ROTATE"],[4.8,6,"POSITIVE CLIMB · GEAR UP"]];
+  c.font="700 "+(1.2*u)+"px "+MONO;c.textAlign="center";c.textBaseline="middle";
+  msg.forEach(function(mm){var a=sm((t-mm[0])/.2)*(1-sm((t-mm[1]+.25)/.25));if(a<=0)return;
+    var tw=c.measureText(mm[2]).width+1.4*u;c.strokeStyle=hc(a);c.fillStyle=hc(a);c.lineWidth=.1*u;
+    c.strokeRect(cx-tw/2,cy+5.2*u-1*u,tw,2*u);c.fillText(mm[2],cx,cy+5.25*u);});
+  c.globalAlpha=1;
+}
 
 /* ---------- 랜딩(표지 겸) ----------
    입력(클릭 · Enter · → · Space)이 있어야만 닫힌다. 자동 넘김 타이머는 없다.
@@ -1483,6 +1759,7 @@ if(qs.get("notes")==="1") stage.classList.add("showN","showS");
 if(qs.get("help")==="1") stage.classList.add("showH");
 size();render();mode();tick();
 if(STILL) draw(performance.now()); else requestAnimationFrame(loop);
+var e0=/[?&#]e=([123])(?![0-9])/.exec(location.search+location.hash);if(e0&&T[cur].close&&+e0[1]>1)edPick(+e0[1]);
 })();
 </script>
 </body>
