@@ -6,6 +6,23 @@
 
 ---
 
+## I-P-12n-blueprint · 2026-11-23 · P-12n R2 청사진 다듬기: 단추 규칙 · 빈 판 첫 안내 · 손님 띠 · 위 막대 위계 · 미니맵 · 캔버스 설명 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12n-blueprint`(feat/P-12n-ux-polish 755e90f 위 + FrontLead 공통 토큰 40f46c4 병합, 로컬)
+- 출처: 사용자 승인 확정 목록 `.claude/plans-share/p12n-list.md` R2 1~6 · 공통 색 뜻(11-23 "전부 진행, 높음부터"), Maestro 배정. IA-4 청사진
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 청사진에 주 단추(청록 채움)가 여럿 · 고른 토글이 흰 채움이라 주 단추와 헷갈림 · 빈 판에서 무엇을 할지 안 보임 · 손님 띠가 두꺼움 · 위 막대 단추가 같은 무게 |
+| 기대 결과 | 주 행동은 "확정 · 내보내기" 하나, 지우기 · 끊기 = .btn-danger, 고른 토글 = 카드 + 청록 테두리. 빈 판 카드에 "지도에서 담거나, 템플릿으로 시작" [지도 열기] [불러오기]. 손님 띠 한 줄. 위 막대 묶음 · 옅은 보조 테두리 · 목록 모드에선 캔버스 단추 숨김. 미니맵 색 · 2개 이하 숨김 · 고른 관계선 청록 2.5. 캔버스 설명은 aria-describedby, "지금 판" → "지금 청사진" |
+| 영향 범위 | app/blueprint(studio · stage-node · load-menu · inspector · inspector-tabs · list-mode · seq-edge · dialogs · template-tab · page · blueprint.css · studio.css) |
+| 제약 | app/blueprint/*만(공용 page.css · tokens.css는 FrontLead). 새 라이브러리 · DB 변경 없음. Claude API 없음 |
+| 열린 질문 | 없음 |
+
+**결과:** 로컬 커밋 128da85 · 6adb496 feat(+ 40f46c4 병합 816a3d7) · 이 docs. tsc 0, 고친 곳 시험(청사진 · 대비 · 미리보기 막기) 118 통과. 3015 손님 화면 1440 · 390 확인: 빈 판 안내 · [불러오기]로 메뉴 열림(초점 첫 템플릿) · 템플릿 뒤 안내 사라지고 미니맵 보임 · 보이는 주 단추 1개 · 고른 탭 = #182144 바탕 + 청록 inset 테두리 · 목록 모드에 자동 정렬 · 보기 초기화 없음 · 위험 단추(단계 지우기 · 끊기 · 삭제) 빨강 · 손님 띠 27px(390은 두 줄 45px). DevAssi1 요청으로 `/blueprint?bp=<확정 청사진 id>`도 넣음(내 이력에서 찾아 불러오기, 되돌리기 한 칸).
+**확인하지 못함:** 로그인 화면(?bp= 실제 열기 · 내 이력 · 서랍의 위험 단추), 화면 읽기 낭독, 실제 휴대폰.
+
+---
+
 ## I-P-12m-compact · 2026-11-23 · 관측소 테마 · 컴팩트: 프로젝트 보드 · 레포 상세 · 알림 · 기록 · 설정 · 관리자 (P-12m Q2', DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12m-compact`(feat/P-12m-blueprint-theme 327755a = Q1 토큰 · 셸 위, 로컬. FrontLead가 Q3에서 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12m-observatory-theme.md`(11:30), 시안 "A 관측소 · 프로젝트 보드", Maestro 배정 · 답(흐름 그림은 밝은 종이 판 그대로, 판 고리 지움), 고칠 곳 목록 `.claude/plans-share/p12m-q2prime-list.md`. ADR 0044 · PRD-NF5(대비) · PRD-F22 · IA-2 · 3

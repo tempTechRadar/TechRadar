@@ -12,9 +12,10 @@ import type { PanelProps } from "./studio-types";
 
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
-/** blocked = 막힌 이유(읽기 전용 등, 위 막대 gate와 같은 규칙: 누르면 이유를 말함) */
-export function LoadMenu({ blocked, ...p }: PanelProps & { blocked: string | null }) {
+/** blocked = 막힌 이유(읽기 전용 등, 위 막대 gate와 같은 규칙: 누르면 이유를 말함). ask = 밖(빈 판 카드)에서 열어 달라는 횟수 */
+export function LoadMenu({ blocked, ask = 0, ...p }: PanelProps & { blocked: string | null; ask?: number }) {
   const [open, setOpen] = useState(false), [more, setMore] = useState(false);
+  useEffect(() => { if (ask) setOpen(true); }, [ask]);
   const btn = useRef<HTMLButtonElement>(null), box = useRef<HTMLDivElement>(null);
   const shown = open && !blocked;
   useEffect(() => { if (shown) box.current?.querySelector("button")?.focus(); }, [shown]);

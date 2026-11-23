@@ -16,7 +16,7 @@ export function SeqEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition
         <EdgeToolbar edgeId={id} x={x} y={y} isVisible={data.hover || Boolean(selected)}>{/* 고른 선에도(터치는 마우스 올리기가 없어 눌러 고르면 보임) */}
           <span className="se-tools" onMouseEnter={data.onKeep} onMouseLeave={data.onLeave}>
             {data.onInsert ? <button type="button" className="se-plus nodrag nopan" aria-label={`${data.label} 사이에 단계 넣기`} onClick={(e) => { e.stopPropagation(); data.onInsert!(); }}>+</button> : null}
-            <button type="button" className="se-cut nodrag nopan" aria-label={`${data.label} 연결 끊기`} onClick={(e) => { e.stopPropagation(); data.onCut!(); }}>✕ 끊기</button>
+            <button type="button" className="se-cut btn-danger nodrag nopan" aria-label={`${data.label} 연결 끊기`} onClick={(e) => { e.stopPropagation(); data.onCut!(); }}>✕ 끊기</button>
           </span>{/* 누름이 캔버스 빈 곳(onPaneClick = 고른 것 풀기)까지 올라가지 않게 */}
         </EdgeToolbar>
       ) : null}
