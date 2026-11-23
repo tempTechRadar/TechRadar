@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { Board } from "@/lib/blueprint/board";
 import { exportMermaid, exportText, linkLines, type ExportKind } from "@/lib/blueprint/export-text";
+import { sectionLines } from "@/lib/blueprint/sections";
 import type { Graph } from "@/lib/blueprint/graph";
 import { Dialog } from "../c-dialog";
 import { CheckPanel } from "./check-panel";
@@ -25,7 +26,7 @@ type Props = {
 export function ResultDialog(p: Props) {
   const [kind, setKind] = useState<ExportKind>("prompt");
   const [projectId, setProjectId] = useState(p.projects[0]?.id ?? "");
-  const text = !p.board ? "" : kind === "mermaid" ? exportMermaid(p.graph) : exportText(kind, p.name, p.board, linkLines(p.graph));
+  const text = !p.board ? "" : kind === "mermaid" ? exportMermaid(p.graph) : exportText(kind, p.name, p.board, linkLines(p.graph), sectionLines(p.graph));
   const techCount = p.board ? p.board.flat().reduce((n, s) => n + s.techs.length, 0) : 0;
   const copy = () => (navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("보안 연결이 아니면 클립보드가 없음")))
     .then(() => p.say("복사했어요. Claude Code에 붙여 넣어 쓰세요."), () => p.say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
