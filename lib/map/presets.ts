@@ -18,6 +18,7 @@ export const LS_NOTE = "바이브코딩에 바로 쓰는 것: 클로드코드 �
 /** LS점프업 고른 목록(tech_key): 규칙에 안 걸려도 넣는 것. 목록에 있는데 지도에 아직 없으면 들어오는 날 자동으로 보인다 */
 export const LS_PICKS = new Set([
   "concept:skills", "concept:subagents", "concept:hooks", "concept:slash-commands", "concept:harness", "concept:plan-mode", "concept:context-engineering", "concept:headless",
+  "github:herdrdev/herdr", "concept:loop-harness", // DataCollector가 공식 출처를 확인한 seed(202611240200, 운영 적용 전에는 지도에 없어 그냥 안 보임)
 ]);
 /** LS점프업(P-12p 사용자): 규칙(스킬 · 플러그인 · 개념 · 개발 도구(코딩 CLI) · "AI 작업 방식" 분야) 또는 고른 목록. 위험 등급도 숨기지 않는다(지도 규칙대로 등급 표시) */
 export function isLsJumpUp(n: { type: string | null; techKey: string | null; attrs: { field: string } }): boolean {
