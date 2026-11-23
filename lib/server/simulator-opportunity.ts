@@ -23,7 +23,7 @@ export async function pickDemoTech(db: SupabaseClient): Promise<DemoTech | null>
   const ids = ((demo.data ?? []) as { id: string }[]).map((p) => p.id);
   if (ids.length === 0) return null;
   const mine = await db.from("my_technologies").select("tech_id, technologies(tech_key, is_simulated)").in("owner_id", ids).is("hidden_at", null);
-  if (mine.error) throw fail("시연 계정의 내 기술을 읽지 못함", mine.error.message);
+  if (mine.error) throw fail("시연 계정의 사용 중인 항목을 읽지 못함", mine.error.message);
   type Row = { tech_id: string | null; technologies: { tech_key: string; is_simulated: boolean } | null };
   const real = ((mine.data ?? []) as unknown as Row[])
     .filter((r) => r.tech_id && r.technologies && !r.technologies.is_simulated)
@@ -105,7 +105,7 @@ async function saveAndNotify(ctx: Ctx, ids: { newTechId: string; observationId: 
 
 export async function runOpportunitySimulator(deps: SimulatorDeps, input: { adminId: string }): Promise<OpportunityResult> {
   const demo = await pickDemoTech(deps.db);
-  if (!demo) return { started: false, reason: "시연 계정에 내 기술이 없어 같은 역할 관계를 만들 상대가 없어요. 시연 계정으로 저장소를 먼저 등록해 주세요." };
+  if (!demo) return { started: false, reason: "시연 계정에 사용 중인 항목이 없어 같은 역할 관계를 만들 상대가 없어요. 시연 계정으로 저장소를 먼저 등록해 주세요." };
   const runId = await startRun(deps.db, { trigger: "simulator", startedBy: input.adminId });
   const ctx: Ctx = { deps, flow: { runId, current: "normalize" }, demo, adminId: input.adminId };
   try {

@@ -7,7 +7,7 @@ const names = (fs: { name: string; count: number }[]) => fs.map((f) => `${f.name
 
 test("내 판단 폴더는 담은 기술(적용 후보) → ★ 관심 → 보류 → 내 기술 → 그 외 순서 고정, 빈 폴더는 없음", () => {
   const items = [it("a", { judgment: "mine" }), it("b", { judgment: "other" }), it("c", { judgment: "candidate" }), it("d", { judgment: "mine" })];
-  assert.deepEqual(names(buildTechTree(items, ["judgment"])), ["담은 기술 1", "내 기술 2", "그 외 1"]);
+  assert.deepEqual(names(buildTechTree(items, ["judgment"])), ["담은 기술 1", "사용 중 2", "그 외 1"]);
 });
 
 test("2단 묶기: 1단 폴더 안에 2단 폴더, 폴더 안 차례는 넘겨받은 그대로, 2단이 1단과 같으면 무시", () => {

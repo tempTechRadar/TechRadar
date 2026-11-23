@@ -6,6 +6,7 @@ import { GRADE_RANK, isConcept, type Grade } from "../map/build-map.ts";
 export type StatusTechRow = {
   id: string; tech_id: string | null; manual_name: string | null; hidden_at: string | null; read_at: string | null;
   collect_error_kind: string | null; grade: Grade; /** 읽은 파일(package.json · .mcp.json 등). 보드 W3 출처 파일 */ source_file?: string | null; technologies: { display_name: string; tech_key?: string | null; type?: string | null } | null;
+  /** 마지막으로 확인에 성공한 때(수집 오류 줄은 read_at이 아니라 이것이 "마지막 확인") */ last_checked_ok_at?: string | null;
 };
 /** repo_*: 레포 기본 정보(P-12i). repo_meta_at = 마지막으로 읽은 때, repo_meta_error = 마지막 읽기의 수집 오류(있으면 값은 그 전 것) */
 export type StatusProjectRow = { id: string; name: string; kind: "repo" | "local"; repo_url?: string | null; my_technologies: StatusTechRow[]; runs?: ReadRun[];

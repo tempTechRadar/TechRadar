@@ -42,7 +42,7 @@ export async function readChange(db: SupabaseClient, changeId: string): Promise<
 
 /** 이 기술들을 쓰는 줄(숨김·보관·시연 계정 여부와 등록 시각 포함) */
 export async function readUsages(db: SupabaseClient, techIds: string[]): Promise<(TechUsage & { registeredAt: string; version: string | null })[]> {
-  const mine = await readAll("내 기술을 읽지 못함", (from, to) =>
+  const mine = await readAll("사용 중인 항목을 읽지 못함", (from, to) =>
     db.from("my_technologies").select("id, owner_id, tech_id, project_id, version, hidden_at, created_at").in("tech_id", techIds).order("id").range(from, to));
   const projects = await readIn("프로젝트를 읽지 못함", mine.map((m) => m.project_id), (chunk) => db.from("projects").select("id, archived_at").in("id", chunk));
   const owners = await readIn("사용자를 읽지 못함", mine.map((m) => m.owner_id), (chunk) => db.from("profiles").select("id, is_demo").in("id", chunk));

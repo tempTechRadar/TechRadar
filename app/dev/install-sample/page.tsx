@@ -19,7 +19,7 @@ export default function InstallSamplePage() {
   return (
     <main>
       <h1>설치 프롬프트 샘플 (실제 기록 아님)</h1>
-      <p role="note" style={{ background: "#fff1d6", padding: "8px 12px", borderRadius: 8 }}>개발 컴퓨터에서만 보이는 화면이에요. 가짜 내 기술 5개로 그렸어요. inspector는 &quot;고친 버전으로 올리기&quot;를 고른 것으로 두었어요.</p>
+      <p role="note" style={{ background: "#fff1d6", padding: "8px 12px", borderRadius: 8 }}>개발 컴퓨터에서만 보이는 화면이에요. 가짜 사용 중인 항목 5개로 그렸어요. inspector는 &quot;고친 버전으로 올리기&quot;를 고른 것으로 두었어요.</p>
       <InstallScreen rows={ROWS} pins={[["c", "0.16.6"]]} />
       <ImportScreen />
     </main>

@@ -10,7 +10,7 @@ const DONE: Card = {
   state: "done",
   createdAtLabel: "11월 19일 14:02",
   comparison: {
-    headers: { mine: "내 기술 sample-mcp-a", theirs: "대체 sample-mcp-d" },
+    headers: { mine: "사용 중인 항목 sample-mcp-a", theirs: "대체 sample-mcp-d" },
     rows: [
       { item: "하는 일", mine: link("원격 MCP 서버에 연결해 줘요", "https://example.com/a"), theirs: link("원격 MCP 연결 프록시", "https://example.com/b") },
       { item: "보안 등급과 이유", mine: link("위험 — 심각한 문제가 있어요", "https://example.com/a"), theirs: link("통과 — 알려진 문제가 없어요", null) },

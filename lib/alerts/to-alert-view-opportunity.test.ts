@@ -28,11 +28,11 @@ const opportunityRecord: AlertRecord = {
 test("적용 기회 상세는 조사 없는 제목, 나오게 된 이유(확정한 날, 한국 시간), 비교표를 준다", () => {
   const view = toAlertView(opportunityRecord);
 
-  assert.equal(view.title, "[적용 기회] 같은 역할의 새 기술 mcp-new (내 기술: mcp-mine)");
-  assert.equal(view.reasonLine, "내 기술(mcp-mine)과 같은 역할로 확정됐어요. 확정한 날: 11월 18일.");
+  assert.equal(view.title, "[적용 기회] 같은 역할의 새 기술 mcp-new (사용 중인 항목: mcp-mine)");
+  assert.equal(view.reasonLine, "사용 중인 항목(mcp-mine)과 같은 역할로 확정됐어요. 확정한 날: 11월 18일.");
   assert.deepEqual(view.lines, []);
   assert.equal(view.canCandidate, true); // 적용 기회는 고친 버전이 필요 없다
-  assert.deepEqual(view.comparison?.headers, { mine: "내 기술 mcp-mine", theirs: "새 기술 mcp-new" });
+  assert.deepEqual(view.comparison?.headers, { mine: "사용 중인 항목 mcp-mine", theirs: "새 기술 mcp-new" });
   assert.equal(view.comparison?.rows.length, 2);
 });
 
@@ -61,7 +61,7 @@ test("저장된 비교표가 없거나 확정한 날을 모르면 있는 만큼�
   assert.equal(noComparison.title, "[적용 기회] mcp-new");
   assert.equal(noComparison.reasonLine, null);
   assert.equal(noComparison.comparison, null);
-  assert.equal(noDate.reasonLine, "내 기술(mcp-mine)과 같은 역할로 확정됐어요. 확정한 날: 찾지 못함.");
+  assert.equal(noDate.reasonLine, "사용 중인 항목(mcp-mine)과 같은 역할로 확정됐어요. 확정한 날: 찾지 못함.");
 });
 
 test("보안 경고에는 이유 줄과 비교표가 없다", () => {

@@ -103,7 +103,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
   const inStage = s.techs.find((t) => t.id === techId);
   const t = pool.find((x) => x.id === techId);
   const name = t?.name ?? inStage?.name ?? "이름 모름";
-  const facts = t ? [t.field, t.sub, t.mark ? "담은 기술" : null, t.projects ? `내 프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
+  const facts = t ? [t.field, t.sub, t.mark ? "담은 기술" : null, t.projects ? `프로젝트 ${t.projects}개` : null].filter(Boolean).join(" · ") : null;
   return (
     <>
       <header className="insp-head">

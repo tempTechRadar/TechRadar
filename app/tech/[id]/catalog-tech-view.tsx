@@ -25,7 +25,7 @@ export function CatalogTechView({ d, star, markBar, usingText, notes, guest = fa
         <p>
           <span className={`badge badge-${GRADE_TONE[t.grade]}`}>{gradeText(t.grade, t.techKey, t.type)}</span>{" "}
           {t.collectErrorKind ? <span className="badge badge-warning">수집 오류</span> : null}{" "}
-          {d.mine.length ? <span className="badge badge-neutral">내 기술 · 쓰는 중</span> : null}{" "}
+          {d.mine.length ? <span className="badge badge-neutral">사용 중</span> : null}{" "}
           {STATUS_KO[t.status] ? <span className="badge badge-warning">{STATUS_KO[t.status]}</span> : null}
         </p>
         {t.oneLiner ? <p>{t.oneLiner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
@@ -47,8 +47,8 @@ export function CatalogTechView({ d, star, markBar, usingText, notes, guest = fa
             <p>{usingText}</p>
             {d.mine.length ? (
               <>
-                <h3>내 프로젝트에서</h3>
-                <ul>{d.mine.map((m) => <li key={m.id}><Link href={`/projects/tech/${m.id}`}>{m.projectName || "내 기술"} · 내 버전 · 사용기</Link></li>)}</ul>
+                <h3>프로젝트에서</h3>
+                <ul>{d.mine.map((m) => <li key={m.id}><Link href={`/projects/tech/${m.id}`}>{m.projectName || "사용 중인 항목"} · 내 버전 · 사용기</Link></li>)}</ul>
               </>
             ) : null}
           </article>
@@ -75,13 +75,13 @@ export function CatalogTechView({ d, star, markBar, usingText, notes, guest = fa
                 </li>
               ))}</ul>
             ) : <p className="muted">관리자가 확인한 비교군이 아직 없어요.</p>}
-            {d.peers.length && d.mine.length ? <p><Link href={`/compare`}>내 기술과 비교군 비교하기</Link></p> : null}
+            {d.peers.length && d.mine.length ? <p><Link href={`/compare`}>사용 중인 항목과 비교군 비교하기</Link></p> : null}
           </article>
           <article className="card" aria-labelledby="notes-title">
             {/* 사용기 읽기(P-24, 쓴 사람은 보이지 않음). 손님에게는 수만(글은 로그인 사용자에게만, 11-22 사용자 결정). 쓰기 · 도움이 됐어요는 내 기술 상세에서 */}
             <h2 id="notes-title">사용기 {notes ? notes.total : ""}</h2>
             {notes === null || notes === undefined ? <p className="notice notice-error" role="alert">사용기를 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>
-              : guest ? <p className="muted">{notes.total ? <>사용기 {notes.total}개 — <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 볼 수 있어요.</> : <>아직 사용기가 없어요. <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 내 프로젝트에 넣고 사용기를 쓸 수 있어요.</>}</p>
+              : guest ? <p className="muted">{notes.total ? <>사용기 {notes.total}개 — <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 볼 수 있어요.</> : <>아직 사용기가 없어요. <Link href={`/login?next=${encodeURIComponent(`/tech/${t.id}`)}`}>로그인</Link>하면 프로젝트에 넣고 사용기를 쓸 수 있어요.</>}</p>
               : notes.top.length ? <ul>{notes.top.map((n) => <li key={n.id}><b>{n.usedFor}</b> · {n.result} · 팁: {n.tip}<span className="muted"> · 도움이 됐어요 {n.helpfulCount}</span></li>)}</ul>
               : <p className="muted">아직 사용기가 없어요.</p>}
           </article>

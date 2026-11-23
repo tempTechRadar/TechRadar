@@ -4,7 +4,7 @@ import { KIND_KO, MANUAL_KIND, UNSORTED, type MapNode } from "./build-map.ts";
 
 export const DIMS = ["field", "sub", "kind", "host", "grade", "project"] as const;
 export type Dim = (typeof DIMS)[number];
-export const DIM_KO: Record<Dim, string> = { field: "하는 일", sub: "세부 갈래", kind: "종류", host: "쓰는 곳", grade: "보안 등급", project: "내 프로젝트" };
+export const DIM_KO: Record<Dim, string> = { field: "하는 일", sub: "세부 갈래", kind: "종류", host: "쓰는 곳", grade: "보안 등급", project: "프로젝트" };
 export const MAX_LEVELS = 3;
 
 /** 기간 칩: 들어온 지 하루 · 7일 · 30일 안(11-21 사용자: 일 · 주 · 월 보기) */

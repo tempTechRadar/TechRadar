@@ -35,11 +35,11 @@ test("보안 경고 알림을 목록 줄과 상세 문구로 바꾼다(등급은
   assert.equal(view.statusLabel, "판단 대기");
   assert.equal(view.statusTone, "warning");
   assert.equal(view.title, "[보안 경고] mcp-remote — 주의 → 위험");
-  assert.equal(view.subtitle, "내 프로젝트: TechRadar");
+  assert.equal(view.subtitle, "프로젝트: TechRadar");
   assert.deepEqual(view.lines, [
     "무엇이 바뀌었나: CVE-2025-6514 (심각도 HIGH) (https://osv.dev/CVE-2025-6514, 2026-11-18 10:30)",
     "쉬운 이유: 외부에서 내 컴퓨터 명령을 실행시킬 수 있어요",
-    "내 프로젝트: TechRadar · package.json",
+    "프로젝트: TechRadar · package.json",
   ]);
 });
 
@@ -94,9 +94,9 @@ test("판단한 알림은 부제에 판단이 붙고 상세에 '내 판단' 줄�
   const hold = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "hold", reason: "지금은 바꿀 시간이 없어요", fixedVersion: null, judgedAt: "2026-11-18T05:00:00Z" } });
   const candidate = toAlertView({ ...securityRecord, status: "done", judgment: { decision: "candidate", reason: null, fixedVersion: "0.1.16", judgedAt: "2026-11-18T05:00:00Z" } });
 
-  assert.equal(hold.subtitle, "내 프로젝트: TechRadar · 판단: 보류");
+  assert.equal(hold.subtitle, "프로젝트: TechRadar · 판단: 보류");
   assert.equal(hold.judgmentLine, "보류 · 이유: 지금은 바꿀 시간이 없어요");
-  assert.equal(candidate.subtitle, "내 프로젝트: TechRadar · 판단: 적용 후보");
+  assert.equal(candidate.subtitle, "프로젝트: TechRadar · 판단: 적용 후보");
   assert.equal(candidate.judgmentLine, "적용 후보 · 고친 버전 0.1.16");
   assert.equal(toAlertView(securityRecord).judgmentLine, null);
 });

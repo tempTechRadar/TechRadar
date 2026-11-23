@@ -59,7 +59,7 @@ function buildSecurityWarning(input: AlertMessageInput): AlertMessage {
     lines: [
       `무엇이 바뀌었나: ${orNotFound(input.causeText)} (${orNotFound(input.source)}, ${when})`,
       `쉬운 이유: ${orNotFound(input.easyReason)}`,
-      `내 프로젝트: ${orNotFound(input.projectName)} · ${orNotFound(input.sourceFile)}`,
+      `프로젝트: ${orNotFound(input.projectName)} · ${orNotFound(input.sourceFile)}`,
     ],
   };
 }

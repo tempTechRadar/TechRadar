@@ -41,8 +41,8 @@ export const chunks = (ids: string[]) => Array.from({ length: Math.ceil(ids.leng
  * 공개 목록에서 온 기술만(ADR 0029 4·5항): 사라진 기술 · 누군가의 저장소에서만 생긴 줄을 빼고, 시뮬레이터 기술은 시연 계정에만.
  * 이 규칙은 이 두 곳에만 둔다(DB 조건 listedTechs, 이미 읽은 줄 isListed): 카탈로그 · 새 기술 · 기술 넣기 · 추천 · 기술 상세 · 비교군이 함께 쓴다
  */
-export const listedTechs = (db: SupabaseClient, columns: string, isDemo = false) => {
-  const q = db.from("technologies").select(columns).neq("status", "gone").not("one_liner_source", "is", null);
+export const listedTechs = (db: SupabaseClient, columns: string, isDemo = false, countOnly = false) => {
+  const q = db.from("technologies").select(columns, countOnly ? { count: "exact", head: true } : undefined).neq("status", "gone").not("one_liner_source", "is", null);
   return isDemo ? q : q.eq("is_simulated", false);
 };
 export const isListed = (r: { status?: unknown; one_liner_source?: unknown; is_simulated?: unknown }, isDemo = false) =>
@@ -123,7 +123,7 @@ export async function readMapInput(db: SupabaseClient, userId: string, isDemo: b
     db.from("tech_marks").select("tech_id, status, reason, updated_at").eq("user_id", userId),
     db.from("alerts").select("changes(tech_id), judgments(decision, judged_at)").eq("user_id", userId).eq("status", "done"), // 알림에서 한 판단(지도 판단 칩도 후보 탭과 같은 계산)
   ]);
-  const mine = rowsOrThrow(mineRes, "내 기술을 읽지 못함").map(toMine);
+  const mine = rowsOrThrow(mineRes, "사용 중인 항목을 읽지 못함").map(toMine);
   const markRows = rowsOrThrow(markRes, "내 판단 표시를 읽지 못함");
   const marks: Mark[] = markRows.map((r) => ({ techId: r.tech_id, status: r.status, reason: r.reason }));
   const decided = decidedMarks(markRows, rowsOrThrow(judgedRes, "알림 판단을 읽지 못함"));

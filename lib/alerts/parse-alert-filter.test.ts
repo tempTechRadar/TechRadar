@@ -11,6 +11,7 @@ test("주소의 값을 거르기 조건으로 바꾼다(기간은 지금부터 �
     from: "2026-11-11T03:00:00.000Z",
   });
   assert.deepEqual(parseAlertFilter({ period: "30d" }, now), { from: "2026-10-19T03:00:00.000Z" });
+  assert.deepEqual(parseAlertFilter({ period: "1d" }, now), { from: "2026-11-17T03:00:00.000Z" });
 });
 
 test("값이 없거나 모르는 값이면 그 조건은 걸지 않는다(전체)", () => {
