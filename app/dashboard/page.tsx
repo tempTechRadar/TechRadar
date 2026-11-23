@@ -29,7 +29,7 @@ import "./board.css";
 // 띠 = 안내서 필수 대시보드(기간 하나로 거르기 · 판단 대기 / 완료로 상태 · 숫자 = 목록 · 없음 ≠ 읽지 못함). 판: ① 진행 중 프로젝트(+ 보관함) ② 지도 · 소식 ③ 청사진 ④ 직접 추가.
 // 레포 하나의 항목 표 · 숨기기 · 이름 · 보관은 레포 상세 /projects/[id](K2, 프로젝트 거르기를 대신).
 // 판마다 따로 읽고(Suspense) 읽는 중 · 없음 · 읽지 못함을 나눠 보인다(불변 2). 로그인 전에는 공개 값(새 기술 수 · 뜨는 것 · 소식)만. 본인 데이터만(user_id · owner_id 조건 + RLS, 불변 5)
-export const metadata = { title: "프로젝트 관리 · TechRadar" };
+export const metadata = { title: "프로젝트 · TechRadar" };
 type Params = { period?: string } & ManageQuery;
 
 // 등록 · 다시 읽기(서버 액션)가 이 화면의 진행 중 프로젝트 판에서 돈다: 저장소 파일 · 코드 파일 · OSV(1초 간격)를 다 읽을 시간(옛 /projects와 같음). Hobby 최대
@@ -77,7 +77,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="page board-page"><h1>프로젝트 관리</h1>{children}</main>;
+  return <main className="page board-page"><h1>프로젝트</h1>{children}</main>;
 }
 
 /** 로그인 전: 내 데이터 판 자리는 로그인 안내, 공개 값(오늘의 새 기술 수 · 뜨는 것 · 소식)만 실제 값(내 취약점은 빠짐) */

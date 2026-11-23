@@ -33,7 +33,7 @@ export default async function MyRunsPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="page">
-      <p><Link href="/dashboard">← 프로젝트 관리</Link></p>
+      <p><Link href="/dashboard">← 프로젝트</Link></p>
       <h1>내 실행 기록</h1>
       <p>내 저장소를 읽은 실행(처음 등록 읽기·다시 읽기)만 보여요. 실제로 실행한 기록대로 칠해지고, 기록이 없는 상자는 회색이에요.</p>
       {readError ? <p className="notice notice-error" role="alert"><strong>실행 기록을 불러오지 못했어요.</strong> 없는 게 아니에요. <Link href={`/projects/runs${again ? `?${again}` : ""}`}>다시 불러오기</Link></p> : null}

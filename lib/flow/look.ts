@@ -11,5 +11,5 @@ export const LOOK: Record<NodeState, { fill: string; stroke: string; label: stri
   disabled: { fill: "#f6f5f1", stroke: "#cfcabe", label: "꺼 둠(3순위)", dash: "3 4" },
 };
 
-/** 그림 안 글자·바탕 색 */
-export const FLOW_INK = { name: "#2c2a26", state: "#5b564c", badgeBg: "#2c2a26", canvas: "#fbfaf7", focus: "#1f4fbf" };
+/** 그림 안 글자·바탕 색. 바탕은 어두운 관리자 판 위에서 눈부시지 않게 살짝 어두운 종이(P-12n R3-5) */
+export const FLOW_INK = { name: "#2c2a26", state: "#5b564c", badgeBg: "#2c2a26", canvas: "#eeece6", focus: "#1f4fbf" };

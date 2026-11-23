@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { backTo, LoginNeeded } from "../login/login-needed";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { chipHref, currentOf } from "@/lib/alerts/alert-chips";
-import { FilterSelect, KIND_OPTIONS, PERIOD_OPTIONS } from "./filter-select";
+import { FilterSelect, PERIOD_OPTIONS } from "./filter-select";
 import { PageSkeleton } from "../page-skeleton";
 
 // 알림 목록(IA-6, PRD-F14). 판단 버튼은 P-8, 대응안 초안은 P-13에서 상세에 붙인다.
@@ -56,10 +56,10 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
         <div role="group" aria-label="상태">{chip("status", "pending", `판단 대기 ${scopedPending}`)}{chip("status", "done", `완료 ${inScope.length - scopedPending}`)}{chip("status", "", `상태 전체 ${inScope.length}`)}</div>
         <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "model_eol", "모델 종료")}{chip("kind", "", "종류 전체")}</div>
       </nav>
-      {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림) */}
+      {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림). 상태 · 종류는 위 칩만(P-12n R3-4: 같은 조건이 두 곳이던 것), 폼은 칩 값을 그대로 싣는다 */}
       <form key={JSON.stringify(params)} className="filters" aria-label="알림 필터">
-        <FilterSelect label="종류" name="kind" value={params.kind} options={KIND_OPTIONS} />
-        <FilterSelect label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
+        {now.status ? <input type="hidden" name="status" value={now.status} /> : null}
+        {now.kind ? <input type="hidden" name="kind" value={now.kind} /> : null}
         <FilterSelect label="프로젝트" name="project" value={params.project} options={projectOptions(records)} />
         <FilterSelect label="기간" name="period" value={params.period} options={PERIOD_OPTIONS} />
         <button type="submit" className="btn">필터</button>

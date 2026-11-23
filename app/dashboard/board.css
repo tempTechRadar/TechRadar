@@ -7,8 +7,12 @@ main.page.board-page { max-width: 1200px; font-size: 13px; padding: 0; backgroun
 .page.board-page input, .page.board-page select { min-height: var(--hit); font-size: 13px; }
 .page.board-page .notice { margin: 0 0 var(--sp-2); padding: 6px var(--sp-2); font-size: 13px; }
 .board { display: grid; gap: var(--sp-2); }
-.board-bar { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+.board-bar { display: flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; justify-content: flex-end; }
 .board-bar .muted { font-size: 12px; }
+/* 배치 도구(배치 바꾸기 · 기본 배치로 · + 판)는 내용보다 눈에 띄지 않는 작은 보조 줄(P-12n): 테두리 없는 흐린 글자, 올리면 · 누름 상태만 청록 */
+.page.board-page .board-bar .btn { min-height: var(--hit-sm); padding: 0 8px; border-color: transparent; background: none; color: var(--muted); font-size: 12px; font-weight: 500; }
+.page.board-page .board-bar .btn:hover, .page.board-page .board-bar .btn[aria-pressed="true"], .page.board-page .board-bar .btn[aria-expanded="true"] { border-color: var(--line-d); color: var(--ink); }
+.page.board-page .board-bar .btn[aria-pressed="true"] { border-color: var(--scan); }
 
 /* 판(배경) = 옅은 별점(한 칸 폭 --cw × 한 줄 24px = 스냅 칸). 점은 글자 · 판보다 늘 옅게 */
 .board-canvas { position: relative; width: 100%; border-radius: var(--r-xl); background-color: transparent;
@@ -50,10 +54,9 @@ main.page.board-page { max-width: 1200px; font-size: 13px; padding: 0; backgroun
 .band-cell:focus-visible { outline: var(--focus); outline-offset: -2px; }
 .band-label { font-size: 12px; color: var(--muted); }
 .band-cell strong { font-family: var(--mono); font-size: 20px; font-weight: 700; line-height: 1.2; }
-/* 칸 차례는 widgets.tsx Band의 cells: 1 오늘의 새 기술(탐색 청록) · 4 위험 발생 · 5 판단 대기 */
-.band-cells > li:nth-child(1) strong { color: var(--scan); }
+/* 칸 차례는 widgets.tsx Band의 cells: 1 오늘의 새 기술 · 4 위험 발생 · 5 판단 대기(얼음 파랑, P-12n 공통 색 뜻: 청록은 주 행동 · 탐색선만) */
 .band-cells > li:nth-child(4) strong { color: var(--danger); }
-.band-cells > li:nth-child(5) strong { color: var(--caution); }
+.band-cells > li:nth-child(5) strong { color: var(--pending); }
 .band-fail { color: var(--ink-danger); font-size: 12px; } .band-none, .band-note { color: var(--muted); font-size: 12px; }
 .band-period label { display: inline-flex; gap: var(--sp-1); align-items: center; font-size: 12px; color: var(--muted); }
 

@@ -22,7 +22,7 @@ export function ProjectManage({ project }: { project: ManageProject }) {
         <p>보관하면 이 레포의 항목이 보드 · 지도에서 빠지고, 이 레포에서만 쓰던 항목의 새 알림도 더는 오지 않아요. 이미 온 알림과 판단 기록은 그대로 남고, 지우지 않아서 보드의 &quot;보관함&quot;에서 언제든 되살릴 수 있어요.</p>
         <form action={archiveProjectAction}>
           <input type="hidden" name="id" value={project.id} />
-          <button className="btn btn-sm" type="submit">정말 보관하기</button>
+          <button className="btn btn-sm btn-danger" type="submit">정말 보관하기</button>
         </form>
       </details>
     </>
