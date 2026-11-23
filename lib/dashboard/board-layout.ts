@@ -4,12 +4,13 @@ export const CELL = 24, COLS = 48;
 export const MIN_W = 8, MIN_H = 4, MAX_X = 200;
 export type Box = { id: string; x: number; y: number; w: number; h: number; hidden?: boolean };
 
-/** 기본 배치(P-12k K1 컴팩트 타공보드): 1440×900 첫 화면에 판 4개가 다 들어오게(27줄 ≈ 650px). 왼쪽 진행 중 프로젝트 · 아래 직접 추가, 오른쪽 지도 · 소식 · 아래 청사진 */
+/** 기본 배치: 판 높이 = 내용(P-12n: 판이 내용보다 커서 빈 곳이 많던 것, 22줄 ≈ 530px). 왼쪽 진행 중 프로젝트(레포 3~4줄 + 등록 · 보관함) · 아래 직접 추가(한 줄 폼),
+ *  오른쪽 지도 · 소식 · 아래 청사진. 넘치면 판 안에서 스크롤(크게 보기 · 배치 바꾸기로 키움) */
 const DEFAULTS: Record<string, Omit<Box, "id">> = {
-  repos: { x: 0, y: 0, w: 30, h: 20 },
-  radar: { x: 31, y: 0, w: 17, h: 17 },
-  blueprint: { x: 31, y: 18, w: 17, h: 9 },
-  add: { x: 0, y: 21, w: 30, h: 6 },
+  repos: { x: 0, y: 0, w: 30, h: 12 },
+  radar: { x: 31, y: 0, w: 17, h: 13 },
+  blueprint: { x: 31, y: 14, w: 17, h: 8 },
+  add: { x: 0, y: 13, w: 30, h: 5 },
 };
 export function defaultLayout(ids: string[]): Box[] {
   let bottom = 0;

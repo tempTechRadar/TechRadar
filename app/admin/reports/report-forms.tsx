@@ -18,7 +18,7 @@ export function VisibleNoteForm({ id, hasPending }: { id: string; hasPending: bo
     <form style={ROW} aria-label="글 숨기기">
       <input type="hidden" name="id" value={id} />
       <Reason id={`reason-${id}`} />
-      <button type="submit" formAction={hideNoteAction} style={BTN}>글 숨기기</button>
+      <button type="submit" formAction={hideNoteAction} style={BTN} className="danger">글 숨기기</button>
       {hasPending ? <button type="submit" formAction={handleReportsAction} style={BTN}>신고만 처리함으로 (글은 그대로)</button> : null}
     </form>
   );
