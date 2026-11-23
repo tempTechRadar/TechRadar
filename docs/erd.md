@@ -2,7 +2,7 @@
 
 > **승인: 2026-11-18 회의**(김영식·차세일·황재웅, 바뀐 것 없음 — 회의 중 팀원이 전달). 이후 바뀌면 "바뀐 기록"에 이유를 적는다.
 
-> 상태: **승인된 설계(11-18 회의). 실제 DB와 1차(11-18, P-30까지)·2차(11-19, P-18c까지) 대조 완료(7절, 표·칸 이름만), 팀 확인 대기.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용할 때마다 7절에서 대조한다(E5). P-8의 `alerts.run_id` 칸은 erd에 칸만 더했고 실제 DB와는 아직 대조하지 않았다.
+> 상태: **승인된 설계(11-18 회의). 실제 DB와 1차(11-18, P-30까지)·2차(11-19, P-18c까지)·3차(11-20)·4차(11-23 16시, P-12s까지) 대조 완료(7절, 표·칸 이름 · 칸 수 · 정책 수), 팀 확인 대기. 최종 대조와 서명은 동결(21:00) 뒤.** erd 인터뷰 E1–E6(2026-11-18, 팀원 1명, 전부 추천대로)과 `docs/데이터설계.md`·`docs/spec.md` 10-1절을 바탕으로 Claude가 썼다. 새 팀 Supabase 프로젝트는 뼈대 단계에서 승인을 받아 만들고, 마이그레이션을 적용할 때마다 7절에서 대조한다(E5). P-8의 `alerts.run_id` 칸은 erd에 칸만 더했고 실제 DB와는 아직 대조하지 않았다.
 > 범위: **1·2순위 테이블은 완전하게, 3순위 테이블은 "3순위"로 표시**(나중 마이그레이션), 노션 테이블은 다음 버전이라 넣지 않는다(E4).
 
 ## 0. 공통 규칙
@@ -199,6 +199,9 @@ UK: (project_id, tech_id), (project_id, manual_name).
 | collect_error_kind | text | | | 지금 수집 오류면 종류. 성공하면 비움 |
 | one_liner | text | | | 한 줄 설명 |
 | one_liner_source | text | | | 그 설명의 출처 링크 |
+| one_liner_ko | text | | | 한 줄 설명을 AI가 옮긴 한국어 개요(P-12r, ADR 0045). 200자 이하(check), 번역기는 120자 넘으면 버림. 화면은 "AI 번역" + 원문 보기 |
+| one_liner_ko_src | text | | | 번역한 그때의 원문. `one_liner`와 다르면 서버(`koOf`)가 번역을 내보내지 않음(옛 번역 숨김) |
+| one_liner_ko_at | timestamptz | | | 번역한 시각 |
 | repo_url · license | text | | | 저장소, 라이선스 |
 | last_activity_at | timestamptz | | | 마지막 업데이트 |
 | last_activity_kind | text | | | `release` / `commit` |
@@ -385,7 +388,7 @@ UK: (kind, ecosystem, value).
 | name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
 | project_id | uuid | | FK→projects (지우면 null) | 고른 프로젝트(본인 것만, 함수가 확인) |
 | board | jsonb | ✔ | | `[[{name, techs:[{id,name}]}]]` — 바깥 = 순서, 안 = 같이(나란히). 열 1~12개 · 128KB 이하(check). 모양 · 단계 이름 1~20자 · 나란히 1~4 · 기술 8개 · 있는 기술인지 · 위험 등급은 `confirm_blueprint`가 막고, 기술 이름은 DB에서 다시 읽어 넣음. P-12e부터는 graph의 투영(깊이 = 열, 같은 깊이는 y → x 순) |
-| graph | jsonb | | | P-12e M1. 캔버스 그래프 `{v:2, stages:[{id,name,x,y,techs}], edges:[{from,to}]}`, 256KB 이하(check). 단계 1~48 · 깊이 12 · 나란히 4 · 기술 8 · 연결 200 · 고리 없음은 `confirm_blueprint_v2`가 막음. 옛 줄은 null. **P-12h(11-22):** 단계마다 `note`(200자로 자름, 비면 뺌, `blueprint_graph_clean`이 지킴, board에는 안 넣음). 옛 `confirm_blueprint` v1은 실행 권한 회수(M5). **P-12j(11-22 밤):** `links:[{from,to}]`(끝 = `기술id@단계id`, 사용자 표시 관계). `blueprint_graph_clean`이 없는 기술 · 자기 자신 · 겹침 · 모양 틀림인 선만 빼고 100개까지, 비면 키 없음, board에는 안 넣음 |
+| graph | jsonb | | | P-12e M1. 캔버스 그래프 `{v:2, stages:[{id,name,x,y,techs}], edges:[{from,to}]}`, 256KB 이하(check). 단계 1~48 · 깊이 12 · 나란히 4 · 기술 8 · 연결 200 · 고리 없음은 `confirm_blueprint_v2`가 막음. 옛 줄은 null. **P-12h(11-22):** 단계마다 `note`(200자로 자름, 비면 뺌, `blueprint_graph_clean`이 지킴, board에는 안 넣음). 옛 `confirm_blueprint` v1은 실행 권한 회수(M5). **P-12j(11-22 밤):** `links:[{from,to}]`(끝 = `기술id@단계id`, 사용자 표시 관계). `blueprint_graph_clean`이 없는 기술 · 자기 자신 · 겹침 · 모양 틀림인 선만 빼고 100개까지, 비면 키 없음, board에는 안 넣음. **P-12o(11-23):** `sections:[{id,name,stageIds,techs:[{id,name}]}]`(섹션: 단계 2개 이상 · 한 단계는 한 섹션에만 · 이름 1~20자 · 공통 기술 8개 · 섹션 24개, `blueprint_graph_clean`이 같은 규칙으로 맞지 않는 섹션만 빼고 없어진 단계는 지움, 비면 키 없음, board에는 안 넣음) |
 | template_id | uuid | | FK→blueprint_templates (지우면 null) | P-12e. "이 템플릿으로 시작"한 템플릿(갤러리의 쓰인 수) |
 | created_at | timestamptz | ✔ | | |
 
@@ -399,7 +402,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | author_id | uuid | ✔ | FK→profiles (지우면 함께) | 기본값 `auth.uid()`. 갤러리 함수는 내보내지 않음(ADR 0036 2) |
 | kind | text | ✔ | | `frame` / `combo` |
 | name | text | ✔ | | 1~60자, 앞뒤 빈칸 없음(check) |
-| graph | jsonb | ✔ | | blueprints.graph와 같은 모양 · 256KB 이하. 틀은 기술을 비우고 저장. 단계 메모는 `save_blueprint_template`가 빼고 저장(P-12h). 관계선(`links`)은 조합 템플릿에 남고 틀은 기술이 없어 빠짐(P-12j) |
+| graph | jsonb | ✔ | | blueprints.graph와 같은 모양 · 256KB 이하. 틀은 기술을 비우고 저장. 단계 메모는 `save_blueprint_template`가 빼고 저장(P-12h). 관계선(`links`)은 조합 템플릿에 남고 틀은 기술이 없어 빠짐(P-12j). 섹션(`sections`)은 템플릿에도 남고 틀은 공통 기술을 비움(P-12o) |
 | board | jsonb | ✔ | | graph의 투영(미리 보기) |
 | is_public | boolean | ✔ | | 기본 false. 작가가 공개를 눌러야 갤러리에 보임(ADR 0036 1) |
 | hidden_at | timestamptz | | | 관리자 숨김. 숨기면 갤러리에서 빠지고 작가가 다시 공개 못 함 |
@@ -483,7 +486,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 **ai_calls** — Claude 호출 기록
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
-| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) / `translate`(P-12r) / `blueprint_guide`(P-12s) / `map_find`(P-12w, 운영 적용 11-23) |
+| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) / `translate`(P-12r 한국어 개요, 11-23) / `blueprint_guide`(P-12s 청사진 가이드, 11-23) / `map_find`(P-12w 지도 찾기 도우미, 11-23 밤). 운영 제약의 허용 값 8개(4차 대조 뒤 18:40 다시 읽음) |
 | user_id | uuid | | FK→profiles | 사람이 요청했으면 |
 | input_hash | text | ✔ | | 같은 입력은 다시 보내지 않음 |
 | tokens_in · tokens_out | int | | | |
@@ -559,7 +562,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | judgments | **본인 알림에만, 사용자 로그인 토큰으로만 만들기.** 관리자 읽기만. 서비스 키로 쓰는 코드 없음(테스트) |
 | tech_marks · tech_mark_events | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `set_tech_mark`로만, 기록은 고치기·지우기 아무도 못 함 |
 | blueprints | **본인만 읽기**(관리자도 남의 것 못 봄). 쓰기는 `confirm_blueprint` · `confirm_blueprint_v2`로만(고른 프로젝트도 본인 것만, 기술은 관문 안만, 템플릿은 내 것 또는 공개 · 숨김 아님 · 시연 아님), 고치기 · 지우기 권한 없음, anon은 읽기 · 함수 모두 막힘 |
-| blueprint_templates | **작가만 읽기**(관리자도 남의 비공개 못 봄). 공개 목록 밖 기술이 든 조합은 공개 거절(202611221320). 남의 공개 템플릿은 갤러리 함수로만(author_id 없이). 쓰기는 함수로만(직접 넣기 · 고치기 권한 없음), 숨기기는 관리자 함수. anon은 읽기 · 함수 모두 막힘 |
+| blueprint_templates | **작가만 읽기**(관리자도 남의 비공개 못 봄). 공개 목록 밖 기술이 든 조합은 공개 거절(202611221320). 섹션 공통 기술도 같은 검사(`template_unlisted_techs`, 202611240300, 실행 권한은 서버 쪽만). 남의 공개 템플릿은 갤러리 함수로만(author_id 없이). 쓰기는 함수로만(직접 넣기 · 고치기 권한 없음), 숨기기는 관리자 함수. anon은 읽기 · 함수 모두 막힘 |
 | template_notes | 남에게는 열린 템플릿의 숨기지 않은 글 · 안전한 칸만(쓴 사람 · 숨긴 사람 칸 못 읽음), 쓴 사람은 자기 글 모두, 관리자는 열린 템플릿의 글(숨긴 것 포함). **손님(anon)도 열린 템플릿의 숨기지 않은 글 · 안전한 칸 읽기**(P-12f M6). 쓰기는 써 본 사람만 · 수정 · 삭제 없음, 숨김은 관리자 |
 | template_helpful_votes · template_reports | 본인 줄만 읽기(신고는 관리자 전체), 넣기는 보이는 남의 글에만. 손님은 못 읽음 |
 | blueprint_checks | **본인만 읽기**(관리자도 못 봄). 만들기는 `blueprint_id`·`requested_by` 두 칸만, 본인 확정본에만(정책이 확인). 상태 · 본문 · 해시 · 출처는 서버만 쓴다. 고치기 · 지우기 · anon 권한 없음 |
@@ -677,9 +680,56 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | usage_notes | 10 | 3 | 켜짐 | ✔ | 새 표(P-24) |
 | user_tastes | 5 | 3 | 켜짐 | ✔ | 새 표(P-23) |
 
+**4차 대조: 2026-11-23 16시, Claude(DocsChecker)** — 동결 전 미리 보기. 운영 DB를 Supabase 커넥터로 읽기만 했다(`list_migrations`, `execute_sql`로 `information_schema.columns` · `pg_policies` · `pg_class.relrowsecurity` · `pg_constraint` · `pg_proc` · `routine_privileges`). main `ba1d873`(P-12s까지)의 이 문서 2절과 스크립트로 비교. **팀 확인 대기.**
+- 결과: 공개 표 **34개가 erd 2절의 34개와 같고**, 칸 이름은 `technologies`의 한국어 3칸(이번에 2.3절에 더함)을 빼고 모두 일치했다. RLS 34개 모두 켜짐.
+- 3차 표와 다른 곳: `my_tech_tags` 줄이 3차 표에 없었다(P-12d, 11-21 적용). projects 8 → 13(P-12i), technologies 33 → 36(P-12r).
+- 칸이 아닌 변경도 확인했다: `ai_calls_purpose_check` 허용 값 7개, `one_liner_ko` 200자 check, `blueprint_graph_clean` · `save_blueprint_template` · `template_unlisted_techs` 본문에 sections, `admin_grant_admin` · `admin_revoke_admin` 실행 권한은 authenticated(anon 없음), `template_unlisted_techs` · `blueprint_graph_clean`은 서버 쪽만. LS점프업 시드 2줄(herdr · 루프 하네스)은 출처 주소와 함께 있다.
+- 마이그레이션 기록 표는 37개. `P-admin-grant`만 버전이 `202611232300`(파일 번호 그대로)이고 나머지는 적용 시각이라, 버전 글자 순서로는 맨 끝에 놓인다.
+- 이번에 보지 않은 것: 칸 종류 · 필수 · 키, 정책 본문, 함수 본문 전체. 동결 뒤 최종 대조에서 오늘 바뀐 표(technologies · ai_calls · blueprints · blueprint_templates)는 종류 · 제약까지 본다.
+- **대조한 사람(팀)·날짜:** (비어 있음 — 동결 뒤 최종 대조 뒤 세 사람이 Supabase 표 화면과 아래 표를 한 줄씩 맞추고 이름과 날짜를 적는다)
+
+| 표 | 실제 DB 칸 수(id·created_at 포함) | 정책 수 | RLS | 이름·칸 일치 | 비고 |
+|---|---|---|---|---|---|
+| ai_calls | 9 | 1 | 켜짐 | ✔ | purpose 허용 값 7개(translate · blueprint_guide 더함) — 칸 변경 없음 |
+| alerts | 10 | 1 | 켜짐 | ✔ |  |
+| audit_logs | 8 | 1 | 켜짐 | ✔ |  |
+| blueprint_checks | 9 | 2 | 켜짐 | ✔ |  |
+| blueprint_templates | 10 | 1 | 켜짐 | ✔ | graph에 sections(P-12o, 11-23) — 칸 변경 없음. 섹션 관문 `template_unlisted_techs` |
+| blueprints | 8 | 1 | 켜짐 | ✔ | graph에 sections(P-12o, 11-23) — 칸 변경 없음 |
+| categories | 5 | 1 | 켜짐 | ✔ |  |
+| changes | 15 | 1 | 켜짐 | ✔ |  |
+| chat_logs | 6 | 2 | 켜짐 | ✔ |  |
+| exports | 8 | 2 | 켜짐 | ✔ |  |
+| grade_views | 5 | 2 | 켜짐 | ✔ |  |
+| helpful_votes | 3 | 2 | 켜짐 | ✔ |  |
+| judgments | 10 | 1 | 켜짐 | ✔ |  |
+| my_tech_tags | 5 | 3 | 켜짐 | ✔ | 3차 표에 줄이 없었음(P-12d, 11-21 적용) → 더함 |
+| my_technologies | 20 | 3 | 켜짐 | ✔ |  |
+| news_items | 9 | 1 | 켜짐 | ✔ |  |
+| observations | 11 | 1 | 켜짐 | ✔ |  |
+| profiles | 7 | 2 | 켜짐 | ✔ |  |
+| projects | 13 | 3 | 켜짐 | ✔ | 3차 8 → 13(P-12i 레포 5칸, 11-22 적용) |
+| reports | 8 | 3 | 켜짐 | ✔ |  |
+| rule_lists | 9 | 3 | 켜짐 | ✔ |  |
+| run_steps | 17 | 1 | 켜짐 | ✔ |  |
+| runs | 11 | 1 | 켜짐 | ✔ |  |
+| scenarios | 8 | 2 | 켜짐 | ✔ |  |
+| sources | 9 | 1 | 켜짐 | ✔ |  |
+| tech_mark_events | 7 | 1 | 켜짐 | ✔ |  |
+| tech_marks | 5 | 1 | 켜짐 | ✔ |  |
+| tech_relations | 11 | 2 | 켜짐 | ✔ |  |
+| technologies | 36 | 2 | 켜짐 | ✔ | 3차 33 → 36(P-12r 한국어 개요 3칸, 11-23 적용) |
+| template_helpful_votes | 3 | 2 | 켜짐 | ✔ |  |
+| template_notes | 10 | 4 | 켜짐 | ✔ |  |
+| template_reports | 8 | 3 | 켜짐 | ✔ |  |
+| usage_notes | 10 | 3 | 켜짐 | ✔ |  |
+| user_tastes | 5 | 3 | 켜짐 | ✔ |  |
+
 ## 바뀐 기록
-- 2026-11-23 관리자 되돌리기(작업 `I-P-admin-revoke`, **운영 적용 전**, 합치기 전에 먼저 적용): 새 칸 없음. DB 함수 `admin_revoke_admin(p_target, p_reason)`(`202611240000_P-admin-revoke.sql`). 지정의 짝: 관리자 재확인, 자기 자신·마지막 관리자 거절, `role` 변경과 `audit_logs`(action `revoke_admin`)를 한 거래로. 같은 파일에서 `admin_grant_admin`도 다시 만듦(역할 변경 잠금 `pg_advisory_xact_lock` 뒤 재확인 — 동시에 서로 되돌리는 틈 막기, 코드 리뷰 지적).
-- 2026-11-23 관리자 지정(작업 `I-P-admin-grant`, **운영 적용 전**, 합치기 전에 먼저 적용): 새 칸 없음. DB 함수 `admin_grant_admin(p_target, p_reason)`(`202611232300_P-admin-grant.sql`)를 더하고 4절 `profiles` 줄에 적음. 부른 사람이 관리자인지 함수가 다시 보고, `role` 변경과 `audit_logs`(action `grant_admin`) 한 줄을 한 거래로 쓴다.
+- 2026-11-23 밤 `ai_calls.purpose`에 `map_find`(작업 `I-erd-1123`, P-12w `202611240600_P-12w_map_find_purpose.sql`, 운영 20261123084812): DocsChecker 운영 SELECT로 제약 값 8개 확인. 새 칸 없음. 7절 4차 표의 ai_calls 칸 수는 그대로(9).
+- 2026-11-23 4차 대조(작업 `I-erd-1123`, Maestro 요청, 동결 전 미리): 2.3절 `technologies`에 한국어 개요 3칸(P-12r `202611240400`, 운영 20261123053525), 2.6절 `ai_calls.purpose`에 `translate` · `blueprint_guide`(P-12s `202611240500`, 운영 20261123063026), blueprints · blueprint_templates `graph`에 `sections`(P-12o `202611240100`, 운영 20261123042722), 4절 blueprint_templates에 섹션 관문 `template_unlisted_techs`(`202611240300`, 운영 20261123052649), LS점프업 시드 2줄(`202611240200`, 운영 20261123045803, 칸 변경 없음). 관리자 지정 · 되돌리기 두 줄의 "운영 적용 전"을 "완료"로. 7절에 4차 대조 표(34표). 이유: 오늘 운영에 들어간 변경이 erd에 없거나 옛 상태였다(4차 대조 초안).
+- 2026-11-23 관리자 되돌리기(작업 `I-P-admin-revoke`, ~~운영 적용 전~~ → **운영 적용: 완료**(20261123031815, Maestro, 4차 대조로 확인)): 새 칸 없음. DB 함수 `admin_revoke_admin(p_target, p_reason)`(`202611240000_P-admin-revoke.sql`). 지정의 짝: 관리자 재확인, 자기 자신·마지막 관리자 거절, `role` 변경과 `audit_logs`(action `revoke_admin`)를 한 거래로. 같은 파일에서 `admin_grant_admin`도 다시 만듦(역할 변경 잠금 `pg_advisory_xact_lock` 뒤 재확인 — 동시에 서로 되돌리는 틈 막기, 코드 리뷰 지적).
+- 2026-11-23 관리자 지정(작업 `I-P-admin-grant`, ~~운영 적용 전~~ → **운영 적용: 완료**(기록 버전 202611232300, 4차 대조로 확인)): 새 칸 없음. DB 함수 `admin_grant_admin(p_target, p_reason)`(`202611232300_P-admin-grant.sql`)를 더하고 4절 `profiles` 줄에 적음. 부른 사람이 관리자인지 함수가 다시 보고, `role` 변경과 `audit_logs`(action `grant_admin`) 한 줄을 한 거래로 쓴다.
 - 2026-11-22 밤 `projects` 5칸 (작업 `I-submit-check`, Maestro 요청, 계획 기준 · 구현 결과는 단계가 끝나면 채움): 2절 칸 표 · 관계 그림에 레포 기본 정보(`202611232100_P-12i_project_repo_meta.sql`, 운영 20261122120849 적용 확인). blueprints.graph · blueprint_templates.graph의 `links`(P-12j, `202611232200_P-12j_tech_links.sql`): 운영 `p12j_tech_links` 20261122133906 적용(사용자 승인, DocsChecker가 운영 마이그레이션 목록으로 확인), 권한 시험 `supabase/tests/tech_links_p12j.sql` 13항목 확인함(Maestro 실행, 모두 기대값). 7절 대조 표의 projects 칸 수(8)는 동결 뒤 4차 대조에서 고침.
 - 2026-11-22 단계 메모 · M5(작업 `I-submit-check`, Maestro 요청, ADR 0040): 마이그레이션 `202611231900_P-12e_m5_revoke_v1.sql`(운영 `p12e_m5_revoke_v1` 20261122104040: `confirm_blueprint` v1 실행 권한 회수, `blueprint_graph_clean` 인자 2개로) → `202611232000_P-12h_stage_note.sql`(운영 `p12h_stage_note` 20261122104136: graph 단계 `note`, 템플릿은 메모를 뺌). 새 표 · 칸 없음. DocsChecker 운영 SELECT: v1 실행 권한 anon · authenticated 없음, `blueprint_graph_clean` 하나, 두 함수 본문에 note. 권한 시험(M5 15 · 메모 9항목)은 적용한 Maestro 기록(#206 connectors). 7절 4차 대조는 동결 뒤.
 - 2026-11-20 3차 대조와 P-23·P-24 칸 표(작업 `I-prod-check-1120`, Claude 초안 — 표 주인 황재웅 확인 필요): 3절 요약에 있던 `user_tastes`·`usage_notes`·`helpful_votes`·`reports`를 2.7절 칸 표로 옮김(관계 그림의 `preferences` → `user_tastes`, `profiles ||--o{ usage_notes` 더함, 4절 접근 규칙 세 줄). 운영 DB 표 26개·칸 이름이 erd와 모두 일치(7절). P-23·P-24 마이그레이션 자체는 그 작업에서 했고(`I-P-23-recommend`·`I-P-24-usage-notes`), 이 줄은 erd 반영만
