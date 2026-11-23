@@ -65,7 +65,7 @@ export default async function RunNowPage({ searchParams }: { searchParams: Promi
 
       <h2>등록된 수집기 ({sources.length}개)</h2>
       {sources.length === 0 ? <p>아직 없어요. 수집 확장(P-9)이 합쳐지면 생겨요. 지금 누르면 실행 기록을 만들지 않고 이유만 알려 줘요.</p> : <ul className="admin-list">{sources.map((s) => <li key={s} className="mono">{s}</li>)}</ul>}
-      <p className="muted">재시도: 실패하면 2·4·8분 뒤로 다음 시도 시각을 실행 기록에 적어요(최대 3번). 무료 플랜 예약은 하루 한 번이라 다시 돌리는 건 이 버튼으로 해요.</p>
+      <p className="muted">실패하면 다음 시도 시각(2분 뒤)을 실행 기록에 적기만 해요. 자동으로 다시 돌지는 않아요. 무료 플랜 예약은 하루 한 번이라 다시 돌리려면 이 버튼을 눌러요.</p>
     </AdminShell>
   );
 }

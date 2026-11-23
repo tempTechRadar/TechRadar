@@ -34,7 +34,7 @@ export function pathFrom(flow: Flow, startId: string): { nodes: Set<string>; edg
 const LATEST_WINS = new Set(["human_judgment", "action_record"]);
 
 /** created_at이 있으면 그 순서, 없으면 받은 순서(두 화면 모두 created_at 순으로 읽는다)에서 뒤에 온 줄이 최근 */
-type TimedStep = StepRow & { created_at?: string | null };
+type TimedStep = StepRow & { created_at?: string | null; count_in?: number | null };
 
 function stepStatusByNode(steps: TimedStep[]): Map<string, StepRow["status"]> {
   const best = new Map<string, StepRow["status"]>();
@@ -49,7 +49,12 @@ function stepStatusByNode(steps: TimedStep[]): Map<string, StepRow["status"]> {
     } else if (!now || WORST[s.status].rank > WORST[now].rank) best.set(s.step_name, s.status);
   }
   // 판단 저장은 human_judgment 줄을 고치지 않고 action_record 성공 줄만 남긴다(action-record.ts). 그 줄이 곧 판단이 끝났다는 기록이다(docs/flow.md 3절 "판단 대기 → 이어가기")
-  if (best.get("action_record") === "succeeded" && best.has("human_judgment")) best.set("human_judgment", "succeeded");
+  // 알림이 여러 건인 실행(human_judgment count_in = n)은 성공한 조치 줄이 n개 이상일 때만 판단이 다 끝난 것으로 본다(검토 R3).
+  // 조치 상자의 "가장 최근 줄" 규칙은 알림 1건 실행(지금 시뮬레이터는 시연 계정 1명)을 전제로 한다
+  const judgeRows = steps.filter((s) => s.step_name === "human_judgment");
+  const need = Math.max(1, ...judgeRows.map((s) => (typeof s.count_in === "number" ? s.count_in : 1)));
+  const done = steps.filter((s) => s.step_name === "action_record" && s.status === "succeeded").length;
+  if (best.get("action_record") === "succeeded" && best.has("human_judgment") && done >= need) best.set("human_judgment", "succeeded");
   return best;
 }
 

@@ -109,3 +109,10 @@ test("수집 상자는 created_at이 있어도 '더 나쁜 쪽' 그대로: 나�
   const steps = [at("fetch_osv", "failed", "2026-11-23T01:00:00Z"), at("fetch_osv", "succeeded", "2026-11-23T01:01:00Z")];
   assert.equal(colorize(flow, run("manual", "partial"), steps).states.fetch_osv, "bad");
 });
+
+test("알림 2건 실행에서 한 건만 판단했으면 사람 판단은 아직 대기, 두 건 다 하면 초록(검토 R3)", () => {
+  const base = [{ ...at("human_judgment", "awaiting_judgment", "2026-11-23T01:00:01Z"), count_in: 2 }, at("action_record", "succeeded", "2026-11-23T01:05:00Z")];
+  assert.equal(colorize(flow, run("simulator"), base).states.human_judgment, "wait");
+  const both = [...base, at("action_record", "succeeded", "2026-11-23T01:06:00Z")];
+  assert.equal(colorize(flow, run("simulator"), both).states.human_judgment, "ok");
+});

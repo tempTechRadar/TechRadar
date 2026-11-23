@@ -20,10 +20,14 @@ export default async function ChatPage() {
     error = e instanceof Error ? e.message : String(e);
   }
   const since = new Date(startOfKoreanDay(new Date())).getTime();
-  const usedToday = recent.filter((r) => new Date(r.created_at).getTime() >= since).length;
+  // 서버 한도와 같은 셈(lib/server/chat.ts): 오늘 chat_logs + Claude 호출이 실패해 ai_calls에만 남은 내 줄(검토 R2)
+  const failedRes = await gate.db.from("ai_calls").select("id", { count: "exact", head: true })
+    .eq("user_id", gate.user.id).eq("purpose", "chatbot").eq("status", "failed").gte("created_at", new Date(since).toISOString());
+  const failedToday = failedRes.error || typeof failedRes.count !== "number" ? null : failedRes.count;
+  const usedToday = recent.filter((r) => new Date(r.created_at).getTime() >= since).length + (failedToday ?? 0);
   return (
     <AdminShell tab="chat" title="위키 챗봇" lead={LEAD} proves={PROVES} error={error}>
-      <p className="muted">오늘 남은 질문: {Math.max(0, CHATBOT_PER_USER_PER_DAY - usedToday)} / {CHATBOT_PER_USER_PER_DAY}개 · 답은 800자 안</p>
+      <p className="muted">오늘 남은 질문: {Math.max(0, CHATBOT_PER_USER_PER_DAY - usedToday)} / {CHATBOT_PER_USER_PER_DAY}개 · 답은 800자 안{failedToday === null ? " · 실패한 질문 수를 읽지 못해 성공한 질문만 셌어요" : failedToday > 0 ? ` · 실패한 질문 ${failedToday}개도 한도에 들어가요` : ""}</p>
       <ChatForm />
       <h2>내 최근 질문</h2>
       {recent.length === 0 ? <p>아직 없어요.</p> : (
