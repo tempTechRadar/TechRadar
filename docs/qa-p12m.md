@@ -122,7 +122,7 @@
 ## 6. P-12s 청사진 가이드 · 끌어 놓기 추가 줄 (11-23 저녁, PR #230)
 
 근거: `feat/P-12s-blueprint-guide`(`aeed025`) — `app/blueprint/guide.tsx`(로봇 가이드), `drag-assist.tsx`(끌 때 안내선), `stage-node.tsx`(카드 아래 "＋ 나란히"), `lib/ai/decide-ai-call.ts`(가이드 한 사람 하루 **20번**). FrontLead 요청(11-23). 코드만 읽고 만든 줄이고 화면은 아직 안 봄.
-**먼저 할 것:** PR #230 병합 · 배포 뒤, 그리고 마이그레이션 `202611240500_P-12s_blueprint_guide_purpose.sql`(ai_calls 용도에 `blueprint_guide` 추가)이 운영에 들어간 뒤(사용자 승인). 들어가기 전이면 가이드가 매번 실패로 보이는 게 정상(Fail로 적지 않음).
+**먼저 할 것:** PR #230 병합 · 배포 뒤. 마이그레이션 `202611240500_P-12s_blueprint_guide_purpose.sql`(ai_calls 용도에 `blueprint_guide` 추가)은 **운영 적용 완료**(11-23 15:30쯤 사용자 승인, Maestro, 되돌림 시험 8/8). QA가 운영 읽기로 제약 `ai_calls_purpose_check` 값 7개에 `blueprint_guide`가 든 것을 확인(11-23). 그러니 가이드가 실패로 보이면 Fail로 적는다.
 
 | # | 계정 | 방법 | 정상이면 보이는 것 | 주의점 | 결과 |
 |---|---|---|---|---|---|
