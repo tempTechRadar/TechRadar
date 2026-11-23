@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { grow, GROW, introducing, litAge, litAt, MOTION_END, PING, RECENT_HOURS, recentlyChecked, REVEAL, rippleR, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, trackTargets, TURNS, type MotionState } from "./motion.ts";
+import { grow, GROW, introducing, litAge, litAt, MOTION_END, PING, placeTags, RECENT_HOURS, recentlyChecked, REVEAL, rippleR, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, trackTargets, TURNS, type MotionState } from "./motion.ts";
 import type { Item } from "./layout.ts";
 
 const item = (id: string, x: number, y: number, parent: string | null = null) => ({ id, x, y, parent, type: "t" }) as unknown as Item;
@@ -76,4 +76,16 @@ test("새 기술 추적 틀: NEW(이번 주) 기술 중 들어온 기록이 있�
   const list = [t("old", false, "2026-11-22T00:00:00Z"), t("a", true, "2026-11-18T00:00:00Z"), t("b", true, "2026-11-22T00:00:00Z"), t("c", true, "2026-11-20T00:00:00Z"), t("x", true, null)];
   assert.deepEqual(trackTargets(list, 2).map((i) => i.id), ["b", "c"]);
   assert.deepEqual(trackTargets(list).map((i) => i.id), ["b", "c", "a"], "NEW가 아니거나 들어온 기록이 없으면 틀 없음");
+});
+
+test("추적 틀 꼬리표: 같은 점에 다른 꼬리표가 있으면 빼고, 이름표나 앞 꼬리표와 겹치면 뺀다(틀은 그리는 쪽이 따로 남김)", () => {
+  const name: [number, number, number, number] = [100, 100, 80, 16];
+  const picked = placeTags([
+    { item: "a", box: [0, 0, 90, 18], busy: false },
+    { item: "b", box: [40, 5, 90, 18], busy: false }, // a와 겹침
+    { item: "c", box: [90, 95, 90, 18], busy: false }, // 이름표와 겹침
+    { item: "d", box: [300, 300, 90, 18], busy: true }, // 등급 · 판단 꼬리표가 이미 있음
+    { item: "e", box: [300, 0, 90, 18], busy: false },
+  ], [name]);
+  assert.deepEqual(picked, ["a", "e"]);
 });
