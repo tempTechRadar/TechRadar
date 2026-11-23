@@ -25,6 +25,7 @@ test("가이드 답 읽기(P-12s): say만 꼭, 목록 밖 id · 위험 · 판에
   assert.equal(parseGuideResponse(JSON.stringify({ ask: "?" }), grades, []).ok, false, "say 없음");
   assert.equal(parseGuideResponse("그냥 글", grades, []).ok, false, "JSON 아님");
   assert.equal(parseGuideResponse(JSON.stringify({ say: "npm i x 하세요" }), grades, []).ok, false, "say에 설치 명령");
+  assert.equal(parseGuideResponse(JSON.stringify({ say: "Docker를 쓰면 배포가 쉬워요. 저장소에 올려요." }), grades, []).ok, true, "도구 이름만 말한 글은 통과");
   const long = parseGuideResponse(JSON.stringify({ say: "가".repeat(900), stages: Array.from({ length: 10 }, (_, i) => ({ name: `s${i}` })) }), grades, []);
   assert.ok(long.ok && long.say.length === GUIDE.say && long.stages.length === GUIDE.stages);
 });
@@ -55,6 +56,7 @@ test("판에 넣기: 바꾸기는 새 판에 차례로, 붙이기는 맨 끝 뒤
   const l2 = layers(more);
   assert.ok(l2.ok && more.stages.length === 4 && more.stages.find((s) => s.id === l2.levels[3][0])!.name === "점검");
   assert.equal(addGuideStages(g, ["새 판"], "replace").stages.length, 1);
+  assert.equal(addGuideStages(g, ["개발", "점검"], "append").stages.filter((s) => s.name === "개발").length, 1, "붙이기는 같은 이름을 다시 만들지 않음");
 });
 
 test("경계 검증: 대화 · 단계 모양이 틀리면 거절", () => {
@@ -65,11 +67,16 @@ test("경계 검증: 대화 · 단계 모양이 틀리면 거절", () => {
   assert.deepEqual(readGuideInput([{ role: "user", text: "가".repeat(900) }], ["기획"])?.turns[0].text.length, 500);
 });
 
-/** ai_calls만 아는 가짜 서비스 DB: select는 rows를, insert는 기록 */
-function fakeDb(rows: number) {
+/** ai_calls만 아는 가짜 서비스 DB: 줄을 메모리에 두고 select는 센다(rows = 처음부터 있던 수, extra = 처음 센 뒤 끼어든 다른 요청) */
+function fakeDb(rows: number, extra = 0) {
   const inserts: Record<string, unknown>[] = [];
-  const chain = { eq: () => chain, gte: () => Promise.resolve({ data: Array.from({ length: rows }, (_, i) => ({ id: i })), error: null }) };
-  return { inserts, db: { from: () => ({ select: () => chain, insert: (row: Record<string, unknown>) => { inserts.push(row); return Promise.resolve({ error: null }); } }) } as never };
+  let counted = 0;
+  const chain = { eq: () => chain, gte: () => Promise.resolve({ data: Array.from({ length: rows + inserts.length + (counted++ ? extra : 0) }, (_, i) => ({ id: i })), error: null }) };
+  return { inserts, db: { from: () => ({
+    select: () => chain,
+    insert: (row: Record<string, unknown>) => { inserts.push({ ...row }); return { select: () => ({ single: () => Promise.resolve({ data: { id: inserts.length - 1 }, error: null }) }) }; },
+    update: (row: Record<string, unknown>) => ({ eq: (_c: string, id: number) => { Object.assign(inserts[id], row); return Promise.resolve({ error: null }); } }),
+  }) } as never };
 }
 
 test("가이드 한 번 말하기: 한도 넘으면 부르지 않고, 부르면 ai_calls에 남기고 제안만 돌려준다", async () => {
@@ -77,14 +84,22 @@ test("가이드 한 번 말하기: 한도 넘으면 부르지 않고, 부르면 
   const full = fakeDb(BLUEPRINT_GUIDE_PER_USER_PER_DAY);
   let called = 0;
   const ai = { complete: async () => { called++; return { text: JSON.stringify({ say: "좋아요", techs: [{ stage: "기획", id: "a", why: "맞음" }, { stage: "기획", id: "d", why: "위험" }] }), tokensIn: 10, tokensOut: 5 }; } };
-  assert.deepEqual(await talkToGuide({ serviceDb: full.db, ai }, { userId: "u1", turns, stages: ["기획"], techs: [tech("a"), tech("d", "danger")] }), { status: "refused", reason: "user_limit" });
+  assert.deepEqual(await talkToGuide({ serviceDb: full.db, ai }, { userId: "u1", turns, stages: ["기획"], loadTechs: async () => [tech("a"), tech("d", "danger")] }), { status: "refused", reason: "user_limit" });
   assert.equal(called, 0);
   const ok = fakeDb(0);
-  const r = await talkToGuide({ serviceDb: ok.db, ai }, { userId: "u1", turns, stages: ["기획"], techs: [tech("a"), tech("d", "danger")] });
+  const r = await talkToGuide({ serviceDb: ok.db, ai }, { userId: "u1", turns, stages: ["기획"], loadTechs: async () => [tech("a"), tech("d", "danger")] });
   assert.ok(r.status === "ok" && r.reply.techs.length === 1 && r.reply.techs[0].id === "a");
   assert.deepEqual(ok.inserts.map((i) => [i.purpose, i.user_id, i.status, i.tokens_in]), [["blueprint_guide", "u1", "succeeded", 10]]);
   const bad = fakeDb(0);
-  assert.deepEqual(await talkToGuide({ serviceDb: bad.db, ai: { complete: async () => ({ text: "모양 틀림" }) } }, { userId: "u1", turns, stages: [], techs: [] }), { status: "failed" });
+  assert.deepEqual(await talkToGuide({ serviceDb: bad.db, ai: { complete: async () => ({ text: "모양 틀림" }) } }, { userId: "u1", turns, stages: [], loadTechs: async () => [] }), { status: "failed" });
   assert.deepEqual(bad.inserts.map((i) => i.status), ["failed"], "실패도 기록(한도에 셈)");
-  assert.deepEqual(await talkToGuide({ serviceDb: ok.db, ai: null }, { userId: "u1", turns, stages: [], techs: [] }), { status: "refused", reason: "not_configured" });
+  const race = fakeDb(BLUEPRINT_GUIDE_PER_USER_PER_DAY - 1, 1); // 처음 센 뒤 다른 요청이 하나 끼어듦
+  called = 0;
+  assert.deepEqual(await talkToGuide({ serviceDb: race.db, ai }, { userId: "u1", turns, stages: ["기획"], loadTechs: async () => [tech("a")] }), { status: "refused", reason: "user_limit" });
+  assert.equal(called, 0, "자리를 잡고 다시 세서 넘으면 부르지 않음");
+  assert.deepEqual(race.inserts.map((i) => [i.status, i.error]), [["failed", "한도(동시 요청)"]]);
+  const unread = fakeDb(0);
+  assert.deepEqual(await talkToGuide({ serviceDb: unread.db, ai }, { userId: "u1", turns, stages: [], loadTechs: async () => { throw new Error("못 읽음"); } }), { status: "failed", techs: "unread" });
+  assert.deepEqual(unread.inserts, [], "목록을 못 읽으면 부르지도 기록하지도 않음");
+  assert.deepEqual(await talkToGuide({ serviceDb: ok.db, ai: null }, { userId: "u1", turns, stages: [], loadTechs: async () => [] }), { status: "refused", reason: "not_configured" });
 });
