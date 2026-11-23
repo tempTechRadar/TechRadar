@@ -2,10 +2,11 @@
 // 보기 묶음 탭(노션의 보기 탭처럼, 11-21 사용자): 누르면 그 보기로, 지금 보기와 같으면 눌린 표시, 다시 누르면 기본 보기.
 // "지금 보기 저장"은 로그인했을 때만 이 브라우저에 사람마다 5개까지(보기 기억과 같은 규칙, design.md 14절, 같은 브라우저의 다른 계정에 안 보이게). 기본 묶음은 lib/map/presets.ts
 import { useEffect, useState } from "react";
-import { addPreset, BUILTIN_PRESETS, MAX_SAVED, parsePresets, type Preset } from "@/lib/map/presets";
+import { addPreset, BUILTIN_PRESETS, LS_NOTE, MAX_SAVED, parsePresets, type Preset } from "@/lib/map/presets";
+import type { Say } from "../undo-toast";
 
 /** who = 로그인한 사람 id, 없으면 로그인 전(저장 없음) */
-type Props = { current: string; queryOf: (q: string) => string; countOf: (q: string) => number; apply: (q: string) => void; who?: string; canMine: boolean; say: (m: string) => void };
+type Props = { current: string; queryOf: (q: string) => string; countOf: (q: string) => number; apply: (q: string) => void; who?: string; canMine: boolean; say: Say };
 
 export function ViewTabs({ current, queryOf, countOf, apply, who, canMine, say }: Props) {
   const login = !!who, KEY = `techradar-map-presets:${who}`;
@@ -20,12 +21,14 @@ export function ViewTabs({ current, queryOf, countOf, apply, who, canMine, say }
     store(addPreset(saved, n, current)); setName(null);
     say(full ? `"${n}" 보기를 저장했어요. ${MAX_SAVED}개가 넘어 가장 오래된 것을 뺐어요.` : `"${n}" 보기를 저장했어요.`);
   };
+  /** 내가 저장한 보기 지우기(P-12p 사용자): 말풍선의 되돌리기로 한 번 되살림. 기본 보기에는 단추 없음 */
+  const remove = (p: Preset) => { const prev = saved; store(saved.filter((x) => x.name !== p.name)); say(`"${p.name}" 보기를 지웠어요.`, () => store(prev)); };
   const tab = (p: Preset, own: boolean) => {
     const on = queryOf(p.query) === current;
     return (
       <span key={(own ? "s:" : "b:") + p.name} className="map-tab-wrap">
-        <button type="button" className="map-tab" aria-pressed={on} onClick={() => apply(on ? "" : p.query)}>{p.name}</button>
-        {own ? <button type="button" className="map-tab-x" aria-label={`${p.name} 보기 지우기`} onClick={() => store(saved.filter((x) => x.name !== p.name))}>✕</button> : null}
+        <button type="button" className="map-tab" aria-pressed={on} title={p.query === "pick=ls" ? LS_NOTE : undefined} onClick={() => apply(on ? "" : p.query)}>{p.name}</button>
+        {own ? <button type="button" className="map-tab-x" aria-label={`${p.name} 보기 지우기`} onClick={() => remove(p)}>✕</button> : null}
       </span>
     );
   };

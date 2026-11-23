@@ -110,3 +110,7 @@ Vite · TypeScript · ESLint · Prettier 공식 사이트는 200 응답과 레�
 2. 앱(Cursor · Devin Desktop)처럼 패키지가 없는 도구의 종류 · 키(`service:`는 "공식 MCP가 있는 서비스"로 정해 둠).
 3. Gemini CLI를 넣을지.
 4. **(중요) 이대로면 지도에 안 오를 수 있다.** 고르기 규칙(`lib/server/map-queries.ts` ③ 개발 분야 · 스킬 · 플러그인 · 개념, 두꺼운 것 → 별 많은 순, 500개)에서 입문 세트는 얇고 별 신호가 없다(두께를 보는 수집기도 얇은 줄은 건너뛰어 별이 나중에 생기지도 않음). 같은 갈래의 두껍고 별 많은 MCP 수천 개에 밀린다(코드 리뷰 지적, 코드로 확인). → `signals.starter_set`을 늘 넣는 몫(위험 · NEW처럼)으로 두거나 정렬 앞에 두기. 다른 세션 담당 파일이라 여기서는 안 고침. → **해결(11-21):** 지도 고르기에 입문 세트 몫 80개(ADR 0030 8항 ②)
+
+## P-12p LS점프업 시드 2줄(추가, 2026-11-23)
+- `supabase/migrations/202611240200_P-12p_ls_seed.sql`(초안, 운영 적용 전) · 시험 `supabase/tests/ls_seed_p12p.sql`: `github:herdrdev/herdr`(sdk, Apache-2.0) · `concept:loop-harness`(concept). 같은 규칙(있던 줄은 비어 있는 칸만, NEW · 알림 제외). 출처와 한계는 intent `I-P-12p-seed`.
+- 위 열린 질문 2(패키지 없는 도구의 종류 · 키)의 답으로 `github:<소유자>/<저장소>` + sdk를 썼다: GitHub 수집기가 그 키를 저장소로 읽는다. 지도의 "쓰는 곳"은 추정으로 "앱 코드"가 나온다.
