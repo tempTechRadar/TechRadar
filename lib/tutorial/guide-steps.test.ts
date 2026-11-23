@@ -6,8 +6,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FAQ, FAQ_EXTRA_EVIDENCE, GRADE_EVIDENCE, GRADES, MARKS, MOCK_PLACEHOLDERS, MOCK_SOURCES, MORE_SCREENS, PROMISES, TERM_EVIDENCE } from "./guide-sections.ts";
-import { INTRO_EVIDENCE, MOTTO, REGISTER_HREF, STEPS, moveStep, splitUiNames, stepFromHash, stepHash, uiNames, type Evidence } from "./guide-steps.ts";
+import { FAQ, FAQ_EXTRA_EVIDENCE, GRADE_EVIDENCE, GRADES, MARKS, MOCK_FILES, MOCK_PLACEHOLDERS, MOCK_SOURCES, MORE_SCREENS, PROMISES, TERM_EVIDENCE } from "./guide-sections.ts";
+import { SCENES } from "./guide-scenes.ts";
+import { INTRO_EVIDENCE, MOTTO, REGISTER_HREF, STEPS, moveStep, phaseOf, splitUiNames, stepFromHash, stepHash, uiNames, type Evidence } from "./guide-steps.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const raw = (file: string) => readFileSync(join(ROOT, file), "utf8");
@@ -15,7 +16,8 @@ const raw = (file: string) => readFileSync(join(ROOT, file), "utf8");
 /** 주석 지우기: 블록(/* *\/ · {/* *\/}), 줄 주석(줄 처음이나 빈칸 뒤의 //: "https://"는 남김), SQL의 --. 문서(.md)는 그대로 */
 function stripComments(file: string, text: string): string {
   if (file.endsWith(".md")) return text;
-  let out = text.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  // 블록 주석만 지운다({/* */}도 여기서 안쪽이 지워진다). 옛 식은 "{ /** … */ 이름: …" 꼴에서 다음 "*/}"까지 수백 줄을 통째로 지워 화면 글자를 놓쳤다(I-tutorial-motion)
+  let out = text.replace(/\/\*[\s\S]*?\*\//g, "");
   if (/\.(ts|tsx|mts)$/.test(file)) out = out.replace(/(^|\s)\/\/.*$/gm, "$1");
   if (file.endsWith(".sql")) out = out.replace(/(^|\s)--.*$/gm, "$1");
   return out;
@@ -65,13 +67,26 @@ test("둘러보기: 「화면 이름」은 근거 문구 안에 있다(단계는
   for (const name of FAQ.flatMap((f) => uiNames(f.a))) assert.ok(all.some((p) => p.includes(name)), `질문: 「${name}」의 근거가 없음`);
 });
 
-test("둘러보기: 모양 예시(mocks.tsx)의 글자는 실제 화면 글자이거나 자리 글자 목록에 있다", () => {
-  const src = stripComments("app/guide/mocks.tsx", raw("app/guide/mocks.tsx"));
-  const texts = [...src.matchAll(/>([^<>{}]+)</g)].map((m) => m[1].trim()).filter((t) => /[\p{L}\p{N}]/u.test(t));
-  assert.ok(texts.length > 30, `모양 예시 글자를 거의 못 찾음(${texts.length}) — 정규식 확인`);
+/** 장면 그림 파일들의 화면 글자(태그 사이 글) */
+const mockTexts = () => MOCK_FILES.flatMap((f) => [...screen(f).matchAll(/>([^<>{}]+)</g)].map((m) => m[1].trim())).filter((t) => /[\p{L}\p{N}]/u.test(t));
+
+test("둘러보기: 장면 그림(mocks.tsx · scene-stage.tsx)의 글자는 실제 화면 글자이거나 자리 글자 목록에 있다", () => {
+  const texts = mockTexts();
+  assert.ok(texts.length > 40, `장면 그림 글자를 거의 못 찾음(${texts.length}) — 정규식 확인`);
   const real = MOCK_SOURCES.map(screen).join("\n");
   const odd = texts.filter((t) => !MOCK_PLACEHOLDERS.includes(t) && !real.includes(t));
   assert.deepEqual(odd, []);
+});
+
+test("둘러보기: 자리 글자 목록에 안 쓰는 글자가 남아 있지 않다(목록이 느슨해지지 않게)", () => {
+  const used = new Set([...mockTexts(), ...Object.values(SCENES).flatMap((s) => s.beats.flatMap((b) => (b.type ? [b.type.text] : [])))]);
+  assert.deepEqual(MOCK_PLACEHOLDERS.filter((p) => !used.has(p)), []);
+});
+
+test("둘러보기: 기준 문장 셋이 6단계를 순서대로 둘씩 나눠 갖는다(여정 레일)", () => {
+  assert.deepEqual(MOTTO.flatMap((m) => m.steps), STEPS.map((s) => s.id));
+  for (const m of MOTTO) assert.equal(m.steps.length, 2, `${m.verb}: 단계 ${m.steps.length}개`);
+  assert.deepEqual(STEPS.map((s) => phaseOf(s.id)), [0, 0, 1, 1, 2, 2]);
 });
 
 test("둘러보기: 단계는 6개, id 겹침 없음, 순서 고정, 행동은 2~4개, 약속 4 · 질문 5~6", () => {

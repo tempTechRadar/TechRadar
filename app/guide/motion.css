@@ -1,0 +1,179 @@
+/* Tutorial(/guide)의 움직이는 것(I-tutorial-motion): 시연 장면 · 가짜 커서 · 조작 단추 · 레이더 그림 · 발표 모드 · 단계 전환 · 스크롤 연출.
+   규칙: 움직임은 transform(translate · scale) · opacity만, 이동은 24px 안 · 400ms 안(장면 속 커서 이동만 600~900ms), 되풀이 없음.
+   움직임 줄이기(prefers-reduced-motion)면 --g-dur가 0이고 전환 · 스크롤 연출 블록이 통째로 빠져 모두 끝 모습 그대로 보인다 */
+
+/* ── 장면 틀: 점선 틀 + 이름표(누를 수 없는 그림) ── */
+.g-mock { margin: 0; min-width: 0; border: 1px dashed var(--ring); border-radius: var(--r-lg); background: var(--sunken); overflow: hidden; }
+.g-mock figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px dashed var(--ring); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+.g-mock figcaption .muted { font-weight: 400; }
+/* 그림은 설계 폭 440px로 그리고 칸 폭에 맞춰 통째로 줄이거나 키운다: 100cqw / 440px 비율을 tan(atan2())로 구한다(스크립트 없이, 넘침 없음) */
+.g-view { position: relative; container-type: inline-size; aspect-ratio: 440 / var(--h); overflow: hidden; }
+.g-stage { position: absolute; left: 0; top: 0; width: 440px; height: calc(var(--h) * 1px); transform-origin: 0 0; scale: tan(atan2(100cqw, 440px)); pointer-events: none; user-select: none; font-size: var(--fs-sm); line-height: 1.45; }
+.g-mock-body { display: grid; gap: 10px; align-content: start; height: 100%; box-sizing: border-box; padding: 16px 18px 12px 12px; opacity: .86; filter: saturate(.8); } /* 살짝 흐리게: 진짜 단추로 보이지 않게(U11) */
+.g-mock-body .btn { cursor: default; white-space: nowrap; }
+.g-mock-body .chip { min-height: 26px; padding: 0 9px; white-space: nowrap; }
+.g-mock-body .muted { font-size: var(--fs-sm); }
+
+/* 상태가 켜지면 나타나는 조각: 자리는 늘 차지하고(밀림 없음) 6px 떠오르며 보인다 */
+.g-s { display: block; min-width: 0; opacity: 0; translate: 0 6px; transition: opacity var(--g-dur) var(--ease), translate var(--g-dur) var(--ease); }
+.g-s[data-on] { opacity: 1; translate: 0 0; }
+.g-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+.g-line { flex-wrap: nowrap; gap: var(--sp-3); }
+.g-line > .g-mark:first-child, .g-line .g-input { flex: 1; min-width: 0; } /* 주소 칸은 폭이 고정: 글자가 쳐져도 옆 단추가 움직이지 않는다 */
+.g-mark + .g-s { margin-left: 10px; } /* 순서 동그라미가 뒤따르는 글을 가리지 않게 */
+.g-gap { flex: 1; }
+.g-nav { display: flex; align-items: center; gap: var(--sp-3); min-height: 30px; padding: 0 var(--sp-2) 6px; border-bottom: 1px solid var(--line-d); font-weight: 600; color: var(--ink-2); }
+.g-nav b { font-weight: 800; color: var(--ink); }
+.g-nav-now { color: var(--ink); box-shadow: 0 8px 0 -6px var(--scan); }
+.g-mark { position: relative; display: inline-flex; max-width: 100%; border-radius: var(--r-md); outline: 1px dashed color-mix(in oklch, var(--ink-2) 55%, transparent); outline-offset: 3px; }
+.g-mark-block { display: flex; }
+.g-mark-block > * { flex: 1; min-width: 0; }
+.g-mark::after { content: attr(data-n); position: absolute; top: -12px; right: -12px; z-index: 1; box-shadow: 0 0 0 2px var(--sunken); }
+/* 지금 재생 중인 행동의 번호만 청록(왼쪽 행동 목록 강조와 같은 뜻) */
+:is(.g-stage[data-act="1"] .g-mark[data-n="1"], .g-stage[data-act="2"] .g-mark[data-n="2"], .g-stage[data-act="3"] .g-mark[data-n="3"], .g-stage[data-act="4"] .g-mark[data-n="4"]) { outline: 1px solid var(--scan); }
+:is(.g-stage[data-act="1"] .g-mark[data-n="1"], .g-stage[data-act="2"] .g-mark[data-n="2"], .g-stage[data-act="3"] .g-mark[data-n="3"], .g-stage[data-act="4"] .g-mark[data-n="4"])::after { background: var(--scan); }
+.g-input { display: inline-flex; align-items: center; min-height: 30px; min-width: 5.5em; max-width: 100%; box-sizing: border-box; padding: 0 var(--sp-2); border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--paper); color: var(--muted); white-space: nowrap; }
+.g-typed { color: var(--ink); }
+.g-input[data-typing]::after { content: ""; width: 1.5px; height: 1.15em; margin-left: 1px; background: var(--scan); } /* 치는 동안만 보이는 막대(깜박이지 않음) */
+.g-link { padding: 2px 14px 2px 4px; text-decoration: underline; color: var(--ink); } /* 오른쪽 위 순서 동그라미가 글자를 가리지 않게 */
+.g-stack { display: grid; gap: var(--sp-2); }
+.g-swap { display: grid; align-items: center; }
+.g-swap > * { grid-area: 1 / 1; }
+.g-label { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
+.g-notice { display: grid; gap: var(--sp-2); margin: 0; padding: var(--sp-2) var(--sp-3); }
+.g-band { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--line); overflow: hidden; opacity: 0; transition: opacity var(--g-dur) var(--ease); }
+.g-band > span { display: grid; gap: 1px; padding: 5px var(--sp-2); background: var(--surface); font-size: var(--fs-cap); color: var(--muted); opacity: 0; transition: opacity var(--g-dur) var(--ease); }
+.g-band[data-on], .g-band[data-on] > span { opacity: 1; }
+.g-band[data-on] > span:nth-child(2) { transition-delay: calc(var(--g-dur) * .45); } .g-band[data-on] > span:nth-child(3) { transition-delay: calc(var(--g-dur) * .9); } /* 6칸이 차례로 켜진다 */
+.g-band[data-on] > span:nth-child(4) { transition-delay: calc(var(--g-dur) * 1.35); } .g-band[data-on] > span:nth-child(5) { transition-delay: calc(var(--g-dur) * 1.8); } .g-band[data-on] > span:nth-child(6) { transition-delay: calc(var(--g-dur) * 2.25); }
+.g-band b { font-family: var(--mono); font-size: 15px; line-height: 1.1; color: var(--ink); }
+.g-band > span:nth-child(5) b { color: var(--pending); } /* 판단 대기 = 얼음 파랑(P-12n) */
+.g-chips { gap: 5px; }
+.g-seg { font-size: var(--fs-cap); color: var(--muted); }
+.g-map { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: var(--sp-2); }
+.g-sky { position: relative; display: block; min-height: 150px; border: 1px solid var(--line-d); border-radius: var(--r-md); background: radial-gradient(ellipse at 50% 40%, var(--paper-2), var(--paper)); }
+.g-sky i { position: absolute; width: 8px; height: 8px; border-radius: 50%; transition: opacity var(--g-dur) var(--ease); }
+.g-sky > i:nth-child(1) { left: 14%; top: 22%; } .g-sky > i:nth-child(2) { left: 38%; top: 14%; } .g-sky > i:nth-child(3) { left: 70%; top: 30%; }
+.g-sky > i:nth-child(4) { left: 22%; top: 66%; } .g-sky > i:nth-child(5) { left: 80%; top: 72%; } .g-sky > i:nth-child(6) { left: 56%; top: 82%; } .g-sky > i:nth-child(7) { left: 10%; top: 44%; }
+.g-sky[data-filtered] > i:nth-child(2n + 1) { opacity: .12; } /* 칩으로 좁히면 조건 밖 점이 옅어진다 */
+.g-sky > .g-mark { position: absolute; left: 46%; top: 44%; border-radius: 50%; }
+.g-sky .g-dot-big { position: static; display: block; width: 14px; height: 14px; box-shadow: 0 0 0 3px color-mix(in oklch, var(--cat-2) 28%, transparent); }
+.g-sky .g-dot-big[data-picked] { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--scan); }
+.g-side { display: grid; gap: var(--sp-2); align-content: start; justify-items: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-bell { position: relative; display: inline-grid; place-items: center; width: 30px; height: 30px; color: var(--ink); }
+.g-badge { position: absolute; top: -1px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--pending); color: var(--on-ink); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
+.g-nav .g-s { display: inline-block; }
+.g-badge-nav { position: static; display: inline-block; margin-left: 4px; }
+.g-kinds { display: grid; gap: 3px; padding-right: 6px; font-size: var(--fs-cap); color: var(--ink-2); }
+.g-bell-row { padding: 0 var(--sp-3) 0 var(--sp-2); }
+.g-kinds > span { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: var(--sp-2); align-items: start; padding: 3px 4px; border-radius: var(--r-sm); }
+.g-kinds > span[data-look] { background: var(--g-tint); box-shadow: inset 2px 0 0 var(--scan); }
+.g-kinds .tag { text-align: center; font-size: var(--fs-cap); }
+.g-card { display: grid; gap: 6px; margin: 0; }
+.page .g-mock-body .card { margin: 0; padding: var(--sp-2) var(--sp-3); }
+.g-done { flex-direction: column; align-items: flex-start; gap: 6px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-toolbar { padding: 6px var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-stages { display: flex; align-items: center; min-height: 64px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-d); border-radius: var(--r-md); background: var(--paper); }
+.g-node { display: grid; gap: var(--sp-1); justify-items: start; min-width: 112px; padding: var(--sp-2); border: 1px solid var(--ring); border-radius: var(--r-md); background: var(--card); font-size: var(--fs-sm); }
+.g-wire { flex: 0 0 40px; }
+.g-wire i { display: block; height: 2px; background: var(--scan); transform-origin: left; transform: scaleX(0); transition: transform calc(var(--g-dur) * 1.4) var(--ease); } /* 단계 사이 선이 그려진다 */
+.g-wire[data-on] i { transform: scaleX(1); }
+.g-slot { display: grid; align-items: center; }
+.g-slot > * { grid-area: 1 / 1; }
+.g-chip-tech { display: inline-block; padding: 2px var(--sp-2); border-radius: var(--r-sm); background: var(--chip-blue); color: var(--chip-blue-ink); font-size: var(--fs-sm); white-space: nowrap; transition: opacity var(--g-dur) var(--ease); }
+.g-chip-tech[data-grab] { opacity: .35; }
+.g-drop { padding: 2px var(--sp-2); border: 1px dashed var(--ink-2); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
+.g-dock, .g-dialog { display: grid; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-dialog { border-color: var(--ring); background: var(--card); }
+.g-dialog .chip[data-sure] { box-shadow: inset 0 0 0 1px var(--picked-line), 0 0 0 3px var(--g-halo); }
+.g-toast { display: inline-block; padding: var(--sp-1) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); font-size: var(--fs-sm); box-shadow: var(--shadow-pop); }
+
+/* ── 가짜 커서 · 눌림 파문(자리는 재생기가 translate로 쓴다) ── */
+.g-cursor { position: absolute; left: 0; top: 0; z-index: 3; margin: -3px 0 0 -5px; transition: opacity .25s var(--ease); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+.g-cursor svg { display: block; }
+.g-cursor path { fill: var(--on-paper); stroke: var(--paper); stroke-width: 1.5; stroke-linejoin: round; }
+.g-cursor[data-hide] { opacity: 0; }
+.g-ghost { position: absolute; left: 14px; top: 18px; opacity: 0; transition: opacity .15s var(--ease); }
+.g-cursor[data-carry] .g-ghost { opacity: .95; }
+.g-ripple { position: absolute; left: -16px; top: -16px; z-index: 2; width: 32px; height: 32px; box-sizing: border-box; border: 2px solid var(--scan); border-radius: 50%; background: var(--g-tint); opacity: 0; }
+
+/* ── 조작 단추: 재생/일시정지 · 처음부터 · 진행 막대(행동 수만큼 칸) ── */
+.g-ctl { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-top: 1px dashed var(--ring); }
+.g-ctl-play { display: inline-grid; place-items: center; flex: none; width: var(--hit); height: var(--hit); padding: 0; border: 1px solid var(--ring); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; }
+.g-ctl-play:hover, .g-ctl-play[aria-pressed="true"] { border-color: var(--scan); color: var(--scan); }
+.g-ctl-play svg { fill: currentColor; }
+.g-bar { flex: 1; display: flex; gap: 4px; min-width: 40px; }
+.g-bar i { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.g-bar i::after { content: ""; position: absolute; inset: 0; background: var(--scan); transform-origin: left; transform: scaleX(0); }
+.g-bar i[data-state="past"]::after { transform: scaleX(1); }
+.g-bar i[data-state="now"]::after { transform: scaleX(var(--p, 0)); }
+.g-ctl-say { min-width: 4em; font-size: var(--fs-cap); color: var(--muted); text-align: right; white-space: nowrap; }
+
+/* ── 레이더 그림(맨 위): 캔버스 한 장 + 같은 뜻의 글 ── */
+.g-radar { margin: 0; display: grid; gap: var(--sp-2); justify-items: center; min-width: 0; }
+.g-radar-screen { width: min(100%, 272px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklch, var(--scan) 8%, transparent), transparent 68%); }
+.g-radar canvas { display: block; width: 100%; height: 100%; }
+.g-radar figcaption { display: grid; gap: var(--sp-2); justify-items: center; min-width: 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.g-radar-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px var(--sp-3); }
+.g-radar-legend li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.g-radar-legend i { width: 8px; height: 8px; border-radius: 50%; }
+.g-radar-cap { display: flex; align-items: flex-start; gap: var(--sp-2); max-width: 38ch; margin: 0; opacity: .5; transition: opacity .4s var(--ease); text-wrap: pretty; } /* 선이 위험 점을 지나면 또렷해진다(글은 늘 읽힌다) */
+.g-radar-cap[data-on] { opacity: 1; }
+.g-radar-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2); margin: 0; }
+
+/* ── 발표 모드: 단계 영역이 화면을 덮고 6단계 시연이 차례로 재생된다. 단계 이름 · 요지가 큰 자막 ── */
+.g-steps[data-present] { position: fixed; inset: 0; z-index: 200; box-sizing: border-box; margin: 0; padding: clamp(12px, 2.2vw, 32px) clamp(12px, 3vw, 48px); overflow: auto;
+  background: radial-gradient(ellipse 80% 70% at 50% 30%, var(--paper-2), var(--paper) 75%); }
+.g-steps[data-present] .g-rail { position: static; }
+.g-steps[data-present] .g-card-step { padding: var(--sp-4) 0 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+.g-steps[data-present] .g-card-step::before, .g-steps[data-present] :is(.g-card-foot, .g-fine) { display: none; }
+.guide .g-steps[data-present] .g-card-head h3 { font-size: clamp(24px, 3.2vw, 52px); }
+.g-steps[data-present] .g-keys { display: none; }
+.g-steps[data-present] .g-steps-head { margin-bottom: var(--sp-2); }
+.g-steps[data-present] .g-count b { font-size: clamp(36px, 4.6vw, 76px); }
+.g-steps[data-present] .g-gist { max-width: 60ch; margin-bottom: var(--sp-3); font-size: clamp(14px, 1.35vw, 21px); line-height: 1.5; color: var(--ink); }
+.g-steps[data-present] .g-actions { font-size: clamp(13px, 1.1vw, 17px); }
+@media (min-width: 761px) { /* 넓은 화면: 왼쪽에 자막(번호 · 이름 · 요지 · 행동), 오른쪽에 큰 장면. 한 화면 안에 다 들어온다 */
+  .g-steps[data-present] .g-card-step:not([hidden]) { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); column-gap: clamp(16px, 3vw, 48px); align-content: center; align-items: start; min-height: calc(100dvh - 210px); }
+  .g-steps[data-present] .g-card-body { display: contents; }
+  .g-steps[data-present] :is(.g-card-head, .g-gist, .g-actions-col) { grid-column: 1; }
+  .g-steps[data-present] .g-mock { grid-column: 2; grid-row: 1 / span 3; align-self: center; justify-self: center; width: min(100%, calc((100dvh - 290px) * 440 / var(--h))); } /* 장면이 화면 높이를 넘지 않게 */
+}
+:fullscreen.g-steps { width: 100%; height: 100%; }
+
+@media (max-width: 760px) {
+  .g-radar { grid-template-columns: 124px minmax(0, 1fr); align-items: center; justify-items: start; gap: var(--sp-3); }
+  .g-radar figcaption { justify-items: start; }
+  .g-radar-legend, .g-radar-foot { justify-content: flex-start; }
+  .g-ctl { padding: var(--sp-2); }
+}
+
+/* ── 단계 전환(View Transitions): 카드 내용은 짧게 교차 페이드, 단계 번호는 8px 이어지듯. 화면 전체는 움직이지 않는다 ── */
+@media (prefers-reduced-motion: no-preference) {
+  .g-steps[data-js] .g-card-step:not([hidden]) { view-transition-name: g-step-card; }
+  .g-steps[data-js] .g-card-step:not([hidden]) .g-count b { view-transition-name: g-step-num; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  ::view-transition-group(g-step-card), ::view-transition-group(g-step-num) { animation-duration: .24s; }
+  ::view-transition-old(g-step-card) { animation: g-fade-out .14s var(--ease) both; }
+  ::view-transition-new(g-step-card) { animation: g-fade-in .24s var(--ease) both; }
+  ::view-transition-old(g-step-num) { animation: g-num-out .2s var(--ease) both; }
+  ::view-transition-new(g-step-num) { animation: g-num-in .24s var(--ease) both; }
+}
+@keyframes g-fade-out { to { opacity: 0; } }
+@keyframes g-fade-in { from { opacity: 0; } }
+@keyframes g-num-out { to { opacity: 0; translate: 0 -8px; } }
+@keyframes g-num-in { from { opacity: 0; translate: 0 8px; } }
+
+/* ── 스크롤 연출(절제): 아래 절은 화면에 들어올 때 12px 안에서 한 번 떠오른다. 지원하지 않는 브라우저 · 움직임 줄이기에서는 그냥 보인다 ── */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .guide .g-sec > h2, .g-faq details, .g-more li { animation: g-enter linear both; animation-timeline: view(); animation-range: entry 0% entry 90%; }
+    .g-grades li, .g-promises li { animation: g-enter linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 14%) entry calc(70% + var(--i, 0) * 14%); }
+    .g-grades .g-swatch { animation: g-dot-on linear both; animation-timeline: view(); animation-range: entry 100% entry 320%; } /* 등급 점이 차례로 켜진다 */
+    .g-promises li { view-timeline: --g-promise block; }
+    .g-check path { stroke-dasharray: 1; animation: g-draw linear both; animation-timeline: --g-promise; animation-range: entry 55% entry 110%; } /* 약속의 체크가 그려진다 */
+  }
+}
+@keyframes g-enter { from { opacity: 0; translate: 0 12px; } }
+@keyframes g-dot-on { from { opacity: .15; scale: .4; } }
+@keyframes g-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
