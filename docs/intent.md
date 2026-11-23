@@ -6,6 +6,28 @@
 
 ---
 
+## I-P-news-google-feed · 2026-11-23 · Google 개발자 블로그 피드를 못 읽는 것 고침 (DataCollector 세션, 김영식)
+- 브랜치: `fix/P-news-google-feed`(origin/main fd4119c에서 갈라짐)
+- 출처: 작업 `I-P-12f-news`(소식 수집기, ADR 0038) · 불변 2 · 3, Maestro 배정(사용자 "DataCollector가 고침")
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 11-23 06:07 정기 실행에서 fetch_news가 google_developers 피드를 못 읽고 collect_error(parse) "항목을 하나도 읽지 못했어요(찾은 조각 20개)"를 남김. 나머지 3곳은 정상 |
+| 기대 결과 | 그 피드의 소식이 다시 들어온다. 못 읽는 일이 생기면 여전히 수집 오류로 남고(불변 2), 같은 소식은 두 번 저장되지 않고(불변 3), 다른 피드는 영향이 없다 |
+| 영향 범위 | `lib/domain/{news-parse,news-feeds}.ts`, `lib/server/collect-news.ts`, 시험 2개 + 실제 응답 고정물 `lib/domain/fixtures/news-google-developers-undated.xml`. DB · 마이그레이션 변경 없음 |
+| 제약 | 피드는 공개 RSS GET 1번만(약관 조건 하루 1번 · 1초 간격 그대로). Claude API 호출 없음. 운영 쓰기 없음 |
+| 열린 질문 | 날짜가 없는 피드의 날짜를 "읽은 때"로 쓰는 것(처음 읽을 때 옛 글 최대 5개가 읽은 날짜로 보임)을 팀이 받아들일지, 아니면 이 피드를 목록에서 뺄지 |
+
+**원인(잰 것, 2026-11-23 GET 1번):** 주소는 그대로이고 응답이 Atom(날짜 있음)에서 항목에 title · link · description · guid뿐인 RSS 2.0으로 바뀌었다. 항목 20개 어디에도 pubDate · published · updated · dc:date가 없다(다른 주소 5가지도 같은 응답). 파서가 날짜 없는 항목을 버려서 0개가 됐다.
+**결정 · 이유:**
+- 피드 목록에 `undated: true`가 붙은 피드만, 날짜 칸이 **아예 없는** 항목을 읽은 때로 받는다(최대 5개). 칸은 있는데 못 읽거나 미래인 날짜는 여전히 버리므로 모양이 또 바뀌면 수집 오류로 드러난다.
+- 이미 저장된 주소는 건너뛰므로(on conflict do nothing) 첫 읽은 날짜가 유지되고, 하루 한 번 읽어 이후 새 글의 날짜는 하루 안쪽으로 맞는다. 처음 읽을 때만 옛 글이 오늘 날짜가 될 수 있어 5개로 줄였다(5는 팀 추정).
+- 글 날짜를 얻으려고 글 페이지를 따로 읽지 않는다(요청 수 · 약관 범위를 넓히지 않음).
+**결과:** 됨(로컬 커밋, 미푸시). `npm test` 1746 통과 · 0 실패(고친 곳 시험 28개 중 새로 7개), tsc 0 오류, precheck 겹침 없음, `npm run build` 성공.
+**확인하지 못함:** 운영에서 실제로 소식이 들어오는지(배포 뒤 "지금 한 번 실행" 또는 다음 정기 실행의 fetch_news 단계로 확인). 같은 날 이미 한 번 읽어(last_synced_at) 다음 정기 실행 때 읽힌다.
+
+---
+
 ## I-P-12j-links-core · 2026-11-22 · 청사진 Hybrid Editor H2 미리 준비: 기술 관계선 · 순서 · 옮기기 순수 함수 + DB (FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12j-links-core`(`feat/P-12j-hybrid-editor` b729a1c에서 갈라짐, 나중에 DevAssi2 쪽으로 합침)
 - 출처: 계획 `p12j-hybrid-editor.md` H2(사용자 결정 "제출 전 전부") · 데이터 정직성 규칙 1 · 5, Maestro 배정, 불변 2 · 5
