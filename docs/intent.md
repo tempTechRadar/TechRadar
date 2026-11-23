@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-12m-compact · 2026-11-23 · 관측소 테마 · 컴팩트: 프로젝트 보드 · 레포 상세 · 알림 · 기록 · 설정 · 관리자 (P-12m Q2', DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12m-compact`(feat/P-12m-blueprint-theme 327755a = Q1 토큰 · 셸 위, 로컬. FrontLead가 Q3에서 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-observatory-theme.md`(11:30), 시안 "A 관측소 · 프로젝트 보드", Maestro 배정 · 답(흐름 그림은 밝은 종이 판 그대로, 판 고리 지움), 고칠 곳 목록 `.claude/plans-share/p12m-q2prime-list.md`. ADR 0044 · PRD-NF5(대비) · PRD-F22 · IA-2 · 3
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | Q1에서 토큰이 어두운 한 벌이 됐지만 보드 · 관리자 CSS에 흰 면 · 밝은 바탕 전제(타공 구멍 · 고리 · #fff · 옅은 그림자)와 44px · 28px 고정 크기가 남아 있다. 화면 말 "거르기"가 남아 있다 |
+| 기대 결과 | 보드 판은 어두운 판(--panel) + 옅은 별점, 판 고리 없음, 제목 막대 36 · 표 행 32 · 단추 --hit(마우스 34 / 손가락 44), 숫자는 고정폭 · 색은 상태에만. 알림 · 기록 · 설정 · 관리자도 어두운 면 · 컴팩트. 화면 말 "거르기" → "필터" |
+| 영향 범위 | app/dashboard/board.css · app/page.css · app/admin/admin.css · 관리자 인라인 색(demo · flow 테두리) · 관리자 · 알림 tsx 문구, 고친 시험 |
+| 제약 | 기능 · 서버 · DB 그대로(CSS · 문구만). 흐름 그림 6상태 색(lib/flow/look.ts)과 대비 시험은 그대로. 메뉴 · 필터 폼 입력칸 44px(tap-targets 시험)은 그대로. 지도 · 청사진은 FrontLead. Claude API 없음, 고친 시험 · tsc만 |
+| 열린 질문 | 손가락 화면의 실제 체감 · 화면 읽기 프로그램은 사람 QA |
+
+**결과:** 로컬 커밋(feat · test · 이 docs). 보드: 판 --panel · 테두리 --line-d · 모서리 10 · 그림자, 옅은 별점(--line-d 1px, 스냅 칸 그대로), 고리 지움(Maestro 결정), 제목 막대 36, 표 행 --row, 단추 · 입력칸 --hit(3108 측정 34px), 숫자 띠 고정폭 · 새 기술 --scan · 위험 · 판단 대기만 색, 팝업 --card. 보드 화면은 일반 화면 판(tokens.css)을 걷고 판이 밤하늘 위에 바로. page.css: 선택 · 입력칸 · 설정 · 고르기 --hit, alert-row 56 → 40, 카드 --card, 대화상자 어두운 면, 따로 정하지 않은 글 입력칸도 어두운 면(:where), 필터 폼 단추가 늘어나지 않게 아래 맞춤. 관리자: 판 한 장(--panel), #fff → --sunken, 인라인 minHeight 44 → "var(--hit)" 12파일, 흐름 그림 테두리만 --ring(색 · 대비 시험 그대로, Maestro 결정). "거르기" → "필터": 관리자 필터 단추 · 신고 aria, 알림 빠른 필터 · 폼 이름 · 단추 · 필터 풀기. 시험: b-screens-scan의 44px 규칙이 "var(--hit)"도 받게(문구 · 식만). tsc 통과, 고친 영역 시험(a11y · admin · alerts · flow · records) 244개 통과. 3108(로그인 미리보기)에서 보드 · 레포 등록 입력칸 · 관리자 신고 샘플 · 흐름 샘플 · 알림 · 기록 · 설정을 1440 · 390 폭으로 봄(390에서 옆 밀림 없음).
+**확인하지 못함:** 실제 관리자 계정의 /admin 탭 하나하나(미리보기 사용자는 관리자가 아니라 샘플 화면으로 봄), 손가락 기기(44px), 화면 읽기 프로그램, 전체 시험 · 빌드(Q3에서 몰아서). 필터 폼 글 입력칸은 tap-targets 시험이 44px 글자를 잡고 있어 FrontLead처럼 그대로 둠(선택 칸 34와 높이가 다름).
+
 ## I-P-12m-blueprint-theme · 2026-11-23 · 파란 도면 테마 + 레이더 선 · 파동 (P-12m, FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12m-blueprint-theme`(feat/P-12l-blueprint-defaults 5ca75ab 위, 문서 docs/P-12m-theme b76bd81을 받음, 로컬. P-12l과 PR 하나로)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md` "11-23 10:00 T1 결정", 톤 사진 · 레이더 시안 Radar.dc.html, Maestro 배정. ADR 0044 · design.md 5 · 6 · 16절 · PRD-NF5(대비) · 불변 6
