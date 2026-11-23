@@ -193,3 +193,4 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-filter-toggle b { font-family: var(--mono); color: var(--scan); }
 .map-filter select { min-height: 26px; padding: 0 4px; font-size: var(--fs-sm); }
 .map-hud > .map-chips { flex: 1 1 auto; min-width: 0; } /* 좁은 화면(≤640)에서는 위 규칙대로 한 줄 가로 밀기 */
+@media (max-width: 640px) { .map-hud > .map-top { order: -1; margin-left: 0; } } /* 좁으면 로그인 · 시작하기 줄을 맨 위로(칩 가로 밀기 밖으로 밀리지 않게, P-12m Q3) */

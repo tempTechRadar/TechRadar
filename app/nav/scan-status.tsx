@@ -16,11 +16,12 @@ export async function ScanStatusLine({ admin }: { admin: boolean }) {
       <span className="scan-sep" aria-hidden="true">│</span>
       <span><i className="scan-dot" data-tone={s.runFailed ? "err" : "ok"} aria-hidden="true" />단계 {s.steps}{s.runFailed ? " · 실행 실패" : ""}</span>
       <span className="scan-sep" aria-hidden="true">│</span>
-      <span><i className="scan-dot" data-tone={s.errors ? "err" : "none"} aria-hidden="true" />수집 오류 {s.errors}</span>
+      <span className="scan-errpart"><i className="scan-dot" data-tone={s.errors ? "err" : "none"} aria-hidden="true" />수집 오류 {s.errors}</span>
     </>
   ) : <><span className="scan-k">LAST SCAN</span> {s.state === "none" ? "— 아직 없음" : "— 읽지 못함"}</>;
   const label = s.state === "ok" ? `마지막 정기 수집 ${kstTime(s.at)}${s.runFailed ? "(실행 실패)" : ""}, 단계 ${s.steps}개, 수집 오류 ${s.errors}개` : s.state === "none" ? "정기 수집 기록이 아직 없어요" : "수집 상태를 읽지 못했어요";
+  const err = s.state === "ok" && s.errors > 0 ? "" : undefined; // 좁은 화면에서는 줄을 숨기되 수집 오류가 있으면 그 수만 남긴다(site-nav.css)
   return admin && s.state === "ok"
-    ? <a className="scan-status" href={`/admin/flow?run=${s.runId}`} aria-label={`${label}. 흐름 보기`}>{body}</a>
-    : <span className="scan-status" role="status" aria-label={label}>{body}</span>;
+    ? <a className="scan-status" data-err={err} href={`/admin/flow?run=${s.runId}`} aria-label={`${label}. 흐름 보기`}>{body}</a>
+    : <span className="scan-status" data-err={err} role="status" aria-label={label}>{body}</span>;
 }

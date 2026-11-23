@@ -40,7 +40,7 @@
 
 /* 단계 노드 */
 /* P-12j H2: 단계 = 컨테이너. 크기는 노드 style(graph.ts NODE_SIZE.w × stageHeight)이 정하고, 안의 자리(머리 40 · 줄 46 · 아래 12)는 graph.ts BOX와 같다 */
-.sn { box-sizing: border-box; width: 100%; height: 100%; padding: 6px 10px 12px; background: var(--surface); border: 1.5px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: 0 6px 16px rgba(0, 0, 0, .28); } /* P-12m: 밤하늘 위 판 카드, 테두리 · 그림자 또렷하게 */
+.sn { box-sizing: border-box; width: 100%; height: 100%; padding: 6px 10px 12px; background: var(--card); border: 1px solid var(--ring); border-radius: var(--r-lg); box-shadow: 0 10px 28px rgba(0, 0, 0, .45); } /* P-12m 관측소: 밝은 남색 판 + 그림자 */
 .sn[data-selected] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 .sn[data-over] { outline: 2px dashed var(--on-paper); outline-offset: 2px; }
 /* P-12g B4 빈 자리 윤곽(H2부터 .sn-slot-ghost = 다음 기술 자리): 끄는 동안 칩 자리. 가득 차면 윤곽 대신 글자(색에만 기대지 않음) */
@@ -59,7 +59,7 @@
 .react-flow__node-tech { cursor: grab; }
 .react-flow__node-tech.dragging { cursor: grabbing; box-shadow: var(--shadow-pop); }
 .react-flow__handle.tn-handle { width: 8px; height: 8px; background: var(--surface); border: 1px dashed var(--muted); }
-.sn-order { display: inline-grid; place-items: center; min-width: 22px; height: 22px; font-size: 13px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
+.sn-order { display: inline-grid; place-items: center; min-width: 22px; height: 22px; font-size: 13px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-sm); background: none; font-family: var(--mono); font-weight: 500; color: var(--scan); } /* P-12m 관측소: 고정폭 청록 "01" */
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; font-weight: 700; color: var(--ink); } /* P-12j(11-22 사용자): 이름 19 굵게 */
 .sn-name-input { flex: 1; min-width: 0; min-height: 32px; padding: 0 var(--sp-1); font: inherit; font-size: 19px; font-weight: 700; border: 1px solid var(--ink); border-radius: var(--r-sm); }
 /* U2 고른 카드 아래 "메모" · "삭제": 고르거나 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 아래 +(가운데)와 겹치지 않게 양끝 */
@@ -101,11 +101,11 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .se-cut:focus-visible { outline: var(--focus); outline-offset: 2px; }
 
 /* 단계 순서 선(H2: 굵은 실선), 고른 단계 · 선만 진하게 */
-.react-flow__edge.se .react-flow__edge-path { stroke: var(--on-paper); stroke-width: 3; } /* P-12m: 밤하늘 위 밝은 굵은 선(청록 궤도선은 Q3) */
-.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.se.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 4; }
+.react-flow__edge.se .react-flow__edge-path { stroke: var(--scan); stroke-width: 2; stroke-opacity: .75; } /* P-12m 관측소: 단계 사이 청록 궤도선 + 화살촉 */
+.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.se.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 3; stroke-opacity: 1; }
 /* 기술 관계 표시(H2): 사용자가 그은 표시라 가는 점선 · 다른 색(검증 결과가 아님) */
-.react-flow__edge.tl .react-flow__edge-path { stroke: var(--on-paper); stroke-width: 1; stroke-dasharray: 4 3; }
-.react-flow__edge.tl.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 1.5; }
+.react-flow__edge.tl .react-flow__edge-path { stroke: var(--chip-purple-ink); /* 내가 그은 관계 표시 = 보라 점선(사용자 유지) */ stroke-width: 1; stroke-dasharray: 4 3; }
+.react-flow__edge.tl.selected .react-flow__edge-path { stroke: var(--cat-2); stroke-width: 1.5; }
 /* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
 .react-flow__edge.se-near .react-flow__edge-path { stroke: var(--on-paper); stroke-dasharray: 4 3; }
 .react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }

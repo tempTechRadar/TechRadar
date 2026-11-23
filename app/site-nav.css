@@ -78,4 +78,8 @@ a.scan-status:hover { border-color: var(--scan); color: var(--on-paper); }
 .scan-sep { color: var(--faint); }
 .scan-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--faint); vertical-align: 1px; }
 .scan-dot[data-tone="ok"] { background: var(--pass); } .scan-dot[data-tone="err"] { background: var(--danger); }
-@media (max-width: 900px) { .scan-status { display: none; } }
+@media (max-width: 900px) {
+  .scan-status { display: none; }
+  .scan-status[data-err] { display: inline-flex; margin-right: 0; } /* 수집 오류가 있으면 그 수만(P-12m Q3) */
+  .scan-status[data-err] > :not(.scan-errpart) { display: none; }
+}

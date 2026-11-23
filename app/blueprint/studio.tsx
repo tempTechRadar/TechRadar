@@ -361,7 +361,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const keepEdge = (id: string) => { clearTimeout(edgeTimer.current); setHoverEdge(id); };
   const edges: (FlowEdge | SeqEdgeType)[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
-    return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: "var(--on-paper)" },
+    return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: "var(--scan)" },
       data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
         // 속성 패널 "끊기"와 같게: 고른 단계는 그대로, 사라지는 단추 대신 캔버스로 초점
         onInsert: readOnly ? undefined : () => { setHoverEdge(null); insertGhost(e.from, e.to); },
