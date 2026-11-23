@@ -5,7 +5,7 @@ import { NEW_TARGET, viewsTarget } from "./moved.ts";
 
 test("옮긴 화면: /views 탭마다 새 자리(모르는 탭 · constructor는 지도), /new는 지도의 이번 주", () => {
   assert.equal(viewsTarget("gallery"), "/dashboard");
-  assert.equal(viewsTarget("news"), "/dashboard?tab=news");
+  assert.equal(viewsTarget("news"), "/dashboard"); // 소식은 보드 위젯(P-12i D3)
   assert.equal(viewsTarget("radar"), "/");
   assert.equal(viewsTarget(undefined), "/");
   assert.equal(viewsTarget("constructor"), "/");

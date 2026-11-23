@@ -57,6 +57,20 @@ function pushedOf(v: unknown): string | null | undefined {
   return typeof v === "string" && ISO_TIME.test(v) && !Number.isNaN(Date.parse(v)) ? v : undefined;
 }
 
+export type RepoMeta = { description: string | null; language: string | null; pushedAt: string | null };
+const trimmed = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? [...v.trim()].slice(0, max).join("") : null); // 글자(코드 포인트) 단위: DB char_length와 같게
+
+/** 레포 카드의 설명 · 주 언어 · 마지막 푸시(P-12i, 마이그레이션 202611232100). 빈 글은 null, 설명은 300자 · 언어는 60자로 자른다.
+ *  칸 모양이 다르면(날짜가 깨짐 · 글이 아님) 전체 null: 예전 값을 엉뚱한 값으로 덮지 않고 수집 오류로 남기게(불변 2 · 4) */
+export function parseRepoMeta(json: unknown): RepoMeta | null {
+  const r = asRecord(json);
+  if (!r) return null;
+  const { description: d, language: l } = r;
+  const pushedAt = pushedOf(r.pushed_at);
+  if (pushedAt === undefined || (d != null && typeof d !== "string") || (l != null && typeof l !== "string")) return null;
+  return { description: trimmed(d, 300), language: trimmed(l, 60), pushedAt };
+}
+
 /** 저장소 정보 응답 읽기. 필요한 칸의 모양이 하나라도 다르면 null. */
 export function readRepoInfo(text: string): RepoInfo | null {
   let json: unknown;

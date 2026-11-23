@@ -5,9 +5,9 @@ export type StartStep = { label: string; href: string; done: boolean };
 export function startSteps(read: { projects: number; unseenCheck: boolean; judged: boolean } | null): StartStep[] | null {
   if (!read) return null;
   const steps = [
-    { label: "프로젝트 등록하기", href: "/projects", done: read.projects > 0 },
+    { label: "프로젝트 등록하기", href: "/dashboard#repo-register", done: read.projects > 0 },
     // 프로젝트가 있고 확인 안 한 첫 점검 띠가 없으면 끝(띠는 지도 위에 뜨고 "확인"으로 닫힘). 첫 읽기가 실패해 띠가 안 생겨도 막히지 않게
-    { label: "첫 점검 결과 보기", href: "/projects", done: read.projects > 0 && !read.unseenCheck },
+    { label: "첫 점검 결과 보기", href: "/dashboard", done: read.projects > 0 && !read.unseenCheck },
     { label: "판단 하나 남기기", href: "/alerts", done: read.judged }, // 알림 판단 또는 지도에서 관심 · 후보 · 보류
   ];
   return steps.every((s) => s.done) ? null : steps;

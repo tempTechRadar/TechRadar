@@ -35,7 +35,7 @@ export function AddTech({ projects, q, hits, searchFailed, back, carry }: Props)
   return (
     <section className="card" aria-labelledby="add-title">
       <h2 id="add-title">기술 직접 추가</h2>
-      <form method="get" className="filters" style={ROW}>
+      <form method="get" action="/dashboard#add-title" className="filters" style={ROW}>{/* 찾은 뒤 보드 맨 위가 아니라 이 칸으로(P-12i D3: 프로젝트 관리 보드의 레포 관리 위젯 안) */}
         {[...new URLSearchParams(carry)].map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
         <label className="search">
           모은 기술에서 찾기(두 글자 이상)

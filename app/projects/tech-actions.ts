@@ -24,10 +24,10 @@ async function context(): Promise<Ctx> {
 const viewOf = (formData: FormData) => keepView(Object.fromEntries(new URLSearchParams(String(formData.get("back") ?? ""))));
 
 function finish(result: Outcome, notice: string, view: string): never {
-  revalidatePath("/projects");
+  revalidatePath("/dashboard");
   const tail = view ? `&${view}` : "";
-  if (!result.ok) redirect(`/projects?error=${result.code}${tail}`);
-  redirect(`/projects?notice=${notice}${result.auditFailed ? "&audit=0" : ""}${tail}`);
+  if (!result.ok) redirect(`/dashboard?error=${result.code}${tail}`);
+  redirect(`/dashboard?notice=${notice}${result.auditFailed ? "&audit=0" : ""}${tail}`);
 }
 
 /** 직접 숨기기·되돌리기. 숨긴 기술은 다시 읽어도 되살아나지 않는다(first-read가 hidden_at을 덮어쓰지 않음). */

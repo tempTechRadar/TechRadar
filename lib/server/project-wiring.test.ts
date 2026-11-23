@@ -7,15 +7,16 @@ import { readFileSync } from "node:fs";
 const read = (rel: string) => readFileSync(new URL(`../../app/projects/${rel}`, import.meta.url), "utf8");
 const actions = read("actions.ts");
 const projectActions = read("project-actions.ts");
-const page = read("page.tsx");
+// 목록 화면은 프로젝트 관리 보드의 "레포 관리 · 내 기술" 위젯으로 옮겼다(P-12i D3). /projects는 /dashboard로 보낸다
+const page = readFileSync(new URL("../../app/dashboard/repo-manage.tsx", import.meta.url), "utf8");
 
 test("프로젝트 등록: 보관한 주소는 읽기 전에 막는다(보관된 채 조용히 다시 읽기만 도는 일이 없게)", () => {
   const check = actions.indexOf("isArchivedRepo(");
   const read1 = actions.indexOf("registerAndRead(user");
   assert.ok(check > 0 && read1 > 0, "둘 다 있어야 한다");
   assert.ok(check < read1, "보관 확인이 읽기보다 앞이어야 한다");
-  assert.match(actions, /redirect\("\/projects\?error=archived"\)/);
-  assert.match(actions, /archived === null\) redirect\("\/projects\?error=project_failed"\)/, "조회가 실패하면 모르는 채로 읽지 않는다(불변 2)");
+  assert.match(actions, /redirect\("\/dashboard\?error=archived"\)/);
+  assert.match(actions, /archived === null\) redirect\("\/dashboard\?error=project_failed"\)/, "조회가 실패하면 모르는 채로 읽지 않는다(불변 2)");
 });
 
 test("프로젝트 동작 셋은 로그인 확인부터 하고, DB 판단은 lib/server에 맡긴다", () => {
@@ -27,7 +28,7 @@ test("프로젝트 동작 셋은 로그인 확인부터 하고, DB 판단은 lib
   }
   assert.match(projectActions, /if \(!user\) redirect\("\/login"\)/);
   assert.doesNotMatch(projectActions, /\.from\(/, "DB는 직접 부르지 않는다");
-  assert.match(projectActions, /redirect\(`\/projects\?error=project_\$\{result\.code\}`\)/, "실패는 이유 코드를 싣고 돌아간다");
+  assert.match(projectActions, /redirect\(`\/dashboard\?error=project_\$\{result\.code\}`\)/, "실패는 이유 코드를 싣고 돌아간다");
 });
 
 test("목록 화면: 활성 목록은 보관 안 한 것만, 보관 목록은 저장소 프로젝트의 보관한 것만 읽고, 못 읽으면 불러오지 못했다고 보인다", () => {
@@ -56,4 +57,10 @@ test("목록 화면: 주소에서 온 코드는 자기 키만 문구로 바꾸�
   assert.doesNotMatch(page, /(NOTICE_TEXT|URL_ERROR_TEXT|TECH_ERROR_TEXT)\[query\./, "주소 값으로 객체를 바로 읽지 않는다");
   assert.match(page, /staleProject = Boolean\(query\.project\) && !projects\.some/);
   assert.match(page, /\{staleProject && </);
+});
+
+test("옛 /projects 목록은 거르기 · 검색 · 결과 코드를 싣고 /dashboard(레포 관리)로 보낸다", () => {
+  const old = read("page.tsx");
+  assert.match(old, /redirect\(`\/dashboard/);
+  assert.doesNotMatch(old, /getServerSupabase/, "보내기만 하고 DB는 안 부른다");
 });
