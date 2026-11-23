@@ -1,24 +1,28 @@
 // 확정한 청사진 점검(P-12e I). "점검 받기"를 누를 때만 부른다. 흐름은 적용 시나리오(scenario.ts)를 따른다:
 // userDb(로그인한 사용자: 내 청사진 읽기 · 요청 줄 쓰기, RLS가 남의 것을 막음)와 serviceDb(서버: 결과 · ai_calls 쓰기, 카탈로그 읽기).
 // 코드가 판단하는 사실(check-facts)은 AI 없이도 늘 만들고, Claude는 그 사실을 재료로 "제안 · 주의할 점"만 쓴다. 청사진은 바꾸지 않는다(불변 1).
+// P-12q: 같은 호출에서 확정본의 내보내기 프롬프트 원문도 진단한다(중복 · 충돌 · 순서 · 다듬은 프롬프트, 참고용). 결과는 body.diagnosis(jsonb라 DB 변경 없음).
 // 같은 확정본을 같은 재료로 다시 누르면 새로 부르지 않고 이전 결과를 다시 쓴다(input_hash, 불변 3). 거절 말고는 던지지 않는다.
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AiClient } from "../ai/ai-client.ts";
 import { buildCheckPrompt } from "../ai/build-check-prompt.ts";
 import { BLUEPRINT_CHECK_PER_USER_PER_DAY, decideAiCall, startOfKoreanDay } from "../ai/decide-ai-call.ts";
-import { parseScenarioResponse } from "../ai/parse-scenario-response.ts";
+import { parseCheckResponse, type Diagnosis } from "../ai/parse-check-response.ts";
 import type { Board } from "../blueprint/board.ts";
 import { checkFacts, type CheckTech, type Fact, type SameRolePair } from "../blueprint/check-facts.ts";
+import { exportText, linkLines } from "../blueprint/export-text.ts";
 import { fromV1 } from "../blueprint/graph.ts";
-import { readStored, toBoard } from "../blueprint/stored.ts";
+import { sectionLines } from "../blueprint/sections.ts";
+import { readStored, readStoredGraph, toBoard } from "../blueprint/stored.ts";
 import { isUuid } from "../domain/my-tech-view.ts";
 import { cleanForLog, maskSecrets } from "../domain/redact.ts";
 import { failure, rowsOrThrow, type Row } from "./alert-db.ts";
 
 /** 저장하는 점검 결과(blueprint_checks.body). 단계 id는 옛 판(board)에 없어 사실에는 싣지 않는다 */
 export type StoredFact = Pick<Fact, "kind" | "severity" | "text" | "source" | "techIds">;
-export type BlueprintCheckBody = { facts: StoredFact[]; suggestions: string[]; notes: string[] };
+/** diagnosis = 프롬프트 진단(P-12q). 그 전에 만든 점검에는 없다 */
+export type BlueprintCheckBody = { facts: StoredFact[]; suggestions: string[]; notes: string[]; diagnosis?: Diagnosis };
 export type CheckResult =
   | { status: "created"; checkId: string }
   | { status: "reused"; checkId: string }
@@ -29,13 +33,14 @@ export type LatestCheck = { id: string; body: BlueprintCheckBody; sources: strin
 type Clients = { userDb: SupabaseClient; serviceDb: SupabaseClient };
 type Deps = Clients & { ai: AiClient | null };
 type Input = { blueprintId: string; userId: string; now?: Date };
-type Loaded = { name: string; board: Board; facts: Fact[] };
+type Loaded = { name: string; board: Board; facts: Fact[]; exportPrompt: string };
 type Called = Awaited<ReturnType<AiClient["complete"]>>;
 
 const TECH_COLUMNS = "id, tech_key, display_name, type, grade, grade_reason, last_activity_at, last_activity_kind, collect_error_kind, repo_url";
 const CHUNK = 100; // .in() 목록이 길면 주소가 너무 길어 실패한다
 const STALE_GENERATING_MS = 10 * 60 * 1000; // 이보다 오래 "만드는 중"인 줄은 끊긴 것으로 보고 실패로 닫는다(새 점검이 막히지 않게)
 const GRADES = ["pass", "caution", "danger", "unknown"] as const;
+const CHECK_CALL = { maxTokens: 8000, timeoutMs: 120_000 }; // 다듬은 프롬프트(4000자)까지 한 번에 받는다: 한국어는 글자당 토큰이 많아 기본(2048)이면 JSON이 잘린다
 
 async function readChunks(ids: string[], what: string, read: (chunk: string[]) => PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Row[]> {
   const rows: Row[] = [];
@@ -53,7 +58,7 @@ const toCheckTech = (r: Row): CheckTech => ({
 /** 내 확정 청사진 + 코드 점검 사실. 내 것이 아니거나 없으면 null. 읽기에 실패하면 던진다(못 읽은 것을 "문제 없음"으로 만들지 않음, 불변 2) */
 export async function loadBlueprintFacts({ userDb, serviceDb }: Clients, blueprintId: string, userId: string, now: Date): Promise<Loaded | null> {
   if (!isUuid(blueprintId)) return null;
-  const { data, error } = await userDb.from("blueprints").select("id, user_id, name, board").eq("id", blueprintId).maybeSingle();
+  const { data, error } = await userDb.from("blueprints").select("id, user_id, name, board, graph").eq("id", blueprintId).maybeSingle();
   if (error) throw failure("청사진을 읽지 못함", error.message);
   const row = data as Row | null;
   if (!row || row.user_id !== userId) return null;
@@ -67,7 +72,10 @@ export async function loadBlueprintFacts({ userDb, serviceDb }: Clients, bluepri
   const rels = await readChunks(ids, "같은 역할을 읽지 못함", (c) =>
     serviceDb.from("tech_relations").select("tech_a, tech_b, quote, confirmed_at").eq("kind", "same_role").eq("status", "confirmed").eq("is_simulated", false).in("tech_a", c));
   const sameRole: SameRolePair[] = rels.filter((r) => inSet.has(r.tech_b)).map((r) => ({ a: r.tech_a, b: r.tech_b, quote: r.quote ?? null, confirmedAt: r.confirmed_at ?? null }));
-  return { name: row.name, board, facts: checkFacts({ graph: fromV1(board), techs, sameRole, now }) };
+  // 진단 재료 = 사용자가 복사해 가는 내보내기 프롬프트 그대로(선 · 섹션은 v2 확정본에만 있음)
+  const graph = readStoredGraph(row.graph) ?? fromV1(board);
+  const exportPrompt = exportText("prompt", row.name, board, linkLines(graph), sectionLines(graph));
+  return { name: row.name, board, facts: checkFacts({ graph: fromV1(board), techs, sameRole, now }), exportPrompt };
 }
 
 /** 이 확정본의 가장 최근 끝난 점검(없으면 null). 읽기에 실패하면 던진다 */
@@ -97,19 +105,20 @@ async function callAndSave(deps: Deps, loaded: Loaded, prompt: ReturnType<typeof
   const base = { user_id: userId, input_hash: hash };
   let answer: Called;
   try {
-    answer = await deps.ai!.complete({ system: prompt.system, user: prompt.user });
+    answer = await deps.ai!.complete({ system: prompt.system, user: prompt.user, ...CHECK_CALL });
   } catch (error) {
     const reason = cleanForLog(error instanceof Error ? error.message : String(error)) ?? "";
     await logCall(deps.serviceDb, { ...base, status: "failed", error: reason });
     return { status: "failed", reason, checkId };
   }
   const tokens = { tokens_in: answer.tokensIn ?? null, tokens_out: answer.tokensOut ?? null };
-  const parsed = parseScenarioResponse(answer.text, prompt.allowedSources);
+  const parsed = parseCheckResponse(answer.text, prompt.allowedSources, loaded.exportPrompt);
   if (!parsed.ok) {
     await logCall(deps.serviceDb, { ...base, ...tokens, status: "failed", error: parsed.error });
     return { status: "failed", reason: parsed.error, checkId };
   }
-  const body: BlueprintCheckBody = { facts: loaded.facts.map(toStoredFact), suggestions: parsed.steps, notes: parsed.risks };
+  const { overlaps, conflicts, order, revisedPrompt } = parsed;
+  const body: BlueprintCheckBody = { facts: loaded.facts.map(toStoredFact), suggestions: parsed.steps, notes: parsed.risks, diagnosis: { overlaps, conflicts, order, revisedPrompt } };
   const saved = await deps.serviceDb.from("blueprint_checks").update({ status: "done", body, sources: parsed.sources, input_hash: hash, finished_at: now.toISOString() }).eq("id", checkId);
   // 호출은 이미 끝나 토큰이 들었다: 저장이 실패해도 기록해야 하루 한도에 센다
   if (saved.error) {
