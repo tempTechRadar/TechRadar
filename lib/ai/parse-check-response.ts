@@ -9,6 +9,9 @@ export type CheckParse = ({ ok: true; steps: string[]; risks: string[]; sources:
 
 export const DIAGNOSIS = { pairs: 5, order: 5, name: 60, line: 300, prompt: 4000 } as const;
 const URL = /https?:\/\/[^\s)"'<>\]]+/gi;
+// 다듬은 프롬프트는 사용자가 코딩 에이전트에 붙여 넣는다: 스킴 없는 주소(evil.sh/x) · 셸 흉내도 막는다(원문에 이미 있는 이름은 괜찮음)
+const DOMAIN = /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|dev|sh|ai|app|co|xyz|me|ly|gg|cc|ru|cn|site|top|info|link|run|page|so|to)\b/gi;
+const SHELL = /\bsudo\b|\brm\s+-|\bchmod\b|\bbash\b|\bsh\s+-c\b|\bpowershell\b|\biex\b|\beval\b|\|\s*(?:ba|z)?sh\b|\$\(/i;
 
 const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
 const list = (v: unknown) => (Array.isArray(v) ? v : []);
@@ -22,11 +25,13 @@ function pairs(v: unknown, inPrompt: (name: string) => boolean): TechPair[] {
   }).slice(0, DIAGNOSIS.pairs);
 }
 
-/** 다듬은 프롬프트: 4000자 이내 · 설치 명령 없음 · 주소는 넘긴 것만. 어기면 통째로 버린다(일부만 고친 글을 복사하게 두지 않음) */
-function revised(v: unknown, known: Set<string>): string | null {
+/** 다듬은 프롬프트: 4000자 이내 · 설치 · 셸 명령 없음 · 주소와 도메인은 넘긴 것만. 어기면 통째로 버린다(일부만 고친 글을 복사하게 두지 않음) */
+function revised(v: unknown, known: Set<string>, original: string): string | null {
   const t = text(v, DIAGNOSIS.prompt);
-  if (!t || COMMAND_LINE.test(t)) return null;
-  return (t.match(URL) ?? []).every((u) => known.has(u)) ? t : null;
+  if (!t || COMMAND_LINE.test(t) || SHELL.test(t)) return null;
+  const seen = [...known].join(" ").toLowerCase() + " " + original;
+  const domainsOk = (t.match(DOMAIN) ?? []).every((d) => seen.includes(d.toLowerCase()));
+  return domainsOk && (t.match(URL) ?? []).every((u) => known.has(u)) ? t : null;
 }
 
 export function parseCheckResponse(raw: string, allowedSources: string[], exportPrompt: string): CheckParse {
@@ -37,5 +42,5 @@ export function parseCheckResponse(raw: string, allowedSources: string[], export
   const inPrompt = (name: string) => hay.includes(name.toLowerCase());
   const order = withoutCommands(list(v.order).flatMap((x) => text(x, DIAGNOSIS.line) ?? [])).slice(0, DIAGNOSIS.order);
   const known = new Set([...allowedSources, ...(exportPrompt.match(URL) ?? [])]);
-  return { ...base, overlaps: pairs(v.overlaps, inPrompt), conflicts: pairs(v.conflicts, inPrompt), order, revisedPrompt: revised(v.revisedPrompt, known) };
+  return { ...base, overlaps: pairs(v.overlaps, inPrompt), conflicts: pairs(v.conflicts, inPrompt), order, revisedPrompt: revised(v.revisedPrompt, known, hay) };
 }
