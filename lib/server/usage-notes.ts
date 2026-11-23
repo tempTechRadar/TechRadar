@@ -41,10 +41,10 @@ export async function reportNote(db: SupabaseClient, userId: string, noteId: str
   return { ok: true };
 }
 
-/** 그 기술의 사용기(숨긴 글은 RLS가 이미 뺀다). 쓴 사람의 id·별명은 화면에 넘기지 않는다. 읽지 못하면 던진다("없음"과 다르게 보이도록) */
+/** 그 기술의 사용기. 숨긴 글은 쓴 사람에게만 보인다: RLS는 관리자에게 숨긴 글도 돌려주므로 여기서 한 번 더 뺀다. 쓴 사람의 id·별명은 화면에 넘기지 않는다. 읽지 못하면 던진다("없음"과 다르게 보이도록) */
 export async function readUsageNotes(db: SupabaseClient, techId: string, viewerId: string): Promise<UsageNoteView[]> {
   // 쓴 사람 칸(author_id)과 숨긴 사람 칸(hidden_by)은 읽기 권한이 없다(익명 표시). "내 글"은 DB 함수가 이 글들 중 내 것만 돌려준다
-  const notes = rowsOrThrow(await db.from("usage_notes").select("id, used_for, result, tip, helpful_count, created_at").eq("tech_id", techId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "사용기를 읽지 못함");
+  const notes = rowsOrThrow(await db.from("usage_notes").select("id, used_for, result, tip, helpful_count, created_at, hidden_at").eq("tech_id", techId).order("created_at", { ascending: false }).limit(LIST_LIMIT), "사용기를 읽지 못함");
   if (notes.length === 0) return [];
   const ids = notes.map((n) => n.id as string);
   const [mine, votes, reports] = await Promise.all([
@@ -56,7 +56,7 @@ export async function readUsageNotes(db: SupabaseClient, techId: string, viewerI
   const mineIds = new Set((mine.data as unknown[]).map((x) => (typeof x === "string" ? x : String(Object.values(x as object)[0])))); // setof uuid는 값 배열(또는 한 칸 객체)로 온다
   const voted = new Set(rowsOrThrow(votes, "누른 기록을 읽지 못함").map((r) => r.note_id as string));
   const reported = new Set(rowsOrThrow(reports, "신고 기록을 읽지 못함").map((r) => r.note_id as string));
-  return notes.map((n) => ({
+  return notes.filter((n) => n.hidden_at == null || mineIds.has(n.id)).map((n) => ({
     id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count, createdAt: n.created_at,
     mine: mineIds.has(n.id), voted: voted.has(n.id), reported: reported.has(n.id),
   }));
@@ -72,7 +72,7 @@ export async function readUsageNoteCount(db: SupabaseClient, techId: string): Pr
 export type NoteSummary = { total: number; top: Pick<UsageNoteView, "id" | "usedFor" | "result" | "tip" | "helpfulCount">[] };
 /** 지도 사이드 패널의 사용기 요약(11-21 사용자 결정 G): "도움이 됐어요" 많은 순 몇 개 + 전체 수. 전체 글은 기술 상세에서. 읽지 못하면 던진다 */
 export async function readTopUsageNotes(db: SupabaseClient, techId: string, limit = 3): Promise<NoteSummary> {
-  const r = await db.from("usage_notes").select("id, used_for, result, tip, helpful_count", { count: "exact" }).eq("tech_id", techId)
+  const r = await db.from("usage_notes").select("id, used_for, result, tip, helpful_count", { count: "exact" }).eq("tech_id", techId).is("hidden_at", null)
     .order("helpful_count", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
   const rows = rowsOrThrow(r, "사용기를 읽지 못함");
   return { total: r.count ?? rows.length, top: rows.map((n) => ({ id: n.id, usedFor: n.used_for, result: n.result, tip: n.tip, helpfulCount: n.helpful_count })) };
