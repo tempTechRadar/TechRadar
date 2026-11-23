@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12o-section-gate · 2026-11-23 · 섹션 공통 기술도 공개 목록 검사 (FrontLead 세션, 김영식)
+- 브랜치: `fix/P-12o-section-gate`(origin/main 5f16103e에서 갈라짐)
+- 출처: 푸시 뒤 자동 보안 검토(security-guidance) 지적, 불변 5, 섹션 마이그레이션 `202611240100`, 공개 관문 `202611221320`
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 공개 목록 밖 기술 검사(`template_unlisted_techs`)가 단계 기술만 봐서, 섹션 공통 기술에 든 내 저장소에서만 생긴 기술 · 시뮬레이터 · 사라진 기술이 조합 템플릿 공개 · 갤러리 · 열기로 남에게 나갈 수 있다 |
+| 기대 결과 | 같은 이름 · 모양의 함수가 섹션 공통 기술도 본다(공개 거절, 갤러리 · 열기에서 빠짐). 이미 공개된 그런 조합은 한 번 비공개로 |
+| 영향 범위 | `supabase/migrations/202611240300_P-12o_section_template_gate.sql`, `supabase/tests/section_template_gate_p12o.sql`. 앱 코드 변경 없음 |
+| 제약 | 운영 적용은 사용자 승인 뒤, PR 병합 전에 먼저. 틀(frame) 템플릿은 섹션 기술을 비우므로 영향 없음 |
+| 열린 질문 | 운영에 이미 섹션 기술이 든 공개 조합이 있는지(적용 전 읽기로 확인) |
+
+**결과:** 운영 적용됨(11-23, 사용자 승인, 적용자 FrontLead, 이름 `P-12o_section_template_gate`, 바뀐 줄 0). 되돌림 시험 기대 9개 모두 같음. 적용 전 운영 읽기: 공개 템플릿 0 · 섹션 템플릿 0.
+
 ## I-P-12p-map-polish · 2026-11-23 · 지도 손질: 배치 · 관문 지움 · LS점프업 보기 · 잔잔한 레이더 (FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12p-map-polish`(origin/main 904bbbf1에서 갈라짐, `feat/P-12p-seed` · `docs/qa-p12m` 합침)
 - 출처: 계획 `p12p-map-polish.md`(사용자 승인: 한 번에 다, PR 하나, 점검 한 번), IA 지도 화면, 불변 6(실제 기록만 그림), Maestro 배정
