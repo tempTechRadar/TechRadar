@@ -1,4 +1,5 @@
-/* 관리자 화면 스타일. 값은 공용 토큰(app/tokens.css), 상태 안내 글자는 알림 화면과 같은 값. .admin 안에서만 적용한다. */
+/* 관리자 화면 스타일. 값은 공용 토큰(app/tokens.css), 상태 안내 글자는 알림 화면과 같은 값. .admin 안에서만 적용한다.
+   P-12m Q2': 일반 화면처럼 어두운 판(--panel) 한 장 위, 컴팩트(본문 13 · 표 행 32 · 단추 --hit 마우스 34 / 손가락 44) */
 .admin {
   --color-text: var(--ink); --color-muted: var(--muted); --color-surface-subtle: var(--sunken);
   --color-border: var(--line); --color-border-strong: var(--ink-2); --color-primary: var(--ink); --color-on-primary: var(--on-ink);
@@ -8,17 +9,18 @@
   --text-xs: var(--fs-cap); --text-sm: var(--fs-sm); --text-md: var(--fs-body); --text-lg: var(--fs-h2); --text-xl: var(--fs-h1);
   --radius: var(--r-md);
   font-family: var(--font);
-  color: var(--color-text); max-width: 1200px;
+  color: var(--color-text); max-width: 1200px; margin: 0 auto; box-sizing: border-box;
+  padding: var(--space-3) var(--space-5) var(--space-5); background: var(--panel); border: 1px solid var(--line-d); border-radius: var(--r-xl); box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
 }
-.admin h1 { font-size: var(--text-xl); margin: var(--space-4) 0 var(--space-2); }
-.admin h2 { font-size: var(--text-lg); margin: var(--space-5) 0 var(--space-3); }
+.admin h1 { font-size: var(--text-xl); margin: var(--space-3) 0 var(--space-2); }
+.admin h2 { font-size: var(--text-lg); margin: var(--space-4) 0 var(--space-2); }
 .admin a { color: inherit; }
 .admin :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .admin-lead, .admin .muted { color: var(--color-muted); font-size: var(--text-sm); }
 
-.admin-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); }
-.admin-tabs a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-3); border-radius: var(--radius); text-decoration: none; font-size: var(--text-sm); }
-.admin-tabs a:hover { background: var(--color-surface-subtle); }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); }
+.admin-tabs a { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-3); border-radius: var(--radius); text-decoration: none; font-size: var(--text-sm); }
+.admin-tabs a:hover { background: var(--card); }
 .admin-tabs a[aria-current="page"] { background: var(--color-primary); color: var(--color-on-primary); }
 
 .admin-note { padding: var(--space-3); border-radius: var(--radius); }
@@ -27,20 +29,24 @@
 
 .admin-filter { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; margin: var(--space-3) 0; }
 .admin-filter label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
-.admin-filter select, .admin-filter button, .admin button { min-height: 44px; font: inherit; border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); background: #fff; color: var(--color-text); }
+.admin-filter select, .admin-filter button, .admin button { min-height: var(--hit); font: inherit; border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); background: var(--sunken); color: var(--color-text); }
 .admin-filter button { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+/* 글 입력칸(P-12m): 어두운 판에서 브라우저 기본 회색이 아니게. :where라 화면별 인라인 크기가 이긴다 */
+.admin :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"]), textarea) { box-sizing: border-box; font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); }
+.admin :where(textarea) { padding-block: var(--space-2); }
+.admin :where(input, textarea)::placeholder { color: var(--muted); }
 .admin button:disabled { color: var(--color-muted); border-style: dashed; cursor: not-allowed; }
 
-.admin-counts { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: var(--space-3) 0; padding: 0; list-style: none; }
+.admin-counts { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: var(--space-2) 0; padding: 0; list-style: none; }
 .admin-counts li { min-width: 96px; }
-.admin-counts b { display: block; font-size: var(--text-xl); }
+.admin-counts b { display: block; font-family: var(--mono); font-size: var(--text-xl); }
 .admin-counts span { font-size: var(--text-sm); color: var(--color-muted); }
 
 .admin-table-wrap { overflow-x: auto; }
 .admin table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
-.admin th, .admin td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.admin th, .admin td { text-align: left; padding: 6px var(--space-2); border-bottom: 1px solid var(--color-border); vertical-align: top; } /* 한 줄이면 32px 행(13px × 1.5 + 12) */
 .admin th { color: var(--color-muted); font-weight: 600; white-space: nowrap; }
-.admin .mono { font-family: "Fira Code", ui-monospace, Consolas, monospace; font-size: var(--text-xs); word-break: break-all; }
+.admin .mono { font-family: var(--mono); font-size: var(--text-xs); word-break: break-all; }
 
 .badge { display: inline-block; padding: 0 var(--space-2); border-radius: var(--radius); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; }
 .badge.danger { color: var(--color-danger); background: var(--color-danger-bg); }
@@ -50,8 +56,8 @@
 
 .admin-placeholder { border: 1px dashed var(--color-border-strong); border-radius: var(--radius); padding: var(--space-3); color: var(--color-muted); font-size: var(--text-sm); }
 
-/* 사용기 신고(P-24 24b): 글별 카드, 글자 그대로 보이는 사용기 본문, 거르기 줄의 고르기 링크 */
-.admin-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-3) 0; }
+/* 사용기 신고(P-24 24b): 글별 카드, 글자 그대로 보이는 사용기 본문, 필터 줄의 고르기 링크 */
+.admin-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; background: var(--card); }
 .admin-notetext { background: var(--color-surface-subtle); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; }
-.admin-seg { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; }
+.admin-seg { display: inline-flex; align-items: center; min-height: var(--hit); padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; }
 .admin-seg[aria-current="true"] { background: var(--color-primary); color: var(--color-on-primary); }

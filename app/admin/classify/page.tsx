@@ -125,7 +125,7 @@ function Rules({ rows }: { rows: RuleRow[] }) {
       <h2 id="h-rules">규칙 목록</h2>
       {groupRules(rows).map((g) => (
         <details key={g.kind}>
-          <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>
+          <summary style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", cursor: "pointer" }}>
             {RULE_KO[g.kind] ?? g.kind} <span className="muted">&nbsp;· 켜짐 {g.on} · 꺼짐 {g.off}</span>
           </summary>
           {g.rows.length === 0 ? <p className="muted">비어 있어요.</p> : (

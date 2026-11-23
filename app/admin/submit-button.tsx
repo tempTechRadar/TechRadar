@@ -11,7 +11,7 @@ export function SubmitButton({ label, pendingNote, disabled = false, style }: { 
   const busy = pending ? (pendingNote ? `${PENDING}(${pendingNote})` : PENDING) : "";
   return (
     <>
-      <button type="submit" style={{ minHeight: 44, ...style }} disabled={disabled || pending} aria-busy={pending || undefined}>{pending ? busy : label}</button>
+      <button type="submit" style={{ minHeight: "var(--hit)", ...style }} disabled={disabled || pending} aria-busy={pending || undefined}>{pending ? busy : label}</button>
       <span role="status" className="sr-only">{busy}</span>
     </>
   );

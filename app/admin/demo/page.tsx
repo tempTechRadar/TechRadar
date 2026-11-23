@@ -10,8 +10,8 @@ import { SubmitButton } from "../submit-button";
 import { armSaveFailureAction, demoCollectErrorAction, demoNoChangeAction, disarmSaveFailureAction } from "./actions";
 import { readFlash } from "@/lib/server/admin-flash";
 
-const btn = { minHeight: 44, padding: "0 16px" } as const;
-const card = { border: "1px solid #e5e7eb", borderRadius: 6, padding: 16, marginBottom: 12 } as const;
+const btn = { minHeight: "var(--hit)", padding: "0 16px" } as const;
+const card = { border: "1px solid var(--line-d)", borderRadius: 6, padding: 16, marginBottom: 12 } as const;
 
 type Demo = { no: string; title: string; how: string; see: string; action: () => Promise<void>; label: string; needsSwitch: boolean };
 
