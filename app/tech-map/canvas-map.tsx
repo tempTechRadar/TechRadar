@@ -182,6 +182,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
           <ViewTools view={S.view} canMine={canMine} onView={setView} onReset={() => { close(); clearTip(); setSearchKey((k) => k + 1); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} />
           <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
+          <p className="map-key" aria-label="지도 표시 뜻"><span><i className="map-dot" data-grade="danger" aria-hidden="true" />✕ 위험</span><span><i className="map-dot" data-grade="caution" aria-hidden="true" />! 주의</span><span><i className="map-dot" data-grade="unknown" aria-hidden="true" />찾지 못함</span><span><i className="map-corner" aria-hidden="true" />이번 주 새 기술</span></p>
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>
       </div>

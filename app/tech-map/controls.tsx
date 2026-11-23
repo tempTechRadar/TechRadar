@@ -69,7 +69,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
   const f = view.filter, set = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
   const count = (fn: (x: MapNode) => boolean) => nodes.filter(fn).length;
   // shortcut: "마지막 수집"은 정기 실행 기록(runs)을 읽어야 정확해서 아직 없음. 노드 하나의 확인 시각은 지도 전체가 최신인 것처럼 보이게 한다
-  const errs = count((x) => !!x.collectErrorKind), hots = count((x) => x.hot);
+  const errs = count((x) => !!x.collectErrorKind), hots = count((x) => x.hot), risky = count((x) => x.grade === "danger" || x.grade === "caution");
   return (
     <>
       <span className="map-seg" role="group" aria-label="새 기술(들어온 때)">
@@ -80,7 +80,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
           </button>
         ); })}
       </span>
-      <button type="button" className="chip" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{count((x) => x.grade === "danger" || x.grade === "caution")}</b></button>
+      {risky || f.risky ? <button type="button" className="chip" data-tone="caution" aria-pressed={f.risky} onClick={() => set({ risky: !f.risky })}>위험·주의 <b>{risky}</b></button> : null /* 0이면 숨김(P-12n) */}
       {login ? <span className="map-seg" role="group" aria-label="내 판단">
         {MARK_PICKS.map((m) => { const on = f.marks.includes(m); return ( // 옛 보드의 칸(관심 · 적용 후보 · 보류)을 지도 칩으로(P-12f)
           <button key={m} type="button" className="chip" aria-pressed={on} onClick={() => set({ marks: on ? f.marks.filter((x) => x !== m) : [...f.marks, m] })}>
@@ -88,8 +88,8 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
           </button>
         ); })}
       </span> : null}
-      {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>사용 중 <b>{count((x) => x.mine)}</b></button> : null}
-      {errs > 0 || f.err ? <button type="button" className="chip" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 <b>{errs}</b></button> : null}
+      {canMine ? <button type="button" className="chip" data-tone="mine" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>사용 중 <b>{count((x) => x.mine)}</b></button> : null}
+      {errs > 0 || f.err ? <button type="button" className="chip" data-tone="err" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 기술 <b>{errs}</b></button> : null}
       {count((x) => inPeriod(x, "week")) ? <button type="button" className="chip map-replay" onClick={onReplay}><span aria-hidden="true">▶</span> 새로 들어온 것 보기</button> : null}
       {trendFailed ? <span className="chip chip-note" role="status">요즘 뜨는 기술을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요</span>
         : hots || f.hot ? <button type="button" className="chip" aria-pressed={f.hot} title="7일 사이 별이 크게 늘었거나 Hacker News에 오른 기술" onClick={() => set({ hot: !f.hot })}>요즘 뜨는 <b>{hots}</b></button>

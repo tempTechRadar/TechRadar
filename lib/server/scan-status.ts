@@ -6,7 +6,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ScanStatus =
-  | { state: "ok"; runId: string; at: string; steps: number; errors: number; runFailed: boolean; running: boolean }
+  | { state: "ok"; runId: string; at: string; sources: number; errors: number; runFailed: boolean; running: boolean }
   | { state: "none" }
   | { state: "fail" };
 
@@ -28,7 +28,7 @@ export async function readScanStatus(db: SupabaseClient | null): Promise<ScanSta
   const steps = await db.from("run_steps").select("step_name, status, error_kind, output_summary").eq("run_id", r.id);
   if (steps.error || !steps.data) return { state: "fail" };
   const st = steps.data as Step[];
-  return { state: "ok", runId: r.id, at: r.finished_at ?? r.created_at, steps: st.length, errors: countErrors(st), runFailed: r.status === "failed", running: r.status === "queued" || r.status === "running" };
+  return { state: "ok", runId: r.id, at: r.finished_at ?? r.created_at, sources: st.filter((s) => s.step_name !== "collect_error").length, errors: countErrors(st), runFailed: r.status === "failed", running: r.status === "queued" || r.status === "running" };
 }
 
 const KST = { timeZone: "Asia/Seoul" } as const;

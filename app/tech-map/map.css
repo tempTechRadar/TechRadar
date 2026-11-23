@@ -111,7 +111,7 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-seg .chip { border-radius: 0; margin-left: -1px; }
 .map-seg .chip:first-of-type { border-radius: var(--r-pill) 0 0 var(--r-pill); margin-left: 0; }
 .map-seg .chip:last-child { border-radius: 0 var(--r-pill) var(--r-pill) 0; }
-.map-replay { border-style: dashed; }
+.map-replay { border-style: solid; }
 .map-replay:hover { border-style: solid; border-color: var(--ink); }
 .map-seg .chip:disabled { color: var(--muted); cursor: default; }
 /* 좁은 화면: 탭 · 칩 줄이 여러 줄로 늘어 지도를 덮지 않게 한 줄로 두고 옆으로 밀어 본다 */
@@ -195,3 +195,19 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 .map-filter select { min-height: 26px; padding: 0 4px; font-size: var(--fs-sm); }
 .map-hud > .map-chips { flex: 1 1 auto; min-width: 0; } /* 좁은 화면(≤640)에서는 위 규칙대로 한 줄 가로 밀기 */
 @media (max-width: 640px) { .map-hud > .map-top { order: -1; margin-left: 0; } } /* 좁으면 로그인 · 시작하기 줄을 맨 위로(칩 가로 밀기 밖으로 밀리지 않게, P-12m Q3) */
+/* P-12n 칩 색 뜻: 주의 노랑 · 사용 중 분홍 · 수집 오류 회색 점선(지도 점선 고리와 같은 모양). 고른 칩은 위 규칙대로 카드 + 청록 테두리 */
+:is(.map-top-hud, .map-dock) .chip[data-tone="caution"]:not([aria-pressed="true"]) { border-color: var(--caution); }
+:is(.map-top-hud, .map-dock) .chip[data-tone="caution"] b { color: var(--caution); }
+:is(.map-top-hud, .map-dock) .chip[data-tone="mine"]:not([aria-pressed="true"]) { border-color: var(--chip-pink-ink); }
+:is(.map-top-hud, .map-dock) .chip[data-tone="mine"] b { color: var(--chip-pink-ink); }
+:is(.map-top-hud, .map-dock) .chip[data-tone="err"]:not([aria-pressed="true"]) { border: 1px dashed var(--err-line); }
+/* 지도 표시 뜻 한 줄(P-12n): 오른쪽 아래, 보기 단추 위 */
+.map-dock > .map-key { justify-self: end; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin: 0 0 36px; padding: 2px 8px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--paper) 70%, transparent); color: var(--on-paper-2); font-size: var(--fs-sm); }
+.map-key > span { display: inline-flex; align-items: center; gap: 5px; }
+.map-key .map-dot { margin-top: 0; }
+.map-corner { display: inline-block; width: 10px; height: 10px; border-top: 2px solid var(--on-paper); border-left: 2px solid var(--on-paper); }
+@media (max-width: 640px) { .map-dock > .map-key { display: none; } }
+/* 390: 칩 줄 오른쪽 끝을 흐리게(더 있다는 표시, P-12n) */
+@media (max-width: 640px) { .map-hud > .map-chips { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); } }
+/* 첫 점검 띠: 위험·주의 보기 단추, 390에서는 요약 한 줄 + 단추 */
+@media (max-width: 640px) { .map-page > .first-check .muted { display: none; } }

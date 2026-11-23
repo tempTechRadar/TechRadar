@@ -3,6 +3,7 @@
 // 펼칠 때만 읽는다(메뉴는 모든 화면에 있어 미리 읽으면 매번 DB를 부른다). 읽은 판단 대기 수로 배지도 고친다(레이아웃 수는 화면 이동 중 옛 값일 수 있음).
 // 로그인 전에는 알림 화면(그 자리 로그인 안내)으로 가는 링크.
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { KIND_LABEL, listTime } from "@/lib/alerts/to-alert-view";
 import { badgeLabel, nextBadge, type Badge } from "@/lib/nav/badge-move";
@@ -18,6 +19,7 @@ const Bell = () => (
 const kindText = (kind: string) => KIND_LABEL[kind as keyof typeof KIND_LABEL]?.label ?? kind;
 
 export function AlertBell({ pending: first, login }: { pending: number | null; login: boolean }) {
+  const here = usePathname().startsWith("/alerts") ? "page" : undefined; // 알림 화면이면 종도 "지금 화면"(P-12n)
   const box = useRef<HTMLDetailsElement>(null);
   const ask = useRef(0); // 마지막으로 펼친 요청만 반영(빨리 닫았다 열면 늦게 온 옛 답이 덮지 않게)
   const [items, setItems] = useState<RecentAlert[] | null | undefined>(undefined); // undefined = 읽는 중, null = 못 읽음
@@ -30,7 +32,7 @@ export function AlertBell({ pending: first, login }: { pending: number | null; l
   useEffect(() => show(first, true), [first]); // 레이아웃이 새 수를 주면 그것으로
   const pending = badge.n;
   useDismiss(box, login);
-  if (!login) return <Link href="/alerts" className="nav-icon" aria-label="알림"><Bell /></Link>;
+  if (!login) return <Link href="/alerts" className="nav-icon" aria-label="알림" aria-current={here}><Bell /></Link>;
   const open = () => {
     const n = ++ask.current;
     setItems(undefined);
@@ -42,7 +44,7 @@ export function AlertBell({ pending: first, login }: { pending: number | null; l
     <>
     <details ref={box} className="nav-pop" onToggle={(e) => { if ((e.target as HTMLDetailsElement).open) open(); }}>
       {/* key = 보이는 글: 바뀔 때만 새로 붙어 data-dir 방향으로 한 번 움직인다(움직임 줄이기면 --dur 0s) */}
-      <summary className="nav-icon" aria-label={pending ? `알림, 판단 대기 ${pending}건` : "알림"}><Bell />{label ? <span key={label} className="nav-badge" aria-hidden="true" data-dir={badge.dir ?? undefined}>{label}</span> : null}</summary>
+      <summary className="nav-icon" data-current={here ? "" : undefined} aria-label={pending ? `알림, 판단 대기 ${pending}건` : "알림"}><Bell />{label ? <span key={label} className="nav-badge" aria-hidden="true" data-dir={badge.dir ?? undefined}>{label}</span> : null}</summary>
       <div className="site-nav-menu nav-alerts">
         <p className="nav-alerts-head">알림{pending ? ` · 판단 대기 ${pending}` : ""}</p>
         {items === undefined ? <p className="muted">읽는 중…</p>
