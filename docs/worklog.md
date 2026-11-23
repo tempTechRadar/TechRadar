@@ -9,7 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
-| I-P-12m-theme | 블루프린트 테마 문서(로컬): ADR 0044 새로(바탕 #0E5BA3 · 흰 선 · 제목 칸 · 설명선 무늬, 흰 면 · 도면 시트 규칙, 레이더 선과 파동 · 36시간 점 · 추적 틀 · 움직임 줄이기, 대비 표), ADR 0042 6항 개정 표시, design.md 5 · 6 · 16절 새 토큰(--paper · --on-paper · --grid · --grid-2 · --scan), GLOSSARY 도면 시트 · 추적 틀. 대비는 contrast.ts로 다시 계산(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). 아직: 토큰 값 넷은 FrontLead 보고 뒤 | DocsChecker(Claude) | `docs/adr/0044-*` |
+| I-P-12m-theme | 블루프린트 테마 문서(로컬): ADR 0044 새로(바탕 #0E5BA3 · 흰 선 · 제목 칸 · 설명선 무늬, 흰 면 · 도면 시트 규칙, 레이더 선과 파동 · 36시간 점 · 추적 틀 · 움직임 줄이기, 대비 표), ADR 0042 6항 개정 표시, design.md 5 · 6 · 16절 새 토큰(--paper · --on-paper · --grid · --grid-2 · --scan), GLOSSARY 도면 시트 · 추적 틀. 대비는 contrast.ts로 다시 계산(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). FrontLead 보고 뒤 토큰 값 넷(#ffffff · #3e7cb5 · #6e9dc8 · #8ed8ff)과 추적 틀 기준(지도 NEW 중 최근 5개)을 채움. 아직: 구현 결과 | DocsChecker(Claude) | `docs/adr/0044-*` |
 
 ## 2026-11-22 (일)
 
