@@ -21,6 +21,40 @@
 **결과:** 로컬 커밋. 실제 Claude 호출 2번(로컬, 키는 출력 안 함): 웹 청사진 15.6초 · 출력 2,214토큰, 데이터 청사진 12.2초 · 1,746토큰, 둘 다 파싱 통과. 겹침(Cursor · Copilot · Claude Code, Playwright · Cypress)과 순서(배포를 맨 앞에 둔 판 → 맨 뒤로)를 짚고 근거 · "추측"을 적음. 진단 화면은 실제 답으로 찍어 확인(1440 · 390, 가로 스크롤 없음).
 **확인하지 못함:** 로그인 상태에서 확정본으로 "점검 받기"를 눌러 화면 끝까지(사람 QA). 운영 Vercel 함수 시간 한도 안에 드는지(로컬 12~16초, 어댑터 시간 한도 120초).
 
+## I-P-12p-map-polish · 2026-11-23 · 지도 손질: 배치 · 관문 지움 · LS점프업 보기 · 잔잔한 레이더 (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12p-map-polish`(origin/main 904bbbf1에서 갈라짐, `feat/P-12p-seed` · `docs/qa-p12m` 합침)
+- 출처: 계획 `p12p-map-polish.md`(사용자 승인: 한 번에 다, PR 하나, 점검 한 번), IA 지도 화면, 불변 6(실제 기록만 그림), Maestro 배정
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 위가 붐비고(찾기 · 보기 · 필터가 흩어짐), 첫 화면 "Ready to Catch?" 관문이 한 번 더 누르게 하고, 처음 연출(선 두 바퀴 + 파동 세 번)이 요란하다. 바이브코딩에 바로 쓰는 것만 보는 길이 없다 |
+| 기대 결과 | A 찾기는 아래 가운데 막대 · 저장한 보기는 위 둘째 줄 · 보기 방식과 보기 초기화는 필터 패널 맨 위. B 관문 없이 바로 연출. C 기본 보기 "LS점프업"(규칙 + 고른 목록). D 파동 하나 + 옅은 잔물결, 점은 파동에 닿아 떠오름, 뒤에서 옅은 선이 늘 돎, ⚙에서 연출 · 선 · 여운 · 속도 · 밝기 · 굵기 · 기본값 |
+| 영향 범위 | `app/tech-map/*`(canvas-map · controls · filter-panel · view-tabs · draw · controller · radar-settings · map.css), `app/layout.tsx`, `lib/map/{motion,presets,view-config,build-map,radar-prefs}.ts`, 관문 파일 4개 지움 |
+| 제약 | 서버 · DB 변경 없음(시드는 I-P-12p-seed). ⚙ 값은 이 브라우저에만(편의), 깨진 값은 기본으로. 움직임 줄이기 설정이면 연출 · 선 모두 끔. Claude API 안 씀 |
+| 열린 질문 | 뒤에서 늘 도는 선은 매 장 그린다(⚙에서 끌 수 있음). 느린 기기에서 부담이 크면 장 수를 줄일지 |
+
+**결과:** A · B · C · D + 사용자 추가 2개(저장한 보기 지우기 · 되돌리기, 등급 뜻 줄을 필터 패널로) 로컬 커밋, 자체 리뷰 8건 고침. 열린 질문의 부담은 옅은 선만 돌 때 초당 12장으로 줄임(겹 캔버스는 남은 일).
+
+## I-P-12p-seed · 2026-11-23 · LS점프업 시드: herdr(도구) · 루프 하네스(개념) 2줄 (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12p-seed`(origin/main 904bbbf1에서 갈라짐)
+- 출처: 계획 `p12p-map-polish.md` C-4(사용자 승인), 입문 세트 시드 `I-P-12d-starter-set`, 관문 3(근거 링크 없는 정보는 저장하지 않음), Maestro 배정
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 "LS점프업" 보기에 넣을 herdr · 루프 하네스가 카탈로그에 없다(운영 읽기 11-23: 두 키 모두 없음) |
+| 기대 결과 | 두 줄이 공개 목록 조건(근거 있음 · gone 아님 · 시뮬레이션 아님)으로 들어가 FrontLead의 고른 목록(LS_PICKS)이 키로 고른다. NEW · 알림에는 안 뜬다 |
+| 영향 범위 | `supabase/migrations/202611240200_P-12p_ls_seed.sql`, `supabase/tests/ls_seed_p12p.sql`, `lib/server/ls-seed-migration.test.ts`, `docs/starter-set.md`(메모). 앱 코드 변경 없음 |
+| 제약 | 지어내지 않음(공개 페이지를 직접 열어 확인한 것만). 추가만 · 멱등 · 있던 줄은 비어 있는 칸만. 운영 적용은 사용자 승인 뒤 Maestro. Claude API 호출 없음 |
+| 열린 질문 | ① 사용자가 말한 "루프 하네스"가 Anthropic의 "agent harness"(반복 고리 + 도구 · 맥락 관리 · 안전장치)와 같은 뜻인지 ② herdr이 패키지가 아니라 종류를 sdk(지도에서 "앱 코드"로 추정 표시)로 둔 것 |
+
+**확인한 출처(2026-11-23, 공개 페이지 GET):**
+- herdr: `https://github.com/herdrdev/herdr`(옛 `ogulcancelik/herdr`가 여기로 넘어옴), README: "the runtime your coding agents live on" · 여러 코딩 AI 터미널 · 막힘/작업중/쉼 표시, LICENSE · README Apache-2.0, 문서 `https://herdr.dev`. 패키지: npm `herdr`는 0.0.0 이름 선점용, PyPI 없음, crates.io `herdr` 0.1.0(다른 키 규칙이라 쓰지 않음). 배포는 설치 스크립트 · Homebrew · mise · 바이너리 → 키 `github:herdrdev/herdr`.
+- 루프 하네스: `https://claude.com/resources/articles/harnessing-claudes-intelligence`(Anthropic, 2026-04-02): "An agent harness is the software scaffolding around a model: the loop, tools, context management, and guardrails". 반복 고리 설명은 `https://code.claude.com/docs/en/how-claude-code-works`(gather context → take action → verify, "agentic harness"). 키 `concept:loop-harness`(기존 `concept:harness` = 지침 파일과 다른 키).
+**못 찾은 것 · 한계:** "루프 하네스"라는 이름 그대로 쓰는 1차 출처는 못 찾았다(위 두 글을 합친 풀이). 문서에 쓴 한 줄은 위 영어 문장의 뜻이다.
+**결과:** 됨(로컬 커밋, 미푸시). **운영 적용됨**(11-23, 사용자 승인, Maestro 실행, 이름 `P-12p_ls_seed`; 사용자가 "루프 하네스" 뜻도 맞다고 확인). `npm test` 1795 통과 · 0 실패(새 시험 6개), tsc 0 오류, precheck 겹침 없음.
+**확인하지 못함:** 지도 화면에서 두 줄이 보이는지(LS_PICKS는 FrontLead).
+
+---
 ## I-P-12o-sections · 2026-11-23 · 청사진 섹션: 여러 단계를 묶고 섹션이 공통 기술을 가짐 (P-12o 2단계, FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12o-sections`(feat/P-12o-blueprint-polish 500e930 위, 로컬)
 - 출처: 사용자 인터뷰(11-23 오후: Shift + 끌기로 여러 개 고르면 섹션으로 묶기, 섹션이 기술을 따로 가짐, 내보내기는 섹션 머리에 한 번, 한 단계는 한 섹션에만) · 승인 계획 P-12o 2단계 · Maestro 배정("오늘 시도", 17:00까지). IA-4 · 불변 1 · 4 · 5
