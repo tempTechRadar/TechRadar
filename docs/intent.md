@@ -6,6 +6,27 @@
 
 ---
 
+## I-P-12p-seed · 2026-11-23 · LS점프업 시드: herdr(도구) · 루프 하네스(개념) 2줄 (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12p-seed`(origin/main 904bbbf1에서 갈라짐)
+- 출처: 계획 `p12p-map-polish.md` C-4(사용자 승인), 입문 세트 시드 `I-P-12d-starter-set`, 관문 3(근거 링크 없는 정보는 저장하지 않음), Maestro 배정
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 "LS점프업" 보기에 넣을 herdr · 루프 하네스가 카탈로그에 없다(운영 읽기 11-23: 두 키 모두 없음) |
+| 기대 결과 | 두 줄이 공개 목록 조건(근거 있음 · gone 아님 · 시뮬레이션 아님)으로 들어가 FrontLead의 고른 목록(LS_PICKS)이 키로 고른다. NEW · 알림에는 안 뜬다 |
+| 영향 범위 | `supabase/migrations/202611240200_P-12p_ls_seed.sql`, `supabase/tests/ls_seed_p12p.sql`, `lib/server/ls-seed-migration.test.ts`, `docs/starter-set.md`(메모). 앱 코드 변경 없음 |
+| 제약 | 지어내지 않음(공개 페이지를 직접 열어 확인한 것만). 추가만 · 멱등 · 있던 줄은 비어 있는 칸만. 운영 적용은 사용자 승인 뒤 Maestro. Claude API 호출 없음 |
+| 열린 질문 | ① 사용자가 말한 "루프 하네스"가 Anthropic의 "agent harness"(반복 고리 + 도구 · 맥락 관리 · 안전장치)와 같은 뜻인지 ② herdr이 패키지가 아니라 종류를 sdk(지도에서 "앱 코드"로 추정 표시)로 둔 것 |
+
+**확인한 출처(2026-11-23, 공개 페이지 GET):**
+- herdr: `https://github.com/herdrdev/herdr`(옛 `ogulcancelik/herdr`가 여기로 넘어옴), README: "the runtime your coding agents live on" · 여러 코딩 AI 터미널 · 막힘/작업중/쉼 표시, LICENSE · README Apache-2.0, 문서 `https://herdr.dev`. 패키지: npm `herdr`는 0.0.0 이름 선점용, PyPI 없음, crates.io `herdr` 0.1.0(다른 키 규칙이라 쓰지 않음). 배포는 설치 스크립트 · Homebrew · mise · 바이너리 → 키 `github:herdrdev/herdr`.
+- 루프 하네스: `https://claude.com/resources/articles/harnessing-claudes-intelligence`(Anthropic, 2026-04-02): "An agent harness is the software scaffolding around a model: the loop, tools, context management, and guardrails". 반복 고리 설명은 `https://code.claude.com/docs/en/how-claude-code-works`(gather context → take action → verify, "agentic harness"). 키 `concept:loop-harness`(기존 `concept:harness` = 지침 파일과 다른 키).
+**못 찾은 것 · 한계:** "루프 하네스"라는 이름 그대로 쓰는 1차 출처는 못 찾았다(위 두 글을 합친 풀이). 문서에 쓴 한 줄은 위 영어 문장의 뜻이다.
+**결과:** 됨(로컬 커밋, 미푸시). **운영 적용됨**(11-23, 사용자 승인, Maestro 실행, 이름 `P-12p_ls_seed`; 사용자가 "루프 하네스" 뜻도 맞다고 확인). `npm test` 1795 통과 · 0 실패(새 시험 6개), tsc 0 오류, precheck 겹침 없음.
+**확인하지 못함:** 지도 화면에서 두 줄이 보이는지(LS_PICKS는 FrontLead).
+
+---
+
 ## I-qa-sheet-copy-1123 · 2026-11-23 · QA 시트 사본(xlsx)과 운영 사람 QA 결과 (황재웅)
 - 브랜치: `docs/qa-sheet-copy-1123`
 - 출처: 사용자 "영역 상관없이 내가 다 qa 할게. 관리자 계정 없어도 할 수 있는 부분 차례대로 다 진행하자", "내가 qa 이때까지 한거 main에 올리고"(11-23)
