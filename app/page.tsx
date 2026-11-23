@@ -95,7 +95,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <h1 className="sr-only">기술 지도</h1>
       {band ? <FirstCheckBanner band={band} /> : null}
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
-        {dash ? null : <span className="notice" role="status">프로젝트 목록을 불러오지 못했어요(없다는 뜻이 아니에요). 프로젝트로 거르기 · 시작하기가 빠져 있어요.</span>}
+        {dash ? null : <span className="notice" role="status">프로젝트 목록을 불러오지 못했어요(없다는 뜻이 아니에요). 프로젝트 필터 · 시작하기가 빠져 있어요.</span>}
         {start ? <StartChecklist steps={start} who={user.id} /> : null}
         {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/dashboard#repo-register">프로젝트를 등록하면 사용 중인 항목과 비교군이 지도에 와요</Link> : null}
       </>} />

@@ -82,7 +82,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
         <Link className="chip" href={href({ kind, field: null, sort })} aria-current={!field ? "true" : undefined}>모든 분야</Link>
         {fields.map(([f, n]) => <Link key={f} className="chip" href={href({ kind, field: f, sort })} aria-current={f === field ? "true" : undefined}>{f} {n}</Link>)}
       </nav> : null}
-      {list?.length && !facets ? <p className="muted" role="status">분야 · 도움을 읽지 못해 거르기 없이 많이 쓴 순으로 보여요.</p> : null}
+      {list?.length && !facets ? <p className="muted" role="status">분야 · 도움을 읽지 못해 필터 없이 많이 쓴 순으로 보여요.</p> : null}
       {list === null ? <div className="notice notice-error" role="alert"><strong>템플릿을 불러오지 못했어요.</strong> 템플릿이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>
         : list.length === 0 ? <p className="notice notice-empty">아직 공개된 템플릿이 없어요. <Link href="/blueprint">청사진</Link>에서 템플릿으로 저장한 뒤 공개해 보세요.</p>
         : <ul className="gl-list">{(shown ?? list).map((t) => <Card key={t.id} t={t} admin={user?.role === "admin"} />)}</ul>}
