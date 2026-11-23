@@ -32,6 +32,7 @@ export type TranslateResult = {
   batches: number;
   translated: number;
   dropped: number; // 답에서 버린 줄(id가 안 맞음 · 길이 · 한 줄이 아님 …)
+  droppedWhy: string[]; // 못 받은 줄의 이름과 이유(미리 보기에서 품질 확인용)
   failedBatches: number; // 호출 실패 · 답 해석 실패
   saveFailed: number;
   changedSinceRead: number; // 읽은 뒤 원문이 바뀌어 저장하지 않은 줄
@@ -61,7 +62,7 @@ export async function translateOneLiners(opt: TranslateOptions): Promise<Transla
   return translateRows(opt, rows, catalog);
 }
 
-const emptyResult = (): TranslateResult => ({ status: "done", catalog: 0, targets: 0, tooLong: 0, batches: 0, translated: 0, dropped: 0, failedBatches: 0, saveFailed: 0, changedSinceRead: 0, samples: [], errors: [] });
+const emptyResult = (): TranslateResult => ({ status: "done", catalog: 0, targets: 0, tooLong: 0, batches: 0, translated: 0, dropped: 0, failedBatches: 0, saveFailed: 0, changedSinceRead: 0, droppedWhy: [], samples: [], errors: [] });
 
 /** 읽어 온 줄 중 번역이 필요한 것을 20개씩 묶어 번역한다(DB 읽기 없음: 시험에서 줄을 직접 넘긴다) */
 export async function translateRows(opt: TranslateOptions, rows: Row[], catalog = rows.length): Promise<TranslateResult> {
@@ -102,6 +103,9 @@ async function runBatch(opt: TranslateOptions, batch: Row[], out: TranslateResul
   }
   await log({ tokens_in: answer.tokensIn ?? null, tokens_out: answer.tokensOut ?? null, status: "succeeded" });
   out.dropped += sent.length - parsed.translated.length; // 이번에 번역을 못 받은 줄(답에서 빠졌거나 검사에서 버려짐)은 다음 실행에 다시 한다
+  const got = new Set(parsed.translated.map((t) => t.id));
+  const why = new Map(parsed.dropped.flatMap((d) => (d.id ? [[d.id, d.why] as const] : [])));
+  for (const r of sent) if (!got.has(r.id)) out.droppedWhy.push(`${r.name}: ${why.get(r.id) ?? "답에서 빠짐"}`);
   const byId = new Map(batch.map((r) => [r.id, r]));
   for (const t of parsed.translated) await save(opt, byId.get(t.id)!, t.ko, out);
 }

@@ -2,7 +2,7 @@
 //
 //   미리 보기(기본, DB에 아무것도 쓰지 않음): 번역할 줄 몇 개를 골라 Claude를 1번 불러 결과만 출력한다
 //     node --env-file=.env.local scripts/translate-one-liners.mts [--limit 5]
-//   운영에 쓰기(지도 몫 공개 목록 전부, 번역이 없는 줄만 · 마이그레이션 202611240300 적용 뒤): Maestro가 사용자 승인을 받은 뒤에만
+//   운영에 쓰기(지도 몫 공개 목록 전부, 번역이 없는 줄만 · 마이그레이션 202611240400 적용 뒤): Maestro가 사용자 승인을 받은 뒤에만
 //     node --env-file=.env.local scripts/translate-one-liners.mts --write [--limit N]
 //
 // 미리 보기는 새 칸(one_liner_ko …)이 아직 없어도 돈다(옛 칸만 읽는다). --write는 새 칸이 있어야 한다.

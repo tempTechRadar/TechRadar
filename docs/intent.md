@@ -14,9 +14,9 @@
 |---|---|
 | 문제 | 기술 한 줄 설명(one_liner)이 영어라 한국어 사용자가 읽기 어렵다 |
 | 기대 결과 | 지도 몫 공개 목록 기술의 한 줄 설명이 한국어 개요로 번역돼 저장되고, 지도 · 기술 상세가 `oneLinerKo` · `oneLinerKoAt` · `oneLinerKoSrc` · `oneLinerSource`를 함께 준다 |
-| 영향 범위 | `supabase/migrations/202611240300_P-12r_one_liner_ko.sql`(칸 3개 + ai_calls.purpose `translate`), `lib/ai/translate-one-liners.ts`(프롬프트 · 파서 · 대상 판정), `lib/server/translate-one-liners.ts`(번역기), `lib/server/{map-queries,catalog-tech}.ts` · `lib/map/build-map.ts`(내보내기), `lib/server/anthropic-client.ts` · `lib/ai/ai-client.ts`(maxTokens), `scripts/translate-one-liners.mts`(한 번 돌리기) |
+| 영향 범위 | `supabase/migrations/202611240400_P-12r_one_liner_ko.sql`(칸 3개 + ai_calls.purpose `translate`), `lib/ai/translate-one-liners.ts`(프롬프트 · 파서 · 대상 판정), `lib/server/translate-one-liners.ts`(번역기), `lib/server/{map-queries,catalog-tech}.ts` · `lib/map/build-map.ts`(내보내기), `lib/server/anthropic-client.ts` · `lib/ai/ai-client.ts`(maxTokens), `scripts/translate-one-liners.mts`(한 번 돌리기) |
 | 제약 | 번역만(없는 사실을 더하지 않음). 불변 3: 번역된 줄은 다시 부르지 않음. 불변 4: 실패한 묶음 · 줄은 건너뛰고 있던 값은 지우지 않음, 저장은 원문이 그대로일 때만. 운영 쓰기(마이그레이션 · 백필)는 Maestro가 사용자 승인으로. 키는 .env.local에서만, 출력에 안 찍음 |
-| 열린 질문 | 매일 번역(정기 실행에 넣기)은 제출 뒤. 파서가 받는 길이 상한(100자)과 묶음 수 상한(실행당 30번)은 팀 추정 |
+| 열린 질문 | 매일 번역(정기 실행에 넣기)은 제출 뒤. 파서가 받는 길이 상한(120자)과 묶음 수 상한(실행당 30번)은 팀 추정 |
 
 **정한 것 · 이유:**
 - 원문이 바뀐 뒤에는 옛 번역을 내보내지 않는다(`one_liner_ko_src ≠ one_liner`면 `oneLinerKo`는 null, 출처 `oneLinerSource`는 그대로): 옛 번역이 현재 설명처럼 보이지 않게.
