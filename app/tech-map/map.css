@@ -211,3 +211,20 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 @media (max-width: 640px) { .map-hud > .map-chips { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); } }
 /* 첫 점검 띠: 위험·주의 보기 단추, 390에서는 요약 한 줄 + 단추 */
 @media (max-width: 640px) { .map-page > .first-check .muted { display: none; } }
+
+/* P-12p 배치: 위 둘째 줄 저장한 보기(늘 보임), 아래 가운데 찾기 막대(결과는 위로), 필터 패널 맨 위 보기 방식 */
+.map-views { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.map-views-head { flex: none; font-size: var(--fs-sm); color: var(--on-paper-2); }
+.map-views .map-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.map-views .map-tabs > * { flex: none; }
+.map-dock > .map-findbar { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: min(420px, calc(100% - 24px)); pointer-events: auto; }
+.map-findbar .map-search { flex: none; width: 100%; }
+.map-findbar .map-search input { min-height: 40px; border-radius: var(--r-pill); padding: 0 16px; background: var(--panel); border: 1px solid var(--ring); color: var(--on-paper); box-shadow: var(--shadow-pop); }
+.map-findbar .map-results { top: auto; bottom: calc(100% + 6px); }
+.map-dock > .map-toast { margin-bottom: 52px; } /* 찾기 막대 위로 */
+.map-dock > .map-key { margin-bottom: 0; }
+@media (max-width: 900px) { .map-dock > .map-key { display: none; } } /* 찾기 막대와 겹치지 않게 */
+.map-view-tools { display: grid; gap: 4px; }
+.map-filter-reset { min-height: 28px; padding: 0 10px; border: 0; border-top: 1px solid var(--line-d); background: none; color: var(--on-paper-2); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.map-filter-reset:hover { color: var(--on-paper); }
+@media (max-width: 640px) { .map-dock > .map-findbar { width: calc(100% - 16px); } }

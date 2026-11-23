@@ -149,20 +149,22 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   }, [shown, model, S.L]);
   const tipItem = tip.id ? S.L.byId.get(tip.id) : undefined;
 
+  const resetAll = () => { close(); clearTip(); setSearchKey((k) => k + 1); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); };
   return (
     <div className="map-wrap">
       <div ref={stage} className={`map-stage${sel ? " open" : ""}`}>
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
-        {/* 위는 한 줄(P-12m 사용자 점검): 찾기 + 경로 칩 + 빠른 칩(모자라면 칩만 줄바꿈) + 로그인 띠. 필터 · 저장한 보기는 왼쪽 패널, 보기 · 보기 초기화는 오른쪽 아래 */}
+        {/* 위(P-12p 사용자): 첫 줄 = 경로 칩 + 빠른 칩 + 로그인 띠, 둘째 줄 = 저장한 보기(늘 보임). 찾기는 아래 가운데 막대, 보기 방식은 필터 패널 맨 위 */}
         <div ref={hud} className="map-top-hud">
           <div className="map-hud">
-            <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} />
             <div className="map-chips"><Crumbs view={S.view} onView={setView} /><QuickChips nodes={model.nodes} view={S.view} canMine={canMine} login={login} trendFailed={model.trendFailed} onView={setView} onReplay={replay} /></div>
             {top ? <div className="map-top">{top}</div> : null}
           </div>
+          <div className="map-views"><span className="map-views-head">보기</span>
+            <ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} /></div>
         </div>
         <FilterPanel L={S.L} nodes={model.nodes} view={S.view} projects={projects} canMine={canMine} login={login} tagsFailed={model.tagsFailed} onView={setView}
-          saved={<ViewTabs current={ctl.query()} queryOf={ctl.queryOf} countOf={ctl.countOf} apply={(q) => { clearTip(); ctl.applyQuery(q); }} who={login ? who : undefined} canMine={canMine} say={say} />} />
+          tools={<ViewTools view={S.view} canMine={canMine} onView={setView} onReset={resetAll} />} onReset={resetAll} />
         {tipItem ? <TipCard item={tipItem} x={tip.x} y={tip.y} shut={S.collapsed.has(tipItem.id)}
           onEnter={() => { overCard.current = true; clearTimeout(tipTimer.current); }} onLeave={() => { overCard.current = false; hover("", 0, 0); }}
           onDrill={() => drill(tipItem.id)} /> : null}
@@ -177,9 +179,10 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         </aside>
         {/* 상태 · 알림 말풍선은 지도 아래쪽에 뜬다(시안 radar.html의 dock). 범례는 왼쪽 필터 패널로(P-12m) */}
         <div ref={dock} className="map-dock">
-          <ViewTools view={S.view} canMine={canMine} onView={setView} onReset={() => { close(); clearTip(); setSearchKey((k) => k + 1); ctl.resetView(); say("처음 보기로 돌아왔어요. 묶기·색·필터도 처음으로 돌렸어요."); }} />
           <RadarSettings motion={S.motion} still={S.still} onMotion={ctl.setMotion} />
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
+          <div className="map-findbar">{/* 찾기는 아래 가운데 떠 있는 막대(P-12p), 결과는 위로 열림 */}
+            <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} /></div>
           <p className="map-key" aria-label="지도 표시 뜻"><span><i className="map-dot" data-grade="danger" aria-hidden="true" />✕ 위험</span><span><i className="map-dot" data-grade="caution" aria-hidden="true" />! 주의</span><span><i className="map-dot" data-grade="unknown" aria-hidden="true" />찾지 못함</span><span><i className="map-corner" aria-hidden="true" />이번 주 새 기술</span></p>
           <Status L={S.L} collapsed={S.collapsed.size} nodes={model.nodes} view={S.view} />
         </div>

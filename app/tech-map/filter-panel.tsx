@@ -1,6 +1,6 @@
 "use client";
 // 지도 왼쪽 필터 패널(P-12m Q2, 시안 "합본 · 지도" C 모양, 11-23 사용자 결정 · 점검 수정): 위 칩 줄을 한 줄로 줄이려고 옛 "필터" 창과 보기 묶음 탭을 여기로 모았다.
-// 맨 위 저장한 보기(묶음 탭) → 프로젝트 · 내 태그 · 종류 · 하는 일(세부 갈래) 체크(색 기준인 값에는 점 색 = 범례). 보안 · 사용 중은 위 칩, 등급 표시 뜻은 지도 오른쪽 아래(P-12n).
+// 맨 위 보기 방식(묶기 · 색 · 보기 초기화, P-12p) → 프로젝트 · 내 태그 · 종류 · 하는 일(세부 갈래) 체크(색 기준인 값에는 점 색 = 범례). 보안 · 사용 중은 위 칩, 등급 표시 뜻은 지도 오른쪽 아래(P-12n).
 // ‹로 접고, 접힘은 이 브라우저에만 기억(편의). 좁은 화면(≤860)은 처음에 접혀 있다
 import { useEffect, useState, type ReactNode } from "react";
 import type { MapNode } from "@/lib/map/build-map";
@@ -14,10 +14,10 @@ const sortKo = (a: string, b: string) => a.localeCompare(b, "ko");
 
 type Props = {
   L: MapLayout; nodes: MapNode[]; view: ViewConfig; projects: { id: string; name: string }[]; canMine: boolean; login: boolean; tagsFailed?: boolean;
-  onView: (v: ViewConfig) => void; saved: ReactNode;
+  onView: (v: ViewConfig) => void; /** 맨 위 "보기 방식"(P-12p) */ tools: ReactNode; onReset: () => void;
 };
 
-export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFailed, onView, saved }: Props) {
+export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFailed, onView, tools, onReset }: Props) {
   const [open, setOpen] = useState(true);
   useEffect(() => { // 브라우저 기억은 붙은 뒤에 읽는다(서버 첫 화면과 같게)
     let s: string | null = null;
@@ -50,9 +50,10 @@ export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFail
       <button type="button" className="map-filter-toggle" aria-expanded={open} onClick={toggle} aria-label={open ? "필터 접기" : "필터 펼치기"}>
         <span>필터{n ? <b> {n}</b> : null}</span><span aria-hidden="true">{open ? "‹" : "›"}</span>
       </button>
+      {open ? null : <button type="button" className="map-filter-reset" onClick={onReset}>보기 초기화</button>/* 접어도 처음 보기로 돌아갈 길 */}
       {open ? (
         <div className="map-filter-body">
-          <div className="map-filter-saved" role="group" aria-label="저장한 보기"><span className="map-filter-head">저장한 보기</span>{saved}</div>
+          {tools}
           {Object.values(LIST_DIM).includes(L.color) ? null : ( // 색 기준이 체크 목록에 없는 값(등급 · 쓰는 곳 · 프로젝트)이면 범례만
             <fieldset><legend>색 = {DIM_KO[L.color]}</legend>{L.legend.map((l) => (
               <span key={l.value} className="map-filter-row"><i className="map-dot" aria-hidden="true" style={l.hollow ? { border: `2px solid var(${l.token})` } : { background: `var(${l.token})` }} /><span>{l.value}</span><b>{l.count}</b></span>
