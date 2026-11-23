@@ -46,7 +46,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .tg.cur span{font-weight:700}
 .tg i{font-style:normal;font-family:var(--cond);margin-left:.3em}
 .tg em{display:none;font-style:normal;font-family:var(--cond);margin-left:.35em;color:var(--tx)}
-.ov .tg em{display:inline}
+.ov .tg em,.tg.cur em{display:inline}
 .stby{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid var(--amb);background:rgba(15,22,34,.92);padding:.5rem 1.3rem;text-align:center;display:none;pointer-events:none}
 .stby b{display:block;font-size:1.5rem;color:var(--amb);font-weight:700}
 .stby small{font-size:.8rem;color:var(--tx)}
@@ -272,7 +272,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
     <span hidden><span id="tCount"></span><span id="tCur"></span><span id="tTrk"></span><span id="tScan"></span><span id="tEl"></span><span id="tSeg"></span><span id="tGoal"></span><span id="tCum"></span><span id="tRun"></span></span>
   </div>
 
-  <div class="legend" aria-hidden="true">● 내용 &nbsp; <span class="rd">▲ 사고</span> &nbsp; ◇ 한계<br>영 김영식 · 재 황재웅 · 세 차세일 · 셋 세 사람</div>
+  <div class="legend" aria-hidden="true">● 내용 &nbsp; <span class="rd">▲ 사고</span> &nbsp; ◇ 한계<br>번호 = 발표 순서 · 지나온 표적은 항적으로 이어짐</div>
 
   <div class="scopewrap" id="wrap">
     <canvas id="cv" aria-hidden="true"></canvas>
@@ -358,8 +358,8 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 (function(){
 "use strict";
 var ACTS=[
- {n:"① 문제",who:"김영식",sec:120},{n:"② 만든 것",who:"김영식",sec:90},{n:"③ 사건과 대응",who:"황재웅",sec:60},
- {n:"④ 시연",who:"세 사람",sec:240},{n:"⑤ 확인",who:"황재웅",sec:60},{n:"⑥ AI와 일한 방식",who:"차세일",sec:150},{n:"⑦ 사람",who:"세 사람",sec:90}
+ {n:"① 문제",q:"왜 만들었나",who:"김영식",sec:120},{n:"② 만든 것",q:"무엇을 만들었나",who:"김영식",sec:90},{n:"③ 사건과 대응",q:"깨지면 어떻게",who:"황재웅",sec:60},
+ {n:"④ 시연",q:"직접 보기",who:"세 사람",sec:240},{n:"⑤ 확인",q:"맞았나",who:"황재웅",sec:60},{n:"⑥ AI와 일한 방식",q:"어떻게 일했나",who:"차세일",sec:150},{n:"⑦ 사람",q:"누가, 다음은",who:"세 사람",sec:90}
 ];
 var KIND={dot:"● 내용",inc:"▲ 사고",lim:"◇ 한계",hum:"● 내용"};
 /* act: 0~6, center: 표지. k: 종류. sp: 꼬리표. */
@@ -372,11 +372,10 @@ var T=[
  <li><svg class="ic"><use href="#i-target"/></svg><b>고르고</b><span>알림 · 판단 · 더 나은 대안</span></li>
  <li><svg class="ic"><use href="#i-move"/></svg><b>옮긴다</b><span>다른 컴퓨터로 설치 프롬프트</span></li></ul>
  <h2>발표 순서</h2>
- <table><tr><th>막</th><th>말하는 사람</th></tr>
- <tr><td>① 문제</td><td>김영식</td></tr><tr><td>② 만든 것</td><td>김영식</td></tr>
- <tr><td>③ 사건과 대응</td><td>황재웅</td></tr><tr><td>④ 시연</td><td>세 사람</td></tr>
- <tr><td>⑤ 확인</td><td>황재웅</td></tr><tr><td>⑥ AI와 일한 방식</td><td>차세일</td></tr>
- <tr><td>⑦ 사람</td><td>세 사람</td></tr></table>`,
+ <table><tr><td>① 문제</td><td>왜 만들었나</td></tr><tr><td>② 만든 것</td><td>무엇을 만들었나</td></tr>
+ <tr><td>③ 사건과 대응</td><td>깨지면 어떻게</td></tr><tr><td>④ 시연</td><td>직접 보기</td></tr>
+ <tr><td>⑤ 확인</td><td>맞았나</td></tr><tr><td>⑥ AI와 일한 방식</td><td>어떻게 일했나</td></tr>
+ <tr><td>⑦ 사람</td><td>누가, 다음은</td></tr></table>`,
  src:"README.md 1 · 12줄 · ADR 0032(컨셉, 11-21)",
  notes:"한 문장 소개: AI 코딩 도구로 만드는 사람이 내가 깐 기술의 목록 · 보안 · 더 나은 대안을 한눈에 보고, 판단하고 기록하고, 다른 컴퓨터로 옮기는 서비스. 분담: 김영식 A 지키기 + 공용 · 황재웅 B 고르기 · 차세일 C 옮기기 · 운영. 구성: 11-23 화이트보드 v2 7막 기준. 낮 화이트보드와 달라진 점은 ⑥을 1.5 → 2.5분으로 늘린 것 하나(여유 2.5 → 1.5분). 발표 전에 운영 /api/version 이 main 과 같은지, /guide 가 200인지 확인(17:20 기준 운영은 #232, /guide 404였다)."},
 {act:0,k:"dot",sp:"영",who:"김영식",sec:45,nm:"놓치는 것",
@@ -487,11 +486,11 @@ var T=[
 {act:3,k:"dot",sp:"셋",who:"세 사람",sec:220,wide:1,nm:"시연",demo:1,
  title:"가짜 사건 하나가<br>운영 주소에서 끝까지 돈다",
  body:`<ol class="steps">
- <li><span>① 차세일</span><span>시뮬레이터로 가짜 사건을 쏜다</span></li>
- <li><span>② 차세일</span><span>흐름 화면 — 실패하면 빨간 상자</span></li>
- <li><span>③ 황재웅</span><span>알림 → 판단 저장 → 지난 판단 찾기</span></li>
- <li><span>④ 김영식</span><span>지도 → 청사진 → 설치 프롬프트</span></li>
- <li><span>⑤ 차세일</span><span>위키 챗봇에 묻기</span></li></ol>
+ <li><span>① 시뮬레이터</span><span>시뮬레이터로 가짜 사건을 쏜다</span></li>
+ <li><span>② 흐름 화면</span><span>흐름 화면 — 실패하면 빨간 상자</span></li>
+ <li><span>③ 알림 · 판단</span><span>알림 → 판단 저장 → 지난 판단 찾기</span></li>
+ <li><span>④ 지도 · 청사진</span><span>지도 → 청사진 → 설치 프롬프트</span></li>
+ <li><span>⑤ 위키 챗봇</span><span>위키 챗봇에 묻기</span></li></ol>
  <h2>막히면 — 눌러서 크게 · ①② 흐름 화면은 앞 표적 두 장</h2>
  <div class="thumbs">
  <figure><button type="button" class="shotbtn" data-tour="detail" aria-label="③ 알림 상세 캡처 크게 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/alerts/…</span></div><img src="images/shot-alert-detail.png" alt="알림 상세: 판단하기 칸과 대응안 초안 칸"></div></button><figcaption>③ 알림 → 판단</figcaption></figure>
@@ -654,7 +653,7 @@ var actsEl=$("acts");
 ACTS.forEach(function(a,i){
   var mid=(i+.5)*W*Math.PI/180,s=Math.sin(mid),c=Math.cos(mid),d=document.createElement("div");
   d.className="act";d.id="act"+i;
-  d.innerHTML=a.n+"<b>"+a.who+"</b>";
+  d.innerHTML=a.n+"<b>"+a.q+"</b>";
   var x=CX+(R+1.15)*s,y=CY-(R+1.15)*c;
   d.style.left=x+"rem";d.style.top=y+"rem";
   d.style.transform="translate("+(s>.3?"0":s<-.3?"-100%":"-50%")+","+(c>.5?"-100%":c<-.5?"0":"-50%")+")";
@@ -668,7 +667,7 @@ T.forEach(function(t,i){
   var li=document.createElement("li"),a=document.createElement("a");
   a.href="#"+t.id;a.className="tg "+(t.act===1?["d","u","d","r"][i-4]:t.x>=CX-.01?"r":"l");a.id="tg"+i;
   a.style.left=t.x+"rem";a.style.top=t.y+"rem";
-  a.innerHTML="<span aria-hidden='true'>"+t.id.slice(2)+"<i>"+t.sp+"</i><em>"+t.nm+"</em></span><b class='sr'>"+t.id+" · "+(t.center?"표지":ACTS[t.act].n)+" · "+t.title.replace(/<br>/g," ")+" · "+t.who+" · "+KIND[t.k]+"</b>";
+  a.innerHTML="<span aria-hidden='true'>"+t.id.slice(2)+"<em>"+t.nm+"</em></span><b class='sr'>"+t.id+" · "+(t.center?"표지":ACTS[t.act].n)+" · "+t.title.replace(/<br>/g," ")+" · "+KIND[t.k]+"</b>";
   a.addEventListener("click",function(e){e.preventDefault();go(i,true);});
   li.appendChild(a);ol.appendChild(li);
 });
@@ -730,14 +729,14 @@ function bodyOf(t){ return "<h1>"+t.title+"</h1>"+t.body; }
 function render(){
   var t=T[cur],p=$("panel");
   p.classList.toggle("wide",!!t.wide);
-  $("ph").innerHTML="<span>"+(t.center?"TechRadar 최종 발표":ACTS[t.act].n)+"</span><span class='sp'></span><span class='who'>"+t.who+"</span>";
-  $("topAct").textContent=t.center?"":ACTS[t.act].n+" · "+t.who;
+  $("ph").innerHTML="<span>"+(t.center?"TechRadar 최종 발표":ACTS[t.act].n)+"</span><span class='sp'></span><span class='who'>"+t.id.slice(2)+" / "+T.length+"</span>";
+  $("topAct").textContent=t.center?"":ACTS[t.act].n+" · "+ACTS[t.act].q;
   var pc=$("pc"),n=pc.cloneNode(false);n.innerHTML=bodyOf(t);pc.parentNode.replaceChild(n,pc);
   var tl=n.querySelector("#tl");if(tl) tl.innerHTML=tlHTML();
   fillEdits(n);
   $("pf").innerHTML="<b>출처 </b>"+t.src;
   $("notes").innerHTML="<b>발표자 메모 · "+t.id+"</b><br>"+t.notes+"<br><b>넘김</b> "+nextHand(cur);
-  $("oaWho").textContent=t.who+(t.center?"":" — "+ACTS[t.act].n);
+  $("oaWho").textContent=t.center?"TechRadar":ACTS[t.act].n;
   $("oaHand").textContent="넘김: "+nextHand(cur);
   T.forEach(function(x,i){var a=$("tg"+i);a.classList.toggle("cur",i===cur);a.classList.toggle("seen",i<cur);if(i===cur)a.setAttribute("aria-current","true");else a.removeAttribute("aria-current");});
   ACTS.forEach(function(a,i){$("act"+i).classList.toggle("on",i===t.act);});
@@ -750,8 +749,8 @@ function render(){
 function renderList(){
   var h="<h2>전체 항적 — 표적 "+T.length+"개 · 13분 30초</h2><ol>",la=-1;
   T.forEach(function(t,i){
-    if(!t.center&&t.act!==la||i===0){la=t.act;h+="<li class='acth'>"+ACTS[t.act].n+" · "+ACTS[t.act].who+" · "+ACTS[t.act].sec+"초</li>";}
-    h+="<li class='"+(i===cur?"cur":"")+"'><a href='#"+t.id+"' data-i='"+i+"'><span class='mono'>"+t.id+"</span><span>"+t.nm+"</span><span>"+t.who+"</span><span class='mono'>"+t.sec+"s</span></a></li>";
+    if(!t.center&&t.act!==la||i===0){la=t.act;h+="<li class='acth'>"+ACTS[t.act].n+" · "+ACTS[t.act].q+"</li>";}
+    h+="<li class='"+(i===cur?"cur":"")+"'><a href='#"+t.id+"' data-i='"+i+"'><span class='mono'>"+t.id+"</span><span>"+t.nm+"</span></a></li>";
   });
   $("list").innerHTML=h+"</ol>";
   $("list").querySelectorAll("a").forEach(function(a){a.onclick=function(e){e.preventDefault();go(+a.dataset.i,true);};});
@@ -1001,7 +1000,7 @@ function fromHash(){var m=/T-(\d+)/i.exec(location.hash);if(m){var i=+m[1]-1;if(
 window.addEventListener("hashchange",fromHash);
 window.addEventListener("resize",size);
 window.addEventListener("beforeprint",function(){
-  $("print").innerHTML="<h1>TechRadar 발표 — SCOPE (표적 "+T.length+"개)</h1>"+T.map(function(t){return "<section><p><b>"+t.id+"</b> · "+(t.center?"표지":ACTS[t.act].n)+" · "+t.who+" · "+t.sec+"초</p>"+bodyOf(t)+"<p><small>출처: "+t.src+"</small></p><p><small>메모: "+t.notes+"</small></p></section>";}).join("");
+  $("print").innerHTML="<h1>TechRadar 발표 — SCOPE (표적 "+T.length+"개)</h1>"+T.map(function(t){return "<section><p><b>"+t.id+"</b> · "+(t.center?"표지":ACTS[t.act].n)+"</p>"+bodyOf(t)+"<p><small>출처: "+t.src+"</small></p><p><small>메모: "+t.notes+"</small></p></section>";}).join("");
   var tl=$("print").querySelector("#tl");if(tl)tl.innerHTML=tlHTML();fillEdits($("print"));
 });
 
