@@ -7,7 +7,10 @@ import type { Graph } from "./graph.ts";
 export type SectionTech = { id: string; name: string };
 export type Section = { id: string; name: string; stageIds: string[]; techs: SectionTech[] };
 export const SECTION = { max: 24, techs: 8, nameMax: 20, minStages: 2 } as const;
-const ID = /^[A-Za-z0-9_-]{1,64}$/;
+const ID = /^[A-Za-z0-9_-]{1,64}$/; // graph.ts 단계 id와 같은 규칙(DB가 같은 정규식으로 본다)
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** DB와 같은 이름 다듬기: 20글자(코드포인트)로 자른 뒤 앞뒤 스페이스만 지움(btrim(left(name, 20))) */
+export const sectionName = (s: string) => [...s].slice(0, SECTION.nameMax).join("").replace(/^ +| +$/g, "");
 
 /** 맞지 않는 섹션 · 칸은 그 섹션만 빼고(판을 버리지 않음, 관계선과 같음) 없어진 단계는 지운다. 남은 단계가 2개 미만이면 섹션도 뺀다 */
 export function cleanSections(stageIds: Iterable<string>, raw: unknown): Section[] {
@@ -16,14 +19,14 @@ export function cleanSections(stageIds: Iterable<string>, raw: unknown): Section
   for (const r of raw) {
     if (out.length >= SECTION.max) break;
     const s = (r ?? {}) as { id?: unknown; name?: unknown; stageIds?: unknown; techs?: unknown };
-    const name = typeof s.name === "string" ? s.name.trim().slice(0, SECTION.nameMax) : "";
+    const name = typeof s.name === "string" ? sectionName(s.name) : "";
     if (typeof s.id !== "string" || !ID.test(s.id) || ids.has(s.id) || stages.has(s.id) || !name || !Array.isArray(s.stageIds)) continue;
     const members = [...new Set(s.stageIds.filter((x): x is string => typeof x === "string" && stages.has(x) && !used.has(x)))];
     if (members.length < SECTION.minStages) continue;
     const seen = new Set<string>();
     const techs = (Array.isArray(s.techs) ? s.techs : []).flatMap((t) => {
       const v = (t ?? {}) as { id?: unknown; name?: unknown };
-      if (typeof v.id !== "string" || seen.has(v.id) || seen.size >= SECTION.techs) return [];
+      if (typeof v.id !== "string" || !UUID.test(v.id) || seen.has(v.id) || seen.size >= SECTION.techs) return []; // DB는 uuid가 아닌 id를 판째 거절해서 미리 뺀다
       seen.add(v.id);
       return [{ id: v.id, name: typeof v.name === "string" ? v.name : v.id }];
     });
@@ -45,7 +48,7 @@ export const sectionOf = (g: Graph, stageId: string): Section | undefined => g.s
 type Result = { ok: true; graph: Graph; section: Section } | { ok: false; message: string };
 /** 고른 단계들을 섹션으로 묶기. 이미 다른 섹션에 든 단계는 못 묶는다(겹침 없음) */
 export function groupSection(g: Graph, stageIds: string[], name: string, id = `sec-${Date.now().toString(36)}`): Result {
-  const nm = name.trim().slice(0, SECTION.nameMax), members = [...new Set(stageIds)].filter((x) => g.stages.some((s) => s.id === x));
+  const nm = sectionName(name.trim()), members = [...new Set(stageIds)].filter((x) => g.stages.some((s) => s.id === x));
   if (!nm) return { ok: false, message: "섹션 이름을 적어 주세요." };
   if (members.length < SECTION.minStages) return { ok: false, message: `섹션은 단계 ${SECTION.minStages}개 이상을 묶어요.` };
   const taken = members.map((m) => sectionOf(g, m)).find(Boolean);
@@ -67,7 +70,6 @@ export function putSectionTech(g: Graph, id: string, tech: SectionTech & { grade
   return { ok: true, graph: edit(g, id, (x) => ({ ...x, techs: [...x.techs, { id: tech.id, name: tech.name }] })) };
 }
 export const removeSectionTech = (g: Graph, id: string, techId: string): Graph => edit(g, id, (x) => ({ ...x, techs: x.techs.filter((t) => t.id !== techId) }));
-export const renameSection = (g: Graph, id: string, name: string): Graph => { const nm = name.trim().slice(0, SECTION.nameMax); return nm ? edit(g, id, (x) => ({ ...x, name: nm })) : g; };
 
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 /** 내보내기 머리 줄: "섹션 「이름」: 단계 A · B — 공통 기술: X, Y(이 섹션 첫 단계 전에 먼저 설치)" */

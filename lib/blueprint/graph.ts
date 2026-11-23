@@ -350,7 +350,8 @@ export function applyTemplate(t: Graph, kind: TemplateKind): Graph {
     stages: src.stages.map((s) => ({ ...s, id: fresh.get(s.id)!, techs: [...s.techs] })),
     edges: src.edges.filter((e) => fresh.has(e.from) && fresh.has(e.to)).map((e) => ({ from: fresh.get(e.from)!, to: fresh.get(e.to)! })),
   };
-  return withLinks(g, cleanLinks(g, (src.links ?? []).map((l) => ({ from: reEnd(l.from), to: reEnd(l.to) }))));
+  const sections = (src.sections ?? []).map((x) => ({ ...x, stageIds: x.stageIds.map((id) => fresh.get(id) ?? ""), techs: kind === "frame" ? [] : [...x.techs] })); // 섹션도 새 id로(P-12o)
+  return withSections(withLinks(g, cleanLinks(g, (src.links ?? []).map((l) => ({ from: reEnd(l.from), to: reEnd(l.to) })))), cleanSections(g.stages.map((s) => s.id), sections));
 }
 
 const bad = (message: string): ParsedGraph => ({ ok: false, message });

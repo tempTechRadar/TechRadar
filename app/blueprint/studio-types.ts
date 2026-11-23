@@ -18,6 +18,7 @@ export type PanelProps = {
   /** 내 프로젝트(기술 트리 "프로젝트" 분류기준의 폴더 이름, P-12h S2) */ projects: { id: string; name: string }[]; onPick: (p: Picked) => void; apply: Apply;
   /** 서랍 후보(내 기술 · 적용 후보 · 이력) */ pool: PoolTech[];
   /** 서랍 "지도 전체"(P-12o, 공개 칸만, null = 못 읽음) · 그 기술을 단계에 넣기(로그인은 먼저 담기, 손님은 이 브라우저 담기) */ catalog: PoolTech[] | null; onPlace: (stageId: string, techId: string) => void;
+  /** 섹션 공통 기술 넣기(P-12o, 끌어 놓기의 키보드 짝: 서랍 카드 "넣을 곳 고르기"의 섹션) */ onSectionTech?: (sectionId: string, techId: string) => void;
   /** 내 태그(기술 id → 태그). null = 읽지 못함 */ tags: Record<string, string[]> | null;
   onTags: (techId: string, tags: string[]) => void;
   history: BlueprintRecord[] | null; say: Say;
