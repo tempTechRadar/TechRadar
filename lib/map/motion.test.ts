@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { grow, GROW, introducing, RECENT_HOURS, recentlyChecked, REVEAL, rippleR, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, touchAge, type MotionState } from "./motion.ts";
+import { grow, GROW, introducing, litAge, litAt, MOTION_END, PING, RECENT_HOURS, recentlyChecked, REVEAL, rippleR, ringGrow, SLOWDOWN, sweepAlpha, sweepAngle, trackTargets, TURNS, type MotionState } from "./motion.ts";
 import type { Item } from "./layout.ts";
 
 const item = (id: string, x: number, y: number, parent: string | null = null) => ({ id, x, y, parent, type: "t" }) as unknown as Item;
@@ -13,14 +13,12 @@ const S = (over: Partial<MotionState> = {}): MotionState => ({
   L: { radius: 300, byId: new Map([parent, child, early, late].map((i) => [i.id, i])) }, ...over,
 });
 
-test("선 각도: 펼침이 끝나는 순간 끊기지 않고, 빛남에 쓰는 속도가 각도의 변화와 맞는다", () => {
-  const s = S(), end = s.sweepStart + REVEAL;
-  assert.ok(Math.abs(sweepAngle(s, end - 1e-6) - sweepAngle(s, end + 1e-6)) < 1e-4, "펼침 끝에서 이어짐");
-  for (const t of [end + 0.1, end + 0.5, end + 3]) {
-    const dt = 1e-4, w = (sweepAngle(s, t + dt) - sweepAngle(s, t - dt)) / (2 * dt);
-    const it = item("x", Math.cos(sweepAngle(s, t) - 0.01) * 50, Math.sin(sweepAngle(s, t) - 0.01) * 50); // 선 바로 뒤 0.01라디안
-    assert.ok(Math.abs(touchAge(s, t, it) - 0.01 / w) < 0.01, `t=${t}`);
-  }
+test("선 각도: 두 바퀴(TURNS)를 돈 뒤 감속으로 끊기지 않게 이어지고 옅어진다(P-12m)", () => {
+  const s = S(), end = s.sweepStart + REVEAL * TURNS;
+  assert.ok(Math.abs(sweepAngle(s, end - 1e-6) - sweepAngle(s, end + 1e-6)) < 1e-4, "두 바퀴 끝에서 이어짐");
+  assert.ok(Math.abs(sweepAngle(s, end) - sweepAngle(s, s.sweepStart) - TURNS * Math.PI * 2) < 1e-9, "두 바퀴");
+  assert.equal(sweepAlpha(s, s.sweepStart + REVEAL * 1.5), 1, "둘째 바퀴 동안은 진함");
+  assert.equal(sweepAlpha({ ...s, motion: "ripple" }, s.sweepStart + 1), 0, "파동만이면 선 없음");
   const fading = sweepAlpha(s, end + SLOWDOWN / 2);
   assert.ok(fading > 0 && fading < 1, "감속 동안 옅어짐");
   assert.equal(sweepAlpha(s, end + SLOWDOWN), 0, "감속이 끝나면 선이 사라져 멈춤(계속 돌지 않음, P-12g)");
@@ -56,4 +54,26 @@ test("파동은 한 번: 펼침 끝에서 가운데로 돌아가지 않고 화�
   assert.ok(rippleR(s, end + SLOWDOWN / 2, far).fade < 1);
   assert.equal(rippleR(s, end + SLOWDOWN, far).r, -1, "감속이 끝나면 없음");
   assert.equal(rippleR(s, end + 30, far).r, -1, "다시 생기지 않음");
+});
+
+test("선 + 파동(both, P-12m): 점은 선(첫 바퀴)과 첫 파동 중 먼저 닿는 시각에 한 번만 켜지고, 두 바퀴 · 세 파동이 지나도 다시 켜지지 않는다", () => {
+  const s = S({ motion: "both" }), nearLate = item("n", -30, 0), farEarly = item("f", 1, -290); // 가운데 가까운 왼쪽(파동이 먼저) · 바깥 위쪽(선이 먼저)
+  const bySweep = (it: ReturnType<typeof item>) => litAt({ ...s, motion: "sweep" }, it), byRipple = (it: ReturnType<typeof item>) => litAt({ ...s, motion: "ripple" }, it);
+  assert.ok(byRipple(nearLate) < bySweep(nearLate) && litAt(s, nearLate) === byRipple(nearLate), "파동이 먼저면 파동 시각");
+  assert.ok(bySweep(farEarly) < byRipple(farEarly) && litAt(s, farEarly) === bySweep(farEarly), "선이 먼저면 선 시각");
+  for (const it of [nearLate, farEarly]) { // 연출 내내 ping 구간(0 ≤ 나이 < PING)에 들어가는 일은 한 번뿐
+    let edges = 0, was = false;
+    for (let t = s.sweepStart - 1; t < s.sweepStart + MOTION_END + 2; t += 0.01) { const a = litAge(s, t, it), on = a >= 0 && a < PING; if (on && !was) edges++; was = on; }
+    assert.equal(edges, 1, it.id);
+  }
+  assert.equal(litAge(S({ motion: "off" }), 11, nearLate), -1, "끄기면 끝난 모습(켜짐 움직임 없음)");
+  assert.equal(litAge(S({ still: true }), 11, nearLate), -1, "움직임 줄이기면 끝난 모습");
+  assert.ok(grow(s, litAt(s, nearLate) + GROW, nearLate) === 1 && grow(s, litAt(s, nearLate) - 0.01, nearLate) === 0, "떠오르는 때도 같은 시각");
+});
+
+test("새 기술 추적 틀: NEW(이번 주) 기술 중 들어온 기록이 있는 것만, 최근 들어온 순으로 최대 n개", () => {
+  const t = (id: string, isNew: boolean, addedAt: string | null) => ({ id, node: { isNew, addedAt } });
+  const list = [t("old", false, "2026-11-22T00:00:00Z"), t("a", true, "2026-11-18T00:00:00Z"), t("b", true, "2026-11-22T00:00:00Z"), t("c", true, "2026-11-20T00:00:00Z"), t("x", true, null)];
+  assert.deepEqual(trackTargets(list, 2).map((i) => i.id), ["b", "c"]);
+  assert.deepEqual(trackTargets(list).map((i) => i.id), ["b", "c", "a"], "NEW가 아니거나 들어온 기록이 없으면 틀 없음");
 });

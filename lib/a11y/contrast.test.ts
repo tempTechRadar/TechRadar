@@ -72,3 +72,15 @@ test("영역 C 화면의 글자색(style color)이 흰 바탕 · 옅은 회색 �
   const bad = [...colors].flatMap(([c, f]) => ["#ffffff", "#f6f5f1", hex("var(--sunken)")].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
   assert.deepEqual(bad, []);
 });
+
+test("파란 도면(P-12m): 도면 위 흰 글자(메뉴)는 4.5:1 이상, 흰 면 위 글자 짝은 그대로, 격자 · 레이더 선은 표시 기준 3:1 이상", () => {
+  const shared = readFileSync(new URL("../../app/tokens.css", import.meta.url), "utf8");
+  const t = (name: string) => shared.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))![1];
+  const pairs: [string, string, string, number][] = [
+    ["도면 위 흰 글자", t("on-paper"), t("paper"), 4.5],
+    ["흰 면 위 본문", t("ink"), t("surface"), 4.5], ["흰 면 위 보조", t("ink-2"), t("surface"), 4.5], ["흰 면 위 흐린 글자", t("muted"), t("surface"), 4.5],
+    ["레이더 선 · 파동(--scan, 글자 아님)", t("scan"), t("paper"), 3],
+  ];
+  const bad = pairs.filter(([, fg, bg, min]) => contrastRatio(fg, bg) < min).map(([n, fg, bg]) => `${n} ${contrastRatio(fg, bg).toFixed(2)}`);
+  assert.deepEqual(bad, []);
+});
