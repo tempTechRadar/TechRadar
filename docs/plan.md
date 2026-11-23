@@ -131,9 +131,9 @@
 | P-12u | 레이더 배경 선 겹 캔버스 | 1(사용자 결정) | A | 김영식(세션 FrontLead) | 황재웅 | `fix/P-12u-idle-overlay` | #222 남은 일(옅은 선을 겹 캔버스로) | 뒤에서 도는 옅은 선이 지도 캔버스를 다시 그리지 않게 | P-12p | 11-23 | ✅ #232 |
 | P-12v | 청사진 화면 이동은 스페이스 + 끌기 · 변경 이력 표 | 1(사용자 결정) | A | 김영식(세션 FrontLead) | 차세일 | `fix/P-12v-space-pan` | 사용자 요청 11-23 | 빈 곳 끌기로는 안 움직이고 스페이스 + 끌기만 이동(손가락 · 가운데 버튼은 그대로), 변경 이력을 표로 | P-12j | 11-23 | ✅ #233 |
 | P-tutorial | Tutorial 화면(`/guide`): 따라 하기 6단계 · 등급 뜻 · 약속 | 1(사용자 결정) | C | 차세일 | 김영식 | `feat/tutorial` | IA-27, 사용자 요청 11-23 | 로그인 없이 열리고 DB를 읽지 않음, 튜토리얼 글이 실제 화면과 같은지 시험(`lib/tutorial/guide-steps.test.ts`) | — | 11-23 | ✅ #234 |
-| P-12w | 지도 찾기 도우미(특징으로 기술 찾기) | 1(사용자 결정 17:40) | A | 김영식(세션 FrontLead) |  | `feat/P-12w-map-finder` | ADR 0045, PRD-NF6, SPEC-9, 계획 p12w-map-finder-and-audit.md 1절 | 로그인만 · 하루 20번 · 지도 공개 목록 안 id만 · 찾기만, `map_find`(운영 적용), 손님은 로그인 안내 | P-12p | 11-23 | 진행 중(19:10 PR 목표) |
-| P-12x | 지도 손질(점검 H1–H3: 390 필터 접기 · 지금 보기 표시 · NEW 겹침) | 1(사용자 결정 17:40) | A | 김영식(세션 DevAssi1) |  | `fix/P-12x-map-polish` | 계획 p12w-map-finder-and-audit.md 2절 | H1–H3 고침 | P-12p | 11-23 | 진행 중(19:10 PR 목표) |
-| P-12y | 청사진 · 기타 손질(점검 H4–H6 · M1–M3) | 1(사용자 결정 17:40) | A | 김영식(세션 DevAssi2) |  | `fix/P-12y-blueprint-polish` | 계획 p12w-map-finder-and-audit.md 2절 | H4–H6 · M1–M3 고침(L1–L3은 제출 뒤) | P-12v | 11-23 | 진행 중(19:10 PR 목표) |
+| P-12w | 지도 찾기 도우미(특징으로 기술 찾기) | 1(사용자 결정 17:40) | A | 김영식(세션 FrontLead) | 황재웅 | `feat/P-12w-map-finder` | ADR 0045, PRD-NF6, SPEC-9, 계획 p12w-map-finder-and-audit.md 1절 | 로그인만 · 하루 20번 · 지도 공개 목록 안 id만 · 찾기만, `map_find`(운영 적용), 손님은 로그인 안내 | P-12p | 11-23 | ✅ #235(P-12w · x · y 한 PR) |
+| P-12x | 지도 손질(점검 H1–H3: 390 필터 접기 · 지금 보기 표시 · NEW 겹침) | 1(사용자 결정 17:40) | A | 김영식(세션 DevAssi1) | 황재웅 | `fix/P-12x-map-polish` → `feat/P-12w-map-finder`에 합침 | 계획 p12w-map-finder-and-audit.md 2절 | H1–H3 고침 | P-12p | 11-23 | ✅ #235(P-12w · x · y 한 PR) |
+| P-12y | 청사진 · 기타 손질(점검 H4–H6 · M1–M3) | 1(사용자 결정 17:40) | A | 김영식(세션 DevAssi2) | 황재웅 | `fix/P-12y-blueprint-polish` → `feat/P-12w-map-finder`에 합침 | 계획 p12w-map-finder-and-audit.md 2절 | H4–H6 · M1–M3 고침(L1–L3은 제출 뒤) | P-12v | 11-23 | ✅ #235(P-12w · x · y 한 PR) |
 
 ### 월 · 11-23 마무리 (20:00 병합 마감, 21:00 코드 동결, 23:59 제출. 11-21 바뀜, 그 전엔 18:00 동결)
 
