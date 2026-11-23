@@ -86,6 +86,8 @@ test("관측소 테마(P-12m): 바탕 · 판 · 카드 위 글자 4.5 이상, �
     ["청록 칠 위 바탕색 글자", t("paper"), t("scan"), 4.5],
     ["주 행동 단추(청록 채움) 글자 --on-ink", t("on-ink"), t("scan"), 4.5],
     ["판단 대기 배지(얼음 파랑) 글자 --on-ink", t("on-ink"), t("pending"), 4.5],
+    ["판단 대기 글자 --pending(오목한 바탕, .badge-pending)", t("pending"), t("sunken"), 4.5],
+    ["완료 글자 --done(오목한 바탕, .badge-done)", t("done"), t("sunken"), 4.5],
     ["고른 칩 글자(카드 바탕)", t("ink"), t("picked-bg"), 4.5],
     ["고른 칩 테두리(청록, 표시 3 이상)", t("picked-line"), t("picked-bg"), 3],
     ["완료 · 수집 오류 회색(판 위, 표시 3 이상)", t("done"), t("surface"), 3],
