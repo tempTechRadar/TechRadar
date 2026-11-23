@@ -1,49 +1,32 @@
 "use client";
 // 지도 도구(시안 radar.html·radar-ui.js, P-12m 점검으로 자리 옮김): 위 한 줄 = 찾기 + 경로 칩 + 빠른 칩, 필터는 왼쪽 패널(filter-panel), 보기 · 보기 초기화는 오른쪽 아래.
 // 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
-import { useEffect, useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { MapLayout } from "@/lib/map/layout";
 import { DIMS, DIM_KO, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
 const MARK_CHIP: Record<MarkPick, string> = { interest: "★ 관심", candidate: "담은 기술", hold: "보류" }; // 사이드 패널 별 · 담기와 같은 말(P-12h U1)
 
-/** 보기 창 펼침 기억(11-21 사용자 결정 F①: 다시 누를 때까지 펼친 채, 새로 고쳐도). 이 브라우저에만 */
-const VIEW_OPEN_KEY = "techradar-map-view-open";
 
-/** 지도 오른쪽 아래 ⚙ 옆 작은 단추(P-12m 사용자 점검: 위쪽을 한 줄로): 보기(묶기 1~3단계 · 색) · 보기 초기화. 창은 위로 열린다 */
+/** 필터 패널 맨 위 "보기 방식"(P-12p 사용자: 보기 · 보기 초기화를 필터 사이드바 안으로): 묶기 1~3단계 · 색 + [보기 초기화] */
 export function ViewTools({ view, canMine, onView, onReset }: { view: ViewConfig; canMine: boolean; onView: (v: ViewConfig) => void; onReset: () => void }) {
-  const [viewOpen, setViewOpen] = useState(false);
-  useEffect(() => { try { setViewOpen(localStorage.getItem(VIEW_OPEN_KEY) === "1"); } catch { /* 저장소를 못 쓰면 닫힌 채로 */ } }, []);
-  const toggleView = () => { setViewOpen(!viewOpen); try { localStorage.setItem(VIEW_OPEN_KEY, viewOpen ? "0" : "1"); } catch { /* 이번 화면에서만 */ } };
   const setLevel = (i: number, dim: Dim | "") => {
     const group = dim ? [...view.group.slice(0, i), dim] : view.group.slice(0, i);
     onView({ ...view, group, color: view.color === view.group[0] ? group[0] ?? view.color : view.color });
   };
   return (
-    <div className="map-view-tools">
-      <div className="map-pop map-pop-up">
-        <button type="button" className="btn" aria-expanded={viewOpen} onClick={toggleView}>보기</button>
-        {viewOpen ? (
-          <div className="map-pop-panel">
-            <fieldset><legend>묶기(안쪽 고리부터)</legend>
-              {Array.from({ length: Math.min(MAX_LEVELS, view.group.length + 1) }, (_, i) => (
-                <label key={i}>{i + 1}단계 <select value={view.group[i] ?? ""} onChange={(e) => setLevel(i, e.target.value as Dim | "")}>
-                  <option value="">없음</option>
-                  {DIMS.filter((d) => !view.group.slice(0, i).includes(d) && (d !== "project" || canMine)).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
-                </select></label>
-              ))}
-            </fieldset>
-            <fieldset><legend>색</legend>
-              <label>색 기준 <select value={view.color} onChange={(e) => onView({ ...view, color: e.target.value as Dim })}>
-                {DIMS.filter((d) => d !== "project" || canMine).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
-              </select></label>
-            </fieldset>
-          </div>
-        ) : null}
-      </div>
+    <fieldset className="map-view-tools"><legend>보기 방식</legend>
+      {Array.from({ length: Math.min(MAX_LEVELS, view.group.length + 1) }, (_, i) => (
+        <label key={i} className="map-filter-select">{i + 1}단계 <select value={view.group[i] ?? ""} onChange={(e) => setLevel(i, e.target.value as Dim | "")}>
+          <option value="">없음</option>
+          {DIMS.filter((d) => !view.group.slice(0, i).includes(d) && (d !== "project" || canMine)).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
+        </select></label>
+      ))}
+      <label className="map-filter-select">색 <select value={view.color} onChange={(e) => onView({ ...view, color: e.target.value as Dim })}>
+        {DIMS.filter((d) => d !== "project" || canMine).map((d) => <option key={d} value={d}>{DIM_KO[d]}</option>)}
+      </select></label>
       <button type="button" className="btn" onClick={onReset}>보기 초기화</button>
-    </div>
+    </fieldset>
   );
 }
 

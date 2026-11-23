@@ -8,7 +8,6 @@ import { CartBadge } from "@/app/nav/cart-badge";
 import { NavLink } from "@/app/nav/nav-link";
 import { ScanStatusLine } from "@/app/nav/scan-status";
 import { TabBar } from "@/app/nav/tab-bar";
-import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
 import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
 import { SAMPLE_RECENT } from "@/lib/dev/preview-data";
@@ -55,7 +54,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="ko">
       <body>
-        <ReadyGate />{/* 첫 화면 관문: 처음 열 때 한 번만 도는 스크립트(지도가 아니면 "이미 들어옴"만 남김) */}
         {/* 메뉴(design.md 13절 1, 11-21 사용자 결정 "같은 메뉴 + 계정 묶기" → "종 알림 · 아바타 · 지금 화면 표시"): 로그인 전후 가운데 메뉴는 똑같이 보이고,
             로그인이 필요한 화면은 누르면 그 자리에서 무엇이 열리는지 + 로그인(LoginNeeded). 왼쪽 로고 = 기술 지도.
             알림은 글자 메뉴에서 빼 오른쪽 종으로(배지 = 판단 대기), 내 프로젝트 · 설정 · 관리자 · 로그아웃은 아바타 펼침 하나로 */}

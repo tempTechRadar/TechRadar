@@ -1,6 +1,6 @@
-/* 오른쪽 아래 ⚙ 레이더 설정: 범례 · 상태 줄 위(.map-dock 안), 창은 위로 열린다.
+/* 오른쪽 아래 ⚙ 레이더 설정: 맨 아래 찾기 막대와 같은 높이(.map-dock 안, P-12p 범례 줄을 지움), 창은 위로 열린다.
    dock 줄로 넣지 않고 띄운다: 지도 높이(dockHeight)와 알림 말풍선 자리가 그대로다. shortcut: 오른쪽 아래 44px 안의 점은 단추에 가린다, 문제되면 S.bottom에 넣는다 */
-.map-dock > .radar-set { position: absolute; right: 0; bottom: 100%; }
+.map-dock > .radar-set { position: absolute; right: 0; bottom: 0; }
 .radar-set-btn { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--on-paper); font-size: 20px; line-height: 1; cursor: pointer; }
 .radar-set-btn:hover, .radar-set-btn[aria-expanded="true"] { color: var(--ink); background: var(--sunken); }
 .radar-set-panel { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 6; width: min(240px, calc(100vw - 48px)); padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
@@ -10,3 +10,8 @@
 .radar-set-panel label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .radar-set-panel input[type="radio"] { width: 18px; height: 18px; }
 .radar-set-panel p { margin: 0; font-size: var(--fs-sm); }
+.radar-set-panel .radar-set-range { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; min-height: 0; padding: 2px 0; }
+.radar-set-range output { font-variant-numeric: tabular-nums; color: var(--on-paper-2); font-size: var(--fs-sm); }
+.radar-set-range input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--scan); }
+.radar-set-range:has(input:disabled) { opacity: .5; }
+.radar-set-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--scan); }
