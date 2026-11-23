@@ -18,6 +18,7 @@ import { GUEST } from "./use-studio-graph";
 import "./blueprint.css";
 
 export const metadata = { title: "청사진 · TechRadar" };
+export const maxDuration = 300; // AI 점검(서버 액션)이 여기서 돈다: Claude를 120초까지 기다린다(P-12q, 보드 · 레포 상세와 같은 값)
 
 /** add: 보드의 "청사진에 넣기"가 실어 보낸 기술 id(11-21 화면 개편 C). template: 갤러리의 "이 템플릿으로 시작"(P-12e).
  *  bp: 보드의 확정한 청사진 이름(P-12n R3-3) — 내 이력에서 그 청사진을 불러온다(손님은 이력이 없어 무시). uuid 모양이 아니면 버린다 */
