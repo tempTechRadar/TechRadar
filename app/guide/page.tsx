@@ -7,7 +7,7 @@ import "./guide.css";
 // 둘러보기(IA-27, 11-23 사용자 요청): 처음 쓰는 사람이 5분 안에 "무엇이고, 무엇을 어떤 순서로 하고, 무엇이 보장되나"를 따라 하는 안내. 로그인 없이 열린다(DB를 읽지 않음).
 // 내용은 lib/tutorial/ 두 파일에만 있고, 시험이 근거 파일의 실제 문구와 대조한다.
 // 주 단추(청록)는 맨 끝 "지금 내 레포 등록하기" 하나(P-12n). 맨 위 "1단계부터 따라 하기"는 같은 화면 안 이동이라 보조 단추
-export const metadata = { title: "둘러보기 · TechRadar" };
+export const metadata = { title: "Tutorial · TechRadar" };
 
 const Ui = ({ text }: { text: string }) => <>{splitUiNames(text).map((p, i) => (p.ui ? <b key={i} className="g-ui">{p.text}</b> : <span key={i}>{p.text}</span>))}</>;
 
@@ -18,7 +18,7 @@ export default function GuidePage() {
   return (
     <main className="page guide">
       <header className="g-intro">
-        <h1>TechRadar 둘러보기</h1>
+        <h1>TechRadar Tutorial</h1>
         <p className="g-problem">{PROBLEM}</p>
         <p className="g-lead">{SOLUTION}</p>
         <ul className="g-motto" aria-label="기준 문장과 메뉴">{MOTTO.map((m) => (

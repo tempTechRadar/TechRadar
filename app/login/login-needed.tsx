@@ -17,7 +17,7 @@ export function LoginNeeded({ title, why, next }: { title: string; why: string; 
         <p className="muted">로그인하면 이 화면으로 돌아와요. 이메일은 로그인에만 쓰고, 비밀번호 · 토큰은 받지 않아요.</p>
         <GoogleLoginButton next={next} />
         <p className="muted"><Link href={`/login?next=${encodeURIComponent(next)}`}>다른 방법으로 로그인</Link></p>
-        <p className="muted">처음이라면 <Link href="/guide">먼저 둘러보기</Link></p>
+        <p className="muted">처음이라면 <Link href="/guide">Tutorial 먼저 보기</Link></p>
       </section>
     </main>
   );

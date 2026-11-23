@@ -21,7 +21,7 @@ export function StartChecklist({ steps, who }: { steps: StartStep[]; who: string
             {s.done ? <span>{s.label}<span className="sr-only"> (했어요)</span></span> : <Link href={s.href}>{s.label}</Link>}
           </li>
         ))}</ol>
-        <p className="muted">처음이라면 <Link href="/guide">둘러보기</Link>에서 순서를 먼저 봐요.</p>
+        <p className="muted">처음이라면 <Link href="/guide">Tutorial</Link>에서 순서를 먼저 봐요.</p>
         <button type="button" className="btn" onClick={hide}>그만 보기</button>
       </div>
     </details>
