@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12v-space-pan · 2026-11-23 · 청사진 화면 이동은 스페이스 + 끌기 (FrontLead 세션, 김영식)
+- 브랜치: `fix/P-12v-space-pan`(origin/main f0169246에서 갈라짐)
+- 출처: 사용자 "청사진에서 스페이스바를 눌러야 잡고 이동하는 모드로 해 줘. 평상시엔 그냥 마우스로 클릭만 되는 거고"(Maestro 전달), P-12o(빈 곳 끌기 = 이동)를 바꿈
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 빈 곳을 누르려다 살짝 끌면 화면이 움직여 고르기 · 누르기가 불편하다 |
+| 기대 결과 | 평소 끌기는 이동하지 않음(누르기 · 고르기 · 카드 끌기만), 스페이스를 누른 채 끌면 이동(커서 grab), 입력칸의 스페이스는 손 모드를 켜지 않음. Shift 네모 고르기 · 휠 확대 그대로. 손가락 기기는 지금처럼 끌기 이동 |
+| 영향 범위 | `app/blueprint/studio.tsx`(panOnDrag · panActivationKeyCode · 도움말 · 안내), `app/blueprint/studio.css` |
+| 제약 | 새 라이브러리 없음. 입력칸 무시는 React Flow useKeyPress(isInputDOMNode)에 기댐 |
+| 열린 질문 | 넓은 터치 노트북(마우스 + 터치)은 pointer: coarse가 아니면 스페이스만 — 문제되면 any-pointer로 |
+
+**결과:** 로컬 커밋. 화면: 스페이스 없이 빈 곳 끌기 = 그대로, 스페이스를 누른 채 = 끈 만큼 이동, 아래 가운데 안내 보임.
+
 ## I-P-12u-idle-overlay · 2026-11-23 · 지도 옅은 선 버벅임: 겹 캔버스로 (FrontLead 세션, 김영식)
 - 브랜치: `fix/P-12u-idle-overlay`(origin/main ba1d873b에서 갈라짐)
 - 출처: 사용자 "레이더 선이 버벅거린다"(Maestro 전달, 사용자 승인 "지금 고침"), P-12p에 남긴 shortcut(IDLE_FPS 12, 지도 전체를 다시 그림)
