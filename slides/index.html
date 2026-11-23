@@ -53,6 +53,11 @@
   @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
   #counter { position: fixed; right: 18px; bottom: 14px; font-family: var(--mono); font-size: 13px; color: var(--muted); background: var(--surface); padding: 2px 8px; border-radius: 6px; z-index: 5; }
   .draft { position: fixed; left: 18px; top: 12px; font-family: var(--mono); font-size: 12px; color: var(--warning); border: 1px solid var(--warning); padding: 2px 8px; border-radius: 6px; z-index: 5; background: var(--surface); }
+  .shot { margin: 14px 0 0; }
+  .shot img { display: block; max-width: 100%; max-height: 46vh; border: 1px solid #22303e; border-radius: 10px; }
+  .shot img[hidden] { display: none; }
+  .shot-ph { border: 1.5px dashed var(--warning); color: var(--warning); border-radius: 10px; padding: 28px 16px; font-size: 18px; text-align: center; }
+  .scene td:first-child, .nowrap { white-space: nowrap; }
   a { color: var(--success); }
   :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
   @media (max-width: 640px) { body { font-size: 17px; } .slide { padding: 48px 20px 64px; } }
@@ -60,8 +65,8 @@
 </style>
 </head>
 <body>
-<span class="draft">초안 · 2026-11-19 저녁 기준</span>
-<span id="counter" aria-hidden="true">1 / 15</span>
+<span class="draft">초안 · 2026-11-23 갱신 중</span>
+<span id="counter" aria-hidden="true">1 / 17</span>
 
 <main id="deck">
 
@@ -70,8 +75,9 @@
   <p class="kicker">프로젝트 3 · 최종 발표 2026-11-23</p>
   <h1 id="t1"><span>TechRadar</span></h1>
   <p class="lead">내가 깐 AI 도구가 안전한지, 더 나은 것이 나왔는지 한눈에.</p>
-  <p class="muted">김영식 · 차세일 · 황재웅</p>
-  <p class="src"><b>발표 순서:</b> 문제 → 지켜본 곳 → 입력·운영 화면 → 사건과 대응 → 시연 → 확인 → 커넥터 → 위키·챗봇 → 서브에이전트 → 하네스 → 기여 → 다음</p>
+  <p class="lead"><b class="green">지도에서 고르고, 청사진으로 옮긴다.</b></p>
+  <p class="muted">기준 문장: 지키고, 고르고, 옮긴다 · 김영식 · 차세일 · 황재웅</p>
+  <p class="src"><b>발표 순서:</b> 문제 → 지켜본 곳 → 입력·지도·청사진 → 사건과 대응 → 흐름 → 시연(제품·위키) → 확인 → 커넥터 → 위키·챗봇 → 서브에이전트 → 하네스 → 바이브로그 → 기여 → 다음 · <b>컨셉 출처:</b> docs/adr/0032 · README 첫 문단</p>
 </section>
 
 <section class="slide" id="s2" aria-labelledby="t2">
@@ -142,8 +148,14 @@
     <div class="card"><h3>대시보드·관리자</h3><p>내 기술 수 · 변경 수 · 판단 대기·완료 · 최근 변경. 관리자: 회원별 등록, 수집 자료, 알림 처리, 수집 오류.</p></div>
     <div class="card"><h3>권한</h3><p>내 데이터는 나만. 화면뿐 아니라 서버와 DB(RLS)에서도 막는다.</p></div>
   </div>
-  <div class="todo">화면 캡처 4장(등록, 내 기술 목록, 대시보드, 관리자). 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
-  <p class="src"><b>출처:</b> docs/prd.md · docs/ia.md · supabase/tests/rls_m0·m1.sql</p>
+  <h3 style="margin-top:20px">서비스 컨셉: 지도에서 고르고, 청사진으로 옮긴다 (ADR 0032, 11-21 확정)</h3>
+  <ol class="steps">
+    <li><b>지도</b>(<code>/tech-map</code>, 로그인 전에도 보임)에서 내 기술과 새 기술을 보고 <b>고른다</b>. 도는 선이 지나가 밝아진 점은 최근 실제로 확인한 기술뿐이다(수집 오류는 밝아지지 않음).</li>
+    <li>고른 기술을 <b>청사진</b>(<code>/blueprint</code>)에 담아 단계로 엮는다. 담기는 적용 후보 저장이고, 확정 전에는 바뀌는 것을 미리 보여 준다(사람 판단 먼저).</li>
+    <li>확정한 청사진을 <b>설치 프롬프트</b>로 내보내 다른 컴퓨터에서 다시 세팅한다(<b>옮긴다</b>).</li>
+  </ol>
+  <div class="todo">화면 캡처 4장(등록, 내 기술 목록, 대시보드, 관리자) + 지도·청사진 각 1장. 관리자 화면은 관리자 계정으로 사람이 찍는다.</div>
+  <p class="src"><b>출처:</b> docs/prd.md PRD-F46 · docs/ia.md · supabase/tests/rls_m0·m1.sql · docs/adr/0032 · docs/design.md 1절 · README 첫 문단</p>
 </section>
 
 <section class="slide" id="s7" aria-labelledby="t7">
@@ -174,8 +186,32 @@
     <li><b>일부러 실패</b>시킨다: 빨간 상자와 오류 기록. 실패 시연 버튼 5가지는 운영에서 일부러 꺼 두어 <b>로컬에서만</b> 돈다. 배포 주소에서는 package.json을 깨 둔 시연용 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(시연 저장소 github.com/csaeil/techradar-fail-demo, ADR 0024 제안).</li>
     <li>비슷한 지난 판단을 찾아 보여 준다.</li>
   </ol>
+  <!-- 캡처는 사용자가 slides/images/flow.png 로 넣는다. 파일이 없으면 그림을 숨기고 아래 자리 표시가 보인다 -->
+  <figure class="shot">
+    <img src="images/flow.png" alt="관리자 흐름 화면: 실제 실행 기록으로 상자가 차례로 켜진 모습" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+    <div class="shot-ph" hidden>▢ 흐름 화면 캡처(관리자 /admin/flow)</div>
+  </figure>
   <div class="todo">리허설로 순서와 시간을 재고, 발표 전에 시뮬레이터 줄을 지운다(가짜 줄만 지우기). 인터넷이 끊길 때를 대비해 시연 화면 녹화도 챙긴다.</div>
   <p class="src"><b>출처:</b> docs/flow.md · app/admin/simulator · app/admin/demo · lib/demo/demo-switch.ts · docs/관리자-사용설명서.md 5-3</p>
+</section>
+
+<section class="slide" id="s8b" aria-labelledby="t8b">
+  <p class="kicker">시연 순서 · 제품 3분 + 위키 1분</p>
+  <h2 id="t8b">제품 시연 다음에 위키 챗봇 시연</h2>
+  <!-- 걸리는 시간은 팀 추정(리허설 전). 장별 예상(분, 화면 쪽 번호 1~17): 1 표지 0.5 · 2 문제 1 · 3 가설 0.5 · 4 숫자 0.5 · 5 지켜본 곳 0.5 · 6 입력·지도·청사진 1 · 7 사건과 대응 1 · 8 흐름 0.5 ·
+       9 시연(이 장) 4 · 10 확인 1 · 11 커넥터 0.5 · 12 위키·챗봇 0.5 · 13 서브에이전트 0.5 · 14 하네스 1 · 15 바이브로그 1 · 16 기여 0.5 · 17 다음 0.5
+       = 합계 14.5분 → 12~15분 안(위쪽 끝). 넘치면 3·4·11·13쪽을 말로 줄인다. 리허설로 재서 고친다. -->
+  <table>
+    <tr><th class="nowrap">순서</th><th>보여 줄 것</th><th>화면</th><th class="nowrap">분(팀 추정)</th></tr>
+    <tr><td>1</td><td>시뮬레이터 버튼으로 가짜 위험 변경 1건 만들기</td><td><code>/admin/simulator</code></td><td>0.5</td></tr>
+    <tr><td>2</td><td>흐름 화면에서 상자가 실제 실행 기록대로 켜짐</td><td><code>/admin/flow</code></td><td>1</td></tr>
+    <tr><td>3</td><td>알림 상세(이전 → 현재 값, 출처, 대응안 초안) → 판단 저장</td><td><code>/alerts</code></td><td>0.5</td></tr>
+    <tr><td>4</td><td>지도에서 고른 기술을 청사진에 담고 설치 프롬프트로 내보내기</td><td><code>/tech-map</code> → <code>/blueprint</code></td><td>1</td></tr>
+    <tr><td>5</td><td>위키 챗봇에 정답표 Q5 묻기: "챗봇 '한 사람 하루 20개' 한도는 어느 표를 세서 거나요?" → 두 문서가 다르다고 <b>양쪽 출처</b>를 함께 답하는지</td><td><code>/admin/chat</code></td><td>1</td></tr>
+  </table>
+  <p class="muted" style="margin-top:12px">합계 4분. Q5는 11-20 운영에서 두 출처를 모두 말해 맞았다(docs/wiki-chat.md). 그 뒤 위키가 바뀌었으므로 발표 전에 한 번 다시 묻는다.</p>
+  <div class="todo">리허설로 순서별 시간을 재서 위 "분" 칸을 고친다. 인터넷이 끊길 때를 대비한 녹화 파일 위치.</div>
+  <p class="src"><b>출처:</b> docs/wiki-chat.md 정답표 Q5·11-20 재질문 행 · docs/flow.md · docs/관리자-사용설명서.md · 강사 공지 11-22(제품 시연·위키 시연·12~15분) · 시간은 팀 추정</p>
 </section>
 
 <section class="slide" id="s9" aria-labelledby="t9">
@@ -254,21 +290,39 @@
   <p class="src"><b>출처:</b> CLAUDE.md 10절 · .claude/skills/ · docs/adr/0017 · docs/intent.md I-auto-sync-main · docs/debug-note.md 11-19 #133 행 · PR #135·#138·#156 · supabase/precheck-migrations.mts · git log supabase/migrations</p>
 </section>
 
+<section class="slide" id="s13b" aria-labelledby="t13b">
+  <p class="kicker">바이브로그 · 세 사람의 장면 하나씩</p>
+  <h2 id="t13b">막혔던 순간과 푼 방법</h2>
+  <!-- 차세일 장면 후보(확정은 사용자, 출처 docs/worklog.md):
+       ① 2026-11-19 I-fail-demo-prod — 막힌 것: 실패 시연 버튼이 운영에서 일부러 꺼져 있어 배포 주소에서 빨간 상자를 보여 줄 수 없었다.
+          푼 방법: 운영 동작은 그대로 두고, package.json만 깨진 공개 저장소를 등록해 "내 기술 뽑기" 상자를 빨갛게 만든다(ADR 0024 제안, 관리자 사용설명서 5-3).
+       ② 2026-11-19 I-qa-c-q5-recheck — 막힌 것: 위키 챗봇이 문서 충돌 질문(Q5)에 "위키에 없습니다"라고 답했다.
+          푼 방법: 원인은 쪽 찾기가 아니라 쪽마다 앞 2000자만 넘긴 것 → 질문 낱말이 든 줄을 골라 넘기게 고침(#131), 11-20 운영 재질문에서 두 출처를 모두 말함. -->
+  <table class="scene">
+    <tr><th>사람</th><th>날짜</th><th>막힌 것</th><th>푼 방법</th></tr>
+    <tr><td>김영식</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
+    <tr><td>차세일</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
+    <tr><td>황재웅</td><td class="warn">▢</td><td class="warn">▢</td><td class="warn">▢</td></tr>
+  </table>
+  <div class="todo">각자 vibelog에서 장면 하나(날짜·막힌 것·푼 방법)와 그때 화면 1장. 차세일 후보 2개는 이 장의 HTML 주석에 출처와 함께 있다.</div>
+  <p class="src"><b>출처:</b> 각자 vibelog · docs/worklog.md · 강사 공지 11-22(바이브로그는 슬라이드에 녹여서)</p>
+</section>
+
 <section class="slide" id="s14" aria-labelledby="t14">
   <p class="kicker">팀원별 기여</p>
-  <h2 id="t14">합친 PR 169개, 세 사람 모두 PR과 리뷰</h2>
-  <!-- 집계 규칙(2026-11-19 17:29, 합친 PR 169개, #171까지, 닫힌 #116·#160 제외): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`.
+  <h2 id="t14">합친 PR 209개, 세 사람 모두 PR과 리뷰</h2>
+  <!-- 집계 규칙(2026-11-23 오전 다시 셈, 합친 PR 209개, #211까지. 처음 집계 11-19 17:29는 169개): `gh pr list --repo tempTechRadar/TechRadar --state merged --limit 400 --json number,author,reviews`.
        합친 PR = 작성자 아이디별 개수. 리뷰한 PR = 남의 PR에 리뷰를 1번 이상 남긴 PR 수(한 PR에 여러 번 남겨도 1, 본인 PR에 남긴 것은 뺌).
-       리뷰 기록 157번 중 156번이 승인, 1번이 의견(차세일). 초기 #1–#24는 남의 리뷰 기록이 없다. -->
+       초기 #1–#24는 남의 리뷰 기록이 없다. -->
   <table>
     <tr><th>팀원 (맡은 영역)</th><th>합친 PR</th><th>리뷰한 PR</th><th>GitHub에 안 남는 일</th></tr>
-    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">99</td><td class="num" style="font-size:28px">52</td><td class="warn">▢</td></tr>
-    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">42</td><td class="num" style="font-size:28px">22</td><td class="warn">▢</td></tr>
-    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">28</td><td class="num" style="font-size:28px">79</td><td class="warn">▢</td></tr>
+    <tr><td>김영식 · A 수집·등급·내 기술<br><span class="muted">GitHub 아이디 sikomar00</span></td><td class="num" style="font-size:28px">120</td><td class="num" style="font-size:28px">69</td><td class="warn">▢</td></tr>
+    <tr><td>차세일 · C 실행·관리자·시뮬레이터<br><span class="muted">GitHub 아이디 csaeil</span></td><td class="num" style="font-size:28px">50</td><td class="num" style="font-size:28px">32</td><td class="warn">▢</td></tr>
+    <tr><td>황재웅 · B 알림·판단·AI 초안<br><span class="muted">GitHub 아이디 hjw12345-git</span></td><td class="num" style="font-size:28px">39</td><td class="num" style="font-size:28px">93</td><td class="warn">▢</td></tr>
   </table>
   <p class="muted" style="margin-top:10px">리뷰한 PR = 남의 PR에 리뷰를 남긴 PR 수(본인 PR 제외, 한 PR은 1번). 처음 #1–#24는 남의 리뷰 없이 합쳐졌다.</p>
   <div class="todo">대표 PR·리뷰 번호와, 인터뷰·시나리오·도운 일처럼 GitHub에 안 남는 일을 각자 쓴다. 이름과 아이디가 맞는지도 확인한다.</div>
-  <p class="src"><b>출처:</b> gh pr list --state merged (11-19 17:29 합친 PR 169개·#171까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
+  <p class="src"><b>출처:</b> gh pr list --state merged (11-23 오전 합친 PR 209개·#211까지 집계, 작성자·리뷰어 아이디 기준, 규칙은 이 장의 HTML 주석) · docs/plan.md 영역 표</p>
 </section>
 
 <section class="slide" id="s15" aria-labelledby="t15">
