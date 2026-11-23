@@ -29,12 +29,14 @@ export const LOGIN_LABEL: Record<LoginNeed, string> = { none: "로그인 없이"
 export const PROBLEM = "AI 코딩 도구로 만들다 보면 스킬 · MCP · 플러그인을 그때그때 하나씩 깔게 돼요. 그러다 보면 내가 무엇을 깔았는지, 그게 안전한지, 더 나은 게 나왔는지 한눈에 보기 어려워요.";
 export const SOLUTION = "TechRadar는 내 레포에 깐 것을 읽어 하나하나 보안 등급을 붙이고, 바깥에서 변화가 생기면 알려 주고, 고른 목록을 설치 프롬프트로 만들어 다른 컴퓨터로 옮기게 해 줘요.";
 
-/** 기준 문장 "지키고, 고르고, 옮긴다" = 메뉴 셋(ADR 0037) */
-export const MOTTO: { verb: string; menu: string; href: string; what: string }[] = [
-  { verb: "지키고", menu: "프로젝트", href: "/dashboard", what: "내 레포에 깐 기술의 등급을 보고 바깥 변화를 알림으로 받아요" },
-  { verb: "고르고", menu: "지도", href: "/", what: "모든 기술을 하는 일별 지도에서 비교해 청사진에 담아요" },
-  { verb: "옮긴다", menu: "청사진", href: "/blueprint", what: "담은 기술을 순서대로 놓고 설치 프롬프트로 내보내요" },
+/** 기준 문장 "지키고, 고르고, 옮긴다" = 메뉴 셋(ADR 0037). steps = 여정 레일에서 이 구간에 놓이는 단계(1~2 지키고 · 3~4 고르고 · 5~6 옮긴다, I-tutorial-motion) */
+export const MOTTO: { verb: string; menu: string; href: string; what: string; steps: GuideStep["id"][] }[] = [
+  { verb: "지키고", menu: "프로젝트", href: "/dashboard", what: "내 레포에 깐 기술의 등급을 보고 바깥 변화를 알림으로 받아요", steps: ["start", "protect"] },
+  { verb: "고르고", menu: "지도", href: "/", what: "모든 기술을 하는 일별 지도에서 비교해 청사진에 담아요", steps: ["choose", "judge"] },
+  { verb: "옮긴다", menu: "청사진", href: "/blueprint", what: "담은 기술을 순서대로 놓고 설치 프롬프트로 내보내요", steps: ["compose", "export"] },
 ];
+/** 단계가 놓인 구간(MOTTO의 몇 번째인지). 짝이 없으면 -1(시험이 막는다) */
+export const phaseOf = (id: GuideStep["id"]): number => MOTTO.findIndex((m) => m.steps.includes(id));
 
 /** 6단계를 마치면 얻는 것 */
 export const GAINS = [

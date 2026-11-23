@@ -70,10 +70,11 @@ export const MORE_SCREENS: { title: string; href: string; what: string; login: L
   { title: "내 실행 기록", href: "/projects/runs", what: "내 저장소를 읽은 실행(처음 읽기 · 다시 읽기)이 단계마다 어떻게 됐는지 봐요.", login: "required", evidence: { file: "app/projects/runs/page.tsx", phrases: ["<h1>내 실행 기록</h1>"] } },
 ];
 
-/** 모양 예시 글자는 아래 실제 화면 파일 중 하나에 있어야 한다(시험이 주석을 지운 소스에서 찾음) */
+/** 장면 그림(app/guide/mocks.tsx · scene-stage.tsx) 글자와 장면에서 쳐지는 글자는 아래 실제 화면 파일 중 하나에 있어야 한다(시험이 주석을 지운 소스에서 찾음) */
+export const MOCK_FILES = ["app/guide/mocks.tsx", "app/guide/scene-stage.tsx"];
 export const MOCK_SOURCES = [
   "app/layout.tsx", "app/login/google-login-button.tsx", "app/settings/page.tsx", "app/settings/settings-form.tsx", "app/taste/taste-form.tsx",
-  "app/dashboard/repo-manage.tsx", "app/tech-map/controls.tsx", "app/tech-map/side-panel.tsx", "app/tech-map/guest-pick.tsx", "lib/map/view-config.ts",
+  "app/dashboard/repo-manage.tsx", "app/dashboard/widgets.tsx", "app/tech-map/controls.tsx", "app/tech-map/side-panel.tsx", "app/tech-map/guest-pick.tsx", "lib/map/view-config.ts",
   "app/alerts/[id]/judgment-form.tsx", "app/alerts/[id]/page.tsx", "app/blueprint/studio.tsx", "app/blueprint/dock.tsx", "app/blueprint/stage-node.tsx",
   "app/blueprint/list-mode.tsx", "app/blueprint/result-dialog.tsx",
 ];
@@ -81,4 +82,5 @@ export const MOCK_SOURCES = [
 export const MOCK_PLACEHOLDERS = [
   "n", "취향 질문", "내 레포 이름", "사용 중인 항목 n", "첫 점검: 위험 n · 주의 n", "기술 이름", "비교군 · 출처", "종 숫자 = 판단 대기 수",
   "위 막대", "단계 1", "단계 2", "또는 끌어 놓기", "로그인했으면", "그림 · 누를 수 없어요", "모양 예시", "실제 화면에서 이렇게 생긴 걸 찾아요. 숫자는 왼쪽 순서",
+  "1", "내 별명", "시연", "실제 화면에서 이 순서로 눌러요. 숫자는 왼쪽 순서", // I-tutorial-motion: 담은 수 배지 · 쳐지는 별명 · 장면 이름표
 ];
