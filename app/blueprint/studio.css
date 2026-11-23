@@ -100,8 +100,6 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .react-flow__edge.tl .react-flow__edge-path { stroke: var(--chip-purple-ink); /* 내가 그은 관계 표시 = 보라 점선(사용자 유지) */ stroke-width: 1; stroke-dasharray: 4 3; }
 .react-flow__edge.tl.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 2.5; } /* P-12n R2-5: 고른 관계선 = 청록 2.5 */
 /* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
-.react-flow__edge.se-near .react-flow__edge-path { stroke: var(--on-paper); stroke-dasharray: 4 3; }
-.react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
 /* P-12g B2 확정 = 설계선 긋기: 실제 선(edge-path)과 화살촉은 그대로 두고, React Flow가 이미 그리는 두 번째 path(넓은 누름 영역, 보통 투명)를
    잠깐 먹 1.5px로 덧칠해 한 번 긋고 사라진다. 클래스는 studio.tsx가 600ms 뒤 뗀다(움직임 줄이기면 아예 안 붙임 + 아래 none) */
 /* 덧칠 길이 8000px: 넓게 자동 정렬된 판의 긴 선도 처음부터 그어지게(선 길이를 CSS가 몰라서 넉넉한 고정값) */

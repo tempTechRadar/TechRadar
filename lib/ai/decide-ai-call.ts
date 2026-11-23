@@ -1,6 +1,6 @@
 // Claude를 부를지 정한다(SPEC-9 AI 사용 규칙). DB·Claude를 모르는 순수 함수.
 // 한도 숫자는 팀 추정이다(SPEC-9): 강사가 준 키의 한도를 확인하면 여기만 고친다.
-export type AiPurpose = "draft" | "scenario" | "chatbot" | "blueprint_check";
+export type AiPurpose = "draft" | "scenario" | "chatbot" | "blueprint_check" | "blueprint_guide";
 
 export type AiCallState = {
   /** 이 변경에 대응안 초안이 이미 있는지(초안은 변경마다 1번, 공용) */
@@ -16,6 +16,7 @@ export type AiDecision = { allow: true } | { allow: false; reason: "already_draf
 export const SCENARIO_PER_USER_PER_DAY = 5;
 export const CHATBOT_PER_USER_PER_DAY = 20; // PRD-F31
 export const BLUEPRINT_CHECK_PER_USER_PER_DAY = 3; // P-12e: 확정본에서 "점검 받기"를 누를 때만(같은 재료로 다시 누르면 이전 결과를 다시 써서 세지 않음)
+export const BLUEPRINT_GUIDE_PER_USER_PER_DAY = 20; // P-12s 청사진 가이드: 한 번 말할 때마다 1번(사용자 승인 11-23)
 export const SERVICE_PER_DAY = 200;
 
 export function decideAiCall(purpose: AiPurpose, state: AiCallState): AiDecision {
@@ -24,6 +25,7 @@ export function decideAiCall(purpose: AiPurpose, state: AiCallState): AiDecision
   if (purpose === "scenario" && state.userCallsToday >= SCENARIO_PER_USER_PER_DAY) return { allow: false, reason: "user_limit" };
   if (purpose === "chatbot" && state.userCallsToday >= CHATBOT_PER_USER_PER_DAY) return { allow: false, reason: "user_limit" };
   if (purpose === "blueprint_check" && state.userCallsToday >= BLUEPRINT_CHECK_PER_USER_PER_DAY) return { allow: false, reason: "user_limit" };
+  if (purpose === "blueprint_guide" && state.userCallsToday >= BLUEPRINT_GUIDE_PER_USER_PER_DAY) return { allow: false, reason: "user_limit" };
   if (state.serviceCallsToday >= SERVICE_PER_DAY) return { allow: false, reason: "service_limit" };
   return { allow: true };
 }
