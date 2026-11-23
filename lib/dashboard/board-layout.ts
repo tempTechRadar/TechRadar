@@ -1,21 +1,15 @@
-// 프로젝트 관리 보드 배치(P-12i D1): 위젯 = 칸 {x, y, w, h}(한 칸 24px). 화면 · 저장소를 모르는 순수 함수.
+// 프로젝트 관리 보드 배치(P-12i D1 · P-12k K1): 걸린 판 = 칸 {x, y, w, h}(한 줄 24px, 한 칸 폭 = 판 폭 ÷ COLS). 화면 · 저장소를 모르는 순수 함수.
 // 배치는 이 브라우저(localStorage)에만 둔다(DB 0). 깨진 값이면 기본 배치, 새로 생긴 위젯은 기본 자리로 더한다. hidden = 사용자가 뺀 위젯.
-export const CELL = 24;
+export const CELL = 24, COLS = 48;
 export const MIN_W = 8, MIN_H = 4, MAX_X = 200;
 export type Box = { id: string; x: number; y: number; w: number; h: number; hidden?: boolean };
 
-/** 기본 배치 = 발표 순서(계획 12열을 48칸으로): 맨 위 숫자 → 왼쪽 큰 칸 레포 · 오른쪽 판단함 → 바뀐 것 · 옮기기 · 점검 → 소식 · 뜨는 대안 · 기록. 한 줄 48칸(1152px) */
+/** 기본 배치(P-12k K1 컴팩트 타공보드): 1440×900 첫 화면에 판 4개가 다 들어오게(27줄 ≈ 650px). 왼쪽 진행 중 프로젝트 · 아래 직접 추가, 오른쪽 지도 · 소식 · 아래 청사진 */
 const DEFAULTS: Record<string, Omit<Box, "id">> = {
-  numbers: { x: 0, y: 0, w: 48, h: 8 },
-  repos: { x: 0, y: 9, w: 30, h: 22 },
-  inbox: { x: 31, y: 9, w: 17, h: 22 },
-  changes: { x: 0, y: 32, w: 16, h: 15 },
-  move: { x: 16, y: 32, w: 16, h: 15 },
-  checked: { x: 32, y: 32, w: 16, h: 15 },
-  news: { x: 0, y: 48, w: 16, h: 16 },
-  trending: { x: 16, y: 48, w: 16, h: 16 },
-  history: { x: 32, y: 48, w: 16, h: 16 },
-  manage: { x: 0, y: 65, w: 48, h: 30 }, // 옛 내 프로젝트(등록 · 내 기술 표 · 보관 · 직접 추가, P-12i D3)
+  repos: { x: 0, y: 0, w: 30, h: 20 },
+  radar: { x: 31, y: 0, w: 17, h: 17 },
+  blueprint: { x: 31, y: 18, w: 17, h: 9 },
+  add: { x: 0, y: 21, w: 30, h: 6 },
 };
 export function defaultLayout(ids: string[]): Box[] {
   let bottom = 0;
@@ -57,7 +51,13 @@ export function parseLayout(raw: string | null, ids: string[]): Box[] {
   return ids.map((id) => got.get(id) ?? { ...base.find((b) => b.id === id)!, y: bottom + 1 });
 }
 
-/** 좁은 화면(≤860)에서 한 줄로 쌓는 차례: 위에서 아래, 같은 줄이면 왼쪽부터. 뺀 위젯은 없음 */
+/** 주소 #w-<id>로 온 판이 빠져 있으면 다시 걸고 겹치는 판을 밀어낸다(링크가 판을 빼도 깨지지 않게). 이미 걸렸거나 모르는 판이면 그대로 */
+export function reveal(boxes: Box[], id: string): Box[] {
+  if (!boxes.some((b) => b.id === id && b.hidden)) return boxes;
+  return pushDown(boxes.map((b) => (b.id === id ? { id: b.id, x: b.x, y: b.y, w: b.w, h: b.h } : b)), id);
+}
+
+/** 좁은 화면(≤860)에서 한 줄로 쌓는 차례: 위에서 아래, 같은 줄이면 왼쪽부터. 뺀 판은 없음 */
 export const stackOrder = (boxes: Box[]): string[] => boxes.filter((b) => !b.hidden).sort((a, b) => a.y - b.y || a.x - b.x).map((b) => b.id);
 
 /** 캔버스 높이(px): 가장 아래 위젯 + 두 칸 */

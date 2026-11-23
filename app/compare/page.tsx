@@ -37,7 +37,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 }
 
 function Picker({ catalog, selected }: { catalog: { id: string; name: string }[]; selected: string[] }) {
-  if (catalog.length === 0) return <div className="notice notice-empty"><strong>아직 비교할 기술이 없어요.</strong> 프로젝트를 <Link href="/dashboard#w-manage">등록</Link>하면 기술이 모여요.</div>;
+  if (catalog.length === 0) return <div className="notice notice-empty"><strong>아직 비교할 기술이 없어요.</strong> 프로젝트를 <Link href="/dashboard#repo-register">등록</Link>하면 기술이 모여요.</div>;
   return (
     <form className="card" method="get" aria-labelledby="pick-legend">
       <fieldset className="pick">

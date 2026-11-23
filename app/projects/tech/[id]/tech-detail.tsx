@@ -22,7 +22,7 @@ export function TechDetail({ d, using, markBar, star, children }: { d: MyTechDet
     <main className="page tech-detail">
       <header className="td-head">
         <p className="muted">
-          <Link href="/dashboard#w-manage">← 프로젝트 관리로</Link>
+          <Link href="/dashboard">← 프로젝트 관리로</Link>
           {info ? <> · <a href={`/?sel=${encodeURIComponent(`tech:${info.id}`)}`}>지도에서 보기</a></> : null}
         </p>
         <div className="td-title"><h1>{name}</h1>{star}</div>

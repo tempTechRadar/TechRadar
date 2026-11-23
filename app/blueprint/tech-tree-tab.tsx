@@ -215,7 +215,7 @@ function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking,
 function Card({ t, use, stage, placed, inBoard, added, busy, choose, onChoose, onPut, onCandidate, onUnpick }: { t: Item; use?: TechUsage; stage: string | null; placed: boolean; inBoard: boolean; added: boolean; busy: boolean;
   choose: ReactNode; onChoose: () => void; onPut: () => void; onCandidate?: () => void; onUnpick?: () => void }) {
   const risky = t.grade === "danger", can = t.droppable && !risky;
-  const facts = [t.field, t.projects ? `내 프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
+  const facts = [t.field, t.projects ? `프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
   return (
     <li data-tech={t.id} className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}${t.droppable ? "" : " tt-out"}`} draggable={can}
       onDragStart={(e) => { if (!can) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>

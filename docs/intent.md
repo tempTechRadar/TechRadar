@@ -6,6 +6,52 @@
 
 ---
 
+## I-P-12k-pegboard · 2026-11-23 · P-12k K4 문서: ADR 0043 · 용어 · PRD-F22 · IA · UJ · design (DocsChecker 세션)
+- 브랜치: `docs/P-12k-pegboard`(feat/P-12i-project-board dc2cf87에서 갈라짐, 로컬. DevAssi1이 #208 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` K4, Maestro 요청(11-23)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | K1 · K1' · K2 · K3로 보드 · 메뉴 · 용어가 바뀌었는데 ADR 0041 · PRD-F22 · IA · UJ · GLOSSARY는 11-22 밤 기준이다. 특히 거르기 폼을 없앤 것은 안내서 필수 대시보드 문구와 어긋나 보여 대응을 적어야 한다 |
+| 기대 결과 | ADR 0043(컴팩트 타공보드 · 필수 대시보드 대응표 · 찾기 · 넣기 제거 · "사용 중인 항목"), ADR 0028 · 0041 개정 표시, GLOSSARY 4개 말, PRD-F22 · F7, IA-2 · 3 · 5 · 26(새) · 1절 메뉴, UJ-8, design.md 13절 5번. 위키는 반영 계획만 |
+| 영향 범위 | docs만(앱 코드 · qa 문서 · wiki 안 고침) |
+| 제약 | 로컬 커밋만, 푸시 안 함, Claude API 안 씀. 대응표의 숫자 · 경로는 브랜치 코드(`app/dashboard/widgets.tsx` 띠, `board-client.tsx` 기간)와 맞춤 |
+| 열린 질문 | ~~안내서 "변경 수": 띠의 "위험 발생"은 보안 변경만 센다~~ → 11-23 사용자 결정: 지도 · 소식 판 머리에 "바뀐 것 n"(모든 종류, DevAssi1) |
+
+**결과:** 로컬 커밋 1개(docs, 이 브랜치). 기록 검사 8/8 통과. 위키 "내 기술" 15파일 50줄: 계획을 보인 뒤 사용자 결정 · 직접 확인으로 A만 반영(6쪽 + log 덧붙임), B · C는 그대로. 둘째 로컬 커밋(변경 수 = "바뀐 것 n" · 위키 A). **확인하지 못함:** 화면 눈 확인, K4 전체 검사 결과(DevAssi1).
+
+---
+
+## I-P-12k-term-rename · 2026-11-23 · "내 기술" → "사용 중인 항목" 앱 전체 용어 변경 (P-12k K3, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12k-term-rename`(feat/P-12i-project-board 1ca5e4f에서 갈라짐, 로컬. 끝나면 #208 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "앱 전체 정리"(사용자: "내 기술"은 내가 만든 기술처럼 들린다), Maestro 배정. IA-5 · 메뉴(K2 보고에서 넘어온 /projects/[id] 메뉴 켜짐)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | "내 기술"은 내가 만든 기술처럼 들린다. 보드는 K1에서 "사용 중인 항목"으로 바뀌었는데 지도 · 알림 · 청사진 · 기술 상세 등은 옛 말이라 한 앱 안에서 이름이 둘이다. 레포 상세(/projects/[id])에서 메뉴 "프로젝트"가 꺼져 있다 |
+| 기대 결과 | 화면 · 오류 · AI 프롬프트 글의 "내 기술"이 "사용 중인 항목"(짧은 칩 · 배지 · 트리 폴더는 "사용 중"), 남은 "내 프로젝트"는 "프로젝트"(지도 묶음의 "내 프로젝트 아님"은 "프로젝트 없음"). /projects로 시작하는 주소에서 메뉴 "프로젝트"가 켜짐 |
+| 영향 범위 | app(지도 · 사이드 패널 · 알림 · 청사진 · 기술 상세 · 설치 · 일지 · 설정 · 로그인 · 개발 샘플 · 시뮬레이터 문구 · 메뉴 2곳) · lib(alerts 문구 · ai 시나리오 프롬프트 · blueprint 관문 문구 · 트리 폴더 · map 프리셋 · 보기 이름 · server 오류 글 · 소식 출처 이름) 48파일 + 시험 10파일 |
+| 제약 | 바꾸지 않음: DB(my_technologies 등) · 경로(/projects/tech) · 쿼리(mine=1) · 앵커(#techs) · localStorage 키 · 함수 · 변수 이름 · 주석 · 시험 이름 · wiki. Claude API 없음. 고친 시험 · tsc만(전체는 K4) |
+| 열린 질문 | #209(청사진 Hybrid Editor)에만 있는 inspector-tabs.tsx의 "내 기술" 한 줄은 병합 뒤 바꿔야 함. wiki 글은 위키 규칙(계획 먼저)대로 따로 |
+
+**결과:** 로컬 커밋(feat 1 · test 1 · 이 docs). 화면 · 오류 · 프롬프트 글 72줄(48파일) + 메뉴 2줄, 시험 기대 문구 19줄(10파일). tsc 통과, 고친 시험 10파일 + 메뉴 시험 83개 통과. 깨지는 시험을 찾으려고 처음 한 번 전체를 돌렸을 때 1,735개 중 15개가 이 용어 기대값으로 실패했고, 모두 위 10파일에 있었음. 끝 grep: 주석 밖 "내 기술" · "내 프로젝트" 0줄(남은 것은 주석 98줄 · 시험 이름 48줄 · CSS 주석 3줄 · wiki).
+**확인하지 못함:** 화면 눈 확인(로컬 서버 안 띄움), 전체 시험 · 빌드 다시 돌리기(K4).
+
+## I-P-12k-no-capture · 2026-11-22 · 찾기 · 넣기 앱 전체에서 지우기 (P-12k K1', FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12k-no-capture`(feat/P-12i-project-board e933dee에서 갈라짐, 로컬. 끝나면 #208 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "앱 전체 정리"(사용자: "찾기 넣기 버튼 아예 프로젝트 전체에서 지워, 나중에 커스텀 기술 추가 같은 걸로 넣을 거야"), Maestro 배정. IA-3 · PRD-F7(직접 입력은 보드에 남음)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기술을 넣는 입구가 메뉴 "찾기 · 넣기" 대화상자 · 지도 찾기 칸 "직접 추가" · 보드 직접 추가로 세 군데라 헷갈린다. 사용자가 앞의 둘을 지우라고 했다 |
+| 기대 결과 | 메뉴 단추(로그인 전 로그인 링크 포함)와 대화상자 · 그 서버 코드 · 시험이 없다. 지도 찾기 칸은 "기술 찾기": 지도 · 카탈로그 찾기와 "지도에 올리기"만 남고, 카탈로그에 없으면 "찾지 못했어요"까지. 직접 입력(안내서 필수)은 보드의 직접 추가 판에만 |
+| 영향 범위 | 지움: app/capture/*, lib/capture/*, lib/server/capture(.test).ts. 고침: app/layout.tsx · site-nav.css · page.css(주석) · tech-map(map-search · controls · actions의 addMapTechAction · map.css의 .map-add · 메뉴 숨김 줄), lib/server/blueprints.ts(like를 capture.ts에서 옮김), login-preview-guard 시험(findCapture) |
+| 제약 | 보드 파일(app/dashboard/*)은 K1(DevAssi1)이라 안 건드림. DB · 새 라이브러리 없음. Claude API 없음. 고친 시험 · tsc만(전체는 K4) |
+| 열린 질문 | 나중의 "커스텀 기술 추가"는 따로 정함. design.md 13절 5의 "+ 기술 넣기" 행 · ADR은 K4(ADR 0043)에서 함께 |
+
+**결과:** 로컬 커밋(feat 1 · 이 docs). 지운 파일 7개, 고친 파일 9개(18줄 더함 · 75줄 뺌). tsc 통과, 고친 곳 시험 39개 통과(미리보기 막기 · 청사진 서버 · 접근성 스캔 · 대비 · 누르는 크기). `capture` 글자는 포인터 잡기(setPointerCapture · onClickCapture) 말고 app · lib에 없음.
+**확인하지 못함:** 화면 눈 확인(로컬 서버 안 띄움 — 메뉴 단추 자리 · 지도 찾기 칸 "찾지 못했어요" 줄), 전체 시험 · 빌드(K4).
+
 ## I-P-12i-project-board · 2026-11-22 · 프로젝트 관리 보드 D1: 캔버스 틀 · 배치 · W1 숫자 · W2 판단함 · W3 레포 보드 · 메뉴 이름 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12i-project-board`(feat/P-12h-blueprint-revamp dee2c96 위 + origin/main 병합, 로컬)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md`(11-22 20시 인터뷰) D1, Maestro 배정. IA-5 · PRD-F22(숫자 4칸 · 거르기 · 없음과 실패 구분) · 불변 2 · 5
@@ -37,6 +83,33 @@
 ## I-P-12i-repo-meta · 2026-11-22 · P-12i D1' 레포 기본 정보: 설명 · 주 언어 · 마지막 푸시 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12i-repo-meta`(`feat/P-12h-blueprint-revamp` dee2c96 + origin/main, 로컬, 미푸시 → DevAssi1 D1 브랜치로 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md` "레포 기본 정보", Maestro 배정. 불변 2 · 4 · 5
+
+**P-12k K1 컴팩트 타공보드(덧붙임, 11-23, 사용자 승인 계획 `.claude/plans-share/p12k-pegboard.md` "화면" 절, Maestro 배정):** 사용자 말 "전체가 너무 크다, 컴팩트하게 · 기간 · 상태 · 프로젝트 거르기는 치워 · 숫자는 끽해야 오늘의 새 기술 · 진행 중 프로젝트 · 위험 발생 · 활용 기술", 테마 블루프린트 워크벤치 레이더 → 이 보드는 타공보드.
+| 칸 | 내용 |
+|---|---|
+| 문제 | 글자 15px · 단추 44px · 제목 막대 40px, 기본 배치가 1440×900의 2.9배. 같은 정보가 여러 번(판단 대기 5곳 등), 거르기가 위젯마다 다르게 걸림, 861~1199px에서 오른쪽 잘림, h2 안에 h2, 위젯을 빼면 #add-title · #w-manage 링크가 깨짐 |
+| 기대 결과 | 타공 판(구멍 = 스냅 칸) · 판 머리 고리 2개 · 이 화면만 컴팩트(13px · 28px). 고정 숫자 띠 6칸(오늘의 새 기술 · 진행 중 프로젝트 · 사용 중인 항목 · 위험 발생 · 판단 대기 · 완료) + [기간 ▾] — 안내서 필수(기간 · 상태로 거르기 · 숫자 = 목록 · 없음 ≠ 읽지 못함)를 띠가 맡음. 걸린 판 4개(① 진행 중 프로젝트 ② 지도 · 소식 ③ 청사진 ④ 직접 추가)가 1440×900 첫 화면에. 칸 폭 = 판 폭 ÷ 48, ≤860 한 줄 |
+| 영향 범위 | app/dashboard(page · board · board-client · widgets · widgets-more · repo-manage · board.css), app/projects(add-tech 컴팩트 · reread-button ⟳), lib/dashboard/board-layout(기본 배치 · reveal · COLS), lib/server/board-queries(countNewTechs, 안 쓰는 읽기 둘 뺌), lib/server/map-queries(listedTechs 개수만 읽기), lib/alerts/parse-alert-filter · app/alerts/filter-select(기간 1d "오늘"), 판 밖 링크(지도 · 비교 · 설치 · 실행 기록 · 기술 상세) |
+| 제약 | 새 라이브러리 · DB 변경 없음, Claude API · Workflow 없음, 고친 시험 · tsc만(전체는 K4). "내 기술" → "사용 중인 항목"은 보드 화면 글자만(앱 전체는 K3 FrontLead), 찾기 · 넣기 제거는 K1'(FrontLead). 레포 관리 큰 표 · 서랍은 K2까지 둠 |
+| 열린 질문 | 지도는 새 기술을 최근 100개(NEW_QUOTA)까지만 올려, 오늘 새 기술이 100을 넘으면 띠 숫자(11-23 운영 1,297)와 지도 목록 수가 다름 → 띠에 "지도엔 최근 100"을 적음, 지도 쪽 전체 목록은 FrontLead · Maestro 판단. 기간은 알림 칸(위험 · 판단 대기 · 완료)에만 걸리고 새 기술은 "오늘" 고정 |
+
+- 결과: 판 = h2 · 안은 h3, "없음" 모양 하나(`Empty`) · "읽지 못함" 하나(`Failed`, 판마다 따로 Suspense). 거르기 폼 · 숫자 · 판단함 · 바뀐 것 · 옮기기 · 점검 비율 · 뜨는 대안 · 기록 찾기 위젯을 뺌(라이브러리 "+ 판"은 4개 + 레포 관리 큰 표). 배치 키 `project-board-v2`(판이 바뀌어 옛 배치는 안 읽음). 주소 `#w-<판>` · `#repo-register` · `#add-title` · `#techs`로 오면 빠진 판을 다시 걸고 그 자리로(`reveal`, 시험). 보드는 판단 대기 목록을 안 보이므로 "새로 옴" 기준(SeenMarker)을 앞당기지 않음(기록 찾기의 새로 옴을 잃지 않게). 안 쓰게 된 `news-tab.tsx` · `board-stats.ts`(+시험)는 사용자 확인으로 지움. tsc 통과, 고친 시험 51개 통과(board-layout 6 · parse-alert-filter · project-wiring · guest-pages · 미리보기 막기 · a11y 등). 3108 미리보기: 1440×900 띠 + 판 4개 맨 아래 865px, 1024px 칸 20px · 오른쪽 판 985px(안 잘림), 390px 한 줄 · 페이지 폭 390(표는 판 안에서만 옆으로), 기간 "오늘" → 위험 2 · 판단 대기 2 · 완료 0, 링크 `/alerts?…&period=1d`, `/dashboard#w-manage`로 오면 레포 관리 판이 다시 걸림. 손님: 오늘의 새 기술 1,297(운영 읽기로 규칙 대조: 하루 20,082 중 대량 채우기 18,785 뺌) · 나머지 칸 "로그인 필요" · 뜨는 것 3 · 기간 고르기 없음.
+- 확인 못 함: 실계정(레포 여럿 · 읽지 못함 칸 · 직접 추가 · 등록 실제 동작 · 확정 청사진 · 초안 "이어서 하기"), 화면 읽기 · 실제 휴대폰, 띠 "읽지 못함" 모양은 실패를 만들 수 없어 코드로만.
+
+**P-12k K2 레포 상세(덧붙임, 11-23, 사용자가 K1 확인 뒤 "다음", 새 기술 칸 "지도엔 최근 100" 그대로):** 먼저 `feat/P-12k-no-capture`(FrontLead K1', 6648819 찾기 · 넣기 제거)를 합침 — 충돌 없음, 작업 로그 옛 행 1줄 뺌(debda14).
+- 레포 상세 `/projects/[id]`(새): uuid가 아니거나 없거나 남의 것 · 보관한 것이면 404(`readRepoDetail` = id + owner_id + 보관 안 함), 손님은 로그인 안내(LoginNeeded, DB 전), 못 읽으면 "— 읽지 못했어요". 머리: 이름 · 메모 · 저장소 주소 · 설명 · 주 언어 · 마지막 푸시 · 마지막 읽기 · 사용 중인 항목 수 · 수집 오류 · 읽기 안내 · [다시 읽기] · [이름·메모 고치기] · [보관](펼쳐서 두 단계). 판 "사용 중인 항목 n"(표 한 벌 `RepoTechTable` = 옛 서랍 표 + 옛 내 기술 표: 이름 → 기술 상세 · 종류 · 출처 파일 · 등급 라벨 · 판단 · 최근 바뀜 · 마지막 확인 · [숨기기]) + "숨긴 항목 n" 펼치기([되돌리기]), 아래 세 판: 판단 대기 · 바뀐 것(판단 끝남) · 이 레포의 확정 청사진. 보드와 같은 판 모양 · 13px · 28px.
+- 돌아오기: 폼에 from(레포 id) → `backPath`(uuid일 때만 `/projects/<id>`, 아니면 보드, 시험). 다시 읽기 · 숨기기/되돌리기 · 이름 고치기는 이 페이지로, 보관 · 되살리기는 보드로(보관한 레포는 상세가 없음). 결과 알림은 페이지 맨 위(ManageNotices).
+- 보드: 진행 중 프로젝트 이름 → `/projects/<id>`, 레포 서랍 지움, 띠 "사용 중인 항목"은 레포가 하나면 그 상세 · 여럿이면 #w-repos, "레포 관리 · 내 기술" 판을 라이브러리에서 뺌(본문 RepoManageBody · 옛 표 ProjectTechs/TechTable/ReadFiles 지움), 판 아래 "보관함 n" 펼치기(되살리기, 못 읽으면 "읽지 못했어요"). `/projects`는 `?project=<uuid>`면 그 상세, 아니면 결과 코드를 싣고 `/dashboard#w-repos`. 쓰는 곳이 없어진 `filterTechs` · `filesOf` · `GRADE_OPTIONS`와 그 시험을 뺌. 개발 샘플(/dev/my-tech-sample)은 새 표로.
+- 고친 버그(D1부터): 보기 모드에서 React Flow가 판 노드 인라인 style에 `pointer-events: none`을 넣어 판 안 링크 · 단추를 마우스로 누를 수 없었음(지금까지는 키보드 · 스크립트 클릭으로만 확인) → `.react-flow__node-widget { pointer-events: all !important }`.
+- 결과: tsc 통과, 고친 시험 79개 통과(repo-detail 3 새로 · project-wiring 9 · guest-pages(레포 상세 더함) · board-layout · my-tech-view(backPath) · services · 미리보기 막기 · a11y · nav · onboarding 등). 3108 미리보기: 보드 이름 → /projects/p1, 머리 · 표 8칸 6행 · 판단 대기 2 · 바뀐 것 2 · 청사진 없음, 숨기기 폼 값 id · hide · from=p1(미리보기는 저장 안 함), 이름 고치기 폼 from=p1, "← 프로젝트 관리" → /dashboard#w-repos, /projects/nope · 남의 uuid → "찾을 수 없어요", 390px 페이지 폭 390.
+- 확인 못 함: 실계정으로 다시 읽기 · 숨기기 · 되돌리기 · 이름 고치기 · 보관 · 되살리기 뒤 실제 돌아오기(미리보기는 저장하지 않음), 메뉴 "프로젝트"가 /projects/[id]에서 켜져 보이는지(메뉴는 FrontLead 파일), 화면 읽기 · 실제 휴대폰.
+
+**P-12k K4 몰아서 한 검사 · 자체 리뷰(덧붙임, 11-23, 사용자 "다음"):** origin/main 두 번 합침(b59aed9 #207 문서 → dc2cf87, f8723b3 #206 청사진 개편 → 1cf7c6f, 둘 다 충돌 없음 · 기록 문서 union), DocsChecker `docs/P-12k-pegboard` 두 번 합침(6767cbb · 29826b0: ADR 0043 · GLOSSARY · PRD-F22 · IA · UJ · 위키). 그 사이 K3(FrontLead 용어 변경)은 Maestro가 fast-forward로 얹음.
+- 사용자 결정 1건: 안내서 필수 "변경 수" → 지도 · 소식 판 머리 "바뀐 것 n"(`changeCount`: 모든 종류 · 띠 [기간]을 따름 · 숫자 = 누르면 가는 `/alerts?period=` 목록 행 수, 못 읽으면 "— 읽지 못함", 손님에겐 없음). 시험 2개. 3108 확인: 7d에서 "바뀐 것 5" → /alerts?period=7d 5줄.
+- 사람 QA 묶음 E(qa-final)를 레포 상세 · 타공보드 기준으로 고침(E-1~E-8).
+- 자체 code-review(스킬, 읽기 · 검토만, Claude API 없음) 10건 중 고침 6: 청사진 판이 내 레포를 못 읽었을 때 모든 청사진을 "보관한 레포"로 보이던 것 → "레포 모름"(리뷰어가 고침), 수집 오류 줄의 "마지막 확인"은 읽은 때가 아니라 성공한 확인 시각(`last_checked_ok_at`)으로, 안 쓰는 내보내기 수 읽기를 뺌(그것만 실패해도 청사진 판이 읽지 못함이 되던 것), 시연 계정 오늘의 새 기술은 지도처럼 시뮬레이터 포함(숫자 = /?t=day), 레포 상세 select를 보드와 한 상수(`PROJECT_COLUMNS`)로, 주석 자리. 안 고친 4(보고): 레포 상세가 알림 · 청사진 200개를 사용자 전체로 읽음(한 레포에 200개를 넘기면 옛 청사진이 잘림), 기술 상세의 돌아가기가 레포 상세가 아니라 보드, `summarizeDashboard.links.techs`가 옛 #techs를 가리킴(쓰는 곳 없음), "프로젝트 없음" 글이 지도 두 파일에 따로(K3 FrontLead).
+- 결과: 마지막 머리에서 `npm test` 1,737개 모두 통과, `tsc` 통과, `npm run build` 통과(3108 dev는 `.next/dev`, 빌드는 `.next` — 같이 돌아도 dev 200 유지), `npm run precheck` main과 충돌 없음(마이그레이션 1개 = 202611232100, 운영 적용됨). 기록 검사 16개 통과.
+- 확인 못 함: 실계정 화면(숫자 띠 읽지 못함 모양 · 레포 상세 동작 뒤 돌아오기 · 직접 추가 · 보관함), 화면 읽기 프로그램 · 실제 휴대폰. 사람 QA 묶음 E로 넘김.
 
 | 칸 | 내용 |
 |---|---|

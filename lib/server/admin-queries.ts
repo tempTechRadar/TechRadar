@@ -29,7 +29,7 @@ export async function readMembers(db: SupabaseClient): Promise<{ profiles: Profi
   const [profiles, projects, myTechs] = await Promise.all([
     rows<ProfileRow>(db.from("profiles").select("id, nickname, role, is_demo").order("nickname"), "회원"),
     rows<ProjectRow>(db.from("projects").select("id, owner_id, kind, name, repo_url, archived_at, created_at").limit(LIMIT), "프로젝트"),
-    rows<MyTechRow>(db.from("my_technologies").select("owner_id, project_id, hidden_at, read_at, created_at").limit(LIMIT * 10), "내 기술"),
+    rows<MyTechRow>(db.from("my_technologies").select("owner_id, project_id, hidden_at, read_at, created_at").limit(LIMIT * 10), "사용 중인 항목"),
   ]);
   return { profiles, projects, myTechs };
 }

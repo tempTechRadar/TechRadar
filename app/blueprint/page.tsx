@@ -49,7 +49,7 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
       {/* 하단 패널이 주소의 add=를 읽어(useSearchParams) Suspense로 감싼다 */}
       {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null}
         template={tpl} templateMissing={!!want && !tpl} /></Suspense>
-        : <div className="notice notice-error" role="alert"><strong>내 기술을 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
+        : <div className="notice notice-error" role="alert"><strong>사용 중인 항목을 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>
   );
 }

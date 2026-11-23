@@ -39,7 +39,7 @@ export function InstallScreen({ rows, pins }: { rows: MyTechRow[]; pins: [string
     <section aria-labelledby="install-h">
       <h2 id="install-h">① 설치 프롬프트 만들기</h2>
       <p>옮길 기술을 고르면 다른 컴퓨터의 Claude Code에 붙여 넣을 글이 만들어져요. 위험 등급은 기본으로 빠지고 이유와 고친 버전이 따로 적혀요.</p>
-      {rows.length === 0 ? <p>아직 내 기술이 없어요. 프로젝트를 등록하거나 아래에서 가져오기를 해 주세요.</p> : (
+      {rows.length === 0 ? <p>아직 사용 중인 항목이 없어요. 프로젝트를 등록하거나 아래에서 가져오기를 해 주세요.</p> : (
         <ul style={{ listStyle: "none", padding: 0 }}>
           {rows.map((r) => (
             <li key={r.id} style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", minHeight: 44 }}>

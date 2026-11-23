@@ -7,7 +7,6 @@ import { AlertBell } from "@/app/nav/alert-bell";
 import { CartBadge } from "@/app/nav/cart-badge";
 import { NavLink } from "@/app/nav/nav-link";
 import { TabBar } from "@/app/nav/tab-bar";
-import { CaptureDialog } from "@/app/capture/capture-dialog";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
 import { isPreviewUser, loginPreviewAllowed } from "@/lib/dev/login-preview";
@@ -63,13 +62,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <div className="site-nav-main">
             <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
             {/* P-12f 사용자 결정: 프로젝트(지키고, P-12i 옛 "현황") · 지도(고르고) · 청사진(옮긴다). 일지(/history)는 프로젝트 관리의 탭이라 "프로젝트"가 현재 */}
-            <NavLink href="/dashboard" also={["/history"]}>프로젝트</NavLink>
+            <NavLink href="/dashboard" also={["/history", "/projects"]}>프로젝트</NavLink>
             <NavLink href="/">지도</NavLink>
             <NavLink href="/blueprint">청사진{cartBadge}</NavLink>
           </div>
           <div className="site-nav-side">
-            {/* 로그인 전 "찾기 · 넣기"는 로그인으로(넣기는 내 목록에 쓰는 일이라) */}
-            {user !== null ? <CaptureDialog /> : <LoginLink className="site-nav-add">찾기 · 넣기</LoginLink>}
             <AlertBell pending={pending} login={user !== null} />
             {user !== null
               ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />

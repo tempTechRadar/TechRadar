@@ -28,7 +28,7 @@ export function ComparisonCard({ comparison }: { comparison: ComparisonView }) {
           {comparison.rows.map((row) => (
             <tr key={row.item}>
               <th scope="row">{row.item}</th>
-              <Cell label="내 기술" cell={row.mine} />
+              <Cell label="사용 중인 항목" cell={row.mine} />
               <Cell label="새 기술" cell={row.theirs} />
             </tr>
           ))}

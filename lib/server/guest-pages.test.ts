@@ -5,8 +5,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 // 옛 내 프로젝트(/projects)는 /dashboard로 보내기만 한다(P-12i D3). 보드는 로그인 전에 레포 관리 위젯을 그리지 않는다(page.tsx Guest)
-test("로그인 전 알림 · 기록 · 설정은 DB를 부르기 전에 로그인 안내로 끝난다", () => {
-  for (const f of ["app/alerts/page.tsx", "app/history/page.tsx", "app/settings/page.tsx"]) {
+test("로그인 전 알림 · 기록 · 설정 · 레포 상세는 DB를 부르기 전에 로그인 안내로 끝난다", () => {
+  for (const f of ["app/alerts/page.tsx", "app/history/page.tsx", "app/settings/page.tsx", "app/projects/[id]/page.tsx"]) {
     const s = readFileSync(f, "utf8");
     const guard = s.search(/if \(!user\) return <LoginNeeded/), db = s.indexOf("getServerSupabase()");
     assert.ok(guard > 0, `${f}: 로그인 안내가 있다`);
