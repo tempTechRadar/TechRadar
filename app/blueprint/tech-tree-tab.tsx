@@ -18,12 +18,13 @@ import { TechChip } from "./tech-chip";
 import type { TreeExtras } from "./tree-actions";
 
 /** 트리 카드: 기술 정보 + 판단 + 넣을 수 있는지(서랍에 있음, judgeTechs) */
-type Item = Judged<PoolTech> & { tags: string[]; projectNames: string[] };
+type Item = Judged<PoolTech> & { tags: string[]; projectNames: string[]; /** 서랍 "지도 전체"에서 온 기술(넣으면 먼저 담기, P-12o) */ catalog?: boolean };
 /** 오른쪽 칸이 따라갈 기술(?add= · 찾은 첫 결과 · 방금 고른 것). focus면 초점 잃었을 때 그 카드로 */
 type Follow = { id: string; focus: boolean } | null;
 const SAVE_KEY = "techradar-bp-tree"; // 고른 분류기준(이 브라우저만, 지도 보기 저장과 같은 방식)
 const DIMS = Object.keys(DIM_KO) as TreeDim[];
 const GUEST_FOLDER = "지도에서 담은 기술";
+const MAP_FOLDER = "지도 전체"; // P-12o: 내 것(위) 아래에 지도의 모든 기술
 const GUEST_GATE = "로그인 전에는 지도에서 담은 기술을 넣어요. 실제 설치는 Claude Code에서 직접 해요."; // 손님은 관문(내 기술 · 적용 후보 · 확정 이력)이 없다
 
 function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
@@ -36,7 +37,7 @@ function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
 
 /** extras = 관심 · 보류(Dock이 읽어 탭을 바꿔도 다시 읽지 않음, undefined = 읽는 중) */
 export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; extras: TreeExtras | undefined }) {
-  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras } = p;
+  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras, catalog, onPlace } = p;
   const add = useSearchParams()?.get("add") ?? null;
   const [dims, setDims] = useDims();
   const [term, setTerm] = useState(""), [tag, setTag] = useState<string | null>(null);
@@ -62,11 +63,20 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
   const target = add ? items.find((t) => t.id === add && t.droppable) : undefined;
   useEffect(() => { if (target) setFollow({ id: target.id, focus: false }); }, [target?.id]); // target은 매번 새 객체라 id로만
   const shown = filterPool(items, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: target ? add : null, usage });
-  const tree: Folder<Item>[] = guest ? (shown.length ? [{ key: GUEST_FOLDER, path: [GUEST_FOLDER], name: GUEST_FOLDER, count: shown.length, items: shown, children: [] }] : []) : buildTechTree(shown, by);
+  // 지도 전체: 내 것에 이미 있는 기술은 빼고, 같은 찾기 · 태그 · 단계 맞춤으로 거른 뒤 분류기준(내 판단 말고)으로 나눈다
+  const mapItems: Item[] = useMemo(() => { const have = new Set(items.map((t) => t.id));
+    return (catalog ?? []).filter((t) => !have.has(t.id)).map((t) => ({ ...t, judgment: "other" as const, droppable: true, note: null, catalog: true, tags: tags?.[t.id] ?? [], projectNames: [] })); }, [catalog, items, tags]);
+  const mapShown = filterPool(mapItems, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: null, usage });
+  const mapDims = by.filter((d) => d !== "judgment" && d !== "project");
+  const mapPath = [MAP_FOLDER];
+  const mapFolder: Folder<Item>[] = mapShown.length ? [{ key: JSON.stringify(mapPath), path: mapPath, name: MAP_FOLDER, count: mapShown.length, items: mapShown, children: buildTechTree(mapShown, mapDims.length ? mapDims : ["field"], mapPath) }] : [];
+  const mine: Folder<Item>[] = guest ? (shown.length ? [{ key: GUEST_FOLDER, path: [GUEST_FOLDER], name: GUEST_FOLDER, count: shown.length, items: shown, children: [] }] : []) : buildTechTree(shown, by);
+  const tree: Folder<Item>[] = [...mine, ...mapFolder];
 
   /** 넣기(카드 단추 · ?add= 단계 고르기): 서랍 · 캔버스와 같은 검사 · 같은 말 */
   const put = (t: Item, to = stage) => {
     if (!to) return;
+    if (t.catalog) { onPlace(to.id, t.id); setChoose(null); return; } // 지도 전체: 담기 뒤 넣기(studio placeCatalog)
     const why = putProblem(to, t);
     if (why) { say(why); return; }
     apply(putTech(graph, to.id, { id: t.id, name: t.name }), putSaid(to.name, t.name));
@@ -96,6 +106,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보여요. 카드를 단계로 끌어 놓거나 ＋로 넣을 단계를 골라요. "}{guest ? GUEST_GATE : STUDIO_GATE}</p>
       {guest ? <PicksNote picks={guestPicks} /> : <ExtrasNote extras={extras} />}
+      {catalog === null ? <p className="notice notice-error" role="alert">지도 기술을 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p> : null}
       {tree.length ? <Tree tree={tree} stage={stage?.name ?? null} placedIn={(id) => Boolean(stage?.techs.some((x) => x.id === id))} inBoard={(id) => inBoard.has(id)} chooser={chooser} target={target?.id ?? null}
         usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} onUnpick={guestPicks?.remove} />
         : items.length ? <p className="muted">이 조건에 맞는 기술이 없어요.</p>
@@ -204,7 +215,7 @@ function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking,
         <h3 className="dock-h">{current.path.join(" › ")} <span className="muted">{current.count}</span></h3>
         <ul className="dock-techs">{current.items.map((t) => <Card key={t.id} t={t} use={usage.get(t.id)} stage={stage} placed={placedIn(t.id)} inBoard={inBoard(t.id)} added={t.id === target}
           choose={chooser.id === t.id ? chooser.form(t) : null} onChoose={() => chooser.set(chooser.id === t.id ? null : t.id)}
-          busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} onUnpick={onUnpick ? () => onUnpick(t.id) : undefined} />)}</ul>
+          busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} onUnpick={onUnpick && !t.catalog ? () => onUnpick(t.id) : undefined} />)}</ul>
       </section>
     </div>
   );

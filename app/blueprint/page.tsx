@@ -10,6 +10,9 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/domain/my-tech-view";
 import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
 import { readTemplateForUse } from "@/lib/server/blueprint-templates";
+import { readGuestMap } from "@/lib/server/guest-map";
+import { catalogToPool } from "@/lib/blueprint/catalog-pool";
+import type { PoolTech } from "@/lib/server/blueprints";
 import { Studio } from "./studio";
 import { GUEST } from "./use-studio-graph";
 import "./blueprint.css";
@@ -24,13 +27,16 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
   const { add, template, bp } = await searchParams;
   const log = (what: string) => (e: unknown) => { console.error(what, e instanceof Error ? e.message : e); return null; };
   const want = isUuid(template) ? template : null;
+  // 서랍 "지도 전체"(P-12o): 지도 손님 목록(공개 칸만, 10분 캐시)을 서랍 카드로. 못 읽으면 null(서랍이 "읽지 못함"을 보임, 불변 2)
+  const map = preview ? null : await readGuestMap().catch(log("청사진 지도 전체 조회 실패"));
+  const catalog = (have: Iterable<string>): PoolTech[] | null => (map ? catalogToPool(map.techs, map.categories, have) : null);
   if (!user) {
     const anon = want ? await getServerSupabase() : null; // 손님 토큰: blueprint_template_for_use가 열린 템플릿만 준다(M6)
     const tpl = anon && want ? await readTemplateForUse(anon, want, true).catch(log("손님 템플릿 조회 실패")) : null;
     return (
       <main className="page bp-page">
         <h1 className="sr-only">청사진</h1>
-        <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={GUEST} guest pool={[]} history={[]} projects={[]} tags={{}} add={null}
+        <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={GUEST} guest pool={[]} catalog={catalog([])} history={[]} projects={[]} tags={{}} add={null}
           template={tpl} templateMissing={!!want && !tpl} /></Suspense>
       </main>
     );
@@ -48,7 +54,7 @@ export default async function BlueprintPage({ searchParams }: { searchParams: Pr
     <main className="page bp-page">
       <h1 className="sr-only">청사진</h1>
       {/* 하단 패널이 주소의 add=를 읽어(useSearchParams) Suspense로 감싼다 */}
-      {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} bp={isUuid(bp) ? bp : null}
+      {data ? <Suspense fallback={<p className="muted bp-wait">판을 준비하는 중…</p>}><Studio who={user.id} {...data} catalog={preview ? [] : catalog(data.pool.map((t) => t.id))} tags={tagMap ? Object.fromEntries(tagMap) : null} add={isUuid(add) ? add : null} bp={isUuid(bp) ? bp : null}
         template={tpl} templateMissing={!!want && !tpl} /></Suspense>
         : <div className="notice notice-error" role="alert"><strong>사용 중인 항목을 불러오지 못했어요.</strong> 기술이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</div>}
     </main>
