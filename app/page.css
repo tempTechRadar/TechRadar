@@ -28,10 +28,10 @@
   --text-md: var(--fs-body);
   --text-lg: var(--fs-h2);
   --text-xl: var(--fs-h1);
-  --text-2xl: 32px; /* 대시보드 큰 숫자만 */
+  --text-2xl: 24px; /* 대시보드 큰 숫자만(P-12m 컴팩트 32 → 24) */
 
   --font-sans: var(--font);
-  --font-mono: "Fira Code", ui-monospace, Consolas, monospace;
+  --font-mono: var(--mono);
   --radius: var(--r-md);
   font-family: var(--font-sans); color: var(--color-text);
 }
@@ -46,24 +46,27 @@
 .page .badge-warning { color: var(--color-warning); background: var(--color-warning-bg); }
 .page .badge-success { color: var(--color-success); background: var(--color-success-bg); }
 .page .badge-neutral { color: var(--color-text); background: var(--color-surface-subtle); border-color: var(--color-border-strong); }
-.page .summary { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius); margin-bottom: var(--space-4); }
+.page .summary { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius); margin-bottom: var(--space-4); }
 .page .summary strong { font-size: var(--text-lg); }
-.page .filters { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-4); }
+.page .filters { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: flex-end; margin-bottom: var(--space-3); } /* flex-end: 필터 단추가 라벨 높이만큼 늘어나지 않게(P-12m) */
 .page .filters label { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
 /* 누르는 칸 최소 크기(WCAG 2.2): 거르기·등록 폼의 입력칸·체크박스·표 안 링크가 17~19px이던 것을 키운다(I-a11y-tap-targets) */
 .page .filters input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
 .page .filters label:has(> input[type="checkbox"]) { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
 .page .filters input[type="checkbox"] { width: 20px; height: 20px; }
 .page table a { display: inline-block; min-height: 24px; line-height: 24px; }
-.page select, .page textarea { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
-.page textarea { width: 100%; min-height: 88px; }
+.page select, .page textarea { font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); } /* 컴팩트: 마우스 34 / 손가락 44(--hit, P-12m). 필터 폼 입력칸은 아래 44 그대로(tap-targets 시험) */
+.page textarea { width: 100%; min-height: 88px; padding-block: var(--space-2); }
+/* 글 입력칸 기본(P-12m): 따로 정하지 않은 칸이 어두운 바탕에서 브라우저 기본 회색으로 뜨지 않게. :where라 더 구체적인 규칙(필터 폼 44px 등)이 늘 이긴다 */
+.page :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="file"])) { box-sizing: border-box; font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); }
+.page :where(input)::placeholder, .page :where(textarea)::placeholder { color: var(--muted); }
 .page .alert-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius); }
 .page .alert-list li + li { border-top: 1px solid var(--color-border); }
-.page .alert-row { display: grid; grid-template-columns: 88px 1fr auto 112px; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); text-decoration: none; min-height: 56px; }
+.page .alert-row { display: grid; grid-template-columns: 88px 1fr auto 112px; gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-3); text-decoration: none; min-height: 40px; }
 .page .alert-row:hover { background: var(--color-surface-subtle); }
 .page .alert-main { display: grid; }
-.page .alert-time { font-size: var(--text-sm); color: var(--color-muted); text-align: right; }
-.page .card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); }
+.page .alert-time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-muted); text-align: right; }
+.page .card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); background: var(--card); }
 .page .kv { display: grid; grid-template-columns: 140px 1fr; gap: var(--space-2) var(--space-4); margin: 0; font-size: var(--text-sm); }
 .page .kv dt { color: var(--color-muted); }
 .page .kv dd { margin: 0; }
@@ -78,17 +81,17 @@
 .page .first-check form { margin-left: auto; }
 .page .settings-form { display: grid; gap: var(--space-3); max-width: 32rem; margin-bottom: var(--space-4); }
 .page .settings-form label { display: grid; gap: var(--space-1); }
-.page .settings-form label.check { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
-.page .settings-form input[type="checkbox"] { width: 20px; height: 20px; }
-.page .settings-form input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+.page .settings-form label.check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--hit); }
+.page .settings-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--scan); }
+.page .settings-form input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); }
 /* 공용 토스트(app/undo-toast.tsx ToastLine). 비어 있으면 안 보인다 */
 .c-toast { display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
 .c-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
 .c-toast-float { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; }
 @media (max-width: 640px) { .c-toast-float { bottom: calc(64px + env(safe-area-inset-bottom)); } } /* 아래 탭 막대 위 */
 /* 공용 대화상자(app/c-dialog.tsx). 단추는 .page .btn을 쓰므로 .page 안에서 그린다 */
-.c-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ink); border-radius: var(--r-md); padding: 18px; background: var(--surface); color: var(--ink); }
-.c-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+.c-dialog { box-sizing: border-box; width: min(680px, calc(100% - 32px)); border: 1px solid var(--ring); border-radius: var(--r-xl); padding: var(--sp-4); background: var(--card); color: var(--ink); box-shadow: var(--shadow-pop); }
+.c-dialog::backdrop { background: rgba(0, 0, 0, .6); } /* 어두운 바탕 위라 더 짙게 */
 .c-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 6px; }
 .c-dialog h2 { margin: 0; font-size: var(--fs-h2); }
 .c-dialog-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-3); }
@@ -107,18 +110,18 @@
 
 /* 대시보드 숫자 카드와 기록 목록 */
 .page .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: var(--space-5); }
-.page .stat { display: grid; gap: var(--space-1); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; min-height: 44px; }
+.page .stat { display: grid; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; min-height: var(--hit); }
 .page .stat:hover { background: var(--color-surface-subtle); }
-.page .stat strong { font-size: var(--text-2xl); line-height: 1.2; }
+.page .stat strong { font-family: var(--font-mono); font-size: var(--text-2xl); line-height: 1.2; }
 .page .search { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--color-muted); }
-.page .search input { font: inherit; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); min-height: 44px; }
+.page .search input { font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); }
 @media (max-width: 640px) {
   .page .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* 적용 기회 비교표(와이어프레임 docs/wireframes/wireframe.css와 같다). 칸마다 값 + 출처 */
 .page .compare { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.page .compare th, .page .compare td { text-align: left; vertical-align: top; padding: var(--space-3) var(--space-2); border-top: 1px solid var(--color-border); }
+.page .compare th, .page .compare td { text-align: left; vertical-align: top; padding: var(--space-2); border-top: 1px solid var(--color-border); }
 .page .compare thead th { color: var(--color-muted); font-weight: 600; border-top: 0; }
 .page .compare tbody th { width: 140px; color: var(--color-muted); font-weight: 600; }
 .page .source { display: block; font-size: var(--text-xs); color: var(--color-muted); }
@@ -135,10 +138,10 @@
 /* 기술 비교: 체크박스 고르기(와이어프레임 docs/wireframes/wireframe.css와 같다) */
 .page .pick { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin: 0; display: grid; gap: var(--space-1); }
 .page .pick legend { padding: 0 var(--space-2); font-size: var(--text-sm); color: var(--color-muted); }
-.page .pick label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
-.page .pick input { width: 20px; height: 20px; }
+.page .pick label { display: flex; align-items: center; gap: var(--space-2); min-height: var(--hit); }
+.page .pick input { width: 18px; height: 18px; accent-color: var(--scan); }
 
-/* 목록의 빠른 거르기 칩, 상세의 머리 + 2단(design.md 19절, P-12d-screens) */
+/* 목록의 빠른 필터 칩, 상세의 머리 + 2단(design.md 19절, P-12d-screens) */
 .page .alert-chips { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); }
 .page .alert-chips > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .page .reason-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; }

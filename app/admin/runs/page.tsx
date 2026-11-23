@@ -24,7 +24,7 @@ export default async function RunsPage() {
   return (
     <AdminShell tab="runs" title={TITLE} lead={LEAD} error={error}>
       <p>
-        <Link href="/admin/run-now" style={{ display: "inline-flex", alignItems: "center", minHeight: 44 }}>지금 한 번 실행</Link>
+        <Link href="/admin/run-now" style={{ display: "inline-flex", alignItems: "center", minHeight: "var(--hit)" }}>지금 한 번 실행</Link>
         <span className="muted"> · 매일 06:00(한국 시간) 정기 실행 말고 지금 한 번 더 돌릴 때</span>
       </p>
 
