@@ -4,38 +4,52 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { readTasteForm, saveTaste } from "./taste-store.ts";
 
 type Answer = { data: unknown; error: { message: string } | null };
+type Call = { table: string; op: string; row?: unknown; filters: [string, unknown][] };
 
-// 가짜 DB: upsert 한 번의 요청을 남기고 정해 둔 답을 준다
-function fakeDb(answer: Answer) {
-  const calls: { table: string; row?: unknown; options?: unknown }[] = [];
+// 가짜 DB: update·insert 요청을 남기고 정해 둔 답을 준다. upsert는 없다(운영에서 user_id 고치기 권한이 없어 막힌다)
+function fakeDb(answers: { update?: Answer; insert?: Answer } = {}) {
+  const calls: Call[] = [];
   const db = {
     from(table: string) {
-      const call: (typeof calls)[number] = { table };
+      const call: Call = { table, op: "", filters: [] };
       calls.push(call);
       const builder: Record<string, unknown> = {
-        upsert: (row: unknown, options: unknown) => ((call.row = row), (call.options = options), builder),
+        update: (row: unknown) => ((call.op = "update"), (call.row = row), builder),
+        insert: (row: unknown) => ((call.op = "insert"), (call.row = row), builder),
+        eq: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
         select: () => builder,
-        then: (resolve: (a: Answer) => unknown) => resolve(answer),
+        then: (resolve: (a: Answer) => unknown) => resolve((call.op === "update" ? answers.update : answers.insert) ?? none),
       };
       return builder;
     },
   } as unknown as SupabaseClient;
   return { db, calls };
 }
-const ok: Answer = { data: [{ user_id: "u1" }], error: null };
+const none: Answer = { data: [], error: null };
+const mine: Answer = { data: [{ user_id: "u1" }], error: null };
+const fresh = { update: none, insert: mine }; // 아직 줄이 없는 사람
+const ok = { update: mine }; // 이미 줄이 있는 사람
 const taste = (over: Partial<{ build: string | null; tools: string[]; interests: string[] }> = {}) => ({ build: "web", tools: ["claude_code"], interests: ["리서치"], ...over });
+const rowOf = (calls: Call[], op: string) => calls.find((c) => c.op === op)?.row as Record<string, unknown> | undefined;
 
-test("취향을 본인 줄(user_id)로 한 번에 저장한다", async () => {
+test("이미 줄이 있으면 내 줄(user_id)의 세 칸만 고친다: user_id 칸은 고치지 않는다(운영 열 권한)", async () => {
   const { db, calls } = fakeDb(ok);
   const r = await saveTaste(db, "u1", taste({ tools: ["cursor", "claude_code"], interests: ["리서치", "검사·보안"] }));
   assert.deepEqual(r, { ok: true });
-  assert.deepEqual(calls, [{ table: "user_tastes", row: { user_id: "u1", build: "web", tools: ["cursor", "claude_code"], interests: ["리서치", "검사·보안"] }, options: { onConflict: "user_id" } }]);
+  assert.deepEqual(calls, [{ table: "user_tastes", op: "update", row: { build: "web", tools: ["cursor", "claude_code"], interests: ["리서치", "검사·보안"] }, filters: [["user_id", "u1"]] }]);
+});
+
+test("줄이 없으면(고친 줄 0개) 본인 줄을 새로 넣는다", async () => {
+  const { db, calls } = fakeDb(fresh);
+  assert.deepEqual(await saveTaste(db, "u1", taste()), { ok: true });
+  assert.deepEqual(calls.map((c) => c.op), ["update", "insert"]);
+  assert.deepEqual(rowOf(calls, "insert"), { user_id: "u1", build: "web", tools: ["claude_code"], interests: ["리서치"] });
 });
 
 test("건너뛰기(모두 비움)도 저장한다: 나중에 고칠 수 있는 빈 취향", async () => {
-  const { db, calls } = fakeDb(ok);
+  const { db, calls } = fakeDb(fresh);
   assert.deepEqual(await saveTaste(db, "u1", { build: null, tools: [], interests: [] }), { ok: true });
-  assert.deepEqual(calls[0].row, { user_id: "u1", build: null, tools: [], interests: [] });
+  assert.deepEqual(rowOf(calls, "insert"), { user_id: "u1", build: null, tools: [], interests: [] });
 });
 
 test("관심 분야는 3개까지, 겹친 선택은 하나로 센다", async () => {
@@ -46,10 +60,10 @@ test("관심 분야는 3개까지, 겹친 선택은 하나로 센다", async () 
   assert.equal(over.calls.length, 0);
   const dup = fakeDb(ok);
   assert.deepEqual(await saveTaste(dup.db, "u1", taste({ interests: ["리서치", "리서치", "디자인"] })), { ok: true });
-  assert.deepEqual((dup.calls[0].row as { interests: string[] }).interests, ["리서치", "디자인"]);
+  assert.deepEqual(rowOf(dup.calls, "update")?.interests, ["리서치", "디자인"]);
   const tools = fakeDb(ok);
   await saveTaste(tools.db, "u1", taste({ tools: ["cursor", "cursor"] }));
-  assert.deepEqual((tools.calls[0].row as { tools: string[] }).tools, ["cursor"]);
+  assert.deepEqual(rowOf(tools.calls, "update")?.tools, ["cursor"]);
 });
 
 test("정해진 선택지 밖의 값은 DB를 부르지 않고 막는다", async () => {
@@ -61,11 +75,17 @@ test("정해진 선택지 밖의 값은 DB를 부르지 않고 막는다", async
   }
 });
 
-test("저장 실패와 고친 줄 없음은 저장했다고 하지 않는다 (불변 4), 오류 글의 비밀값은 가린다", async () => {
-  const failed = await saveTaste(fakeDb({ data: null, error: { message: "boom sk-ant-api03-abcdefghijklmnop" } }).db, "u1", taste());
-  assert.equal(failed.ok, false);
-  assert.doesNotMatch(failed.ok ? "" : failed.error, /abcdefghijklmnop/);
-  const empty = await saveTaste(fakeDb({ data: [], error: null }).db, "u1", taste());
+test("저장 실패와 넣은 줄 없음은 저장했다고 하지 않는다 (불변 4), 오류 글의 비밀값은 가린다", async () => {
+  const boom = { data: null, error: { message: "boom sk-ant-api03-abcdefghijklmnop" } };
+  const updateFailed = fakeDb({ update: boom, insert: mine });
+  const r1 = await saveTaste(updateFailed.db, "u1", taste());
+  assert.equal(r1.ok, false);
+  assert.doesNotMatch(r1.ok ? "" : r1.error, /abcdefghijklmnop/);
+  assert.equal(updateFailed.calls.some((c) => c.op === "insert"), false, "고치기가 실패하면 새로 넣지 않는다");
+  const insertFailed = await saveTaste(fakeDb({ update: none, insert: boom }).db, "u1", taste());
+  assert.equal(insertFailed.ok, false);
+  assert.doesNotMatch(insertFailed.ok ? "" : insertFailed.error, /abcdefghijklmnop/);
+  const empty = await saveTaste(fakeDb({ update: none, insert: none }).db, "u1", taste());
   assert.equal(empty.ok, false);
 });
 

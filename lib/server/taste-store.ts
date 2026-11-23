@@ -9,11 +9,17 @@ export type SaveTasteResult = { ok: true } | { ok: false; error: string };
 export async function saveTaste(db: SupabaseClient, userId: string, input: Taste): Promise<SaveTasteResult> {
   const checked = validateTaste(input);
   if (!checked.ok) return checked;
-  const { data, error } = await db.from("user_tastes").upsert({ user_id: userId, ...checked.taste }, { onConflict: "user_id" }).select("user_id");
-  if (error || !data) return { ok: false, error: `저장하지 못했어요: ${maskSecrets(error?.message ?? "빈 응답")}` };
-  if (data.length === 0) return { ok: false, error: "저장하지 못했어요: 내 취향 줄을 만들지 못했어요" };
+  // upsert는 쓰지 않는다: 충돌 때 user_id 칸까지 고치려 해 운영의 열 권한(세 칸만 고치기)에 막힌다(I-P-23-taste-save-permission)
+  const updated = await db.from("user_tastes").update(checked.taste).eq("user_id", userId).select("user_id");
+  if (updated.error || !updated.data) return failed(updated.error?.message);
+  if (updated.data.length > 0) return { ok: true };
+  const inserted = await db.from("user_tastes").insert({ user_id: userId, ...checked.taste }).select("user_id");
+  if (inserted.error || !inserted.data) return failed(inserted.error?.message);
+  if (inserted.data.length === 0) return { ok: false, error: "저장하지 못했어요: 내 취향 줄을 만들지 못했어요" };
   return { ok: true };
 }
+
+const failed = (message?: string): SaveTasteResult => ({ ok: false, error: `저장하지 못했어요: ${maskSecrets(message ?? "빈 응답")}` });
 
 /** 저장된 취향. 줄이 없으면(질문을 아직 안 봄) null, 읽지 못하면 던진다(화면이 "없음"과 "읽지 못함"을 다르게 보이도록) */
 export async function readTaste(db: SupabaseClient, userId: string): Promise<Taste | null> {
