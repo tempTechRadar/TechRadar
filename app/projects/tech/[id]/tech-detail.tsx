@@ -5,6 +5,9 @@ import { koreanTime } from "@/lib/flow/run-list";
 import type { MyTechDetail } from "@/lib/server/my-tech";
 import { usingNowText, type UsingNowView } from "@/lib/views/using-now-text";
 import { fixedNote } from "@/lib/domain/services";
+import { koOf } from "@/lib/ai/translate-one-liners";
+import { koOverview } from "@/lib/views/ko-overview";
+import { KoOverviewText } from "../../../ko-overview";
 
 // 기술 상세 본문(IA-4, PRD-F10). 읽기만 하는 화면 조각이라 page.tsx와 개발용 샘플 화면이 같이 쓴다.
 // 틀은 머리 + 2단(design.md 18절): 머리 = 돌아가기 · 이름(옆에 관심 별 star) · 배지 · 청사진 담기 줄(markBar), 왼쪽 = 보안 · 수집 상태와 사용기(children), 오른쪽 = 핵심 정보 · 내 목록 상태 · 쓰고 있어요.
@@ -16,6 +19,7 @@ const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 export function TechDetail({ d, using, markBar, star, children }: { d: MyTechDetail; using?: UsingNowView | null; markBar?: ReactNode; star?: ReactNode; children?: ReactNode }) {
   const info = d.technologies;
   const note = fixedNote(info?.tech_key); // 연동 서비스 · 개념은 정해 둔 설명(카탈로그에 쓰지 않음)
+  const ko = info ? koOverview({ oneLiner: info.one_liner, ...koOf(info) }) : null;
   const name = info?.display_name ?? d.manual_name ?? "(이름 없음)";
   const evidence = evidenceLinks(d.grade_evidence);
   return (
@@ -31,7 +35,7 @@ export function TechDetail({ d, using, markBar, star, children }: { d: MyTechDet
           {d.collect_error_kind && <span className="badge badge-warning">수집 오류</span>}{" "}
           {d.hidden_at && <span className="badge badge-neutral">직접 숨김</span>}
         </p>
-        {info?.one_liner ? <p>{info.one_liner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
+        {ko ? <KoOverviewText v={ko} /> : info?.one_liner ? <p>{info.one_liner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
         {markBar}
       </header>
 

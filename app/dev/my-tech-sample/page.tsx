@@ -43,7 +43,7 @@ const DETAIL: MyTechDetail = {
   grade: "danger", grade_reason: PROJECTS[0].my_technologies[0].grade_reason,
   grade_evidence: [{ id: "GHSA-6xpm-ggf7-wc3p", aliases: ["CVE-2025-6514"], severity: "CRITICAL", fixed: "0.1.16", url: "https://osv.dev/vulnerability/GHSA-6xpm-ggf7-wc3p" }, { id: "GHSA-x", severity: "HIGH", fixed: null, url: "https://evil.example/x" }],
   grade_rule_version: "v1", graded_at: NOW, last_checked_ok_at: NOW, projects: { name: "demo-repo" },
-  technologies: { id: "t1", tech_key: "npm:mcp-remote", display_name: "mcp-remote", type: "mcp", status: "active", one_liner: null, repo_url: "https://github.com/geelen/mcp-remote", license: null, last_activity_at: NOW, last_activity_kind: "release", is_official: false, last_checked_ok_at: NOW },
+  technologies: { id: "t1", tech_key: "npm:mcp-remote", display_name: "mcp-remote", type: "mcp", status: "active", one_liner: "Remote proxy for MCP servers (sample)", one_liner_ko: "MCP 서버를 원격으로 잇는 프록시(샘플 번역)", one_liner_ko_src: "Remote proxy for MCP servers (sample)", one_liner_source: "https://github.com/geelen/mcp-remote", repo_url: "https://github.com/geelen/mcp-remote", license: null, last_activity_at: NOW, last_activity_kind: "release", is_official: false, last_checked_ok_at: NOW },
 };
 
 export default async function MyTechSamplePage({ searchParams }: { searchParams: Promise<{ view?: string; hidden?: string }> }) {

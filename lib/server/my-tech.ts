@@ -90,6 +90,7 @@ export async function searchCatalog(db: SupabaseClient, raw: string): Promise<Ca
 
 export type TechInfo = {
   id: string; tech_key: string; display_name: string; type: string; status: string; one_liner: string | null; repo_url: string | null;
+  one_liner_ko?: string | null; one_liner_ko_src?: string | null; one_liner_ko_at?: string | null; one_liner_source?: string | null; // P-12r: 화면은 koOf로 고른다
   license: string | null; last_activity_at: string | null; last_activity_kind: string | null; is_official: boolean; last_checked_ok_at: string | null;
 };
 export type MyTechDetail = {
@@ -100,7 +101,7 @@ export type MyTechDetail = {
 };
 
 const DETAIL_COLUMNS = "id, origin, source_file, version, manual_name, hidden_at, read_at, collect_error_kind, grade, grade_reason, grade_evidence, grade_rule_version, graded_at, last_checked_ok_at, "
-  + "projects(name), technologies(id, tech_key, display_name, type, status, one_liner, repo_url, license, last_activity_at, last_activity_kind, is_official, last_checked_ok_at)";
+  + "projects(name), technologies(id, tech_key, display_name, type, status, one_liner, one_liner_ko, one_liner_ko_src, one_liner_ko_at, one_liner_source, repo_url, license, last_activity_at, last_activity_kind, is_official, last_checked_ok_at)";
 
 /** 기술 상세(IA-4). 본인 줄만. 없으면 null, 읽기에 실패하면 던진다. */
 export async function getMyTechDetail(db: SupabaseClient, userId: string, id: string): Promise<MyTechDetail | null> {
