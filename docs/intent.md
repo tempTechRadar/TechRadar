@@ -6,6 +6,23 @@
 
 ---
 
+## I-P-12l-blueprint-defaults · 2026-11-23 · 청사진 기본 화면: 빈 카드 하나 · 하단 패널 30% · 탭 2개 · 위 막대 "불러오기 ▾" (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12l-blueprint-defaults`(origin/main 00fbba0 위, 로컬)
+- 출처: 사용자 요청 · 승인 계획(Maestro 배정 P-12l). IA-4(청사진) · PRD-F 청사진 편집 · 불변 4(불러오기 전 판은 되돌리기로)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 처음 열면 6단계 템플릿이 깔려 있어 내 판을 시작하려면 지워야 한다. 하단 패널 탭 4개 · 위 막대 "검증"이 겹치고, 불러오기가 아래 탭에 숨어 있다 |
+| 기대 결과 | 저장된 초안이 없으면 "새 단계" 빈 카드 하나. 하단 패널은 화면 높이 30%로 시작, 탭 = 기술 · 변경 이력. 위 막대 "검증" 뺌. "＋ 단계" 옆 "불러오기 ▾": 템플릿 3개(바로 적용, 되돌리기 한 칸) · 질문으로 틀 만들기 · 내 청사진 · 템플릿 창 |
+| 영향 범위 | app/blueprint(dock · load-menu 새 파일 · studio · inspector · inspector-tabs · studio-types · use-studio-graph · dialogs · studio.css), lib/blueprint/draft(blankGraph), app/dev/studio-panels-sample |
+| 제약 | 새 라이브러리 · DB 변경 없음. Claude API 없음. 확정 창 "고칠 것"(validateGraph) · 속성 서랍 검증 탭은 그대로. 고친 시험 · tsc만, 전체는 끝에 |
+| 열린 질문 | 없음 |
+
+**결과:** 로컬 커밋 3494008 feat · ab6ba9b test · 이 docs(main에 들어 있던 작업 로그 겹친 줄 I-P-12h-blueprint-revamp 하나 지움 — 두 줄이 글자까지 같았음). tsc 0, 고친 시험 draft 7 · 기록 16 통과. 3014 손님 화면(새 작업 폴더, .env.local 없음)에서 확인: 처음 판 "새 단계" 하나 · 탭 기술 · 변경 이력 · 패널 243px(화면 805의 30%) · 위 막대에 "검증" 없음 · "불러오기 ▾" Enter로 열림(초점 첫 템플릿) · ↓ · ↑ 돌기 · Esc로 닫고 초점 단추로 · 템플릿 3개 적용(이름도 바뀜) 뒤 되돌리기 3번으로 처음 판까지 · "내 청사진 · 템플릿…" 창(손님 안내) · "질문으로 틀 만들기" 창.
+**확인하지 못함:** 로그인 화면(창 안 템플릿 저장 · 내 이력 불러오기 뒤 창 닫힘), 휴대폰 폭 · 읽기 전용 "그림으로 보기"에서 막힘 안내, 화면 읽기 낭독. 되돌리기는 화면 시험만(훅은 단위 시험 틀이 없음).
+
+---
+
 ## I-P-12i-project-board · 2026-11-22 · 프로젝트 관리 보드 D1: 캔버스 틀 · 배치 · W1 숫자 · W2 판단함 · W3 레포 보드 · 메뉴 이름 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12i-project-board`(feat/P-12h-blueprint-revamp dee2c96 위 + origin/main 병합, 로컬)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md`(11-22 20시 인터뷰) D1, Maestro 배정. IA-5 · PRD-F22(숫자 4칸 · 거르기 · 없음과 실패 구분) · 불변 2 · 5
