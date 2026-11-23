@@ -13,10 +13,11 @@ export type StageData = {
   onDropTech: (stageId: string, techId: string) => void;
   /** 빈 판 첫 안내(P-12n R2-1): 빈 단계 하나 + 넣을 기술 0일 때. load = 위 막대 "불러오기 ▾" 열기 */ start?: { load: () => void };
   /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기).
-   *  카드 + 단추(앞 · 다음 · 같은 순서)는 P-12o에서 뺐다(사용자: 선을 끌어 만든다). 같은 순서 단계는 오른쪽 서랍 단추 */
+   *  카드 + 단추(앞 · 다음 · 같은 순서)는 P-12o에서 뺐다(사용자: 선을 끌어 만든다). P-12s(사용자)에서 "나란히"(같은 순서) 하나만 카드 아래로 되살림(키보드 짝은 서랍 단추) */
   edit?: { onRemove: (stageId: string) => void;
     /** 메모(T2): 서랍을 열고 메모 칸으로 */ onNote: (stageId: string) => void;
-    /** 이름 칸으로 바뀜(두 번 누르기 · F2 · Enter) · 끝(name = null이면 취소) */ editing: boolean; onEdit: (stageId: string) => void; onRename: (stageId: string, name: string | null) => void };
+    /** 이름 칸으로 바뀜(두 번 누르기 · F2 · Enter) · 끝(name = null이면 취소) */ editing: boolean; onEdit: (stageId: string) => void; onRename: (stageId: string, name: string | null) => void;
+    /** 같은 순서에 단계 더하기(옅은 블록). 같은 순서가 가득이면 이유 말풍선(parallelProblem) */ onBeside: (stageId: string) => void };
 };
 export type StageNodeType = Node<StageData, "stage">;
 
@@ -50,9 +51,10 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       {/* 단계 메모(T2): 칩 아래 두 줄로 줄여 옅게. 누르면 서랍 메모 칸. 읽기 전용이면 글만 */}
       {stage.note ? (data.edit ? <button type="button" className="sn-note nodrag nopan" aria-label={`${stage.name} 메모: ${stage.note} (고치기)`} onClick={() => data.edit!.onNote(stage.id)}>{stage.note}</button>
         : <p className="sn-note">{stage.note}</p>) : null}
-      {/* U2: 고른 카드(또는 올림 · Tab) 아래 왼쪽 "메모" · 오른쪽 "삭제"(지우고 토스트 되돌리기) */}
+      {/* U2: 고른 카드(또는 올림 · Tab) 아래 왼쪽 "메모" · 가운데 "＋ 나란히"(P-12s) · 오른쪽 "삭제"(지우고 토스트 되돌리기) */}
       {data.edit && !data.edit.editing ? <div className="sn-actions">
         <button type="button" className="sn-act nodrag nopan" aria-label={`${stage.name} 메모`} onClick={() => data.edit!.onNote(stage.id)}>메모</button>
+        <button type="button" className="sn-act nodrag nopan" aria-label={`${stage.name}와 같은 순서에 단계 더하기`} title="같은 순서(나란히)에 단계 더하기" onClick={() => data.edit!.onBeside(stage.id)}>＋ 나란히</button>
         <button type="button" className="sn-act btn-danger nodrag nopan" aria-label={`${stage.name} 단계 삭제`} onClick={() => data.edit!.onRemove(stage.id)}>삭제</button>
       </div> : null}
       {over && full ? <p className="sn-full">가득 참 {stage.techs.length}/{LIMITS.techs}</p> : null}
