@@ -78,6 +78,9 @@ test("파란 도면(P-12m): 도면 위 흰 글자(메뉴)는 4.5:1 이상, 흰 �
   const t = (name: string) => shared.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))![1];
   const pairs: [string, string, string, number][] = [
     ["도면 위 흰 글자", t("on-paper"), t("paper"), 4.5],
+    ["도면 위 보조 글자(지도 설명 · 탭)", t("on-paper-2"), t("paper"), 4.5],
+    ["도면 판 위 흰 글자(지도 단추 · 찾기 칸)", t("on-paper"), t("paper-deep"), 4.5],
+    ["도면 판 위 자리표시 글자", t("on-paper-2"), t("paper-deep"), 4.5],
     ["흰 면 위 본문", t("ink"), t("surface"), 4.5], ["흰 면 위 보조", t("ink-2"), t("surface"), 4.5], ["흰 면 위 흐린 글자", t("muted"), t("surface"), 4.5],
     ["레이더 선 · 파동(--scan, 글자 아님)", t("scan"), t("paper"), 3],
   ];
