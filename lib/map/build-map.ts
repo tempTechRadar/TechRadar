@@ -21,6 +21,8 @@ export type CatalogTech = {
   lastActivityAt: string | null; lastActivityKind: string | null; lastCheckedOkAt: string | null;
   collectErrorKind: string | null; signals: Record<string, unknown> | null;
   /** 공식 조직 · 공식 저장소(technologies.is_official, ADR 0019 · 0031 · 0030 10항) */ official?: boolean;
+  /** 한국어 개요(P-12r): 지금 원문을 번역한 것만, 없으면 null. Src = 번역한 영어 원문, Source = 그 한 줄 설명의 출처 주소 */
+  oneLinerKo?: string | null; oneLinerKoAt?: string | null; oneLinerKoSrc?: string | null; oneLinerSource?: string | null;
 };
 export type MyTechRow = {
   id: string; techId: string | null; manualName: string | null; projectId: string; projectName: string; sourceFile?: string | null;
@@ -41,6 +43,8 @@ export type MapNode = {
   attrs: Attrs; hostGuessed: boolean; grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; license: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
+  /** 한국어 개요(P-12r): 지금 원문을 번역한 것만, 없으면 null. Src = 번역한 영어 원문, Source = 그 한 줄 설명의 출처 주소 */
+  oneLinerKo?: string | null; oneLinerKoAt?: string | null; oneLinerKoSrc?: string | null; oneLinerSource?: string | null;
   /** 들어온 지 며칠(처음 채운 날 · 대량 채우기분은 null). 기간 칩(오늘 · 이번 주 · 이번 달)이 쓴다 */ addedDays: number | null;
   /** 들어온 때(addedDays가 있을 때만). 기간 보기에서 점 옆 · 사이드 패널에 날짜로 */ addedAt: string | null;
   /** 내가 붙인 태그(11-21 사용자 결정 E "내 묶음") */ tags: string[];
@@ -106,7 +110,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
     attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : MANUAL_KIND, host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "프로젝트 없음" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
-    oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
+    oneLiner: t?.oneLiner ?? null, oneLinerKo: t?.oneLinerKo ?? null, oneLinerKoAt: t?.oneLinerKoAt ?? null, oneLinerKoSrc: t?.oneLinerKoSrc ?? null, oneLinerSource: t?.oneLinerSource ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,
     stars: num(t?.signals?.stars), weeklyDownloads: num(t?.signals?.weekly_downloads),
     // NEW = 들어온 지 7일 안이고 처음 채운 날 뒤에 들어온 것
