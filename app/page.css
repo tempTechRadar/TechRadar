@@ -72,7 +72,7 @@
 .page .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font: inherit; font-size: var(--text-sm); font-weight: 600; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); cursor: pointer; }
 .page .btn-primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 .page .btn:disabled, .page .btn[aria-disabled="true"] { color: var(--faint); border-color: var(--line); background: var(--surface); cursor: not-allowed; } /* 막힌 단추 한 벌(P-12f ④ c-btn): 주 단추도 눌리는 단추처럼 보이지 않게 */
-.page .notice { border: 1px solid; border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); }
+.page .notice { border: 1px solid; border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); background: var(--color-surface); } /* 도면 바탕(청사진 판 위)에서도 흰 면 위 글자(P-12m) */
 .page .notice-empty { border-style: dashed; border-color: var(--color-border-strong); background: var(--color-surface-subtle); } /* 빈 상태는 점선(오류 · 안내와 한눈에 다르게, P-12f ④) */
 .page .first-check { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); border-color: var(--color-border-strong); background: var(--color-surface-subtle); }
 .page .first-check form { margin-left: auto; }

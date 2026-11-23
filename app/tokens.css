@@ -3,6 +3,9 @@
 :root {
   --ink: #1a1a1a; --ink-2: #444444; --muted: #666666; --faint: #b3b3b3;
   --line: #d4d4d4; --surface: #ffffff; --sunken: #f3f3f3; --on-ink: #ffffff;
+  /* 파란 도면 바탕(P-12m, 사용자 톤 "Burger Blueprint"): 바탕만 도면, 카드 · 판 · 패널은 --surface 흰 면 그대로. 등급색은 이 바탕 위 1.2~1.9라 흰 면 위에만.
+     --grid · --grid-2 = 바탕에 흰색 20% · 40%를 섞은 단색(가는 · 굵은 격자), --scan = 레이더 선 · 파동 */
+  --paper: #0e5ba3; --on-paper: #ffffff; --grid: #3e7cb5; --grid-2: #6e9dc8; --scan: #8ed8ff;
 
   --danger: #c0262d; --caution: #b87600; --pass: #6f8f76; --unknown: #9aa1ab;
   /* 글자로 읽는 오류 빨강(상태 색은 표시에만): 흰 바탕 6.5:1 */
@@ -27,7 +30,11 @@
 }
 @media (prefers-reduced-motion: reduce) { :root { --dur: 0s; } }
 
-body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background: var(--surface); }
+body { margin: 0; padding: var(--sp-5); font-family: var(--font); font-size: var(--fs-body); line-height: var(--lh); color: var(--ink); background-color: var(--paper);
+  background-image: linear-gradient(var(--grid-2) 1px, transparent 1px), linear-gradient(90deg, var(--grid-2) 1px, transparent 1px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; }
+/* 바탕 위에 글이 놓이는 일반 화면은 본문을 흰 "도면 시트" 한 장 위에(둘레로 도면이 비침, 안쪽 --ink 그대로). 지도 · 청사진은 캔버스라 바탕 그대로 */
+.page:not(.map-page, .bp-page, .repo-drawer) { box-sizing: border-box; padding: var(--sp-5); background: var(--surface); border-radius: var(--r-xl); box-shadow: 0 0 0 1px var(--on-paper), 0 8px 24px rgba(0, 0, 0, .18); }
 /* 화면 읽기 프로그램만 읽는 글(모든 화면 공용: 지도 css에만 있어 다른 화면에서 글이 그대로 보이던 것) */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: var(--focus); outline-offset: 2px; }

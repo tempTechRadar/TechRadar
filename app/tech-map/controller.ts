@@ -6,7 +6,7 @@ import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, 
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
 import { draw } from "./draw";
-import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, moving, REVEAL, SLOWDOWN, SWEEP_DELAY } from "@/lib/map/motion";
+import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, MOTION_END, moving, REVEAL, SWEEP_DELAY } from "@/lib/map/motion";
 import { introWaits, type GateState } from "@/lib/map/ready-gate";
 
 declare global { interface Window { __techradarGate?: GateState } } // 첫 화면 덮개 스크립트(ready-gate.tsx)가 남김
@@ -30,11 +30,11 @@ export type MapState = {
 };
 
 /** 이 화면에서 못 쓰는 필터(내 기술이 없는 지도의 "내 기술과 비교군"·없는 프로젝트)는 버린다: 고칠 단추도 없이 지도가 비면 "없음"과 구분할 수 없다 */
-export type Motion = "sweep" | "ripple" | "off";
+export type Motion = "sweep" | "ripple" | "both" | "off";
 const MOTION_KEY = "techradar-map-motion";
-/** 레이더 움직임 고르기는 이 브라우저에만 기억(편의). 서버 그림 중이거나 저장소를 못 쓰면 기본(도는 선) */
+/** 레이더 움직임 고르기는 이 브라우저에만 기억(편의). 저장해 둔 값은 그대로, 없거나 서버 그림 중 · 저장소를 못 쓰면 기본(선 + 파동, P-12m) */
 function savedMotion(): Motion {
-  try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "ripple" || v === "off" ? v : "sweep"; } catch { return "sweep"; }
+  try { const v = typeof localStorage === "undefined" ? null : localStorage.getItem(MOTION_KEY); return v === "sweep" || v === "ripple" || v === "off" ? v : "both"; } catch { return "both"; }
 }
 
 function usable(v: ViewConfig, model: TechMapModel, projectIds: string[], login: boolean): ViewConfig {
@@ -276,7 +276,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     if (S.stamp && now - S.stamp.t < 0.2) anim = true;
     const on = moving(S) && !document.hidden;
     const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
-    const revealing = on && started && now - S.sweepStart < REVEAL + Math.max(SLOWDOWN, GROW); // 처음 연출 · 느려지는 동안은 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
+    const revealing = on && started && now - S.sweepStart < Math.max(MOTION_END, REVEAL + GROW) + 1.5; // 처음 연출 · 두 바퀴 · 세 파동 · 켜짐 · 추적 틀이 끝날 때까지는 매 장, 그 뒤엔 손댈 때만(선이 멈춤, P-12g)
     const active = anim || revealing || S.leaving.size > 0;
     // 움직임이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선 · 굵은 착지 이름표 · 찍히던 꼬리표가 도중 모습으로 굳는다
     if (ctx && (needDraw || active || wasActive)) { draw(ctx, S, now); needDraw = false; }

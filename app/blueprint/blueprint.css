@@ -1,7 +1,7 @@
 /* 청사진 화면 틀(P-12e 스튜디오, 캔버스 · 패널은 studio.css · dock.css · inspector.css · list-mode.css): 메뉴 바 밑을 꽉 채우는 판 · 확정 · 내보내기 창 · 알림. 값은 공용 토큰 */
 body:has(.bp-page) { padding: 0; min-height: 100dvh; display: flex; flex-direction: column; }
 body:has(.bp-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
-.page.bp-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; background: var(--sunken); }
+.page.bp-page { max-width: none; flex: 1; min-height: 0; width: 100%; margin: 0; display: flex; flex-direction: column; background: var(--paper); } /* P-12m: 판 바탕은 도면, 위 막대 · 하단 패널 · 서랍은 흰 면 */
 .bp-page > .notice { margin: var(--sp-4); }
 .bp-wait { padding: var(--sp-5); }
 
