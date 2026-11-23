@@ -10,6 +10,10 @@ import { Dialog } from "../c-dialog";
 import { TemplateTab } from "./template-tab";
 import type { PanelProps } from "./studio-types";
 
+/** 확정 이력 하나를 판으로: [판, 알림 글]. 이력 창 "불러오기"와 주소 ?bp=(studio)가 같이 쓴다 */
+export const fromRecord = (h: BlueprintRecord, hadStages: boolean) =>
+  [h.graph ?? fromV1(toBoard(h.board)), `"${h.name}"을(를) 불러왔어요.${hadStages ? " 전 판은 되돌리기로 돌아와요." : ""}`] as const;
+
 const when = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
 
 /** blocked = 막힌 이유(읽기 전용 등, 위 막대 gate와 같은 규칙: 누르면 이유를 말함). ask = 밖(빈 판 카드)에서 열어 달라는 횟수 */
@@ -72,7 +76,7 @@ function HistTab({ graph, history, apply, usage }: PanelProps & { usage: Map<str
   if (!history.length) return <p className="muted">아직 확정한 청사진이 없어요. 위 "확정 · 내보내기"에서 확정하면 여기에 쌓여요.</p>;
   // 확인 창 대신 되돌리기(studio가 50단계 쌓음): 지금 판이 있으면 알림에서 되돌릴 수 있다고 말한다
   // 판과 이름을 한 되돌리기 칸에(apply의 name): 되돌리면 이름도 돌아가고, 시작 템플릿 표시도 studio가 지운다
-  const load = (h: BlueprintRecord) => apply(h.graph ?? fromV1(toBoard(h.board)), `"${h.name}"을(를) 불러왔어요.${graph.stages.length ? " 전 판은 되돌리기로 돌아와요." : ""}`, h.name);
+  const load = (h: BlueprintRecord) => apply(...fromRecord(h, graph.stages.length > 0), h.name);
   const names = new Map(history.flatMap((h) => h.board.flat().flatMap((s) => s.techs.map((t) => [t.id, t.name] as const))));
   const top = [...usage].sort((a, b) => b[1].n - a[1].n).slice(0, 15);
   return (
