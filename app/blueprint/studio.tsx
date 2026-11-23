@@ -1,7 +1,7 @@
 "use client";
 // 청사진 스튜디오(P-12e): React Flow 캔버스 위 단계 노드 + 연결선(순서). 그래프는 lib/blueprint/graph.ts 순수 함수로만 바꾸고(apply 하나),
-// 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기) · 스페이스(손 모드)만, 나머지는 단추(사용자 결정).
-// 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
+// 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기)만, 나머지는 단추(사용자 결정).
+// 빈 곳 끌기 = 화면 옮기기, Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
@@ -22,7 +22,7 @@ import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
 import { markTech } from "../tech-map/actions";
 import { pickedTechsAction } from "./actions";
-import { loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
+import { addPicked, loadPicked, removePicked, savePicked } from "@/lib/blueprint/picked";
 import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
@@ -58,7 +58,7 @@ const FIT = { padding: 0.03, minZoom: 0.4, maxZoom: 1.2 };
 const READ_ONLY = "그림으로 보기에서는 고칠 수 없어요. 그림으로 보기를 끄고 목록으로 고쳐 주세요.";
 
 /** template = 갤러리의 "이 템플릿으로 시작"(서버가 읽음), templateMissing = 주소에 있었지만 열지 못함. guest = 로그인 전(P-12f): 판은 이 브라우저에만, 저장 · 판단은 로그인 안내 */
-type Props = BlueprintPage & { who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean; /** 보드에서 연 확정 청사진 id(P-12n R3-3) */ bp?: string | null };
+type Props = BlueprintPage & { /** 서랍 "지도 전체"(P-12o, 공개 칸만): 못 읽으면 null */ catalog: PoolTech[] | null; who: string; tags: Record<string, string[]> | null; add: string | null; template: UsableTemplate | null; templateMissing: boolean; guest?: boolean; /** 보드에서 연 확정 청사진 id(P-12n R3-3) */ bp?: string | null };
 type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
@@ -68,7 +68,7 @@ export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
 
-function StudioInner({ who, pool, history, projects, tags: tags0, add, template, templateMissing, guest = false, bp = null }: Props) {
+function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, template, templateMissing, guest = false, bp = null }: Props) {
   const router = useRouter();
   const flow = useReactFlow();
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
@@ -150,6 +150,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   useEffect(() => () => { clearTimeout(drawTimer.current); clearTimeout(edgeTimer.current); }, []);
   // B3 후보 칩: 판단이 저장된 뒤 서랍을 다시 읽는 동안에도 "고르는 중…"을 지킨다(그 틈에 "안 고른" 모양으로 돌아가 보이지 않게)
   const [settling, setSettling] = useState<{ id: string; name: string } | null>(null);
+  const gNow = useRef<Graph | null>(null); // 지금 판(담기를 기다리는 사이 판이 바뀌어도 그 위에 넣게, P-12o 지도 전체 끌어 놓기)
+  const catalogById = useMemo(() => new Map((catalog ?? []).map((t) => [t.id, t])), [catalog]);
   const settled = useRef(new Set<string>()); // 저장은 됐고 서랍을 다시 읽는 중인 기술(같은 기술을 또 보내지 않게, 불변 3)
   const [refreshing, startRefresh] = useTransition();
   // 실패 문구는 확정 창이 열려 있으면 창 안에만, 창을 닫은 뒤 왔으면 알림으로(같은 말을 두 번 보이지 않게)
@@ -205,6 +207,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
 
   if (!graph) return <p className="muted bp-wait">판을 준비하는 중…</p>;
   const g = graph;
+  gNow.current = g;
   /** name을 주면 다른 곳에서 판을 통째로 가져온 일(이력 불러오기 등): 이름도 함께 되돌리기 칸에 넣고, 시작한 템플릿 표시는 지운다 */
   const apply = (next: Graph, message?: string, nm?: string, merge?: boolean) => {
     if (next === g && (nm === undefined || nm === name)) return;
@@ -236,11 +239,38 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     if (r.ok) { say(`${techName}을(를) 청사진에 담았어요.`); cartChanged(); settled.current.add(techId); setSettling({ id: techId, name: techName }); startRefresh(() => router.refresh()); } else say(r.message); // 실패면 점선 그대로(불변 4)
   }
   function dropTech(stageId: string, techId: string) {
+    if (!info.has(techId) && catalogById.has(techId)) return void placeCatalog(stageId, techId);
     const t = info.get(techId), s = stageOf(stageId);
     if (!t || !s) return say(STUDIO_GATE);
     const why = putProblem(s, t);
     if (why) return say(why);
     apply(putTech(g, stageId, { id: t.id, name: t.name }), putSaid(s.name, t.name));
+  }
+  /** 서랍 "지도 전체" 기술을 단계에 넣기(P-12o 사용자: 끌면 자동으로 담고 넣기). 로그인은 먼저 적용 후보로 저장(확정 관문 = 내 기술 · 담은 기술 · 이력)하고
+   *  성공해야 판에 넣는다(실패하면 넣지 않음, 불변 4). 손님은 DB에 쓰지 않고 이 브라우저 담기만. 위험 등급은 관문 규칙대로 넣지 않는다 */
+  async function placeCatalog(stageId: string, techId: string) {
+    const t = catalogById.get(techId), s0 = stageOf(stageId);
+    if (!t || !s0) return say(STUDIO_GATE);
+    const why = putProblem(s0, t);
+    if (why) return say(why);
+    if (guest) {
+      const r = addPicked(loadPicked(), techId);
+      if (r.result === "full") return say("이 브라우저에는 30개까지 담아요. 담은 기술을 몇 개 빼고 다시 해 주세요.");
+      if (r.result === "bad" || (r.result === "added" && !savePicked(r.list))) return say("이 브라우저가 저장을 막아 담지 못했어요(사생활 모드 등). 넣지 않았어요.");
+      if (r.result === "added") { setPickedIds(r.list); setPickedTechs((x) => (x ? [...x, t] : x)); cartChanged(); }
+      return apply(putTech(g, stageId, { id: t.id, name: t.name }), `${putSaid(s0.name, t.name)} 지도에서 담은 기술에도 넣었어요.`);
+    }
+    if (inflight.current.has(techId)) return;
+    inflight.current.add(techId); setMarking(techId);
+    const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "담지 못해 넣지 않았어요. 잠시 뒤 다시 시도해 주세요." }));
+    inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
+    if (!r.ok) return say(r.message);
+    cartChanged(); settled.current.add(techId); setSettling({ id: techId, name: t.name }); startRefresh(() => router.refresh()); // 서랍(관문 목록)을 다시 읽어 "담은 기술"로 옮겨 간다(그동안 칩은 담는 중 모양)
+    const now = gNow.current, s = now?.stages.find((x) => x.id === stageId);
+    if (!now || !s) return say(`${t.name}을(를) 담았지만, 그 단계가 없어져 넣지 못했어요.`);
+    const again = putProblem(s, t);
+    if (again) return say(`${t.name}을(를) 담았어요. ${again}`);
+    apply(putTech(now, stageId, { id: t.id, name: t.name }), `${putSaid(s.name, t.name)} 담은 기술에도 넣었어요.`);
   }
   const base = picked ? stageOf(picked.stageId) : undefined; // 되돌리기 뒤 사라진 단계를 가리키면 없는 것으로
   /** ＋ 단계 칸 닫기: 초점이 사라진 입력에서 body로 떨어지지 않게 단추로 돌려놓는다 */
@@ -266,14 +296,14 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const openGhost = (gh: Omit<Ghost, "hints" | "from">, gap: number | null) => setGhost({ ...gh,
     hints: board ? recommendAt(board, gap ?? board.length).slice(0, 4) : [], from: document.activeElement instanceof HTMLElement ? document.activeElement : null });
   const depthOf = (id: string) => (lay?.ok ? lay.depth.get(id) ?? null : null);
-  /** 블록 위 · 아래 +: 같은 순서(앞 단계 선 복사)에 옅은 블록. 같은 순서가 이미 가득이면 띄우지 않고 이유 */
-  function besideGhost(id: string, dir: -1 | 1) {
+  /** 같은 순서(앞 단계 선 복사)에 옅은 블록(오른쪽 서랍 "같은 순서에 단계 더하기", P-12o: 카드 위 · 아래 +를 뺀 대신). 같은 순서가 가득이면 띄우지 않고 이유 */
+  function besideGhost(id: string) {
     const s = stageOf(id), why = parallelProblem(g, id);
     if (!s) return;
     if (why) return say(why);
-    openGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
+    openGhost({ at: besideSpot(g, s, 1), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
   }
-  /** 카드 왼쪽 · 오른쪽 +: 앞 · 다음 단계 옅은 블록(선 끌기와 같은 addStageLinked) */
+  /** 앞 · 다음 단계 옅은 블록(오른쪽 서랍 단추, 선 끌기와 같은 addStageLinked). 카드 옆 +를 뺀 대신 키보드로도 만들 수 있게(P-12o 자체 리뷰) */
   function sideGhost(id: string, dir: -1 | 1) {
     const s = stageOf(id), d = depthOf(id);
     if (!s) return;
@@ -331,8 +361,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const nodes: (StageNodeType | TechNodeType)[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     style: { width: NODE_SIZE.w, height: stageHeight(s) }, // 컨테이너 크기 = graph.ts stageHeight(자동 정렬과 같은 값)
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
-      edit: readOnly ? undefined : { onSide: sideGhost, onRemove: removeFromCard, hasIn: g.edges.some((e) => e.to === s.id), hasOut: g.edges.some((e) => e.from === s.id),
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined,
+      edit: readOnly ? undefined : { onRemove: removeFromCard,
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
@@ -526,7 +556,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -568,11 +598,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
-            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
+            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 빈 곳을 끌면 화면이 움직이고, Shift를 누른 채 끌면 여러 개를 골라요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
-              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}

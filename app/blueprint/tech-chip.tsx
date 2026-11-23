@@ -5,7 +5,7 @@ import { useState, type MouseEvent } from "react";
 import type { BlueprintTech } from "@/lib/blueprint/graph";
 import type { PoolTech } from "@/lib/server/blueprints";
 
-const TYPE_GLYPH: Record<string, string> = { mcp: "M", skill: "S", plugin: "P", sdk: "D", concept: "C", agent: "A", hook: "H" };
+export const TYPE_GLYPH: Record<string, string> = { mcp: "M", skill: "S", plugin: "P", sdk: "D", concept: "C", agent: "A", hook: "H" };
 /** 카탈로그 종류 이름(P-12j 규칙 3: 스킬은 사람의 역량이 아니라 SKILL.md 패키지) */
 export const TYPE_KO: Record<string, string> = { mcp: "MCP", skill: "SKILL.md 패키지", plugin: "플러그인", sdk: "개발 도구", concept: "개념", agent: "에이전트", hook: "훅" };
 const GRADE_KO: Record<PoolTech["grade"], string> = { danger: "보안 위험", caution: "보안 주의", pass: "알려진 취약점 없음", unknown: "보안 정보 없음" };

@@ -9,7 +9,8 @@ import { getCurrentUser } from "@/lib/server/current-user";
 import { readDashboardData } from "@/lib/server/dashboard-queries";
 import { readRecentFirstReads } from "@/lib/server/first-check-queries";
 import { readMyTechTagMap } from "@/lib/server/my-tech-tags";
-import { CATALOG_LIMIT, NEW_RULE_VERSION, PICK_RULE, readGuestMapInput, readListedByIds, readMapInput, TECH_COLUMNS } from "@/lib/server/map-queries";
+import { readListedByIds, readMapInput } from "@/lib/server/map-queries";
+import { readGuestMap } from "@/lib/server/guest-map";
 import { getServiceSupabase } from "@/lib/server/service-supabase";
 import { readTrending } from "@/lib/server/trending";
 import { MIN_HN_POINTS, MIN_STAR_GAIN, TREND_DAYS } from "@/lib/domain/trending";
@@ -28,14 +29,6 @@ const selTech = (query: string) => { const m = /^tech:([0-9a-f-]{36})$/i.exec(ne
 /** 지도 위 NEW 표시 수(11-21 사용자 결정, ADR 0030). 새 기술 화면은 전부 */
 const MAP_NEW = 15;
 const logged = (what: string) => (e: unknown) => { console.error(what, e instanceof Error ? e.message : e); return null; };
-
-// 로그인 전 지도는 누구에게나 같아 10분 동안 한 번만 읽는다(요청이 몰려도 DB는 그대로, ADR 0029). 실패는 기억하지 않는다(던지면 캐시 안 됨).
-// 키에 공개 칸을 넣어 칸이 바뀐 배포는 옛 캐시를 쓰지 않는다. shortcut: 관리자가 상태·갈래를 고쳐도 최대 10분 늦게 보인다, 바로 보여야 하면 태그로 비운다
-const readGuestMap = unstable_cache(async () => {
-  const db = getServiceSupabase();
-  if (!db) throw new Error("서비스 키 설정이 없음");
-  return readGuestMapInput(db);
-}, ["guest-map", TECH_COLUMNS, NEW_RULE_VERSION, String(CATALOG_LIMIT), PICK_RULE], { revalidate: 600 }); // 올리는 수가 바뀐 배포는 옛 캐시를 안 씀
 
 // 요즘 뜨는 기술 id(P-12f, DataCollector readTrending): 누구에게나 같은 공개 값이라 10분에 한 번만 읽는다(DB 3번). 실패는 기억하지 않는다(던지면 캐시 안 됨)
 const readHot = unstable_cache(async () => {

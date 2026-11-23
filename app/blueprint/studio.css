@@ -78,15 +78,8 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .react-flow__handle.sn-handle { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--ink-2); }
 /* P-12h S3 위 · 아래 +: 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 누르면 같은 순서에 옅은 블록. 막혔으면 흐리게 + 이유(title · 이름) */
 .sn { position: relative; }
-.sn-plus { position: absolute; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; padding: 0; border: 1px solid var(--ink-2); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font: inherit; line-height: 1; cursor: pointer; opacity: 0; }
-.sn-plus-up { top: -12px; } .sn-plus-down { bottom: -12px; }
-.sn-plus-left, .sn-plus-right { top: 50%; transform: translateY(-50%); } /* 앞 · 다음 단계(U2): 그쪽 선이 없을 때만 옆면 가운데(선을 가리지 않음) */
-.sn-plus-left { left: -30px; } .sn-plus-right { left: auto; right: -30px; }
-.sn-plus { scale: .9; transition: opacity calc(var(--dur) * .6) ease-out, scale calc(var(--dur) * .6) ease-out; } /* 나타날 때 살짝(U2), 움직임 줄이기면 --dur 0 */
-.sn:hover .sn-plus, .sn:focus-within .sn-plus { opacity: 1; scale: 1; }
-.sn-plus[aria-disabled] { color: var(--faint); border-color: var(--line); cursor: not-allowed; } /* 막힌 단추 한 벌(page.css)과 같은 색 */
-.sn-plus:focus-visible { outline: var(--focus); outline-offset: 2px; }
 /* 옅은 새 단계 블록(선을 빈 곳에 놓음 · +): 점선 테두리, 이름 입력 하나 */
+.sn.sn-ghost { width: 208px; height: auto; padding: 8px 10px; } /* P-12o: .sn의 width · height 100%를 물려받아 캔버스만큼 커지던 것, 카드 폭(NODE_SIZE.w)으로 */
 .sn-ghost { position: absolute; top: 0; left: 0; min-width: 200px; pointer-events: all; border-style: dashed; border-color: var(--ink-2); box-shadow: none; }
 .sn-ghost-label { display: grid; gap: 4px; font-size: var(--fs-cap); color: var(--muted); }
 .sn-ghost input { min-height: var(--hit-sm); font: inherit; font-size: var(--fs-sm); }
