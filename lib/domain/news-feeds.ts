@@ -4,7 +4,8 @@
 // 피드를 더하려면 먼저 약관을 확인해 docs/data-sources.md에 적고 여기에 한 줄 더한다(최대 MAX_FEEDS개).
 
 export type NewsFeed =
-  | { key: string; label: string; kind: "feed"; url: string; tools: string[] }
+  /** undated: 항목에 날짜 칸이 없는 피드(2026-11 Google 개발자 블로그가 날짜 없는 RSS로 바뀜). 읽은 때를 날짜로 쓴다 — 하루 한 번 읽어 하루 안쪽으로 맞는다 */
+  | { key: string; label: string; kind: "feed"; url: string; tools: string[]; undated?: true }
   /** GitHub REST `GET /repos/{owner}/{repo}/releases`(API 수집은 scraping이 아니다, GitHub AUP §7) */
   | { key: string; label: string; kind: "github_releases"; repo: string; tools: string[] };
 
@@ -13,7 +14,7 @@ export const MAX_FEEDS = 10;
 export const NEWS_FEEDS: NewsFeed[] = [
   { key: "github_changelog", label: "GitHub 변경 기록", kind: "feed", url: "https://github.blog/changelog/feed/", tools: ["github", "copilot"] },
   { key: "google_ai", label: "Google AI 소식", kind: "feed", url: "https://blog.google/technology/ai/rss/", tools: ["gemini"] },
-  { key: "google_developers", label: "Google 개발자 블로그", kind: "feed", url: "https://developers.googleblog.com/feeds/posts/default", tools: ["gemini"] },
+  { key: "google_developers", label: "Google 개발자 블로그", kind: "feed", url: "https://developers.googleblog.com/feeds/posts/default", tools: ["gemini"], undated: true },
   { key: "claude_code_releases", label: "Claude Code 새 버전", kind: "github_releases", repo: "anthropics/claude-code", tools: ["claude-code", "claude"] },
 ];
 
