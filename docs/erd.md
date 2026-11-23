@@ -549,7 +549,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 
 | 테이블 | 규칙 |
 |---|---|
-| profiles | 본인 읽기·별명·공개 여부 고치기, `role` 못 바꿈. 관리자 전체 읽기 |
+| profiles | 본인 읽기·별명·공개 여부 고치기, `role` 못 바꿈. 관리자 전체 읽기. 관리자가 일반 계정을 관리자로 올리는 것은 DB 함수 `admin_grant_admin`으로만(관리자 재확인 · 시연 계정 거절 · `audit_logs`에 사유와 함께 기록, 낮추기 없음) |
 | projects · my_technologies | 본인 읽기·쓰기(보관·숨김). 관리자 읽기만 |
 | technologies · categories · tech_relations | 모두 읽기. 쓰기는 서버, 관리자는 갈래·관계 확정만(technologies는 `category_id`·`category_set_by`·`category_set_at` 세 칸, 본인 이름·작은 갈래만, P-18c) |
 | rule_lists · sources | 관리자 읽기·쓰기. 사용자 못 봄(허용 목록은 서버가 씀) |
@@ -678,6 +678,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | user_tastes | 5 | 3 | 켜짐 | ✔ | 새 표(P-23) |
 
 ## 바뀐 기록
+- 2026-11-23 관리자 지정(작업 `I-P-admin-grant`, **운영 적용 전**, 합치기 전에 먼저 적용): 새 칸 없음. DB 함수 `admin_grant_admin(p_target, p_reason)`(`202611232300_P-admin-grant.sql`)를 더하고 4절 `profiles` 줄에 적음. 부른 사람이 관리자인지 함수가 다시 보고, `role` 변경과 `audit_logs`(action `grant_admin`) 한 줄을 한 거래로 쓴다.
 - 2026-11-22 밤 `projects` 5칸 (작업 `I-submit-check`, Maestro 요청, 계획 기준 · 구현 결과는 단계가 끝나면 채움): 2절 칸 표 · 관계 그림에 레포 기본 정보(`202611232100_P-12i_project_repo_meta.sql`, 운영 20261122120849 적용 확인). blueprints.graph · blueprint_templates.graph의 `links`(P-12j, `202611232200_P-12j_tech_links.sql`): 운영 `p12j_tech_links` 20261122133906 적용(사용자 승인, DocsChecker가 운영 마이그레이션 목록으로 확인), 권한 시험 `supabase/tests/tech_links_p12j.sql` 13항목 확인함(Maestro 실행, 모두 기대값). 7절 대조 표의 projects 칸 수(8)는 동결 뒤 4차 대조에서 고침.
 - 2026-11-22 단계 메모 · M5(작업 `I-submit-check`, Maestro 요청, ADR 0040): 마이그레이션 `202611231900_P-12e_m5_revoke_v1.sql`(운영 `p12e_m5_revoke_v1` 20261122104040: `confirm_blueprint` v1 실행 권한 회수, `blueprint_graph_clean` 인자 2개로) → `202611232000_P-12h_stage_note.sql`(운영 `p12h_stage_note` 20261122104136: graph 단계 `note`, 템플릿은 메모를 뺌). 새 표 · 칸 없음. DocsChecker 운영 SELECT: v1 실행 권한 anon · authenticated 없음, `blueprint_graph_clean` 하나, 두 함수 본문에 note. 권한 시험(M5 15 · 메모 9항목)은 적용한 Maestro 기록(#206 connectors). 7절 4차 대조는 동결 뒤.
 - 2026-11-20 3차 대조와 P-23·P-24 칸 표(작업 `I-prod-check-1120`, Claude 초안 — 표 주인 황재웅 확인 필요): 3절 요약에 있던 `user_tastes`·`usage_notes`·`helpful_votes`·`reports`를 2.7절 칸 표로 옮김(관계 그림의 `preferences` → `user_tastes`, `profiles ||--o{ usage_notes` 더함, 4절 접근 규칙 세 줄). 운영 DB 표 26개·칸 이름이 erd와 모두 일치(7절). P-23·P-24 마이그레이션 자체는 그 작업에서 했고(`I-P-23-recommend`·`I-P-24-usage-notes`), 이 줄은 erd 반영만

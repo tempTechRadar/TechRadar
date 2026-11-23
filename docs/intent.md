@@ -6,6 +6,23 @@
 
 ---
 
+## I-P-admin-grant · 2026-11-23 · 관리자가 일반 계정을 관리자로 지정 (차세일 · Claude)
+- 브랜치: `feat/P-admin-grant`(origin/main 9114a8b에서 갈라짐)
+- 출처: 사용자 요청(11-23 "관리자 계정에서 일반 계정에 관리자 권한 부여"), IA-12 회원별 등록, 안내서 2장 관리자 페이지("관리자가 고치면 담당자, 시각, 사유가 남습니다"), 불변 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 관리자를 늘리려면 Supabase 대시보드에서 `profiles.role`을 직접 고쳐야 한다. 서비스 안에서 할 방법이 없고, 누가 언제 왜 올렸는지 기록도 안 남는다 |
+| 기대 결과 | 관리자가 `/admin/members`에서 일반 계정을 사유와 확인 체크로 관리자로 지정. DB가 부른 사람이 관리자인지 다시 확인하고, 역할 변경과 바꾼 기록(audit_logs)을 함께 쓴다. 시연 계정은 거절 |
+| 영향 범위 | 마이그레이션 `202611232300_P-admin-grant.sql`(함수 1개, 새 칸 없음), `lib/server/admin-grant.ts`(+시험 6개), `app/admin/members/actions.ts`·`page.tsx`, `docs/erd.md`·`qa.md` |
+| 제약 | 서비스 키로 역할을 바꾸지 않음(DB 검사를 건너뛰므로). 마이그레이션은 합치기 전에 운영 먼저(김영식 리뷰·승인). 적용 전 운영에서는 "적용 대기" 안내만 나오고 아무것도 안 바뀜(#135 방식) |
+| 열린 질문 | 관리자 → 일반으로 낮추기를 둘지(마지막 관리자를 잃지 않는 규칙 필요), 지정 기록을 관리자 화면에 따로 보일지 |
+
+**결과:** 로컬 구현. `node --test lib/server/admin-grant.test.ts` 6개 통과, `npm test` 1,767개 중 1,766 통과(실패 1개는 main의 worklog 11-22 표 작업 ID 겹침, 이 변경과 무관), `tsc` 0 오류, `npm run build` 성공.
+**확인하지 못함:** 실제 DB에서 함수 동작(운영 적용 전, 로컬 Supabase 없음), 화면을 눈으로 확인.
+
+---
+
 ## I-P-news-google-feed · 2026-11-23 · Google 개발자 블로그 피드를 못 읽는 것 고침 (DataCollector 세션, 김영식)
 - 브랜치: `fix/P-news-google-feed`(origin/main fd4119c에서 갈라짐)
 - 출처: 작업 `I-P-12f-news`(소식 수집기, ADR 0038) · 불변 2 · 3, Maestro 배정(사용자 "DataCollector가 고침")
