@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addPreset, BUILTIN_PRESETS, isLsJumpUp, LS_PICKS, MAX_SAVED, parsePresets } from "./presets.ts";
+import { addPreset, BUILTIN_PRESETS, isLsJumpUp, LS_PICKS, MAX_SAVED, parsePresets, presetOff, presetOn } from "./presets.ts";
 import { parseView, viewQuery } from "./view-config.ts";
 
 test("기본 묶음은 보기 주소로 읽힌다: 입문자 추천 = MCP 뺀 종류, 보안 위험 = 위험·주의 + 등급 색", () => {
@@ -37,4 +37,15 @@ test("LS점프업(P-12p): 규칙(스킬 · 플러그인 · 개념 · 개발 도�
   assert.equal(isLsJumpUp(n("mcp", "npm:pg")), false, "해당 없음");
   assert.ok(BUILTIN_PRESETS.some((p) => p.name === "LS점프업" && parseView(p.query).filter.ls));
   assert.equal(viewQuery(parseView("pick=ls")).includes("pick=ls"), true, "주소로 다시 써도 남음");
+});
+
+test("보기 탭 켜짐(P-12x H2): 탭 조건이 지금 보기에 다 있으면 켜짐, 끄면 그 조건만 빠짐", () => {
+  assert.equal(presetOn("pick=ls", "pick=ls"), true);
+  assert.equal(presetOn("risky=1&pick=ls", "pick=ls"), true, "LS점프업 + 다른 필터도 LS점프업은 켜짐");
+  assert.equal(presetOn("risky=1", "risky=1&c=grade"), false, "탭 조건 일부만 있으면 꺼짐");
+  assert.equal(presetOn("fk=스킬", "fk=스킬,개념"), false, "같은 칸이라도 값이 다르면 꺼짐");
+  assert.equal(presetOn("pick=ls", ""), false, "조건 없는 탭은 똑같을 때만");
+  assert.equal(presetOn("", ""), true);
+  assert.equal(presetOff("risky=1&pick=ls", "pick=ls"), "risky=1");
+  assert.equal(presetOff("pick=ls", "pick=ls"), "");
 });

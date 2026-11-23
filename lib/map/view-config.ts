@@ -22,6 +22,7 @@ export type ViewFilter = { /** pick=ls: LS점프업(P-12p) */ ls: boolean; kinds
 /** 내 판단으로 거르기(P-12f 보드 녹이기: 옛 보드의 칸 = 지도의 판단 칩). 고른 것 중 하나라도 맞으면 보인다 */
 export const MARK_PICKS = ["interest", "candidate", "hold"] as const;
 export type MarkPick = (typeof MARK_PICKS)[number];
+export const MARK_KO: Record<MarkPick, string> = { interest: "★ 관심", candidate: "담은 기술", hold: "보류" }; // 사이드 패널 별 · 담기와 같은 말(P-12h U1)
 const isMarkPick = (v: string): v is MarkPick => (MARK_PICKS as readonly string[]).includes(v);
 /** scope = "이 분류만 보기"로 들어간 경로(바깥부터). 들어간 기준은 묶기에서 빠진다 */
 export type Scope = { dim: Dim; value: string };
@@ -115,6 +116,15 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
     && (!f.project || n.projectIds.includes(f.project))
     && (!f.tags.length || n.tags.some((t) => f.tags.some((x) => x.toLowerCase() === t.toLowerCase()))) // 기술마다 대소문자를 하나로 보지만 기술끼리는 표기가 다를 수 있다
     && v.scope.every((s) => n.attrs[s.dim] === s.value);
+}
+
+/** 켠 필터 이름(필터 머리에 "필터 n"이 무엇인지, P-12x H2). filterCount와 같은 것을 같은 순서로. project = 프로젝트 id → 이름 */
+export function filterNames(v: ViewConfig, project: (id: string) => string | undefined = () => undefined): string[] {
+  const f = v.filter;
+  return [
+    ...f.kinds, ...f.fields, ...f.subs, f.risky ? "위험·주의" : "", f.mineOnly ? "사용 중" : "", f.period ? PERIOD_KO[f.period] : "",
+    ...f.marks.map((m) => MARK_KO[m]), f.hot ? "요즘 뜨는" : "", f.err ? "수집 오류 기술" : "", f.project ? project(f.project) ?? "프로젝트" : "", ...f.tags.map((t) => `#${t}`),
+  ].filter(Boolean);
 }
 
 /** 켠 필터 수(도구 줄의 "필터 n") */
