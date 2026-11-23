@@ -9,16 +9,27 @@ import { guideTurnAction } from "./guide-actions";
 import "./guide.css";
 
 type Msg = { role: "user" | "guide"; text: string; reply?: GuideReply; techs?: Record<string, { name: string; grade: string }>; done?: string[] };
+/** onStages는 판이 바뀌었을 때만 true. placed = 그 단계에 그 기술이 지금 판에 있는지("넣음"은 판을 보고 그린다: 막히거나 저장 실패면 단추가 남음, 불변 4) */
 type Props = { who: string; guest: boolean; stages: string[]; drawer: boolean;
-  onStages: (names: string[], mode: "replace" | "append") => void; onTech: (stage: string, techId: string) => void };
+  onStages: (names: string[], mode: "replace" | "append") => boolean; onTech: (stage: string, techId: string) => void; placed: (stage: string, techId: string) => boolean };
 
 const HELLO: Msg = { role: "guide", text: "안녕하세요, 청사진 가이드예요. 어떤 문제를 풀고 싶어요? 누가 쓰나요?" };
 const GRADE_KO: Record<string, string> = { pass: "통과", caution: "주의", unknown: "찾지 못함" };
 const key = (who: string) => `techradar-bp-guide:${who}`;
 const START: Msg[] = [HELLO]; // 아직 읽기 전: 이 값이면 저장하지 않는다(읽기 전에 빈 대화로 덮지 않게)
 
+/** 저장된 대화는 바깥 값이라 모양을 확인한다(예전 모양 · 깨진 값으로 판 화면이 죽지 않게): 틀린 말은 빼고, 틀린 제안은 글만 남긴다 */
 function load(who: string): Msg[] {
-  try { const v = JSON.parse(sessionStorage.getItem(key(who)) ?? "null"); return Array.isArray(v) && v.length ? v : [HELLO]; } catch { return [HELLO]; }
+  let v: unknown;
+  try { v = JSON.parse(sessionStorage.getItem(key(who)) ?? "null"); } catch { return [HELLO]; }
+  const ok = (Array.isArray(v) ? v : []).flatMap((x): Msg[] => {
+    const m = (x ?? {}) as Partial<Msg>;
+    if ((m.role !== "user" && m.role !== "guide") || typeof m.text !== "string") return [];
+    const r = m.reply;
+    const good = r && typeof r.say === "string" && Array.isArray(r.stages) && Array.isArray(r.techs);
+    return [{ role: m.role, text: m.text, ...(good ? { reply: r, techs: m.techs ?? {}, done: Array.isArray(m.done) ? m.done : [] } : {}) }];
+  });
+  return ok.length ? ok : [HELLO];
 }
 /** AI에게 넘기는 대화: 가이드 말은 say + ask만 */
 const asTurn = (m: Msg) => ({ role: m.role, text: m.reply ? [m.reply.say, m.reply.ask].filter(Boolean).join(" ") : m.text });
@@ -36,7 +47,7 @@ function Bot({ hop }: { hop: number }) {
   );
 }
 
-export function Guide({ who, guest, stages, drawer, onStages, onTech }: Props) {
+export function Guide({ who, guest, stages, drawer, onStages, onTech, placed }: Props) {
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState<Msg[]>(START);
   const [draft, setDraft] = useState("");
@@ -56,7 +67,7 @@ export function Guide({ who, guest, stages, drawer, onStages, onTech }: Props) {
     setLog(next); setDraft(""); setBusy(true); setError(null);
     const r = await guideTurnAction(next.map(asTurn), stages).catch(() => ({ ok: false as const, message: "가이드에게 보내지 못했어요. 잠시 뒤 다시 말해 주세요." }));
     setBusy(false);
-    if (!r.ok) return setError(r.message);
+    if (!r.ok) { setLog(log); setDraft(t); return setError(r.message); } // 보내지 못한 말은 대화에서 빼고 입력칸으로(다시 보낼 때 두 번 쌓이지 않게)
     setLog((l) => [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }]); setHop((h) => h + 1);
   }
   const mark = (i: number, k: string) => setLog((l) => l.map((m, j) => (j === i ? { ...m, done: [...(m.done ?? []), k] } : m)));
@@ -85,16 +96,16 @@ export function Guide({ who, guest, stages, drawer, onStages, onTech }: Props) {
                     <div className="guide-card"><span className="guide-label">단계 제안</span>
                       <ol>{m.reply.stages.map((s) => <li key={s.name}><b>{s.name}</b>{s.why ? ` — ${s.why}` : ""}</li>)}</ol>
                       {m.done?.includes("stages") ? <p className="guide-done">판에 넣었어요. 되돌리기로 돌아갈 수 있어요.</p>
-                        : stages.length === 0 ? <button type="button" className="btn btn-sm btn-primary" onClick={() => { onStages(m.reply!.stages.map((s) => s.name), "replace"); mark(i, "stages"); }}>판에 넣기</button>
-                        : <div className="guide-acts"><button type="button" className="btn btn-sm" onClick={() => { onStages(m.reply!.stages.map((s) => s.name), "replace"); mark(i, "stages"); }}>지금 판 덮어쓰기</button>
-                          <button type="button" className="btn btn-sm" onClick={() => { onStages(m.reply!.stages.map((s) => s.name), "append"); mark(i, "stages"); }}>뒤에 붙이기</button></div>}
+                        : stages.length === 0 ? <button type="button" className="btn btn-sm btn-primary" onClick={() => { if (onStages(m.reply!.stages.map((s) => s.name), "replace")) mark(i, "stages"); }}>판에 넣기</button>
+                        : <div className="guide-acts"><button type="button" className="btn btn-sm" onClick={() => { if (onStages(m.reply!.stages.map((s) => s.name), "replace")) mark(i, "stages"); }}>지금 판 덮어쓰기</button>
+                          <button type="button" className="btn btn-sm" onClick={() => { if (onStages(m.reply!.stages.map((s) => s.name), "append")) mark(i, "stages"); }}>뒤에 붙이기</button></div>}
                     </div>) : null}
                   {m.reply?.techs.length ? (
                     <div className="guide-card"><span className="guide-label">기술 제안</span>
                       <ul>{m.reply.techs.map((p) => { const t = m.techs?.[p.id], k = `${p.stage}|${p.id}`; return (
                         <li key={k}><span className="guide-tech"><small>{p.stage} ›</small> <b>{t?.name ?? p.id}</b>{t ? <span className="guide-grade" data-grade={t.grade}>{GRADE_KO[t.grade] ?? t.grade}</span> : null}</span>
                           {p.why ? <span className="guide-why">{p.why}</span> : null}
-                          {m.done?.includes(k) ? <span className="guide-done">넣음</span> : <button type="button" className="btn btn-sm" onClick={() => { onTech(p.stage, p.id); mark(i, k); }}>넣기</button>}</li>); })}</ul>
+                          {placed(p.stage, p.id) ? <span className="guide-done">넣음</span> : <button type="button" className="btn btn-sm" onClick={() => onTech(p.stage, p.id)}>넣기</button>}</li>); })}</ul>
                     </div>) : null}
                 </div>
               ))}

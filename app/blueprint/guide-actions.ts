@@ -19,9 +19,9 @@ export type GuideTurnResult = { ok: true; reply: GuideReply; techs: Record<strin
 const BUSY = "지금은 가이드가 대답하지 못해요. 잠시 뒤 다시 말해 주세요. 판은 그대로예요.";
 const toGuide = (t: PoolTech): GuideTech => ({ id: t.id, name: t.name, type: t.type, field: t.field, sub: t.sub, grade: t.grade });
 
-async function guideTechs(userId: string): Promise<GuideTech[] | null> {
+async function guideTechs(userId: string): Promise<GuideTech[]> {
   const db = await getServerSupabase();
-  if (!db) return null;
+  if (!db) throw new Error("DB 연결 없음");
   const [page, allowed, map] = await Promise.all([readBlueprintPage(db, userId), readAllowedTechIds(db), readGuestMap()]);
   const mine = page.pool.filter((t) => allowed.has(t.id));
   const all = [...mine, ...catalogToPool(map.techs, map.categories, mine.map((t) => t.id))].filter((t) => t.grade !== "danger");
@@ -36,10 +36,9 @@ export async function guideTurnAction(turns: unknown, stages: unknown): Promise<
   if (!user) return { ok: false, message: "로그인하면 가이드와 같이 설계할 수 있어요." };
   const serviceDb = getServiceSupabase();
   if (!serviceDb) return { ok: false, message: BUSY };
-  const techs = await guideTechs(user.id).catch((e) => { console.error("가이드 기술 목록 읽기 실패", e instanceof Error ? e.message : e); return null; });
-  if (!techs) return { ok: false, message: "기술 목록을 불러오지 못해 가이드가 대답하지 않았어요(기술이 없다는 뜻이 아니에요). 잠시 뒤 다시 말해 주세요." };
-  const r = await talkToGuide({ serviceDb, ai: createAnthropicClient() }, { userId: user.id, turns, stages, techs });
-  if (r.status === "ok") return { ok: true, reply: r.reply, techs: Object.fromEntries(techs.filter((t) => r.reply.techs.some((p) => p.id === t.id)).map((t) => [t.id, { name: t.name, grade: t.grade }])) };
+  const r = await talkToGuide({ serviceDb, ai: createAnthropicClient() }, { userId: user.id, turns, stages, loadTechs: () => guideTechs(user.id) });
+  if (r.status === "failed" && r.techs === "unread") return { ok: false, message: "기술 목록을 불러오지 못해 가이드가 대답하지 않았어요(기술이 없다는 뜻이 아니에요). 잠시 뒤 다시 말해 주세요." };
+  if (r.status === "ok") return { ok: true, reply: r.reply, techs: Object.fromEntries(r.techs.filter((t) => r.reply.techs.some((p) => p.id === t.id)).map((t) => [t.id, { name: t.name, grade: t.grade }])) };
   if (r.status === "refused" && r.reason === "user_limit") return { ok: false, message: `오늘은 가이드와 ${BLUEPRINT_GUIDE_PER_USER_PER_DAY}번 모두 이야기했어요. 내일 0시(한국 시간)부터 다시 돼요.` };
   if (r.status === "refused" && r.reason === "bad_input") return { ok: false, message: "대화를 읽지 못했어요. 대화를 새로 시작해 주세요." };
   return { ok: false, message: BUSY };

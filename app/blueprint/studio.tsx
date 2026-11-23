@@ -650,8 +650,10 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
         )}
         {/* 청사진 가이드 캐릭터(P-12s): 제안만, 넣기는 사용자가 누른다(불변 1). 단계 이름은 판 순서대로 넘긴다 */}
         <Guide who={who} guest={guest} drawer={!narrow && !!drawer} stages={lay?.ok ? lay.levels.flat().map((id) => stageOf(id)?.name ?? "").filter(Boolean) : g.stages.map((s) => s.name)}
-          onStages={(names, mode) => apply(addGuideStages(g, names, mode), `가이드가 제안한 단계를 판에 ${mode === "replace" ? "새로" : "뒤에"} 넣었어요. 되돌리기로 돌아갈 수 있어요.`)}
-          onTech={(stage, techId) => { const s = g.stages.find((x) => x.name === stage); if (s) dropTech(s.id, techId); else say(`"${stage}" 단계가 판에 없어 넣지 않았어요.`); }} />
+          onStages={(names, mode) => { if (readOnly) { say(READ_ONLY); return false; } const next = addGuideStages(g, names, mode); if (next === g || next.stages.length === (mode === "replace" ? 0 : g.stages.length)) { say("넣을 수 있는 새 단계가 없어요(같은 이름 · 한도)."); return false; }
+            apply(next, `가이드가 제안한 단계를 판에 ${mode === "replace" ? "새로" : "뒤에"} 넣었어요. 되돌리기로 돌아갈 수 있어요.`); return true; }}
+          onTech={(stage, techId) => { if (readOnly) return say(READ_ONLY); const s = g.stages.find((x) => x.name === stage); if (s) dropTech(s.id, techId); else say(`"${stage}" 단계가 판에 없어 넣지 않았어요.`); }}
+          placed={(stage, techId) => !!g.stages.find((x) => x.name === stage)?.techs.some((t) => t.id === techId)} />
         {narrow || !drawer ? null : (
           <section ref={drawerBox} className="studio-insp" aria-label="속성 서랍" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
             <div className="studio-insp-bar"><button type="button" className="btn btn-sm" onClick={closeDrawer}>닫기 ✕</button></div>

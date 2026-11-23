@@ -1,6 +1,9 @@
 // 청사진 가이드 답 읽기(P-12s). say만 꼭 있어야 하고, 나머지 칸은 모양이 틀린 항목만 버린다(대화가 끊기지 않게).
 // 지어내기 막기: 넘긴 목록에 없는 id · 위험 등급 · 판에 없는 단계로 가는 기술 · 설치 명령이 든 글은 버린다. 판에 넣는 것은 사람이 누른다(불변 1).
-import { COMMAND_LINE, readJson } from "./parse-scenario-response.ts";
+import { readJson } from "./parse-scenario-response.ts";
+
+/** 설치 · 실행 명령 꼴(도구 이름만 말한 "Docker를 쓰면"은 통과): 점검의 COMMAND_LINE보다 좁다. 가이드 글은 문장이라 도구 이름이 자주 나온다 */
+export const GUIDE_COMMAND = /\b(?:npm|npx|pnpm|yarn|bunx?|pip3?|pipx|uvx?|brew|apt(?:-get)?|winget|choco)\s+(?:i|install|add|run|exec|dlx|x|-g)\b|\b(?:curl|wget)\s+\S*https?:|\bdocker\s+(?:run|pull|exec|compose)\b|\bgit\s+clone\b|\bclaude\s+mcp\s+add\b|\|\s*(?:ba|z)?sh\b/i;
 
 export const GUIDE = { say: 400, ask: 200, summary: 200, name: 20, why: 120, stages: 7, techs: 12 } as const;
 export type GuideStage = { name: string; why: string };
@@ -8,7 +11,7 @@ export type GuideTechPick = { stage: string; id: string; why: string };
 export type GuideReply = { say: string; ask: string | null; summary: string | null; stages: GuideStage[]; techs: GuideTechPick[] };
 export type GuideParse = ({ ok: true } & GuideReply) | { ok: false; error: string };
 
-const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() && !COMMAND_LINE.test(v) ? v.trim().slice(0, max) : null);
+const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() && !GUIDE_COMMAND.test(v) ? v.trim().slice(0, max) : null);
 const list = (v: unknown) => (Array.isArray(v) ? v : []);
 
 /** grades = 넘긴 목록의 id → 등급, boardStages = 지금 판 단계 이름(기술은 여기 있는 단계로만) */
@@ -22,7 +25,7 @@ export function parseGuideResponse(raw: string, grades: Map<string, string>, boa
   const stages = list(r.stages).flatMap((x) => {
     const s = (x ?? {}) as Record<string, unknown>;
     const name = typeof s.name === "string" ? s.name.trim().slice(0, GUIDE.name).trim() : "";
-    if (!name || seen.has(name) || COMMAND_LINE.test(name)) return [];
+    if (!name || seen.has(name) || GUIDE_COMMAND.test(name)) return [];
     seen.add(name);
     return [{ name, why: text(s.why, GUIDE.why) ?? "" }];
   }).slice(0, GUIDE.stages);

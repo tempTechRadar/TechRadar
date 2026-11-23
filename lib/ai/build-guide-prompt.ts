@@ -1,7 +1,7 @@
 // 청사진 가이드 캐릭터(P-12s)에게 보내는 글. DB·Claude를 모르는 순수 함수. 점검(build-check-prompt)과 같은 규칙:
 // 사용자 글 · 목록 · 단계 이름은 모두 <자료> 안에만 넣고 지시로 따르지 않게 한다. AI는 제안만 하고 판에 넣는 것은 사람이 누른다(불변 1).
 // 기술은 넘긴 목록의 id로만 고르게 하고, 파서(parse-guide-response)가 목록 밖 id · 위험 등급을 다시 버린다.
-import { wrapData } from "./build-draft-prompt.ts";
+import { cleanName, wrapData } from "./build-draft-prompt.ts";
 import { GUIDE } from "./parse-guide-response.ts";
 
 export type GuideTech = { id: string; name: string; type: string; field: string | null; sub: string | null; grade: string };
@@ -24,10 +24,11 @@ const SYSTEM = [
 ].join("\n");
 
 const GRADE_KO: Record<string, string> = { pass: "통과", caution: "주의", danger: "위험", unknown: "찾지 못함" };
-const techLine = (t: GuideTech) => `${t.id} | ${t.name} | ${t.type}${t.field ? ` | ${t.field}${t.sub ? ` › ${t.sub}` : ""}` : ""} | 등급 ${GRADE_KO[t.grade] ?? t.grade}`;
+const flat = (s: string) => s.replace(/\s*[\r\n]+\s*/g, " / ").replace(/\|/g, "/");
+const techLine = (t: GuideTech) => `${t.id} | ${flat(cleanName(t.name))} | ${t.type}${t.field ? ` | ${flat(t.field)}${t.sub ? ` › ${flat(t.sub)}` : ""}` : ""} | 등급 ${GRADE_KO[t.grade] ?? t.grade}`;
 
 export function buildGuidePrompt({ turns, stages, techs }: GuideInput): { system: string; user: string } {
-  const talk = turns.slice(-GUIDE_TURNS).map((t) => `${t.role === "user" ? "사용자" : "가이드"}: ${t.text.slice(0, GUIDE_TURN_CHARS)}`).join("\n");
+  const talk = turns.slice(-GUIDE_TURNS).map((t) => `${t.role === "user" ? "사용자" : "가이드"}: ${flat(t.text.slice(0, GUIDE_TURN_CHARS))}`).join("\n");
   return {
     system: SYSTEM,
     user: [
