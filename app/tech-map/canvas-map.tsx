@@ -67,7 +67,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   });
   useEffect(() => {
     const st = stage.current!, cv = canvas.current!;
-    const detach = ctl.attach(cv, overlay.current);
+    const detach = ctl.attach(cv, overlay.current!);
     const measure = () => { const m = insets(st); ctl.measure(st.clientWidth, st.clientHeight, m.top, m.right, m.bottom); st.style.setProperty("--hud-bottom", `${m.top}px`); }; // 왼쪽 필터 패널이 위 칩 줄 바로 아래에서 시작
     const ro = new ResizeObserver(measure);
     ro.observe(st); if (hud.current) ro.observe(hud.current); if (dock.current) ro.observe(dock.current);
@@ -153,8 +153,8 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
   return (
     <div className="map-wrap">
       <div ref={stage} className={`map-stage${sel ? " open" : ""}`}>
+        <canvas ref={overlay} className="map-canvas map-idle" aria-hidden="true" />{/* 뒤에서 도는 옅은 선만(P-12u): 지도 캔버스 밑, 지도는 바뀔 때만 다시 그린다 */}
         <canvas ref={canvas} className="map-canvas" aria-hidden="true" />
-        <canvas ref={overlay} className="map-canvas map-idle" aria-hidden="true" />{/* 뒤에서 도는 옅은 선만(P-12u): 지도는 바뀔 때만 다시 그린다 */}
         {/* 위(P-12p 사용자): 첫 줄 = 경로 칩 + 빠른 칩 + 로그인 띠, 둘째 줄 = 저장한 보기(늘 보임). 찾기는 아래 가운데 막대, 보기 방식은 필터 패널 맨 위 */}
         <div ref={hud} className="map-top-hud">
           <div className="map-hud">

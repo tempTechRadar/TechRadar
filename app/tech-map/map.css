@@ -6,7 +6,7 @@
 
 .map-stage { position: relative; height: max(520px, calc(100dvh - 210px)); overflow: hidden; border: 1px solid var(--on-paper); border-radius: var(--r-xl); background: var(--paper); }
 .map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: default; }
-.map-idle { pointer-events: none; mix-blend-mode: screen; } /* P-12u 옅은 선 겹: 누르기는 지도가 받고, 선은 밝히기만(점 · 글자를 덮어 칠하지 않게) */
+.map-idle { pointer-events: none; } /* P-12u 옅은 선 겹: 지도 캔버스 밑(지도 바탕이 비어 점 · 글자 아래로 보임), 누르기는 지도가 받는다 */
 .map-canvas.on-item { cursor: pointer; } .map-canvas.dragging { cursor: grabbing; }
 .map-stage.hand .map-canvas { cursor: grab; } .map-stage.hand.panning .map-canvas { cursor: grabbing; }
 

@@ -5,7 +5,7 @@ import type { MapNode, TechMapModel } from "@/lib/map/build-map";
 import { connected, defaultCollapsed, FIRST_RING, hiddenOf, isUnder, layoutMap, type GroupItem, type Item, type MapLayout, type TechItem } from "@/lib/map/layout";
 import { createPhysics } from "@/lib/map/physics";
 import { DEFAULT_VIEW, defaultFor, parseView, passes, viewQuery, withDefault, type ViewConfig } from "@/lib/map/view-config";
-import { draw, drawIdle } from "./draw";
+import { draw, drawIdle, idleOn } from "./draw";
 import { GROW, INTRO_FLY, INTRO_FLY_DELAY, INTRO_ZOOM, introducing, LAND_SEC, LOCK, LOCK_AFTER, MOTION_END, moving, REVEAL, RISE_SEC, SWEEP_DELAY } from "@/lib/map/motion";
 import { LEGACY_MOTION_KEY, RADAR_KEY, readPrefs, type RadarPrefs } from "@/lib/map/radar-prefs";
 
@@ -43,7 +43,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false, octx: CanvasRenderingContext2D | null = null, idleShown = false;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false, octx: CanvasRenderingContext2D | null = null, idleShown = false, idleAt = 0;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   const radar = savedRadar();
 
@@ -277,13 +277,12 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     // 움직임이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선 · 굵은 착지 이름표 · 찍히던 꼬리표가 도중 모습으로 굳는다
     if (ctx && (needDraw || active || wasActive)) { draw(ctx, S, now); needDraw = false; }
     wasActive = active;
-    // 뒤에서 도는 옅은 선은 겹 캔버스에 매 장(P-12u): 지도는 위처럼 바뀔 때만. 끄면 한 번 비우고 멈춘다(숨은 탭은 장이 오지 않음)
-    const idle = S.radar.idle && !S.still;
-    if (octx && (idle || idleShown)) { drawIdle(octx, S, now); idleShown = idle; }
+    // 뒤에서 도는 옅은 선은 겹 캔버스에 초당 60장까지(P-12u, 120 · 144Hz 화면에서 더 그리지 않게): 지도는 위처럼 바뀔 때만. 끄면 한 번 비우고 멈춘다(숨은 탭은 장이 오지 않음)
+    if (octx && (idleShown || idleOn(S)) && now - idleAt >= 1 / 60 - 0.004) { idleShown = drawIdle(octx, S, now); idleAt = now; }
   }
-  /** overlay = 뒤에서 도는 옅은 선만 그리는 겹 캔버스(P-12u, 지도 위 · 누르기 안 받음) */
-  function attach(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement | null = null) {
-    ctx = canvas.getContext("2d"); octx = overlay?.getContext("2d") ?? null; idleShown = false;
+  /** overlay = 뒤에서 도는 옅은 선만 그리는 겹 캔버스(P-12u, 지도 캔버스 밑 · 누르기 안 받음) */
+  function attach(canvas: HTMLCanvasElement, overlay: HTMLCanvasElement) {
+    ctx = canvas.getContext("2d"); octx = overlay.getContext("2d"); idleShown = false;
     const onMotion = () => { S.still = !!motion?.matches; dirty(); notify(); }; // notify: ⚙ 창의 "기기 설정으로 꺼져 있어요"도 바로
     motion?.addEventListener("change", onMotion);
     // 테마(어두운 모드 · data-theme)가 바뀌면 다음 장을 새 색으로: 연출 뒤에는 손댈 때만 그려서 옛 색이 남는다(P-12g map-13)
