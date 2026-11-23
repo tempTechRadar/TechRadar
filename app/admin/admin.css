@@ -163,3 +163,10 @@
 .admin-answer { margin-top: var(--space-3); max-width: 720px; }
 .admin-answer .answer-text { white-space: pre-wrap; }
 .admin-recent li { margin-bottom: var(--space-2); }
+
+/* 시뮬레이터 동작 칸(11-23 사용자 점검: 큰 상자 3개가 세로로 쌓여 다른 화면과 배치가 달랐음) — 한 줄에 나란히, 단추는 칸 아래로 줄 맞춤 */
+.admin-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
+.admin-tile { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--card); min-width: 0; }
+.admin-tile h2 { margin: 0; font-size: var(--text-md); }
+.admin-tile p { margin: 0; }
+.admin-tile form { margin-top: auto; padding-top: var(--space-1); }
