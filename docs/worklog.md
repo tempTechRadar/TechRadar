@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12p-seed | LS점프업 시드(C-4): herdr(도구, 키 `github:herdrdev/herdr`) · 루프 하네스(개념, 키 `concept:loop-harness`) 2줄 마이그레이션 `202611240200_P-12p_ls_seed.sql`(초안, 운영 적용 전) + 되돌림 시험 SQL + 파일 검사 시험 6개. 출처는 공식 저장소 · README · Anthropic 글을 직접 열어 확인 | Claude(DataCollector)가 출처 확인 · 마이그레이션 · 시험, 영식 승인 대기 | `supabase/migrations/202611240200_P-12p_ls_seed.sql` · `supabase/tests/ls_seed_p12p.sql` · `lib/server/ls-seed-migration.test.ts` |
 | I-qa-sheet-copy-1123 | QA 시트 사본(xlsx)과 11-23 운영 사람 QA(ego 브라우저, 관리자 계정): Pass 19 → 33, No Run 34 → 20. `qa.md` 사람 QA 16줄 상태 갱신·묶음 E 요약 1줄, 남은 No Run은 막는 이유를 적음 | 황재웅 / Claude | `docs/qa.md`, `docs/qa/` |
 | I-P-12o-blueprint-polish | P-12o 청사진 다듬기 1단계(사용자 요청 · 인터뷰): 카드 + 단추 4개 뺌 · 같은 순서 단계는 서랍 단추, 빈 곳 끌면 화면 이동 · Shift + 끌기 고르기, 새 단계 임시 창 208px, 서랍 "묶기" → "분류기준", 서랍 "지도 전체"(손님 포함, 끌면 담고 넣기) | 사용자(요청) · Claude FrontLead(인터뷰 · 구현) | `feat/P-12o-blueprint-polish` 로컬, tsc · 고친 시험 108 통과 |
 | I-P-12n-ux-polish | P-12n 화면 다듬기: 공용 단추 규칙(주 행동 청록 하나 · 보조 판 · 위험 빨강 테두리) · 공통 색 뜻 토큰(--cat-3 · 고른 것 카드 + 청록 · 판단 대기 얼음 · 완료 회색 · 수집 오류 회색 점선 · 포커스 청록 · 배지 12px) · R1 지도 · 메뉴 · 상태 줄 10개(상태 줄 "마지막 수집 │ 출처 │ 수집 오류", 출처 = fetch_*) · 토스트 · R2 · R3 · 기록 · QA · main 합침, 자체 리뷰 고침 | Maestro(배정) · Claude FrontLead(구현 · 합침) · DevAssi2(R2) · DevAssi1(R3) · DocsChecker · QA | `feat/P-12n-ux-polish` 로컬, 전체 시험 1,787 · tsc · build · precheck 통과 |
