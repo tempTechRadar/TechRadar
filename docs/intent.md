@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-12m-blueprint-theme · 2026-11-23 · 파란 도면 테마 + 레이더 선 · 파동 (P-12m, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12m-blueprint-theme`(feat/P-12l-blueprint-defaults 5ca75ab 위, 문서 docs/P-12m-theme b76bd81을 받음, 로컬. P-12l과 PR 하나로)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md` "11-23 10:00 T1 결정", 톤 사진 · 레이더 시안 Radar.dc.html, Maestro 배정. ADR 0044 · design.md 5 · 6 · 16절 · PRD-NF5(대비) · 불변 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 앱 바탕이 흰 면 하나라 컨셉(워크벤치 · 레이더)이 보이지 않는다. 레이더 처음 연출이 선이나 파동 한 가지고, 이번 주 새 기술이 지도에서 눈에 띄지 않는다 |
+| 기대 결과 | 바탕은 파란 도면(#0e5ba3)과 흰 격자, 카드 · 판 · 패널은 흰 면 그대로. 일반 화면은 흰 도면 시트 위, 메뉴는 흰 글자. 지도는 흰 고리 · 흰 점 테두리, 처음 연출 기본은 "선 + 파동"(선 두 바퀴 + 파동 세 번). 36시간 안에 확인한 점은 먼저 닿은 때 한 번 켜지고(ping), 이번 주 새 기술 최근 5개에 흰 추적 틀이 걸린다 |
+| 영향 범위 | app/tokens.css(토큰 5개 · 바탕 격자 · 도면 시트) · site-nav.css · page.css(.notice 흰 면) · tech-map(draw.ts · controller.ts · radar-settings · map.css · radar-settings.css) · blueprint(blueprint.css · studio.css · studio.tsx) · lib/map/motion.ts, 시험 2파일 |
+| 제약 | 등급색은 도면 위 대비 1.2~1.9라 흰 면 · 흰 받침 위에만. --surface · --sunken · --ink 계열 값은 그대로. 저장해 둔 움직임 설정은 존중. 보드 구멍 무늬는 #210 병합 뒤. Claude API 없음. 고친 시험 · tsc만(전체는 끝에) |
+| 열린 질문 | 도면 시트 구석 제목 칸(REV · 날짜)은 실제 기록이 없어 지어낸 값이 되므로 넣지 않음(사용자 점검 때 다시). 보드(#210)는 병합 뒤 |
+
+**결과:** 로컬 커밋(feat · test · 이 docs). 토큰 --paper #0e5ba3 · --on-paper #ffffff · --grid #3e7cb5 · --grid-2 #6e9dc8 · --scan #8ed8ff. tsc 통과, 고친 시험 · 대비 · 기록 검사 51개 통과. 대비 시험이 메뉴 눌림 바탕(--grid 위 흰 글자 4.42)을 잡아 칠하기 대신 흰 테두리로 바꿈. 1440×900 지도 · 청사진 · 알림, 390 지도를 손님 화면으로 찍어 확인.
+**확인하지 못함:** 로그인 화면(사용 중 굵은 흰 고리 · 판단 꼬리표 · 보드), 다른 일반 화면 하나하나, 실제 기기 움직임 느낌, 전체 시험 · 빌드(끝에 몰아서).
+
 ## I-P-12m-theme · 2026-11-23 · 블루프린트 테마 문서: ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
 - 브랜치: `docs/P-12m-theme`(feat/P-12l-blueprint-defaults 5ca75ab에서 갈라짐, 로컬. FrontLead가 feat/P-12m-blueprint-theme로 합침)
 - 출처: 사용자 승인 계획 `.claude/plans-share/p12m-blueprint-theme.md`(맨 위 "11-23 10:00 T1 결정"), Maestro 요청(11-23)

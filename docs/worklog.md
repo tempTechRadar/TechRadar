@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12m-blueprint-theme | P-12m 파란 도면 테마: 토큰 5개(--paper · --on-paper · --grid · --grid-2 · --scan) · 바탕 격자 · 일반 화면 흰 도면 시트 · 흰 글자 메뉴, 지도 흰 고리 · 흰 점 테두리 · 등급색 흰 받침, 레이더 "선 + 파동" 기본(선 두 바퀴 · 파동 세 번 · 먼저 닿은 때 한 번 켜짐 · 새 기술 추적 틀 최근 5개), 청사진 판 도면 바탕 · 흰 굵은 단계 선 | Maestro(배정) · Claude FrontLead(구현) | `feat/P-12m-blueprint-theme` 로컬, tsc 통과 · 고친 시험 51 통과 |
 | I-P-12m-theme | 블루프린트 테마 문서(로컬): ADR 0044 새로(바탕 #0E5BA3 · 흰 선 · 제목 칸 · 설명선 무늬, 흰 면 · 도면 시트 규칙, 레이더 선과 파동 · 36시간 점 · 추적 틀 · 움직임 줄이기, 대비 표), ADR 0042 6항 개정 표시, design.md 5 · 6 · 16절 새 토큰(--paper · --on-paper · --grid · --grid-2 · --scan), GLOSSARY 도면 시트 · 추적 틀. 대비는 contrast.ts로 다시 계산(흰 6.90 · #8ED8FF 4.41 · 등급색 1.17~1.93 · 먹 2.52). FrontLead 보고 뒤 토큰 값 넷(#ffffff · #3e7cb5 · #6e9dc8 · #8ed8ff)과 추적 틀 기준(지도 NEW 중 최근 5개)을 채움. 아직: 구현 결과 | DocsChecker(Claude) | `docs/adr/0044-*` |
 
 ## 2026-11-22 (일)
