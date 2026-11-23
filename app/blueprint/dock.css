@@ -26,7 +26,6 @@
 .dock-tech.added { border: 2px solid var(--ink); } /* 보드에서 "청사진에 넣기"로 온 기술: 굵은 테두리 + 맨 앞 + 안내 글 */
 .dock-grade { font-size: var(--fs-cap); font-weight: 700; }
 .dock-in { font-size: var(--fs-cap); font-weight: 700; color: var(--ink-2); } /* 이 판에 이미 넣은 기술(P-12j): 글자로 구분 */
-.dock-list { margin: 0; padding-left: 1.2em; }
 .dock-grade.g-danger { color: var(--ink-danger); }
 .dock-grade.g-caution, .dock-grade.g-unknown { color: var(--ink-2); }
 .dock-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
@@ -66,3 +65,19 @@
 .tt-more { margin-top: var(--sp-2); }
 @media (pointer: coarse) { .tt-row { min-height: 44px; } .tt-row-add { width: 44px; height: 44px; } }
 .tt-row-err { padding: 0 4px; border: 1px dashed var(--err-line); border-radius: var(--r-sm); font-size: var(--fs-cap); color: var(--muted); } /* 수집 오류(불변 2) */
+/* 변경 이력 표(P-12v 사용자: 줄글 말고 칸마다): 머리 줄 고정, 줄무늬 없이 가는 선, 종류는 작은 칩 */
+.dock-log-wrap { overflow-x: auto; }
+.dock-log { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.dock-log th { position: sticky; top: 0; z-index: 1; padding: 6px 10px; text-align: left; font-weight: 600; color: var(--on-paper-2); background: var(--surface); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dock-log td { padding: 6px 10px; border-bottom: 1px solid var(--line-d); vertical-align: top; }
+.dock-log tbody tr:hover { background: color-mix(in srgb, var(--scan) 6%, transparent); }
+.dock-log-n, .dock-log-at { width: 1%; white-space: nowrap; color: var(--on-paper-2); font-variant-numeric: tabular-nums; }
+.dock-log-text { overflow-wrap: anywhere; }
+.dock-log-go { white-space: nowrap; }
+.dock-log-go .bp-link + .bp-link { margin-left: 8px; }
+.dock-log-kind { display: inline-block; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-cap); white-space: nowrap; color: var(--ink-2); }
+.dock-log-kind[data-kind="더하기"] { border-color: var(--pass); color: var(--pass); }
+.dock-log-kind[data-kind="빼기"] { border-color: var(--danger); color: var(--danger); }
+.dock-log-kind[data-kind="연결"], .dock-log-kind[data-kind="관계"] { border-color: var(--ice); color: var(--ice); }
+.dock-log-kind[data-kind="섹션"], .dock-log-kind[data-kind="판"] { border-color: var(--scan); color: var(--scan); }
+@media (max-width: 640px) { .dock-log-at, .dock-log th:nth-child(2) { display: none; } } /* 폰: 시각 칸은 빼고 번호 · 종류 · 내용 · 바로 가기 */
