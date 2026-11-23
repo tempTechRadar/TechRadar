@@ -1,17 +1,15 @@
 // 위키 챗봇(IA-18, PRD-F31). 팀원 = 관리자만. 서비스 안 AI 기능과 따로 둔다. 일반 사용자에게 내부 문서를 보여 주지 않는다.
+// 페이지는 관리자 확인 · 읽기만, 그림은 body.tsx(I-admin-unify).
 import { CHATBOT_PER_USER_PER_DAY, startOfKoreanDay } from "@/lib/ai/decide-ai-call";
 import { adminGate } from "@/lib/server/admin-gate";
 import { readMyRecentChats } from "@/lib/server/chat";
 import type { Row } from "@/lib/server/alert-db";
-import { AdminShell, when } from "../admin-shell";
-import { ChatForm } from "./chat-form";
-
-const PROVES = "답이 위키 안의 출처 쪽에서만 오고, 없으면 지어내지 않고, 문서끼리 다르면 양쪽 출처를 함께 말한다는 것";
-const LEAD = "프로젝트 위키(wiki/)에서 맞는 쪽을 찾아 그 쪽만 Claude에 보내 답해요. 답 아래에 출처 쪽이 나오고, 위키에 없으면 \"위키에 없습니다\"라고 해요.";
+import { AdminShell } from "../admin-shell";
+import { ChatBody, TITLE } from "./body";
 
 export default async function ChatPage() {
   const gate = await adminGate();
-  if ("blocked" in gate) return <AdminShell tab="chat" title="위키 챗봇" blocked={gate.blocked} />;
+  if ("blocked" in gate) return <AdminShell tab="chat" title={TITLE} blocked={gate.blocked} />;
   let recent: Row[] = [];
   let error: string | null = null;
   try {
@@ -25,21 +23,5 @@ export default async function ChatPage() {
     .eq("user_id", gate.user.id).eq("purpose", "chatbot").eq("status", "failed").gte("created_at", new Date(since).toISOString());
   const failedToday = failedRes.error || typeof failedRes.count !== "number" ? null : failedRes.count;
   const usedToday = recent.filter((r) => new Date(r.created_at).getTime() >= since).length + (failedToday ?? 0);
-  return (
-    <AdminShell tab="chat" title="위키 챗봇" lead={LEAD} proves={PROVES} error={error}>
-      <p className="muted">오늘 남은 질문: {Math.max(0, CHATBOT_PER_USER_PER_DAY - usedToday)} / {CHATBOT_PER_USER_PER_DAY}개 · 답은 800자 안{failedToday === null ? " · 실패한 질문 수를 읽지 못해 성공한 질문만 셌어요" : failedToday > 0 ? ` · 실패한 질문 ${failedToday}개도 한도에 들어가요` : ""}</p>
-      <ChatForm />
-      <h2>내 최근 질문</h2>
-      {recent.length === 0 ? <p>아직 없어요.</p> : (
-        <ul className="admin-recent">
-          {recent.map((r) => (
-            <li key={r.id}>
-              <span className="muted">{when(r.created_at)}</span> {r.question}
-              <br />→ {r.answer}{Array.isArray(r.wiki_pages) && r.wiki_pages.length ? <span className="muted"> (출처: {r.wiki_pages.join(", ")})</span> : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </AdminShell>
-  );
+  return <ChatBody recent={recent} usedToday={usedToday} failedToday={failedToday} error={error} />;
 }

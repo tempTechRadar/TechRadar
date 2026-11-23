@@ -79,14 +79,15 @@ test("틀 밖이던 시뮬레이터 · 지금 실행 · 실패 시연이 관리�
 });
 
 test("실패 시연: 스위치가 꺼진 운영에서 대신 쓸 길(깨진 시연 저장소 → 프로젝트 보드 등록 → 흐름 화면)을 안내한다", () => {
-  const text = readFileSync("app/admin/demo/page.tsx", "utf8");
+  const text = readFileSync("app/admin/demo/body.tsx", "utf8"); // 안내는 본문(I-admin-unify: 페이지는 역할 확인 · 스위치 읽기만)
   assert.match(text, /https:\/\/github\.com\/csaeil\/techradar-fail-demo/);
   assert.match(text, /\+ 레포 등록/);
   assert.match(text, /\{on \? null : <ProdFailGuide \/>\}/);
 });
 
 test("흐름 화면: ?run= 실행이 최근 20개 밖이면 id로 따로 읽고, 없으면 최근 실행으로 대신 그리지 않는다", () => {
-  const text = readFileSync("app/admin/flow/page.tsx", "utf8");
+  // 읽기는 page.tsx, 못 찾음 안내는 body.tsx(I-admin-unify)
+  const text = readFileSync("app/admin/flow/page.tsx", "utf8") + readFileSync("app/admin/flow/body.tsx", "utf8");
   assert.match(text, /\.eq\("id", wanted\)\.maybeSingle\(\)/);
   assert.match(text, /그 실행을 찾지 못했어요/);
   assert.match(text, /const picked = asked \? asked\.run : recent\[0\] \?\? null;/);

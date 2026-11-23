@@ -1,5 +1,6 @@
 // 실행 하나를 그림·화살표 건수·상자 상세·실행 목록으로 보여 준다. 관리자 흐름 화면(IA-16)과 내 실행 기록(IA-11)이 같이 쓴다.
 // 값은 모두 실제 runs·run_steps 기록에서 온다(불변 6). 칠하는 규칙은 lib/flow/status 그대로.
+// 관리자 흐름 화면은 그림(RunDiagram)과 실행 목록(RunTable)을 따로 섹션에 넣고, 내 실행 기록은 둘을 묶은 RunView를 쓴다.
 import Link from "next/link";
 import { edgeLabels } from "@/lib/flow/counts";
 import { nodeDetail, type NodeDetail } from "@/lib/flow/detail";
@@ -64,18 +65,27 @@ export function RunTable({ flow, runs, picked, basePath }: Pick<Props, "flow" | 
   );
 }
 
-export function RunView({ flow, runs, picked, steps, node, basePath, stepsError }: Props) {
+/** 그림 부분만(범례 · 그림 · 상자 상세). 관리자 흐름 화면은 이것과 실행 목록을 따로 섹션에 넣는다. 단계를 못 읽었으면 그리지 않는 쪽은 부르는 곳이 정한다 */
+export function RunDiagram({ flow, picked, steps, node, basePath }: Pick<Props, "flow" | "picked" | "steps" | "node" | "basePath">) {
   const colored = colorize(flow, picked, steps);
   const selectedNode = node ? flow.nodes.find((n) => n.id === node) : undefined;
   return (
     <>
-      {stepsError ? <p role="alert" className="admin-note danger">이 실행의 단계를 읽지 못했어요(없는 게 아니에요): {stepsError}</p> : <>
       <Legend />
       <p style={{ fontSize: 14, color: "var(--muted)" }}>상자를 누르면 설정과 이 실행의 기록(들어온 것·나간 것·호출·오류)이 아래에 나와요. 화살표 위 숫자는 넘어간 건수예요. 시작 상자(예약·지금 실행·시뮬레이터 등)를 누르면 그 시작에서 갈 수 있는 길이 파란 점선으로 보이고, 다시 누르면 풀려요.</p>
       <FlowDiagram flow={flow} colored={colored} edgeLabels={edgeLabels(flow, steps)}
         nodeHref={(id) => href(basePath, picked?.id, id)} selected={selectedNode?.id} />
       {selectedNode ? <DetailPanel detail={nodeDetail(selectedNode, steps)} /> : null}
-      </>}
+    </>
+  );
+}
+
+/** 내 실행 기록(/projects/runs)이 쓰는 한 덩어리: 그림 + 실행 목록 */
+export function RunView({ flow, runs, picked, steps, node, basePath, stepsError }: Props) {
+  return (
+    <>
+      {stepsError ? <p role="alert" className="admin-note danger">이 실행의 단계를 읽지 못했어요(없는 게 아니에요): {stepsError}</p>
+        : <RunDiagram flow={flow} picked={picked} steps={steps} node={node} basePath={basePath} />}
       <h2>실행 목록</h2>
       <RunTable flow={flow} runs={runs} picked={picked} basePath={basePath} />
     </>

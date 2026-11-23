@@ -66,14 +66,14 @@ test("P-18 코드는 서비스 키 클라이언트를 쓰지 않는다(RLS가 �
 });
 
 test("수집 실행 화면의 '지금 한 번 실행'은 꺼진 자리가 아니라 실제 화면(/admin/run-now)으로 가는 링크다", () => {
-  const { text } = read("app/admin/runs/page.tsx");
+  const { text } = read("app/admin/runs/body.tsx"); // 화면 그림은 body.tsx(I-admin-unify: 페이지는 읽기 · 권한만)
   assert.match(text, /<Link href="\/admin\/run-now"[^>]*>지금 한 번 실행<\/Link>/);
   assert.doesNotMatch(text, /<button[^>]*disabled[^>]*>지금 한 번 실행/);
   assert.doesNotMatch(text, /조각\(P-17\)이 붙으면 켜져요/);
 });
 
 test("실패 시연 안내는 ADR 0016과 같다: 관리자도 자기 알림은 판단할 수 있다고 쓰고, '관리자는 판단할 수 없'다고 쓰지 않는다", () => {
-  const { text } = read("app/admin/demo/page.tsx");
+  const { text } = read("app/admin/demo/body.tsx"); // 안내 문구는 body.tsx(I-admin-unify)
   assert.doesNotMatch(text, /관리자는 판단할 수 없/);
   assert.match(text, /자기 알림/);
 });
