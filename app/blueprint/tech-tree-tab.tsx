@@ -3,6 +3,7 @@
 // 데이터: 서랍(pool = 내 기술 · 적용 후보 · 이력, 넣을 수 있음) + 관심 · 보류(보드와 같은 계산, tree-actions). 카탈로그 찾기는 없앰(P-12h-2 T3: 기술은 지도에서 고른다).
 // 불변 1: 끌기 · "넣기"는 서랍(pool)만. 관심 · 보류는 점선 카드 + "적용 후보로 고르기"(사람이 누를 때만 판단, markTech) → 다시 읽으면 실선. 위험 등급은 막음.
 // 손님은 판단이 없어 "지도에서 담은 기술" 폴더 하나(지도 "청사진에 담기" → 이 브라우저 목록, 끌어 놓을 수 있고 확정은 로그인).
+// P-12t: 카드 · 한 줄의 이름을 누르면(Enter) 오른쪽 서랍에 그 기술의 상세(onDetail). 끌기 · [+]는 그대로.
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -37,7 +38,7 @@ function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
 
 /** extras = 관심 · 보류(Dock이 읽어 탭을 바꿔도 다시 읽지 않음, undefined = 읽는 중) */
 export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; extras: TreeExtras | undefined }) {
-  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras, catalog, onPlace, onSectionTech } = p;
+  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras, catalog, onPlace, onSectionTech, onDetail } = p;
   const add = useSearchParams()?.get("add") ?? null;
   const [dims, setDims] = useDims();
   const [term, setTerm] = useState(""), [tag, setTag] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
       {!mapReady && catalog ? <p className="muted" role="status">지도 전체는 관심 · 보류를 읽은 뒤에 보여요.</p> : null}
       {catalog === null ? <p className="notice notice-error" role="alert">지도 기술을 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p> : null}
       {tree.length ? <Tree tree={tree} stage={stage?.name ?? null} placedIn={(id) => Boolean(stage?.techs.some((x) => x.id === id))} inBoard={(id) => inBoard.has(id)} chooser={chooser} target={target?.id ?? null}
-        usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} onUnpick={guestPicks?.remove} />
+        usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} onUnpick={guestPicks?.remove} onDetail={onDetail} />
         : items.length ? <p className="muted">이 조건에 맞는 기술이 없어요.</p>
         : guest ? (found ? <p className="muted">지도에서 기술을 골라 &quot;청사진에 담기&quot;를 눌러 주세요. <Link href="/">지도 열기</Link></p> : null)
         : extras?.kind === "ok" ? <p className="muted">지도에서 &quot;청사진에 담기&quot;를 누르면 여기 나와요. <Link href="/">지도 열기</Link></p> : null}
@@ -175,6 +176,7 @@ type TreeProps = {
   inBoard: (id: string) => boolean; chooser: { id: string | null; set: (id: string | null) => void; form: (t: Item) => ReactNode };
   marking: string | null; follow: Follow; onPut: (t: Item) => void; onCandidate?: (techId: string, name: string) => void;
   /** 손님 "목록에서 빼기" */ onUnpick?: (techId: string) => void;
+  /** 이름을 눌러 서랍에 상세(P-12t) */ onDetail?: (techId: string) => void;
 };
 
 /** 펼쳐 보이는 폴더를 위에서부터 한 줄로(키보드 이동 차례) */
@@ -182,7 +184,7 @@ type Row = { f: Folder<Item>; depth: number; parent: string | null; pos: number;
 const visible = (fs: Folder<Item>[], open: Set<string>, depth = 1, parent: string | null = null): Row[] =>
   fs.flatMap((f, i) => [{ f, depth, parent, pos: i + 1, size: fs.length }, ...(open.has(f.key) ? visible(f.children, open, depth + 1, f.key) : [])]);
 
-function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking, follow, onPut, onCandidate, onUnpick }: TreeProps) {
+function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking, follow, onPut, onCandidate, onUnpick, onDetail }: TreeProps) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState<string | null>(null);
   const [seen, setSeen] = useState<Follow>(null);
@@ -223,10 +225,11 @@ function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking,
       </ul>
       <section className="tt-cards" aria-label={`${current.name} 기술`}>
         <h3 className="dock-h">{current.path.join(" › ")} <span className="muted">{current.count}</span></h3>
-        {current.key.startsWith("map:") ? <MapRows key={current.key} items={current.items} stage={stage} placedIn={placedIn} inBoard={inBoard} chooser={chooser} busy={marking} onPut={onPut} />
+        {current.key.startsWith("map:") ? <MapRows key={current.key} items={current.items} stage={stage} placedIn={placedIn} inBoard={inBoard} chooser={chooser} busy={marking} onPut={onPut} onDetail={onDetail} />
         : <ul className="dock-techs">{current.items.map((t) => <Card key={t.id} t={t} use={usage.get(t.id)} stage={stage} placed={placedIn(t.id)} inBoard={inBoard(t.id)} added={t.id === target}
           choose={chooser.id === t.id ? chooser.form(t) : null} onChoose={() => chooser.set(chooser.id === t.id ? null : t.id)}
-          busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} onUnpick={onUnpick && !t.catalog ? () => onUnpick(t.id) : undefined} />)}</ul>}
+          busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} onUnpick={onUnpick && !t.catalog ? () => onUnpick(t.id) : undefined}
+          onDetail={onDetail ? () => onDetail(t.id) : undefined} />)}</ul>}
       </section>
     </div>
   );
@@ -235,8 +238,8 @@ function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking,
 const MAP_PAGE = 50;
 /** "지도 전체"는 한 줄 목록(P-12o 사용자 점검: 카드가 커서 500개를 훑기 어려움): 종류 글자 · 이름 · 위험 · 주의일 때만 ✕ · ! · [+]. 50개씩 "더 보기".
  *  끌기 · [+]는 카드와 같은 길(담기 뒤 넣기, 불변 4). 담기 · 빼기 표시는 판에 넣은 기술에만(✓) */
-function MapRows({ items, stage, placedIn, inBoard, chooser, busy, onPut }: { items: Item[]; stage: string | null; placedIn: (id: string) => boolean; inBoard: (id: string) => boolean;
-  chooser: TreeProps["chooser"]; busy: string | null; onPut: (t: Item) => void }) {
+function MapRows({ items, stage, placedIn, inBoard, chooser, busy, onPut, onDetail }: { items: Item[]; stage: string | null; placedIn: (id: string) => boolean; inBoard: (id: string) => boolean;
+  chooser: TreeProps["chooser"]; busy: string | null; onPut: (t: Item) => void; onDetail?: (techId: string) => void }) {
   const [n, setN] = useState(MAP_PAGE);
   return (
     <>
@@ -245,7 +248,8 @@ function MapRows({ items, stage, placedIn, inBoard, chooser, busy, onPut }: { it
         return (
           <li key={t.id} data-tech={t.id} className="tt-row" draggable={!risky} onDragStart={(e) => { if (risky) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
             <span className="tc-icon" aria-hidden="true" title={TYPE_KO[t.type] ?? t.type}>{TYPE_GLYPH[t.type] ?? "·"}</span>
-            <span className="tt-row-name">{t.name}<span className="sr-only">, {TYPE_KO[t.type] ?? t.type}</span></span>
+            {onDetail ? <button type="button" className="tt-row-name tt-open" aria-label={`${t.name}, ${TYPE_KO[t.type] ?? t.type} 자세히 보기`} onClick={() => onDetail(t.id)}>{t.name}</button>
+              : <span className="tt-row-name">{t.name}<span className="sr-only">, {TYPE_KO[t.type] ?? t.type}</span></span>}
             {mark ? <b className={`tt-row-grade g-${t.grade}`} title={GRADE_KO[t.grade]}>{mark}<span className="sr-only"> {GRADE_KO[t.grade]}</span></b> : null}
             {t.collectError ? <span className="tt-row-err" title="수집 오류: 지난 값">오류</span> : null}
             {inBoard(t.id) ? <span className="tt-row-in">✓<span className="sr-only"> 판에 넣음</span></span> : null}
@@ -264,14 +268,14 @@ function MapRows({ items, stage, placedIn, inBoard, chooser, busy, onPut }: { it
 
 /** 넣을 수 있는 카드(실선, 끌기 · 넣기) 또는 판단 전 카드(점선, "적용 후보로 고르기"만). 등급은 점 색만이 아니라 글자로도 */
 /** inBoard = 이 판 어딘가에 이미 넣음(✓ 글자, 후보는 점선 카드라 모양이 다름). 단계를 안 골랐으면 [+]로 넣을 단계를 고른다(choose = 그 고르기 칸) */
-function Card({ t, use, stage, placed, inBoard, added, busy, choose, onChoose, onPut, onCandidate, onUnpick }: { t: Item; use?: TechUsage; stage: string | null; placed: boolean; inBoard: boolean; added: boolean; busy: boolean;
-  choose: ReactNode; onChoose: () => void; onPut: () => void; onCandidate?: () => void; onUnpick?: () => void }) {
+function Card({ t, use, stage, placed, inBoard, added, busy, choose, onChoose, onPut, onCandidate, onUnpick, onDetail }: { t: Item; use?: TechUsage; stage: string | null; placed: boolean; inBoard: boolean; added: boolean; busy: boolean;
+  choose: ReactNode; onChoose: () => void; onPut: () => void; onCandidate?: () => void; onUnpick?: () => void; onDetail?: () => void }) {
   const risky = t.grade === "danger", can = t.droppable && !risky;
   const facts = [t.field, t.projects ? `프로젝트 ${t.projects}개` : null, use ? `확정 ${use.n}번` : null].filter(Boolean).join(" · ");
   return (
     <li data-tech={t.id} className={`dock-tech${risky ? " risky" : ""}${added ? " added" : ""}${t.droppable ? "" : " tt-out"}`} draggable={can}
       onDragStart={(e) => { if (!can) return; e.dataTransfer.setData(TECH_DRAG, t.id); e.dataTransfer.effectAllowed = "copy"; }}>
-      <span className="dock-chip"><TechChip tech={t} info={t} />{t.grade !== "pass" ? <span className={`dock-grade g-${t.grade}`}>{GRADE_KO[t.grade]}</span> : null}{inBoard && !placed ? <span className="dock-in">✓ 판에 넣음</span> : null}</span>
+      <span className="dock-chip">{onDetail ? <button type="button" className="tt-open" aria-label={`${t.name}, ${TYPE_KO[t.type] ?? t.type}, ${GRADE_KO[t.grade]} 자세히 보기`} onClick={onDetail}><TechChip tech={t} info={t} /></button> : <TechChip tech={t} info={t} />}{t.grade !== "pass" ? <span className={`dock-grade g-${t.grade}`}>{GRADE_KO[t.grade]}</span> : null}{inBoard && !placed ? <span className="dock-in">✓ 판에 넣음</span> : null}</span>
       {facts ? <span className="muted">{facts}</span> : null}
       {t.note ? <span className="muted">{t.judgment === "hold" ? `보류 이유: ${t.note}` : t.note}</span> : null}
       {t.tags.length ? <span className="dock-tags">{t.tags.map((x) => <span key={x} className="tag">{x}</span>)}</span> : null}

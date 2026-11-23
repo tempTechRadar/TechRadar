@@ -26,7 +26,7 @@ import { addPicked, loadPicked, removePicked, savePicked } from "@/lib/blueprint
 import { cartChanged } from "@/lib/blueprint/cart-event";
 import { groupSection, putSectionTech, removeSectionTech, ungroupSection } from "@/lib/blueprint/sections";
 import { SectionNode, type SectionNodeType } from "./section-node";
-import { AskDialog } from "../c-dialog";
+import { AskDialog, Dialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
 import { fromRecord, LoadMenu } from "./load-menu";
@@ -116,6 +116,8 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
   // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김. at = 초점 갈 곳(카드를 눌러 연 것은 초점을 캔버스에 둠: Delete · 화살표가 그대로 되게)
   const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "insp" });
+  const [detail, setDetail] = useState<string | null>(null); // 하단 패널에서 누른 기술의 상세(P-12t). 캔버스에서 무엇을 고르면 그쪽이 서랍을 차지
+  useEffect(() => setDetail(null), [picked]);
   useEffect(() => { if (drawer && drawerAt.at !== "stay") drawerBox.current?.querySelector<HTMLElement>(drawerAt.at === "note" ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
   // 고른 카드가 서랍에 가리면 화면을 그만큼 옮긴다(U2, 움직임 줄이기면 바로)
   const pickedStage = picked?.stageId ?? null;
@@ -586,7 +588,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   function pick(p: Picked) { setPicked(p); setSel(p ? new Set([p.stageId]) : new Set()); if (p?.kind === "tech") openDrawer(); } // 기술을 고르면 서랍이 열려 초점도 그리로(카드 고르기는 onNodesChange에서 열고 초점은 그대로)
   // 여럿 고른 것 중 지금 판에 있는 것만(되돌리기 · 다른 곳에서 지운 뒤 남은 id로 수가 부풀지 않게)
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
-  const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
+  const panel: PanelProps = { detail, onDetail: (id) => { setDetail(id); if (!narrow) openDrawer(); }, graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
     guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onSectionTech: readOnly ? undefined : dropSectionTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }), stages: [...sel].filter((id) => stageOf(id)).length, onGroup: readOnly || listMode ? undefined : groupChosen } : undefined };
 
@@ -654,6 +656,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
         )}
       </div>
       <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} go={goTo} />
+      {narrow && detail ? <Dialog title="기술 자세히" onClose={() => setDetail(null)}><Inspector {...panel} /></Dialog> : null}{/* 휴대폰은 서랍이 없어 창으로(P-12t) */}
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} notices={notices} projects={projects} busy={done.busy} error={done.error} guest={guest}

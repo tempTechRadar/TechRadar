@@ -47,6 +47,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
   const ends = new Set(stages.map((s) => linkEnd(techId, s.id)));
   const nameOf = (end: string) => { for (const s of graph.stages) for (const t of s.techs) if (linkEnd(t.id, s.id) === end) return `${t.name}(${s.name})`; return "이름 모름"; };
   const links = (graph.links ?? []).filter((l) => ends.has(l.from) || ends.has(l.to));
+  const offBoard = stages.length === 0 && (tab === "rel" || tab === "log"); // 하단 패널에서 연 판 밖 기술(P-12t): 판의 관계 · 이력이 아직 없다
   const body = got === undefined ? <p className="muted" role="status">읽는 중…</p>
     : !got.ok ? (got.preview ? <p className="muted">미리보기(개발용)에서는 기술 정보를 읽지 않아요.</p> : UNREAD)
     : null;
@@ -55,7 +56,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
       <div className="dock-tabs" role="group" aria-label="기술 보기">
         {TABS.map(([k, label]) => <button key={k} type="button" className="dock-tab" aria-pressed={tab === k} onClick={() => setTab(k)}>{label}</button>)}
       </div>
-      {tab === "rel" ? <>
+      {offBoard ? <p className="muted">판에 넣으면 보여요.</p> : tab === "rel" ? <>
         {/* 이 판의 관계선은 서버를 읽지 않아도 안다 */}
         <h3 className="dock-h">이 판에서 내가 그은 관계 {links.length}</h3>
         {links.length ? <ul className="insp-links">{links.map((l) => (
