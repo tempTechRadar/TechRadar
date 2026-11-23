@@ -6,6 +6,20 @@
 
 ---
 
+## I-afternoon-1123 · 2026-11-23 · 오후 문서: ADR 0045(AI 두 곳) · ADR 0044에 P-12p · 용어 4개 · README 상태 줄 · 위키 반영 계획 (DocsChecker 세션)
+- 브랜치: `docs/afternoon-1123`(origin/main a03d64b에서)
+- 출처: Maestro 배정(11-23 오후), PR #221 · #222 · #224 · #226 설명과 코드(`lib/map/presets.ts` · `lib/ai/translate-one-liners.ts` · `lib/ai/decide-ai-call.ts` · `lib/blueprint/sections.ts`), 사용자 "API 이제 써"(11-23 오후)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 오후에 합친 AI 두 곳(#224 진단 · #226 한국어 개요)과 지도 손질(#222)이 결정 기록 · 용어집에 없고, README 상태 줄은 오전 9114a8b 기준이다 |
+| 기대 결과 | ADR 0045(AI를 쓰는 두 곳), ADR 0044에 LS점프업 · 관문 삭제 · 잔잔한 레이더 한 줄씩, GLOSSARY에 LS점프업 · 한국어 개요 · 프롬프트 진단 · 섹션, README 상태 줄을 지금 main · 운영 기준으로. 위키는 반영 계획 표만 Maestro에 보냄 |
+| 영향 범위 | `docs/adr/0045-…` · `docs/adr/0044-…` · `docs/GLOSSARY.md` · `README.md` · intent · worklog. 앱 코드 · qa 문서 · wiki/는 안 건드림 |
+| 제약 | 로컬 커밋만, 푸시 X. 새 PR은 사용자 승인 뒤. 위키는 동결(21:00) 뒤 계획 확인을 받고 반영. 숫자(백필 497/500 · 호출 38)는 PR 설명 값이고 다시 세지 않음 |
+| 열린 질문 | 운영이 #224(2fb93cb)에 머물러 있다: #225 · #226은 Vercel 운영 배포 기록이 없음(15:30 확인). 다시 배포는 사용자 승인 일 |
+
+**결과:** ADR 0045 새로, ADR 0044 "뒤이어 바뀐 것(P-12p)" 절, GLOSSARY 4개 + 바뀐 기록, README 상태 줄 · 발표 자료 줄(17쪽, ▢ 11곳) 고침. 사람 QA 결과는 ADR 0045 "결과"에 끝나면.
+
 ## I-P-12r-ko-view · 2026-11-23 · 기술마다 한국어 개요 — 화면 표시 (DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12r-ko-view`(`feat/P-12r-ko-overview` 위, 433d7b18을 합침 → PR 하나로)
 - 출처: Maestro 배정(사용자 승인), 붙일 곳 정리 `.claude/plans-share/p12r-ko-overview-spots.md`, 백엔드 I-P-12r-ko-overview
