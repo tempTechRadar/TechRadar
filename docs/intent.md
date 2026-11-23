@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12s-blueprint-guide · 2026-11-23 · 청사진 가이드 캐릭터 (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12s-blueprint-guide`(origin/main 46cb9067에서 갈라짐)
+- 출처: 계획 `.claude/plans-share/p12s-blueprint-guide.md`(11-23 15:25 사용자 요청 · 승인), 불변 1 · 4 · 5, SPEC-9(AI 사용 규칙), PRD-NF6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 빈 청사진 앞에서 무엇부터 단계로 나누고 어떤 기술을 붙일지 막힌다. 문제정의부터 같이 묻고 제안해 주는 길이 없다 |
+| 기대 결과 | 판 오른쪽 아래 관측소 로봇을 누르면 말풍선 대화: 문제정의(한 번에 하나씩) → 한 줄 요약 → 3~7단계 제안 [판에 넣기] → 단계마다 우리 목록 기술 [넣기]. AI는 제안만 |
+| 영향 범위 | `lib/ai/{build-guide-prompt,parse-guide-response,decide-ai-call}.ts`, `lib/server/blueprint-guide.ts`, `lib/blueprint/guide-graph.ts`, `app/blueprint/{guide-actions.ts,guide.tsx,guide.css,studio.tsx}`, 마이그레이션 `202611240500`(ai_calls.purpose) |
+| 제약 | 로그인만 · 하루 20번 · 호출은 ai_calls에 기록 · 대화는 sessionStorage(서버 저장 없음). 기술은 서버가 만든 목록(관문 안 + 지도 공개, 위험 뺌)의 id만, 넣기는 기존 길(관문 · 담고 넣기, 실패면 안 넣음). 새 라이브러리 없음. 운영 DB 쓰기는 Maestro(승인) |
+| 열린 질문 | 지도 목록을 앞에서부터 150개로 자름(관련도 순 아님) — 기술이 안 맞는다는 말이 많으면 대화 낱말로 고르기 |
+
+**결과:** 로컬 커밋. 실제 API 4턴(가짜 DB, 운영 쓰기 없음): 질문 → 요약 → 5단계 → 기술 6개(목록 id만), 2~10초, ai_calls 4줄. 화면 1440 · 390(대화는 실제 답을 브라우저에 넣어 그림). 마이그레이션 운영 적용: Maestro(사용자 승인, 시험 8/8). 보안 검토 · 자체 리뷰 10건 반영(부르기 전 자리 잡고 다시 세기 등). 사용자 추가 2개: 가까이 놓아도 저절로 잇지 않음, 카드 아래 [＋ 나란히] 되살림. `npm test` 1865/1865 · tsc · build · precheck 통과.
+
 ## I-afternoon-1123 · 2026-11-23 · 오후 문서: ADR 0045(AI 두 곳) · ADR 0044에 P-12p · 용어 4개 · README 상태 줄 · 위키 반영 계획 (DocsChecker 세션)
 - 브랜치: `docs/afternoon-1123`(origin/main a03d64b에서)
 - 출처: Maestro 배정(11-23 오후), PR #221 · #222 · #224 · #226 설명과 코드(`lib/map/presets.ts` · `lib/ai/translate-one-liners.ts` · `lib/ai/decide-ai-call.ts` · `lib/blueprint/sections.ts`), 사용자 "API 이제 써"(11-23 오후)
@@ -97,7 +111,8 @@
 |---|---|
 | 문제 | PR #220의 시트 사본을 만든 뒤 main에 들어온 qa.md 행 5개(숨긴 사용기 1 · 관리자 지정/되돌리기 4)가 시트에 없었다. `qa-final.md` 묶음 E 표는 결과를 가리키지 않았다. `qa.md` "별명 규칙 DB … 운영 DB에 실제 적용한 뒤" 행이 진짜 탭·줄바꿈 문자로 두 줄로 쪼개져 표가 끊겼다(`318259c`에서 외톨이 CR이 줄바꿈으로 바뀜). |
 | 기대 결과 | 시트 두 장이 md와 행마다 같다(대조 어긋남 0). 묶음 E 표에서 결과 행을 찾아갈 수 있다. 쪼개진 행이 한 줄로 이어진다. |
-| 영향 범위 | `docs/qa/QA_유저시나리오_TechRadar_2026-11-23.xlsx`(행 5개 끼움 · md 순서 · 번호 · 요약식 범위 · 결과 색 3칸), `docs/qa-final.md`(묶음 E 결과 한 줄 · 고칠 행 8칸), `docs/qa.md`(한 행의 탭·줄바꿈을 글자 `	-`로). 코드 변경 없음. |
+| 영향 범위 | `docs/qa/QA_유저시나리오_TechRadar_2026-11-23.xlsx`(행 5개 끼움 · md 순서 · 번호 · 요약식 범위 · 결과 색 3칸), `docs/qa-final.md`(묶음 E 결과 한 줄 · 고칠 행 8칸), `docs/qa.md`(한 행의 탭·줄바꿈을 글자 `	-
+`로). 코드 변경 없음. |
 | 제약 | 시트의 기존 행 값(손으로 적은 이슈 칸 포함)은 건드리지 않는다. md가 정본. |
 | 열린 질문 | 칸 수가 맞지 않는 옛 행 4개(5 · 8 · 9칸)와 끝 `|`가 없는 "알림 목록·상세 화면" 행은 그대로 둠(이번 범위 밖). |
 

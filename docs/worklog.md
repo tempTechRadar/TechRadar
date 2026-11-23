@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12s-blueprint-guide | 청사진 가이드 캐릭터: 관측소 로봇(자체 SVG) · 말풍선 티키타카(문제정의 → 요약 → 단계 [판에 넣기] → 기술 [넣기]), 서버 액션 · 프롬프트 · 파서(목록 밖 id · 위험 · 판에 없는 단계 · 설치 명령 버림) · 하루 20번 · ai_calls 기록, 마이그레이션 `202611240500`. 실제 API 4턴 확인(가짜 DB). abbsbook "내 판단" 빈칸 188개를 사용자 말투 초안으로 채움(도우미 5개, 표시 "Claude 초안 — 확인 필요") | Claude(FrontLead), 김영식(요청 · 승인) | `feat/P-12s-blueprint-guide` |
 | I-afternoon-1123 | 오후 문서: ADR 0045(청사진 프롬프트 진단 "AI 제안 · 검증 아님" · 명령 · 낯선 주소 차단 · 하루 3번 / 한국어 개요 "AI 번역" · 원문 보기 · 원문 바뀌면 숨김 · 120자 넘으면 버림 · 백필 497/500), ADR 0044에 P-12p(LS점프업 · 관문 삭제 · 잔잔한 레이더), 용어 4개(LS점프업 · 한국어 개요 · 프롬프트 진단 · 섹션), README 상태 줄(main a03d64b, 합친 PR 224개, 발표 17쪽). PRD-NF6 "AI 쓰는 곳" 넷 → 여섯(AI 점검 0035 + 진단 · 번역 0045, Maestro 요청). README 운영 문구는 "Actions 20분 잠잠 뒤 배포, 지금 값은 /api/version"으로(운영이 #224에 머문 것은 배포 줄 서기, Maestro). 위키 반영 계획 표는 Maestro에 보냄(동결 뒤 반영) | Claude(DocsChecker, Maestro 배정) | `docs/afternoon-1123` 로컬 커밋 |
 | I-admin-unify | 사용자 점검 "메뉴마다 배치가 틀어짐" → 관리자 화면 문법 하나로(머리 → 툴바 → 알림 → 숫자 띠 → 필터 → 섹션, AdminShell이 순서 강제), 화면별 body 분리 + 견본 `/dev/admin-sample/[view]` 11화면 캡처 비교, 실패 시연 칸 단추 높이 맞춤. reports는 주인 파일이라 그대로 | 차세일 / Claude | `app/admin/` · `docs/quality-loop/README.md` |
 | I-admin-simulator-layout | 사용자 점검: 관리자 시뮬레이터만 큰 상자 3개가 세로로 쌓여 다른 화면과 배치가 달랐음 → 동작 3개를 한 줄 칸으로, 위쪽 링크 줄, 본문 분리 + 개발 견본 `/dev/admin-sample/simulator` | 차세일 / Claude | `app/admin/simulator/` · `admin.css` |

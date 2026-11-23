@@ -34,6 +34,8 @@ import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
+import { Guide } from "./guide";
+import { addGuideStages } from "@/lib/blueprint/guide-graph";
 import { StageNode, type StageNodeType } from "./stage-node";
 import { TechNode, type TechNodeType } from "./tech-node";
 import { ResultDialog, type CheckTarget } from "./result-dialog";
@@ -395,7 +397,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined,
       edit: readOnly ? undefined : { onRemove: removeFromCard,
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
-        editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
+        editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard, onBeside: besideGhost } },
   }))];
   // 기술 노드(H2): 단계의 자식(parentId), 자리는 단계 안 자동 흐름(techSlot). 부모 다음에 와야 해서 단계 뒤에 붙인다
   const prevEnds = seenEnds.current, endsNow = g.stages.flatMap((s) => s.techs.map((t) => linkEnd(t.id, s.id)));
@@ -453,10 +455,6 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
         onCut: readOnly ? undefined : () => { canvasBox.current?.focus(); setHoverEdge(null); setSelEdges((x) => { const n = new Set(x); n.delete(id); return n; });
           apply(removeLink(g, l.from, l.to), `"${label}" 관계 표시를 지웠어요.`); } } });
   }
-  const near = assist.near;
-  if (near) edges.push({ id: "near", source: near.from, target: near.to, selectable: false, focusable: false, deletable: false, className: near.blocked ? "se se-blocked" : "se se-near",
-    label: near.blocked === "cycle" ? "고리가 생겨 못 이어요" : near.blocked ? "못 이어요" : "놓으면 이어져요",
-    labelStyle: { fontSize: 11, fill: near.blocked ? "var(--ink-danger)" : "var(--ink-2)" } });
 
   function onNodesChange(every: NodeChange<StageNodeType | TechNodeType | SectionNodeType>[]) {
     const all = every.filter((c) => !("id" in c && c.id.startsWith(SEC))) as NodeChange<StageNodeType | TechNodeType>[]; // 섹션 틀은 계산한 자리라 바뀜을 받지 않음
@@ -494,7 +492,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
       setPicked((p) => (one ? (p?.stageId === one ? p : { kind: "stage", stageId: one }) : tech ? { kind: "tech", stageId: tech.stageId, techId: tech.techId } : null));
       if (total && !readOnly) openDrawer("stay"); // U2(11-22 사용자): 카드를 고르면 서랍이 열림(초점은 캔버스에 남음). 여럿이면 "n개 골랐어요"
     }
-    if (ended) { const r = assist.drop(g, moved); apply(r.next, r.linked ? "가까이 둔 단계와 이었어요." : undefined); setDrag(null); } else if (moved !== drag) setDrag(moved);
+    if (ended) { apply(assist.drop(g, moved)); setDrag(null); } else if (moved !== drag) setDrag(moved);
   }
   function onEdgesChange(changes: EdgeChange[]) {
     let next: Set<string> | null = null;
@@ -642,10 +640,16 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow || g.stages.length <= 2 ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
+              {narrow || g.stages.length <= 2 ? null : <MiniMap position="bottom-left" pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
             </ReactFlow>
           </div>
         )}
+        {/* 청사진 가이드 캐릭터(P-12s): 제안만, 넣기는 사용자가 누른다(불변 1). 단계 이름은 판 순서대로 넘긴다 */}
+        <Guide who={who} guest={guest} drawer={!narrow && !!drawer} stages={lay?.ok ? lay.levels.flat().map((id) => stageOf(id)?.name ?? "").filter(Boolean) : g.stages.map((s) => s.name)}
+          onStages={(names, mode) => { if (readOnly) { say(READ_ONLY); return false; } const next = addGuideStages(g, names, mode); if (next === g || next.stages.length === (mode === "replace" ? 0 : g.stages.length)) { say("넣을 수 있는 새 단계가 없어요(같은 이름 · 한도)."); return false; }
+            apply(next, `가이드가 제안한 단계를 판에 ${mode === "replace" ? "새로" : "뒤에"} 넣었어요. 되돌리기로 돌아갈 수 있어요.`); return true; }}
+          onTech={(stage, techId) => { if (readOnly) return say(READ_ONLY); const s = g.stages.find((x) => x.name === stage); if (s) dropTech(s.id, techId); else say(`"${stage}" 단계가 판에 없어 넣지 않았어요.`); }}
+          placed={(stage, techId) => !!g.stages.find((x) => x.name === stage)?.techs.some((t) => t.id === techId)} />
         {narrow || !drawer ? null : (
           <section ref={drawerBox} className="studio-insp" aria-label="속성 서랍" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
             <div className="studio-insp-bar"><button type="button" className="btn btn-sm" onClick={closeDrawer}>닫기 ✕</button></div>
