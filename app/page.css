@@ -90,7 +90,7 @@
 .page .settings-form input:not([type="checkbox"]):not([type="hidden"]) { font: inherit; color: var(--color-text); background: var(--sunken); border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); min-height: var(--hit); }
 /* 공용 토스트(app/undo-toast.tsx ToastLine). 비어 있으면 안 보인다 */
 .c-toast { display: flex; gap: var(--sp-3); align-items: center; max-width: calc(100vw - 32px); margin: 0; }
-.c-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-pop); }
+.c-toast:not(:empty) { padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--card); color: var(--ink); box-shadow: var(--shadow-pop); } /* 흰 채움 없음(P-12n 공통 규칙): 카드 + 옅은 테두리 */
 .c-toast-float { position: fixed; left: 50%; bottom: var(--sp-5); transform: translateX(-50%); z-index: 60; }
 @media (max-width: 640px) { .c-toast-float { bottom: calc(64px + env(safe-area-inset-bottom)); } } /* 아래 탭 막대 위 */
 /* 공용 대화상자(app/c-dialog.tsx). 단추는 .page .btn을 쓰므로 .page 안에서 그린다 */
@@ -184,7 +184,7 @@
 .c-toast:not(.c-toast-float) { position: relative; } /* 막대 자리. float는 이미 fixed */
 /* 되돌리기 남은 시간 막대 = 시계(6초 고정: --dur로 만들면 움직임 줄이기에서 0초라 바로 닫힘). 올림 · 초점 · 누르고 있음에서 멈춤 */
 @keyframes toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-.c-toast-time { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 0 0 var(--r-md) var(--r-md); background: color-mix(in srgb, var(--on-ink) 50%, transparent); transform-origin: left center; animation: toast-time 6s linear 1 forwards; }
+.c-toast-time { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 0 0 var(--r-md) var(--r-md); background: var(--scan); transform-origin: left center; animation: toast-time 6s linear 1 forwards; }
 .c-toast:focus-within .c-toast-time, .c-toast[data-hold] .c-toast-time { animation-play-state: paused; }
 @media (hover: hover) { .c-toast:hover .c-toast-time { animation-play-state: paused; } } /* 터치는 탭 뒤 :hover가 남아 계속 멈춰 있으니 빼고 [data-hold]로 */
 .c-toast-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* .sr-only와 같음: 화면 읽기에는 늘 읽힘 */
