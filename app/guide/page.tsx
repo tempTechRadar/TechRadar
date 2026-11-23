@@ -6,7 +6,7 @@ import "./guide.css";
 
 // 둘러보기(IA-27, 11-23 사용자 요청): 처음 쓰는 사람이 5분 안에 "무엇이고, 무엇을 어떤 순서로 하고, 무엇이 보장되나"를 따라 하는 안내. 로그인 없이 열린다(DB를 읽지 않음).
 // 내용은 lib/tutorial/ 두 파일에만 있고, 시험이 근거 파일의 실제 문구와 대조한다.
-// 주 단추(청록)는 맨 위 "1단계부터 따라 하기"와 맨 끝 "지금 내 레포 등록하기" 둘: 한 화면 높이에 함께 보이지 않는 처음 · 끝 행동이다
+// 주 단추(청록)는 맨 끝 "지금 내 레포 등록하기" 하나(P-12n). 맨 위 "1단계부터 따라 하기"는 같은 화면 안 이동이라 보조 단추
 export const metadata = { title: "둘러보기 · TechRadar" };
 
 const Ui = ({ text }: { text: string }) => <>{splitUiNames(text).map((p, i) => (p.ui ? <b key={i} className="g-ui">{p.text}</b> : <span key={i}>{p.text}</span>))}</>;
@@ -27,7 +27,7 @@ export default function GuidePage() {
           </li>
         ))}</ul>
         <div className="g-cta">
-          <a className="btn btn-primary" href="#step-1">1단계부터 따라 하기</a>
+          <a className="btn" href="#step-1">1단계부터 따라 하기 ↓</a>
           <Link className="btn" href="/">로그인 없이 지도부터 구경</Link>
           <span className="g-note">6단계, 5분쯤 걸려요.</span>
         </div>
