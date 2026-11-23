@@ -31,8 +31,9 @@ type Go = (t: Issue["target"]) => void;
 export function Dock({ listEdit, go, ...p }: PanelProps & { listEdit?: { on: boolean; flip: () => void }; go: Go }) {
   const [tab, setTab] = useState<DockTab>("tech");
   const [open, setOpen] = useState(true);
-  const [h, setH] = useState(H.start);
-  useEffect(() => setH(Math.max(H.min, Math.round(window.innerHeight * H.share))), []); // useMaxH처럼 붙은 뒤에(하이드레이션 어긋남 없게)
+  // P-12y H4: 처음부터 30%로(붙은 뒤에 줄이면 캔버스 처음 맞춤이 끝난 뒤 캔버스가 작아져 아래 카드 · 섹션이 패널 뒤로 잘렸다).
+  // 하단 패널은 판을 읽은 뒤(브라우저에서만) 그려져 하이드레이션 어긋남이 없다
+  const [h, setH] = useState(() => (typeof window === "undefined" ? H.start : Math.max(H.min, Math.round(window.innerHeight * H.share))));
   const usage = useMemo(() => usageOf(p.history ?? []), [p.history]);
   const [extras, setExtras] = useState<TreeExtras | undefined>(undefined);
   // 기술 트리의 관심 · 보류: 탭을 바꾸거나 접어도 다시 읽지 않고, 서랍을 다시 읽을 때(고르기 뒤 새로 고침)만 다시 읽는다

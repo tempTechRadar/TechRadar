@@ -52,7 +52,7 @@ export async function Band({ alerts, status, newToday, period }: { alerts: Promi
         <li key={label}><Link className="band-cell" href={href}><span className="band-label">{label}</span>
           {v == null ? <span className={v === null ? "band-fail" : "band-none"}>— {v === null ? "읽지 못함" : "로그인 필요"}</span> : <strong>{v}</strong>}
           {/* shortcut: 지도는 새 기술을 최근 NEW_QUOTA개까지만 올린다(map-queries). 늘 넘치면 지도 쪽에 전체 목록 보기를 둔다 */}
-          {href === "/?t=day" && typeof v === "number" && v > NEW_QUOTA ? <span className="band-note">지도엔 최근 {NEW_QUOTA}</span> : null}</Link></li>
+          {href === "/?t=day" && typeof v === "number" && v > NEW_QUOTA ? <span className="band-note">지도에 보이는 건 최근 {NEW_QUOTA}개까지</span> : null}</Link></li>
       ))}</ul>
       {guest ? null : <PeriodSelect value={period} />}
     </div>

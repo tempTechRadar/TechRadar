@@ -33,7 +33,7 @@
 .studio-insp .insp { border-left: 0; }
 .studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
 .studio-canvas { min-height: 320px; position: relative; background: var(--paper); }
-.studio-pan-hint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 4; margin: 0; padding: 2px 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 80%, transparent); color: var(--on-paper-2); font-size: var(--fs-cap); pointer-events: none; white-space: nowrap; } /* P-12v */
+.studio-pan-hint { position: absolute; left: 184px; bottom: 12px; z-index: 4; margin: 0; padding: 2px 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 80%, transparent); color: var(--on-paper-2); font-size: var(--fs-cap); pointer-events: none; white-space: nowrap; } /* P-12v */
 /* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
 .studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
 
@@ -61,7 +61,8 @@
 .react-flow__node-tech.dragging { cursor: grabbing; box-shadow: var(--shadow-pop); }
 .react-flow__handle.tn-handle { width: 8px; height: 8px; background: var(--surface); border: 1px dashed var(--muted); }
 .sn-order { display: inline-grid; place-items: center; min-width: 22px; height: 22px; font-size: 13px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-sm); background: none; font-family: var(--mono); font-weight: 500; color: var(--scan); } /* P-12m 관측소: 고정폭 청록 "01" */
-.sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; font-weight: 700; color: var(--ink); } /* P-12j(11-22 사용자): 이름 19 굵게 */
+.sn-name { flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow-wrap: anywhere; font-size: 19px; font-weight: 700; color: var(--ink); } /* P-12j(11-22 사용자): 이름 19 굵게 */
+.sn-name[data-long] { -webkit-line-clamp: 2; line-clamp: 2; font-size: 15px; line-height: 18px; } /* P-12y H5: 긴 이름은 두 줄(머리 36px = 18 × 2, graph.ts BOX.head는 그대로), 넘치면 title로 전체 */
 .sn-name-input { flex: 1; min-width: 0; min-height: 32px; padding: 0 var(--sp-1); font: inherit; font-size: 19px; font-weight: 700; border: 1px solid var(--ink); border-radius: var(--r-sm); }
 /* U2 고른 카드 아래 "메모" · "삭제": 고르거나 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 아래 +(가운데)와 겹치지 않게 양끝 */
 .sn-actions { position: absolute; top: calc(100% + 14px); left: 0; right: 0; display: flex; justify-content: space-between; opacity: 0; pointer-events: none; transition: opacity calc(var(--dur) * .6) ease-out; }
@@ -156,3 +157,5 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .secn-ungroup:hover { border-color: var(--scan); }
 .secn :focus-visible { outline: var(--focus); outline-offset: 2px; }
 .secn .nchip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; background: var(--chip-teal); color: var(--chip-teal-ink); white-space: nowrap; }
+/* P-12y H4: 이동 안내는 가운데(카드를 덮음) 대신 왼쪽 아래 미니맵(160 + 여백 8) 옆. 좁으면 미니맵이 없어 왼쪽 끝 */
+@media (max-width: 860px) { .studio-pan-hint { left: 8px; } }
