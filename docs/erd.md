@@ -486,7 +486,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 **ai_calls** — Claude 호출 기록
 | 칸 | 종류 | 필수 | 키 | 설명 |
 |---|---|---|---|---|
-| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) / `translate`(P-12r 한국어 개요, 11-23) / `blueprint_guide`(P-12s 청사진 가이드, 11-23). 운영 제약의 허용 값 7개(4차 대조) |
+| purpose | text | ✔ | | `draft` / `scenario` / `classify` / `chatbot` / `blueprint_check`(P-12e M4, 운영 적용 11-21: 제약 `ai_calls_purpose_check`의 허용 값만 넓힘) / `translate`(P-12r 한국어 개요, 11-23) / `blueprint_guide`(P-12s 청사진 가이드, 11-23) / `map_find`(P-12w 지도 찾기 도우미, 11-23 밤). 운영 제약의 허용 값 8개(4차 대조 뒤 18:40 다시 읽음) |
 | user_id | uuid | | FK→profiles | 사람이 요청했으면 |
 | input_hash | text | ✔ | | 같은 입력은 다시 보내지 않음 |
 | tokens_in · tokens_out | int | | | |
@@ -726,6 +726,7 @@ P-12e부터 쓰기는 `confirm_blueprint_v2(id, 이름, 프로젝트, 그래프,
 | user_tastes | 5 | 3 | 켜짐 | ✔ |  |
 
 ## 바뀐 기록
+- 2026-11-23 밤 `ai_calls.purpose`에 `map_find`(작업 `I-erd-1123`, P-12w `202611240600_P-12w_map_find_purpose.sql`, 운영 20261123084812): DocsChecker 운영 SELECT로 제약 값 8개 확인. 새 칸 없음. 7절 4차 표의 ai_calls 칸 수는 그대로(9).
 - 2026-11-23 4차 대조(작업 `I-erd-1123`, Maestro 요청, 동결 전 미리): 2.3절 `technologies`에 한국어 개요 3칸(P-12r `202611240400`, 운영 20261123053525), 2.6절 `ai_calls.purpose`에 `translate` · `blueprint_guide`(P-12s `202611240500`, 운영 20261123063026), blueprints · blueprint_templates `graph`에 `sections`(P-12o `202611240100`, 운영 20261123042722), 4절 blueprint_templates에 섹션 관문 `template_unlisted_techs`(`202611240300`, 운영 20261123052649), LS점프업 시드 2줄(`202611240200`, 운영 20261123045803, 칸 변경 없음). 관리자 지정 · 되돌리기 두 줄의 "운영 적용 전"을 "완료"로. 7절에 4차 대조 표(34표). 이유: 오늘 운영에 들어간 변경이 erd에 없거나 옛 상태였다(4차 대조 초안).
 - 2026-11-23 관리자 되돌리기(작업 `I-P-admin-revoke`, ~~운영 적용 전~~ → **운영 적용: 완료**(20261123031815, Maestro, 4차 대조로 확인)): 새 칸 없음. DB 함수 `admin_revoke_admin(p_target, p_reason)`(`202611240000_P-admin-revoke.sql`). 지정의 짝: 관리자 재확인, 자기 자신·마지막 관리자 거절, `role` 변경과 `audit_logs`(action `revoke_admin`)를 한 거래로. 같은 파일에서 `admin_grant_admin`도 다시 만듦(역할 변경 잠금 `pg_advisory_xact_lock` 뒤 재확인 — 동시에 서로 되돌리는 틈 막기, 코드 리뷰 지적).
 - 2026-11-23 관리자 지정(작업 `I-P-admin-grant`, ~~운영 적용 전~~ → **운영 적용: 완료**(기록 버전 202611232300, 4차 대조로 확인)): 새 칸 없음. DB 함수 `admin_grant_admin(p_target, p_reason)`(`202611232300_P-admin-grant.sql`)를 더하고 4절 `profiles` 줄에 적음. 부른 사람이 관리자인지 함수가 다시 보고, `role` 변경과 `audit_logs`(action `grant_admin`) 한 줄을 한 거래로 쓴다.

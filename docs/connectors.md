@@ -129,3 +129,4 @@
 | 2026-11-23 | Vercel (MCP 커넥터, 읽기만, DocsChecker, 사전 허가 D) | README 상태 줄의 운영 버전 확인(작업 `I-afternoon-1123`) | `list_projects` 1번 · `list_deployments` 4번: 운영 배포 3개와 main a03d64b · #225 커밋의 배포 여부 | 운영은 #224(2fb93cb)까지, #225 · #226은 배포 기록 없음 → Maestro: 배포 대기열(20분 잠잠 규칙)이었음 | 아니요 |
 | 2026-11-23 | Supabase (MCP 커넥터, 읽기만, DocsChecker, 사전 허가 D) | erd 4차 대조(작업 `I-erd-1123`) | `list_migrations` 1번 · `execute_sql` SELECT 2번: 오늘 칸 · 제약 · 함수 5개 · 실행 권한 · LS 시드 2줄 · 번역 수, 공개 표 34개의 칸 이름 · 칸 수 · 정책 수 · RLS. 개인정보 · 프로필 칸 값은 읽지 않음 | 표 34 = erd 34, 빠진 칸 3(한국어 개요), ai_calls 값 7개 → erd 7절 4차 표 | 아니요 |
 | 2026-11-23 | abbsbook (MCP 커넥터, 쓰기 1, DocsChecker) | PR #228 단계 기록(개인 설정 자동 기록) | `save_session` 1번(요약 카드 이미지 1장) | 실패 0 | 아니요 |
+| 2026-11-23 | Supabase (MCP 커넥터, 읽기만, DocsChecker, 사전 허가 D) | P-12w `map_find` 운영 적용 확인(작업 `I-erd-1123`) | `execute_sql` SELECT 1번: `ai_calls_purpose_check` 정의와 마이그레이션 기록 이름 | 허용 값 8개, `P-12w_map_find_purpose` 20261123084812 → erd 2.6절 | 아니요 |
