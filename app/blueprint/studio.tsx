@@ -1,7 +1,7 @@
 "use client";
 // 청사진 스튜디오(P-12e): React Flow 캔버스 위 단계 노드 + 연결선(순서). 그래프는 lib/blueprint/graph.ts 순수 함수로만 바꾸고(apply 하나),
-// 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기) · 스페이스(손 모드)만, 나머지는 단추(사용자 결정).
-// 빈 곳 끌기 = 여러 개 고르기(피그마식), 가운데 · 오른쪽 단추나 스페이스 + 끌기 = 화면 옮기기, 휠 = 커서 기준 확대.
+// 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기)만, 나머지는 단추(사용자 결정).
+// 빈 곳 끌기 = 화면 옮기기, Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
@@ -16,7 +16,7 @@ import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
 import { validateGraph, type Issue } from "@/lib/blueprint/validate";
 import { toBoard } from "@/lib/blueprint/stored";
 import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
-import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
+import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -266,18 +266,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const openGhost = (gh: Omit<Ghost, "hints" | "from">, gap: number | null) => setGhost({ ...gh,
     hints: board ? recommendAt(board, gap ?? board.length).slice(0, 4) : [], from: document.activeElement instanceof HTMLElement ? document.activeElement : null });
   const depthOf = (id: string) => (lay?.ok ? lay.depth.get(id) ?? null : null);
-  /** 블록 위 · 아래 +: 같은 순서(앞 단계 선 복사)에 옅은 블록. 같은 순서가 이미 가득이면 띄우지 않고 이유 */
-  function besideGhost(id: string, dir: -1 | 1) {
+  /** 같은 순서(앞 단계 선 복사)에 옅은 블록(오른쪽 서랍 "같은 순서에 단계 더하기", P-12o: 카드 위 · 아래 +를 뺀 대신). 같은 순서가 가득이면 띄우지 않고 이유 */
+  function besideGhost(id: string) {
     const s = stageOf(id), why = parallelProblem(g, id);
     if (!s) return;
     if (why) return say(why);
-    openGhost({ at: besideSpot(g, s, dir), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
-  }
-  /** 카드 왼쪽 · 오른쪽 +: 앞 · 다음 단계 옅은 블록(선 끌기와 같은 addStageLinked) */
-  function sideGhost(id: string, dir: -1 | 1) {
-    const s = stageOf(id), d = depthOf(id);
-    if (!s) return;
-    openGhost({ at: sideSpot(g, s, dir), kind: dir < 0 ? "before" : "after", of: s.name, before: dir < 0 ? [] : [id], after: dir < 0 ? [id] : [] }, d === null ? null : dir < 0 ? d : d + 1);
+    openGhost({ at: besideSpot(g, s, 1), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
   }
   const focusNode = (id: string) => document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`)?.focus();
   /** 카드 "✕": 확인 창 없이 지우고 토스트에 되돌리기. 그 뒤에 판이 바뀌었으면 되돌리지 않고 위 되돌리기를 안내 */
@@ -331,8 +325,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const nodes: (StageNodeType | TechNodeType)[] = g.stages.map((s) => ({
     id: s.id, type: "stage", position: drag?.get(s.id) ?? bounce.at?.get(s.id) ?? { x: s.x, y: s.y }, selected: sel.has(s.id), measured: dims.get(s.id),
     style: { width: NODE_SIZE.w, height: stageHeight(s) }, // 컨테이너 크기 = graph.ts stageHeight(자동 정렬과 같은 값)
-    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined, besideBlocked: readOnly ? null : parallelProblem(g, s.id), onBeside: readOnly ? undefined : besideGhost,
-      edit: readOnly ? undefined : { onSide: sideGhost, onRemove: removeFromCard, hasIn: g.edges.some((e) => e.to === s.id), hasOut: g.edges.some((e) => e.from === s.id),
+    data: { stage: s, order: lay?.ok ? lay.depth.get(s.id) ?? null : null, readOnly, onDropTech: dropTech, start: starter ? { load: () => setLoadAsk((n) => n + 1) } : undefined,
+      edit: readOnly ? undefined : { onRemove: removeFromCard,
         onNote: (id) => { pick({ kind: "stage", stageId: id }); openDrawer("note"); },
         editing: editing === s.id, onEdit: setEditing, onRename: renameOnCard } },
   }));
@@ -526,7 +520,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -568,11 +562,11 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
-            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
+            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 빈 곳을 끌면 화면이 움직이고, Shift를 누른 채 끌면 여러 개를 골라요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
-              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}

@@ -12,10 +12,9 @@ export type StageData = {
   stage: Stage; order: number | null; /** 휴대폰 "그림으로 보기": 놓기 · 편집 없음 */ readOnly?: boolean;
   onDropTech: (stageId: string, techId: string) => void;
   /** 빈 판 첫 안내(P-12n R2-1): 빈 단계 하나 + 넣을 기술 0일 때. load = 위 막대 "불러오기 ▾" 열기 */ start?: { load: () => void };
-  /** 위 · 아래 +(S3): 같은 순서에 단계 더하기(읽기 전용이면 없음), 막힌 이유(같은 순서가 가득) */ onBeside?: (stageId: string, dir: -1 | 1) => void; besideBlocked: string | null;
-  /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 왼쪽 · 오른쪽 + = 앞 · 다음 단계, 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기) */
-  /** hasIn · hasOut = 들어오는 · 나가는 선이 있음(U2: 옆면 +는 그쪽 선이 없을 때만) */
-  edit?: { onSide: (stageId: string, dir: -1 | 1) => void; onRemove: (stageId: string) => void; hasIn: boolean; hasOut: boolean;
+  /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기).
+   *  카드 + 단추(앞 · 다음 · 같은 순서)는 P-12o에서 뺐다(사용자: 선을 끌어 만든다). 같은 순서 단계는 오른쪽 서랍 단추 */
+  edit?: { onRemove: (stageId: string) => void;
     /** 메모(T2): 서랍을 열고 메모 칸으로 */ onNote: (stageId: string) => void;
     /** 이름 칸으로 바뀜(두 번 누르기 · F2 · Enter) · 끝(name = null이면 취소) */ editing: boolean; onEdit: (stageId: string) => void; onRename: (stageId: string, name: string | null) => void };
 };
@@ -35,15 +34,6 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null)) setOver(false); }}
       onDrop={(e) => { setOver(false); if (data.readOnly || full) return; const id = e.dataTransfer.getData(TECH_DRAG); if (!id) return; e.preventDefault(); data.onDropTech(stage.id, id); }}>
       <Handle type="target" position={Position.Left} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}로 들어오는 선`} />
-      {data.onBeside ? ([-1, 1] as const).map((dir) => (
-        <button key={dir} type="button" className={`sn-plus nodrag nopan ${dir < 0 ? "sn-plus-up" : "sn-plus-down"}`} aria-disabled={data.besideBlocked ? true : undefined}
-          aria-label={`${stage.name} ${dir < 0 ? "위" : "아래"}에 같은 순서 단계 더하기${data.besideBlocked ? ` (못 함: ${data.besideBlocked})` : ""}`} title={data.besideBlocked ?? undefined}
-          onClick={() => data.onBeside!(stage.id, dir)}>+</button>
-      )) : null}
-      {data.edit ? ([-1, 1] as const).filter((dir) => (dir < 0 ? !data.edit!.hasIn : !data.edit!.hasOut)).map((dir) => (
-        <button key={`s${dir}`} type="button" className={`sn-plus nodrag nopan ${dir < 0 ? "sn-plus-left" : "sn-plus-right"}`}
-          aria-label={`${stage.name} ${dir < 0 ? "앞" : "다음"} 단계 더하기`} onClick={() => data.edit!.onSide(stage.id, dir)}>+</button>
-      )) : null}
       <header className="sn-head">
         <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : String(data.order + 1).padStart(2, "0")}</span>
         {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
