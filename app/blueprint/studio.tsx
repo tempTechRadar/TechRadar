@@ -34,6 +34,8 @@ import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
+import { Guide } from "./guide";
+import { addGuideStages } from "@/lib/blueprint/guide-graph";
 import { StageNode, type StageNodeType } from "./stage-node";
 import { TechNode, type TechNodeType } from "./tech-node";
 import { ResultDialog, type CheckTarget } from "./result-dialog";
@@ -642,10 +644,14 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
-              {narrow || g.stages.length <= 2 ? null : <MiniMap position={drawer ? "bottom-left" : "bottom-right"} pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
+              {narrow || g.stages.length <= 2 ? null : <MiniMap position="bottom-left" pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
             </ReactFlow>
           </div>
         )}
+        {/* 청사진 가이드 캐릭터(P-12s): 제안만, 넣기는 사용자가 누른다(불변 1). 단계 이름은 판 순서대로 넘긴다 */}
+        <Guide who={who} guest={guest} drawer={!narrow && !!drawer} stages={lay?.ok ? lay.levels.flat().map((id) => stageOf(id)?.name ?? "").filter(Boolean) : g.stages.map((s) => s.name)}
+          onStages={(names, mode) => apply(addGuideStages(g, names, mode), `가이드가 제안한 단계를 판에 ${mode === "replace" ? "새로" : "뒤에"} 넣었어요. 되돌리기로 돌아갈 수 있어요.`)}
+          onTech={(stage, techId) => { const s = g.stages.find((x) => x.name === stage); if (s) dropTech(s.id, techId); else say(`"${stage}" 단계가 판에 없어 넣지 않았어요.`); }} />
         {narrow || !drawer ? null : (
           <section ref={drawerBox} className="studio-insp" aria-label="속성 서랍" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); closeDrawer(); } }}>
             <div className="studio-insp-bar"><button type="button" className="btn btn-sm" onClick={closeDrawer}>닫기 ✕</button></div>
