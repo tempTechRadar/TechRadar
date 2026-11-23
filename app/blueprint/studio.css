@@ -7,6 +7,11 @@
 .studio-addpop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; gap: 6px; min-width: 15em; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .studio-addpop label { display: grid; gap: 4px; font-size: var(--fs-sm); }
 .studio-addpop input { min-height: var(--hit); padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+/* 불러오기 ▾(P-12l): 템플릿 이름 위 · 설명 아래, 왼쪽 맞춤 */
+.studio-loadpop { min-width: 18em; }
+.page .studio-loadpop .btn { flex-direction: column; align-items: flex-start; justify-content: center; padding: 6px 12px; text-align: left; }
+.studio-loadpop .muted { font-weight: 400; }
+.studio-loadpop hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* 결과물 창(result-dialog): 고칠 것 → 내보내기 → 확정 → AI 점검 */
 .rd { display: grid; gap: var(--sp-3); }
 .rd p { margin: 0; }

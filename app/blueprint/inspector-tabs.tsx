@@ -36,7 +36,7 @@ const Row = ({ k, children }: { k: string; children: ReactNode }) => <><dt>{k}</
 
 export function TechTabs(p: PanelProps & { techId: string; name: string }) {
   const { techId, graph, apply, guest, guestPicks, pool, onCandidate, marking, log = [] } = p;
-  const [tab, setTab] = useState<Tab>(p.checkFor?.techId === techId ? "check" : "info");
+  const [tab, setTab] = useState<Tab>("info");
   const inPool = pool.some((t) => t.id === techId);
   const got = useInspectorTech(techId, `${techId}:${inPool}:${guest ? "guest" : "user"}`); // 로그인 전에 읽은 것(내 판단 · 관문 없음)을 로그인 뒤 다시 쓰지 않게
   const tech = got?.ok ? got.tech : null;
