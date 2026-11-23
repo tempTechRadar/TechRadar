@@ -147,7 +147,7 @@ function MarkRow({ event }: { event: MarkEvent }) {
 }
 
 function Empty() {
-  return <div className="notice notice-empty"><strong>아직 일지가 비어 있어요.</strong> 내 기술에 알림이 오거나 <Link href="/">지도</Link>에서 관심 · 적용 후보 · 보류를 고르면 여기에 남아요.</div>;
+  return <div className="notice notice-empty"><strong>아직 일지가 비어 있어요.</strong> 사용 중인 항목에 알림이 오거나 <Link href="/">지도</Link>에서 관심 · 적용 후보 · 보류를 고르면 여기에 남아요.</div>;
 }
 
 function LoadError() {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { detectConcepts, detectServices, fixedNote } from "./services.ts";
-import { filterTechs, gradeText } from "./my-tech-view.ts";
+import { gradeText } from "./my-tech-view.ts";
 
 const pkg = (deps: Record<string, string>, dev: Record<string, string> = {}) => ({ path: "package.json", text: JSON.stringify({ dependencies: deps, devDependencies: dev }) });
 
@@ -35,6 +35,4 @@ test("개념(작업 방식)은 파일로 확실한 것만: 지시 파일 · .cla
   assert.match(fixedNote("concept:harness")!.text, /보안 등급이 없어요/);
   assert.equal(gradeText("unknown", "concept:harness"), "등급 없음");
   assert.equal(gradeText("unknown", "service:supabase"), "찾지 못함");
-  const rows = [{ grade: "unknown", hidden_at: null, technologies: { tech_key: "concept:harness" } }, { grade: "unknown", hidden_at: null, technologies: { tech_key: "npm:x" } }];
-  assert.deepEqual(filterTechs(rows, { grade: "unknown", showHidden: false }).map((r) => r.technologies.tech_key), ["npm:x"]);
 });

@@ -96,7 +96,7 @@ test("runId가 있으면 notify 단계를 성공으로 기록한다(들어온 �
 test("만들다 실패하면 notify를 실패로 기록하고 원래 오류를 그대로 던진다", async () => {
   const { db, inserts } = fakeDb(baseTables(), { "read:my_technologies": "연결 실패" });
 
-  await assert.rejects(() => createAlertsForChange(db, { ...input, runId: "run-1" }), /내 기술을 읽지 못함.*연결 실패/);
+  await assert.rejects(() => createAlertsForChange(db, { ...input, runId: "run-1" }), /사용 중인 항목을 읽지 못함.*연결 실패/);
 
   assert.equal(inserts.length, 1);
   assert.equal(inserts[0].row.step_name, "notify");
@@ -107,7 +107,7 @@ test("만들다 실패하면 notify를 실패로 기록하고 원래 오류를 �
 test("실패 기록 자체가 실패해도 원래 오류가 가려지지 않는다", async () => {
   const { db } = fakeDb(baseTables(), { "read:my_technologies": "연결 실패", "write:run_steps": "기록 DB 장애" });
 
-  await assert.rejects(() => createAlertsForChange(db, { ...input, runId: "run-1" }), /내 기술을 읽지 못함.*연결 실패/);
+  await assert.rejects(() => createAlertsForChange(db, { ...input, runId: "run-1" }), /사용 중인 항목을 읽지 못함.*연결 실패/);
 });
 
 test("runId가 없으면 단계를 기록하지 않는다", async () => {
@@ -121,7 +121,7 @@ test("runId가 없으면 단계를 기록하지 않는다", async () => {
 test("읽기가 실패하면 삼키지 않고 어디서 실패했는지와 함께 던지며, 아무것도 쓰지 않는다", async () => {
   const readSteps: [string, RegExp][] = [
     ["changes", /변경을 읽지 못함.*연결 실패/],
-    ["my_technologies", /내 기술을 읽지 못함.*연결 실패/],
+    ["my_technologies", /사용 중인 항목을 읽지 못함.*연결 실패/],
     ["projects", /프로젝트를 읽지 못함.*연결 실패/],
     ["profiles", /사용자를 읽지 못함.*연결 실패/],
     ["alerts", /알림을 읽지 못함.*연결 실패/],

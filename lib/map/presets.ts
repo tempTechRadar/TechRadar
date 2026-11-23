@@ -9,7 +9,7 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   { name: "이번 주 새 기술", query: "t=week" },
   { name: "보안 위험", query: "risky=1&c=grade" },
   { name: "내 관심", query: "mk=interest", login: true },
-  { name: "내 기술과 비교군", query: "mine=1", mine: true },
+  { name: "사용 중인 항목과 비교군", query: "mine=1", mine: true },
 ];
 export const MAX_SAVED = 5;
 const NAME_MAX = 20, QUERY_MAX = 600;

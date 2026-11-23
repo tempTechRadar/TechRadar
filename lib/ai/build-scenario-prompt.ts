@@ -40,8 +40,8 @@ const MAX_COMPARISON_CHARS = 6000;
 function comparisonLines(alternative: ScenarioInput["alternative"], techName: string): string[] {
   if (!alternative) return ["대체할 수 있는 확정된 같은 역할 기술이 없어요."];
   const text = [
-    `비교(내 기술 ${cleanName(techName)} ↔ 대체 ${cleanName(alternative.name)}):`,
-    ...alternative.rows.map((row) => `- ${row.item}: 내 기술 ${cellText(row.mine)} / 대체 ${cellText(row.theirs)}`),
+    `비교(사용 중인 항목 ${cleanName(techName)} ↔ 대체 ${cleanName(alternative.name)}):`,
+    ...alternative.rows.map((row) => `- ${row.item}: 사용 중인 항목 ${cellText(row.mine)} / 대체 ${cellText(row.theirs)}`),
   ].join("\n");
   return [wrapData("비교표", text, MAX_COMPARISON_CHARS)];
 }

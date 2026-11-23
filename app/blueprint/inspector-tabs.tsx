@@ -81,7 +81,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
             <Row k="수집 오류">{tech.tech.collectErrorKind ? `있음(${tech.tech.collectErrorKind}) — 지난번 값이에요` : "없음"}</Row>
             <Row k="마지막 확인">{day(tech.tech.lastCheckedOkAt) ?? NONE}</Row>
             <Row k="관문">{guest ? (guestPicks?.ids.includes(techId) ? "이 브라우저에 담음" : "담지 않음 — 지도에서 \"청사진에 담기\"")
-              : tech.gate === "in" ? "넣을 수 있어요(내 기술 · 담은 기술 · 내 이력)"
+              : tech.gate === "in" ? "넣을 수 있어요(사용 중인 항목 · 담은 기술 · 내 이력)"
               : <>아직 담지 않은 기술 <button type="button" className="btn btn-sm" disabled={marking === techId} onClick={() => onCandidate(techId, p.name)}>{marking === techId ? "담는 중…" : "청사진에 담기"}</button></>}</Row>
           </dl>
         ) : <>

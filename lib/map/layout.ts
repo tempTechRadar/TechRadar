@@ -27,7 +27,7 @@ export type MapLayout = {
   depth: number; leafR: number; radius: number; shown: number; total: number;
 };
 
-const special = (v: string) => v === UNSORTED || v === OTHER || v === MANUAL_KIND || v === "모름" || v === "찾지 못함" || v === NO_GRADE || v === "내 프로젝트 아님";
+const special = (v: string) => v === UNSORTED || v === OTHER || v === MANUAL_KIND || v === "모름" || v === "찾지 못함" || v === NO_GRADE || v === "프로젝트 없음";
 const byValue = (a: string, b: string) => (special(a) !== special(b) ? (special(a) ? 1 : -1) : a.localeCompare(b, "ko"));
 const byName = (a: MapNode, b: MapNode) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.key < b.key ? -1 : 1);
 const polar = (a: number, r: number) => [Math.cos(a) * r, Math.sin(a) * r] as const;

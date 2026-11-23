@@ -104,7 +104,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
   const grade = t?.grade ?? "unknown", added = addedDaysOf(t?.createdAt ?? null, now, newSince);
   return {
     key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
-    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : MANUAL_KIND, host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "내 프로젝트 아님" }, // 개념은 등급이 없다(ADR 0008)
+    attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : MANUAL_KIND, host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "프로젝트 없음" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
     oneLiner: t?.oneLiner ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
     lastActivityAt: t?.lastActivityAt ?? null, lastActivityKind: t?.lastActivityKind ?? null,

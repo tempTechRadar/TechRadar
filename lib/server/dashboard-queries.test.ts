@@ -62,7 +62,7 @@ test("내 알림·숨기지 않은 내 기술·보관하지 않은 내 프로젝
 test("어느 하나라도 읽기에 실패하면 0이나 빈 값으로 삼키지 않고 어디서 실패했는지와 함께 던진다", async () => {
   const cases: [string, RegExp][] = [
     ["alerts", /알림을 읽지 못함.*연결 실패/],
-    ["my_technologies", /내 기술을 읽지 못함.*연결 실패/],
+    ["my_technologies", /사용 중인 항목을 읽지 못함.*연결 실패/],
     ["projects", /프로젝트를 읽지 못함.*연결 실패/],
   ];
   for (const [table, expected] of cases) {

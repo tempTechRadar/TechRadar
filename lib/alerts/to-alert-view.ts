@@ -169,18 +169,18 @@ function opportunityView(base: BaseView, comparison: NonNullable<AlertRecord["co
   const day = confirmedAt ? confirmedDay.format(new Date(confirmedAt)) : NOT_FOUND;
   return {
     ...base,
-    title: `[적용 기회] 같은 역할의 새 기술 ${newTechName} (내 기술: ${myTechName})`,
+    title: `[적용 기회] 같은 역할의 새 기술 ${newTechName} (사용 중인 항목: ${myTechName})`,
     lines: [],
-    reasonLine: `내 기술(${myTechName})과 같은 역할로 확정됐어요. 확정한 날: ${day}.`,
+    reasonLine: `사용 중인 항목(${myTechName})과 같은 역할로 확정됐어요. 확정한 날: ${day}.`,
     comparison: {
-      headers: { mine: `내 기술 ${myTechName}`, theirs: `새 기술 ${newTechName}` },
+      headers: { mine: `사용 중인 항목 ${myTechName}`, theirs: `새 기술 ${newTechName}` },
       rows: rows.map((row) => ({ item: row.item, mine: cellOf(row.mine), theirs: cellOf(row.theirs) })),
     },
   };
 }
 
 function subtitleOf(record: AlertRecord): string {
-  const where = record.projectName ? `내 프로젝트: ${record.projectName}` : "프로젝트 밖(내 컴퓨터)";
+  const where = record.projectName ? `프로젝트: ${record.projectName}` : "프로젝트 밖(내 컴퓨터)";
   const withKind = record.change.kind === "first_seen_danger" ? `첫 점검 · ${where}` : where;
   return record.judgment ? `${withKind} · 판단: ${DECISION_LABEL[record.judgment.decision]}` : withKind;
 }

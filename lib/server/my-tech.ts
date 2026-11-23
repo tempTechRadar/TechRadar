@@ -15,7 +15,7 @@ export type AddResult = { ok: true; id: string; auditFailed: boolean } | Fail;
 
 // 화면에는 코드만 돌려주고, DB가 한 말은 서버 로그에만 남긴다.
 function fail(code: FailCode, detail?: string): Fail {
-  if (detail) console.error(`내 기술 ${code}`, maskSecrets(detail));
+  if (detail) console.error(`사용 중인 항목 ${code}`, maskSecrets(detail));
   return { ok: false, code };
 }
 

@@ -1,20 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evidenceLinks, filesOf, filterTechs, isUuid, keepView, ownText, readStatusNotice, searchTerm, TECH_ERROR_TEXT } from "./my-tech-view.ts";
+import { backPath, evidenceLinks, isUuid, keepView, ownText, readStatusNotice, searchTerm, TECH_ERROR_TEXT } from "./my-tech-view.ts";
 
 const T = (id: string, grade: string, hidden_at: string | null = null) => ({ id, grade, hidden_at });
-
-test("거르기: 숨긴 기술은 기본으로 빠지고, 켜면 함께 나온다", () => {
-  const techs = [T("a", "danger"), T("b", "pass", "2026-11-18T00:00:00Z")];
-  assert.deepEqual(filterTechs(techs, {}).map((t) => t.id), ["a"]);
-  assert.deepEqual(filterTechs(techs, { showHidden: true }).map((t) => t.id), ["a", "b"]);
-});
-
-test("거르기: 등급을 고르면 그 등급만. 숨김과 함께 써도 맞다", () => {
-  const techs = [T("a", "danger"), T("b", "pass"), T("c", "pass", "2026-11-18T00:00:00Z")];
-  assert.deepEqual(filterTechs(techs, { grade: "pass" }).map((t) => t.id), ["b"]);
-  assert.deepEqual(filterTechs(techs, { grade: "pass", showHidden: true }).map((t) => t.id), ["b", "c"]);
-});
 
 test("검색어: 거르기 문법 글자와 와일드카드는 지우고, 두 글자 미만이면 검색하지 않는다", () => {
   assert.equal(searchTerm("mcp-remote"), "mcp-remote");
@@ -100,23 +88,15 @@ test("읽기 안내: 마지막 읽기는 서버가 정렬해 주는 순서가 �
   assert.match(readStatusNotice("repo", [newOk, newFail], NOW)!, /실패/);
 });
 
-test("읽은 결과를 파일마다: 숨기지 않은 저장소 줄만 파일로 묶어 기술 수와 확인 실패 수, 스킬은 폴더 하나로(실제 모양 .claude/skills/<이름>), 실패 있는 파일 먼저", () => {
-  const row = (source_file: string | null, collect_error_kind: string | null = null, origin = "repo", hidden_at: string | null = null) => ({ origin, source_file, collect_error_kind, hidden_at });
-  assert.deepEqual(filesOf([
-    row("package.json"), row("package.json"), row("package.json", "timeout", "repo", "2026-11-20"),
-    row("requirements.txt", "timeout"), row("requirements.txt"),
-    row(".claude/skills/a"), row(".claude/skills/b"), row(null, null, "manual"), row("x.json", null, "import"),
-  ]), [
-    { path: "requirements.txt", count: 2, errors: 1 },
-    { path: ".claude/skills/", count: 2, errors: 0 },
-    { path: "package.json", count: 2, errors: 0 },
-  ]);
-});
-
 test("ownText: 자기 키만 문구를 돌려주고, __proto__·constructor·toString 같은 원래 있는 이름과 빈 값은 undefined다(주소의 ?error=__proto__가 화면을 깨지 않게)", () => {
   const map = { a: "에이", b: "비" };
   assert.equal(ownText(map, "a"), "에이");
   for (const key of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf", "c", "", undefined]) assert.equal(ownText(map, key), undefined, String(key));
   assert.equal(ownText(TECH_ERROR_TEXT, "__proto__"), undefined);
   assert.ok(ownText(TECH_ERROR_TEXT, "archived"), "보관한 프로젝트에 추가하려 할 때의 문구가 있다");
+});
+
+test("동작 뒤 돌아갈 곳: 레포 id(uuid)면 그 레포 상세, 아니면 보드(주소를 지어 넣지 못하게)", () => {
+  assert.equal(backPath("74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e"), "/projects/74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e");
+  for (const v of [null, "", "local", "../admin", "74bbcf40-4ec4-4f2b-b04f-5b036fb9ae3e/x"]) assert.equal(backPath(v), "/dashboard");
 });

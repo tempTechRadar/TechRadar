@@ -98,11 +98,11 @@ function RelatedCard({ record, createdAtLabel, judgedAtLabel, judgmentLine }: { 
   const where = [record.projectName ?? "프로젝트 밖(내 컴퓨터)", record.sourceFile].filter(Boolean).join(" · ");
   return (
     <article className="card" aria-labelledby="related-title">
-      <h2 id="related-title">관련된 내 기술</h2>
+      <h2 id="related-title">관련된 사용 중인 항목</h2>
       <p><strong>{record.change.techName}</strong> <span className="muted">{where}</span></p>
       {record.myTechnologyId || record.tech ? (
         <p>
-          {record.myTechnologyId ? <Link href={`/projects/tech/${record.myTechnologyId}`}>내 기술 상세</Link> : null}
+          {record.myTechnologyId ? <Link href={`/projects/tech/${record.myTechnologyId}`}>사용 중인 항목 상세</Link> : null}
           {record.myTechnologyId && record.tech ? " · " : null}
           {record.tech ? <a href={`/?sel=${encodeURIComponent(`tech:${record.tech.id}`)}`}>지도에서 보기</a> : null}
         </p>

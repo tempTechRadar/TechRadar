@@ -11,7 +11,7 @@ export type Folder<T extends TreeItem> = { key: string; path: string[]; name: st
 export const DIM_KO: Record<TreeDim, string> = { judgment: "내 판단", field: "하는 일", sub: "세부 갈래", tag: "내 태그", project: "프로젝트" };
 export const JUDGMENT_ORDER: Judgment[] = ["candidate", "interest", "hold", "mine", "other"];
 // U2(11-22 사용자): 지도 "담기" · 별과 말을 맞춤 — 적용 후보 폴더 = "담은 기술", 관심 = "★ 관심"
-export const JUDGMENT_KO: Record<Judgment, string> = { candidate: "담은 기술", interest: "★ 관심", hold: "보류", mine: "내 기술", other: "그 외" };
+export const JUDGMENT_KO: Record<Judgment, string> = { candidate: "담은 기술", interest: "★ 관심", hold: "보류", mine: "사용 중", other: "그 외" };
 const NONE: Record<Exclude<TreeDim, "judgment">, string> = { field: "아직 분류 안 됨", sub: "아직 분류 안 됨", tag: "태그 없음", project: "프로젝트 없음" };
 
 /** 한 기술이 그 기준에서 들어갈 폴더 이름들(내 판단은 늘 하나, 태그 · 프로젝트는 여럿일 수 있음) */
