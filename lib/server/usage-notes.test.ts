@@ -23,6 +23,7 @@ function fakeDb(answers: Record<string, Answer>) {
         select: (columns?: string) => (call.op === "select" && (call.columns ??= columns), builder), // insert 뒤의 select는 돌려받을 칸이라 적지 않는다
         eq: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
         in: (c: string, v: unknown) => (call.filters.push([c, v]), builder),
+        is: (c: string, v: unknown) => (call.filters.push([`is:${c}`, v]), builder),
         order: () => builder,
         limit: () => builder,
         then: (resolve: (a: Answer) => unknown) => resolve(answers[table] ?? { data: [], error: null }),
@@ -101,6 +102,19 @@ test("목록: 그 기술의 글에 내가 눌렀는지·내 글인지를 붙이�
   await assert.rejects(readUsageNotes(fakeDb({ usage_notes: fail("500", "boom") }).db, "t1", "u1"), /사용기를 읽지 못함/);
 });
 
+test("숨긴 글은 쓴 사람에게만 보인다: 관리자처럼 RLS가 숨긴 글을 다 돌려줘도 남의 숨긴 글은 목록에서 뺀다", async () => {
+  const rows = [
+    { id: "n3", used_for: "남의 숨긴 글", result: "b", tip: "c", helpful_count: 0, created_at: "2026-11-21T01:00:00Z", hidden_at: "2026-11-23T02:39:00Z" },
+    { id: "n2", used_for: "보이는 글", result: "b", tip: "c", helpful_count: 1, created_at: "2026-11-20T01:00:00Z", hidden_at: null },
+    { id: "n1", used_for: "내 숨긴 글", result: "e", tip: "f", helpful_count: 0, created_at: "2026-11-19T01:00:00Z", hidden_at: "2026-11-23T02:00:00Z" },
+  ];
+  const { db, calls } = fakeDb({ usage_notes: ok(rows), "rpc:my_usage_note_ids": ok(["n1"]) });
+  const list = await readUsageNotes(db, "t1", "admin-1");
+  assert.deepEqual(list.map((n) => [n.id, n.mine]), [["n2", false], ["n1", true]]);
+  assert.match(calls[0].columns ?? "", /hidden_at/);
+  assert.equal(JSON.stringify(list).includes("hidden"), false); // 숨긴 시각은 화면에 넘기지 않는다
+});
+
 test("내 글 표시를 못 읽으면 내 글이 아닌 것처럼 보이지 않고 읽기 실패로 던진다", async () => {
   const rows = [{ id: "n1", used_for: "a", result: "b", tip: "c", helpful_count: 0, created_at: "2026-11-19T01:00:00Z" }];
   const db = fakeDb({ usage_notes: ok(rows), "rpc:my_usage_note_ids": fail("500", "boom") }).db;
@@ -117,7 +131,7 @@ test("사용기 요약: 도움 많은 순 몇 개와 전체 수, 못 읽으면 �
   const rows = [{ id: "n2", used_for: "검색", result: "잘 됨", tip: "팁", helpful_count: 5 }];
   const { db, calls } = fakeDb({ usage_notes: { data: rows, error: null, count: 7 } as Answer });
   assert.deepEqual(await readTopUsageNotes(db, "t1"), { total: 7, top: [{ id: "n2", usedFor: "검색", result: "잘 됨", tip: "팁", helpfulCount: 5 }] });
-  assert.deepEqual(calls[0].filters, [["tech_id", "t1"]]);
+  assert.deepEqual(calls[0].filters, [["tech_id", "t1"], ["is:hidden_at", null]]);
   await assert.rejects(readTopUsageNotes(fakeDb({ usage_notes: fail() }).db, "t1"));
 });
 
