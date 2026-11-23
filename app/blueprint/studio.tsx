@@ -1,7 +1,7 @@
 "use client";
 // 청사진 스튜디오(P-12e): React Flow 캔버스 위 단계 노드 + 연결선(순서). 그래프는 lib/blueprint/graph.ts 순수 함수로만 바꾸고(apply 하나),
 // 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기)만, 나머지는 단추(사용자 결정).
-// 빈 곳 끌기 = 화면 옮기기, Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
+// 스페이스를 누른 채 빈 곳 끌기 = 화면 옮기기(P-12v 사용자: 평소 끌기는 누르기 · 고르기만, 터치 기기는 손가락 끌기 그대로), Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
@@ -69,6 +69,10 @@ type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Gra
 const NARROW = "(max-width: 860px)";
 const onNarrow = (f: () => void) => { const m = matchMedia(NARROW); m.addEventListener("change", f); return () => m.removeEventListener("change", f); };
 const useNarrow = () => useSyncExternalStore(onNarrow, () => matchMedia(NARROW).matches, () => false);
+/** 손가락 기기(스페이스 없음): 빈 곳 손가락 끌기로 화면 이동(P-12v) */
+const COARSE = "(pointer: coarse)";
+const onCoarse = (f: () => void) => { const m = matchMedia(COARSE); m.addEventListener("change", f); return () => m.removeEventListener("change", f); };
+const useCoarse = () => useSyncExternalStore(onCoarse, () => matchMedia(COARSE).matches, () => false);
 export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
@@ -79,7 +83,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
   const [tags, setTags] = useState(tags0);
   // 넓은 화면: 캔버스(목록 모드 단추로 바꿈). 좁은 화면: 목록으로 고치기가 기본, "그림으로 보기"는 확대 · 이동만 되는 읽기 전용 캔버스
-  const narrow = useNarrow(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
+  const narrow = useNarrow(), coarse = useCoarse(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
   const listMode = narrow ? !phoneView : listOn, readOnly = narrow && phoneView;
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
@@ -630,11 +634,11 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
-            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 빈 곳을 끌면 화면이 움직이고, Shift를 누른 채 끌면 여러 개를 골라요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
+            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 스페이스를 누른 채 빈 곳을 끌면 화면이 움직이고(손가락 기기는 그냥 끌기), Shift를 누른 채 끌면 여러 개를 골라요. 휠로 확대해요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
-              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag={coarse} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}
@@ -644,6 +648,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
               {narrow || g.stages.length <= 2 ? null : <MiniMap position="bottom-left" pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
             </ReactFlow>
+            {coarse ? null : <p className="studio-pan-hint" aria-hidden="true">스페이스 + 끌기: 화면 이동 · 휠: 확대</p>/* P-12v: 평소 끌기는 이동하지 않아 길을 보여 줌(화면 읽기는 위 도움말) */}
           </div>
         )}
         {/* 청사진 가이드 캐릭터(P-12s): 제안만, 넣기는 사용자가 누른다(불변 1). 단계 이름은 판 순서대로 넘긴다 */}
