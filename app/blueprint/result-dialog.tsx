@@ -4,7 +4,7 @@
 // 확정 · 점검은 서버가 다시 본다(불변 1 · 4 · 5): 실패하면 판은 그대로, 창 안에 이유.
 import { useState } from "react";
 import type { Board } from "@/lib/blueprint/board";
-import { exportMermaid, exportText, type ExportKind } from "@/lib/blueprint/export-text";
+import { exportMermaid, exportText, linkLines, type ExportKind } from "@/lib/blueprint/export-text";
 import type { Graph } from "@/lib/blueprint/graph";
 import { Dialog } from "../c-dialog";
 import { CheckPanel } from "./check-panel";
@@ -16,7 +16,7 @@ const flow = (b: Board) => b.map((c) => c.map((s) => s.name).join(" + ")).join("
  *  null = 확정한 적 없음, "unknown" = 이력을 읽지 못함(확정한 적 없음과 다르게, 불변 2) */
 export type CheckTarget = { id: string; label: string } | null | "unknown";
 type Props = {
-  name: string; board: Board | null; graph: Graph; problems: string[]; projects: { id: string; name: string }[];
+  name: string; board: Board | null; graph: Graph; problems: string[]; /** 확정은 막지 않고 알려만 주는 것(검증, P-12j H4) */ notices: string[]; projects: { id: string; name: string }[];
   /** 지난 확정과 달라진 것(T4): 줄 목록(빈 배열 = 같음), null = 처음 확정, "unknown" = 이력을 못 읽음(불변 2) */ changes: string[] | null | "unknown";
   busy: boolean; error: string; guest: boolean; check: CheckTarget;
   onConfirm: (projectId: string | null) => void; onLogin: () => void; say: (m: string) => void; onClose: () => void;
@@ -25,7 +25,7 @@ type Props = {
 export function ResultDialog(p: Props) {
   const [kind, setKind] = useState<ExportKind>("prompt");
   const [projectId, setProjectId] = useState(p.projects[0]?.id ?? "");
-  const text = !p.board ? "" : kind === "mermaid" ? exportMermaid(p.graph) : exportText(kind, p.name, p.board);
+  const text = !p.board ? "" : kind === "mermaid" ? exportMermaid(p.graph) : exportText(kind, p.name, p.board, linkLines(p.graph));
   const techCount = p.board ? p.board.flat().reduce((n, s) => n + s.techs.length, 0) : 0;
   const copy = () => (navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("보안 연결이 아니면 클립보드가 없음")))
     .then(() => p.say("복사했어요. Claude Code에 붙여 넣어 쓰세요."), () => p.say("복사하지 못했어요. 글을 직접 골라 복사해 주세요."));
@@ -35,6 +35,7 @@ export function ResultDialog(p: Props) {
       <div className="rd">
         <p><b>{p.name}</b>{p.board ? <> · {flow(p.board)}</> : null}</p>
         {p.problems.length ? <div className="notice notice-error" role="status"><strong>확정하려면 고칠 것</strong><ul>{p.problems.map((x) => <li key={x}>{x}</li>)}</ul></div> : null}
+        {p.notices.length ? <div className="notice" role="status"><strong>알아 둘 것(확정은 돼요)</strong><ul>{p.notices.map((x) => <li key={x}>{x}</li>)}</ul></div> : null}
 
         <section aria-labelledby="rd-export">
           <h3 id="rd-export" className="rd-h">내보내기</h3>
