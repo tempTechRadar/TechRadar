@@ -254,9 +254,11 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .lgK{margin:0;font-family:var(--mono);font-size:.82rem;letter-spacing:.14em;color:var(--dim)}
 .lg h1{margin:.5rem 0 0;font-family:var(--cond);font-size:5.6rem;line-height:1;font-weight:800;letter-spacing:-.01em;color:var(--hi)}
 .lgM{margin:1rem 0 0;font-size:2.05rem;font-weight:600;color:var(--amb);letter-spacing:.02em}
-.lgS{margin:.55rem 0 0;font-size:1rem;color:var(--tx)}
-.lgP{list-style:none;margin:2rem 0 0;padding:0;border-top:1px solid var(--line)}
-.lgP li{display:grid;grid-template-columns:5.2rem 1fr;gap:1rem;align-items:baseline;padding:.62rem 0;border-bottom:1px solid var(--line)}
+.lgS{margin:.8rem 0 0;font-size:1.05rem;line-height:1.6;color:var(--tx)}
+.lgS b{font-weight:600;color:var(--hi)}
+.lgP{list-style:none;margin:2.6rem 0 0;padding:1.1rem 0 0;border-top:1px solid var(--line);display:flex;gap:0}
+.lgP li{font-size:1.55rem;font-weight:700;color:var(--hi);letter-spacing:.08em;padding:0 1.4rem;border-left:1px solid var(--line)}
+.lgP li:first-child{padding-left:0;border-left:0}
 .lgP b{font-size:1.45rem;font-weight:700;color:var(--hi);letter-spacing:.04em}
 .lgP span{font-size:.9rem;color:var(--tx);line-height:1.35}
 .lgP em{font-style:normal;font-family:var(--mono);color:var(--amb);margin-right:.5em}
@@ -395,11 +397,11 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
       <p class="lgK in" style="--d:.2s">프로젝트 3 · 최종 발표 · 2026.11</p>
       <h1 class="in" style="--d:.45s">TechRadar</h1>
       <p class="lgM in" style="--d:.75s">지키고, 고르고, 옮긴다</p>
-      <p class="lgS in" style="--d:.9s">내가 깐 AI 코딩 기술을 한눈에</p>
-      <ul class="lgP" aria-label="팀원과 맡은 영역">
-        <li class="in" style="--d:1.1s"><b>김영식</b><span><em>A</em>지키기 + 공용<small>내 기술 목록 · 보안 등급</small></span></li>
-        <li class="in" style="--d:1.25s"><b>황재웅</b><span><em>B</em>고르기<small>알림 · 판단 · 더 나은 대안</small></span></li>
-        <li class="in" style="--d:1.4s"><b>차세일</b><span><em>C</em>옮기기 · 운영<small>다른 컴퓨터로 설치 프롬프트</small></span></li>
+      <p class="lgS in" style="--d:.9s">저장소 주소 하나로<br><b>깐 기술 목록 · 보안 등급 · 더 나은 대안 · 설치 프롬프트</b>까지</p>
+      <ul class="lgP" aria-label="팀원">
+        <li class="in" style="--d:1.1s">김영식</li>
+        <li class="in" style="--d:1.25s">황재웅</li>
+        <li class="in" style="--d:1.4s">차세일</li>
       </ul>
       <button type="button" class="lgB in" id="lgBtn" aria-label="발표 시작" style="--d:1.65s;position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0;white-space:nowrap">발표 시작</button>
     </div>
