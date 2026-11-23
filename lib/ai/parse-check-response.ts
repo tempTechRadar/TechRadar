@@ -9,9 +9,12 @@ export type CheckParse = ({ ok: true; steps: string[]; risks: string[]; sources:
 
 export const DIAGNOSIS = { pairs: 5, order: 5, name: 60, line: 300, prompt: 4000 } as const;
 const URL = /https?:\/\/[^\s)"'<>\]]+/gi;
-// 다듬은 프롬프트는 사용자가 코딩 에이전트에 붙여 넣는다: 스킴 없는 주소(evil.sh/x) · 셸 흉내도 막는다(원문에 이미 있는 이름은 괜찮음)
-const DOMAIN = /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|dev|sh|ai|app|co|xyz|me|ly|gg|cc|ru|cn|site|top|info|link|run|page|so|to)\b/gi;
-const SHELL = /\bsudo\b|\brm\s+-|\bchmod\b|\bbash\b|\bsh\s+-c\b|\bpowershell\b|\biex\b|\beval\b|\|\s*(?:ba|z)?sh\b|\$\(/i;
+// 다듬은 프롬프트는 사용자가 코딩 에이전트에 붙여 넣는다: 스킴 없는 주소 · 셸 흉내도 막는다. 주소처럼 보이는 것 = 뒤에 /가 붙은 점 이름(아무 끝),
+// IP, 흔한 끝(.com 등)의 점 이름. 원문 · 넘긴 주소에 똑같이 있던 이름만 된다(Next.js 같은 기술 이름은 걸리지 않게 끝 목록은 좁게 둠).
+// shortcut: 셸 흉내는 흔한 것만(세미콜론 · 백틱은 보통 글에도 나와서 뺌), 다듬은 프롬프트를 구조로 다시 만들게 되면 그때 없앤다
+const HOST = /\b\d{1,3}(?:\.\d{1,3}){3}\b|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?=\/)|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|sh|ai|app|co|xyz|me|ly|gg|cc|ru|cn|site|top|info|link|run|page|so|to)\b/gi;
+const SHELL = /\bsudo\b|\brm\s+-|\bchmod\b|\bbash\b|\bsh\s+-c\b|\bpowershell\b|\biex\b|\beval\b|\|\s*(?:ba|z)?sh\b|\|\s*(?:python3?|node|perl|ruby)\b|&&|\$\(/i;
+const hosts = (s: string) => new Set((s.match(HOST) ?? []).map((h) => h.toLowerCase()));
 
 const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null);
 const list = (v: unknown) => (Array.isArray(v) ? v : []);
@@ -29,9 +32,9 @@ function pairs(v: unknown, inPrompt: (name: string) => boolean): TechPair[] {
 function revised(v: unknown, known: Set<string>, original: string): string | null {
   const t = text(v, DIAGNOSIS.prompt);
   if (!t || COMMAND_LINE.test(t) || SHELL.test(t)) return null;
-  const seen = [...known].join(" ").toLowerCase() + " " + original;
-  const domainsOk = (t.match(DOMAIN) ?? []).every((d) => seen.includes(d.toLowerCase()));
-  return domainsOk && (t.match(URL) ?? []).every((u) => known.has(u)) ? t : null;
+  const seen = hosts(`${[...known].join(" ")} ${original}`);
+  const hostsOk = [...hosts(t)].every((h) => seen.has(h));
+  return hostsOk && (t.match(URL) ?? []).every((u) => known.has(u)) ? t : null;
 }
 
 export function parseCheckResponse(raw: string, allowedSources: string[], exportPrompt: string): CheckParse {
