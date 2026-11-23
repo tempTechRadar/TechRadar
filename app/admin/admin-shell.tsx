@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./admin.css";
 
 export const ADMIN_TABS = [
-  { id: "members", href: "/admin/members", label: "회원별 등록" },
+  { id: "members", href: "/admin/members", label: "회원과 권한" },
   { id: "observations", href: "/admin/observations", label: "수집 자료" },
   { id: "alerts", href: "/admin/alerts", label: "알림과 처리 현황" },
   { id: "runs", href: "/admin/runs", label: "수집 실행과 오류" },
@@ -35,12 +35,12 @@ export function AdminShell({ tab, title, lead, blocked, error, children }: Props
   );
 }
 
-/** 거르기 칸(주소 값으로 보낸다. 자바스크립트 없이도 동작). */
+/** 필터 칸(주소 값으로 보낸다. 자바스크립트 없이도 동작). */
 export function FilterForm({ children }: { children: ReactNode }) {
   return (
     <form method="get" className="admin-filter">
       {children}
-      <button type="submit">거르기</button>
+      <button type="submit">필터</button>
     </form>
   );
 }

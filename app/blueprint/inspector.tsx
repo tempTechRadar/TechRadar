@@ -26,7 +26,7 @@ export function Inspector(p: PanelProps) {
     <aside className="insp" aria-label="속성" tabIndex={-1}>{/* 지운 뒤 초점이 문서 맨 위로 떨어지지 않게 여기로 */}
       {p.multi ? <><header className="insp-head"><h2 tabIndex={-1}>{p.multi.count}개 골랐어요</h2></header>
         <p className="muted">여럿 고른 것은 함께 옮기거나(단계만) 함께 지울 수 있어요. 하나를 고르면 자세히 보여요.</p>
-        <p className="insp-row insp-actions"><button type="button" className="btn btn-sm" onClick={p.multi.remove}>{p.multi.count}개 지우기</button></p></>
+        <p className="insp-row insp-actions"><button type="button" className="btn btn-sm btn-danger" onClick={p.multi.remove}>{p.multi.count}개 지우기</button></p></>
         : !p.picked || !stage ? <p className="muted">캔버스나 목록에서 단계 · 기술을 고르면 여기에 자세히 보여요.</p>
         : p.picked.kind === "tech" ? <TechInfo {...p} stageId={stage.id} techId={p.picked.techId} />
         : <StageInfo key={`${stage.id}:${stage.name}`} {...p} stageId={stage.id} />}
@@ -62,7 +62,7 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
           onCandidate={(t) => { onCandidate(t.id, t.name); focusPanel(); }} /> : <p className="muted">아직 없어요. 하단 패널 기술 탭에서 넣어요.</p>}
       </Card>
       <p className="insp-row insp-actions">
-        <button type="button" className="btn btn-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
+        <button type="button" className="btn btn-sm btn-danger" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick(null); apply(removeStage(graph, s.id), `"${s.name}" 단계를 지웠어요. 되돌리기로 살릴 수 있어요.`); box?.focus(); }}>단계 지우기</button>
       </p>
     </>
   );
@@ -91,7 +91,7 @@ function Links({ label, list, onCut, onInsert }: { label: string; list: Stage[];
   if (!list.length) return <p>{label}: 없음</p>;
   return (
     <div>{label}:
-      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button>
+      <ul className="insp-links">{list.map((o) => <li key={o.id}>{o.name} <button type="button" className="btn btn-sm btn-danger" aria-label={`${label} ${o.name} 연결 끊기`} onClick={() => onCut(o)}>끊기</button>
         {onInsert ? <button type="button" className="btn btn-sm" aria-label={`${label} ${o.name}과(와) 사이에 단계 넣기`} onClick={() => onInsert(o)}>사이에 단계 넣기</button> : null}</li>)}</ul>
     </div>
   );
@@ -112,8 +112,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
         {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
-      {/* 검증 항목으로 오면 n이 바뀌어 새로 열리며 검증 탭부터 */}
-      <TechTabs key={p.checkFor?.techId === techId ? `${techId}:${p.checkFor.n}` : techId} {...p} techId={techId} name={name} />
+      <TechTabs key={techId} {...p} techId={techId} name={name} />
       <Card title="내 태그">
         {tags === null ? <p className="notice notice-error" role="alert">내 태그를 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : guest ? <p className="muted">로그인하면 나만 보는 태그를 붙일 수 있어요.</p>
@@ -122,7 +121,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
       {/* 손님(P-12f): 사용기 요약은 로그인 액션이라 안내만. 사용기는 기술 상세 /tech/[id]에서 로그인 없이 읽는다 */}
       <Card title="사용기"><SideNotes techId={techId} login={!guest} all={null} /></Card>
       <p className="insp-row insp-actions">
-        {inStage ? <button type="button" className="btn btn-sm" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick({ kind: "stage", stageId: s.id }); apply(removeTech(graph, s.id, techId), removeSaid(s.name, name)); box?.focus(); }}>이 단계에서 빼기</button> : null}
+        {inStage ? <button type="button" className="btn btn-sm btn-danger" onClick={(e) => { const box = e.currentTarget.closest<HTMLElement>(".insp"); onPick({ kind: "stage", stageId: s.id }); apply(removeTech(graph, s.id, techId), removeSaid(s.name, name)); box?.focus(); }}>이 단계에서 빼기</button> : null}
         <Link className="btn btn-sm" href={`/tech/${techId}`}>기술 상세</Link>
         <Link className="bp-link" href={`/?sel=${encodeURIComponent(`tech:${techId}`)}`}>지도에서 보기</Link>
       </p>

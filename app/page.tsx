@@ -68,7 +68,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <main className="page map-page">
         <h1 className="sr-only">기술 지도</h1>
         <MapBody model={input ? capNew(buildTechMap({ ...input, trending: hot }, new Date()), MAP_NEW) : null} projects={[]} query={query} canSave={false} top={<>
-          <span className="map-chip map-chip-note">로그인하면 관심·판단·사용 중인 항목 비교가 열려요.</span>
+          <span className="map-chip map-chip-note">로그인하면 관심 표시 · 사용 중 비교가 열려요.</span>
           <GoogleLoginButton next={query ? `/?${query}` : "/"} />{/* 로그인 전 보기는 주소에만 있으니 들고 간다 */}
         </>} />
       </main>
@@ -93,11 +93,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   return (
     <main className="page map-page">
       <h1 className="sr-only">기술 지도</h1>
-      {band ? <FirstCheckBanner band={band} /> : null}
+      {band ? <FirstCheckBanner band={band} riskyHref="/?risky=1" /> : null}
       <MapBody model={model} projects={dash?.projects ?? []} query={query} canSave who={user.id} top={<>
-        {dash ? null : <span className="notice" role="status">프로젝트 목록을 불러오지 못했어요(없다는 뜻이 아니에요). 프로젝트로 거르기 · 시작하기가 빠져 있어요.</span>}
+        {dash ? null : <span className="notice" role="status">프로젝트 목록을 불러오지 못했어요(없다는 뜻이 아니에요). 프로젝트 필터 · 시작하기가 빠져 있어요.</span>}
         {start ? <StartChecklist steps={start} who={user.id} /> : null}
-        {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/dashboard#repo-register">프로젝트를 등록하면 사용 중인 항목과 비교군이 지도에 와요</Link> : null}
+        {model?.mode === "catalog" ? <Link className="btn btn-primary" href="/dashboard#repo-register">프로젝트를 등록하면 사용 중인 항목이 지도에 와요(비교군은 기술 상세에서)</Link> : null}
       </>} />
     </main>
   );

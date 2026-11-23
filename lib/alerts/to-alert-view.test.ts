@@ -33,7 +33,7 @@ test("보안 경고 알림을 목록 줄과 상세 문구로 바꾼다(등급은
   assert.equal(view.kindLabel, "보안 경고");
   assert.equal(view.kindTone, "danger");
   assert.equal(view.statusLabel, "판단 대기");
-  assert.equal(view.statusTone, "warning");
+  assert.equal(view.statusTone, "pending"); // 판단 대기 = 얼음 파랑(주의 노랑과 다른 뜻, P-12n)
   assert.equal(view.title, "[보안 경고] mcp-remote — 주의 → 위험");
   assert.equal(view.subtitle, "프로젝트: TechRadar");
   assert.deepEqual(view.lines, [
@@ -60,7 +60,7 @@ test("판단을 마친 알림은 '완료'(성공 색)로 보인다", () => {
   const view = toAlertView({ ...securityRecord, status: "done" });
 
   assert.equal(view.statusLabel, "완료");
-  assert.equal(view.statusTone, "success");
+  assert.equal(view.statusTone, "done"); // 완료 = 회색(초록은 등급 "통과"에만, P-12n)
 });
 
 test("적용 기회 알림은 '적용 기회'(중립 색)와 기술 이름만 보이고, 상세 문구는 P-14에서 채운다", () => {

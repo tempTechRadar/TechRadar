@@ -39,7 +39,8 @@ export type AlertView = {
   kindLabel: string;
   kindTone: "danger" | "neutral";
   statusLabel: string;
-  statusTone: "warning" | "success";
+  /** 판단 대기 = 얼음 파랑, 완료 = 중립 회색(P-12n 공통 색 뜻: 초록은 "통과"에만, 노랑은 "주의"에만) */
+  statusTone: "pending" | "done";
   createdAt: string;
   createdAtLabel: string;
   title: string;
@@ -91,7 +92,7 @@ export function toAlertView(record: AlertRecord): AlertView {
     id: record.id,
     kindLabel: kind.label,
     kindTone: kind.tone,
-    ...(record.status === "done" ? { statusLabel: "완료", statusTone: "success" as const } : { statusLabel: "판단 대기", statusTone: "warning" as const }),
+    ...(record.status === "done" ? { statusLabel: "완료", statusTone: "done" as const } : { statusLabel: "판단 대기", statusTone: "pending" as const }),
     createdAt: record.createdAt,
     createdAtLabel: listTime.format(new Date(record.createdAt)),
     subtitle: subtitleOf(record),

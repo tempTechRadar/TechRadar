@@ -6,6 +6,7 @@ import { LoginLink } from "@/app/login-link";
 import { AlertBell } from "@/app/nav/alert-bell";
 import { CartBadge } from "@/app/nav/cart-badge";
 import { NavLink } from "@/app/nav/nav-link";
+import { ScanStatusLine } from "@/app/nav/scan-status";
 import { TabBar } from "@/app/nav/tab-bar";
 import { ReadyGate } from "@/app/tech-map/ready-gate";
 import { LoginPreviewToggle } from "@/app/dev/login-preview-toggle";
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <NavLink href="/blueprint">청사진{cartBadge}</NavLink>
           </div>
           <div className="site-nav-side">
+            <ScanStatusLine admin={user?.role === "admin"} />
             <AlertBell pending={pending} login={user !== null} />
             {user !== null
               ? <AccountMenu name={user?.nickname ?? "내 계정"} admin={user?.role === "admin"} />

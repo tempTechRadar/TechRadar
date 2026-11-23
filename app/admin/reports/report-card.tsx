@@ -15,7 +15,7 @@ function NoteBody({ g }: { g: ReportGroup }) {
       <div><b>팁</b> {g.note.tip}</div>
     </div>
   );
-  return g.hidden ? <details><summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>숨긴 글 내용 펼쳐 보기</summary>{body}</details> : body;
+  return g.hidden ? <details><summary style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", cursor: "pointer" }}>숨긴 글 내용 펼쳐 보기</summary>{body}</details> : body;
 }
 
 export function ReportCard({ g }: { g: ReportGroup }) {

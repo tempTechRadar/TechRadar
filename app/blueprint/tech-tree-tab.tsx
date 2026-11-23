@@ -91,7 +91,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
           <label className="tt-dim">2단 <select value={by[1] ?? ""} onChange={(e) => setDims(e.target.value ? [by[0], e.target.value as TreeDim] : [by[0]])}>
             <option value="">없음</option>{secondDims(by[0]).map((d) => <DimOption key={d} d={d} off={d === "tag" && tags === null} />)}</select></label>
         </>}
-        <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="기술 이름" aria-label="기술 이름으로 거르기" />
+        <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="기술 이름" aria-label="기술 이름으로 필터" />
         <TagPick tags={tags} options={options} value={tagNow} onChange={setTag} />
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보여요. 카드를 단계로 끌어 놓거나 ＋로 넣을 단계를 골라요. "}{guest ? GUEST_GATE : STUDIO_GATE}</p>
@@ -142,7 +142,7 @@ function TagPick({ tags, options, value, onChange }: { tags: Record<string, stri
   if (tags === null) return <span className="muted">내 태그를 불러오지 못했어요</span>;
   if (!options.length) return null;
   return (
-    <select aria-label="내 태그로 거르기" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
+    <select aria-label="내 태그로 필터" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
       <option value="">내 태그 전체</option>
       {options.map((t) => <option key={t} value={t}>{t}</option>)}
     </select>

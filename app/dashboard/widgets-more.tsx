@@ -51,11 +51,11 @@ function ChangeHead({ alerts, period }: { alerts: AlertRecord[] | null; period: 
   return <>{c.n === null ? <>바뀐 것 <span className="board-warn">— 읽지 못함</span></> : <Link href={c.href}>바뀐 것 <b>{c.n}</b></Link>} · </>;
 }
 
-/** ③ 청사진: 담은 기술 → 확정한 청사진(최근 3, 레포 이름) → 청사진 열기, 이 브라우저에 초안이 있으면 "이어서 하기". move = null: 로그인 전 */
+/** ③ 청사진: 담은 기술 → 확정한 청사진(최근 3, 레포 이름, 이름 = 그 청사진 불러오기 /blueprint?bp=, P-12n R3-3 · R2) → 단추 하나(이 브라우저에 초안이 있으면 "이어서 하기", 없으면 "청사진 열기"). move = null: 로그인 전 */
 export async function BlueprintBody({ move, status, who }: { move: Promise<MoveProgress | null> | null; status: Promise<StatusData | null> | null; who: string }) {
   const [m, st] = await Promise.all([move, status]);
   const names = new Map((st?.projects ?? []).map((p) => [p.id, p.name]));
-  const open = <p className="board-actions"><Link className="btn btn-sm" href="/blueprint">청사진 열기</Link><DraftResume who={who} /></p>;
+  const open = <p className="board-actions"><DraftResume who={who} /></p>;
   if (move === null) return <><Empty>지도에서 &quot;청사진에 담기&quot;로 고른 기술로 청사진을 짜요. 로그인하면 확정한 청사진이 여기에 남아요.</Empty>{open}</>;
   if (!m) return <><Failed what="청사진" />{open}</>;
   return (
@@ -63,7 +63,7 @@ export async function BlueprintBody({ move, status, who }: { move: Promise<MoveP
       <p className="board-head"><Link href="/blueprint">담은 기술 <b>{m.candidates}</b></Link></p>
       <h3>확정한 청사진</h3>
       {m.blueprints.length ? <ul className="board-lines">{m.blueprints.slice(0, LINES).map((b) => (
-        <li key={b.id}><span className="board-src">{b.projectId ? names.get(b.projectId) ?? (st ? "보관한 레포" : "레포 모름") : "레포 없이"}</span><span>{b.name}</span><When iso={b.createdAt} /></li>
+        <li key={b.id}><span className="board-src">{b.projectId ? names.get(b.projectId) ?? (st ? "보관한 레포" : "레포 모름") : "레포 없이"}</span><span><Link href={`/blueprint?bp=${b.id}`}>{b.name}</Link></span><When iso={b.createdAt} /></li>
       ))}</ul> : <Empty>아직 확정한 청사진이 없어요.</Empty>}
       {open}
     </>

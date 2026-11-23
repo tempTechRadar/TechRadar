@@ -7,6 +7,11 @@
 .studio-addpop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; gap: 6px; min-width: 15em; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 .studio-addpop label { display: grid; gap: 4px; font-size: var(--fs-sm); }
 .studio-addpop input { min-height: var(--hit); padding: 0 10px; border: 1px solid var(--ink-2); border-radius: var(--r-md); font: inherit; }
+/* 불러오기 ▾(P-12l): 템플릿 이름 위 · 설명 아래, 왼쪽 맞춤 */
+.studio-loadpop { min-width: 18em; }
+.page .studio-loadpop .btn { flex-direction: column; align-items: flex-start; justify-content: center; padding: 6px 12px; text-align: left; }
+.studio-loadpop .muted { font-weight: 400; }
+.studio-loadpop hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* 결과물 창(result-dialog): 고칠 것 → 내보내기 → 확정 → AI 점검 */
 .rd { display: grid; gap: var(--sp-3); }
 .rd p { margin: 0; }
@@ -27,7 +32,7 @@
 .studio-insp-bar { display: flex; justify-content: flex-end; padding: var(--sp-1) var(--sp-2) 0; }
 .studio-insp .insp { border-left: 0; }
 .studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
-.studio-canvas { min-height: 320px; position: relative; background: var(--sunken); }
+.studio-canvas { min-height: 320px; position: relative; background: var(--paper); }
 /* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
 .studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
 
@@ -35,9 +40,9 @@
 
 /* 단계 노드 */
 /* P-12j H2: 단계 = 컨테이너. 크기는 노드 style(graph.ts NODE_SIZE.w × stageHeight)이 정하고, 안의 자리(머리 40 · 줄 46 · 아래 12)는 graph.ts BOX와 같다 */
-.sn { box-sizing: border-box; width: 100%; height: 100%; padding: 6px 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
+.sn { box-sizing: border-box; width: 100%; height: 100%; padding: 6px 10px 12px; background: var(--card); border: 1px solid var(--ring); border-radius: var(--r-lg); box-shadow: 0 10px 28px rgba(0, 0, 0, .45); } /* P-12m 관측소: 밝은 남색 판 + 그림자 */
 .sn[data-selected] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
-.sn[data-over] { outline: 2px dashed var(--ink); outline-offset: 2px; }
+.sn[data-over] { outline: 2px dashed var(--on-paper); outline-offset: 2px; }
 /* P-12g B4 빈 자리 윤곽(H2부터 .sn-slot-ghost = 다음 기술 자리): 끄는 동안 칩 자리. 가득 차면 윤곽 대신 글자(색에만 기대지 않음) */
 .sn[data-full] { outline-color: var(--ink-2); }
 .sn-full { margin: 6px 0 0; font-size: var(--fs-cap); font-weight: 700; color: var(--ink); }
@@ -54,7 +59,7 @@
 .react-flow__node-tech { cursor: grab; }
 .react-flow__node-tech.dragging { cursor: grabbing; box-shadow: var(--shadow-pop); }
 .react-flow__handle.tn-handle { width: 8px; height: 8px; background: var(--surface); border: 1px dashed var(--muted); }
-.sn-order { display: inline-grid; place-items: center; min-width: 22px; height: 22px; font-size: 13px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--sunken); font-weight: 700; }
+.sn-order { display: inline-grid; place-items: center; min-width: 22px; height: 22px; font-size: 13px; padding: 0 4px; box-sizing: border-box; border-radius: var(--r-sm); background: none; font-family: var(--mono); font-weight: 500; color: var(--scan); } /* P-12m 관측소: 고정폭 청록 "01" */
 .sn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; font-weight: 700; color: var(--ink); } /* P-12j(11-22 사용자): 이름 19 굵게 */
 .sn-name-input { flex: 1; min-width: 0; min-height: 32px; padding: 0 var(--sp-1); font: inherit; font-size: 19px; font-weight: 700; border: 1px solid var(--ink); border-radius: var(--r-sm); }
 /* U2 고른 카드 아래 "메모" · "삭제": 고르거나 올리거나 Tab으로 들어오면 보임(투명해도 Tab은 닿음). 아래 +(가운데)와 겹치지 않게 양끝 */
@@ -96,26 +101,34 @@ button.sn-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .se-cut:focus-visible { outline: var(--focus); outline-offset: 2px; }
 
 /* 단계 순서 선(H2: 굵은 실선), 고른 단계 · 선만 진하게 */
-.react-flow__edge.se .react-flow__edge-path { stroke: var(--faint); stroke-width: 2; }
-.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.se.selected .react-flow__edge-path { stroke: var(--ink); stroke-width: 2.5; }
+.react-flow__edge.se .react-flow__edge-path { stroke: var(--scan); stroke-width: 2; stroke-opacity: .75; } /* P-12m 관측소: 단계 사이 청록 궤도선 + 화살촉 */
+.react-flow__edge.se-on .react-flow__edge-path, .react-flow__edge.se.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 3; stroke-opacity: 1; }
 /* 기술 관계 표시(H2): 사용자가 그은 표시라 가는 점선 · 다른 색(검증 결과가 아님) */
-.react-flow__edge.tl .react-flow__edge-path { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
-.react-flow__edge.tl.selected .react-flow__edge-path { stroke: var(--ink); stroke-width: 1.5; }
+.react-flow__edge.tl .react-flow__edge-path { stroke: var(--chip-purple-ink); /* 내가 그은 관계 표시 = 보라 점선(사용자 유지) */ stroke-width: 1; stroke-dasharray: 4 3; }
+.react-flow__edge.tl.selected .react-flow__edge-path { stroke: var(--scan); stroke-width: 2.5; } /* P-12n R2-5: 고른 관계선 = 청록 2.5 */
 /* 끄는 동안 "붙을 자리" 미리보기: 옅은 점선, 고리가 되면 빨간 점선(글자로도 이유) */
-.react-flow__edge.se-near .react-flow__edge-path { stroke: var(--ink-2); stroke-dasharray: 4 3; }
+.react-flow__edge.se-near .react-flow__edge-path { stroke: var(--on-paper); stroke-dasharray: 4 3; }
 .react-flow__edge.se-blocked .react-flow__edge-path { stroke: var(--danger); stroke-dasharray: 4 3; }
 /* P-12g B2 확정 = 설계선 긋기: 실제 선(edge-path)과 화살촉은 그대로 두고, React Flow가 이미 그리는 두 번째 path(넓은 누름 영역, 보통 투명)를
    잠깐 먹 1.5px로 덧칠해 한 번 긋고 사라진다. 클래스는 studio.tsx가 600ms 뒤 뗀다(움직임 줄이기면 아예 안 붙임 + 아래 none) */
 /* 덧칠 길이 8000px: 넓게 자동 정렬된 판의 긴 선도 처음부터 그어지게(선 길이를 CSS가 몰라서 넉넉한 고정값) */
-.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--ink); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 8000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
+.react-flow__edge.se-draw .react-flow__edge-interaction { stroke: var(--scan); stroke-opacity: 1; stroke-width: 1.5; stroke-dasharray: 8000; animation: se-draw calc(var(--dur) * 2) ease-out both; }
 @keyframes se-draw { 0% { stroke-dashoffset: 8000; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .react-flow__edge.se-draw .react-flow__edge-interaction { animation: none; stroke-opacity: 0; } }
 /* 미니맵: 작게 · 테두리로 판과 구분(빈 흰 상자로 단계를 덮지 않게). 목록 모드(좁은 화면)에는 캔버스가 없어 미니맵도 없다 */
 .react-flow__minimap.studio-mini { width: 160px; height: 100px; margin: 8px; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
 .react-flow__minimap.studio-mini svg { width: 160px; height: 100px; }
 .studio-note { margin: 0; border-radius: 0; }
+/* P-12n R2: 손님 띠는 얇은 한 줄 · 위 막대 보조 단추는 옅은 테두리, 묶음 사이 간격 · 빈 판 첫 안내 */
+.page .notice.studio-guest { padding: 4px var(--sp-4); border-width: 0 0 1px; border-color: var(--line); font-size: var(--fs-sm); } /* .page .notice(상자)보다 세게 */
+@media (max-width: 860px) { .studio-bar .studio-group { margin-left: 0; } } /* 좁은 화면은 줄바꿈이라 묶음 간격이 자리만 차지 */
+.studio-bar .btn:not(.btn-primary, [aria-pressed="true"]) { border-color: var(--line); }
+.studio-bar .studio-group { margin-left: var(--sp-3); }
+.sn-start { display: grid; gap: 4px; font-size: var(--fs-cap); line-height: 16px; color: var(--muted); }
+.sn-start > span:last-child { display: flex; gap: 6px; }
+.sn-start .sn-act { display: inline-flex; align-items: center; text-decoration: none; }
 /* 정렬 보조선(캔버스 좌표) */
-.sg { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--ink); opacity: .45; }
+.sg { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--scan); opacity: .8; }
 .sg-x { width: 1px; height: 100000px; }
 .sg-y { width: 100000px; height: 1px; }
 

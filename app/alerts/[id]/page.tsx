@@ -5,7 +5,8 @@ import { toScenarioView } from "@/lib/alerts/to-scenario-view";
 import { BLUEPRINT_GATE } from "@/lib/blueprint/knowledge";
 import { isPreviewUser } from "@/lib/dev/login-preview";
 import { SAMPLE_ALERTS } from "@/lib/dev/preview-data";
-import { getMyAlert } from "@/lib/server/alert-queries";
+import { nextPendingId } from "@/lib/alerts/next-pending";
+import { getMyAlert, nextPendingAlertId } from "@/lib/server/alert-queries";
 import { getCurrentUser } from "@/lib/server/current-user";
 import { readScenarioState } from "@/lib/server/scenario-queries";
 import { readSimilarJudgments } from "@/lib/server/similar-judgments";
@@ -41,6 +42,9 @@ export default async function AlertDetailPage({ params, searchParams }: { params
   const saved = (await searchParams).saved;
   const fresh = saved === "1" && view.judgmentLine !== null;
   const similar = !supabase ? [] : await readSimilarJudgments(supabase, user.id, id).catch((e) => { console.error("비슷한 지난 판단 조회 실패", e); return null; });
+  // 판단한 카드의 [다음 판단 대기 →](P-12n R3-2): 판단했을 때만 목록을 읽는다. 못 읽으면 undefined → 판단 대기 목록으로(없다고 단정하지 않음, 불변 2)
+  const next = !view.judgmentLine ? undefined : !supabase ? nextPendingId(SAMPLE_ALERTS, id)
+    : await nextPendingAlertId(supabase, user.id, id).catch((e) => { console.error("다음 판단 대기 조회 실패", e); return undefined; });
   const scenario = loaded.record.kind === "model_eol" ? undefined : !supabase ? toScenarioView(null, 0, new Date())
     : await readScenarioState(supabase, id, user.id, new Date()).then(({ latest, usedToday }) => toScenarioView(latest, usedToday, new Date()), (e) => { console.error("적용 시나리오 조회 실패", e); return null; });
   // 머리 + 2단(design.md 19절): 머리에 무엇 · 상태, 판단 줄을 바로 아래에. 왼쪽 = 바뀐 것과 근거, 오른쪽 = 비슷한 지난 판단
@@ -60,7 +64,12 @@ export default async function AlertDetailPage({ params, searchParams }: { params
             {saved === "1" || saved === "done" ? <SavedFocus target="judged-card" /> : null}
             <p className="muted">판단을 남겼을 뿐, 설치하거나 바꾼 것은 없어요. {BLUEPRINT_GATE}</p>
             {/* 판단 = 청사진으로 가는 관문(11-21 화면 개편 C): 적용 기회를 후보로 골랐으면 바로 넣으러 간다(보안 경고 · 모델 종료는 내가 쓰는 것이라 넣을 새 기술이 아님) */}
-            {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <p className="actions"><Link className="btn" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link></p> : null}
+            <p className="actions">
+              {loaded.record.kind === "opportunity" && loaded.record.judgment?.decision === "candidate" && loaded.record.tech ? <Link className="btn btn-primary" href={`/blueprint?add=${loaded.record.tech.id}`}>청사진에 넣기</Link> : null}
+              {next ? <Link className="btn" href={`/alerts/${next}`}>다음 판단 대기 →</Link>
+                : next === null ? <span className="muted">판단 대기가 더 없어요. <Link href="/alerts">알림 목록</Link></span>
+                : <Link className="btn" href="/alerts?status=pending">판단 대기 목록 →</Link>}
+            </p>
           </article>
         ) : (
           <JudgmentForm alertId={loaded.record.id} canCandidate={view.canCandidate} kind={loaded.record.kind} candidateLabel={view.candidateLabel} />

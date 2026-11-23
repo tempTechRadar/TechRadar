@@ -16,7 +16,7 @@ export const PERIOD_KO: Record<Period, string> = { day: "오늘", week: "이번 
 /** 지도에 올리는 최근 30일 새 기술 몫(서버 map-queries가 이만큼 읽음). 기간 보기는 이 안에서만 보여 화면이 안내한다 */
 export const NEW_QUOTA = 100;
 export const inPeriod = (n: Pick<MapNode, "addedDays">, p: Period) => n.addedDays !== null && n.addedDays < PERIOD_DAYS[p];
-/** mineOnly = "내 기술과 비교군(한 단계)"(ADR 0027), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만, tags = 내 태그 중 하나라도 붙은 것 */
+/** mineOnly = "사용 중"(사용 중인 항목만, P-12m: 비교군은 지도에 두지 않음), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만, tags = 내 태그 중 하나라도 붙은 것 */
 export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; marks: MarkPick[]; hot: boolean; err: boolean; project: string; tags: string[] };
 /** 내 판단으로 거르기(P-12f 보드 녹이기: 옛 보드의 칸 = 지도의 판단 칩). 고른 것 중 하나라도 맞으면 보인다 */
 export const MARK_PICKS = ["interest", "candidate", "hold"] as const;
@@ -103,7 +103,7 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
     && (!f.fields.length || f.fields.includes(n.attrs.field))
     && (!f.subs.length || f.subs.includes(n.attrs.sub))
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
-    && (!f.mineOnly || n.mine || n.nearMine)
+    && (!f.mineOnly || n.mine)
     && (!f.period || inPeriod(n, f.period))
     && (!f.marks.length || (!!n.decided && f.marks.includes(n.decided)))
     && (!f.hot || n.hot)

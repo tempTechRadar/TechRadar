@@ -2,6 +2,7 @@
 // 단계 노드(P-12e → P-12j H2 컨테이너): 머리는 작게(순서 번호 · 이름 · 기술 수), 몸은 기술 노드(자식 노드, tech-node.tsx)가 놓일 자리.
 // 왼쪽 점 = 들어오는 순서 선, 오른쪽 점 = 나가는 순서 선. Library에서 끈 기술(TECH_DRAG)을 놓으면 붙인다.
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { BOX, LIMITS, type Stage } from "@/lib/blueprint/graph";
@@ -10,6 +11,7 @@ import { TECH_DRAG } from "./studio-types";
 export type StageData = {
   stage: Stage; order: number | null; /** 휴대폰 "그림으로 보기": 놓기 · 편집 없음 */ readOnly?: boolean;
   onDropTech: (stageId: string, techId: string) => void;
+  /** 빈 판 첫 안내(P-12n R2-1): 빈 단계 하나 + 넣을 기술 0일 때. load = 위 막대 "불러오기 ▾" 열기 */ start?: { load: () => void };
   /** 위 · 아래 +(S3): 같은 순서에 단계 더하기(읽기 전용이면 없음), 막힌 이유(같은 순서가 가득) */ onBeside?: (stageId: string, dir: -1 | 1) => void; besideBlocked: string | null;
   /** P-12h-2 T1 카드 위 편집(읽기 전용이면 없음): 왼쪽 · 오른쪽 + = 앞 · 다음 단계, 자세히 = 서랍 열기, ✕ = 지우기(토스트 되돌리기) */
   /** hasIn · hasOut = 들어오는 · 나가는 선이 있음(U2: 옆면 +는 그쪽 선이 없을 때만) */
@@ -43,14 +45,16 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
           aria-label={`${stage.name} ${dir < 0 ? "앞" : "다음"} 단계 더하기`} onClick={() => data.edit!.onSide(stage.id, dir)}>+</button>
       )) : null}
       <header className="sn-head">
-        <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : data.order + 1}</span>
+        <span className="sn-order" title="순서(같은 번호는 동시에)">{data.order === null ? "?" : String(data.order + 1).padStart(2, "0")}</span>
         {data.edit?.editing ? <NameInput name={stage.name} onDone={(v) => data.edit!.onRename(stage.id, v)} />
           : <b className="sn-name" onDoubleClick={data.edit ? () => data.edit!.onEdit(stage.id) : undefined} title={data.edit ? "두 번 누르면 이름 바꾸기(F2)" : undefined}>{stage.name}</b>}
-        <span className="sn-count">{stage.techs.length}/{LIMITS.techs}</span>
+        <span className="sn-count" title={`이 단계의 기술 ${stage.techs.length}개 · 한 단계에 ${LIMITS.techs}개까지`}>{stage.techs.length}/{LIMITS.techs}</span>
       </header>
       {/* 기술 노드(자식)가 놓일 자리: 높이는 graph.ts stageHeight와 같다. 끄는 동안 다음 자리에 점선 윤곽(B4) */}
       <div className="sn-slots" style={{ height: Math.max(1, stage.techs.length + (over && !full && stage.techs.length ? 1 : 0)) * BOX.row }}>
-        {stage.techs.length ? null : <p className="sn-empty">아래에서 기술을 끌어 놓아요</p>}
+        {stage.techs.length ? null : data.start ? <div className="sn-start"><span>지도에서 담거나, 템플릿으로 시작</span>
+          <span><Link className="sn-act nodrag nopan" href="/">지도 열기</Link><button type="button" className="sn-act nodrag nopan" onClick={data.start.load}>불러오기</button></span></div>
+          : <p className="sn-empty">아래에서 기술을 끌어 놓아요</p>}
         {over && !full ? <i className="sn-slot-ghost" aria-hidden="true" style={{ top: stage.techs.length * BOX.row }} /> : null}
       </div>
       {/* 단계 메모(T2): 칩 아래 두 줄로 줄여 옅게. 누르면 서랍 메모 칸. 읽기 전용이면 글만 */}
@@ -59,7 +63,7 @@ export function StageNode({ data, selected }: NodeProps<StageNodeType>) {
       {/* U2: 고른 카드(또는 올림 · Tab) 아래 왼쪽 "메모" · 오른쪽 "삭제"(지우고 토스트 되돌리기) */}
       {data.edit && !data.edit.editing ? <div className="sn-actions">
         <button type="button" className="sn-act nodrag nopan" aria-label={`${stage.name} 메모`} onClick={() => data.edit!.onNote(stage.id)}>메모</button>
-        <button type="button" className="sn-act nodrag nopan" aria-label={`${stage.name} 단계 삭제`} onClick={() => data.edit!.onRemove(stage.id)}>삭제</button>
+        <button type="button" className="sn-act btn-danger nodrag nopan" aria-label={`${stage.name} 단계 삭제`} onClick={() => data.edit!.onRemove(stage.id)}>삭제</button>
       </div> : null}
       {over && full ? <p className="sn-full">가득 참 {stage.techs.length}/{LIMITS.techs}</p> : null}
       <Handle type="source" position={Position.Right} className="sn-handle" isConnectable={!data.readOnly} aria-label={`${stage.name}에서 나가는 선`} />

@@ -33,13 +33,15 @@ test("누르는 것은 button·a·form 안에서만, 이미지에 alt, 초점 �
   assert.deepEqual(FILES.flatMap(({ file, src }) => interactiveProblems(src).map((p) => `${file}: ${p}`)), []);
 });
 
-// 펼치기(<summary>)와 사유 입력칸은 기본 모양이 작아서 크기 규칙을 직접 단다(영역 C 화면도 같은 방식: style={{ minHeight: 44 … }})
-test("펼치기(summary)는 최소 높이 44px 규칙이 있다", () => {
-  const bad = FILES.flatMap(({ file, src }) => [...src.matchAll(/<summary\b[^>]*>/g)].filter((m) => !/minHeight:\s*44/.test(m[0])).map(() => file));
+// 펼치기(<summary>)와 사유 입력칸은 기본 모양이 작아서 크기 규칙을 직접 단다(영역 C 화면도 같은 방식: style={{ minHeight: 44 … }}).
+// P-12m 컴팩트: 관리자 화면은 minHeight: "var(--hit)"(마우스 34 · 손가락 44, app/tokens.css)도 된다(둘 다 24px 이상, WCAG 2.5.8)
+const MIN_HIT = /minHeight:\s*(44\b|"var\(--hit\)")/;
+test("펼치기(summary)는 최소 높이 규칙(44px 또는 --hit)이 있다", () => {
+  const bad = FILES.flatMap(({ file, src }) => [...src.matchAll(/<summary\b[^>]*>/g)].filter((m) => !MIN_HIT.test(m[0])).map(() => file));
   assert.deepEqual(bad, []);
 });
 
-test("신고 사유 입력칸(name=\"reason\")은 최소 높이 44px 규칙이 있다", () => {
-  const bad = FILES.flatMap(({ file, src }) => [...src.matchAll(/<input\b[^>]*name="reason"[^>]*>/g)].filter((m) => !/minHeight:\s*44/.test(m[0])).map(() => file));
+test("신고 사유 입력칸(name=\"reason\")은 최소 높이 규칙(44px 또는 --hit)이 있다", () => {
+  const bad = FILES.flatMap(({ file, src }) => [...src.matchAll(/<input\b[^>]*name="reason"[^>]*>/g)].filter((m) => !MIN_HIT.test(m[0])).map(() => file));
   assert.deepEqual(bad, []);
 });

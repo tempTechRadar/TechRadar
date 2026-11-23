@@ -1,10 +1,13 @@
 // 스튜디오 초안 · 확정 id의 순수 규칙(P-12e). 화면(use-studio-graph · use-studio-save)이 브라우저 저장소 · 서버 액션과 잇는다.
 // - 초안 읽기: v2 초안은 parseDraft(깊이 · 같은 깊이 한도는 확정 때만), 없으면 옛 격자 초안을 한 번 바꿔 읽는다. 읽지 못한 v2는 "따로 보관"으로 알린다(불변 4 취지).
 // - 같은 확정: 이름 · 프로젝트 · 템플릿 · 단계(id · 이름 · 기술) · 연결선 · 나란히 순서가 같으면 같은 내용(위치만 옮긴 것은 같음, 불변 3).
+import { fromNames } from "./board.ts";
 import { parseBoard, toBoard, type StoredBoard } from "./stored.ts";
 import { fromV1, parseDraft, toBoardView, type Graph } from "./graph.ts";
 
 export type Saved = { name: string; graph: Graph };
+/** 저장된 초안이 없을 때의 처음 판(P-12l 사용자): 이름 "새 단계"인 빈 단계 하나. 템플릿은 위 막대 "불러오기 ▾"에서 */
+export const blankGraph = (): Graph => fromV1(fromNames([["새 단계"]]));
 const parseJson = (raw: string | null): unknown => { try { return JSON.parse(raw ?? "null"); } catch { return null; } };
 const nameOf = (v: unknown) => (typeof v === "string" ? v : "내 청사진");
 

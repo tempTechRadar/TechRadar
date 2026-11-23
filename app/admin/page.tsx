@@ -21,7 +21,7 @@ export default async function AdminHome() {
     <AdminShell tab="" title="관리자" lead="관리자 화면은 보기 중심이에요. 알림 판단은 알림을 받은 본인만 해요.">
       <ul>
         {ADMIN_TABS.map((t) => (
-          <li key={t.id} style={{ minHeight: 44, display: "flex", alignItems: "center", gap: 8 }}>
+          <li key={t.id} style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", gap: 8 }}>
             <Link href={t.href}>{t.label}</Link> <span className="muted">— {ABOUT[t.id]}</span>
           </li>
         ))}

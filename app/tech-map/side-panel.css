@@ -49,3 +49,18 @@
   .map-side { width: 100%; top: auto; height: 70%; border-left: 0; border-top: 1px solid var(--line); }
   .map-side:not([data-open]) { transform: translateY(calc(100% + 24px)); }
 }
+
+/* 노션식 속성 칩(P-12m 시안 A): 이름 칸 + 칩. 색 짝은 tokens.css --chip-*(대비 시험) */
+.side-props { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 8px; margin: var(--sp-2) 0; font-size: var(--fs-sm); }
+.side-props dt { color: var(--muted); line-height: 22px; }
+.side-props dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 22px; }
+.nchip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.nchip[data-c="blue"] { background: var(--chip-blue); color: var(--chip-blue-ink); }
+.nchip[data-c="purple"] { background: var(--chip-purple); color: var(--chip-purple-ink); }
+.nchip[data-c="green"] { background: var(--chip-green); color: var(--chip-green-ink); }
+.nchip[data-c="orange"] { background: var(--chip-orange); color: var(--chip-orange-ink); }
+.nchip[data-c="pink"] { background: var(--chip-pink); color: var(--chip-pink-ink); }
+.nchip[data-c="teal"] { background: var(--chip-teal); color: var(--chip-teal-ink); }
+.nchip[data-c="yellow"] { background: var(--chip-yellow); color: var(--chip-yellow-ink); }
+.nchip[data-c="red"] { background: var(--chip-red); color: var(--chip-red-ink); }
+.nchip[data-c="gray"] { background: var(--chip-gray); color: var(--chip-gray-ink); }

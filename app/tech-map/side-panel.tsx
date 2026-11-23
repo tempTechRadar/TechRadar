@@ -32,6 +32,29 @@ type TechProps = {
   onMark: OnCartMark; onGo: (key: string) => void; onTags: (tags: string[]) => void;
 };
 
+/** 노션식 속성 칩(P-12m 시안 A, 11-23 사용자): 등급 · 종류 · 갈래 · 하는 일 · 출처 · 사용 중. 모델(DB)에 있는 값만, 없으면 칩 대신 "정보 없음"(불변 2).
+ *  내 태그는 바로 아래 태그 편집이 같은 칩으로 보여 준다 */
+const Chip = ({ c, children }: { c: string; children: ReactNode }) => <span className="nchip" data-c={c}>{children}</span>;
+const NONE = <span className="muted">정보 없음</span>;
+const GRADE_CHIP: Record<string, [string, string]> = { danger: ["red", "✕ 위험"], caution: ["orange", "! 주의"], pass: ["green", "통과"], unknown: ["gray", "찾지 못함"] };
+const owner = (url: string) => { try { return new URL(url).pathname.split("/").filter(Boolean)[0] ?? null; } catch { return null; } };
+const val = (v: string, c: string) => (v && v !== UNSORTED ? <Chip c={c}>{v}</Chip> : NONE);
+
+function Props({ n }: { n: MapNode }) {
+  const [gc, gt] = GRADE_CHIP[n.grade] ?? ["gray", n.attrs.grade];
+  const src = n.repoUrl ? owner(n.repoUrl) : null;
+  return (
+    <dl className="side-props">
+      <dt>등급</dt><dd>{isConcept(null, n.type) ? <Chip c="gray">등급 없음(작업 방식)</Chip> : <Chip c={gc}>{gt}</Chip>}{n.collectErrorKind ? <Chip c="red">수집 오류 · 지난 값</Chip> : null}</dd>
+      <dt>종류</dt><dd>{val(n.attrs.kind, "blue")}</dd>
+      <dt>갈래</dt><dd>{val(n.attrs.sub, "teal")}</dd>
+      <dt>하는 일</dt><dd>{val(n.attrs.field, "purple")}</dd>
+      <dt>만든 곳</dt><dd>{n.official ? <Chip c="green">공식</Chip> : null}{src ? <Chip c="gray">{src}</Chip> : n.official ? null : NONE}</dd>
+      {n.mine ? <><dt>사용 중</dt><dd><Chip c="yellow">{n.projectNames.length ? n.projectNames.join(", ") : "사용 중"}</Chip></dd></> : null}
+    </dl>
+  );
+}
+
 function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
   const [what, facts] = describeKo(n);
   // "왜 여기"(소속 · 쓰는 곳)를 기본 정보 줄과 같은 자리로(11-22 사용자)
@@ -41,20 +64,12 @@ function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
       <div className="side-title"><h2 id="map-side-title" tabIndex={-1}>{n.name}</h2>{star}</div>
       <p>{what}</p>
       <p className="muted">{facts ? `${facts} · ` : ""}{where}</p>
-      <p className="map-row side-tags">
-        <span className="tag">{n.attrs.kind}</span>
-        {n.official ? <span className="tag">공식</span> : null}
-        {n.isNew ? <span className="tag">NEW</span> : null}
-        {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
-        {n.collectErrorKind ? <span className="tag">수집 오류</span> : null}
-        {n.mine ? <span className="tag strong">사용 중</span> : null}{n.nearMine ? <span className="tag">사용 중인 항목의 비교군</span> : null}
-      </p>
     </header>
   );
 }
 
-function CompareList({ n, compare, onGo }: { n: MapNode; compare: Compare[]; onGo: (key: string) => void }) {
-  if (!compare.length) return <p className="muted">{n.mine ? "확인된 비교군이 아직 없어요." : "비교군은 사용 중인 항목 둘레에만 보여요."}</p>;
+function CompareList({ compare, onGo }: { compare: Compare[]; onGo: (key: string) => void }) {
+  if (!compare.length) return <p className="muted">확인된 비교군이 아직 없어요.</p>;
   return (
     <ul className="map-near">{compare.map(({ item: ci, node: m, quote }) => (
       <li key={m.key}><Dot token={ci?.token ?? null} hollow={ci?.hollow} /><div>
@@ -85,13 +100,21 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
   return (
     <>
       <TechHead n={n} star={login && n.techId ? <Star status={n.mark?.status} busy={busy} onMark={onMark} /> : null} />
-      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
       {isRisky(n) ? <SecurityBand n={n} /> : null}
       {n.collectErrorKind ? <p className="notice side-err">수집 오류: 지난번에 읽은 값을 보여 줘요(마지막 확인 {when(n.lastCheckedOkAt)}). &quot;변화 없음&quot;이 아니에요.</p> : null}
       <section className="side-decide" aria-label="청사진">
         <Cart techId={n.techId} mark={n.mark} danger={n.catalogGrade === "danger"} login={login} busy={busy} onMark={onMark} />
       </section>
-      <Card title={`비교군 ${compare.length}`}><CompareList n={n} compare={compare} onGo={onGo} /></Card>
+      {/* P-12n 순서: 이름 → 보안 띠 → 청사진에 담기 → 속성 칩 → 태그 편집. 비교군은 사용 중인 기술일 때만(사용자 원문) */}
+      <Props n={n} />
+      {n.isNew || n.addedAt ? (
+        <p className="map-row side-tags">
+          {n.isNew ? <span className="tag">NEW</span> : null}
+          {n.addedAt ? <span className="tag">{day(n.addedAt)} 들어옴</span> : null}
+        </p>
+      ) : null}
+      <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
+      {n.mine ? <Card title={`비교군 ${compare.length}`}><CompareList compare={compare} onGo={onGo} /></Card> : null}
       <Card title="출처">
         {n.oneLiner ? <p>{n.oneLiner}</p> : null}
         <dl className="side-facts">

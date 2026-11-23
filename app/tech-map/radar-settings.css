@@ -1,7 +1,7 @@
 /* 오른쪽 아래 ⚙ 레이더 설정: 범례 · 상태 줄 위(.map-dock 안), 창은 위로 열린다.
    dock 줄로 넣지 않고 띄운다: 지도 높이(dockHeight)와 알림 말풍선 자리가 그대로다. shortcut: 오른쪽 아래 44px 안의 점은 단추에 가린다, 문제되면 S.bottom에 넣는다 */
 .map-dock > .radar-set { position: absolute; right: 0; bottom: 100%; }
-.radar-set-btn { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+.radar-set-btn { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--on-paper); font-size: 20px; line-height: 1; cursor: pointer; }
 .radar-set-btn:hover, .radar-set-btn[aria-expanded="true"] { color: var(--ink); background: var(--sunken); }
 .radar-set-panel { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 6; width: min(240px, calc(100vw - 48px)); padding: 12px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--ink-2); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
 .radar-set-panel fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }

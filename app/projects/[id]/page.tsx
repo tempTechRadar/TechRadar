@@ -53,7 +53,7 @@ export default async function RepoPage({ params, searchParams }: { params: Promi
 }
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
-  return <main className="page board-page repo-page"><p className="muted"><Link href="/dashboard#w-repos">← 프로젝트 관리</Link></p><h1>{title}</h1>{children}</main>;
+  return <main className="page board-page repo-page"><p className="muted"><Link href="/dashboard#w-repos">← 프로젝트</Link></p><h1>{title}</h1>{children}</main>;
 }
 
 /** 판 하나(보드의 걸린 판과 같은 모양, 끌기 없음) */
@@ -95,7 +95,7 @@ function Detail({ p, query, alerts, move, marks }: { p: RepoDetailRow; query: Ma
         <Panel id="r-pending" title={`판단 대기${pending ? ` ${pending.length}` : ""}`}>
           {pending ? <AlertLines rows={pending} empty="이 레포에서 판단을 기다리는 알림이 없어요." more={`/alerts?status=pending&project=${p.id}`} /> : <p className="board-fail" role="alert">— 판단 대기를 읽지 못했어요. 없다는 뜻이 아니에요.</p>}
         </Panel>
-        <Panel id="r-changed" title="바뀐 것(판단 끝남)">
+        <Panel id="r-changed" title="완료">
           {done ? <AlertLines rows={done} empty="판단을 끝낸 변경이 아직 없어요." more={`/alerts?status=done&project=${p.id}`} /> : <p className="board-fail" role="alert">— 바뀐 것을 읽지 못했어요. 없다는 뜻이 아니에요.</p>}
         </Panel>
         <Panel id="r-bp" title="이 레포의 확정 청사진">

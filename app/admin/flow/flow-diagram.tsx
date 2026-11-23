@@ -67,7 +67,7 @@ function FlowText({ flow, colored, edgeLabels }: { flow: Flow; colored: Colored;
   const alt = flowTextAlt(flow, colored, edgeLabels ?? new Map());
   return (
     <details style={{ margin: "8px 0" }}>
-      <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>그림을 글로 보기</summary>
+      <summary style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", cursor: "pointer" }}>그림을 글로 보기</summary>
       {alt.boxes.length === 0 ? <p>이번 실행에서 켜진 상자가 없어요(상자 {alt.offCount}개 모두 안 켜짐).</p> : (
         <>
           <h3 style={{ fontSize: 16 }}>켜진 상자 {alt.boxes.length}개 <span style={{ fontWeight: 400 }}>(안 켜진 상자 {alt.offCount}개)</span></h3>
@@ -87,7 +87,7 @@ function PathText({ flow, start, edges }: { flow: Flow; start: string; edges: Se
     <div style={{ fontSize: 14, margin: "8px 0" }}>
       <p style={{ margin: 0 }}><strong>{start}</strong>에서 갈 수 있는 길을 파란 점선으로 보여요(설계도 기준, 이번 실행의 기록이 아니에요). 이 시작 상자를 다시 누르면 길 보기가 풀려요.</p>
       <details>
-        <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>길의 화살표 {edges.size}개 글로 보기</summary>
+        <summary style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", cursor: "pointer" }}>길의 화살표 {edges.size}개 글로 보기</summary>
         <ul>{[...edges].map((k) => { const [a, b] = k.split(">"); return <li key={k}>{name(a)} → {name(b)}</li>; })}</ul>
       </details>
     </div>
@@ -104,7 +104,7 @@ export function FlowDiagram({ flow, colored, edgeLabels, nodeHref, selected }: D
   const svgRole = nodeHref ? { role: "group", "aria-label": "흐름 그림: 상자를 누르면 상세가 열려요" } : { role: "img", "aria-label": "흐름 그림(아래 '그림을 글로 보기'에 같은 내용)" };
   return (
     <>
-    <div style={{ overflowX: "auto", border: "1px solid #ddd", borderRadius: 12, background: FLOW_INK.canvas }}>
+    <div style={{ overflowX: "auto", border: "1px solid var(--ring)", borderRadius: 12, background: FLOW_INK.canvas }}>
       <svg {...svgRole} className="flow-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
         <style>{FOCUS_CSS}</style>
         <defs>

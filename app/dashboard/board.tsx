@@ -139,7 +139,7 @@ function Library({ widgets, layout, onToggle }: { widgets: Widget[]; layout: Box
   const n = widgets.filter((w) => on(w.id)).length;
   return (
     <span className="board-lib">
-      <button type="button" className="btn btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>+ 판 <span className="muted">{n}/{widgets.length}</span></button>
+      <button type="button" className="btn btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>+ 판 추가 <span className="muted">({n === widgets.length ? `${n}개 모두 보임` : `${n}/${widgets.length}개 보임`})</span></button>
       {open ? <fieldset className="board-lib-pop" onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
         <legend>보드에 걸 판</legend>
         {widgets.map((w) => <label key={w.id}><input type="checkbox" checked={on(w.id)} onChange={(e) => onToggle(w.id, e.target.checked)} /> {w.title}</label>)}

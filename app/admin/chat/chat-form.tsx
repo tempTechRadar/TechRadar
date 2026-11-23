@@ -10,7 +10,7 @@ export function ChatForm() {
       <form action={action} style={{ display: "grid", gap: 8, maxWidth: 720 }}>
         <label id="chat-ask" htmlFor="chat-question">위키에 물어보기</label>
         <textarea id="chat-question" name="question" rows={3} maxLength={300} required placeholder="예: 정기 실행은 언제 도나요?" style={{ fontSize: 16, padding: 8 }} />
-        <button type="submit" disabled={pending} style={{ minHeight: 44, justifySelf: "start", padding: "0 16px" }}>{pending ? "찾는 중…" : "묻기"}</button>
+        <button type="submit" disabled={pending} style={{ minHeight: "var(--hit)", justifySelf: "start", padding: "0 16px" }}>{pending ? "찾는 중…" : "묻기"}</button>
       </form>
       {state && !state.ok ? <p role="alert" className="admin-note danger">{state.message}</p> : null}
       {state && state.ok ? (

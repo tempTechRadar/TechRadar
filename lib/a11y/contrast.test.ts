@@ -39,8 +39,8 @@ test("관리자 화면 토큰(admin.css): 본문·흐린 글자·위험·주의�
     return ref ? shared.match(new RegExp(`--${ref[1]}:\\s*(#[0-9a-fA-F]{6})`))![1] : value;
   };
   const pairs: [string, string, string][] = [
-    ["본문", token("color-text"), "#ffffff"],
-    ["흐린 글자", token("color-muted"), "#ffffff"],
+    ["본문", token("color-text"), shared.match(/--surface:\s*(#[0-9a-fA-F]{6})/)![1]],
+    ["흐린 글자", token("color-muted"), shared.match(/--surface:\s*(#[0-9a-fA-F]{6})/)![1]],
     ["흐린 글자(옅은 바탕)", token("color-muted"), token("color-surface-subtle")],
     ["위험 안내", token("color-danger"), token("color-danger-bg")],
     ["주의 안내", token("color-warning"), token("color-warning-bg")],
@@ -51,7 +51,7 @@ test("관리자 화면 토큰(admin.css): 본문·흐린 글자·위험·주의�
   assert.deepEqual(bad, []);
 });
 
-test("영역 C 화면의 글자색(style color)이 흰 바탕 · 옅은 회색 바탕(#f6f5f1 · 설치 화면 --sunken)에서 4.5:1 이상", () => {
+test("영역 C 화면의 글자색(style color)이 판 · 카드 · 오목한 바탕(--surface · --card · --sunken, P-12m 관측소)에서 4.5:1 이상", () => {
   const root = fileURLToPath(new URL("../..", import.meta.url));
   const walk = (dir: string): string[] => readdirSync(join(root, dir)).flatMap((n) => {
     const rel = `${dir}/${n}`;
@@ -69,6 +69,33 @@ test("영역 C 화면의 글자색(style color)이 흰 바탕 · 옅은 회색 �
   const colors = new Map<string, string>();
   for (const f of files) for (const m of readFileSync(join(root, f), "utf8").matchAll(/[^-]color:\s*"(#[0-9a-fA-F]{6}|var\(--[\w-]+\))"/g)) colors.set(hex(m[1]), f);
   assert.ok(colors.size >= 2, `${colors.size}가지`); // 읽는 식이 깨지지 않았는지만(토큰으로 모아 가짓수가 줄었다)
-  const bad = [...colors].flatMap(([c, f]) => ["#ffffff", "#f6f5f1", hex("var(--sunken)")].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
+  const bad = [...colors].flatMap(([c, f]) => [hex("var(--surface)"), hex("var(--card)"), hex("var(--sunken)")].filter((bg) => contrastRatio(c, bg) < 4.5).map((bg) => `${f} ${c} on ${bg}`));
+  assert.deepEqual(bad, []);
+});
+
+test("관측소 테마(P-12m): 바탕 · 판 · 카드 위 글자 4.5 이상, 등급색은 카드 위에서도 글자로 읽힘, 노션 칩 글자 4.5 이상, 레이더 선 3 이상", () => {
+  const shared = readFileSync(new URL("../../app/tokens.css", import.meta.url), "utf8");
+  const t = (name: string) => shared.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))![1];
+  const grounds = ["paper", "paper-2", "panel", "surface", "card", "sunken"];
+  const pairs: [string, string, string, number][] = [
+    ...["on-paper", "on-paper-2", "ink", "ink-2", "muted", "ink-danger", "ink-caution", "ink-pass", "danger", "caution", "pass", "unknown"]
+      .flatMap((fg) => grounds.map((bg): [string, string, string, number] => [`${fg} / ${bg}`, t(fg), t(bg), 4.5])),
+    ...(["danger", "caution", "pass"] as const).map((k): [string, string, string, number] => [`ink-${k} / bg-${k}`, t(`ink-${k}`), t(`bg-${k}`), 4.5]),
+    ...["blue", "purple", "green", "orange", "pink", "teal", "yellow", "red", "gray"].map((c): [string, string, string, number] => [`chip-${c}`, t(`chip-${c}-ink`), t(`chip-${c}`), 4.5]),
+    ["밝은 칠 단추(--ink) 위 --on-ink", t("on-ink"), t("ink"), 4.5],
+    ["청록 칠 위 바탕색 글자", t("paper"), t("scan"), 4.5],
+    ["주 행동 단추(청록 채움) 글자 --on-ink", t("on-ink"), t("scan"), 4.5],
+    ["판단 대기 배지(얼음 파랑) 글자 --on-ink", t("on-ink"), t("pending"), 4.5],
+    ["판단 대기 글자 --pending(오목한 바탕, .badge-pending)", t("pending"), t("sunken"), 4.5],
+    ["완료 글자 --done(오목한 바탕, .badge-done)", t("done"), t("sunken"), 4.5],
+    ["고른 칩 글자(카드 바탕)", t("ink"), t("picked-bg"), 4.5],
+    ["고른 칩 테두리(청록, 표시 3 이상)", t("picked-line"), t("picked-bg"), 3],
+    ["완료 · 수집 오류 회색(판 위, 표시 3 이상)", t("done"), t("surface"), 3],
+    ["개발 도구 종류색(바탕 위, 표시 3 이상)", t("cat-3"), t("paper"), 3],
+    ["위험한 일 단추 글자 --ink-danger(판 · 빨강 바탕)", t("ink-danger"), t("bg-danger"), 4.5],
+    ["위험한 일 단추 테두리 --danger(판 위, 표시 3 이상)", t("danger"), t("surface"), 3],
+    ["레이더 선 · 파동(--scan)", t("scan"), t("paper"), 3],
+  ];
+  const bad = pairs.filter(([, fg, bg, min]) => contrastRatio(fg, bg) < min).map(([n, fg, bg]) => `${n} ${contrastRatio(fg, bg).toFixed(2)}`);
   assert.deepEqual(bad, []);
 });

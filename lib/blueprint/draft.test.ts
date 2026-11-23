@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { contentKey, readDraft } from "./draft.ts";
+import { blankGraph, contentKey, guestOffer, readDraft } from "./draft.ts";
 import { fromNames } from "./board.ts";
-import { fromV1, layers, type Graph } from "./graph.ts";
-import { buildFromAnswers } from "./knowledge.ts";
+import { fromV1, layers, limitProblems, type Graph } from "./graph.ts";
+import { buildFromAnswers, TEMPLATES } from "./knowledge.ts";
 
 const chain = (n: number): Graph => ({ v: 2, stages: Array.from({ length: n }, (_, i) => ({ id: `q${i}`, name: `단계${i}`, x: i * 320, y: 0, techs: [] })), edges: Array.from({ length: n - 1 }, (_, i) => ({ from: `q${i}`, to: `q${i + 1}` })) });
 
@@ -47,6 +47,23 @@ test("손님 초안: 처음 판에서 고친 것만 가져오자고 묻는다(�
   // 손님이 아무것도 안 고친 처음 판: 다시 만든 처음 판과 단계 id가 달라도 묻지 않는다(코드 리뷰 지적)
   assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: fromV1(fromNames([["리서치"], ["개발"]])) }), blank), null);
   assert.equal(guestOffer(JSON.stringify({ name: "손님 판", graph: edited }), blank)?.name, "손님 판");
+});
+
+test("처음 판(P-12l): 이름 \"새 단계\"인 빈 카드 하나, 손대지 않았으면 손님 초안으로 묻지 않음", () => {
+  const g = blankGraph();
+  assert.deepEqual(g.stages.map((s) => [s.name, s.techs.length]), [["새 단계", 0]]);
+  assert.equal(g.edges.length, 0);
+  assert.equal(guestOffer(JSON.stringify({ name: "내 청사진", graph: blankGraph() }), blankGraph()), null);
+});
+
+test("불러오기 ▾ 템플릿 3개(P-12l): 각각 이름 순서대로 단계 · 이음이 생기고 한도 안", () => {
+  assert.deepEqual(TEMPLATES.map((t) => t.name), ["초보자 기본 개발 단계", "빠른 시제품", "팀 프로젝트(나란히)"]);
+  for (const t of TEMPLATES) {
+    const g = fromV1(fromNames(t.cols)), lay = layers(g);
+    assert.deepEqual(g.stages.map((s) => s.name), t.cols.flat(), t.name);
+    assert.ok(lay.ok && Math.max(...lay.depth.values()) === t.cols.length - 1, t.name);
+    assert.deepEqual(limitProblems(g), [], t.name);
+  }
 });
 
 test("초안 contentKey(T2): 메모만 바뀌어도 다른 내용", () => {

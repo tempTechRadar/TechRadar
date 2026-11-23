@@ -33,3 +33,8 @@ test("추천 화면은 관심(interest)만 저장한다: 적용 후보·보류�
     assert.doesNotMatch(code, /"(candidate|hold)"\s*[,)}]/, f);
   }
 });
+
+test("취향·추천 코드는 upsert를 쓰지 않는다: 충돌 때 user_id까지 고치려 해 열 권한(세 칸만 고치기)에 막힌다", () => {
+  const bad = FILES.filter((f) => /\.upsert\(/.test(readFileSync(f, "utf8")));
+  assert.deepEqual(bad, []);
+});
