@@ -292,6 +292,11 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .g5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.5rem}
 .g5 .g{border:1px solid var(--amb);border-top-width:.25rem;background:var(--bg2);padding:.35rem .55rem .45rem;animation:gon .45s ease both;animation-delay:var(--d,0s)}
 @keyframes gon{from{border-color:var(--line);opacity:.4}}
+.g5 .g.rt{border:1px dashed rgba(224,144,127,.6);border-top:.25rem solid var(--red);animation-name:gonr}
+@keyframes gonr{from{border-color:var(--line);border-top-color:var(--line);opacity:.4}}
+.g5 .g.rt>span{color:var(--red)}
+.cg>div.rt{border-left-color:var(--red)}
+.cg>div.rt .tag{color:var(--red);border-color:var(--red)}
 .g5 .g>span{display:block;font-family:var(--mono);font-size:.68rem;color:var(--dim);letter-spacing:.06em}
 .g5 .g>b{display:block;font-size:1.1rem;margin:.05rem 0 .15rem}
 .pc .g5 p{margin:0;font-size:.84rem;line-height:1.4}
@@ -769,14 +774,14 @@ var T=[
  <div class="g5">
   <div class="g" style="--d:.4s"><span>관문 1</span><b>스스로 확인</b><p>만든 에이전트가 화면 캡처 두 크기 · 문법 검사</p></div>
   <div class="g" style="--d:1s"><span>관문 2</span><b>독립 검토</b><p>다른 에이전트가 읽기만 · <span class="mono">code-review</span> 스킬</p></div>
-  <div class="g" style="--d:1.6s"><span>관문 3</span><b>레드팀</b><p>"이러면 실패" 가정 공격 · <span class="mono">strategy-red-team</span> 스킬</p></div>
+  <div class="g rt" style="--d:1.6s"><span>관문 3</span><b>레드팀</b><p>"이러면 실패" 가정 공격 · <span class="mono">strategy-red-team</span> 스킬</p></div>
   <div class="g" style="--d:2.2s"><span>관문 4</span><b>자동 시험</b><p><span class="n">1,883</span> 통과 · 실패 0 · 타입 · 빌드</p></div>
   <div class="g" style="--d:2.8s"><span>관문 5</span><b>사람 확인</b><p>메인이 캡처 · 근거를 다시 열어 봄 · 팀원 승인 1명</p></div>
  </div></div>
  <h2>관문이 실제로 잡은 것</h2>
  <div class="cg">
   <div class="rs" style="--d:3.1s"><span class="tag">독립 검토</span><p>안내 화면에서 사실과 다르게 읽힐 문장 2개 — "통과 = 취약점 없음"처럼</p><small>만든 쪽 스스로 점검으로는 못 찾음 → 고침 · 11-23</small></div>
-  <div class="rs" style="--d:3.25s"><span class="tag">레드팀</span><p>"슬라이드에 바이브로그 0곳 · 흐름 화면 이미지 0개"</p><small>→ 지금 발표에 둘 다 — T-09 흐름 캡처 · T-12 바이브로그 · 11-23</small></div>
+  <div class="rs rt" style="--d:3.25s"><span class="tag">레드팀</span><p>"슬라이드에 바이브로그 0곳 · 흐름 화면 이미지 0개"</p><small>→ 지금 발표에 둘 다 — T-09 흐름 캡처 · T-12 바이브로그 · 11-23</small></div>
  </div>
  <div class="big"><div><span class="n" data-n="95">95</span><span><span class="mono">code-review</span> 스킬 검토 기록 행</span></div><div><span class="n" data-n="2">2</span><span>레드팀 · 11-19 · 11-23</span></div><div><span class="n" data-n="1883">1,883</span><span>자동 시험 통과 · 실패 0</span></div></div>`,
  src:"CLAUDE.md 8 · 10절 · docs/agents.md(code-review 95행 · '만든 쪽과 분리' 56행, 11-23 22:50) · 174줄(I-tutorial) · docs/제출전-레드팀-1123.md 0절 · npm test(main 210375b, T-11과 같은 기준)",
