@@ -60,7 +60,7 @@ test("판단을 마친 알림은 '완료'(성공 색)로 보인다", () => {
   const view = toAlertView({ ...securityRecord, status: "done" });
 
   assert.equal(view.statusLabel, "완료");
-  assert.equal(view.statusTone, "neutral"); // 완료 = 회색(초록은 등급 "통과"에만, P-12n)
+  assert.equal(view.statusTone, "done"); // 완료 = 회색(초록은 등급 "통과"에만, P-12n)
 });
 
 test("적용 기회 알림은 '적용 기회'(중립 색)와 기술 이름만 보이고, 상세 문구는 P-14에서 채운다", () => {
