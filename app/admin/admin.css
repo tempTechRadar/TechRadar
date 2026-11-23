@@ -55,3 +55,18 @@
 .admin-notetext { background: var(--color-surface-subtle); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-2) 0; }
 .admin-seg { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; }
 .admin-seg[aria-current="true"] { background: var(--color-primary); color: var(--color-on-primary); }
+
+/* 회원과 권한: 칸에는 버튼 하나, 입력은 대화상자(I-P-admin-revoke). 표 칸이 펼쳐지며 표가 흔들리던 것을 없앰 */
+.admin .role-cell { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin .role-open { min-height: 32px; font-size: var(--text-sm); white-space: nowrap; }
+.admin .role-open.danger { color: var(--color-danger); border-color: var(--color-danger); }
+.role-dialog { border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0; width: min(420px, calc(100vw - 32px)); color: var(--color-text); background: #fff; }
+.role-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+.role-form { display: grid; gap: var(--space-2); padding: var(--space-4); font-size: var(--text-sm); }
+.role-form h2 { margin: 0; font-size: var(--text-lg); }
+.role-form input[name="reason"] { min-height: 44px; font: inherit; border: 1px solid var(--color-border-strong); border-radius: var(--radius); padding: 0 var(--space-3); }
+.role-form .role-check { display: flex; gap: var(--space-2); align-items: flex-start; }
+.role-form .role-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+.role-form button.primary { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+.role-form button.danger { background: var(--color-danger); color: #fff; border-color: var(--color-danger); }
+.role-form .role-reason { display: grid; gap: var(--space-1); }
