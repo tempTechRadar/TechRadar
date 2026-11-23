@@ -492,7 +492,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 /* 등장은 JS가 시간으로 계산해 그린다(헤드리스 캡처에서도 같은 그림) */
 @media (prefers-reduced-motion:reduce){.lg{transition:none}}
 
-/* T-21 엔딩 고르기: 1 크레디트(기본) · 2 잠수 · 3 이륙. ② ③은 화면 전체를 덮는 오버레이(canvas + SVG + 글자), 한 번 재생 뒤 끝 장면에서 멈춤 */
+/* T-21 엔딩 고르기: 1 크레디트(기본) · 2 잠수 · 3 비행. ② ③은 화면 전체를 덮는 오버레이(canvas + SVG + 글자), 한 번 재생 뒤 끝 장면에서 멈춤 */
 .edChip{position:absolute;right:35.6rem;bottom:1rem;z-index:6;display:none;align-items:center;gap:.15rem;font-family:var(--mono);font-size:.7rem;color:var(--dim);
   background:rgba(15,22,34,.7);border:1px solid var(--line);padding:.12rem .3rem;opacity:.6;transition:opacity .2s}
 .c21 .edChip{display:flex}.edOn .edChip{position:fixed;right:1rem;bottom:1rem;z-index:61;opacity:.85}
@@ -515,10 +515,10 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .edTx .w{margin-top:.8rem;font-size:1.3rem;line-height:1.4}
 .edTx .nm{margin-top:1.1rem;font-size:.95rem;letter-spacing:.14em}
 .edTx.s{left:calc(50% - 29rem);top:50%;width:31rem;transform:translateY(-50%)}
-.edTx.s h2{font-size:2.8rem;white-space:nowrap}.edTx.j h2{font-size:3rem}
+.edTx.s h2{font-size:2.8rem;white-space:nowrap}
 .edTx.s .k{color:#60d6aa}.edTx.s h2{color:var(--hi)}.edTx.s .w{color:var(--tx)}.edTx.s .nm{color:var(--dim)}
-.edTx.j{left:50%;top:calc(50% + 9.6rem);width:44rem;margin-left:-22rem;text-align:center;text-shadow:0 0 .9rem rgba(255,255,255,.75)}
-.edTx.j .k{color:#0b4a5a;font-weight:700}.edTx.j h2{color:#06243a}.edTx.j .w{color:#0b2a3a}.edTx.j .nm{color:#2a4a5e}
+.edTx.j{width:24rem;text-align:center;text-shadow:0 0 .6rem rgba(5,12,22,.9)}
+.edTx.j h2{margin-top:0;font-size:1.7rem;font-weight:700;letter-spacing:.04em;color:var(--hi)}.edTx.j .nm{margin-top:.45rem;font-size:.85rem;color:var(--tx)}
 .ed.still .edTg{animation:none}
 </style>
 </head>
@@ -591,7 +591,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
     <button type="button" class="lbX" id="lbBtn" aria-label="짚어 보기 닫기">×</button>
   </div>
 
-  <div class="edChip" id="edChip" role="group" aria-label="엔딩 고르기"><button type="button" data-e="1" aria-pressed="true"><b>1</b>크레디트</button>·<button type="button" data-e="2" aria-pressed="false"><b>2</b>잠수</button>·<button type="button" data-e="3" aria-pressed="false"><b>3</b>이륙</button></div>
+  <div class="edChip" id="edChip" role="group" aria-label="엔딩 고르기"><button type="button" data-e="1" aria-pressed="true"><b>1</b>크레디트</button>·<button type="button" data-e="2" aria-pressed="false"><b>2</b>잠수</button>·<button type="button" data-e="3" aria-pressed="false"><b>3</b>비행</button></div>
 
   <div class="ed" id="ed" role="region" aria-label="엔딩 연출" hidden>
     <canvas id="edCv" aria-hidden="true"></canvas>
@@ -621,7 +621,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
           <tr><td><kbd>E</kbd> · <kbd>Esc</kbd></td><td>사람 칸 편집(이 브라우저에 저장) · 끝</td></tr>
           <tr><td><kbd>C</kbd></td><td>시연 240초 카운트다운 시작 · 멈춤</td></tr>
           <tr><td><kbd>L</kbd></td><td>랜딩(시작 화면) 다시 띄우기 · 시작하면 T-02로</td></tr>
-          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> (T-21)</td><td>엔딩: 크레디트 · 잠수 · 이륙(<kbd>Esc</kbd> 닫기 · 주소 <span class="mono">#T-21&amp;e=2</span>)</td></tr>
+          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> (T-21)</td><td>엔딩: 크레디트 · 잠수 · 비행(<kbd>Esc</kbd> 닫기 · 주소 <span class="mono">#T-21&amp;e=2</span>)</td></tr>
           <tr><td><kbd>?</kbd></td><td>이 도움말</td></tr>
           <tr><td><span class="mono">#T-15</span></td><td>주소 해시로 위치 공유</td></tr>
           <tr><td><span class="mono">?reveal=all</span></td><td>연출 끝 상태(캡처용 정지 그림)</td></tr>
@@ -1450,7 +1450,7 @@ window.addEventListener("beforeprint",function(){
   var tl=$("print").querySelector("#tl");if(tl)tl.innerHTML=tlHTML();fillEdits($("print"));
 });
 
-/* ---------- 엔딩 ② 잠수 · ③ 이륙(T-21에서 1 · 2 · 3) ----------
+/* ---------- 엔딩 ② 잠수 · ③ 비행(T-21에서 1 · 2 · 3) ----------
    ① = 지금 크레디트(장이 열리면 자동). ② ③ = 화면 전체 오버레이를 처음부터 한 번 재생하고 끝 장면에서 멈춘다(rAF · 타이머 정리).
    Esc · 다른 엔딩 · 장 이동이면 닫는다. 정지 그림(STILL)이면 끝 장면을 바로 그린다. 주소 #T-21&e=2 · e=3 으로 바로 열 수 있다 */
 var ed=$("ed"),edCv=$("edCv"),edX=edCv.getContext("2d"),edSub=$("edSub"),edTg=$("edTg"),edTx=$("edTx");
@@ -1463,15 +1463,12 @@ function mixC(a,b,p){return "rgb("+a.map(function(v,i){return Math.round(v+(b[i]
 function mixA(a,b,p,al){return "rgba("+a.map(function(v,i){return Math.round(v+(b[i]-v)*p);}).join(",")+","+al.toFixed(3)+")";}
 function fmt(n){return Math.round(n).toLocaleString("en-US");}
 var SB=(function(){var r=edRng(7),a=[];for(var i=0;i<70;i++)a.push({x:r(),y:r(),s:.6+r()*1.6,z:.08+r()*.2,ph:r()*6.3,a:r()});return a;})();
-var JS=(function(){var r=edRng(11),a=[];for(var i=0;i<150;i++)a.push({a:r()*6.2832,z:r(),s:.5+r()*.9});return a;})();
-var JC=(function(){var r=edRng(23),a=[];for(var i=0;i<26;i++)a.push({x:r(),y:r(),w:.14+r()*.26,a:.45+r()*.55});return a;})();
-var JL=(function(){var r=edRng(5),a=[];for(var i=0;i<90;i++)a.push({a:r()*6.2832,p:r(),l:.06+r()*.16});return a;})();
 var NMS='<p class="nm">김영식 · 황재웅 · 차세일</p>';
 var ED={
  2:{d:10.6,txAt:8.7,cls:"s",lab:"엔딩 ② 잠수 — 발표 끝, 다시 심해로. 새 미션을 찾아서",f:subF,
     tx:'<p class="k">NEW MISSION · 다음 표적 탐색 중…</p><h2>TechRadar — 잠항 개시</h2><p class="w">레이더는 껐고, 소나는 켰습니다.<br>다음 변화도 우리가 먼저 듣겠습니다.</p>'+NMS},
- 3:{d:9.8,txAt:8.5,cls:"j",lab:"엔딩 ③ 이륙 — 맑은 창공으로, 마하 10",f:jetF,
-    tx:'<p class="k">MISSION COMPLETE · 다음 목적지로</p><h2>TechRadar — 이륙</h2><p class="w">지켰고, 골랐고, 옮겼습니다 — 다음 목적지까지 마하 10</p>'+NMS}
+ 3:{d:10.4,txAt:8.8,cls:"j",lab:"엔딩 ③ 비행 — 해 질 녘 고공, 레이더에 새 표적 탐지 · LOCK 뒤 고속 비행",f:jetF,
+    tx:'<h2>TechRadar</h2>'+NMS}
 };
 function edSize(){
   EW=window.innerWidth;EH=window.innerHeight;eDpr=window.devicePixelRatio||1;
@@ -1579,102 +1576,195 @@ function subF(t){
   }
 }
 
-/* ③ 이륙: 조종석 HUD → 활주로 가속 · V1 · ROTATE → 기수 들림 → 구름 뚫고 맑은 하늘(1.8초에 걸쳐) → MACH 1 → 5 → 10 · 속도선 */
+/* ③ 비행: 해 질 녘 고공을 추격 시점으로 따라간다. 레이더 스캔(0~3.3초) → 새 표적 탐지(3.3초) → 브래킷이 조여 LOCK(5~6초)
+   → 기체가 표적 쪽으로 몇 도 기울며 가속, 카메라가 뒤로 처지고 기체는 원근점의 작은 점이 된다(6.6~9.8초) → 비행운 두 줄과 레이더 한 줄에서 정지.
+   모든 그림이 t의 함수라서 정지 그림(STILL)은 끝 시각 한 장을 그대로 그린다. 화면 전체는 흔들지 않는다 */
+var J3={TD:3.3,P:2.4,PH:4.411,VC:.55};
+var JCL=(function(){var r=edRng(23),a=[];for(var k=0;k<3;k++)for(var i=0;i<34;i++)a.push({k:k,x:r()*2-1,z:r(),rw:.035+r()*.05,a:.5+r()*.5});return a;})();
+var JST=(function(){var r=edRng(41),a=[];for(var i=0;i<46;i++)a.push({x:r(),y:r()*r()*.42,s:.4+r()*.8,a:.15+r()*.4});return a;})();
+var JSP=(function(){var r=edRng(5),a=[];for(var i=0;i<80;i++)a.push({a:r()*6.2832,p:.35+r()*.9,z:r()});return a;})();
+var JNZ=(function(){var r=edRng(17),a=[];for(var i=0;i<26;i++)a.push({b:-56+r()*112,r:.12+r()*.85,a:.25+r()*.55});return a;})();
+/* 전투기(뒤 · 약간 위에서 본 모습). 좌표는 날개 끝까지 ±1 */
+var JP={
+  wl:new Path2D("M-0.15 0.07 L-1 0.13 L-0.97 0.075 L-0.19 -0.36 L-0.1 -0.62 Z"),
+  wr:new Path2D("M0.15 0.07 L1 0.13 L0.97 0.075 L0.19 -0.36 L0.1 -0.62 Z"),
+  sl:new Path2D("M-0.13 0.165 L-0.47 0.205 L-0.45 0.16 L-0.15 0.085 Z"),
+  sr:new Path2D("M0.13 0.165 L0.47 0.205 L0.45 0.16 L0.15 0.085 Z"),
+  bd:new Path2D("M-0.15 0.17 C-0.17 0 -0.13 -0.45 -0.09 -0.62 C-0.06 -0.76 -0.03 -0.86 0 -0.9 C0.03 -0.86 0.06 -0.76 0.09 -0.62 C0.13 -0.45 0.17 0 0.15 0.17 Z"),
+  cp:new Path2D("M0 -0.7 C0.05 -0.67 0.056 -0.5 0 -0.43 C-0.056 -0.5 -0.05 -0.67 0 -0.7 Z"),
+  fl:new Path2D("M-0.13 0.1 L-0.1 -0.16 L-0.25 -0.47 L-0.29 -0.36 Z"),
+  fr:new Path2D("M0.13 0.1 L0.1 -0.16 L0.25 -0.47 L0.29 -0.36 Z"),
+  le:new Path2D("M-0.97 0.075 L-0.19 -0.36 L-0.1 -0.62 M0.97 0.075 L0.19 -0.36 L0.1 -0.62"),
+  pn:new Path2D("M-0.55 0.1 L-0.5 -0.06 M0.55 0.1 L0.5 -0.06 M0 -0.4 L0 0.12 M-0.29 -0.36 L-0.13 0.1 M0.29 -0.36 L0.13 0.1")
+};
+function jSweep(tt){ /* 레이더 스캔 각(도). LOCK 뒤에는 표적 방위에 붙는다 */
+  var a=58*Math.sin(2*Math.PI*tt/J3.P+J3.PH),L=sm((tt-5.4)/.7);
+  return a*(1-L)+jBrg(tt)*L;
+}
+function jBrg(tt){return 27-21*sm((tt-6)/1.8);}
+function jRng(tt){return 42-11*sm((tt-6.4)/3.4);}
+function jJet(tt,w,h,u){ /* 기체 위치 · 크기 · 기울기 */
+  var hs0=Math.min(.19*w,.36*h),Dx=.63*w,Dy=.47*h,p=c01((tt-6.6)/3.2),z=Math.pow(48,sm(p));
+  var x0=w/2+.035*w*sm((tt-5.8)/1.4),y0=.79*h+Math.sin(tt*1.4)*.12*u*(1-p);
+  var rot=(7*sm((tt-5.8)/1)-4.5*sm((tt-7.2)/1.4)+.5*Math.sin(tt*.9)*(1-p))*Math.PI/180;
+  return {x:Dx+(x0-Dx)/z,y:Dy+(y0-Dy)/z,s:hs0/z,rot:rot,z:z,hs0:hs0};
+}
+function jTip(j,sd){var cs=Math.cos(j.rot),sn=Math.sin(j.rot),lx=sd*1,ly=.13;return [j.x+(lx*cs-ly*sn)*j.s,j.y+(lx*sn+ly*cs)*j.s];}
+function jDrawJet(c,j,gk){
+  var s=j.s,g,i;
+  c.save();c.translate(j.x,j.y);c.rotate(j.rot);c.scale(s,s);
+  var lw=Math.max(.6,Math.min(1.6,s*.006))/s;c.lineJoin="round";c.lineCap="round";
+  /* 꼬리날개(수평) · 주날개: 윗면에 하늘빛 반사 */
+  g=c.createLinearGradient(0,-.5,0,.14);g.addColorStop(0,"#56728f");g.addColorStop(.45,"#2a3f57");g.addColorStop(1,"#141f2d");
+  c.fillStyle=g;c.fill(JP.wl);c.fill(JP.wr);c.fill(JP.sl);c.fill(JP.sr);
+  g=c.createLinearGradient(.2,-.3,.9,.1);g.addColorStop(0,"rgba(255,186,120,0)");g.addColorStop(1,"rgba(255,186,120,.22)");c.fillStyle=g;c.fill(JP.wr); /* 해 쪽 날개에 노을빛 */
+  c.strokeStyle="rgba(121,180,196,.85)";c.lineWidth=lw;c.stroke(JP.wl);c.stroke(JP.wr);c.stroke(JP.sl);c.stroke(JP.sr);
+  /* 동체: 등줄기 하이라이트 */
+  g=c.createLinearGradient(-.16,0,.16,0);g.addColorStop(0,"#121a26");g.addColorStop(.42,"#3c5672");g.addColorStop(.52,"#5d7d9b");g.addColorStop(.62,"#2c4157");g.addColorStop(1,"#111925");
+  c.fillStyle=g;c.fill(JP.bd);c.stroke(JP.bd);
+  /* 캐노피 */
+  g=c.createLinearGradient(0,-.7,0,-.43);g.addColorStop(0,"rgba(190,236,246,.95)");g.addColorStop(.5,"rgba(121,180,196,.75)");g.addColorStop(1,"rgba(20,48,64,.95)");
+  c.fillStyle=g;c.fill(JP.cp);c.strokeStyle="rgba(200,236,246,.9)";c.stroke(JP.cp);
+  /* 판 이음선 · 앞전 하이라이트 */
+  c.strokeStyle="rgba(121,180,196,.28)";c.lineWidth=lw*.8;c.stroke(JP.pn);
+  c.strokeStyle="rgba(214,236,244,.55)";c.lineWidth=lw*1.3;c.stroke(JP.le);
+  /* 수직미익 두 개 */
+  g=c.createLinearGradient(0,-.47,0,.1);g.addColorStop(0,"#486482");g.addColorStop(1,"#18232f");
+  c.fillStyle=g;c.fill(JP.fl);c.fill(JP.fr);c.strokeStyle="rgba(121,180,196,.9)";c.lineWidth=lw;c.stroke(JP.fl);c.stroke(JP.fr);
+  c.strokeStyle="rgba(255,196,140,.55)";c.beginPath();c.moveTo(.25,-.47);c.lineTo(.29,-.36);c.stroke();
+  /* 엔진 노즐 두 개 + 애프터버너(주황 → 청록 코어) */
+  c.globalCompositeOperation="lighter";
+  for(i=-1;i<=1;i+=2){var nx=i*.068,ny=.17,hr=.2*gk;
+    g=c.createRadialGradient(nx,ny,0,nx,ny,hr);g.addColorStop(0,"rgba(255,170,90,.5)");g.addColorStop(.4,"rgba(255,120,60,.18)");g.addColorStop(1,"rgba(255,110,50,0)");
+    c.fillStyle=g;c.beginPath();c.arc(nx,ny,hr,0,7);c.fill();}
+  c.globalCompositeOperation="source-over";
+  for(i=-1;i<=1;i+=2){var mx=i*.068,my=.17;
+    c.fillStyle="#0a1018";c.beginPath();c.arc(mx,my,.058,0,7);c.fill();c.strokeStyle="rgba(150,170,190,.9)";c.lineWidth=lw;c.stroke();
+    g=c.createRadialGradient(mx,my,0,mx,my,.05);g.addColorStop(0,"#f2ffff");g.addColorStop(.35,"#9be3ef");g.addColorStop(.7,"rgba(255,150,70,.85)");g.addColorStop(1,"rgba(255,120,50,.2)");
+    c.fillStyle=g;c.beginPath();c.arc(mx,my,.05,0,7);c.fill();}
+  c.restore();
+  /* 멀어져 작아지면 화면 크기로 남는 불빛 점 */
+  if(s<40){var ga=1-s/40,ny2=j.y+.17*s,gr=Math.max(3,s*.3)*(1+gk*.4);
+    g=c.createRadialGradient(j.x,ny2,0,j.x,ny2,gr*2.2);g.addColorStop(0,"rgba(255,236,210,"+(.95*ga).toFixed(3)+")");g.addColorStop(.3,"rgba(155,227,239,"+(.55*ga).toFixed(3)+")");g.addColorStop(1,"rgba(255,140,70,0)");
+    c.fillStyle=g;c.beginPath();c.arc(j.x,ny2,gr*2.2,0,7);c.fill();}
+}
 function jetF(t){
-  var c=edX,w=EW,h=EH,u=EU,cx=w/2,cy=h/2,i,g,fa=sm(t/.7);
+  var c=edX,w=EW,h=EH,u=EU,cx=w/2,i,k,g,fa=sm(t/.7),hz=.6*h,Dx=.63*w,Dy=.47*h,diag=Math.hypot(w,h);
   c.setTransform(eDpr,0,0,eDpr,0,0);c.globalAlpha=1;c.fillStyle="#0f1622";c.fillRect(0,0,w,h);c.globalAlpha=fa;
-  var acc=c01((t-.4)/3.3),kt=t<3.7?165*acc*acc:165+255*sm((t-3.7)/2.5);
-  var mach=t<6.2?kt/661:t<7?kt/661+(1-kt/661)*sm((t-6.2)/.8):t<7.9?1+4*sm((t-7)/.9):5+5*sm((t-7.9)/1);
-  if(t>=6.2) kt=mach*661;
-  var pitch=14*sm((t-3.7)/1.3)-4*sm((t-7)/1.5),ppd=u,hy=cy+pitch*ppd;
-  var b=sm((t-4.9)/1.8),alt=t<3.9?0:3000*sm((t-3.9)/2.3)+57000*sm((t-6.2)/2.8);
-  /* 하늘 · 땅(밝아지면 구름 바다) */
-  g=c.createLinearGradient(0,0,0,Math.max(1,hy));g.addColorStop(0,mixC([8,12,20],[40,130,208],b));g.addColorStop(1,mixC([22,32,46],[200,234,252],b));
-  c.fillStyle=g;c.fillRect(0,0,w,hy);
-  g=c.createLinearGradient(0,hy,0,h);g.addColorStop(0,mixC([16,22,30],[236,244,250],b));g.addColorStop(1,mixC([7,10,14],[206,222,236],b));
-  c.fillStyle=g;c.fillRect(0,hy,w,h-hy);
-  /* 활주로: 중앙선이 원근으로 흘러온다 */
-  var ra=1-sm((t-4.4)/.9);
-  if(ra>0){
-    var A=12*u,B=26*u,zf=70,zn=.25,y=function(z){return hy+A/z;},xo=function(z){return B/z;};
-    c.globalAlpha=fa*ra;c.fillStyle="#141a22";c.beginPath();c.moveTo(cx-xo(zf),y(zf));c.lineTo(cx+xo(zf),y(zf));c.lineTo(cx+xo(zn),y(zn));c.lineTo(cx-xo(zn),y(zn));c.closePath();c.fill();
-    c.strokeStyle="rgba(200,211,224,.55)";c.lineWidth=.1*u;c.beginPath();c.moveTo(cx-xo(zf),y(zf));c.lineTo(cx-xo(zn),y(zn));c.moveTo(cx+xo(zf),y(zf));c.lineTo(cx+xo(zn),y(zn));c.stroke();
-    var D=t<3.7?40*acc*acc*acc:40+(t-3.7)*36,L=3,off=D%L;
-    c.fillStyle="rgba(232,238,245,.8)";
-    for(i=1;i<26;i++){var z1=i*L-off,z2=z1+1.5;if(z1<zn)continue;var hw1=B*.025/z1,hw2=B*.025/z2;
-      c.beginPath();c.moveTo(cx-hw1,y(z1));c.lineTo(cx+hw1,y(z1));c.lineTo(cx+hw2,y(z2));c.lineTo(cx-hw2,y(z2));c.closePath();c.fill();
-      var lx=xo(z1)*.97;c.fillStyle="rgba(240,210,150,.7)";c.beginPath();c.arc(cx-lx,y(z1),Math.min(.35*u,.12*u/z1*3),0,7);c.arc(cx+lx,y(z1),Math.min(.35*u,.12*u/z1*3),0,7);c.fill();c.fillStyle="rgba(232,238,245,.8)";}
-    c.globalAlpha=fa;
+  /* 하늘: 짙은 남색 → 청록 → 주황 · 금빛 수평선 띠 */
+  g=c.createLinearGradient(0,0,0,hz);g.addColorStop(0,"#060a16");g.addColorStop(.38,"#0f1b33");g.addColorStop(.66,"#1c3a4c");g.addColorStop(.86,"#5a4c58");g.addColorStop(.95,"#c2743c");g.addColorStop(1,"#f0b45c");
+  c.fillStyle=g;c.fillRect(0,0,w,hz+1);
+  /* 해와 노을 번짐(움직이지 않음) */
+  var SX=.8*w,SY=hz-.03*h;
+  g=c.createRadialGradient(SX,SY,0,SX,SY,.42*w);g.addColorStop(0,"rgba(255,196,120,.42)");g.addColorStop(.25,"rgba(240,140,70,.14)");g.addColorStop(1,"rgba(240,140,70,0)");c.fillStyle=g;c.fillRect(0,0,w,h);
+  g=c.createLinearGradient(0,0,w,0);g.addColorStop(0,"rgba(255,210,150,0)");g.addColorStop(.8,"rgba(255,210,150,.28)");g.addColorStop(1,"rgba(255,210,150,0)");
+  c.fillStyle=g;c.fillRect(0,SY-.06*u,w,.12*u); /* 가로로 퍼지는 빛줄 하나 */
+  c.fillStyle="rgba(255,236,200,.95)";c.beginPath();c.arc(SX,SY,.55*u,0,7);c.fill();
+  /* 별(위쪽 어두운 하늘에만) */
+  for(i=0;i<JST.length;i++){var sr=JST[i];c.fillStyle="rgba(220,230,245,"+sr.a.toFixed(3)+")";c.fillRect(sr.x*w,sr.y*h,sr.s,sr.s);}
+  /* 구름 바다 바탕 */
+  g=c.createLinearGradient(0,hz,0,h);g.addColorStop(0,"#7a5a5c");g.addColorStop(.06,"#3c3a4c");g.addColorStop(.35,"#1d2638");g.addColorStop(1,"#0c1220");c.fillStyle=g;c.fillRect(0,hz,w,h-hz);
+  /* 구름층 세 겹: 원근으로 아래로 흐른다(아래 겹일수록 빠름). 가속하면 빨라진다 */
+  var gx=Math.max(0,t-6.4),dist=.35*t+2.3*(gx-.6*(1-Math.exp(-gx/.6))),zN=.35,zF=9,HK=[.05,.13,.28];
+  for(i=0;i<JCL.length;i++){var q=JCL[i],z=zN+(zF-zN)*(((q.z-dist/(zF-zN)*(1+q.k*.15))%1+1)%1),
+      py=hz+HK[q.k]*h/z,px=cx+q.x*1.6*w/z,pr=q.rw*w/z,qa=q.a*sm((zF-z)/2.5)*sm((z-zN)/.5)*(.2+.08*q.k);
+    if(qa<.01||py-pr*.4>h||px+pr<0||px-pr>w)continue;
+    var wm=c01((z-1)/6);
+    c.save();c.translate(px,py);c.scale(1,.32);
+    g=c.createRadialGradient(0,0,0,0,0,pr);g.addColorStop(0,mixA([150,170,200],[236,176,140],wm,qa));g.addColorStop(1,mixA([150,170,200],[236,176,140],wm,0));
+    c.fillStyle=g;c.fillRect(-pr,-pr,pr*2,pr*2);c.restore();}
+  /* 속도선: 가속하는 동안만, 원근점으로 빨려 들어가듯 */
+  var sa=sm((t-6.5)/.8)*(1-sm((t-9.1)/1));
+  if(sa>0){c.lineCap="round";
+    for(i=0;i<JSP.length;i++){var sp=JSP[i],zz=.3+3.2*(((sp.z-(t-6.5)*.9)%1+1)%1),rr=sp.p*diag*.28/zz,r0=sp.p*diag*.28/(zz+.45);
+      if(rr<4*u)continue;var ax=Math.cos(sp.a),ay=Math.sin(sp.a);
+      c.strokeStyle="rgba(235,242,250,"+(.32*sa*sm((3.5-zz)/1.2)).toFixed(3)+")";c.lineWidth=Math.min(.12*u,.05*u/zz+.02*u);
+      c.beginPath();c.moveTo(Dx+ax*r0,Dy+ay*r0);c.lineTo(Dx+ax*rr,Dy+ay*rr);c.stroke();}
+    c.lineCap="butt";}
+  /* 비행운 두 줄: 날개 끝에서 나와 그 자리에 남는다(카메라가 앞으로 가며 지나친다) */
+  var J=jJet(t,w,h,u),P0x=cx+(Dx-cx)*.75,P0y=hz+(Dy-hz)*.75; /* 카메라는 표적 방향을 보며 따라간다 */
+  for(k=-1;k<=1;k+=2){var pv=null;
+    for(var s=-3;s<=t+1e-6;s+=1/30){var js=jJet(Math.min(s,t),w,h,u),dn=js.z-J3.VC*(t-s);if(dn<.22){pv=null;continue;}
+      var e=jTip(js,k),m2=js.z/dn,X=P0x+(e[0]-P0x)*m2,Y=P0y+(e[1]-P0y)*m2,age=t-s;
+      if(pv){var al=.5*(1-.45*c01(age/7))*sm(age/.15)*Math.min(1,.55+.45*dn)*sm((dn-.22)/.3)*fa;
+        if(al>.004){c.strokeStyle="rgba(234,240,248,"+al.toFixed(3)+")";c.lineWidth=Math.max(.7,Math.min(1.1*u,.2*u*(js.hs0/(.19*w))/dn));
+          c.beginPath();c.moveTo(pv[0],pv[1]);c.lineTo(X,Y);c.stroke();}}
+      pv=[X,Y];}}
+  /* 가속 순간 압축 링(0.5초, 은은하게) */
+  var cr=(t-6.7)/.5;
+  if(cr>0&&cr<1){var ca=.42*(1-cr)*sm(cr/.15),rx=J.s*(.32+.3*cr),cyy=J.y-.3*J.s;
+    c.save();c.translate(J.x,cyy);c.rotate(J.rot);c.scale(1,.5);
+    g=c.createRadialGradient(0,0,rx*.6,0,0,rx);g.addColorStop(0,"rgba(240,246,252,0)");g.addColorStop(.85,"rgba(240,246,252,"+(ca*.35).toFixed(3)+")");g.addColorStop(1,"rgba(240,246,252,0)");
+    c.fillStyle=g;c.beginPath();c.arc(0,0,rx,0,7);c.fill();
+    c.strokeStyle="rgba(245,250,255,"+ca.toFixed(3)+")";c.lineWidth=.03*J.s;c.beginPath();c.arc(0,0,rx*.93,0,7);c.stroke();c.restore();}
+  /* 전투기 */
+  jDrawJet(c,J,1+.9*sm((t-6.4)/.6));
+  /* 하늘의 표적 조준 상자(LOCK 뒤) */
+  var ba=sm((t-6)/.5);
+  if(ba>0){var bs=(1.1+1.4*(1-sm((t-6)/.7)))*u;c.strokeStyle="rgba(121,180,196,"+(.85*ba).toFixed(3)+")";c.lineWidth=.09*u;c.strokeRect(Dx-bs,Dy-bs,bs*2,bs*2);
+    c.beginPath();c.moveTo(Dx,Dy-bs-.5*u);c.lineTo(Dx,Dy-bs);c.moveTo(Dx,Dy+bs);c.lineTo(Dx,Dy+bs+.5*u);c.moveTo(Dx-bs-.5*u,Dy);c.lineTo(Dx-bs,Dy);c.moveTo(Dx+bs,Dy);c.lineTo(Dx+bs+.5*u,Dy);c.stroke();}
+  /* 렌즈 플레어: 해 → 화면 가운데 선 위에 옅은 원 셋, 천천히 */
+  var fvx=cx-SX,fvy=h/2-SY,fl=[[.55,2.2,"121,180,196",.07],[1.15,1.1,"255,180,110",.08],[1.6,3.4,"121,180,196",.045]];
+  for(i=0;i<fl.length;i++){var f=fl[i],fx=SX+fvx*(f[0]+.02*Math.sin(t*.4)),fy=SY+fvy*(f[0]+.02*Math.sin(t*.4)),fr2=f[1]*u;
+    g=c.createRadialGradient(fx,fy,0,fx,fy,fr2);g.addColorStop(0,"rgba("+f[2]+","+f[3]+")");g.addColorStop(.7,"rgba("+f[2]+","+(f[3]*.6).toFixed(3)+")");g.addColorStop(1,"rgba("+f[2]+",0)");
+    c.fillStyle=g;c.beginPath();c.arc(fx,fy,fr2,0,7);c.fill();}
+  /* ---- 레이더 화면(왼쪽, PPI 부채꼴) ---- */
+  var A="121,180,196",Ax=.255*w,Ay=.585*h,R=Math.min(.36*h,.24*w),ra=sm(t/.8),D2R=Math.PI/180;
+  var pt=function(b,r){return [Ax+r*Math.sin(b*D2R),Ay-r*Math.cos(b*D2R)];};
+  c.globalAlpha=fa*ra;
+  c.fillStyle="rgba(5,12,22,.66)";c.beginPath();c.moveTo(Ax,Ay);c.arc(Ax,Ay,R,-150*D2R,-30*D2R);c.closePath();c.fill();
+  c.strokeStyle="rgba("+A+",.85)";c.lineWidth=.09*u;c.stroke();
+  c.lineWidth=.05*u;c.strokeStyle="rgba("+A+",.28)";
+  for(i=1;i<3;i++){c.beginPath();c.arc(Ax,Ay,R*i/3,-150*D2R,-30*D2R);c.stroke();}
+  for(i=-30;i<=30;i+=30){var q1=pt(i,R*.04),q2=pt(i,R);c.beginPath();c.moveTo(q1[0],q1[1]);c.lineTo(q2[0],q2[1]);c.stroke();}
+  c.strokeStyle="rgba("+A+",.6)";
+  for(i=-60;i<=60;i+=10){var t1=pt(i,R),t2=pt(i,R+(i%30?.5:.9)*u);c.beginPath();c.moveTo(t1[0],t1[1]);c.lineTo(t2[0],t2[1]);c.stroke();}
+  c.font="600 "+(.58*u)+"px "+MONO;c.fillStyle="rgba(132,148,171,.95)";c.textAlign="center";c.textBaseline="middle";
+  for(i=-60;i<=60;i+=30){var tl=pt(i,R+1.7*u);c.fillText(String(Math.abs(i/10)),tl[0],tl[1]);}
+  c.textAlign="right";for(i=1;i<=3;i++){var rl=pt(0,R*i/3);c.fillText(String(i*20),rl[0]-.35*u,rl[1]+.55*u);}
+  /* 자기 위치(꼭짓점) */
+  c.fillStyle="rgba("+A+",.95)";c.beginPath();c.moveTo(Ax,Ay-.7*u);c.lineTo(Ax-.45*u,Ay);c.lineTo(Ax+.45*u,Ay);c.closePath();c.fill();
+  /* 스캔 막대 + 잔광 */
+  c.save();c.beginPath();c.moveTo(Ax,Ay);c.arc(Ax,Ay,R,-150*D2R,-30*D2R);c.closePath();c.clip();
+  for(k=10;k>=1;k--){var b0=jSweep(t-k*.03),b1=jSweep(t-(k-1)*.03);if(Math.abs(b1-b0)<.05)continue;
+    c.fillStyle="rgba("+A+","+(.13*(1-k/11)).toFixed(3)+")";c.beginPath();c.moveTo(Ax,Ay);
+    c.arc(Ax,Ay,R,(Math.min(b0,b1)-90)*D2R,(Math.max(b0,b1)-90)*D2R);c.closePath();c.fill();}
+  var bw=jSweep(t),be=pt(bw,R);c.strokeStyle="rgba(170,226,238,.95)";c.lineWidth=.14*u;c.beginPath();c.moveTo(Ax,Ay);c.lineTo(be[0],be[1]);c.stroke();
+  /* 점이 스캔에 비친 뒤 서서히 사그라든다 */
+  var lit=function(b,from){for(var n=0;n<26;n++){var tt=t-n*.04;if(tt<from)return 0;if(Math.abs(jSweep(tt)-b)<1.4)return Math.exp(-n*.04/.55);}return 0;};
+  for(i=0;i<JNZ.length;i++){var nz=JNZ[i],lv=lit(nz.b,-1);if(lv<.02)continue;var np=pt(nz.b,nz.r*R);
+    c.fillStyle="rgba(150,210,224,"+(lv*nz.a*.7).toFixed(3)+")";c.fillRect(np[0]-.12*u,np[1]-.12*u,.24*u,.24*u);}
+  c.restore();
+  /* 새 표적 */
+  var tb=jBrg(t),trn=jRng(t),tp=pt(tb,trn/60*R),tx=tp[0],ty=tp[1];
+  if(t>=J3.TD){
+    var tl2=Math.max(lit(tb,J3.TD),sm((t-5.4)/.4)),bl=t<5.4?.55+.45*Math.cos((t-J3.TD)*Math.PI*2.4):1,tv=Math.max(tl2*bl,t<5.4?.0:1);
+    g=c.createRadialGradient(tx,ty,0,tx,ty,1.6*u);g.addColorStop(0,"rgba(190,240,250,"+(.55*tv).toFixed(3)+")");g.addColorStop(1,"rgba(121,180,196,0)");c.fillStyle=g;c.beginPath();c.arc(tx,ty,1.6*u,0,7);c.fill();
+    c.fillStyle="rgba(240,250,255,"+Math.max(.35,tv).toFixed(3)+")";c.beginPath();c.arc(tx,ty,.32*u,0,7);c.fill();
+    var la=sm((t-J3.TD)/.3)*(1-sm((t-8.2)/.6));
+    if(la>0){c.font="600 "+(.62*u)+"px "+MONO;c.textAlign="left";c.textBaseline="middle";c.fillStyle="rgba(214,240,246,"+(.95*la).toFixed(3)+")";
+      c.fillText("BRG "+("00"+Math.round(tb)).slice(-3)+" · RNG "+Math.round(trn),tx+2.2*u,ty+1.6*u);}
   }
-  /* 구름층: 아래로 지나간다(올라가는 중). 번쩍이지 않게 최대 0.55 */
-  var ca=sm((t-4.3)/.8)*(1-sm((t-5.6)/1));
-  if(ca>0){
-    c.fillStyle="rgba(205,216,228,"+(ca*.35).toFixed(3)+")";c.fillRect(0,0,w,h);
-    for(i=0;i<JC.length;i++){var q=JC[i],qy=(((q.y+(t-4.3)*1.1)%1.4)-.2)*h,qr=q.w*w*(.6+(t-4.3)*.25);
-      g=c.createRadialGradient(q.x*w,qy,0,q.x*w,qy,qr);g.addColorStop(0,"rgba(226,233,240,"+(ca*.55*q.a).toFixed(3)+")");g.addColorStop(1,"rgba(226,233,240,0)");
-      c.fillStyle=g;c.fillRect(q.x*w-qr,qy-qr,qr*2,qr*2);}
+  /* 사각 브래킷이 조여지며 LOCK */
+  var bk=sm((t-5)/.3);
+  if(bk>0){var hb=(1.3+3.2*(1-sm((t-5)/.9)))*u,cl=.55*u;c.strokeStyle="rgba(190,240,250,"+(.95*bk).toFixed(3)+")";c.lineWidth=.12*u;c.beginPath();
+    [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(d){var qx=tx+d[0]*hb,qy=ty+d[1]*hb;c.moveTo(qx,qy-d[1]*cl);c.lineTo(qx,qy);c.lineTo(qx-d[0]*cl,qy);});
+    c.stroke();
+    var lk=sm((t-5.9)/.2)*(1-sm((t-8.2)/.6));
+    if(lk>0){c.font="700 "+(.72*u)+"px "+MONO;c.textAlign="left";c.textBaseline="middle";c.fillStyle="rgba(232,246,250,"+lk.toFixed(3)+")";c.fillText("LOCK",tx+hb+.6*u,ty-hb+.2*u);}
   }
-  /* 원근 점: 가운데에서 바깥으로 스친다 */
-  var sa=sm((t-6.3)/.8),diag=Math.hypot(w,h)/2;
-  if(sa>0){
-    var Dz=(t-6.3)*.22+(mach-1)/9*1.1;c.lineCap="round";
-    for(i=0;i<JS.length;i++){var st=JS[i],z=1-((st.z+Dz*st.s)%1);if(z<.03)continue;
-      var rr=1.6*u/z*st.s,r0=rr*(1-.3*sa*(.25+mach/10));if(rr<6*u||r0>diag)continue;
-      c.strokeStyle="rgba(255,255,255,"+(.6*sa*Math.min(1,.2/z)).toFixed(3)+")";c.lineWidth=Math.min(.1*u,.04*u/Math.sqrt(z));
-      c.beginPath();c.moveTo(cx+Math.cos(st.a)*r0,cy+Math.sin(st.a)*r0);c.lineTo(cx+Math.cos(st.a)*rr,cy+Math.sin(st.a)*rr);c.stroke();}
-  }
-  /* 속도선: 화면 가장자리에 길게 */
-  var sl=sm((t-6.8)/1.4);
-  if(sl>0){
-    c.lineWidth=.09*u;
-    for(i=0;i<JL.length;i++){var ln=JL[i],fr=(ln.p+(t-6.8)*1.6)%1,ri=diag*(.6+.45*fr),ro=ri+diag*ln.l*sl*(1+mach/10);
-      c.strokeStyle="rgba(255,255,255,"+(.55*sl*(1-fr*.6)).toFixed(3)+")";
-      c.beginPath();c.moveTo(cx+Math.cos(ln.a)*ri,cy+Math.sin(ln.a)*ri);c.lineTo(cx+Math.cos(ln.a)*ro,cy+Math.sin(ln.a)*ro);c.stroke();}
-    c.lineCap="butt";
-  }
-  /* HUD: 밝아지면 진한 청록으로 바뀐다 */
-  var ha=sm(t/.8),hc=function(al){return mixA([150,225,238],[8,74,92],b,al*ha);};
-  c.lineCap="butt";c.lineWidth=.1*u;c.strokeStyle=hc(.95);c.fillStyle=hc(.95);
-  /* 수평선 · 피치 사다리(가운데 창 안) */
-  c.save();c.beginPath();c.rect(cx-12*u,cy-14*u,24*u,(28-5.5*b)*u);c.clip(); /* 밝아지면 아래 끝 문구 자리를 비운다 */
-  c.beginPath();c.moveTo(cx-12*u,hy);c.lineTo(cx-2.5*u,hy);c.moveTo(cx+2.5*u,hy);c.lineTo(cx+12*u,hy);c.stroke();
-  c.font="600 "+(.62*u)+"px "+MONO;c.textBaseline="middle";
-  for(var dg=-20;dg<=30;dg+=5){if(!dg)continue;var py=hy-dg*ppd;if(py<cy-14*u||py>cy+14*u)continue;
-    c.setLineDash(dg<0?[.5*u,.35*u]:[]);c.beginPath();c.moveTo(cx-8*u,py);c.lineTo(cx-3*u,py);c.moveTo(cx+3*u,py);c.lineTo(cx+8*u,py);
-    var tk=dg>0?.6*u:-.6*u;c.moveTo(cx-8*u,py);c.lineTo(cx-8*u,py+tk);c.moveTo(cx+8*u,py);c.lineTo(cx+8*u,py+tk);c.stroke();
-    c.textAlign="right";c.fillText(Math.abs(dg),cx-8.5*u,py);c.textAlign="left";c.fillText(Math.abs(dg),cx+8.5*u,py);}
-  c.setLineDash([]);c.restore();
-  /* 비행 경로 표시 + 조준점 */
-  c.beginPath();c.arc(cx,cy,.55*u,0,7);c.moveTo(cx-.55*u,cy);c.lineTo(cx-1.8*u,cy);c.moveTo(cx+.55*u,cy);c.lineTo(cx+1.8*u,cy);c.moveTo(cx,cy-.55*u);c.lineTo(cx,cy-1.2*u);c.stroke();
-  c.beginPath();c.arc(cx,cy,.1*u,0,7);c.fill();
-  c.beginPath();c.moveTo(cx-1.2*u,cy-3*u);c.lineTo(cx-.6*u,cy-2.4*u);c.lineTo(cx,cy-3*u);c.lineTo(cx+.6*u,cy-2.4*u);c.lineTo(cx+1.2*u,cy-3*u);c.stroke();
-  /* 방위 띠(위) */
-  c.font="600 "+(.62*u)+"px "+MONO;c.textAlign="center";c.textBaseline="alphabetic";
-  for(i=-5;i<=5;i++){var hx=cx+i*1.8*u;c.beginPath();c.moveTo(hx,cy-16.2*u);c.lineTo(hx,cy-16.2*u+(i%2?.4:.8)*u);c.stroke();if(!(i%2))c.fillText(("0"+(27+i/2*1)%36).slice(-2),hx,cy-16.6*u);}
-  c.beginPath();c.moveTo(cx,cy-15.1*u);c.lineTo(cx-.4*u,cy-14.5*u);c.lineTo(cx+.4*u,cy-14.5*u);c.closePath();c.fill();
-  /* 속도 · 고도 테이프 */
-  function tape(x0,dir,val,step,lab,read,sub){
-    var top=cy-12*u,bot=cy+12*u,pp=1.6*u/step,v;
-    c.save();c.beginPath();c.rect(x0-(dir<0?5*u:0),top,5*u,bot-top);c.clip();
-    c.font="600 "+(.62*u)+"px "+MONO;c.textBaseline="middle";c.textAlign=dir<0?"right":"left";
-    for(v=Math.floor((val-8*step)/step)*step;v<=val+8*step;v+=step){if(v<0)continue;var yy=cy-(v-val)*pp,big=(v/step)%5===0;
-      c.beginPath();c.moveTo(x0,yy);c.lineTo(x0+dir*(big?1:.5)*u,yy);c.stroke();if(big)c.fillText(fmt(v),x0+dir*1.4*u,yy);}
-    c.restore();
-    c.beginPath();c.moveTo(x0,top);c.lineTo(x0,bot);c.stroke();
-    var bw=5.4*u,bx=dir<0?x0-bw-.3*u:x0+.3*u;
-    c.fillStyle=mixA([8,14,22],[230,244,252],b,.82*ha);c.fillRect(bx,cy-.9*u,bw,1.8*u);c.strokeRect(bx,cy-.9*u,bw,1.8*u);
-    c.fillStyle=hc(1);c.font="700 "+(1*u)+"px "+MONO;c.textAlign="center";c.fillText(read,bx+bw/2,cy+.05*u);
-    c.font="600 "+(.62*u)+"px "+MONO;c.fillText(lab,x0+dir*2.6*u,top-.9*u);
-    if(sub){c.font="700 "+(1.25*u)+"px "+MONO;c.fillText(sub,x0+dir*2.9*u,bot+1.6*u);}
-  }
-  tape(cx-21*u,-1,kt,t<6.2?10:200,"KT",fmt(kt),mach>=1?"MACH "+(mach>=9.95?"10":mach.toFixed(1)):"M "+mach.toFixed(2));
-  tape(cx+21*u,1,alt,t<6.2?100:2000,"ALT FT",fmt(alt),null);
-  /* 알림: V1 · ROTATE · 상승 */
-  var msg=[[2.7,3.5,"V1"],[3.3,4.7,"ROTATE"],[4.8,6,"POSITIVE CLIMB · GEAR UP"]];
-  c.font="700 "+(1.2*u)+"px "+MONO;c.textAlign="center";c.textBaseline="middle";
-  msg.forEach(function(mm){var a=sm((t-mm[0])/.2)*(1-sm((t-mm[1]+.25)/.25));if(a<=0)return;
-    var tw=c.measureText(mm[2]).width+1.4*u;c.strokeStyle=hc(a);c.fillStyle=hc(a);c.lineWidth=.1*u;
-    c.strokeRect(cx-tw/2,cy+5.2*u-1*u,tw,2*u);c.fillText(mm[2],cx,cy+5.25*u);});
+  /* 머리 표기 한 줄: SEARCH → NEW CONTACT(깜빡) → TARGET LOCKED → TARGET LOCKED · TRACKING */
+  var hd=t<J3.TD?"RDR · SEARCH":t<5.9?"NEW CONTACT":t<8.4?"TARGET LOCKED":"TARGET LOCKED · TRACKING",
+      ha=t>=J3.TD&&t<5.4?.6+.4*Math.cos((t-J3.TD)*Math.PI*2.4):1;
+  c.font="700 "+(.9*u)+"px "+MONO;c.textAlign="center";c.textBaseline="middle";c.fillStyle="rgba(214,240,246,"+(.95*ha).toFixed(3)+")";
+  var hy=Ay-R-2.6*u;c.fillText(hd,Ax,hy);
+  /* LOCK 순간 짧은 삼각 경고 표식 */
+  var wa=t>5.9&&t<7.1?sm((t-5.9)/.15)*(1-sm((t-6.85)/.25))*(.65+.35*Math.cos((t-5.9)*Math.PI*3)):0;
+  if(wa>0){var hw=c.measureText(hd).width/2,wx=Ax-hw-1.4*u,ws=.55*u;c.strokeStyle="rgba(240,170,90,"+wa.toFixed(3)+")";c.lineWidth=.1*u;
+    c.beginPath();c.moveTo(wx,hy-ws);c.lineTo(wx+ws*1.1,hy+ws*.8);c.lineTo(wx-ws*1.1,hy+ws*.8);c.closePath();c.stroke();
+    c.fillStyle="rgba(240,170,90,"+wa.toFixed(3)+")";c.font="700 "+(.55*u)+"px "+MONO;c.fillText("!",wx,hy+.15*u);}
+  /* 끝 문구(DOM)는 레이더 아래에 둔다 */
+  edTx.style.left=(Ax-12*u).toFixed(1)+"px";edTx.style.top=(Ay+1.3*u).toFixed(1)+"px";
   c.globalAlpha=1;
 }
 
