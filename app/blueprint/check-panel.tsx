@@ -1,7 +1,9 @@
 "use client";
 // 하단 패널 "AI 점검" 탭의 내용(P-12e I). 탭 틀은 dock이 그린다. 확정한 청사진(blueprintId)이 있을 때만 점검을 받을 수 있다.
 // 위쪽은 코드가 확인한 사실(AI 없음, 늘 보임), 아래쪽은 "점검 받기"를 눌렀을 때만 만든 Claude의 제안 · 주의할 점. 제안만 하고 청사진은 바꾸지 않는다(불변 1).
+// P-12q: 같은 결과에 내보내기 프롬프트 진단(중복 · 충돌 · 순서)과 다듬은 프롬프트 복사. 원래 내보내기 복사는 위 그대로다.
 import { useEffect, useState, useTransition } from "react";
+import type { Diagnosis, TechPair } from "@/lib/ai/parse-check-response";
 import { loadCheckAction, runCheckAction, type CheckPanelData, type CheckRun } from "./check-actions";
 import "./check-panel.css";
 
@@ -23,6 +25,30 @@ function FactList({ facts }: { facts: CheckPanelData["facts"] }) {
   );
 }
 
+const copyText = (text: string) => navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("보안 연결이 아니면 클립보드가 없음"));
+
+function PromptDiagnosis({ d }: { d: Diagnosis }) {
+  const [copied, setCopied] = useState("");
+  const none = <p className="muted">찾지 못했어요. 전부 확인했다는 뜻은 아니에요.</p>;
+  const pairs = (items: TechPair[]) => (items.length ? <ul className="bp-check-list">{items.map((x, i) => <li key={i}><b>{x.a} · {x.b}</b> — {x.reason}</li>)}</ul> : none);
+  const copy = (text: string) => copyText(text).then(() => setCopied("다듬은 프롬프트를 복사했어요."), () => setCopied("복사하지 못했어요. 아래 글을 직접 골라 복사해 주세요."));
+  return (
+    <section aria-labelledby="bp-check-diag" className="bp-check-diag">
+      <h4 id="bp-check-diag">내보낼 프롬프트 진단 <b className="bp-check-tag info">AI 제안 · 검증 아님</b></h4>
+      <p className="muted">기술끼리 함께 써 본 데이터는 없어요. 이유를 읽고 직접 판단해 주세요.</p>
+      <h5>중복</h5>{pairs(d.overlaps)}
+      <h5>간섭 · 충돌</h5>{pairs(d.conflicts)}
+      <h5>순서</h5>{d.order.length ? <ul className="bp-check-list">{d.order.map((t, i) => <li key={i}>{t}</li>)}</ul> : none}
+      <h5>다듬은 프롬프트</h5>
+      {d.revisedPrompt ? <>
+        <button type="button" className="btn" onClick={() => void copy(d.revisedPrompt!)}>다듬은 프롬프트 복사</button>
+        <span role="status" className="muted"> {copied}</span>
+        <details><summary>다듬은 프롬프트 보기</summary><pre className="bp-check-pre">{d.revisedPrompt}</pre></details>
+      </> : <p className="muted">다듬은 프롬프트가 없어요. 위 내보내기 복사를 그대로 쓰세요.</p>}
+    </section>
+  );
+}
+
 function Result({ latest }: { latest: NonNullable<CheckPanelData["latest"]> }) {
   const lines = (items: string[]) => <ul className="bp-check-list">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>;
   return (
@@ -30,6 +56,7 @@ function Result({ latest }: { latest: NonNullable<CheckPanelData["latest"]> }) {
       <h4>제안</h4>{lines(latest.body.suggestions)}
       <h4>주의할 점 · 확인하지 못한 것</h4>{lines(latest.body.notes)}
       {latest.sources.length ? <p className="muted">참고한 곳: {latest.sources.map((u, i) => <span key={u}>{i ? ", " : ""}<Source label={u} url={u} /></span>)}</p> : null}
+      {latest.body.diagnosis ? <PromptDiagnosis d={latest.body.diagnosis} /> : null}
     </div>
   );
 }

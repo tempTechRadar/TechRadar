@@ -32,7 +32,7 @@ export function createAnthropicClient(env: Env = process.env, fetchImpl: typeof 
   const model = requested && MODEL_SHAPE.test(requested) ? requested : DEFAULT_MODEL;
   const scrub = (text: string) => maskSecrets(text.split(key).join("[가림]"));
   return {
-    async complete({ system, user }) {
+    async complete({ system, user, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS }) {
       let raw: string;
       let res: Response;
       try {
@@ -40,8 +40,8 @@ export function createAnthropicClient(env: Env = process.env, fetchImpl: typeof 
           method: "POST",
           cache: "no-store",
           headers: { "x-api-key": key, "anthropic-version": API_VERSION, "content-type": "application/json" },
-          body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system, messages: [{ role: "user", content: user }] }),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
+          body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
+          signal: AbortSignal.timeout(timeoutMs),
         });
         raw = await res.text(); // 시간 제한은 본문 읽기에도 걸린다: 읽다가 끊겨도 "부르지 못함"으로 던진다(빈 설명으로 숨기지 않음)
       } catch (error) {
