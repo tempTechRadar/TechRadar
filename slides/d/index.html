@@ -103,6 +103,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .tri b{display:block;font-size:1.15rem}
 .tri span{display:block;font-size:.76rem;color:var(--dim)}
 .tri p{font-size:.8rem;margin:.2rem 0 0;line-height:1.35}
+.tri p .mono{display:inline;font-size:inherit;color:var(--hi)}
 /* T-04 분업 지도 전용: 카드 높이를 같게, 안쪽 줄(꼬리표 · 제목 · 문단)도 같은 높이에 */
 .tri.eq{grid-template-rows:auto auto 1fr;align-items:stretch}
 .tri.eq>div{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;align-content:start}
@@ -326,7 +327,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
           <tr><td><span class="mono">#T-15</span></td><td>주소 해시로 위치 공유</td></tr>
           <tr><td><span class="mono">?reveal=all</span></td><td>연출 끝 상태(캡처용 정지 그림)</td></tr>
         </table>
-        <p style="font-size:.76rem;color:var(--dim);line-height:1.4">구성: 11-23 화이트보드 v2 7막 기준(합계 13.5분 + 여유 1.5분). 낮 화이트보드와 달라진 점은 하나 — ⑥을 1.5 → 2.5분으로 늘려 작업과정 · 분업 · 기록을 넣었다. 표적별 초는 막 시간을 나눈 제안값.</p>
+        <p style="font-size:.76rem;color:var(--dim);line-height:1.4">구성: 11-23 화이트보드 v2 7막 기준. 11-23 밤 개편 — ⑤의 '잡은 오류 · 커넥터' 표적을 빼고 커넥터는 ⑥으로 옮겼다(⑤ 60 → 35초). 합계 13분 5초 + 여유. ⑥ 2.5분 · ⑦ 1.5분. 표적별 초는 막 시간을 나눈 제안값.</p>
       </div>
       <div>
         <h2>안내서 11장 12항목 + 강사 공지 4항목 ↔ 막 · 표적</h2>
@@ -337,17 +338,17 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
           <tr><td>3</td><td>직접 입력과 운영 화면</td><td>② 만든 것</td><td class="mono">T-06</td></tr>
           <tr><td>4</td><td>사건과 대응</td><td>② · ③ 사건과 대응</td><td class="mono">T-07 · T-08</td></tr>
           <tr><td>5</td><td>시연(성공 · 일부러 실패 · 과거 기록 찾기)</td><td>④ 시연</td><td class="mono">T-09 · T-10</td></tr>
-          <tr><td>6</td><td>확인(채점 · 시험 · QA · 합친 뒤 오류)</td><td>⑤ 확인</td><td class="mono">T-11 · T-12</td></tr>
-          <tr><td>7</td><td>커넥터</td><td>⑤ 확인</td><td class="mono">T-12</td></tr>
-          <tr><td>8</td><td>문서 위키와 챗봇</td><td>⑥ AI와 일한 방식(+ ④ 시연 ⑤번)</td><td class="mono">T-17 · T-10</td></tr>
-          <tr><td>9</td><td>서브에이전트</td><td>⑥</td><td class="mono">T-16</td></tr>
-          <tr><td>10</td><td>하네스</td><td>⑥</td><td class="mono">T-14 · T-15</td></tr>
-          <tr><td>11</td><td>팀원별 기여</td><td>⑦ 사람</td><td class="mono">T-18 · T-20</td></tr>
-          <tr><td>12</td><td>다음에 해 볼 것</td><td>⑦ 사람</td><td class="mono">T-19</td></tr>
-          <tr><td>공지 1</td><td>바이브로그를 슬라이드에 녹여서</td><td>⑥ 7일 타임라인</td><td class="mono">T-13</td></tr>
+          <tr><td>6</td><td>확인(채점 · 시험 · QA · 합친 뒤 오류)</td><td>⑤ 확인(+ ⑥ 하네스 · ⑦ 기여)</td><td class="mono">T-11 · T-13 · T-17</td></tr>
+          <tr><td>7</td><td>커넥터</td><td>⑥ AI와 일한 방식</td><td class="mono">T-15</td></tr>
+          <tr><td>8</td><td>문서 위키와 챗봇(틀린 답 하나)</td><td>⑥(+ ④ 시연 ⑤번)</td><td class="mono">T-16 · T-10</td></tr>
+          <tr><td>9</td><td>서브에이전트(잘 안 된 점 하나)</td><td>⑥</td><td class="mono">T-14</td></tr>
+          <tr><td>10</td><td>하네스</td><td>⑥</td><td class="mono">T-13 · T-12</td></tr>
+          <tr><td>11</td><td>팀원별 기여</td><td>⑦ 기여와 다음</td><td class="mono">T-17</td></tr>
+          <tr><td>12</td><td>다음에 해 볼 것</td><td>⑦ 기여와 다음</td><td class="mono">T-18</td></tr>
+          <tr><td>공지 1</td><td>바이브로그를 슬라이드에 녹여서</td><td>⑥ 7일 타임라인 · 하네스</td><td class="mono">T-12 · T-13</td></tr>
           <tr><td>공지 2</td><td>자동화 흐름 화면</td><td>④ 시연</td><td class="mono">T-09 · T-10</td></tr>
-          <tr><td>공지 3</td><td>md 기반 LLM 위키 시연</td><td>④ 시연 ⑤번</td><td class="mono">T-10</td></tr>
-          <tr><td>공지 4</td><td>제품 시연 · 12~15분</td><td>④ 4분 · 전체 13.5 + 1.5분</td><td class="mono">T-10</td></tr>
+          <tr><td>공지 3</td><td>md 기반 LLM 위키 시연</td><td>④ 시연 ⑤번 · ⑥ 위키</td><td class="mono">T-10 · T-16</td></tr>
+          <tr><td>공지 4</td><td>제품 시연 · 12~15분</td><td>④ 4분 · 전체 13분 5초 + 여유</td><td class="mono">T-10</td></tr>
         </table>
       </div>
     </div>
@@ -365,7 +366,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 "use strict";
 var ACTS=[
  {n:"① 문제",q:"왜 만들었나",who:"김영식",sec:120},{n:"② 만든 것",q:"무엇을 만들었나",who:"김영식",sec:90},{n:"③ 사건과 대응",q:"깨지면 어떻게",who:"황재웅",sec:60},
- {n:"④ 시연",q:"직접 보기",who:"세 사람",sec:240},{n:"⑤ 확인",q:"맞았나",who:"황재웅",sec:60},{n:"⑥ AI와 일한 방식",q:"어떻게 일했나",who:"차세일",sec:150},{n:"⑦ 사람",q:"누가, 다음은",who:"세 사람",sec:90}
+ {n:"④ 시연",q:"직접 보기",who:"세 사람",sec:240},{n:"⑤ 확인",q:"맞았나",who:"황재웅",sec:35},{n:"⑥ AI와 일한 방식",q:"만들고 검증한 방식",who:"차세일",sec:150},{n:"⑦ 기여와 다음",q:"각자 맡은 몫, 다음 한 걸음",who:"차세일",sec:90}
 ];
 var KIND={dot:"● 내용",inc:"▲ 사고",lim:"◇ 한계",hum:"● 내용"};
 /* act: 0~6, center: 표지. k: 종류. sp: 꼬리표. */
@@ -511,116 +512,117 @@ var T=[
  <li><svg class="ic"><use href="#i-eye"/></svg><b>No Run</b><span>못 한 항목도 숨기지 않고 표기</span></li></ul>`,
  src:"eval/result.md 3~5 · 24 · 90줄 · npm test(main 210375b, 11-23) · docs/qa.md(11-23 14:38) · docs/qa-c.md",
  notes:"PR #220 제목의 '사람 QA Pass 19 → 33'은 QA 시트 사본 기준으로 보이고, docs/qa.md 사람 QA 표(Pass 13)와 다르다. 어느 쪽이 발표 기준인지 재웅 님이 확인. 화면에는 docs/qa.md 값을 적었다."},
-{act:4,k:"inc",sp:"재",who:"황재웅",sec:25,nm:"잡은 오류 · 커넥터",
- title:"시험이 통과해도,<br>합친 뒤 운영에서 잡은 오류",
- body:`<ol class="steps"><li><span>11-19 · #153</span><span>적용 시나리오 운영에서 늘 실패 · 가짜 DB 시험은 통과</span></li>
- <li><span>11-19 · #104</span><span>06시 첫 정기 실행 안 돎 · 설정값 없음</span></li>
- <li><span>11-23</span><span>상태 줄 "오류 0" ↔ 실제 수집 오류 2 → 고침 + 시험 추가</span></li></ol>
- <h2><svg class="ic"><use href="#i-plug"/></svg> 커넥터 — 운영 직접 확인 기록 122행</h2>
- <table><tr><td>Supabase <span class="n">약 88</span></td><td>Vercel <span class="n">약 18</span></td><td>ego-browser <span class="n">약 10</span></td></tr>
- <tr><td>abbsbook <span class="n">7</span></td><td>GitHub <span class="n">약 5</span></td><td>Claude API <span class="n">3</span> · Slack <span class="n">2</span></td></tr></table>
-`,
- src:"docs/debug-note.md:26 · 31 · 34 · 56 · docs/connectors.md(날짜 행 122)",
- notes:"#153: 가짜 DB 시험은 칸 권한을 몰라 통과했다. #104: CRON_SECRET 없음. 11-23: 메뉴 상태 줄이 수집 오류를 세지 않아 불변 규칙 2 위반, 세는 조건을 고쳤다. 커넥터는 말로 짧게. #133 장애는 ⑥ 하네스 표적에서 다루니 여기서는 나머지 셋.",
- hand:"\"이걸 7일 동안 어떻게 만들었는지, 세일 님.\""},
-{act:5,k:"dot",sp:"세",who:"차세일",sec:45,wide:1,nm:"7일 타임라인",
- title:"7일, 합친 PR 232개 — 방향을 다섯 번 틀었다",
+{act:5,k:"dot",sp:"세",who:"차세일",sec:30,wide:1,nm:"7일 타임라인",
+ title:"7일, 합친 PR 236개<br>방향 전환은 모두 ADR 근거로",
  body:`<div class="tl" id="tl"></div>
- <p class="sm">◆ 방향 전환 &nbsp; <span class="rd">▲ 사고</span> &nbsp; □ 바이브로그 · 막대 = 날짜별 합친 PR 수</p>
- <div class="opt"><h2>바이브로그 — 내 판단 한 문장</h2>
- <span class="edit" data-edit="vibe-y" data-default="김영식"></span>
- <span class="edit" data-edit="vibe-j" data-default="황재웅"></span>
- <span class="edit" data-edit="vibe-s" data-default="차세일"></span></div>`,
- src:"gh pr list --state merged(11-23 17:17, KST 날짜) · ADR 0005 · 0017 · 0026~0028 · 0032 · 0037 · 0041 · 0043 · 0044 · docs/debug-note.md 30 · 49~52 · 55줄",
- notes:"막대는 팀 합계. 11-21 · 22는 큰 묶음 PR이라 숫자가 작다. 강사 공지: 바이브로그는 슬라이드에 녹여서. 자기 깃발(□)은 각자 한 문장씩 말해도 된다. 11-16은 합친 PR 0(프로젝트 시작 · 팀 하네스)이라 막대에 없다. 사람별 일별 표는 띄우지 않는다."},
-{act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"규칙과 기록",
- title:"셋이 같은 규칙으로 일했고,<br>전부 기록으로 남겼다",
- body:`<ul class="kv">
- <li><svg class="ic"><use href="#i-layers"/></svg><b>영역</b><span>A · B · C, 각자 끝까지</span></li>
- <li><svg class="ic"><use href="#i-key"/></svg><b>주인제</b><span>공용 파일은 주인만 · DB 변경은 김영식 리뷰</span></li>
- <li><svg class="ic"><use href="#i-check"/></svg><b>PR 승인 1</b><span>하루 크기 조각 · 다른 1명 승인</span></li>
- <li><svg class="ic"><use href="#i-doc"/></svg><b>기록 5문서</b><span>충돌 → <span class="mono">merge=union</span> + 작업 ID 브랜치</span></li>
- <li><svg class="ic"><use href="#i-filter"/></svg><b>precheck</b><span>충돌 미리 보기 · 번호 겹침은 실패</span></li>
- <li><svg class="ic"><use href="#i-rocket"/></svg><b>배포 아끼기</b><span>자동 합치기 · 20분 잠잠하면 배포</span></li></ul>
- <div class="band"><div><span class="n">280</span>intent</div><div><span class="n">45</span>ADR</div><div><span class="n">168</span>agents 행</div><div><span class="n">122</span>connectors 행</div><div><span class="n">55</span>debug-note</div><div><span class="n">18</span>위키 쪽</div></div>
- <p class="sm">팀 스킬 2개 · GitHub Actions 2개</p>`,
- src:"docs/plan.md 8~27줄 · docs/debug-note.md 14 · 15 · 20 · 51줄 · ADR 0017 · 0018 · 0023",
- notes:"말로 보탤 것: 영역마다 화면 · 서버 · 데이터 · QA. 조각 = 브랜치. 기록 문서에 충돌이 몰려 merge=union(ADR 0017). 자동 main 합치기 #106, 20분 잠잠하면 한 번 배포 #159. 팀 스킬은 stage-check · abbs-log. '훅을 썼다'고 말하지 않는다(문서 근거 없음). 하네스 = CLAUDE.md 규칙 + 스킬 2개 + precheck + Actions 2개. ADR 0023 · 0025는 아직 '제안' 상태."},
-{act:5,k:"inc",sp:"세",who:"차세일",sec:30,nm:"하네스: 18분 그 뒤",alarm:1,
- title:"장애 18분 → 규칙 → 도구 →<br>그래도 4번 더 → 실패로 바꿨다",
- body:`<ol class="steps seq"><li><span>11-19 장애</span><span>#133 코드가 먼저 · <b class="rd">약 18분</b></span></li>
- <li><span>규칙 #138</span><span>합치기 전에 운영 먼저</span></li>
- <li><span>도구 #156</span><span>precheck 경고 + 운영 점검표</span></li>
- <li><span>4번 재발</span><span><b>경고만으로는 못 막는다</b></span></li>
- <li><span>번호 겹침 2번</span><span>여러 세션이 같은 번호를 골랐다</span></li>
- <li><span class="rd">exit 1</span><span>번호 겹침 = <b>실패</b> · 순서 막는 장치는 아직 없음</span></li></ol>
- <p class="sm"><svg class="ic"><use href="#i-repeat"/></svg> 또 반복된 것 — 승인 뒤 커밋 빠짐</p>`,
- src:"docs/debug-note.md:30 · 41 · 45 · 47 · 49~52 · 55 · 57 · docs/intent.md:2039 · supabase/precheck-migrations.mts",
- notes:"말로 보탤 것: 장애 14:43 → 15:01. precheck 경고는 마이그레이션이 든 PR에. 4번 재발 = #178(5분) · #182(약 9시간) · #184/#187 · #215. 번호 겹침은 11-21 · 11-22, 세션 여럿이 같은 시각대 번호를 따로 골랐다. exit 1 = 종료 코드 1, 시험 5개. 커밋 빠짐 = #204에 14커밋 → #206, #208 → #210. 당사자(#133 · #135 · #138)로서 말한다. exit 1은 '번호 겹침'에만 해당한다 — 적용 순서 위반은 여전히 경고와 PR 설명 문구로만 막는다. 틀린 것 · 깨진 것도 숨기지 않고."},
-{act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"에이전트 · 세션",
- title:"AI에게 맡기되,<br>만든 쪽과 검토하는 쪽을 나눴다",
- body:`<div class="big"><div><span class="n">168</span><span>서브에이전트 기록 행</span></div><div><span class="n">11</span><span>품질 루프 에이전트</span></div><div><span class="n">54</span><span>테마 탐색 에이전트 · 11-22</span></div></div>
+ <p class="sm">막대 = 날짜별 합친 PR(한국 시간) &nbsp; ◆ ADR 근거의 방향 전환 &nbsp; → 사고 → 규칙 · 도구</p>
  <ul class="kv">
- <li><svg class="ic"><use href="#i-eye"/></svg><b>검토 분리</b><span>쓰는 쪽(메인) ≠ 검토하는 쪽(매번 다른 도우미)</span></li>
- <li><svg class="ic"><use href="#i-users"/></svg><b>다중 세션</b><span>정리 · 배정 1 + 작업 세션 5</span></li>
- <li><svg class="ic"><use href="#i-repeat"/></svg><b>품질 루프</b><span>감사 3 · 분석 1 · 만들기 5 · 검토 2</span></li></ul>
- <h2 class="rd"><svg class="ic" style="stroke:var(--red)"><use href="#i-alert"/></svg> 잘 안 된 점</h2>
- <p>두 세션이 같은 기능 → <b>13파일 충돌</b>(11-20) · 번호 겹침 2번</p>`,
- src:"docs/agents.md 3 · 5 · 141~163줄 · docs/quality-loop/README.md 4~22줄 · docs/debug-note.md 46 · 49 · 50줄 · ADR 0039 9줄",
- notes:"말로 보탤 것: 168은 docs/agents.md 기록 행. 품질 루프는 영역 C, #227, 영역 경계 파일 목록 105개 + 조심 파일 9개. 54는 Workflow 에이전트. 기획 문서는 메인이 직접 쓰고 검토는 매번 다른 도우미에게. 다중 세션 = Maestro(정리 · 배정) · FrontLead · DevAssi1 · 2 · DataCollector · DocsChecker, 11-21~23 지도 · 청사진 작업. 다중 세션은 주로 김영식 쪽 세션으로 기록돼 있다 — 팀 전체의 방식처럼 말하지 않는다. 필요하면 영식 님이 한 문장 보탠다."},
-{act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"위키 · 챗봇 Q5",
- title:"위키 챗봇이 틀린 답을 했고,<br>처음 추측한 원인도 틀렸다",
- body:`<ol class="steps"><li><span>위키</span><span>출처 달린 팀 문서 요약 <b>18쪽</b></span></li>
- <li><span>11-19 운영</span><span>5문항 중 <b>4개</b> 정답 · Q5에 <b class="rd">"위키에 없습니다"</b></span></li>
- <li><span>첫 추측</span><span>"쪽 찾기 탓" → 틀림</span></li>
- <li><span>진짜 원인</span><span>쪽마다 앞 2000자만 → 충돌 문단 잘림</span></li>
+ <li><svg class="ic"><use href="#i-doc"/></svg><b>바이브로그</b><span>단계마다 <span class="mono">abbs-log</span> 스킬 → 요약 카드 + 화면 이미지 → 스케치북(ADR 0006)</span></li></ul>`,
+ src:"gh pr list --state merged(11-23 21:59, 한국 시간 날짜) · ADR 0005 · 0006 · 0013 · 0017 · 0023 · 0026~0028 · 0032 · 0037 · 0041 · 0044 · docs/debug-note.md 30줄 · docs/wiki-chat.md 3줄 · .claude/skills/abbs-log/SKILL.md",
+ notes:"말로 보탤 것: 막대는 팀 합계입니다. 11-21 · 22는 큰 묶음 PR이라 숫자가 작습니다. 11-16은 합친 PR 0(프로젝트 시작 · 팀 하네스)이라 막대에 없습니다. ◆는 모두 ADR로 이유를 남긴 결정입니다 — 가설 B를 내린 것(0005), 지도를 첫 화면으로(0026~0028), 컨셉 재정의(0032), 메뉴 정리(0037 · 0041), 테마 교체(0044). 강사 공지 '바이브로그는 슬라이드에 녹여서': 우리 팀은 vibelog 대신 abbsbook 스케치북을 썼고 강사 확인을 받았습니다(ADR 0006, 팀원 전달). 팀 스킬 abbs-log(#9)가 PR · 문서 승인 · QA · 오류 해결 때마다 날짜 · 제목 · 한 줄 메모 · 화면 이미지 · 막힌 일과 푼 방법 · 정한 일과 이유를 이벤트 하나로 남깁니다. 이 타임라인의 ◆ · → 줄이 그 기록에서 뽑은 장면입니다. 커넥터 기록에는 abbsbook 행이 8개 있습니다.",
+ hand:"이 7일을 지탱한 규칙과 도구입니다."},
+{act:5,k:"dot",sp:"세",who:"차세일",sec:35,wide:1,nm:"하네스",
+ title:"사고 → 규칙 → 도구,<br>다음 날이면 도구로",
+ body:`<div class="tri">
+ <div><span>CLAUDE.md · 팀 공용</span><b>규칙</b><p>제품 불변 규칙 6 · 매 세션 기록 루틴 · PR 승인 1명</p></div>
+ <div><span>.claude/skills/</span><b>스킬 2</b><p><span class="mono">stage-check</span> 안내서 대비 점검 · <span class="mono">abbs-log</span> 단계 기록</p></div>
+ <div><span>npm · GitHub Actions</span><b>도구</b><p><span class="mono">precheck</span> · 기록 검사 · main 자동 합치기 · 배포</p></div></div>
+ <h2>개선 루프 — 사고 → 규칙 → 도구 → 검증</h2>
+ <table><tr><th>사고</th><th>규칙</th><th>도구</th><th>검증</th></tr>
+ <tr><td>기록 문서 충돌<br><small>병합 59개 중 8개 · 11-18</small></td><td>ADR 0017</td><td>merge=union · 기록 검사 #55<br>main 자동 합치기 #106</td><td><span class="mono">npm test</span> 기록 표 검사</td></tr>
+ <tr><td>운영 장애 약 18분<br><small>#133 · 11-19</small></td><td>합치기 전 운영 먼저 #138</td><td><span class="mono">precheck</span> 경고<br>운영 점검표 #156</td><td>PR 전 충돌 · 마이그레이션 알림</td></tr>
+ <tr><td>무료 배포 한도 초과<br><small>11-18 · 11-19</small></td><td>ADR 0018 · 0023</td><td>미리보기 끔<br>Actions 배포 #159</td><td>앱 코드가 바뀐 병합만, 20분 잠잠하면 한 번</td></tr></table>
+ <p class="sm"><svg class="ic"><use href="#i-repeat"/></svg> 세 가지 모두 사고 당일 규칙 → 다음 날까지 도구</p>`,
+ src:"CLAUDE.md 3 · 9 · 10절 · .claude/skills/stage-check · abbs-log · docs/debug-note.md 30줄(#133) · 18줄(충돌) · ADR 0017 · 0018 · 0023 · PR #55 · #106 · #138 · #156 · #159",
+ notes:"말로 보탤 것: 고른 이유 — ① 안내서가 과정 기록을 평가하므로 몰아 쓰지 않게 '매 세션 기록 루틴'을 규칙에 넣었습니다. ② 안내서 요건을 빠뜨리지 않게 stage-check(점검만 하고 고치지 않음). ③ vibelog를 손으로 따로 쓰면 빠지므로 abbs-log로 단계마다 자동 기록. ④ 제품 약속(사람 판단 전 조치 금지 등 6개)은 말이 아니라 npm test로 확인. 적용 → 결과: #133은 14:43 발견, #135로 고치고 운영 DB에 적용해 15:01 복구(약 18분), 같은 날 15:19 규칙 #138, 16:32 도구 #156. 기록 문서 충돌은 병합 59개 중 8개 · 충돌 20곳이 모두 같은 모양이라 merge=union과 자동 검사로 막았습니다. 배포 한도는 하루 100번 안팎이라 미리보기를 끄고(0018), 병합 뒤 20분 잠잠하면 한 번만 배포(0023). '훅을 썼다'고 말하지 않습니다(문서 근거 없음).",
+ hand:"이 규칙 안에서 AI에게 일을 맡기고 확인한 방법입니다."},
+{act:5,k:"dot",sp:"세",who:"차세일",sec:30,nm:"서브에이전트",
+ title:"만드는 AI와 검토하는 AI, 따로<br>합치기 전엔 시험으로",
+ body:`<div class="big"><div><span class="n">169</span><span>서브에이전트 기록 행</span></div><div><span class="n">11</span><span>품질 루프 에이전트 · #227</span></div><div><span class="n">8 → 0</span><span>'높음' · 첫 감사 → 끝 검토</span></div></div>
+ <ol class="steps"><li><span>감사 3</span><span>코드 · 발표 자료 · 문서와 코드 — 읽기만, 40건</span></li>
+ <li><span>판정</span><span>메인이 고칠 것 · 남길 것 분류</span></li>
+ <li><span>만들기 5</span><span>각자 따로 작업, 영역 C 파일만</span></li>
+ <li><span>검토 2</span><span>만든 쪽과 다른 눈 — 높음 0</span></li>
+ <li><span>확인</span><span><span class="mono">npm test</span> 1,838 · <span class="mono">tsc</span> · <span class="mono">build</span> 통과 → 합치기</span></li></ol>
+ <h2><svg class="ic"><use href="#i-repeat"/></svg> 잘 안 된 점 하나 → 고친 방법</h2>
+ <p>도우미가 옛 판 위에서 수정 → 원인: 작업 폴더가 main에서 갈라짐 → 합치기 전 main 받기 · 충돌은 메인이 직접 → 시험 통과</p>`,
+ src:"docs/agents.md 3 · 5줄 · 170~173줄 · docs/quality-loop/README.md 10 · 32 · 54 · 66 · 102 · 105 · 116 · 127 · 136줄 · PR #227",
+ notes:"말로 보탤 것: 168 → 169는 docs/agents.md 기록 행(11-23 21:59). 기획 문서(IA · uj · prd · 데이터설계 · erd · spec · flow)는 결정 맥락이 필요해서 메인이 팀원과 인터뷰하며 직접 쓰고, 검토는 매번 따로 띄운 도우미에게 맡겼습니다. 품질 루프(#227): 같은 목표 문장을 매 바퀴 다시 읽고 이어서 고치는 방식, 최대 3바퀴. 완료 조건 = 마지막 검토 '높음' 0 · 고친 것마다 독립 검토 · npm test · tsc · build 통과 · 고친 파일이 모두 영역 C. 첫 감사 40건(발표 자료 15 · 코드 7 · 문서와 코드 15 + 3) 중 높음 8, 마지막 검토 6건 중 높음 0으로 3바퀴에 끝났습니다. 영역 경계 = 파일 목록 105개 + 조심 파일 9개. 일부러 남긴 것도 이유와 함께 적었습니다. 잘 안 된 점: 도우미 작업 폴더가 내 브랜치가 아니라 origin/main에서 갈라져 옛 판 위에서 고침 → 합치기 전 git merge origin/main, 충돌 2곳은 메인이 손으로(agents.md 172줄).",
+ hand:"AI가 운영을 직접 확인한 길, 커넥터입니다."},
+{act:5,k:"dot",sp:"세",who:"차세일",sec:25,nm:"커넥터",
+ title:"커넥터 7종으로 운영 직접 확인,<br>기록 127행",
+ body:`<div class="big"><div><span class="n">127</span><span>커넥터 기록 행</span></div><div><span class="n">7</span><span>서로 다른 서비스</span></div><div><span class="n">42</span><span>앱 실행에도 쓰는 행</span></div></div>
+ <table><tr><th>서비스 · 행</th><th>어디에 썼나</th><th>남은 것</th></tr>
+ <tr><td><svg class="ic"><use href="#i-layers"/></svg> Supabase <span class="n">91</span></td><td>운영 마이그레이션 적용 · 권한 시험 · 보안 점검</td><td>적용 시각 · 기대값 대조</td></tr>
+ <tr><td><svg class="ic"><use href="#i-rocket"/></svg> Vercel <span class="n">19</span></td><td>배포 상태 · 로그로 원인 찾기</td><td>#153 원인 로그</td></tr>
+ <tr><td><svg class="ic"><use href="#i-globe"/></svg> ego-browser <span class="n">12</span></td><td>로그인한 운영 화면 · 속도 · 비밀값 점검</td><td>화면별 점검 결과</td></tr>
+ <tr><td><svg class="ic"><use href="#i-code"/></svg> GitHub <span class="n">6</span></td><td>수집 기준 조사 · 수집기 드라이런</td><td>ADR 0033</td></tr>
+ <tr><td><svg class="ic"><use href="#i-bot"/></svg> Claude API <span class="n">3</span></td><td>대응안 초안 실제 호출</td><td><span class="mono">ai_calls</span> 기록</td></tr>
+ <tr><td><svg class="ic"><use href="#i-doc"/></svg> abbsbook <span class="n">8</span></td><td>단계 기록(바이브로그)</td><td>요약 카드 + 화면</td></tr>
+ <tr><td><svg class="ic"><use href="#i-users"/></svg> Slack <span class="n">2</span></td><td>팀원에게 찾은 문제 · 적용 알림 전달</td><td>DM</td></tr></table>`,
+ src:"docs/connectors.md(날짜 행 127 · 11-23 21:59 기준) · 26 · 33 · 47줄 · docs/debug-note.md(#153 Vercel 로그) · CLAUDE.md 6절",
+ notes:"말로 보탤 것: 안내서 항목 '서로 다른 서비스 2개 이상을 어디에 썼고 무엇이 남았는지'. 서비스 옆 숫자는 그 서비스 이름이 나온 행 수입니다(한 행에 둘 이상이 함께 적힌 경우가 있어 합이 127보다 큽니다). 규칙: 커넥터를 쓰면 connectors.md에 한 줄(서비스 · 목적 · 한 일 · 결과 링크 · 앱에서도 쓰는지), 토큰은 적지 않습니다. 대표 장면 — 운영에서만 실패하던 적용 시나리오는 Vercel 로그의 'permission denied for table scenarios'로 원인을 찾아 #153으로 고쳤습니다. Supabase는 운영 DB에 마이그레이션을 적용하기 전에 되돌림 시험을 따로 돌리고, 적용 뒤 칸 · 권한 · 정책을 읽어서 대조했습니다. '앱 실행에도 쓰나'가 '예'인 행이 42개입니다.",
+ hand:"마지막은 팀 문서를 묶은 위키 챗봇입니다."},
+{act:5,k:"dot",sp:"세",who:"차세일",sec:30,nm:"위키 · 챗봇",
+ title:"출처 달린 위키 18쪽,<br>틀린 답 하나 → 원인 찾고 5/5",
+ body:`<ul class="kv">
+ <li><svg class="ic"><use href="#i-doc"/></svg><b>위키 18쪽</b><span>주제 15 + index · log · 연결지도, 쪽마다 출처(#126)</span></li>
+ <li><svg class="ic"><use href="#i-layers"/></svg><b>연결 지도</b><span>요구 52개 ↔ 화면 · 여정 · 데이터 · 규칙 · 조각 · PR · QA</span></li>
+ <li><svg class="ic"><use href="#i-bot"/></svg><b>챗봇</b><span>위키 쪽만 근거로, 출처와 함께 · 없으면 "위키에 없습니다"(#125)</span></li></ul>
+ <h2><svg class="ic"><use href="#i-repeat"/></svg> 틀린 답 하나 → 고친 방법</h2>
+ <ol class="steps"><li><span>찾음 11-19</span><span>운영 5문항 중 4개 정답 · Q5(문서끼리 다른 곳)에 "위키에 없습니다"</span></li>
+ <li><span>원인</span><span>쪽 찾기는 정상 · 앞 2000자만 넘겨 답 잘림</span></li>
  <li><span>고침 #131</span><span>질문 낱말이 든 줄만 + 충돌은 양쪽 출처로</span></li>
- <li><span>11-20 11:02</span><span>재질문 → <b>5/5</b></span></li></ol>
- <p class="sm"><svg class="ic"><use href="#i-check"/></svg> 지금은 Q1~Q5 자동 시험이 함께 돈다</p>`,
- src:"docs/wiki-chat.md 3 · 24~26 · 30~34줄 · PR #125 · #126 · #131 · CLAUDE.md 4절",
- notes:"말로 보탤 것: 18쪽 = 주제 15 + index · log · 연결지도, 챗봇은 관리자 화면. Q5는 문서끼리 다르게 말하는 질문. 쪽은 맞게 찾았다. 고침은 1900자 안으로. 재질문에서 Q5가 두 출처를 모두 말했다. 자동 시험은 실제 위키로 돈다. 위키 규칙: 두 문서가 다르게 말하면 한쪽으로 정리하지 않고 양쪽 출처와 함께 충돌로 적는다. Q5가 바로 그 질문이다.",
- hand:"\"마지막은 사람 이야기입니다. 기여와 다음은 재웅 님.\""},
-{act:6,k:"hum",sp:"재",who:"황재웅",sec:15,wide:1,nm:"팀원별 기여",
- title:"세 사람 모두 PR을 올렸고,<br>서로의 PR을 리뷰했다",
+ <li><span>결과 11-20</span><span>재질문 <b>5/5</b> · 정답표 자동 시험 7개</span></li></ol>
+ <div class="q"><p>"문서 A(데이터설계 146줄)는 chat_logs, 문서 B(erd 366줄)는 ai_calls를 세서 건다고 적었습니다"</p><small><span class="tag">Claude 답 요약</span> 11-20 11:02 운영 Q5 — 두 출처를 함께</small></div>`,
+ src:"docs/wiki-chat.md 3 · 24~26 · 30~34줄 · wiki/연결지도.md 1절 · lib/wiki/wiki-answer-sheet.test.ts · PR #125 · #126 · #131 · CLAUDE.md 4절",
+ notes:"말로 보탤 것: 강사 공지 'LLM 위키 시연'은 ④ 시연 ⑤번에서 관리자 화면 챗봇으로 직접 보여 드립니다. 위키 규칙 — 두 문서가 다르게 말하면 한쪽으로 정리하지 않고 양쪽 출처와 함께 충돌로 적습니다. Q5가 바로 그 질문입니다. 처음엔 '쪽 찾기 탓'으로 적었지만 다시 보니 쪽 찾기는 맞았고, 쪽마다 앞 2000자만 넘긴 것이 원인이었습니다(원인을 확인하고 고쳤다는 점을 강조). 고친 뒤에도 넘기는 글의 길이 한도는 그대로라 비용은 같습니다. 정답표 자동 시험 7개 = Q1~Q5 각 1개 + Q5 충돌 2개, 실제 위키 파일로 돕니다. 연결 지도의 요구 52개는 wiki/연결지도.md 1절 표의 PRD 행 수입니다. 위키는 11-23에도 고쳤고, 그 뒤 운영 Q5 재질문은 시연 전에 한 번 더 확인합니다.",
+ hand:"이제 각자 맡은 몫과 다음 한 걸음입니다."},
+{act:6,k:"dot",sp:"세",who:"차세일",sec:40,wide:1,nm:"팀원별 기여",
+ title:"한 사람이 한 영역을 끝까지,<br>리뷰는 서로의 PR에",
  body:`<table><tr><th></th><th>김영식 · A 지키기 + 공용</th><th>황재웅 · B 고르기</th><th>차세일 · C 옮기기 · 운영</th></tr>
- <tr><td>합친 PR · 리뷰</td><td><span class="n" style="font-size:1.35rem">133 / 79</span></td><td><span class="n" style="font-size:1.35rem">43 / 100</span></td><td><span class="n" style="font-size:1.35rem">56 / 38</span></td></tr>
+ <tr><td>합친 PR · 리뷰</td><td><span class="n" style="font-size:1.35rem">135 / 81</span></td><td><span class="n" style="font-size:1.35rem">43 / 103</span></td><td><span class="n" style="font-size:1.35rem">58 / 38</span></td></tr>
  <tr><td>대표 PR</td><td>#33 등록 → 등급 · #178 지도 · #204 청사진 · #208 프로젝트 보드</td><td>#38 알림 · #43 판단 저장 · #139 적용 기회 · #220 사람 QA</td><td>#46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇 · #227 품질 루프</td></tr>
+ <tr><td>함께 잡은 오류</td><td>#153 적용 시나리오 운영 오류 수정 · #133 운영 DB 적용</td><td>사람 QA에서 취향 저장 권한 오류 발견 → #214</td><td>#133 → #135 수정 · 재발 방지 규칙 #138</td></tr>
  <tr><td>GitHub 밖의 일</td>
  <td>Supabase · Vercel · 로그인 설정 · 운영 DB 적용</td>
  <td>운영 사람 QA · 시드 14쌍 결정</td>
  <td>회의 기록 · 문제정의 · 질문지 · 일정 · 발표 배포</td></tr></table>
- <p class="sm">합친 PR 232개 · 리뷰 = 남의 PR에 남긴 리뷰 수(PR당 1번)</p>`,
- src:"gh pr list · GraphQL reviews(11-23 17:17) · docs/plan.md 6절",
- notes:"대표 PR 전체 — 김영식: #33 등록 → OSV → 등급 · #87 정기 OSV 재확인 · #178 첫 화면 지도 · #204 청사진 스튜디오 · #208 프로젝트 보드. 황재웅: #37 · #38 알림 · #43 판단 저장 · #120 적용 시나리오 · #139 적용 기회 · #184 사용기 · 신고 · #220 사람 QA. 차세일: #30 실행 기록 · #46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇(+ #131) · #227 품질 루프 + 관리자 · #234 Tutorial. GitHub 밖 전체 — 김영식: Supabase · Vercel · 구글 OAuth · 환경변수 관리, 운영 마이그레이션 적용, skills.sh 약관 확인. 황재웅: 운영 사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198). 차세일: 11-18 회의 기록, 문제정의 v5 · 인터뷰 질문지, 강사 확인 · 일정 공유, 발표 자료 배포. 합친 PR은 #234까지, 리뷰 수는 본인 PR 제외. 사람별 커밋 수는 말하지 않는다(작성자 이름 대응이 추정). 숫자는 PR 133/79 · 43/100 · 56/38만. GitHub 밖 칸은 E 키로 본인이 고친다."},
-{act:6,k:"lim",sp:"재",who:"황재웅",sec:15,nm:"다음에 해 볼 것",
- title:"다음은 사람에게 다시 묻기",
- body:`<ul class="kv">
- <li><svg class="ic"><use href="#i-users"/></svg><b>다시 묻기</b><span>그룹1 — 노트북 반납 뒤 "싹 정리" 계획은 어떻게 됐나</span></li>
- <li><svg class="ic"><use href="#i-lock"/></svg><b>다음 개선</b><span>운영 적용 순서를 경고 → <b>장치</b>로 막기</span></li>
- <li><svg class="ic"><use href="#i-alert"/></svg><b>한계</b><span>실사용자 없음 · 앱 숫자는 시연 계정 값</span></li></ul>`,
- src:"docs/팀토론-문제정의-승인.md 1부 1번 표 · docs/debug-note.md 41 · 45 · 57줄 · docs/제출전-레드팀-1123.md 47줄 · ADR 0045 45줄",
- notes:"말로 보탤 것: 그 한 장면이 우리 문제의 가장 강한 근거다. 번호 겹침은 실패로 바꿨지만 '마이그레이션 먼저'는 네 번 더 어긴 뒤에도 경고와 PR 문구뿐이다. 한계는 다음 인터뷰에서 실제 사용 기록으로 확인한다. '다음 개선 하나'는 저장소 기록(4번 재발, 순서를 막는 장치 없음)에서 고른 후보다. 팀이 다른 것을 고르면 말로 바꾼다.",
- hand:"\"끝으로 한 사람씩 20초 — 영식 님부터.\""},
-{act:6,k:"hum",sp:"셋",who:"세 사람",sec:60,nm:"소감 · 항적 완성",fin:1,
- title:"세 사람이 7일 동안 남긴 것",
- body:` <div class="opt"><h2>김영식</h2><span class="edit" data-edit="fin-y" data-default="김영식"></span></div>
- <div class="opt"><h2>황재웅</h2><span class="edit" data-edit="fin-j" data-default="황재웅"></span></div>
- <div class="opt"><h2>차세일</h2><span class="edit" data-edit="fin-s" data-default="차세일"></span></div>
- <div class="band"><div><span class="n">7</span>일</div><div><span class="n">232</span>합친 PR</div><div><span class="n">1,883</span>자동 시험</div><div><span class="n">56</span>채점 사례 · 놓침 0</div></div>
- <p><b>지키고, 고르고, 옮긴다.</b> 감사합니다. <span class="sm">서비스 <a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a></span></p>`,
- src:"앞 표적들의 출처와 같음(gh pr list · npm test · eval/result.md · docs/debug-note.md:30)",
- notes:"스코프에 20개 표적이 한 줄 항적으로 이어진 그림이 남는다. 질문은 O(전체 항적)를 띄워 놓고 받으면 표적을 바로 찾아갈 수 있다."}
+ <p class="sm">합친 PR 236개(11-23 21:59) · 리뷰 = 남의 PR에 리뷰를 남긴 PR 수(PR당 1번, 본인 PR 제외)</p>`,
+ src:"gh pr list --state merged --json author,reviews(11-23 21:59) · docs/plan.md 6절 · docs/debug-note.md 30줄(#133) · #153 행 · PR #135 · #138 · #153 · #214",
+ notes:"말로 보탤 것: 나눈 기준은 층(프론트 / 백엔드)이 아니라 기능 영역이고, 각자 화면 · 서버 · 데이터 · QA를 끝까지 맡았습니다. 적용 시나리오는 B 영역 기능인데 운영 권한 오류는 A가 #153으로 고쳤습니다. #133은 C의 코드 수정(#135)과 A의 운영 DB 적용이 함께 약 18분 만에 복구했습니다. 대표 PR 전체 — 김영식: #33 등록 → OSV → 등급 · #87 정기 OSV 재확인 · #178 첫 화면 지도 · #204 청사진 스튜디오 · #208 프로젝트 보드. 황재웅: #37 · #38 알림 · #43 판단 저장 · #120 적용 시나리오 · #139 적용 기회 · #184 사용기 · 신고 · #220 사람 QA. 차세일: #30 실행 기록 · #46 흐름 화면 · #40 시뮬레이터 · #125 위키 챗봇(+ #131) · #227 품질 루프 + 관리자 · #234 Tutorial. GitHub 밖 전체 — 김영식: Supabase · Vercel · 구글 OAuth · 환경변수 관리, 운영 마이그레이션 적용, skills.sh 약관 확인. 황재웅: 운영 사람 QA 수행(#220), 같은 역할 시드 14쌍 결정(#198). 차세일: 11-18 회의 기록, 문제정의 v5 · 인터뷰 질문지, 강사 확인 · 일정 공유, 발표 자료 배포. 숫자는 11-23 21:59에 다시 셌습니다(17:17에는 133/79 · 43/100 · 56/38). 사람별 커밋 수는 말하지 않습니다(작성자 이름 대응이 추정).",
+ hand:"다음에 해 볼 것입니다."},
+{act:6,k:"dot",sp:"세",who:"차세일",sec:25,nm:"다음에 해 볼 것",
+ title:"다음: 사람에게 다시 묻기,<br>경고 → 막는 장치",
+ body:`<h2>사람 인터뷰로 확인할 것</h2>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-users"/></svg><b>다시 묻기</b><span>그룹1 중 1명 — 노트북을 반납할 때 깐 것을 실제로 어떻게 옮겼나</span></li>
+ <li><svg class="ic"><use href="#i-move"/></svg><b>함께 해 보기</b><span>설치 프롬프트로 다른 컴퓨터에 옮기는 장면, 옆에서 관찰</span></li></ul>
+ <h2>다음 개선 하나와 이유</h2>
+ <ul class="kv">
+ <li><svg class="ic"><use href="#i-lock"/></svg><b>개선</b><span>운영 적용 순서를 <span class="mono">precheck</span> 경고 → 합치기 전에 <b>막는 검사</b>로</span></li>
+ <li><svg class="ic"><use href="#i-repeat"/></svg><b>이유</b><span>개선 루프의 다음 단계 — 사람이 경고를 놓쳐도 순서가 지켜지게</span></li></ul>`,
+ src:"docs/팀토론-문제정의-승인.md 25줄 · docs/문제정의.md 56줄 · docs/debug-note.md 30줄 · CLAUDE.md 10절 · supabase/precheck-migrations.mts",
+ notes:"말로 보탤 것: 그룹1 P1은 노트북 반납 전에 '싹 정리하고 가지고 나갈' 계획이었습니다. 그 한 장면이 우리 문제의 가장 강한 근거라서, 반납 뒤 실제로 어떻게 했는지 다시 묻고 설치 프롬프트 수작업 시험을 함께 해 보기로 팀 토론에서 정했습니다. 다음 개선: 지금 precheck는 마이그레이션이 든 PR에 '운영 먼저' 규칙을 알리기만 하고 막지는 않습니다. 하네스 장의 '사고 → 규칙 → 도구' 다음 단계로, 경고를 장치로 바꾸려 합니다.",
+ hand:"마지막으로 7일을 숫자로 정리합니다."},
+{act:6,k:"dot",sp:"세",who:"차세일",sec:25,nm:"마무리",fin:1,
+ title:"7일, 만든 것과 남긴 기록",
+ body:`<div class="big"><div><span class="n">236</span><span>합친 PR · 7일</span></div><div><span class="n">1,883</span><span>자동 시험 통과</span></div><div><span class="n">56</span><span>채점 사례 · 놓침 0</span></div></div>
+ <div class="band"><div><span class="n">45</span>ADR</div><div><span class="n">284</span>작업 의도</div><div><span class="n">169</span>서브에이전트 기록</div><div><span class="n">127</span>커넥터 기록</div><div><span class="n">55</span>오류와 해결</div><div><span class="n">18</span>위키 쪽</div></div>
+ <div class="q"><p><b>지키고, 고르고, 옮긴다.</b> 감사합니다.</p><small>서비스 <a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a></small></div>`,
+ src:"gh pr list(11-23 21:59) · npm test(main 210375b, 11-23 — T-11과 같은 기준) · eval/result.md · docs/adr · docs/intent.md · docs/agents.md · docs/connectors.md · docs/debug-note.md(날짜 행 수) · wiki/",
+ notes:"스코프에 19개 표적이 한 줄 항적으로 이어진 그림이 남습니다. 숫자는 모두 11-23 21:59에 저장소에서 다시 셌습니다: ADR 파일 45 · intent.md의 작업 제목 284 · agents.md 행 169 · connectors.md 행 127 · debug-note.md 행 55 · wiki 18쪽. 자동 시험은 채점 표적과 같은 기준(main 210375b, 1,883 통과 · 실패 0)입니다. 질문은 O(전체 항적)를 띄워 놓고 받으면 표적을 바로 찾아갈 수 있습니다."}
 ];
 
 /* 타임라인 자료 */
 var DAYS=[
- ["11-17 화",24,["◆ 가설 A · B · C를 사람 인터뷰로 판정, B를 내림(ADR 0005)"]],
- ["11-18 수",68,["회의에서 통합안 승인 · 개발 첫날","□ 영식 — 기록 문서 충돌 → merge=union(ADR 0017, #55)"]],
- ["11-19 목",79,["<span class='rd'>▲ #133 운영 장애 약 18분</span>","□ 세일 — #133 → #135 · 규칙 #138"]],
- ["11-20 금",28,["◆ 지도를 첫 화면으로(ADR 0026~0028) · 첫 정기 실행 성공"]],
+ ["11-17 화",24,["◆ 가설 셋, 사람 인터뷰로 판정 · B 내림(ADR 0005)","◆ 바이브로그는 abbsbook 스케치북으로(ADR 0006 · 스킬 #9)"]],
+ ["11-18 수",68,["◆ 통합안 승인(ADR 0013) · 개발 첫날","→ 기록 문서 충돌 → 설정 + 자동 검사(ADR 0017 · #55)"]],
+ ["11-19 목",79,["→ 운영 장애 약 18분(#133) → 같은 날 규칙 #138 · 도구 #156","→ 무료 배포 한도 → Actions 배포(ADR 0023 · #159)"]],
+ ["11-20 금",28,["◆ 지도를 첫 화면으로(ADR 0026~0028)","위키 챗봇 Q5 재질문 5/5(#131 뒤)"]],
  ["11-21 토",1,["◆ 컨셉 재정의 \"지도에서 고르고, 청사진으로 옮긴다\"(ADR 0032)"]],
- ["11-22 일",4,["◆ 메뉴를 프로젝트 · 지도 · 청사진으로(ADR 0037 · 0041)","<span class='rd'>▲ 마이그레이션 번호 겹침 2차 → precheck 실패로</span>"]],
- ["11-23 월",28,["◆ 파란 도면 테마를 1시간 반 만에 접고 관측소 테마로(ADR 0044)","<span class='rd'>▲ #208 승인 뒤 커밋 빠짐 → #210</span>","□ 재웅 — 사람 QA 중 취향 저장 권한 오류 발견 → #214"]]
+ ["11-22 일",4,["◆ 메뉴를 프로젝트 · 지도 · 청사진으로(ADR 0037 · 0041)"]],
+ ["11-23 월",32,["◆ 관측소 테마로(ADR 0044) · 품질 루프 #227","→ 사람 QA에서 찾은 권한 오류 → #214"]]
 ];
 
 /* ---------- 배치 ---------- */
@@ -743,7 +745,7 @@ function render(){
   renderList();
 }
 function renderList(){
-  var h="<h2>전체 항적 — 표적 "+T.length+"개 · 13분 30초</h2><ol>",la=-1;
+  var h="<h2>전체 항적 — 표적 "+T.length+"개 · "+Math.floor(T[T.length-1].cum/60)+"분 "+(T[T.length-1].cum%60)+"초</h2><ol>",la=-1;
   T.forEach(function(t,i){
     if(!t.center&&t.act!==la||i===0){la=t.act;h+="<li class='acth'>"+ACTS[t.act].n+" · "+ACTS[t.act].q+"</li>";}
     h+="<li class='"+(i===cur?"cur":"")+"'><a href='#"+t.id+"' data-i='"+i+"'><span class='mono'>"+t.id+"</span><span>"+t.nm+"</span></a></li>";
