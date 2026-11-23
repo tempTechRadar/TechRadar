@@ -2,7 +2,7 @@
 // 보기 묶음 탭(노션의 보기 탭처럼, 11-21 사용자): 누르면 그 보기로, 지금 보기와 같으면 눌린 표시, 다시 누르면 기본 보기.
 // "지금 보기 저장"은 로그인했을 때만 이 브라우저에 사람마다 5개까지(보기 기억과 같은 규칙, design.md 14절, 같은 브라우저의 다른 계정에 안 보이게). 기본 묶음은 lib/map/presets.ts
 import { useEffect, useState } from "react";
-import { addPreset, BUILTIN_PRESETS, MAX_SAVED, parsePresets, type Preset } from "@/lib/map/presets";
+import { addPreset, BUILTIN_PRESETS, LS_NOTE, MAX_SAVED, parsePresets, type Preset } from "@/lib/map/presets";
 
 /** who = 로그인한 사람 id, 없으면 로그인 전(저장 없음) */
 type Props = { current: string; queryOf: (q: string) => string; countOf: (q: string) => number; apply: (q: string) => void; who?: string; canMine: boolean; say: (m: string) => void };
@@ -24,7 +24,7 @@ export function ViewTabs({ current, queryOf, countOf, apply, who, canMine, say }
     const on = queryOf(p.query) === current;
     return (
       <span key={(own ? "s:" : "b:") + p.name} className="map-tab-wrap">
-        <button type="button" className="map-tab" aria-pressed={on} onClick={() => apply(on ? "" : p.query)}>{p.name}</button>
+        <button type="button" className="map-tab" aria-pressed={on} title={p.query === "pick=ls" ? LS_NOTE : undefined} onClick={() => apply(on ? "" : p.query)}>{p.name}</button>
         {own ? <button type="button" className="map-tab-x" aria-label={`${p.name} 보기 지우기`} onClick={() => store(saved.filter((x) => x.name !== p.name))}>✕</button> : null}
       </span>
     );

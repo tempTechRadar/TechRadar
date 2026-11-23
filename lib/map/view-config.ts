@@ -1,6 +1,7 @@
 // 지도 보기 설정(노션의 묶기·거르기처럼 사용자가 고름): 1~3차 묶기 기준, 색 기준, 거르기. 주소에 싣고 브라우저가 마지막 설정을 기억한다.
 // 주소는 누구나 바꿀 수 있는 입력이라 아는 값만 받는다(모르는 기준은 버리고, 거르기 값은 길이·개수를 자른다).
 import { KIND_KO, MANUAL_KIND, UNSORTED, type MapNode } from "./build-map.ts";
+import { isLsJumpUp } from "./presets.ts";
 
 export const DIMS = ["field", "sub", "kind", "host", "grade", "project"] as const;
 export type Dim = (typeof DIMS)[number];
@@ -17,7 +18,7 @@ export const PERIOD_KO: Record<Period, string> = { day: "오늘", week: "이번 
 export const NEW_QUOTA = 100;
 export const inPeriod = (n: Pick<MapNode, "addedDays">, p: Period) => n.addedDays !== null && n.addedDays < PERIOD_DAYS[p];
 /** mineOnly = "사용 중"(사용 중인 항목만, P-12m: 비교군은 지도에 두지 않음), err = 수집 오류만, subs = 세부 갈래, interest = 내가 관심 표시한 것만, tags = 내 태그 중 하나라도 붙은 것 */
-export type ViewFilter = { kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; marks: MarkPick[]; hot: boolean; err: boolean; project: string; tags: string[] };
+export type ViewFilter = { /** pick=ls: LS점프업(P-12p) */ ls: boolean; kinds: string[]; fields: string[]; subs: string[]; risky: boolean; mineOnly: boolean; period: Period | ""; marks: MarkPick[]; hot: boolean; err: boolean; project: string; tags: string[] };
 /** 내 판단으로 거르기(P-12f 보드 녹이기: 옛 보드의 칸 = 지도의 판단 칩). 고른 것 중 하나라도 맞으면 보인다 */
 export const MARK_PICKS = ["interest", "candidate", "hold"] as const;
 export type MarkPick = (typeof MARK_PICKS)[number];
@@ -29,7 +30,7 @@ export type ViewConfig = { group: Dim[]; color: Dim; filter: ViewFilter; scope: 
  *  "스킬이 뭐지, MCP가 뭐지"부터 바로 보게. 색은 첫 고리를 따른다(종류마다 한 색 부채꼴) */
 export const DEFAULT_VIEW: ViewConfig = {
   group: ["kind", "field"], color: "kind", scope: [],
-  filter: { kinds: [], fields: [], subs: [], risky: false, mineOnly: false, period: "", marks: [], hot: false, err: false, project: "", tags: [] },
+  filter: { ls: false, kinds: [], fields: [], subs: [], risky: false, mineOnly: false, period: "", marks: [], hot: false, err: false, project: "", tags: [] },
 };
 
 /** 종류가 하나뿐인 카탈로그(11-21 운영은 공개 목록이 MCP뿐)면 첫 고리가 한 덩어리라 하는 일 먼저로(사용자 결정 "자동") */
@@ -65,6 +66,7 @@ export function parseView(query: string | URLSearchParams): ViewConfig {
     group: g, scope,
     color: isDim(c) ? c : g[0] ?? DEFAULT_VIEW.color,
     filter: {
+      ls: q.get("pick") === "ls",
       kinds: renamed(q.get("fk")), fields: renamed(q.get("ff")), subs: renamed(q.get("fs")),
       risky: q.get("risky") === "1", mineOnly: q.get("mine") === "1", marks: q.get("mk") === "1" ? ["interest"] : [...new Set(values(q.get("mk")).filter(isMarkPick))], /* mk=1 = P-12f 전의 "내 관심만" */ hot: q.get("hot") === "1", err: q.get("err") === "1", project: (q.get("p") ?? "").slice(0, 60),
       tags: [...new Set(q.getAll("tg").map((t) => t.trim().slice(0, 30)).filter(Boolean))].slice(0, 10), // 태그에 쉼표가 들어갈 수 있어 tg=를 여러 번
@@ -86,6 +88,7 @@ export function viewQuery(v: ViewConfig, base: ViewConfig = DEFAULT_VIEW): strin
   if (v.filter.fields.length) q.set("ff", v.filter.fields.join(","));
   if (v.filter.subs.length) q.set("fs", v.filter.subs.join(","));
   if (v.scope.length) q.set("in", v.scope.map((s) => `${s.dim}:${s.value}`).join("|"));
+  if (v.filter.ls) q.set("pick", "ls");
   if (v.filter.err) q.set("err", "1");
   if (v.filter.risky) q.set("risky", "1");
   if (v.filter.mineOnly) q.set("mine", "1");
@@ -99,7 +102,8 @@ export function viewQuery(v: ViewConfig, base: ViewConfig = DEFAULT_VIEW): strin
 
 export function passes(n: MapNode, v: ViewConfig): boolean {
   const f = v.filter;
-  return (!f.kinds.length || f.kinds.includes(n.attrs.kind))
+  return (!f.ls || isLsJumpUp(n))
+    && (!f.kinds.length || f.kinds.includes(n.attrs.kind))
     && (!f.fields.length || f.fields.includes(n.attrs.field))
     && (!f.subs.length || f.subs.includes(n.attrs.sub))
     && (!f.risky || n.grade === "danger" || n.grade === "caution")
@@ -116,5 +120,5 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
 /** 켠 필터 수(도구 줄의 "필터 n") */
 export const filterCount = (v: ViewConfig) => {
   const f = v.filter;
-  return f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(!!f.period) + f.marks.length + Number(f.hot) + Number(f.err) + Number(!!f.project) + f.tags.length;
+  return Number(f.ls) + f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(!!f.period) + f.marks.length + Number(f.hot) + Number(f.err) + Number(!!f.project) + f.tags.length;
 };
