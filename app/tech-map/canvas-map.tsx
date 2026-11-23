@@ -13,6 +13,7 @@ import { createMapController } from "./controller";
 import { attachInput } from "./input";
 import { cartChanged } from "@/lib/blueprint/cart-event";
 import { RadarSettings } from "./radar-settings";
+import { MapFinder } from "./map-finder";
 import { describeKo } from "@/lib/map/describe";
 import { GroupPanel, pathOf, TechPanel } from "./side-panel";
 import { ViewTabs } from "./view-tabs";
@@ -181,6 +182,7 @@ export function CanvasMap({ model, projects, initialQuery, canSave, login, who, 
         {/* 상태 · 알림 말풍선은 지도 아래쪽에 뜬다(시안 radar.html의 dock). 범례는 왼쪽 필터 패널로(P-12m) */}
         <div ref={dock} className="map-dock">
           <RadarSettings prefs={S.radar} still={S.still} onChange={ctl.setRadar} />
+          <MapFinder who={who ?? "guest"} login={login} onPick={(id) => { const n = model.nodes.find((x) => x.techId === id); if (n) go(n.key); else say("그 기술은 지금 지도에서 찾지 못했어요. 위 찾기 막대로 이름을 찾아봐 주세요."); }} />{/* P-12w 찾기 도우미: ⚙ 위 */}
           <ToastLine toast={toast} clear={clearToast} className="map-toast" />
           <div className="map-findbar">{/* 찾기는 아래 가운데 떠 있는 막대(P-12p), 결과는 위로 열림 */}
             <MapSearch key={searchKey} onFind={find} onPick={(r) => { if (r.key) go(r.key); else setView({ ...S.view, scope: [r.scope!] }); }} /></div>

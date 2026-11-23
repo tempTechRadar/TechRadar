@@ -204,3 +204,4 @@ body:has(.map-page) .site-nav { margin: 0; padding: 0 var(--sp-4); }
 @media (max-width: 640px) { .map-dock > .map-findbar { left: 0; transform: none; width: calc(100% - 52px); } } /* 오른쪽 ⚙(44px) 자리를 비움 */
 .map-filter-key { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: var(--fs-sm); color: var(--on-paper-2); }
 .map-filter-key > span { display: inline-flex; align-items: center; gap: 4px; }
+.map-dock > .guide.map-finder { top: auto; right: 0; bottom: 48px; z-index: 6; } /* P-12w 찾기 도우미: ⚙(44px) 바로 위, 말풍선은 위로 */
