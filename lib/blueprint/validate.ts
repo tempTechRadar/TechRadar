@@ -26,5 +26,11 @@ export function validateGraph(g: Graph, info: TechFacts, opts: { guest?: boolean
       if (f.collectError) out.push({ kind: "collect-error", target: at, message: `${t.name}(${s.name}): 수집 오류로 지난번 값을 보여 줘요("변화 없음"이 아니에요).`, blocks: false });
     }
   }
+  // 섹션 공통 기술(P-12o): 단계 기술과 같은 관문 · 위험 규칙. DB가 판째 거절하므로 위험도 막는다. 누르면 섹션의 첫 단계로
+  for (const sec of g.sections ?? []) for (const t of sec.techs) {
+    const f = info.get(t.id), at = sec.stageIds[0] ? { stageId: sec.stageIds[0] } : null;
+    if (!f) { if (!opts.guest) out.push({ kind: "outside", target: at, message: `${t.name}("${sec.name}" 섹션 공통 기술): 아직 담지 않은 기술이에요. 담거나 섹션에서 빼 주세요.`, blocks: true }); continue; }
+    if (f.grade === "danger") out.push({ kind: "danger", target: at, message: `${t.name}("${sec.name}" 섹션 공통 기술): 보안 위험 등급이라 확정할 수 없어요. 섹션에서 빼 주세요.`, blocks: true });
+  }
   return out;
 }

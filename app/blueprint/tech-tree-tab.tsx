@@ -37,7 +37,7 @@ function useDims(): [TreeDim[], (d: TreeDim[]) => void] {
 
 /** extras = 관심 · 보류(Dock이 읽어 탭을 바꿔도 다시 읽지 않음, undefined = 읽는 중) */
 export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; extras: TreeExtras | undefined }) {
-  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras, catalog, onPlace } = p;
+  const { graph, picked, apply, pool, tags, say, usage, guest, guestPicks, projects, onCandidate, marking, extras, catalog, onPlace, onSectionTech } = p;
   const add = useSearchParams()?.get("add") ?? null;
   const [dims, setDims] = useDims();
   const [term, setTerm] = useState(""), [tag, setTag] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
   };
   const inBoard = new Set(graph.stages.flatMap((s) => s.techs.map((x) => x.id))); // 이 판에 이미 넣은 기술(어느 단계든)
   const chooser = { id: choose, set: (id: string | null) => (id && !graph.stages.length ? say("단계를 먼저 만들어 주세요.") : setChoose(id)),
-    form: (t: Item) => <AddTo graph={graph} name={t.name} onPut={(s) => put(t, s)} say={say} /> };
+    form: (t: Item) => <AddTo graph={graph} name={t.name} onPut={(s) => put(t, s)} say={say} onSection={onSectionTech && !t.catalog ? (id) => { onSectionTech(id, t.id); setChoose(null); } : undefined} /> };
   const fields = stage ? stageFields(stage.name) : undefined;
   return (
     <>
@@ -125,14 +125,18 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
 const DimOption = ({ d, off }: { d: TreeDim; off: boolean }) => <option value={d} disabled={off}>{off ? `${DIM_KO[d]}(못 읽음)` : DIM_KO[d]}</option>;
 
 /** ?add= 로 온 기술을 키보드로 한 번에 넣기(P-12h-2 T3): 넣을 단계 고르기 + 넣기 */
-function AddTo({ graph, name, onPut, say }: { graph: PanelProps["graph"]; name: string; onPut: (s: PanelProps["graph"]["stages"][number]) => void; say: PanelProps["say"] }) {
+/** onSection: 섹션 공통 기술로도 넣을 수 있으면(P-12o) 섹션을 따로 묶어 보인다("sec:" 앞붙임) */
+function AddTo({ graph, name, onPut, say, onSection }: { graph: PanelProps["graph"]; name: string; onPut: (s: PanelProps["graph"]["stages"][number]) => void; say: PanelProps["say"]; onSection?: (sectionId: string) => void }) {
   const [to, setTo] = useState("");
-  const s = graph.stages.find((x) => x.id === to);
+  const s = graph.stages.find((x) => x.id === to), sec = to.startsWith("sec:") ? to.slice(4) : null;
+  const sections = onSection ? graph.sections ?? [] : [];
   return (
-    <form className="dock-row" onSubmit={(e) => { e.preventDefault(); if (s) onPut(s); else say("넣을 단계를 먼저 골라 주세요."); }}>
-      <label className="tt-dim">{name}을(를) 넣을 단계 <select value={to} onChange={(e) => setTo(e.target.value)}>
-        <option value="">고르기</option>{graph.stages.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-      <button type="submit" className="btn btn-sm" aria-disabled={s ? undefined : true}>넣기</button>
+    <form className="dock-row" onSubmit={(e) => { e.preventDefault(); if (sec && onSection) onSection(sec); else if (s) onPut(s); else say("넣을 곳을 먼저 골라 주세요."); }}>
+      <label className="tt-dim">{name}을(를) 넣을 {sections.length ? "곳" : "단계"} <select value={to} onChange={(e) => setTo(e.target.value)}>
+        <option value="">고르기</option>
+        {sections.length ? <optgroup label="단계">{graph.stages.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup> : graph.stages.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        {sections.length ? <optgroup label="섹션 공통 기술">{sections.map((x) => <option key={x.id} value={`sec:${x.id}`}>{x.name} 섹션</option>)}</optgroup> : null}</select></label>
+      <button type="submit" className="btn btn-sm" aria-disabled={s || sec ? undefined : true}>넣기</button>
     </form>
   );
 }
