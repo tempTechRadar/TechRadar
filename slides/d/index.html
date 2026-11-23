@@ -149,6 +149,27 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .lbX{position:absolute;top:.8rem;right:1rem;width:max(34px,2.4rem);height:max(34px,2.4rem);border:1px solid var(--dim);border-radius:50%;background:var(--bg2);color:var(--hi);font:inherit;font-size:max(20px,1.4rem);line-height:1;cursor:pointer}
 .lbX:hover{border-color:var(--amb)}
 @media (prefers-reduced-motion:reduce){.lbView img,.lbSpot{transition:none}}
+/* 제품 스크린샷: PC = 얇은 브라우저 틀, 휴대폰 = 둥근 틀. 자르지 않는다 */
+.shots.fit img,.bz img,.phone img{height:auto;object-fit:contain}
+.shots.fit figcaption{font-size:.82rem}
+.bz{border:1px solid var(--line);border-radius:.35rem;overflow:hidden;background:var(--bg2)}
+.bz .bar{display:flex;align-items:center;gap:.28rem;height:1.15rem;padding:0 .5rem;border-bottom:1px solid var(--line);background:var(--bg2)}
+.bz .bar i{width:.42rem;height:.42rem;border-radius:50%;background:var(--line);flex:none}
+.bz .bar span{margin-left:.45rem;font-family:var(--mono);font-size:.6rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bz img{border:0}
+.bz:hover{border-color:var(--amb)}
+.phone{border:.3rem solid var(--line);border-radius:1rem;overflow:hidden;background:#000}
+.phone img{border:0}
+.phone:hover{border-color:var(--amb)}
+.side{display:grid;grid-template-columns:45fr 55fr;gap:1rem;align-items:start}
+.side .steps li{grid-template-columns:5.6rem 1fr}
+.thumbs{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,.6fr);gap:.6rem;align-items:end;margin:.4rem 0 .2rem}
+.thumbs figure{margin:0;min-width:0}
+.thumbs img{width:100%;height:7.6rem;object-fit:contain;object-position:center bottom;background:#0b111b}
+.thumbs .phone{width:3.9rem;margin:0 auto;border-width:.22rem;border-radius:.6rem}
+.thumbs .phone img{height:auto}
+.thumbs figcaption{font-size:.74rem;color:var(--tx);margin-top:.25rem;line-height:1.3}
+.thumbs+.sm{margin-top:0}
 .chk{list-style:none;padding:0;margin:.3rem 0}
 .chk li{margin:0;border-bottom:1px solid var(--line)}
 .chk label{display:grid;grid-template-columns:1.5rem 1fr 6.2rem;gap:.4rem;align-items:start;padding:.32rem 0;cursor:pointer;font-size:.9rem}
@@ -209,6 +230,9 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
   #print *{color:#000!important;background:transparent!important;animation:none!important;border-color:#999!important}
   #print img{max-width:45%;height:auto}#print .shots{display:block}
   #print .shotbtn{cursor:auto}#print .shots .hint{display:none}.lb{display:none!important}
+  #print .side,#print .thumbs{display:block}#print .thumbs figure{display:inline-block;width:23%;vertical-align:bottom;margin-right:1%}
+  #print .bz,#print .phone{display:block;width:45%;border-radius:0}#print .bz img,#print .phone img{max-width:100%;width:100%;height:auto}
+  #print .thumbs .bz{width:100%}#print .thumbs .phone{width:50%;margin:0}#print .thumbs img{height:auto}#print .bz .bar{display:none}
 }
 </style>
 </head>
@@ -405,44 +429,42 @@ var T=[
  <li><svg class="ic"><use href="#i-clock"/></svg><b>11-23 06:07</b><span>25단계 중 수집 오류 2</span></li></ul>`,
  src:"lib/schedule/collectors.ts:13 · vercel.json(0 21 * * * UTC) · docs/qa.md:79 · docs/connectors.md:12 · docs/debug-note.md:56 · CLAUDE.md 3절",
  notes:"불변 규칙 2: 수집 실패를 '변화 없음' · '삭제됨'으로 단정하지 않는다. GitHub = 푸시 · 라이선스 · 별 · 보관 여부, 검색 별 후보는 ADR 0033, 바깥 소식 공식 피드는 ADR 0038. 11-22는 수동 실행. '자동 재시도'라고 말하지 않는다 — 다음 시도 시각을 기록할 뿐. 지금 운영 DB의 기술 수는 확인하지 못했다(DB를 읽지 않음)."},
-{act:1,k:"dot",sp:"영",who:"김영식",sec:20,nm:"입력 · 화면",
+{act:1,k:"dot",sp:"영",who:"김영식",sec:20,wide:1,nm:"입력 · 화면",
  title:"공개 저장소를 등록하면<br>내 목록 · 지도 · 청사진이 된다",
- body:`<ol class="steps"><li><span>등록</span><span>공개 저장소 주소 → 내 기술 목록 · 등급</span></li>
- <li><span>지도 <b class="mono">/</b></span><span>첫 화면 · 색 = 분류, 기호 = 등급</span></li>
- <li><span>청사진</span><span><span class="mono">/blueprint</span> · 고른 것 → 설치 프롬프트</span></li>
- <li><span>대시보드</span><span><span class="mono">/dashboard</span> · 관리자 <span class="mono">/admin</span></span></li></ol>
+ body:`<div class="shots fit">
+ <figure><button type="button" class="shotbtn" data-tour="dash" aria-label="대시보드 캡처 크게 보고 짚어 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/dashboard</span></div><img src="images/shot-dashboard.png" alt="대시보드: 저장소 등록 칸과 등록 뒤 생긴 내 기술 목록 · 등급"></div></button><figcaption>① 저장소 등록 → ② 내 목록 · 등급이 생긴다 · 11-23 운영</figcaption></figure>
+ <figure><button type="button" class="shotbtn" data-tour="map" aria-label="지도 캡처 크게 보고 짚어 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/</span></div><img src="images/shot-map.png" alt="지도 첫 화면: 분류 육각형과 등급 기호로 놓인 기술들"></div></button><figcaption>지도 첫 화면 — 색 = 분류, 기호 = 등급 · 11-23 운영</figcaption></figure></div>
+ <p class="sm">청사진 <span class="mono">/blueprint</span> · 대시보드 <span class="mono">/dashboard</span> · 관리자 <span class="mono">/admin</span></p>
  <h2><svg class="ic"><use href="#i-lock"/></svg> 권한 — 세 곳에서 막는다</h2>
  <ul class="kv">
  <li><svg class="ic"><use href="#i-shield"/></svg><b>막는 곳</b><span>화면 · 서버 · DB(RLS, 행 단위 권한)</span></li>
  <li><svg class="ic"><use href="#i-user"/></svg><b>사용자</b><span>내 데이터는 나만 (공개한 것은 예외)</span></li>
- <li><svg class="ic"><use href="#i-key"/></svg><b>관리자 데이터</b><span>관리자만</span></li></ul>
- <p class="sm"><svg class="ic"><use href="#i-play"/></svg> 화면은 ④ 시연에서</p>`,
- src:"CLAUDE.md 3절 5번 · ADR 0043",
- notes:"근거 PR — 등록 · 컴팩트 보드 ADR 0043, #208 · #210 / 지도 ADR 0026~0028, #178 · #188 / 청사진 #204 / 관리자 리뉴얼 #227 · #229, 관리자 지정 · 되돌리기 #212 · #215. 내 기술 목록의 화면 이름은 '사용 중인 항목'. 권한은 불변 규칙 5. 지도 주소는 / 이다(/tech-map 은 없는 경로). 손님도 지도 · 청사진을 써 볼 수 있게 한 것은 ADR 0037."},
+ <li><svg class="ic"><use href="#i-key"/></svg><b>관리자 데이터</b><span>관리자만</span></li></ul>`,
+ src:"CLAUDE.md 3절 5번 · ADR 0043 · slides/d/images/shot-dashboard.png · shot-map.png(11-23 운영)",
+ notes:"말로 보탤 것: 등록 → 내 기술 목록 · 등급. 지도 첫 화면 · 색 = 분류, 기호 = 등급. 청사진에서는 고른 것 → 설치 프롬프트. 근거 PR — 등록 · 컴팩트 보드 ADR 0043, #208 · #210 / 지도 ADR 0026~0028, #178 · #188 / 청사진 #204 / 관리자 리뉴얼 #227 · #229, 관리자 지정 · 되돌리기 #212 · #215. 내 기술 목록의 화면 이름은 '사용 중인 항목'. 권한은 불변 규칙 5. 지도 주소는 / 이다(/tech-map 은 없는 경로). 손님도 지도 · 청사진을 써 볼 수 있게 한 것은 ADR 0037."},
 {act:1,k:"dot",sp:"영",who:"김영식",sec:20,nm:"알림 세 종류",
  title:"알림은 세 종류, 판단은 사람이 한다",
  body:`<div class="tri">
  <div><span>내 기술이 위험으로</span><b>보안 경고</b><p>등급이 "위험"으로 바뀌면</p></div>
  <div><span>소식이 내 기술과 맞으면</span><b>적용 기회</b><p>조건 4개 충족 시</p></div>
  <div><span>쓰는 모델이 끝나면</span><b>모델 종료</b><p>종료 소식</p></div></div>
+ <div class="shots fit stack"><figure><button type="button" class="shotbtn" data-tour="alerts" aria-label="알림 화면 캡처 크게 보고 짚어 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/alerts</span></div><img src="images/shot-alerts.png" alt="알림 화면: 종류 칩 세 개와 판단 대기 알림 1건"></div></button><figcaption style="margin:.25rem 0 0">알림 화면 — 종류 칩 셋, 지금 판단 대기 1건 · 11-23 운영</figcaption></figure></div>
  <ul class="kv">
- <li><svg class="ic"><use href="#i-code"/></svg><b>등급</b><span>코드 규칙으로 매김</span></li>
  <li><svg class="ic"><use href="#i-bot"/></svg><b>Claude</b><span>대응안 <b>초안</b>만</span></li>
- <li><svg class="ic"><use href="#i-user"/></svg><b>조치</b><span>사람이 <b>판단</b>한 뒤에만 · 관리자도 예외 없음</span></li></ul>
- <p class="sm">그래서 이름도 "승인"이 아니라 "판단"</p>`,
- src:"README.md 상태 줄(알림 세 종류) · CLAUDE.md 3절 1번 · docs/worklog.md 86 · 93줄(조건 4) · docs/worklog.md 581~585줄",
- notes:"알림은 세 종류(보안 경고 · 적용 기회 · 모델 종료)로 말한다. 적용 기회 조건 넷째는 별 수가 알려져 있으면 100 이상(11-21). 불변 규칙 1: 사람이 판단하기 전에는 어떤 조치도 실행하지 않는다. 관리자도 건너뛸 수 없다.",
+ <li><svg class="ic"><use href="#i-user"/></svg><b>조치</b><span>사람이 <b>판단</b>한 뒤에만 · 관리자도 예외 없음</span></li></ul>`,
+ src:"README.md 상태 줄(알림 세 종류) · CLAUDE.md 3절 1번 · docs/worklog.md 86 · 93줄(조건 4) · docs/worklog.md 581~585줄 · slides/d/images/shot-alerts.png(11-23 운영)",
+ notes:"말로 보탤 것: 등급 — 코드 규칙으로 매김. 그래서 이름도 '승인'이 아니라 '판단'. 알림은 세 종류(보안 경고 · 적용 기회 · 모델 종료)로 말한다. 적용 기회 조건 넷째는 별 수가 알려져 있으면 100 이상(11-21). 불변 규칙 1: 사람이 판단하기 전에는 어떤 조치도 실행하지 않는다. 관리자도 건너뛸 수 없다.",
  hand:"\"이 알림이 실제로 어떻게 흘러가는지, 재웅 님이 이어갑니다.\""},
-{act:2,k:"dot",sp:"재",who:"황재웅",sec:30,nm:"사건 → 기록",
+{act:2,k:"dot",sp:"재",who:"황재웅",sec:30,wide:1,nm:"사건 → 기록",
  title:"사건 기준 → 알림 → 사람 판단 → 조치와 기록",
- body:`<ol class="steps"><li><span>사건 기준</span><span>바깥 변화가 <b>내 기술</b>에 닿을 때만</span></li>
+ body:`<div class="side"><ol class="steps"><li><span>사건 기준</span><span>바깥 변화가 <b>내 기술</b>에 닿을 때만</span></li>
  <li><span>알림</span><span>3종 · 같은 변경은 한 번만(멱등)</span></li>
  <li><span>초안</span><span>Claude — 대응안 · 적용 시나리오</span></li>
  <li><span>사람 판단</span><span>저장 실패면 기존 값 유지 · "처리 완료" 표시 안 함</span></li>
  <li><span>조치 · 기록</span><span>판단 뒤에만 · 비슷한 지난 판단 다시 찾기</span></li></ol>
- <p class="sm"><svg class="ic"><use href="#i-eye"/></svg> 흐름 화면 = 실제 실행 기록으로 그림 · 가짜 불빛 없음</p>`,
- src:"CLAUDE.md 3절 1 · 3 · 4 · 6번 · README.md 폴더 표(alerts · draft · judgments · action-record · similar-judgments)",
- notes:"등급 규칙 v1은 코드. 초안 #110 · #120, 판단 저장은 알림 상세에서(#43), 거절도 같은 처리. 흐름 화면은 runs · run_steps 를 읽어 그린다(불변 규칙 6). 1분 막이다. 다섯 단계를 한 호흡으로. 자세한 화면은 시연 ③번에서."},
+ <div class="shots fit stack" style="margin:.3rem 0 0"><figure><button type="button" class="shotbtn" data-tour="detail" aria-label="알림 상세 캡처 크게 보고 짚어 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/alerts/…</span></div><img src="images/shot-alert-detail.png" alt="알림 상세: 판단하기 칸과 Claude가 만든 대응안 초안 칸, 이 알림의 기록"></div></button><figcaption style="margin:.25rem 0 0">① 판단은 사람이 · ② 초안은 Claude가 — 알림 상세 · 11-23 운영</figcaption></figure></div></div>`,
+ src:"CLAUDE.md 3절 1 · 3 · 4 · 6번 · README.md 폴더 표(alerts · draft · judgments · action-record · similar-judgments) · slides/d/images/shot-alert-detail.png(11-23 운영)",
+ notes:"말로 보탤 것: 흐름 화면 = 실제 실행 기록으로 그림 · 가짜 불빛 없음. 등급 규칙 v1은 코드. 초안 #110 · #120, 판단 저장은 알림 상세에서(#43), 거절도 같은 처리. 흐름 화면은 runs · run_steps 를 읽어 그린다(불변 규칙 6). 1분 막이다. 다섯 단계를 한 호흡으로. 자세한 화면은 시연 ③번에서."},
 {act:2,k:"inc",sp:"재",who:"황재웅",sec:30,nm:"#133 장애 18분",
  title:"합친 뒤 깨진 일 하나:<br>운영 장애 약 18분",
  body:`<ol class="steps seq"><li><span>11-19 14:43</span><span><b>#133 합침</b> → 관리자 분류 탭 조회 실패</span></li>
@@ -462,7 +484,7 @@ var T=[
 `,
  src:"docs/images/flow-sim-success-1120.png · flow-fail-demo-1120.png · docs/flow.md 115 · 119줄 · CLAUDE.md 3절 6번",
  notes:"강사 공지: 자동화 흐름 화면을 슬라이드에. 시연이 막히면 이 두 장으로 대신한다. 실패 시연(#54)은 캡처로."},
-{act:3,k:"dot",sp:"셋",who:"세 사람",sec:220,nm:"시연",demo:1,
+{act:3,k:"dot",sp:"셋",who:"세 사람",sec:220,wide:1,nm:"시연",demo:1,
  title:"가짜 사건 하나가<br>운영 주소에서 끝까지 돈다",
  body:`<ol class="steps">
  <li><span>① 차세일</span><span>시뮬레이터로 가짜 사건을 쏜다</span></li>
@@ -470,11 +492,16 @@ var T=[
  <li><span>③ 황재웅</span><span>알림 → 판단 저장 → 지난 판단 찾기</span></li>
  <li><span>④ 김영식</span><span>지도 → 청사진 → 설치 프롬프트</span></li>
  <li><span>⑤ 차세일</span><span>위키 챗봇에 묻기</span></li></ol>
+ <h2>막히면 — 눌러서 크게 · ①② 흐름 화면은 앞 표적 두 장</h2>
+ <div class="thumbs">
+ <figure><button type="button" class="shotbtn" data-tour="detail" aria-label="③ 알림 상세 캡처 크게 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/alerts/…</span></div><img src="images/shot-alert-detail.png" alt="알림 상세: 판단하기 칸과 대응안 초안 칸"></div></button><figcaption>③ 알림 → 판단</figcaption></figure>
+ <figure><button type="button" class="shotbtn" data-tour="bp" aria-label="④ 청사진 캡처 크게 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/blueprint</span></div><img src="images/shot-blueprint.png" alt="청사진: 6단계 카드와 담은 기술 3"></div></button><figcaption>④ 청사진에 기술을 끌어 놓기</figcaption></figure>
+ <figure><button type="button" class="shotbtn" data-tour="inst" aria-label="④ 설치 프롬프트 캡처 크게 보기"><div class="bz"><div class="bar"><i></i><i></i><i></i><span>techradar-theta.vercel.app/blueprint</span></div><img src="images/shot-install-prompt.png" alt="확정 · 내보내기 창: 알아 둘 것, 프롬프트, 확정 버튼"></div></button><figcaption>④ 설치 프롬프트로 내보내기</figcaption></figure>
+ <figure><button type="button" class="shotbtn" data-tour="mob" aria-label="휴대폰 청사진 캡처 크게 보기"><div class="phone"><img src="images/shot-mobile-blueprint.png" alt="휴대폰 청사진: 목록으로 고치기 화면과 아래 탭"></div></button><figcaption>휴대폰에서는 목록으로 고친다</figcaption></figure></div>
  <ul class="kv">
- <li><svg class="ic"><use href="#i-globe"/></svg><b>운영 주소</b><span><a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a></span></li>
- <li><svg class="ic"><use href="#i-play"/></svg><b>보여 줄 것</b><span>성공 · 일부러 실패 · 과거 기록 찾기</span></li></ul>`,
- src:"README.md 12줄(운영 주소) · sim/README.md",
- notes:"② 흐름 화면은 실제 실행 기록이다. ⑤ 위키는 md 기반 LLM 위키. <b>리허설 주의</b> ① 시뮬레이터는 같은 입력 하루 1번 — 돌렸다 지우고 다시 돌리면 대응안 초안이 안 나온다. ② 관리자는 남의 알림을 못 본다 → 브라우저 프로필 2개에 관리자 · 시연 계정을 미리 로그인. ③ 위키 Q5는 11-20 운영 재질문에서 맞았고, 11-23 위키 변경 뒤 재확인 전이다. ④ 오늘 만든 마이그레이션 3개의 운영 적용 여부는 확인하지 못했다 — 가이드 캐릭터 · 한국어 개요는 확인 전이면 시연 경로에서 뺀다.",
+ <li><svg class="ic"><use href="#i-globe"/></svg><b>운영 주소</b><span><a href="https://techradar-theta.vercel.app" target="_blank" rel="noopener">techradar-theta.vercel.app</a></span></li></ul>`,
+ src:"README.md 12줄(운영 주소) · sim/README.md · slides/d/images/shot-alert-detail · blueprint · install-prompt · mobile-blueprint.png(11-23 운영)",
+ notes:"말로 보탤 것: 보여 줄 것 — 성공 · 일부러 실패 · 과거 기록 찾기. ② 흐름 화면은 실제 실행 기록이다. ⑤ 위키는 md 기반 LLM 위키. <b>리허설 주의</b> ① 시뮬레이터는 같은 입력 하루 1번 — 돌렸다 지우고 다시 돌리면 대응안 초안이 안 나온다. ② 관리자는 남의 알림을 못 본다 → 브라우저 프로필 2개에 관리자 · 시연 계정을 미리 로그인. ③ 위키 Q5는 11-20 운영 재질문에서 맞았고, 11-23 위키 변경 뒤 재확인 전이다. ④ 오늘 만든 마이그레이션 3개의 운영 적용 여부는 확인하지 못했다 — 가이드 캐릭터 · 한국어 개요는 확인 전이면 시연 경로에서 뺀다.",
  hand:"\"방금 본 것이 맞게 도는지, 숫자로 재웅 님이 확인합니다.\""},
 {act:4,k:"dot",sp:"재",who:"황재웅",sec:35,nm:"채점 · 시험 · QA",
  title:"놓침 0 · 잘못 울림 0,<br>실행 못 한 항목도 그대로 적었다",
@@ -843,7 +870,8 @@ function tgl(c){stage.classList.toggle(c);mode();}
 function mode(){var m=[];if(editing)m.push("편집 중 — Esc로 끝");if(paused)m.push("스캔 멈춤");if(REVEAL)m.push("REVEAL=ALL");else if(REDUCED)m.push("움직임 줄임");$("bMode").textContent=m.join(" · ");$("tScan").textContent=(paused||STILL)?"HOLD":"SCAN";}
 function setEdit(on){editing=on;stage.classList.toggle("editing",on);fillEdits($("pc"));mode();if(on){var f=$("pc").querySelector("[data-edit]");if(f)f.focus();}else if(document.activeElement)document.activeElement.blur();}
 /* 캡처 짚어 보기(둘러보기): 열려 있는 동안 발표 키를 막는다.
-   r = 원본 픽셀(1774×415) 기준 [x,y,w,h]. 렌더 크기에 비례해 다시 계산한다. bad = 실패 지점(빨강) */
+   r = 그 이미지 파일 픽셀 기준 [x,y,w,h], w · h = 그 파일 크기(흐름 화면 1774×415, 스크린샷은 각자).
+   렌더 크기에 비례해 다시 계산한다. bad = 실패 지점(빨강). 지점이 없으면 0단계(전체)만 */
 var TOUR={
  ok:{w:1774,h:415,s:[
   {t:"전체 보기",d:"시뮬레이터로 쏜 가짜 사건 하나가 실제로 지나간 길. 초록 = 이번 실행에서 실제로 돈 단계, 회색 = 안 켜진 단계. 미리 그린 그림이 아니라 실행 기록(runs · run_steps)으로 칠한다."},
@@ -859,7 +887,44 @@ var TOUR={
   {r:[14,184,113,48],bad:1,t:"처음 등록 읽기 — 빨강",d:"시작 상자부터 빨강: 이 실행은 실패로 끝났다."},
   {r:[176,297,115,48],t:"내 저장소 파일 읽기 — 초록",d:"파일을 가져오는 것까지는 성공했다."},
   {r:[340,127,115,48],bad:1,t:"내 기술 뽑기 — 빨강",d:"깨진 package.json에서 기술 목록을 뽑다가 실패. 실패한 단계가 정확히 이 상자다."},
-  {r:[450,20,660,100],t:"뒤로는 0건, 사건 0",d:"실패한 뒤로는 0건이 넘어가고 사건이 생기지 않았다. 실패를 '변화 없음'으로 단정하지 않는다(불변 규칙 2)."}]}
+  {r:[450,20,660,100],t:"뒤로는 0건, 사건 0",d:"실패한 뒤로는 0건이 넘어가고 사건이 생기지 않았다. 실패를 '변화 없음'으로 단정하지 않는다(불변 규칙 2)."}]},
+ /* 제품 스크린샷(11-23 운영). r = 편집한 파일 픽셀 기준, w · h = 그 파일 크기 */
+ dash:{w:1210,h:700,s:[
+  {t:"전체 보기",d:"공개 저장소 주소 하나를 넣으면 내 기술 목록과 등급이 생긴다."},
+  {r:[15,274,464,40],t:"레포 등록",d:"공개 저장소 주소를 넣고 \"등록하고 읽기\"."},
+  {r:[373,212,166,56],t:"등급",d:"읽은 결과 \"주의 1 · 찾지 못함 1\". 찾지 못함은 위험하지 않다는 뜻이 아니다."},
+  {r:[5,33,1074,87],t:"한 줄 요약",d:"사용 중 2 · 위험 발생 1 · 판단 대기 1."},
+  {r:[781,166,424,310],t:"지도 · 소식",d:"내 항목의 변경(보안 경고 mcp-remote)이 여기에도 뜬다."}]},
+ map:{w:1230,h:764,s:[
+  {t:"전체 보기",d:"지도 첫 화면 — 색 = 분류, 기호 = 등급."},
+  {r:[0,7,945,33],t:"위쪽 칩",d:"오늘 새 기술 104 · 위험-주의 1 · 담은 기술 3 · 사용 중 2."},
+  {r:[540,280,520,330],t:"분류 육각형",d:"가운데 \"나\"를 둘러싼 육각형 = 분류(숫자는 기술 수)."},
+  {r:[0,380,560,230],t:"레이더 스윕",d:"왼쪽 아래 청록 부채꼴 = 지금 훑고 있는 방향."}]},
+ alerts:{w:960,h:362,s:[
+  {t:"전체 보기",d:"알림은 보안 경고 · 적용 기회 · 모델 종료 세 종류뿐이고, 내 판단이 필요한 것만 온다."},
+  {r:[304,144,271,42],t:"종류 칩 세 개",d:"보안 경고 · 적용 기회 · 모델 종료."},
+  {r:[25,59,305,16],t:"내 판단이 필요한 것만",d:"\"같은 변경은 알림 하나예요.\" — 같은 변경을 다시 읽어도 두 번 생기지 않는다(멱등)."},
+  {r:[26,268,908,76],t:"실제로 온 알림",d:"mcp-remote 통과 → 위험, 판단 대기."}]},
+ detail:{w:1200,h:758,s:[
+  {t:"전체 보기",d:"판단 버튼은 사람 앞에 있고, Claude는 초안 칸만 맡으며, 알림마다 기록과 비슷한 지난 판단이 붙는다."},
+  {r:[24,134,1152,134],t:"① 판단하기",d:"\"저장하기 전에는 아무것도 바뀌지 않아요\". 고친 버전 제안 / 보류."},
+  {r:[26,460,754,108],t:"② 대응안 초안(Claude가 만든 초안)",d:"이날은 하루 한 번 규칙으로 건너뜀. 안 된 건 안 된 대로 보여 준다."},
+  {r:[26,202,754,166],t:"무엇이 바뀌었나",d:"OSV 근거(GHSA · CVE)와 쉬운 이유."},
+  {r:[798,397,376,75],t:"이 알림의 기록",d:"생김 → 아직 판단하지 않음."},
+  {r:[798,508,376,90],t:"비슷한 지난 판단",d:"지금은 \"찾지 못함\"."}]},
+ bp:{w:1600,h:610,s:[
+  {t:"전체 보기",d:"④ 지도에서 담아 온 기술을 청사진 단계에 끌어 놓는다."},
+  {r:[22,15,1556,125],t:"6단계 카드",d:"문제정의 → 기획 → 디자인 → 개발 → 테스트 → 배포. 단계마다 넣은 기술(pptx · alibaba/open-code-review · Vercel CLI)."},
+  {r:[244,460,796,143],t:"담은 기술 3",d:"지도에서 담아 온 것만 청사진에 넣을 수 있다."}]},
+ inst:{w:680,h:704,s:[
+  {t:"전체 보기",d:"④ 청사진을 확정하고 설치 프롬프트로 내보낸다."},
+  {r:[17,89,646,115],t:"알아 둘 것",d:"빈 단계를 미리 알려 주지만 확정은 막지 않는다."},
+  {r:[17,317,646,167],t:"프롬프트",d:"다른 컴퓨터의 Claude Code에 붙여 넣는 글. 설치는 사람이 직접."},
+  {r:[17,598,276,34],t:"확정",d:"어느 프로젝트에 쓸지 고르고 확정 → 내 이력에 쌓임."}]},
+ mob:{w:390,h:844,s:[
+  {t:"전체 보기",d:"휴대폰에서는 목록으로 고친다."},
+  {r:[0,186,390,74],t:"목록으로 고치기",d:"좁은 화면에서는 캔버스 대신 목록으로 같은 판을 고친다."},
+  {r:[0,788,390,56],t:"아래 탭",d:"프로젝트 · 지도 · 청사진 · 알림."}]}
 };
 var lbFrom=null,lbT=null,lbI=0;
 function lbOpen(btn){var im=btn.querySelector("img");if(!im)return;lbFrom=btn;
