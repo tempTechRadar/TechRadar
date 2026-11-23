@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { linkEnd, removeLink } from "@/lib/blueprint/graph";
-import { GRADE_KO } from "@/lib/map/build-map";
+import { GRADE_KO, isConcept } from "@/lib/map/build-map";
 import { inspectorTechAction, type InspectorRead } from "./actions";
 import type { PanelProps } from "./studio-types";
 import { TYPE_KO } from "./tech-chip";
@@ -80,7 +80,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
           </dl>
         ) : tab === "check" ? (
           <dl className="side-facts">
-            <Row k="등급">보안 {GRADE_KO[tech.tech.grade]}</Row>
+            <Row k="등급">{isConcept(null, tech.tech.type) ? "등급 없음(작업 방식)" : `보안 ${GRADE_KO[tech.tech.grade]}`}</Row>
             <Row k="이유">{tech.tech.gradeReason ?? NONE}</Row>
             <Row k="수집 오류">{tech.tech.collectErrorKind ? `있음(${tech.tech.collectErrorKind}) — 지난번 값이에요` : "없음"}</Row>
             <Row k="마지막 확인">{day(tech.tech.lastCheckedOkAt) ?? NONE}</Row>

@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, setStageNote, STAGE_NOTE_MAX, type Stage } from "@/lib/blueprint/graph";
 import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid, parallelProblem } from "@/lib/blueprint/panel-view";
-import { GRADE_KO } from "@/lib/map/build-map";
+import { GRADE_KO, isConcept } from "@/lib/map/build-map";
 import { SideNotes } from "../tech-map/side-notes";
 import { TagEditor } from "../tech-map/tag-editor";
 import type { PanelProps } from "./studio-types";
@@ -21,6 +21,8 @@ import "./inspector.css";
 /** 지운 · 뺀 · 고르는 중인 단추가 사라지거나 막혀도 초점이 문서 맨 위로 떨어지지 않게 패널로 */
 const focusPanel = () => document.querySelector<HTMLElement>(".insp")?.focus();
 const Card = ({ title, children }: { title: ReactNode; children: ReactNode }) => <section className="side-card"><h3>{title}</h3>{children}</section>;
+/** 서랍 머리 등급: 개념(작업 방식)은 등급이 없다(지도 사이드 패널과 같게, ADR 0008 2항) */
+const GradeTag = ({ t }: { t: { grade: keyof typeof GRADE_KO; type: string } }) => <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>{isConcept(null, t.type) ? "등급 없음(작업 방식)" : `보안 ${GRADE_KO[t.grade]}`}</span></p>;
 
 export function Inspector(p: PanelProps) {
   const stage = p.picked ? p.graph.stages.find((s) => s.id === p.picked!.stageId) : undefined;
@@ -132,7 +134,7 @@ function DetailInfo(p: PanelProps & { techId: string }) {
       <header className="insp-head">
         <p className="muted">하단 패널의 기술{where.length ? ` · ${where.map((s) => s.name).join(", ")}에 있음` : " · 아직 판에 없음"}</p>
         <h2 tabIndex={-1}>{name}</h2>
-        {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
+        {t ? <GradeTag t={t} /> : null}
         {t ? <dl className="side-facts"><dt>갈래</dt><dd>{t.sub ?? "정보 없음"}</dd><dt>하는 일</dt><dd>{t.field ?? "정보 없음"}</dd></dl> : null}
       </header>
       {graph.stages.length ? (
@@ -162,7 +164,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
       <header className="insp-head">
         <p className="muted"><button type="button" className="bp-link" onClick={() => onPick({ kind: "stage", stageId: s.id })}>{s.name}</button> 단계의 기술</p>
         <h2 tabIndex={-1}>{name}</h2>
-        {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
+        {t ? <GradeTag t={t} /> : null}
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
       <TechTabs key={techId} {...p} techId={techId} name={name} />
