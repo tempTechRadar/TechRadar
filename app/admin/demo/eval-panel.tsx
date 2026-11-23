@@ -10,11 +10,11 @@ import { runEvalAction, type EvalState } from "./eval-actions";
 const btn = { minHeight: "var(--hit)", padding: "0 16px" } as const;
 const cell = { padding: "4px 8px", borderBottom: "1px solid var(--line-d)", textAlign: "left" as const };
 
-export function EvalPanel({ style }: { style: React.CSSProperties }) {
+export function EvalPanel({ className }: { className?: string }) {
   const [state, action, pending] = useActionState<EvalState>(runEvalAction, null);
   return (
-    <section style={style} aria-labelledby="demo-eval">
-      <h2 id="demo-eval" style={{ fontSize: 20, margin: "0 0 4px" }}>채점</h2>
+    <section className={className} aria-labelledby="demo-eval">
+      <h2 id="demo-eval">채점</h2>
       <p style={{ margin: "4px 0" }}>정답 사례 G1–G9(공개 자료로 정해 둔 기대 등급·기대 사건)를 앱의 등급 규칙으로 다시 채점해요. 저장해 둔 조회 결과만 써서 바깥 호출은 없어요.</p>
       <form action={action}>
         <button type="submit" style={btn} disabled={pending}>{pending ? "채점 중…" : "채점 실행"}</button>

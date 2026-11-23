@@ -5,7 +5,7 @@ import type { Flow, RunRow, StepRow } from "./types.ts";
 /** off 안 켜짐 · running 실행 중 · ok 성공 · bad 실패 · wait 판단 대기 · disabled 꺼 둔 상자(3순위) */
 export type NodeState = "off" | "running" | "ok" | "bad" | "wait" | "disabled";
 
-// 한 상자에 기록이 여러 줄이면(기술마다 한 줄 등) 더 나쁜 쪽을 보인다: 일부만 실패해도 빨강
+// 수집 상자에 기록이 여러 줄이면(기술마다 한 줄 등) 더 나쁜 쪽을 보인다: 일부만 실패해도 빨강
 const WORST: Record<StepRow["status"], { rank: number; state: NodeState }> = {
   failed: { rank: 4, state: "bad" },
   awaiting_judgment: { rank: 3, state: "wait" },
@@ -30,13 +30,37 @@ export function pathFrom(flow: Flow, startId: string): { nodes: Set<string>; edg
   return { edges, nodes: new Set([startId, ...[...edges].map((k) => k.split(">")[1])]) };
 }
 
-export function colorize(flow: Flow, run: RunRow | null, steps: StepRow[]): Colored {
-  const startNode = run ? flow.nodes.find((n) => n.type === "start" && n.run_trigger === run.trigger) : undefined;
+// 재시도·확정되는 상자는 가장 최근 줄을 따른다(저장 실패 뒤 다시 저장 성공 → 초록). 수집 상자는 위의 "더 나쁜 쪽" 그대로(불변 2)
+const LATEST_WINS = new Set(["human_judgment", "action_record"]);
+
+/** created_at이 있으면 그 순서, 없으면 받은 순서(두 화면 모두 created_at 순으로 읽는다)에서 뒤에 온 줄이 최근 */
+type TimedStep = StepRow & { created_at?: string | null; count_in?: number | null };
+
+function stepStatusByNode(steps: TimedStep[]): Map<string, StepRow["status"]> {
   const best = new Map<string, StepRow["status"]>();
+  const latestAt = new Map<string, string>();
   for (const s of steps) {
     const now = best.get(s.step_name);
-    if (!now || WORST[s.status].rank > WORST[now].rank) best.set(s.step_name, s.status);
+    if (LATEST_WINS.has(s.step_name)) {
+      const at = s.created_at ?? "";
+      if (now && at < (latestAt.get(s.step_name) ?? "")) continue;
+      latestAt.set(s.step_name, at);
+      best.set(s.step_name, s.status);
+    } else if (!now || WORST[s.status].rank > WORST[now].rank) best.set(s.step_name, s.status);
   }
+  // 판단 저장은 human_judgment 줄을 고치지 않고 action_record 성공 줄만 남긴다(action-record.ts). 그 줄이 곧 판단이 끝났다는 기록이다(docs/flow.md 3절 "판단 대기 → 이어가기")
+  // 알림이 여러 건인 실행(human_judgment count_in = n)은 성공한 조치 줄이 n개 이상일 때만 판단이 다 끝난 것으로 본다(검토 R3).
+  // 조치 상자의 "가장 최근 줄" 규칙은 알림 1건 실행을 전제로 한다(시뮬레이터는 시연 계정 수만큼 알림을 만들어 count_in = n. 시연 계정이 2개면 둘 다 판단해야 사람 판단이 초록)
+  const judgeRows = steps.filter((s) => s.step_name === "human_judgment");
+  const need = Math.max(1, ...judgeRows.map((s) => (typeof s.count_in === "number" ? s.count_in : 1)));
+  const done = steps.filter((s) => s.step_name === "action_record" && s.status === "succeeded").length;
+  if (best.get("action_record") === "succeeded" && best.has("human_judgment") && done >= need) best.set("human_judgment", "succeeded");
+  return best;
+}
+
+export function colorize(flow: Flow, run: RunRow | null, steps: TimedStep[]): Colored {
+  const startNode = run ? flow.nodes.find((n) => n.type === "start" && n.run_trigger === run.trigger) : undefined;
+  const best = stepStatusByNode(steps);
   const states: Record<string, NodeState> = {};
   for (const n of flow.nodes) {
     const step = best.get(n.id);
