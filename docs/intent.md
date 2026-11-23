@@ -35,6 +35,8 @@
 
 **결과:** 로컬 커밋(feat · test · 이 docs). 토큰 --paper #0e5ba3 · --on-paper #ffffff · --grid #3e7cb5 · --grid-2 #6e9dc8 · --scan #8ed8ff. tsc 통과, 고친 시험 · 대비 · 기록 검사 51개 통과. 대비 시험이 메뉴 눌림 바탕(--grid 위 흰 글자 4.42)을 잡아 칠하기 대신 흰 테두리로 바꿈. 1440×900 지도 · 청사진 · 알림, 390 지도를 손님 화면으로 찍어 확인.
 **확인하지 못함:** 로그인 화면(사용 중 굵은 흰 고리 · 판단 꼬리표 · 보드), 다른 일반 화면 하나하나, 실제 기기 움직임 느낌, 전체 시험 · 빌드(끝에 몰아서).
+**뒤이어(11-23 11:30 사용자 결정으로 관측소 테마로 바꿈, 계획 p12m-observatory-theme.md):** Q1 토큰 어두운 한 벌 · 밤하늘 바탕 · 컴팩트 · 메뉴 상태 줄(마지막 정기 수집 runs · run_steps만, 수집 오류는 collect_error · error_kind · failed로 셈), Q2 지도(비교군 빼기 · 왼쪽 필터 패널 · 위 한 줄 · 등급 원과 꼬리표 · 노션 칩 · 꼬리표 겹침 정리), Q3 청사진(카드 · 청록 궤도선 · 번호 01) · DevAssi1 Q2' · origin/main 합침. 전체 시험 1,784 · tsc · build · precheck 통과. 파란 도면 토큰(--grid · --grid-2 · --paper-deep)은 지움.
+**확인하지 못함(관측소):** 관리자 실계정 화면 · 손가락 기기 · 화면 읽기(사람 QA로).
 
 ## I-P-12m-theme · 2026-11-23 · 테마 문서(11:30부터 관측소, 10:00 파란 도면은 접음): ADR 0044 · design.md 5 · 6 · 16절 · 용어 (DocsChecker 세션)
 - 브랜치: `docs/P-12m-theme`(feat/P-12l-blueprint-defaults 5ca75ab에서 갈라짐, 로컬. FrontLead가 feat/P-12m-blueprint-theme로 합침)
