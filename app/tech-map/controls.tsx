@@ -75,7 +75,7 @@ export function Toolbar({ nodes, view, projects, canMine, login, tagsFailed, onV
               <label className="check"><input type="checkbox" checked={f.err} onChange={(e) => setFilter({ err: e.target.checked })} /> 수집 오류만 <span className="muted">{count((x) => !!x.collectErrorKind)}</span></label>
             </fieldset>
             <fieldset><legend>사용 중인 항목</legend>
-              <label className="check"><input type="checkbox" checked={f.mineOnly} disabled={!canMine} onChange={(e) => setFilter({ mineOnly: e.target.checked })} /> 사용 중인 항목과 비교군(한 단계){canMine ? <span className="muted"> {count((x) => x.mine || x.nearMine)}</span> : " (로그인하고 프로젝트를 등록한 뒤)"}</label>
+              <label className="check"><input type="checkbox" checked={f.mineOnly} disabled={!canMine} onChange={(e) => setFilter({ mineOnly: e.target.checked })} /> 사용 중{canMine ? <span className="muted"> {count((x) => x.mine)}</span> : " (로그인하고 프로젝트를 등록한 뒤)"}</label>
               {canMine && projects.length > 1 ? (
                 <label>프로젝트 <select value={f.project} onChange={(e) => setFilter({ project: e.target.value })}>
                   <option value="">전체</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -147,7 +147,7 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
           </button>
         ); })}
       </span> : null}
-      {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>사용 중 · 비교군 <b>{count((x) => x.mine || x.nearMine)}</b></button> : null}
+      {canMine ? <button type="button" className="chip" aria-pressed={f.mineOnly} onClick={() => set({ mineOnly: !f.mineOnly })}>사용 중 <b>{count((x) => x.mine)}</b></button> : null}
       {errs > 0 || f.err ? <button type="button" className="chip" aria-pressed={f.err} onClick={() => set({ err: !f.err })}>수집 오류 <b>{errs}</b></button> : null}
     </>
   );

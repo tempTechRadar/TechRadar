@@ -22,7 +22,7 @@ export type TechItem = Base & { type: "t"; node: MapNode; token: string };
 export type Item = GroupItem | TechItem;
 export type LegendItem = { value: string; count: number; token: string; rest?: boolean; hollow?: boolean };
 export type MapLayout = {
-  items: Item[]; byId: Map<string, Item>; edges: [string, string][]; legend: LegendItem[];
+  items: Item[]; byId: Map<string, Item>; legend: LegendItem[];
   /** 실제로 칠한 기준(들어간 분류로 칠하면 한 색뿐이라 다음 묶기 기준) */ color: Dim;
   depth: number; leafR: number; radius: number; shown: number; total: number;
 };
@@ -49,15 +49,8 @@ function legendOf(nodes: MapNode[], dim: Dim): { legend: LegendItem[]; tokenOf: 
   return { legend, tokenOf: (v) => colored.get(v) ?? "--unknown" };
 }
 
-/** 프로젝트 필터: 비교군은 프로젝트가 없으니 그 프로젝트의 내 기술에 이어진 것만 남긴다(한 단계, IA-Q5) */
-function keptNodes(model: TechMapModel, view: ViewConfig): MapNode[] {
-  const project = view.filter.project;
-  if (!project) return model.nodes.filter((n) => passes(n, view));
-  const mineIn = new Set(model.nodes.filter((n) => n.mine && n.projectIds.includes(project)).map((n) => n.key));
-  const near = new Set(model.edges.filter(([a, b]) => mineIn.has(a) || mineIn.has(b)).flat());
-  const noProject = { ...view, filter: { ...view.filter, project: "" } };
-  return model.nodes.filter((n) => (n.nearMine ? near.has(n.key) && passes(n, noProject) : passes(n, view)));
-}
+/** 지도에 남길 기술. 비교군은 지도에 두지 않는다(P-12m 11-23 사용자 결정, ADR 0044 · 0027 개정): 사용 중인 기술의 사이드 패널 · 상세에서만 */
+const keptNodes = (model: TechMapModel, view: ViewConfig): MapNode[] => model.nodes.filter((n) => passes(n, view));
 
 export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
   const kept = keptNodes(model, view);
@@ -107,7 +100,6 @@ export function layoutMap(model: TechMapModel, view: ViewConfig): MapLayout {
   const byId = new Map(items.map((it) => [it.id, it]));
   return {
     items, byId, legend, color, depth, leafR, radius: maxR + 30, shown: kept.length, total: model.nodes.length,
-    edges: model.edges.filter(([a, b]) => byId.has(a) && byId.has(b)),
   };
 }
 
@@ -122,7 +114,6 @@ export function connected(L: MapLayout, id: string): Set<string> {
   if (!it) return out;
   for (let p = it.parent; p; p = L.byId.get(p)?.parent ?? null) out.add(p);
   if (it.type === "g") { for (const x of L.items) if (isUnder(L, x, id)) out.add(x.id); }
-  else for (const [a, b] of L.edges) { if (a === id) out.add(b); if (b === id) out.add(a); }
   return out;
 }
 

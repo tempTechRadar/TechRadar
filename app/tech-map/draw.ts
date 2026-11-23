@@ -65,7 +65,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
   if (moving(S) && S.motion !== "sweep") ripples(F, [ox, oy]);
   if (sa > 0.01) sweep(F, [ox, oy], sa);
 
-  // 선: 위아래 단계(가운데 → 1단계 → … → 기술), 비교군은 점선
+  // 선: 위아래 단계(가운데 → 1단계 → … → 기술). 비교군 선은 지도에 없음(P-12m, 사이드 패널에서만)
   for (const it of vis) {
     const [x, y] = P(it), parent = it.parent ? L.byId.get(it.parent) : null, [px, py] = parent ? P(parent) : [ox, oy];
     const on = !!S.lit && S.lit.has(it.id) && (!it.parent || S.lit.has(it.parent));
@@ -73,16 +73,7 @@ export function draw(c: Ctx, S: MapState, now: number) {
     c.strokeStyle = col("--on-paper"); c.lineWidth = on ? 1.6 : 1;
     c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
   }
-  c.setLineDash([4, 4]);
-  for (const [a, b] of L.edges) {
-    if (S.hidden.has(a) || S.hidden.has(b)) continue;
-    const A = L.byId.get(a)!, Bi = L.byId.get(b)!, on = !!S.lit && S.lit.has(a) && S.lit.has(b), [x1, y1] = P(A), [x2, y2] = P(Bi);
-    c.globalAlpha = Math.min(alphaOf(A), alphaOf(Bi)) * (on ? 1 : S.lit ? 0.08 : 0.35); // 펼치기 전 점의 비교군 선은 안 그린다
-    c.strokeStyle = col("--on-paper"); c.lineWidth = on ? 1.6 : 1;
-    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
-    if (on && S.focusId && (a === S.focusId || b === S.focusId)) { c.setLineDash([]); label(c, "비교군", (x1 + x2) / 2, (y1 + y2) / 2 - 6, 11, col("--on-paper"), "center"); c.setLineDash([4, 4]); }
-  }
-  c.setLineDash([]); c.globalAlpha = 1;
+  c.globalAlpha = 1;
 
   c.fillStyle = col("--on-paper"); c.beginPath(); c.arc(ox, oy, 4, 0, TAU); c.fill();
   label(c, S.scopeLabel || (S.login ? "나" : `모은 기술 ${L.total}`), ox, oy + 18, 12, col("--on-paper-2"), "center", S.scopeLabel ? 700 : 400);
