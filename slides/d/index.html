@@ -1155,7 +1155,7 @@ function lgShow(){
 function lgClose(){
   if(!lgOn) return;
   lgOn=false;clearTimeout(lgTk);lg.classList.add("out");
-  go(1,true); /* 랜딩이 표지를 겸하므로 T-02로 */
+  go(0,true); /* 랜딩을 닫으면 첫 페이지(T-01)부터 */
   lgHideT=setTimeout(function(){lg.hidden=true;cancelAnimationFrame(lgRaf);lgRaf=0;},REDUCED?0:600);
 }
 lg.addEventListener("click",function(e){e.preventDefault();lgClose();});
