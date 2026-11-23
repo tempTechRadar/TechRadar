@@ -9,7 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
-| I-P-12u-idle-overlay | 지도 옅은 선 버벅임: 선만 겹 캔버스에 매 장, 지도는 바뀔 때만(IDLE_FPS 12로 지도 전체를 다시 그리던 shortcut 지움). 스크립트 시간 초당 약 41ms → 5ms(잰 것, 헤드리스 · GPU 끔) | Claude(FrontLead), 김영식(요청 · 승인) | `fix/P-12u-idle-overlay` |
+| I-P-12u-idle-overlay | 지도 옅은 선 버벅임: 선만 겹 캔버스에 매 장, 지도는 바뀔 때만(IDLE_FPS 12로 지도 전체를 다시 그리던 shortcut 지움). 전체 작업 초당 약 50ms → 28ms · 스크립트 28ms → 6ms(잰 것, 헤드리스 Edge · GPU 켬), 선은 지도 캔버스 밑이라 점 · 글자 아래로 지나감 | Claude(FrontLead), 김영식(요청 · 승인) | `fix/P-12u-idle-overlay` |
 | I-P-12t-tree-detail | P-12t 청사진 하단 기술 목록(카드 · 지도 전체 한 줄)에서 이름을 누르면 오른쪽 서랍(휴대폰은 창)에 기술 상세: 등급 · 갈래 · 하는 일 · 한국어 개요 · [판에 넣기] · 기존 탭 재사용, 판 밖 기술은 관계 · 이력 "판에 넣으면 보여요". QA가 찾은 하단 패널 가로 스크롤(화면 읽기 글이 삐져나감)도 고침 | 사용자(요청) · Maestro(배정) · QA(가로 스크롤) · Claude DevAssi2(구현 · 확인) | `feat/P-12t-tree-detail` 로컬 |
 | I-P-12s-blueprint-guide | 청사진 가이드 캐릭터: 관측소 로봇(자체 SVG) · 말풍선 티키타카(문제정의 → 요약 → 단계 [판에 넣기] → 기술 [넣기]), 서버 액션 · 프롬프트 · 파서(목록 밖 id · 위험 · 판에 없는 단계 · 설치 명령 버림) · 하루 20번 · ai_calls 기록, 마이그레이션 `202611240500`. 실제 API 4턴 확인(가짜 DB). abbsbook "내 판단" 빈칸 188개를 사용자 말투 초안으로 채움(도우미 5개, 표시 "Claude 초안 — 확인 필요") | Claude(FrontLead), 김영식(요청 · 승인) | `feat/P-12s-blueprint-guide` |
 | I-afternoon-1123 | 오후 문서: ADR 0045(청사진 프롬프트 진단 "AI 제안 · 검증 아님" · 명령 · 낯선 주소 차단 · 하루 3번 / 한국어 개요 "AI 번역" · 원문 보기 · 원문 바뀌면 숨김 · 120자 넘으면 버림 · 백필 497/500), ADR 0044에 P-12p(LS점프업 · 관문 삭제 · 잔잔한 레이더), 용어 4개(LS점프업 · 한국어 개요 · 프롬프트 진단 · 섹션), README 상태 줄(main a03d64b, 합친 PR 224개, 발표 17쪽). PRD-NF6 "AI 쓰는 곳" 넷 → 여섯(AI 점검 0035 + 진단 · 번역 0045, Maestro 요청). README 운영 문구는 "Actions 20분 잠잠 뒤 배포, 지금 값은 /api/version"으로(운영이 #224에 머문 것은 배포 줄 서기, Maestro). 위키 반영 계획 표는 Maestro에 보냄(동결 뒤 반영) | Claude(DocsChecker, Maestro 배정) | `docs/afternoon-1123` 로컬 커밋 |
