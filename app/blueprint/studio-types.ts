@@ -1,5 +1,6 @@
 // 청사진 스튜디오(P-12e) 화면 조각끼리 주고받는 모양. 캔버스(studio · stage-node · tech-chip · stepper)와
 // 패널(dock · inspector · list-mode)이 같은 그래프 상태를 본다. 그래프를 바꾸는 길은 apply 하나(되돌리기 · 저장을 studio가 한 곳에서).
+import type { LogEntry } from "@/lib/blueprint/change-log";
 import type { Graph } from "@/lib/blueprint/graph";
 import type { BlueprintRecord } from "@/lib/blueprint/stored";
 import type { PoolTech } from "@/lib/server/blueprints";
@@ -29,7 +30,7 @@ export type PanelProps = {
   /** 같은 순서에 단계 더하기(P-12o: 카드 위 · 아래 +를 대신): 옅은 블록을 연다. 캔버스가 없으면(목록 모드는 자기 단추) 없음 */ onBeside?: (stageId: string) => void;
   /** 앞(-1) · 다음(1) 단계 더하기(P-12o: 카드 옆 +의 키보드 짝) */ onSide?: (stageId: string, dir: -1 | 1) => void;
   /** 선 사이에 단계 넣기(U2, 캔버스 선 위 +의 키보드 짝): 옅은 블록을 연다. 캔버스가 없으면(목록 모드) 없음 */ onInsert?: (from: string, to: string) => void;
-  /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[];
+  /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[]; /** 같은 일 + 시각(하단 패널 변경 이력 표, P-12v) */ entries?: LogEntry[];
   /** 하단 패널 기술을 눌러 연 상세(P-12t): 판에 없어도 서랍에 그 기술. picked가 바뀌면 지워진다 */ detail?: string | null; onDetail?: (techId: string) => void;
   /** 캔버스에서 여럿 고름(H5): 서랍은 "n개 골랐어요"와 함께 지우기 · 섹션으로 묶기(P-12o, 단계 2개 이상, 성공이면 true) */ multi?: { count: number; remove: () => void; stages: number; onGroup?: (name: string) => boolean };
 };

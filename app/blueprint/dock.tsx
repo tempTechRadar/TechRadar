@@ -4,6 +4,7 @@
 // AI 점검은 위 막대 "확정 · 내보내기" 창으로 옮김. 그래프는 apply로만 바꾼다.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usageOf } from "@/lib/blueprint/stored";
+import { logKind, logText, logTime } from "@/lib/blueprint/change-log";
 import { TechTreeTab } from "./tech-tree-tab";
 import { treeExtrasAction, type TreeExtras } from "./tree-actions";
 import type { Issue } from "@/lib/blueprint/validate";
@@ -63,16 +64,31 @@ export function Dock({ listEdit, go, ...p }: PanelProps & { listEdit?: { on: boo
   );
 }
 
-/** 변경 이력 탭(P-12j H4): 이 화면에서 판을 바꾼 일(알림 글, 되돌린 것 포함)을 처음부터. 글에 든 단계 · 기술 이름은 눌러 고른다 */
-function ChangesTab({ graph, log = [], go }: PanelProps & { go: Go }) {
-  if (!log.length) return <p className="muted">이 화면에서 아직 판을 바꾸지 않았어요. 새로 고치면 비어요(판은 그대로).</p>;
+/** 변경 이력 탭(P-12j H4 → P-12v 사용자: 줄글 말고 표): 이 화면에서 판을 바꾼 일을 최근 것부터. 칸 = 번호 · 시각 · 종류 · 내용 · 바로 가기(글에 든 단계 · 기술을 눌러 고름) */
+function ChangesTab({ graph, entries = [], go }: PanelProps & { go: Go }) {
+  if (!entries.length) return <p className="muted">이 화면에서 아직 판을 바꾸지 않았어요. 새로 고치면 비어요(판은 그대로).</p>;
   const names = [...graph.stages.map((s) => ({ name: s.name, t: { stageId: s.id } })),
     ...graph.stages.flatMap((s) => s.techs.map((x) => ({ name: x.name, t: { stageId: s.id, techId: x.id } })))];
   return (
-    <ol className="dock-list">{log.map((m, i) => {
-      const hits = names.filter((x) => m.includes(x.name)).filter((x, j, a) => a.findIndex((y) => y.name === x.name) === j);
-      return <li key={i}>{m}{hits.map((x) => <span key={x.name}> <button type="button" className="bp-link" onClick={() => go(x.t)}>{x.name} 고르기</button></span>)}</li>;
-    })}</ol>
+    <div className="dock-log-wrap">
+      <table className="dock-log">
+        <caption className="sr-only">이 화면에서 판을 바꾼 일(최근 것부터)</caption>
+        <thead><tr><th scope="col">#</th><th scope="col">시각</th><th scope="col">종류</th><th scope="col">내용</th><th scope="col">바로 가기</th></tr></thead>
+        <tbody>{entries.map((e, i) => ({ e, n: i + 1 })).reverse().map(({ e, n }) => {
+          const hits = names.filter((x) => e.text.includes(x.name)).filter((x, j, a) => a.findIndex((y) => y.name === x.name) === j);
+          const kind = logKind(e.text);
+          return (
+            <tr key={n}>
+              <td className="dock-log-n">{n}</td>
+              <td className="dock-log-at"><time dateTime={new Date(e.at).toISOString()}>{logTime(e.at)}</time></td>
+              <td><span className="dock-log-kind" data-kind={kind}>{kind}</span></td>
+              <td className="dock-log-text">{logText(e.text)}</td>
+              <td className="dock-log-go">{hits.length ? hits.map((x) => <button key={x.name} type="button" className="bp-link" onClick={() => go(x.t)}>{x.name}</button>) : <span className="muted">—</span>}</td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+    </div>
   );
 }
 

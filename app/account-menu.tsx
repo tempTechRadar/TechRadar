@@ -15,6 +15,7 @@ export function AccountMenu({ name, admin }: { name: string; admin: boolean }) {
       <summary aria-label={`${name}, 계정 메뉴`}><span className="nav-avatar" aria-hidden="true">{Array.from(name.trim())[0] ?? "?"}</span></summary>
       <div className="site-nav-menu">
         <p className="site-nav-name">{name}</p>
+        <Link href="/guide" onClick={shut}>Tutorial</Link>
         <Link href="/settings" onClick={shut}>설정</Link>
         {admin ? <Link href="/admin" onClick={shut}>관리자</Link> : null}
         <form action={signOut}><button type="submit">로그아웃</button></form>

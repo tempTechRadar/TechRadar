@@ -1,9 +1,9 @@
 "use client";
 // 청사진 스튜디오(P-12e): React Flow 캔버스 위 단계 노드 + 연결선(순서). 그래프는 lib/blueprint/graph.ts 순수 함수로만 바꾸고(apply 하나),
 // 되돌리기 · 초안은 use-studio-graph. 단축키는 Esc(고른 것 풀기) · Delete(지우기)만, 나머지는 단추(사용자 결정).
-// 빈 곳 끌기 = 화면 옮기기, Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
+// 스페이스를 누른 채 빈 곳 끌기 = 화면 옮기기(P-12v 사용자: 평소 왼쪽 끌기는 누르기 · 고르기만. panOnDrag [1] = 가운데 버튼 · 손가락 끌기는 이동, 스페이스는 React Flow 기본 panActivationKeyCode), Shift + 끌기 = 네모로 여러 개 고르기, Shift + 누르기 = 하나씩 더하기(P-12o 사용자), 휠 = 커서 기준 확대.
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Background, MarkerType, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Connection, type Edge as FlowEdge, type EdgeChange, type FinalConnectionState, type NodeChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
@@ -34,6 +34,7 @@ import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
 import { ListMode } from "./list-mode";
+import type { LogEntry } from "@/lib/blueprint/change-log";
 import { Guide } from "./guide";
 import { addGuideStages } from "@/lib/blueprint/guide-graph";
 import { StageNode, type StageNodeType } from "./stage-node";
@@ -67,8 +68,13 @@ type Props = BlueprintPage & { /** 서랍 "지도 전체"(P-12o, 공개 칸만):
 type UsableTemplate = { id: string; kind: TemplateKind; name: string; graph: Graph };
 // 좁은 화면(휴대폰)은 캔버스 대신 목록 모드로 편집(사용자 결정: 캔버스는 보기만). 서버 그림은 넓은 화면으로 그린다
 const NARROW = "(max-width: 860px)";
-const onNarrow = (f: () => void) => { const m = matchMedia(NARROW); m.addEventListener("change", f); return () => m.removeEventListener("change", f); };
-const useNarrow = () => useSyncExternalStore(onNarrow, () => matchMedia(NARROW).matches, () => false);
+/** 화면 조건 하나 구독(좁은 화면 · 손가락 기기). 서버 그림에서는 false */
+function useMedia(query: string): boolean {
+  const on = useCallback((f: () => void) => { const m = matchMedia(query); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, [query]); // 같은 구독을 다시 걸지 않게
+  return useSyncExternalStore(on, () => matchMedia(query).matches, () => false);
+}
+/** 손가락만 쓰는 기기: 아래 "스페이스 + 끌기" 안내를 숨긴다(이동은 panOnDrag [1]이라 모든 터치에서 손가락 끌기, P-12v) */
+const COARSE = "(pointer: coarse)";
 export function Studio(props: Props) {
   return <ReactFlowProvider><StudioInner {...props} /></ReactFlowProvider>;
 }
@@ -79,7 +85,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const { graph, push, undo, redo, canUndo, canRedo, name, setName, unread, guestDraft, answerGuest } = useStudioGraph(who);
   const [tags, setTags] = useState(tags0);
   // 넓은 화면: 캔버스(목록 모드 단추로 바꿈). 좁은 화면: 목록으로 고치기가 기본, "그림으로 보기"는 확대 · 이동만 되는 읽기 전용 캔버스
-  const narrow = useNarrow(), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
+  const narrow = useMedia(NARROW), coarse = useMedia(COARSE), [listOn, setListOn] = useState(false), [phoneView, setPhoneView] = useState(false);
   const listMode = narrow ? !phoneView : listOn, readOnly = narrow && phoneView;
   const [picked, setPicked] = useState<Picked>(null);
   const [sel, setSel] = useState<Set<string>>(new Set()), [selEdges, setSelEdges] = useState<Set<string>>(new Set());
@@ -149,7 +155,8 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   }, [guest]);
   const found = useMemo(() => pickedTechs ?? [], [pickedTechs]);
   const info = useMemo(() => new Map([...found, ...pool].map((t) => [t.id, t])), [pool, found]);
-  const [log, setLog] = useState<string[]>([]); // 이 화면에서 판을 바꾼 일(알림 글)
+  const [entries, setEntries] = useState<LogEntry[]>([]); // 이 화면에서 판을 바꾼 일(알림 글 + 시각, P-12v 변경 이력 표)
+  const log = useMemo(() => entries.map((e) => e.text), [entries]);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   // B2 확정 = 설계선 긋기: 실제 선은 그대로 두고 덧칠 선만 한 번 그었다가 사라진다. 같은 확정 id(같은 내용 다시 확정, 불변 3)면 긋지 않는다
   const [drawing, setDrawing] = useState(false);
@@ -221,7 +228,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     bounce.stop(); // 튕겨 가던 자리는 버리고 새 판 그대로
     push(next, nm, merge);
     if (nm !== undefined) { setTemplateId(null); whole(); }
-    if (message) { say(message); setLog((l) => [...l.slice(-49), message]); } else clear();
+    if (message) { say(message); setEntries((l) => [...l.slice(-49), { text: message, at: Date.now() }]); } else clear();
   };
   const stageOf = (id: string) => g.stages.find((s) => s.id === id);
   /** 막힌 단추 한 벌(P-12h S4, page.css): aria-disabled + 누르면 이유 글. disabled와 달리 Tab으로 닿아 이유를 들을 수 있다 */
@@ -344,7 +351,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     setSel((x) => { const n = new Set(x); n.delete(id); return n; }); // 여럿 고른 채 지워도 사라진 단계가 남지 않게
     setSelTechs((x) => new Set([...x].filter((e) => splitEnd(e).stageId !== id))); // 그 단계 안 기술도
     setSelEdges((x) => new Set([...x].filter((e) => !e.split(">").includes(id))));
-    apply(next);
+    apply(next, removedStageSaid(s.name)); // 변경 이력에도 남긴다(P-12v, onDelete와 같이), 아래 말풍선이 되돌리기 단추를 단다
     say(removedStageSaid(s.name), () => { if (now.current === next) { bounce.stop(); undo(); say(`"${s.name}" 단계를 살렸어요.`); } else say("그 뒤에 판이 바뀌어 여기서는 되돌릴 수 없어요. 위 \"되돌리기\"를 써 주세요."); });
   }
   /** 카드 위 이름 칸이 끝남: 검사는 서랍 · 목록과 같은 nameProblem, 초점은 그 카드로 */
@@ -588,7 +595,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { detail, onDetail: (id) => { setDetail(id); if (!narrow) openDrawer(); }, graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onSectionTech: readOnly ? undefined : dropSectionTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }), stages: [...sel].filter((id) => stageOf(id)).length, onGroup: readOnly || listMode ? undefined : groupChosen } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onSectionTech: readOnly ? undefined : dropSectionTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, entries, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }), stages: [...sel].filter((id) => stageOf(id)).length, onGroup: readOnly || listMode ? undefined : groupChosen } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -630,11 +637,11 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
       <div className="studio-main" data-list={listMode ? "" : undefined}>
         {listMode ? <div className="studio-list"><ListMode {...panel} /></div> : (
           <div ref={canvasBox} className="studio-canvas" role="region" tabIndex={-1} onKeyDown={onCanvasKey} aria-label="청사진 캔버스" aria-describedby="studio-canvas-help">
-            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 빈 곳을 끌면 화면이 움직이고, Shift를 누른 채 끌면 여러 개를 골라요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
+            <p id="studio-canvas-help" className="sr-only">단계를 끌어 옮기고, 오른쪽 점에서 다른 단계의 왼쪽 점으로 끌어 순서를 이어요. 빈 곳에 놓으면 새 단계가 생겨요. 스페이스를 누른 채 빈 곳을 끌면 화면이 움직이고(손가락 기기는 그냥 끌기), Shift를 누른 채 끌면 여러 개를 골라요. 휠로 확대해요. 기술은 끌어 순서를 바꾸거나 다른 단계로 옮기고, 기술의 점끼리 이으면 관계 표시가 돼요. 키보드 · 화면 읽기는 하단 패널의 '키보드로 편집'을 쓰세요</p>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={readOnly ? undefined : (_, e) => keepEdge(e.id)} onEdgeMouseLeave={readOnly ? undefined : leaveEdge}
               onConnect={readOnly ? undefined : onConnect} onConnectEnd={readOnly ? undefined : onConnectEnd} isValidConnection={(c) => !readOnly && (isTechNode(c.source) || isTechNode(c.target) ? isTechNode(c.source) && isTechNode(c.target) && c.source !== c.target : connectProblem(g, c.source, c.target) === null)}
-              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag
+              onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" selectionOnDrag={false} panOnDrag={[1]}
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
               {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}
@@ -644,6 +651,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
               {narrow || g.stages.length <= 2 ? null : <MiniMap position="bottom-left" pannable zoomable ariaLabel="미니맵" className="studio-mini" bgColor="var(--surface)" nodeColor="var(--ring)" maskColor="rgba(11, 16, 32, 0.65)" />}
             </ReactFlow>
+            {coarse ? null : <p className="studio-pan-hint" aria-hidden="true">스페이스 + 끌기: 화면 이동 · 휠: 확대</p>/* P-12v: 평소 끌기는 이동하지 않아 길을 보여 줌(화면 읽기는 위 도움말) */}
           </div>
         )}
         {/* 청사진 가이드 캐릭터(P-12s): 제안만, 넣기는 사용자가 누른다(불변 1). 단계 이름은 판 순서대로 넘긴다 */}

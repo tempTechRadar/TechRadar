@@ -1,0 +1,144 @@
+/* 둘러보기(/guide). 값은 app/tokens.css 토큰만. 단추 · 칩 · 태그는 공용 클래스(.btn · .chip · .tag)를 그대로 쓰고 여기서는 배치만 */
+.page.guide { max-width: 1120px; }
+.guide h3 { font-size: var(--fs-h2); margin: 0; }
+.guide .g-ui { font-weight: 700; color: var(--ink); background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 5px; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* 화면에 있는 이름(단추 · 칩). 긴 안내 문구도 있어 줄바꿈은 허용(좁은 화면 넘침 방지) */
+.guide .g-sec { margin-top: var(--sp-6); }
+.guide .muted, .guide .g-note { color: var(--ink-2); } /* 이 화면의 작은 안내 글은 처음 읽는 글이라 --muted보다 밝게(U15) */
+.guide .g-note { font-size: var(--fs-sm); }
+.guide h3.g-sub { display: flex; align-items: baseline; gap: var(--sp-2); margin: var(--sp-3) 0 var(--sp-2); font-size: var(--fs-h3); }
+
+/* 소개: 한 문장 + 기준 문장 셋 = 메뉴 셋 */
+.g-intro .g-problem { max-width: 62ch; margin: 0 0 var(--sp-2); color: var(--ink-2); }
+.g-intro .g-lead { max-width: 62ch; margin: 0 0 var(--sp-4); font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.6; }
+.g-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; }
+.g-terms { margin-top: var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--sunken); }
+.g-terms summary { display: list-item; min-height: var(--hit); padding: 8px var(--sp-3) 0; box-sizing: border-box; cursor: pointer; font-weight: 600; }
+.g-terms dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2) var(--sp-4); margin: 0; padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+.g-terms dl > div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: var(--sp-2); }
+.g-terms dt { font-weight: 700; } .g-terms dd { margin: 0; color: var(--ink-2); }
+.g-motto { list-style: none; margin: 0 0 var(--sp-3); padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+.g-motto a { display: grid; gap: 2px; height: 100%; box-sizing: border-box; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); text-decoration: none; }
+.g-motto a:hover { border-color: var(--scan); }
+.g-motto strong { font-size: var(--fs-h1); letter-spacing: -.01em; }
+.g-motto strong span { color: var(--muted); font-weight: 400; }
+.g-motto a:hover strong span { color: var(--scan); }
+.g-motto .g-menu { font-size: var(--fs-sm); color: var(--muted); }
+.g-motto .g-what { color: var(--ink-2); }
+
+/* 따라 하기: 넓으면 왼쪽 목록 + 오른쪽 카드 */
+.g-steps { margin-top: var(--sp-5); scroll-margin-top: var(--sp-4); }
+.g-steps h2 { margin-bottom: var(--sp-1); }
+.g-keys { margin: 0 0 var(--sp-3); }
+.g-steps-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.g-step-nav { position: sticky; top: var(--sp-4); }
+.g-step-nav ol { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.g-step-nav a { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--hit); padding: 0 var(--sp-3); border: 1px solid transparent; border-radius: var(--r-md); text-decoration: none; color: var(--ink-2); }
+.g-step-nav a:hover { background: var(--sunken); }
+.g-step-nav a[aria-current="step"] { background: var(--picked-bg); border-color: var(--picked-line); color: var(--ink); font-weight: 700; } /* 고른 것 = 카드 + 청록 테두리(P-12n) */
+.g-num, .g-actions > li::before, .g-mark::after { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--ink-2); color: var(--on-ink); font-size: var(--fs-cap); font-weight: 700; font-family: var(--mono); line-height: 1; }
+.g-step-nav a[aria-current="step"] .g-num { background: var(--scan); }
+
+.g-cards { display: grid; gap: var(--sp-4); min-width: 0; }
+.g-card-step { min-width: 0; padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); scroll-margin-top: var(--sp-4); }
+.g-steps[data-js] .g-card-step:not([hidden]) { animation: rise-in var(--dur) var(--ease) 1; } /* page.css의 rise-in, 움직임 줄이기면 0s */
+.g-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.g-card-head h3:focus { outline: none; } .g-card-head h3:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.g-count { font-family: var(--mono); font-size: var(--fs-sm); color: var(--muted); }
+.g-gist { margin: var(--sp-2) 0 var(--sp-4); color: var(--ink-2); max-width: 70ch; }
+.g-card-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--sp-4); align-items: start; }
+.g-actions { list-style: none; counter-reset: act; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.g-actions > li { counter-increment: act; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--sp-2); line-height: 1.7; overflow-wrap: anywhere; }
+.g-actions > li::before { content: counter(act); margin-top: 3px; }
+.g-card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.g-pager { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.g-actions-col { display: grid; gap: var(--sp-3); min-width: 0; align-content: start; }
+.g-fine { margin: 0; font-size: var(--fs-sm); color: var(--ink-2); overflow-wrap: anywhere; }
+.g-done-sec { padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card); }
+.g-gains { margin: 0 0 var(--sp-2); padding-left: var(--sp-5); display: grid; gap: var(--sp-1); }
+
+/* 모양 예시: 누를 수 없는 그림이라 점선 틀 + 이름표 */
+.g-mock { margin: 0; min-width: 0; border: 1px dashed var(--ring); border-radius: var(--r-lg); background: var(--sunken); }
+.g-mock figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px dashed var(--ring); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+.g-mock figcaption .muted { font-weight: 400; }
+.g-mock-body { display: grid; gap: var(--sp-3); padding: var(--sp-4) var(--sp-3) var(--sp-3); pointer-events: none; user-select: none; opacity: .82; filter: saturate(.75); } /* 살짝 흐리게: 진짜 단추로 보이지 않게(U11) */
+.g-mock-body .btn { cursor: default; }
+.g-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+.g-mark { position: relative; display: inline-flex; max-width: 100%; border-radius: var(--r-md); outline: 1px dashed var(--ink-2); outline-offset: 3px; }
+.g-mark-block { display: flex; }
+.g-mark-block > * { flex: 1; min-width: 0; }
+.g-mark::after { content: attr(data-n); position: absolute; top: -12px; right: -12px; z-index: 1; box-shadow: 0 0 0 2px var(--sunken); }
+.g-input { display: inline-flex; align-items: center; min-height: var(--hit); max-width: 100%; box-sizing: border-box; padding: 0 var(--sp-3); border: 1px solid var(--ink-2); border-radius: var(--r-md); background: var(--paper); color: var(--muted); overflow-wrap: anywhere; }
+.page .btn.g-btn-sm { min-height: var(--hit-sm); padding: 0 var(--sp-3); }
+.g-link { padding: 2px 14px 2px 4px; text-decoration: underline; color: var(--ink); } /* 오른쪽 위 순서 동그라미가 글자를 가리지 않게 */
+.g-stack { display: grid; gap: var(--sp-2); }
+.g-label { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
+.g-arrow { color: var(--muted); }
+.g-notice { display: grid; gap: var(--sp-2); margin: 0; padding: var(--sp-3); }
+.g-band { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--line); overflow: hidden; }
+.g-band > span { display: grid; gap: 2px; padding: var(--sp-2); background: var(--surface); font-size: var(--fs-cap); color: var(--muted); }
+.g-band b { font-family: var(--mono); font-size: var(--fs-h2); color: var(--ink); }
+.g-band > span:nth-child(5) b { color: var(--pending); } /* 판단 대기 = 얼음 파랑(P-12n) */
+.g-seg { font-size: var(--fs-cap); color: var(--muted); }
+.g-map { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--sp-2); }
+.g-sky { position: relative; display: block; min-height: 132px; border: 1px solid var(--line-d); border-radius: var(--r-md); background: radial-gradient(ellipse at 50% 40%, var(--paper-2), var(--paper)); }
+.g-sky i { position: absolute; width: 8px; height: 8px; border-radius: 50%; }
+.g-sky > i:nth-child(1) { left: 14%; top: 22%; } .g-sky > i:nth-child(2) { left: 38%; top: 14%; } .g-sky > i:nth-child(3) { left: 70%; top: 30%; }
+.g-sky > i:nth-child(4) { left: 22%; top: 66%; } .g-sky > i:nth-child(5) { left: 80%; top: 72%; } .g-sky > i:nth-child(6) { left: 56%; top: 82%; } .g-sky > i:nth-child(7) { left: 10%; top: 44%; }
+.g-sky > .g-mark { position: absolute; left: 46%; top: 44%; border-radius: 50%; }
+.g-sky .g-dot-big { position: static; display: block; width: 14px; height: 14px; box-shadow: 0 0 0 3px rgba(183, 156, 255, .25); }
+.g-side { display: grid; gap: var(--sp-2); align-content: start; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-bell { position: relative; display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); color: var(--ink); }
+.g-badge { position: absolute; top: 1px; right: -2px; min-width: 16px; height: 16px; padding: 0 3px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--pending); color: var(--on-ink); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
+.g-kinds { display: grid; gap: var(--sp-1); font-size: var(--fs-sm); color: var(--ink-2); }
+.g-kinds > span { display: grid; grid-template-columns: 6em minmax(0, 1fr); gap: var(--sp-2); align-items: start; }
+.g-kinds .tag { text-align: center; }
+.g-bell-row { padding-right: var(--sp-3); }
+.g-tag-danger { border-color: var(--danger); color: var(--ink-danger); }
+.g-card { display: grid; gap: var(--sp-2); margin: 0; }
+.g-done { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-toolbar { padding: var(--sp-2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-stages { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--line-d); border-radius: var(--r-md); background: var(--paper); }
+.g-stage { display: grid; gap: var(--sp-1); min-width: 112px; padding: var(--sp-2); border: 1px solid var(--ring); border-radius: var(--r-md); background: var(--card); font-size: var(--fs-sm); }
+.g-chip-tech { display: inline-block; padding: 2px var(--sp-2); border-radius: var(--r-sm); background: var(--chip-blue); color: var(--chip-blue-ink); font-size: var(--fs-sm); }
+.g-drop { padding: 2px var(--sp-2); border: 1px dashed var(--ink-2); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-sm); }
+.g-dock, .g-dialog { display: grid; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.g-dialog { border-color: var(--ring); background: var(--card); }
+.g-toast { padding: var(--sp-1) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); font-size: var(--fs-sm); box-shadow: var(--shadow-pop); }
+
+/* 등급 범례 · 약속 · 질문 · 더 있는 화면 */
+.g-grades { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.g-grades li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); }
+.g-swatch { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; }
+.g-swatch-dot { background: var(--sw); }
+.g-swatch-ring { box-sizing: border-box; border: 2px dashed var(--sw); } /* 수집 오류 = 회색 점선(지도 점선 고리와 같은 모양) */
+.g-mean { display: block; color: var(--ink-2); font-size: var(--fs-sm); }
+.g-promises { list-style: none; counter-reset: pr; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.g-promises li { counter-increment: pr; display: grid; gap: var(--sp-1); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-left: 3px solid var(--pass); border-radius: var(--r-md); background: var(--card); }
+.g-promises li::before { content: "약속 " counter(pr); font-size: var(--fs-cap); color: var(--muted); font-family: var(--mono); }
+.g-promises span { color: var(--ink-2); }
+.g-faq { display: grid; gap: var(--sp-2); }
+.g-faq details { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); }
+.g-faq summary { display: list-item; min-height: var(--hit); padding: 8px var(--sp-4) 0; box-sizing: border-box; cursor: pointer; font-weight: 600; }
+.g-faq details[open] summary { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.g-faq details p { margin: 0; padding: var(--sp-3) var(--sp-4); color: var(--ink-2); line-height: 1.7; }
+.g-more { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.g-more li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); }
+.g-more a { display: inline-flex; align-items: center; min-height: var(--hit-sm); font-weight: 700; }
+.g-more .g-mean { flex-basis: 100%; }
+
+@media (prefers-reduced-motion: no-preference) { html:has(.page.guide) { scroll-behavior: smooth; } }
+@media (max-width: 1000px) { .g-card-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .g-grades, .g-promises, .g-terms dl { grid-template-columns: minmax(0, 1fr); }
+  .g-motto { gap: var(--sp-2); } /* 좁으면 기준 문장 카드를 동사 + 메뉴만으로 줄여 단계를 위로(U15) */
+  .g-motto a { padding: var(--sp-2); }
+  .g-motto strong { font-size: var(--fs-h2); }
+  .g-motto .g-what { display: none; }
+  .g-steps-grid { grid-template-columns: minmax(0, 1fr); }
+  .g-step-nav { position: static; }
+  .g-step-nav ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g-step-nav a { padding: 0 var(--sp-2); font-size: var(--fs-sm); }
+  .g-map { grid-template-columns: minmax(0, 1fr); }
+  .g-card-step { padding: var(--sp-3); }
+  .g-card-foot, .g-pager { flex-direction: column; align-items: stretch; }
+}
