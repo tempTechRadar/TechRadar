@@ -6,6 +6,20 @@
 
 ---
 
+## I-P-12p-map-polish · 2026-11-23 · 지도 손질: 배치 · 관문 지움 · LS점프업 보기 · 잔잔한 레이더 (FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12p-map-polish`(origin/main 904bbbf1에서 갈라짐, `feat/P-12p-seed` · `docs/qa-p12m` 합침)
+- 출처: 계획 `p12p-map-polish.md`(사용자 승인: 한 번에 다, PR 하나, 점검 한 번), IA 지도 화면, 불변 6(실제 기록만 그림), Maestro 배정
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 지도 위가 붐비고(찾기 · 보기 · 필터가 흩어짐), 첫 화면 "Ready to Catch?" 관문이 한 번 더 누르게 하고, 처음 연출(선 두 바퀴 + 파동 세 번)이 요란하다. 바이브코딩에 바로 쓰는 것만 보는 길이 없다 |
+| 기대 결과 | A 찾기는 아래 가운데 막대 · 저장한 보기는 위 둘째 줄 · 보기 방식과 보기 초기화는 필터 패널 맨 위. B 관문 없이 바로 연출. C 기본 보기 "LS점프업"(규칙 + 고른 목록). D 파동 하나 + 옅은 잔물결, 점은 파동에 닿아 떠오름, 뒤에서 옅은 선이 늘 돎, ⚙에서 연출 · 선 · 여운 · 속도 · 밝기 · 굵기 · 기본값 |
+| 영향 범위 | `app/tech-map/*`(canvas-map · controls · filter-panel · view-tabs · draw · controller · radar-settings · map.css), `app/layout.tsx`, `lib/map/{motion,presets,view-config,build-map,radar-prefs}.ts`, 관문 파일 4개 지움 |
+| 제약 | 서버 · DB 변경 없음(시드는 I-P-12p-seed). ⚙ 값은 이 브라우저에만(편의), 깨진 값은 기본으로. 움직임 줄이기 설정이면 연출 · 선 모두 끔. Claude API 안 씀 |
+| 열린 질문 | 뒤에서 늘 도는 선은 매 장 그린다(⚙에서 끌 수 있음). 느린 기기에서 부담이 크면 장 수를 줄일지 |
+
+**결과:** A · B · C · D 로컬 커밋. 바꾼 시험 14/14 · tsc 통과(전체 검사 결과는 worklog 행).
+
 ## I-P-12p-seed · 2026-11-23 · LS점프업 시드: herdr(도구) · 루프 하네스(개념) 2줄 (DataCollector 세션, 김영식)
 - 브랜치: `feat/P-12p-seed`(origin/main 904bbbf1에서 갈라짐)
 - 출처: 계획 `p12p-map-polish.md` C-4(사용자 승인), 입문 세트 시드 `I-P-12d-starter-set`, 관문 3(근거 링크 없는 정보는 저장하지 않음), Maestro 배정
