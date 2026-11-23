@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NewsFeed } from "../domain/news-feeds.ts";
@@ -168,4 +169,34 @@ test("소식 수집: GitHub 토큰은 모양이 맞을 때만 릴리스 요청�
 test("소식 수집: 코드 버그(수집 오류가 아닌 예외)는 피드 오류로 삼키지 않고 던진다", async () => {
   const h = harness({ ...BODIES, "https://a.example/feed": new TypeError("버그") });
   await assert.rejects(() => h.collector.run(ctx(fakeDb().db)), /버그/);
+});
+
+// 2026-11-23 실제 응답(날짜 칸 없는 RSS)과 같은 모양
+const UNDATED = readFileSync(new URL("../domain/fixtures/news-google-developers-undated.xml", import.meta.url), "utf8");
+const GOOGLE_URL = "https://g.example/feed";
+const GOOGLE: NewsFeed = { key: "google_developers", label: "G", kind: "feed", url: GOOGLE_URL, tools: ["gemini"], undated: true };
+
+test("소식 수집: 날짜 칸이 없는 피드(undated)는 읽은 때를 날짜로 저장하고, 다시 읽어도 늘지 않는다(불변 3)", async () => {
+  const { db, state } = fakeDb();
+  const feeds = [FEEDS[0], GOOGLE];
+  const first = await harness({ ...BODIES, [GOOGLE_URL]: UNDATED }, { feeds }).collector.run(ctx(db));
+  assert.equal(first.items, 4);
+  const g = state.items.filter((r) => r.source_key === "google_developers");
+  assert.equal(g.length, 3);
+  assert.ok(g.every((r) => r.published_at === new Date(NOW + 1000).toISOString() && r.official === true));
+  state.source!.last_synced_at = null;
+  const again = await harness({ ...BODIES, [GOOGLE_URL]: UNDATED }, { feeds }).collector.run(ctx(db));
+  assert.equal(again.items, 0);
+  assert.equal(state.items.length, 4);
+});
+
+test("소식 수집: undated가 아닌 피드가 날짜 칸을 잃으면 그 피드만 수집 오류(parse)로 세고 다른 피드는 저장한다(불변 2)", async () => {
+  const { db, state } = fakeDb();
+  const plain: NewsFeed = { ...GOOGLE, undated: undefined };
+  const out = await harness({ ...BODIES, [GOOGLE_URL]: UNDATED }, { feeds: [FEEDS[0], plain] }).collector.run(ctx(db));
+  assert.equal(out.items, 1);
+  assert.deepEqual(state.items.map((r) => r.source_key), ["blog_a"]);
+  assert.equal(state.steps.length, 1);
+  assert.equal(state.steps[0].error_kind, "parse");
+  assert.match(String(state.steps[0].error_message), /google_developers.*하나도 읽지 못했어요/);
 });

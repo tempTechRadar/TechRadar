@@ -1,7 +1,8 @@
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { MAX_FEEDS, NEWS_FEEDS, releasesUrl } from "./news-feeds.ts";
-import { MAX_ENTRIES, parseFeed, parseReleases } from "./news-parse.ts";
+import { MAX_ENTRIES, MAX_UNDATED, parseFeed, parseReleases } from "./news-parse.ts";
 
 const NOW = Date.parse("2026-11-22T00:00:00Z");
 
@@ -109,4 +110,33 @@ test("주소는 정리한 뒤의 길이도 2000자 이하여야 한다(퍼센트
   const fine = `<item><title>정상</title><link>https://example.com/ok</link><pubDate>Fri, 20 Nov 2026 09:00:00 GMT</pubDate></item>`;
   // 한글 600자 = 정리하면 %XX가 3배(%EA%B0%80 …)로 늘어 2000자를 넘는다
   assert.deepEqual(parseFeed(`<rss><channel>${item("가".repeat(600))}${fine}</channel></rss>`, NOW).map((x) => x.title), ["정상"]);
+});
+
+// 2026-11-23에 실제로 받은 Google 개발자 블로그 응답(앞 3항목, 줄 수만 줄임): 항목에 title · link · description · guid뿐이고 날짜 칸이 없다.
+const GOOGLE_DEV = readFileSync(new URL("./fixtures/news-google-developers-undated.xml", import.meta.url), "utf8");
+
+test("날짜 칸이 없는 피드: 그대로는 읽지 못한다(조용히 비우지 않고 던진다)", () => {
+  assert.throws(() => parseFeed(GOOGLE_DEV, NOW), /항목을 하나도 읽지 못했어요\(찾은 조각 3개/);
+});
+
+test("날짜 칸이 없는 피드: undatedMs를 주면 실제 응답 3항목을 읽은 때 날짜로 받는다", () => {
+  const e = parseFeed(GOOGLE_DEV, NOW, NOW);
+  assert.equal(e.length, 3);
+  assert.ok(e.every((x) => x.publishedAt === new Date(NOW).toISOString() && x.url.startsWith("https://developers.googleblog.com/") && x.title && x.summary));
+});
+
+test("날짜 칸이 없는 피드: 읽은 때를 날짜로 쓰는 항목은 MAX_UNDATED개까지만", () => {
+  const item = (i: number) => `<item><title>글 ${i}</title><link>https://example.com/${i}</link></item>`;
+  const xml = `<rss><channel>${Array.from({ length: 9 }, (_, i) => item(i)).join("")}</channel></rss>`;
+  assert.deepEqual(parseFeed(xml, NOW, NOW).map((x) => x.title), Array.from({ length: MAX_UNDATED }, (_, i) => `글 ${i}`));
+});
+
+test("undatedMs를 줘도 날짜 칸이 있는데 못 읽는 항목은 여전히 버린다(모양이 바뀐 것을 가리지 않음)", () => {
+  const xml = `<rss><channel><item><title>깨짐</title><link>https://example.com/x</link><pubDate>어제쯤</pubDate></item></channel></rss>`;
+  assert.throws(() => parseFeed(xml, NOW, NOW), /하나도 읽지 못했어요/);
+});
+
+test("undatedMs를 줘도 날짜가 있는 항목은 그 날짜를 쓴다", () => {
+  const xml = `<rss><channel><item><title>있음</title><link>https://example.com/d</link><pubDate>Fri, 20 Nov 2026 09:00:00 GMT</pubDate></item></channel></rss>`;
+  assert.equal(parseFeed(xml, NOW, NOW)[0].publishedAt, "2026-11-20T09:00:00.000Z");
 });

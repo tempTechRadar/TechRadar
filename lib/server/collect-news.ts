@@ -31,7 +31,7 @@ export function newsCollector(deps: Partial<Deps> = {}): Collector {
 async function readEntries(feed: NewsFeed, d: Deps): Promise<NewsEntry[]> {
   const parse = (text: string) => {
     try {
-      return feed.kind === "feed" ? parseFeed(text, d.now()) : parseReleases(text, d.now());
+      return feed.kind === "feed" ? parseFeed(text, d.now(), feed.undated ? d.now() : undefined) : parseReleases(text, d.now());
     } catch (e) {
       throw new CollectError("parse", `${feed.key}: ${e instanceof Error ? e.message : String(e)}`);
     }

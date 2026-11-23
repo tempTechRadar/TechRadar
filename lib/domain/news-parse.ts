@@ -9,6 +9,7 @@ const MAX_TITLE = 300;
 const MAX_SUMMARY = 400;
 const MAX_URL = 2000;
 const FUTURE_SLACK_MS = 24 * 60 * 60 * 1000;
+export const MAX_UNDATED = 5; // 날짜 칸이 없는 피드에서 "읽은 때"를 날짜로 쓰는 가장 많은 항목(처음 읽을 때 옛 글이 오늘 소식으로 몰리는 것을 줄인다)
 
 const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
@@ -85,23 +86,32 @@ function dateOf(raw: string | null, nowMs: number): string | null {
   return Number.isFinite(t) && t <= nowMs + FUTURE_SLACK_MS ? new Date(t).toISOString() : null;
 }
 
-function entryOf(block: string, atom: boolean, nowMs: number): NewsEntry | null {
+/** undatedMs: 날짜 칸(pubDate · published · updated · dc:date)이 아예 없는 항목에 쓸 "읽은 때". 칸은 있는데 못 읽거나 미래인 날짜는 여전히 버린다 */
+function entryOf(block: string, atom: boolean, nowMs: number, undatedMs?: number): NewsEntry | null {
   const title = cut(plain(inner(block, "title") ?? ""), MAX_TITLE);
   const url = httpsUrl(atom ? atomLink(block) : inner(block, "link") ?? inner(block, "guid"));
-  const publishedAt = dateOf(atom ? inner(block, "published") ?? inner(block, "updated") : inner(block, "pubdate") ?? inner(block, "dc:date"), nowMs);
+  const rawDate = atom ? inner(block, "published") ?? inner(block, "updated") : inner(block, "pubdate") ?? inner(block, "dc:date");
+  const publishedAt = rawDate === null && undatedMs !== undefined ? new Date(undatedMs).toISOString() : dateOf(rawDate, nowMs);
   if (!title || !url || !publishedAt) return null;
   const rawSummary = atom ? inner(block, "summary") ?? inner(block, "content") : inner(block, "description") ?? inner(block, "content:encoded");
   const summary = rawSummary ? cut(plain(rawSummary), MAX_SUMMARY) : "";
   return { title, url, publishedAt, summary: summary || null };
 }
 
-/** RSS 2.0 또는 Atom 글을 읽는다. 읽은 항목이 없으면(모양이 다르거나 비었거나 전부 이상함) 던진다 */
-export function parseFeed(xml: string, nowMs: number): NewsEntry[] {
+/** RSS 2.0 또는 Atom 글을 읽는다. 읽은 항목이 없으면(모양이 다르거나 비었거나 전부 이상함) 던진다. undatedMs를 주면 날짜 칸이 없는 항목은 그 시각으로 받되 MAX_UNDATED개까지 */
+export function parseFeed(xml: string, nowMs: number, undatedMs?: number): NewsEntry[] {
   const head = xml.slice(0, 4000).toLowerCase();
   const atom = head.includes("<feed");
   if (!atom && !head.includes("<rss") && !head.includes("<rdf:rdf") && !head.includes("<channel")) throw new Error("RSS · Atom 모양이 아니에요");
   const all = blocks(xml, atom ? "entry" : "item");
-  const entries = all.flatMap((b) => entryOf(b, atom, nowMs) ?? []).slice(0, MAX_ENTRIES);
+  let undated = 0;
+  const entries = all
+    .flatMap((b) => {
+      const e = entryOf(b, atom, nowMs, undatedMs);
+      if (e && undatedMs !== undefined && e.publishedAt === new Date(undatedMs).toISOString() && ++undated > MAX_UNDATED) return [];
+      return e ?? [];
+    })
+    .slice(0, MAX_ENTRIES);
   if (entries.length === 0) throw new Error(`항목을 하나도 읽지 못했어요(찾은 조각 ${all.length}개, 피드 모양이 바뀌었을 수 있어요)`);
   return entries;
 }
