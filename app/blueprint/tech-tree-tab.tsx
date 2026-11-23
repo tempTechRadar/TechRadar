@@ -63,13 +63,18 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
   const target = add ? items.find((t) => t.id === add && t.droppable) : undefined;
   useEffect(() => { if (target) setFollow({ id: target.id, focus: false }); }, [target?.id]); // target은 매번 새 객체라 id로만
   const shown = filterPool(items, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: target ? add : null, usage });
-  // 지도 전체: 내 것에 이미 있는 기술은 빼고, 같은 찾기 · 태그 · 단계 맞춤으로 거른 뒤 분류기준(내 판단 말고)으로 나눈다
-  const mapItems: Item[] = useMemo(() => { const have = new Set(items.map((t) => t.id));
-    return (catalog ?? []).filter((t) => !have.has(t.id)).map((t) => ({ ...t, judgment: "other" as const, droppable: true, note: null, catalog: true, tags: tags?.[t.id] ?? [], projectNames: [] })); }, [catalog, items, tags]);
-  const mapShown = filterPool(mapItems, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: null, usage });
-  const mapDims = by.filter((d) => d !== "judgment" && d !== "project");
-  const mapPath = [MAP_FOLDER];
-  const mapFolder: Folder<Item>[] = mapShown.length ? [{ key: JSON.stringify(mapPath), path: mapPath, name: MAP_FOLDER, count: mapShown.length, items: mapShown, children: buildTechTree(mapShown, mapDims.length ? mapDims : ["field"], mapPath) }] : [];
+  // 지도 전체: 내 것(관심 · 보류 포함)에 이미 있는 기술은 빼고, 같은 찾기 · 태그 · 단계 맞춤으로 거른 뒤 분류기준(내 판단 말고)으로 나눈다.
+  // 로그인은 관심 · 보류를 다 읽은 뒤에만 보인다: 읽기 전에 보류한 기술을 넣으면 보류 판단을 말없이 "담은 기술"로 덮어쓴다(자체 리뷰)
+  const mapReady = guest || extras?.kind === "ok";
+  const mapItems: Item[] = useMemo(() => { if (!mapReady) return []; const have = new Set(items.map((t) => t.id));
+    return (catalog ?? []).filter((t) => !have.has(t.id)).map((t) => ({ ...t, judgment: "other" as const, droppable: true, note: null, catalog: true, tags: tags?.[t.id] ?? [], projectNames: [] })); }, [catalog, items, tags, mapReady]);
+  const mapFolder: Folder<Item>[] = useMemo(() => {
+    const list = filterPool(mapItems, { stage: stage?.name ?? null, term, tag: tagNow, tags, add: null, usage });
+    if (!list.length) return [];
+    const dims = by.filter((d) => d !== "judgment" && d !== "project"), mapPath = [MAP_FOLDER];
+    const prefix = (fs: Folder<Item>[]): Folder<Item>[] => fs.map((f) => ({ ...f, key: `map:${f.key}`, children: prefix(f.children) })); // 내 폴더 이름이 "지도 전체"여도 key가 겹치지 않게
+    return [{ key: `map:${JSON.stringify(mapPath)}`, path: mapPath, name: MAP_FOLDER, count: list.length, items: list, children: prefix(buildTechTree(list, dims.length ? dims : ["field"], mapPath)) }];
+  }, [mapItems, stage?.name, term, tagNow, tags, usage, by.join()]);
   const mine: Folder<Item>[] = guest ? (shown.length ? [{ key: GUEST_FOLDER, path: [GUEST_FOLDER], name: GUEST_FOLDER, count: shown.length, items: shown, children: [] }] : []) : buildTechTree(shown, by);
   const tree: Folder<Item>[] = [...mine, ...mapFolder];
 
@@ -106,6 +111,7 @@ export function TechTreeTab(p: PanelProps & { usage: Map<string, TechUsage>; ext
       </form>
       <p className="muted">{stage ? <><b>{stage.name}</b> 단계에 맞는 기술{fields ? `(${fields.join(" · ")})` : "(직접 지은 단계라 모두)"}. </> : "캔버스에서 단계를 고르면 그 단계에 맞는 기술만 보여요. 카드를 단계로 끌어 놓거나 ＋로 넣을 단계를 골라요. "}{guest ? GUEST_GATE : STUDIO_GATE}</p>
       {guest ? <PicksNote picks={guestPicks} /> : <ExtrasNote extras={extras} />}
+      {!mapReady && catalog ? <p className="muted" role="status">지도 전체는 관심 · 보류를 읽은 뒤에 보여요.</p> : null}
       {catalog === null ? <p className="notice notice-error" role="alert">지도 기술을 불러오지 못했어요. 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p> : null}
       {tree.length ? <Tree tree={tree} stage={stage?.name ?? null} placedIn={(id) => Boolean(stage?.techs.some((x) => x.id === id))} inBoard={(id) => inBoard.has(id)} chooser={chooser} target={target?.id ?? null}
         usage={usage} marking={marking} follow={follow} onPut={put} onCandidate={guest ? undefined : onCandidate} onUnpick={guestPicks?.remove} />
@@ -213,7 +219,7 @@ function Tree({ tree, stage, placedIn, inBoard, chooser, target, usage, marking,
       </ul>
       <section className="tt-cards" aria-label={`${current.name} 기술`}>
         <h3 className="dock-h">{current.path.join(" › ")} <span className="muted">{current.count}</span></h3>
-        {current.path[0] === MAP_FOLDER ? <MapRows key={current.key} items={current.items} stage={stage} placedIn={placedIn} inBoard={inBoard} chooser={chooser} busy={marking} onPut={onPut} />
+        {current.key.startsWith("map:") ? <MapRows key={current.key} items={current.items} stage={stage} placedIn={placedIn} inBoard={inBoard} chooser={chooser} busy={marking} onPut={onPut} />
         : <ul className="dock-techs">{current.items.map((t) => <Card key={t.id} t={t} use={usage.get(t.id)} stage={stage} placed={placedIn(t.id)} inBoard={inBoard(t.id)} added={t.id === target}
           choose={chooser.id === t.id ? chooser.form(t) : null} onChoose={() => chooser.set(chooser.id === t.id ? null : t.id)}
           busy={marking === t.id} onPut={() => onPut(t)} onCandidate={onCandidate ? () => onCandidate(t.id, t.name) : undefined} onUnpick={onUnpick && !t.catalog ? () => onUnpick(t.id) : undefined} />)}</ul>}
@@ -237,9 +243,11 @@ function MapRows({ items, stage, placedIn, inBoard, chooser, busy, onPut }: { it
             <span className="tc-icon" aria-hidden="true" title={TYPE_KO[t.type] ?? t.type}>{TYPE_GLYPH[t.type] ?? "·"}</span>
             <span className="tt-row-name">{t.name}<span className="sr-only">, {TYPE_KO[t.type] ?? t.type}</span></span>
             {mark ? <b className={`tt-row-grade g-${t.grade}`} title={GRADE_KO[t.grade]}>{mark}<span className="sr-only"> {GRADE_KO[t.grade]}</span></b> : null}
-            {inBoard(t.id) ? <span className="tt-row-in" title="이 판에 넣음">✓</span> : null}
+            {t.collectError ? <span className="tt-row-err" title="수집 오류: 지난 값">오류</span> : null}
+            {inBoard(t.id) ? <span className="tt-row-in">✓<span className="sr-only"> 판에 넣음</span></span> : null}
             {risky ? null : placedIn(t.id) ? null
-              : <button type="button" className="tt-row-add" disabled={busy === t.id} aria-expanded={stage ? undefined : chooser.id === t.id} aria-label={stage ? `${t.name} ${stage}에 넣기` : `${t.name} 넣을 단계 고르기`}
+              : busy === t.id ? <span className="muted" role="status">담는 중…</span> // 단추를 끄면 초점이 떨어져서 글로 바꾼다
+              : <button type="button" className="tt-row-add" aria-expanded={stage ? undefined : chooser.id === t.id} aria-label={stage ? `${t.name} ${stage}에 넣기` : `${t.name} 넣을 단계 고르기`}
                   onClick={() => (stage ? onPut(t) : chooser.set(chooser.id === t.id ? null : t.id))}>+</button>}
             {chooser.id === t.id ? <div className="tt-row-choose">{chooser.form(t)}</div> : null}
           </li>

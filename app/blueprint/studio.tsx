@@ -16,7 +16,7 @@ import { diffLines, graphDiff } from "@/lib/blueprint/graph-diff";
 import { validateGraph, type Issue } from "@/lib/blueprint/validate";
 import { toBoard } from "@/lib/blueprint/stored";
 import { STUDIO_GATE, recommendAt } from "@/lib/blueprint/knowledge";
-import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid } from "@/lib/blueprint/panel-view";
+import { moveTechToStage, addStageAfter, addStageLinked, besideSpot, betweenSpot, insertBetween, CONNECT_KO, linkSaid, nameProblem, neighbors, parallelProblem, putProblem, putSaid, removeSaid, removedStageSaid, renamedSaid, sideSpot } from "@/lib/blueprint/panel-view";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import type { BlueprintPage, PoolTech } from "@/lib/server/blueprints";
 import { ToastLine, useToast } from "../undo-toast";
@@ -255,7 +255,8 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     if (why) return say(why);
     if (guest) {
       const r = addPicked(loadPicked(), techId);
-      if (r.result === "full" || r.result === "bad" || (r.result === "added" && !savePicked(r.list))) return say("이 브라우저에 더 담지 못했어요. 담은 기술을 몇 개 빼고 다시 해 주세요.");
+      if (r.result === "full") return say("이 브라우저에는 30개까지 담아요. 담은 기술을 몇 개 빼고 다시 해 주세요.");
+      if (r.result === "bad" || (r.result === "added" && !savePicked(r.list))) return say("이 브라우저가 저장을 막아 담지 못했어요(사생활 모드 등). 넣지 않았어요.");
       if (r.result === "added") { setPickedIds(r.list); setPickedTechs((x) => (x ? [...x, t] : x)); cartChanged(); }
       return apply(putTech(g, stageId, { id: t.id, name: t.name }), `${putSaid(s0.name, t.name)} 지도에서 담은 기술에도 넣었어요.`);
     }
@@ -264,7 +265,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     const r = await markTech(techId, "candidate", "").catch(() => ({ ok: false as const, message: "담지 못해 넣지 않았어요. 잠시 뒤 다시 시도해 주세요." }));
     inflight.current.delete(techId); setMarking((m) => (m === techId ? null : m));
     if (!r.ok) return say(r.message);
-    cartChanged(); settled.current.add(techId); startRefresh(() => router.refresh()); // 서랍(관문 목록)을 다시 읽어 "담은 기술"로 옮겨 간다
+    cartChanged(); settled.current.add(techId); setSettling({ id: techId, name: t.name }); startRefresh(() => router.refresh()); // 서랍(관문 목록)을 다시 읽어 "담은 기술"로 옮겨 간다(그동안 칩은 담는 중 모양)
     const now = gNow.current, s = now?.stages.find((x) => x.id === stageId);
     if (!now || !s) return say(`${t.name}을(를) 담았지만, 그 단계가 없어져 넣지 못했어요.`);
     const again = putProblem(s, t);
@@ -301,6 +302,12 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
     if (!s) return;
     if (why) return say(why);
     openGhost({ at: besideSpot(g, s, 1), kind: "beside", of: s.name, before: neighbors(g, id).before.map((x) => x.id), after: [] }, depthOf(id));
+  }
+  /** 앞 · 다음 단계 옅은 블록(오른쪽 서랍 단추, 선 끌기와 같은 addStageLinked). 카드 옆 +를 뺀 대신 키보드로도 만들 수 있게(P-12o 자체 리뷰) */
+  function sideGhost(id: string, dir: -1 | 1) {
+    const s = stageOf(id), d = depthOf(id);
+    if (!s) return;
+    openGhost({ at: sideSpot(g, s, dir), kind: dir < 0 ? "before" : "after", of: s.name, before: dir < 0 ? [] : [id], after: dir < 0 ? [id] : [] }, d === null ? null : dir < 0 ? d : d + 1);
   }
   const focusNode = (id: string) => document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`)?.focus();
   /** 카드 "✕": 확인 창 없이 지우고 토스트에 되돌리기. 그 뒤에 판이 바뀌었으면 되돌리지 않고 위 되돌리기를 안내 */
@@ -549,7 +556,7 @@ function StudioInner({ who, pool, catalog, history, projects, tags: tags0, add, 
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, catalog, onPlace: dropTech, onInsert: listMode || readOnly ? undefined : insertGhost, onBeside: listMode || readOnly ? undefined : besideGhost, onSide: listMode || readOnly ? undefined : sideGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>

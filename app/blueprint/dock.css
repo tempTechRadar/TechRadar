@@ -61,3 +61,4 @@
 .tt-row-choose { position: absolute; top: 100%; left: 0; right: 0; z-index: 3; padding: 6px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); box-shadow: var(--shadow-pop); }
 .tt-more { margin-top: var(--sp-2); }
 @media (pointer: coarse) { .tt-row { min-height: 44px; } .tt-row-add { width: 44px; height: 44px; } }
+.tt-row-err { padding: 0 4px; border: 1px dashed var(--err-line); border-radius: var(--r-sm); font-size: var(--fs-cap); color: var(--muted); } /* 수집 오류(불변 2) */

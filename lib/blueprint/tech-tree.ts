@@ -35,7 +35,7 @@ export function buildTechTree<T extends TreeItem>(items: T[], dims: TreeDim[], p
   const [dim, next] = dims;
   if (!dim) return [];
   const groups = new Map<string, T[]>();
-  for (const it of items) for (const n of folderNames(it, dim)) groups.set(n, [...(groups.get(n) ?? []), it]);
+  for (const it of items) for (const n of folderNames(it, dim)) { const g = groups.get(n); if (g) g.push(it); else groups.set(n, [it]); }
   return order(dim, [...groups.keys()]).map((name) => {
     const list = groups.get(name)!, path = [...parent, name];
     return { key: JSON.stringify(path), path, name, count: list.length, items: list, children: next && next !== dim ? buildTechTree(list, [next], path) : [] };

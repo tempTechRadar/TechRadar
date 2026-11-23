@@ -34,7 +34,7 @@ export function Inspector(p: PanelProps) {
   );
 }
 
-function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert, onBeside }: PanelProps & { stageId: string }) {
+function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stageId, onInsert, onBeside, onSide }: PanelProps & { stageId: string }) {
   const s = graph.stages.find((x) => x.id === stageId)!;
   const { before, after } = neighbors(graph, s.id);
   const rename = (form: FormData) => {
@@ -53,8 +53,9 @@ function StageInfo({ graph, apply, onPick, pool, say, onCandidate, marking, stag
       <Card title="순서">
         <Links label="앞 단계" list={before} onCut={(o) => { apply(disconnect(graph, o.id, s.id), linkSaid(graph, o.id, s.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(o.id, s.id) : undefined} />
         <Links label="다음 단계" list={after} onCut={(o) => { apply(disconnect(graph, s.id, o.id), linkSaid(graph, s.id, o.id, true)); focusPanel(); }} onInsert={onInsert ? (o) => onInsert(s.id, o.id) : undefined} />
+        {onSide ? <p className="insp-row"><button type="button" className="btn btn-sm" onClick={() => onSide(s.id, -1)}>앞 단계 더하기</button><button type="button" className="btn btn-sm" onClick={() => onSide(s.id, 1)}>다음 단계 더하기</button></p> : null}
         {onBeside ? <BesideButton graph={graph} stageId={s.id} onBeside={onBeside} /> : null}
-        <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요. 앞 · 다음 단계는 카드 옆 점에서 선을 빈 곳으로 끌어 만들어요.</p>
+        <p className="muted">순서는 연결선이 정해요. 앞 단계가 없으면 처음, 깊이가 같으면 동시에 해요. 앞 · 다음 단계는 위 단추나, 카드 옆 점에서 선을 빈 곳으로 끌어 만들어요.</p>
       </Card>
       <NoteField graph={graph} apply={apply} stage={s} />
       <Card title={`넣은 기술 ${s.techs.length}`}>
