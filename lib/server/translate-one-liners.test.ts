@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AiClient } from "../ai/ai-client.ts";
+import { TRANSLATE_BATCH } from "../ai/translate-one-liners.ts";
 import { MAX_BATCHES_PER_RUN, translateOneLiners, translateRows, type Row } from "./translate-one-liners.ts";
 
 const NOW = new Date("2026-11-24T01:00:00Z");
@@ -45,15 +46,15 @@ const echoAi = (log: { n: number } = { n: 0 }): AiClient => ({
   },
 });
 
-test("번역기: 번역이 없는 줄을 20개씩 묶어 저장하고(원문 src · 시각 포함) ai_calls에 translate로 남긴다", async () => {
+test("번역기: 번역이 없는 줄을 10개씩 묶어 저장하고(원문 src · 시각 포함) ai_calls에 translate로 남긴다", async () => {
   const rows = Array.from({ length: 45 }, (_, i) => row(i));
   const { db, store, calls } = fakeDb(rows);
   const log = { n: 0 };
   const out = await translateRows({ db, ai: echoAi(log), now: NOW }, rows);
-  assert.deepEqual([out.targets, out.batches, out.translated, out.failedBatches, out.dropped, out.saveFailed], [45, 3, 45, 0, 0, 0]);
-  assert.equal(log.n, 3, "묶음마다 호출 1번");
+  assert.deepEqual([out.targets, out.batches, out.translated, out.failedBatches, out.dropped, out.saveFailed], [45, 5, 45, 0, 0, 0]);
+  assert.equal(log.n, 5, "묶음마다 호출 1번");
   assert.deepEqual(store.get("id7"), { ...row(7), one_liner_ko: "KO:Does thing 7", one_liner_ko_src: "Does thing 7", one_liner_ko_at: NOW.toISOString() });
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 5);
   assert.ok(calls.every((c) => c.purpose === "translate" && c.user_id === null && c.status === "succeeded" && typeof c.input_hash === "string" && c.tokens_in === 100));
 });
 
@@ -70,7 +71,7 @@ test("번역기: 이미 번역된 줄은 다시 부르지 않고(불변 3), 원�
 });
 
 test("번역기: 호출이 실패한 묶음은 건너뛰고(있던 번역은 지우지 않음) 다음 묶음은 계속하며, 실패를 ai_calls에 남긴다(불변 4)", async () => {
-  const rows = [...Array.from({ length: 20 }, (_, i) => row(i, { one_liner_ko: "있던 번역", one_liner_ko_src: "옛 원문" })), ...Array.from({ length: 5 }, (_, i) => row(100 + i))];
+  const rows = [...Array.from({ length: 10 }, (_, i) => row(i, { one_liner_ko: "있던 번역", one_liner_ko_src: "옛 원문" })), ...Array.from({ length: 5 }, (_, i) => row(100 + i))];
   const { db, store, calls } = fakeDb(rows);
   let n = 0;
   const ai: AiClient = { async complete(p) { if (++n === 1) throw new Error("Claude 응답 529: overloaded sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAA"); return echoAi().complete(p); } };
@@ -123,7 +124,7 @@ test("번역기: 너무 긴 원문은 건너뛰고 세며, 한 번 실행의 묶
   const longRows = [row(1, { one_liner: "x".repeat(401) }), row(2)];
   const out = await translateRows({ db: fakeDb(longRows).db, ai: echoAi(), now: NOW }, longRows);
   assert.deepEqual([out.tooLong, out.translated], [1, 1]);
-  const many = Array.from({ length: (MAX_BATCHES_PER_RUN + 3) * 20 }, (_, i) => row(i));
+  const many = Array.from({ length: (MAX_BATCHES_PER_RUN + 3) * TRANSLATE_BATCH }, (_, i) => row(i));
   const log = { n: 0 };
   await translateRows({ db: fakeDb(many).db, ai: echoAi(log), now: NOW }, many);
   assert.equal(log.n, MAX_BATCHES_PER_RUN);

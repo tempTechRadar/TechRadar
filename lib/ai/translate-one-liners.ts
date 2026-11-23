@@ -3,7 +3,7 @@
 // 답은 {id, ko} 목록이고, 우리가 넘긴 id가 아니거나 길이가 넘치거나 한 줄이 아닌 것은 버린다(그 줄은 다음 실행에 다시 한다).
 import { cleanName, wrapData } from "./build-draft-prompt.ts";
 
-export const TRANSLATE_BATCH = 20; // 한 번 호출에 싣는 줄 수(Maestro 정함: 500개 = 25번)
+export const TRANSLATE_BATCH = 10; // 한 번 호출에 싣는 줄 수(처음 20개씩이었는데 "~해요" 체 출력이 길어 25묶음 중 6묶음이 4096토큰에서 잘렸다: 10개씩, 500개 = 50번)
 export const KO_PROMPT_MAX = 80; // 모델에게 요청하는 길이(한국어 한 문장)
 export const KO_ACCEPT_MAX = 120; // 파서가 받는 가장 긴 길이: "~해요" 체는 80자 요청을 넘기기 쉬워(미리 보기 3개 중 1개가 100자 초과) 120으로 올림, 크게 넘친 것은 버린다(팀 추정). DB 제약은 200
 const SOURCE_MAX = 400; // 원문 한 줄을 싣는 가장 긴 길이(넘으면 이 줄은 번역하지 않는다: 잘린 글을 번역해 원문처럼 저장하지 않게)

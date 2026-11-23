@@ -38,4 +38,9 @@ const { samples, errors, ...counts } = result;
 console.log(write ? "쓰기 실행 결과" : "미리 보기(DB에 쓰지 않음)", JSON.stringify(counts));
 for (const s of samples) console.log(`\n[${s.name}]\n  EN: ${s.en}\n  KO: ${s.ko}`);
 if (errors.length) console.log("\n오류:", errors.join(" / "));
-if (result.failedBatches > 0 || result.saveFailed > 0) process.exitCode = 1;
+// 종료 코드는 파이프(| tail 등)로 이으면 마지막 명령의 것으로 바뀐다: 아래 줄이 같은 뜻을 글로도 남긴다
+if (result.failedBatches > 0 || result.saveFailed > 0) {
+  console.log(`
+실패가 있어 종료 코드 1(실패 묶음 ${result.failedBatches} · 저장 오류 ${result.saveFailed})`);
+  process.exitCode = 1;
+}
