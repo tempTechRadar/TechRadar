@@ -1,5 +1,0 @@
-/* 내 판단 줄(judge.tsx): 기술 상세가 쓴다. 단추 모양은 .page .btn */
-.map-judge { display: grid; gap: 6px; }
-.map-judge .map-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.map-hold { display: grid; gap: 6px; }
-.map-hold label { display: grid; gap: 4px; }

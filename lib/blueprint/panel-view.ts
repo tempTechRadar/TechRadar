@@ -1,7 +1,7 @@
 // 청사진 스튜디오 패널(P-12e 조각 K: 하단 패널 · 속성 패널 · 목록 모드)이 쓰는 순수 계산. 화면 · DB · xyflow를 모른다.
 // 그래프를 바꾸는 것은 graph.ts 편집 함수이고, 여기는 무엇을 보일지 · 왜 못 바꾸는지만 정한다.
 import { STAGE_NAME_MAX, cleanName } from "./board.ts";
-import { addStage, connect, createStage, disconnect, LAYOUT, LIMITS, layers, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
+import { addStage, connect, createStage, disconnect, LAYOUT, LIMITS, layers, linkEnd, setLinks, type ConnectProblem, type Graph, type Pos, type Stage, type TemplateKind } from "./graph.ts";
 import { contentKey } from "./draft.ts";
 import { fitsStage } from "./knowledge.ts";
 import type { TechUsage } from "./stored.ts";
@@ -61,6 +61,22 @@ export function putProblem(stage: Stage, tech: { id: string; grade: string }): s
   if (stage.techs.some((t) => t.id === tech.id)) return `${stage.name}에 이미 있어요.`;
   if (stage.techs.length >= LIMITS.techs) return `한 단계에 기술은 ${LIMITS.techs}개까지예요.`;
   return null;
+}
+
+/** 기술을 다른 단계로 옮기기(P-12j H2, 되돌리기 한 번 = 전 그래프): 넣을 수 없으면 putProblem의 말. to = 새 단계 안 자리(없으면 맨 끝).
+ *  그 기술 끝의 관계선은 새 단계로 따라간다(겹치거나 자기 자신이 되면 빠짐) */
+export function moveTechToStage(g: Graph, fromId: string, toId: string, tech: { id: string; grade: string }, to?: number): { ok: true; graph: Graph } | { ok: false; message: string } {
+  const src = g.stages.find((s) => s.id === fromId), dst = g.stages.find((s) => s.id === toId);
+  const moving = src?.techs.find((t) => t.id === tech.id);
+  if (!src || !dst || !moving) return { ok: false, message: "없는 단계나 기술이에요. 화면을 새로 고쳐 주세요." };
+  if (fromId === toId) return { ok: false, message: `이미 ${dst.name}에 있어요.` };
+  const why = putProblem(dst, tech);
+  if (why) return { ok: false, message: why };
+  const at = to === undefined ? dst.techs.length : Math.max(0, Math.min(dst.techs.length, Math.trunc(to)));
+  const stages = g.stages.map((s) => (s.id === fromId ? { ...s, techs: s.techs.filter((t) => t.id !== tech.id) } : s.id === toId ? { ...s, techs: [...s.techs.slice(0, at), moving, ...s.techs.slice(at)] } : s));
+  const old = linkEnd(tech.id, fromId), now = linkEnd(tech.id, toId), re = (e: string) => (e === old ? now : e);
+  const moved: Graph = { ...g, stages };
+  return { ok: true, graph: g.links ? setLinks(moved, g.links.map((l) => ({ from: re(l.from), to: re(l.to) }))) : moved };
 }
 
 /** 단계 이름을 못 쓰는 이유(이름 바꾸기). null이면 됨 */

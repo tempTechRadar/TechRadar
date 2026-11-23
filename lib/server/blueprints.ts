@@ -13,23 +13,25 @@ import { like } from "./capture.ts";
 import { chunks, publicTechs, readCategories } from "./map-queries.ts";
 
 /** projectIds = 이 기술을 쓰는 내 프로젝트(기술 트리 "프로젝트" 묶기, P-12h S2). 카탈로그 찾기 결과에는 없음 */
-export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null; projectIds?: string[] };
+export type PoolTech = { id: string; name: string; type: string; grade: Grade; field: string | null; sub: string | null; oneLiner: string | null; projects: number; mark: "candidate" | null; projectIds?: string[]; /** 카탈로그 수집 오류(검증 독, P-12j H4) */ collectError?: boolean };
 export type BlueprintPage = { pool: PoolTech[]; history: BlueprintRecord[] | null; projects: { id: string; name: string }[] };
 /** v2 확정(P-12e): 캔버스 그래프. templateId = "이 템플릿으로 시작"한 템플릿(없으면 null) — 템플릿에 든 기술도 내 관문만 거친다(DB, ADR 0034 1) */
 export type ConfirmGraphInput = { id: unknown; name: unknown; projectId: unknown; graph: unknown; templateId?: unknown };
 export type ConfirmResult = { ok: true } | { ok: false; message: string };
 
 const TECH_COLUMNS = "id, display_name, type, grade, category_id, one_liner";
+/** 로그인 서랍만: 수집 오류(검증 독, P-12j H4). 손님 공개 칸(ADR 0029)에는 넣지 않는다 */
+const POOL_COLUMNS = `${TECH_COLUMNS}, collect_error_kind`;
 const SEARCH_LIMIT = 20;
 
 const toPool = (r: Row, cats: Map<string, Category>, extra: Pick<PoolTech, "projects" | "mark" | "projectIds">): PoolTech => {
   const c = categoryNames(r.category_id ?? null, cats);
-  return { id: r.id, name: r.display_name, type: r.type, grade: r.grade as Grade, field: r.category_id ? c.field : null, sub: r.category_id ? c.sub : null, oneLiner: r.one_liner ?? null, ...extra };
+  return { id: r.id, name: r.display_name, type: r.type, grade: r.grade as Grade, field: r.category_id ? c.field : null, sub: r.category_id ? c.sub : null, oneLiner: r.one_liner ?? null, collectError: Boolean(r.collect_error_kind), ...extra };
 };
 const catMap = (cats: Category[]) => new Map(cats.map((c) => [c.id, c]));
 
 async function readTechs(db: SupabaseClient, ids: string[]): Promise<Row[]> {
-  const parts = await Promise.all(chunks(ids).map((c) => db.from("technologies").select(TECH_COLUMNS).in("id", c)));
+  const parts = await Promise.all(chunks(ids).map((c) => db.from("technologies").select(POOL_COLUMNS).in("id", c)));
   return parts.flatMap((p) => rowsOrThrow(p, "기술을 읽지 못함"));
 }
 

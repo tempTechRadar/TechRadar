@@ -9,7 +9,8 @@ import { readUsageNotes, type UsageNoteView } from "@/lib/server/usage-notes";
 import { readUsingNow } from "@/lib/server/using-now";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { readMarkForTech } from "@/lib/server/marks";
-import { MarkBar } from "./mark-bar";
+import type { Grade, Mark } from "@/lib/map/build-map";
+import { MarkBar, MarkScope, MarkStar } from "./mark-bar";
 import { TechDetail } from "./tech-detail";
 import { UsageNotes } from "./usage-notes";
 
@@ -36,6 +37,7 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
   let using: { count: number; nicknames: string[] } | null | undefined;
   let notes: UsageNoteView[] | null = null;
   let markBar = null;
+  let scope: { techId: string; grade: Grade; initial: Mark | null } | null = null;
   if (detail.technologies) {
     const techId = detail.technologies.id;
     const [u, n, m] = await Promise.all([
@@ -47,15 +49,17 @@ export default async function TechDetailPage({ params }: { params: Promise<{ id:
     else { console.error(u.error); using = null; }
     notes = n;
     // 등급은 DB 규칙(set_tech_mark)과 같은 카탈로그 등급: 이 프로젝트 줄의 등급과 다를 수 있다
+    if (m) scope = { techId, grade: m.grade, initial: m.mark };
     markBar = m
-      ? <MarkBar techId={techId} grade={m.grade} initial={m.mark} />
+      ? <MarkBar />
       : <p className="notice notice-error" role="alert">내 판단 표시를 불러오지 못했어요. 판단이 없다는 뜻이 아니에요. 잠시 뒤 새로 고쳐 주세요.</p>;
   }
-  return (
-    <TechDetail d={detail} using={using} markBar={markBar}>
+  const view = (
+    <TechDetail d={detail} using={using} markBar={markBar} star={scope ? <MarkStar /> : null}>
       {detail.technologies ? <UsageNotes techId={detail.technologies.id} pathId={id} notes={notes} /> : null}
     </TechDetail>
   );
+  return scope ? <MarkScope {...scope}>{view}</MarkScope> : view;
 }
 
 function LoadError() {

@@ -30,3 +30,12 @@ test("단계 더함 · 뺌과 그 선, 옛 확정본(board → 새 id)은 이름
   assert.deepEqual(lines(base, old), []);
   assert.deepEqual(lines(fromV1(fromNames([["기획"], ["테스트"]])), fromV1(fromNames([["기획"], ["개발"]]))), ["단계 더함: 테스트", "단계 뺌: 개발", "이음: 기획 → 테스트", "끊음: 기획 → 개발"]);
 });
+
+test("기술 관계 표시(P-12j H4): 그음 · 지움을 기술 이름으로, 단계 id가 바뀐 옛 확정본은 이름으로 맞춘 단계 기준", () => {
+  const withTechs: Graph = { ...base, stages: base.stages.map((s, i) => ({ ...s, techs: i === 0 ? [T1, T2] : s.techs })) };
+  const a = withTechs.stages[0].id;
+  const linked: Graph = { ...withTechs, links: [{ from: `${T1.id}@${a}`, to: `${T2.id}@${a}` }] };
+  assert.deepEqual(lines(linked, withTechs), ["관계 표시 그음: Vite → React"]);
+  assert.deepEqual(lines(withTechs, linked), ["관계 표시 지움: Vite → React"]);
+  assert.deepEqual(lines(linked, linked), []);
+});

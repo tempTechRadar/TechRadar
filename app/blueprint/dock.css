@@ -25,6 +25,8 @@
 .dock-tech.risky { background: var(--sunken); }
 .dock-tech.added { border: 2px solid var(--ink); } /* 보드에서 "청사진에 넣기"로 온 기술: 굵은 테두리 + 맨 앞 + 안내 글 */
 .dock-grade { font-size: var(--fs-cap); font-weight: 700; }
+.dock-in { font-size: var(--fs-cap); font-weight: 700; color: var(--ink-2); } /* 이 판에 이미 넣은 기술(P-12j): 글자로 구분 */
+.dock-list { margin: 0; padding-left: 1.2em; }
 .dock-grade.g-danger { color: var(--ink-danger); }
 .dock-grade.g-caution, .dock-grade.g-unknown { color: var(--ink-2); }
 .dock-tags { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
