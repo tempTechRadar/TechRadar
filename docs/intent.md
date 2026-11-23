@@ -6,18 +6,18 @@
 
 ---
 
-## I-P-12n-records · 2026-11-23 · 운영에 빠진 #215 마이그레이션 적용 기록 · 체크리스트 · 레드팀 정정 (DocsChecker 세션)
+## I-P-12n-records · 2026-11-23 · 운영에 빠진 #215 마이그레이션 적용 기록 · 체크리스트 · 레드팀 정정 · P-12n 테마 문서 (DocsChecker 세션)
 - 브랜치: `docs/P-12n-records`(feat/P-12n-ux-polish 755e90f에서 갈라짐, 로컬. FrontLead가 R4에서 합침)
-- 출처: 제출 전 stage-check(`.claude/plans-share/stage-check-1123.md`) ❌1, Maestro 요청(11-23)
+- 출처: 제출 전 stage-check(`.claude/plans-share/stage-check-1123.md`) ❌1, Maestro 요청(11-23), FrontLead P-12n 알림(11-23)
 
 | 칸 | 내용 |
 |---|---|
 | 문제 | #215가 main에 합쳐졌는데 운영 DB에 `P-admin-revoke` 마이그레이션이 없었다. 체크리스트 F절과 레드팀 ② · ④도 실제와 달랐다(강사 초대 수락됨, 빠진 마이그레이션) |
-| 기대 결과 | debug-note · connectors 한 줄씩, 체크리스트 F절 · 레드팀 0절 표 · ② · ④ · 4절 할 일 정정 |
+| 기대 결과 | debug-note · connectors 한 줄씩, 체크리스트 F절 · 레드팀 0절 표 · ② · ④ · 4절 할 일 정정. P-12n 상태 줄 문구 · 공통 색 뜻 토큰 · `--cat-3` · 배지 12px을 ADR 0044 · design.md 5절에 |
 | 영향 범위 | docs만 |
 | 제약 | 운영 DB는 읽기만(적용은 Maestro가 사용자 승인으로). 로컬 커밋, 푸시 안 함. 프로필 id · 이메일 안 옮김 |
 | 열린 질문 | 없음 |
-| 결과 | 운영 다시 읽어 적용 확인(함수 · 잠금 · anon 실행 false · 관리자 4) 뒤 기록 4곳 반영. stage-check 커넥터 줄(4808eec)도 이 브랜치로 가져옴 |
+| 결과 | 운영 다시 읽어 적용 확인(함수 · 잠금 · anon 실행 false · 관리자 4) 뒤 기록 4곳 반영. stage-check 커넥터 줄(4808eec)도 이 브랜치로 가져옴. P-12n 값은 `feat/P-12n-ux-polish`의 `app/tokens.css` · `scan-status.ts` · `controls.tsx`에서 확인하고 대비를 다시 계산해 ADR 0044 · design.md에 넣음 |
 
 ## I-P-12m-compact · 2026-11-23 · 관측소 테마 · 컴팩트: 프로젝트 보드 · 레포 상세 · 알림 · 기록 · 설정 · 관리자 (P-12m Q2', DevAssi1 세션, 김영식)
 - 브랜치: `feat/P-12m-compact`(feat/P-12m-blueprint-theme 327755a = Q1 토큰 · 셸 위, 로컬. FrontLead가 Q3에서 합침)
