@@ -68,8 +68,7 @@
     { "from": "start_user_reread", "to": "fetch_repo", "when": "항상" },
     { "from": "fetch_repo", "to": "extract_my_tech", "when": "읽기 성공" },
     { "from": "fetch_repo", "to": "collect_error", "when": "읽기 실패" },
-    { "from": "extract_my_tech", "to": "fetch_osv", "when": "npm·PyPI 기술(처음 읽기 · 다시 읽기, first-read.ts 단계 순서)" },
-    { "from": "extract_my_tech", "to": "grade", "when": "스킬(OSV를 부르지 않고 위험 패턴으로 등급)" },
+    { "from": "extract_my_tech", "to": "grade", "when": "내 기술마다" },
 
     { "from": "fetch_osv", "to": "normalize", "when": "성공" },
     { "from": "fetch_registry", "to": "normalize", "when": "성공" },
@@ -77,7 +76,6 @@
     { "from": "fetch_downloads", "to": "normalize", "when": "성공" },
     { "from": "fetch_stars", "to": "normalize", "when": "성공" },
     { "from": "fetch_popularity", "to": "normalize", "when": "성공" },
-    { "from": "fetch_osv", "to": "grade", "when": "처음 읽기 · 다시 읽기: 받은 취약점으로 바로 등급(같은 모양 · 비교를 거치지 않음)" },
     { "from": "fetch_osv", "to": "collect_error", "when": "실패" },
     { "from": "fetch_registry", "to": "collect_error", "when": "실패" },
     { "from": "fetch_github", "to": "collect_error", "when": "실패" },
