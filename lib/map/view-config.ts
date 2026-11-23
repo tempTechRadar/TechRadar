@@ -120,5 +120,5 @@ export function passes(n: MapNode, v: ViewConfig): boolean {
 /** 켠 필터 수(도구 줄의 "필터 n") */
 export const filterCount = (v: ViewConfig) => {
   const f = v.filter;
-  return Number(f.ls) + f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(!!f.period) + f.marks.length + Number(f.hot) + Number(f.err) + Number(!!f.project) + f.tags.length;
+  return f.kinds.length + f.fields.length + f.subs.length + Number(f.risky) + Number(f.mineOnly) + Number(!!f.period) + f.marks.length + Number(f.hot) + Number(f.err) + Number(!!f.project) + f.tags.length;
 };

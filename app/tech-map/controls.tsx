@@ -1,7 +1,6 @@
 "use client";
 // 지도 도구(시안 radar.html·radar-ui.js, P-12m 점검으로 자리 옮김): 위 한 줄 = 찾기 + 경로 칩 + 빠른 칩, 필터는 왼쪽 패널(filter-panel), 보기 · 보기 초기화는 오른쪽 아래.
 // 그 아래 경로 칩(이 분류만 보기)과 늘 보이는 빠른 칩(들어온 때 · 위험 · 관심 · 내 기술), 지도 아래 범례·상태 줄. 단추는 최소로(사용자 11-20).
-import { useEffect, useState } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { MapLayout } from "@/lib/map/layout";
 import { DIMS, DIM_KO, inPeriod, MARK_PICKS, MAX_LEVELS, NEW_QUOTA, passes, PERIOD_KO, PERIODS, type Dim, type MarkPick, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";

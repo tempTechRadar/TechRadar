@@ -1,3 +1,4 @@
+import { isConcept } from "./build-map.ts";
 // 보기 묶음(노션의 보기 탭처럼, 11-21 사용자): 이름 + 보기 주소(viewQuery 모양). 기본 묶음은 코드에, "지금 보기 저장"은 브라우저에 5개까지.
 // 브라우저 저장값은 누구나 바꿀 수 있는 입력이라 모양 · 길이 · 개수를 자른다(보기 해석은 parseView가 아는 값만 받는다).
 export type Preset = { name: string; query: string };
@@ -22,7 +23,7 @@ export const LS_PICKS = new Set([
 ]);
 /** LS점프업(P-12p 사용자): 규칙(스킬 · 플러그인 · 개념 · 개발 도구(코딩 CLI) · "AI 작업 방식" 분야) 또는 고른 목록. 위험 등급도 숨기지 않는다(지도 규칙대로 등급 표시) */
 export function isLsJumpUp(n: { type: string | null; techKey: string | null; attrs: { field: string } }): boolean {
-  return n.type === "skill" || n.type === "plugin" || n.type === "concept" || n.type === "sdk" || n.attrs.field === "AI 작업 방식" || (!!n.techKey && LS_PICKS.has(n.techKey));
+  return n.type === "skill" || n.type === "plugin" || isConcept(n.techKey, n.type) || n.type === "sdk" || n.attrs.field === "AI 작업 방식" || (!!n.techKey && LS_PICKS.has(n.techKey));
 }
 export const MAX_SAVED = 5;
 const NAME_MAX = 20, QUERY_MAX = 600;

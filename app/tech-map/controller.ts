@@ -12,6 +12,7 @@ import { LEGACY_MOTION_KEY, RADAR_KEY, readPrefs, type RadarPrefs } from "@/lib/
 
 
 const STORE = "techradar.mapView";
+const IDLE_FPS = 12;
 const ZMIN = 0.05, ZMAX = 12; // 넓게: 끝없는 판처럼(사용자 11-20)
 const clampK = (k: number) => Math.max(ZMIN, Math.min(ZMAX, k));
 type Cam = { x: number; y: number; k: number };
@@ -43,7 +44,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   const { model, projectIds, canSave } = opts;
   const phys = createPhysics();
   const listeners = new Set<() => void>();
-  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false;
+  let version = 0, ctx: CanvasRenderingContext2D | null = null, raf = 0, needDraw = true, last = 0, wasActive = false, drawnAt = 0;
   const motion = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   const radar = savedRadar();
 
@@ -240,7 +241,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   }
   /** 첫 장: 가운데를 크게 본 채 시작해 화면이 물러난다(손댄 카메라 · 고른 점이 있으면 그대로). 움직임이 꺼져 있으면 연출 없이 바로 다 보임 */
   function startIntro(now: number) {
-    dirty(); // 덮개를 닫은 그 장부터 그린다
+    dirty();
     S.introAt = now; S.sweepStart = now + SWEEP_DELAY;
     if (!moving(S)) { S.sweepStart = now - REVEAL - GROW; return; }
     if (S.userCam || S.sel || S.fly) return;
@@ -272,12 +273,12 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
     for (const t of S.landed.values()) if (now - t < LAND_SEC) { anim = true; break; } // 진한 이름표가 제 세기로 돌아올 때까지
     if (S.stamp && now - S.stamp.t < 0.2) anim = true;
     const on = moving(S) && !document.hidden;
-    const started = Number.isFinite(S.sweepStart); // 첫 화면 덮개가 떠 있으면 아직 시작 전(그동안 매 장 그리지 않게)
-    const revealing = on && started && now - S.sweepStart < Math.max(MOTION_END, REVEAL + RISE_SEC) + 1.5; // 처음 연출 · 파동 · 떠오름 · 켜짐 · 추적 틀이 끝날 때까지는 매 장
-    const idling = S.radar.idle && !S.still && !document.hidden; // 뒤에서 옅은 선이 도는 동안도 매 장(P-12p, ⚙에서 끌 수 있음)
-    const active = anim || revealing || idling || S.leaving.size > 0;
+    const revealing = on && now - S.sweepStart < Math.max(MOTION_END, REVEAL + RISE_SEC) + 1.5; // 처음 연출 · 파동 · 떠오름 · 켜짐 · 추적 틀이 끝날 때까지는 매 장
+    // 뒤에서 옅은 선만 돌 때는 초당 IDLE_FPS장(P-12p, ⚙에서 끌 수 있음). shortcut: 지도 전체를 다시 그림, 느린 기기에서 무거우면 선만 겹 캔버스로
+    const idleDue = S.radar.idle && !S.still && !document.hidden && now - drawnAt >= 1 / IDLE_FPS;
+    const active = anim || revealing || S.leaving.size > 0;
     // 움직임이 끝난 장은 꼭 한 번 더: 장이 듬성듬성 오면(느린 기기 · 가려진 창) 옅어지던 선 · 굵은 착지 이름표 · 찍히던 꼬리표가 도중 모습으로 굳는다
-    if (ctx && (needDraw || active || wasActive)) { draw(ctx, S, now); needDraw = false; }
+    if (ctx && (needDraw || active || wasActive || idleDue)) { draw(ctx, S, now); needDraw = false; drawnAt = now; }
     wasActive = active;
   }
   function attach(canvas: HTMLCanvasElement) {
@@ -296,7 +297,7 @@ export function createMapController(opts: { model: TechMapModel; projectIds: str
   rebuild(null);
   return {
     /** ⚙ 레이더 설정 바꾸기. 처음 연출은 한 번뿐이라 다음에 열 때부터, 옅은 선은 바로 */
-    setRadar(p: RadarPrefs) { S.radar = p; S.motion = p.intro; try { localStorage.setItem(RADAR_KEY, JSON.stringify(p)); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
+    setRadar(p: RadarPrefs) { S.radar = p; try { localStorage.setItem(RADAR_KEY, JSON.stringify(p)); } catch { /* 이번 화면에서만 */ } dirty(); notify(); },
     finishIntro,
     S, model, phys, revealItem, toWorld, toScreen, zoomAt, fitVisible, flyTo, homeCam, setView, drill, toggle, resetView, select, unselect, goTo, setFocus, measure, attach, dirty, notify,
     /** 주소에 보기 설정이 없으면 이 브라우저가 기억한 마지막 보기(로그인했을 때만). 붙인 뒤 한 번 */

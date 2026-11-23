@@ -73,6 +73,8 @@ function revealAt(S: MapState, it: Item): number {
   const parent = it.parent ? S.L.byId.get(it.parent) : null;
   return parent ? Math.max(own, revealAt(S, parent)) : own;
 }
+/** 떠오른 지 몇 초(riseAt용): 보이기 시작한 때(revealAt) 기준이라 부모를 기다린 자식도 보이는 동안 떠오른다. 움직임이 없으면 -1 */
+export const riseAge = (S: MapState, now: number, it: Item) => (moving(S) && Number.isFinite(S.sweepStart) ? now - revealAt(S, it) : -1);
 /** 펼침 진행 0 → 1(부드럽게 감속), 움직임이 없거나 펼침이 끝났으면 늘 1(점마다 계산하지 않음) */
 export function grow(S: MapState, now: number, it: Item): number {
   if (!introducing(S, now)) return 1;

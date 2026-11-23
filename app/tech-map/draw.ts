@@ -4,7 +4,7 @@ import { FIRST_RING, isUnder, LEVEL_GAP, type Item, type TechItem } from "@/lib/
 import { DIM_KO, groupOf } from "@/lib/map/view-config";
 import { describeKo } from "@/lib/map/describe";
 import type { MapState } from "./controller";
-import { ease, grow, idleAngle, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, placeTags, recentlyChecked, riseAt, type Box, ringGrow, rippleR, trackTargets, WAVES } from "@/lib/map/motion";
+import { ease, grow, idleAngle, introducing, LAND_SEC, litAge, LOCK, LOCK_AFTER, moving, PING, placeTags, recentlyChecked, riseAge, riseAt, RISE_SEC, type Box, ringGrow, rippleR, trackTargets, WAVES } from "@/lib/map/motion";
 
 const TAU = Math.PI * 2;
 /** 점 왼쪽 아래 판단 꼬리표(P-12g map-5): 칸반의 "적용 후보"보다 짧게 */
@@ -57,8 +57,8 @@ export function draw(c: Ctx, S: MapState, now: number) {
   c.fillStyle = col("--paper"); c.fillRect(0, 0, W, H);
   const [ox, oy] = toS(0, 0);
   // 펼침(11-21 사용자: 가운데서 튀어나오기보다 레이더가 지나간 자리에서 떠오르게): 자리는 그대로, 크기 · 진하기만 grow로(drawTechs · drawHubs)
-  // P-12p: 점은 파동에 닿을 때 아래에서 떠올라 흔들리다 멈춘다(riseAt). 닿기 전 · 연출 없음(litAge < 0)은 제자리
-  const P = (it: Item): Pt => { const p = home(it); if (it.type !== "t") return p; const t = litAge(S, now, it); return t < 0 ? p : [p[0], p[1] + riseAt(t)]; };
+  // P-12p: 점은 파동에 닿아 보이기 시작할 때 아래에서 떠올라 흔들리다 멈춘다(riseAt). 보이기 전 · 연출 없음(riseAge < 0)은 제자리
+  const P = (it: Item): Pt => { const p = home(it); if (it.type !== "t") return p; const t = riseAge(S, now, it); return t < 0 || t >= RISE_SEC ? p : [p[0], p[1] + riseAt(t)]; };
   const vis = L.items.filter((it) => !S.hidden.has(it.id));
   const alphaOf = (it: Item) => Math.min(1, grow(S, now, it) * 1.6) * (S.lit && !S.lit.has(it.id) ? 0.16 : 1) * (S.leaving.has(it.id) ? Math.max(0, (S.leaving.get(it.id)! - now) / 0.35) : 1);
   const F: Frame = { c, S, vis, P, alphaOf, sc, now, z: S.cam.k / S.homeK, track: trackTargets(vis.filter((v): v is TechItem => v.type === "t")), boxes: [] };
