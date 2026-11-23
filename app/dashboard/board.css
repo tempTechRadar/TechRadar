@@ -37,6 +37,7 @@ main.page.board-page { max-width: 1200px; font-size: 13px; padding: 0; backgroun
 .bw-menuitem { min-height: var(--hit); padding: 0 var(--sp-2); border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .bw-menuitem:hover { background: var(--panel); }
 .bw-body { position: relative; min-height: 0; overflow: auto; padding: 8px 14px; cursor: auto; } /* relative: 표 안 sr-only(절대 위치)가 스크롤 상자 밖으로 새어 페이지를 밀지 않게 */
+.bw-body:has(.board-lines) { overflow-x: hidden; } /* P-12y M1: 줄 목록 판(지도 · 소식 등)은 가로로 밀릴 일이 없다(표 판은 그대로 가로 스크롤) */
 .bw-body h3, .page.board-page .bw-body h3 { margin: 8px 0 2px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .board-stack .bw-body { max-height: 70vh; }
 .bw-resize-handle { width: 10px; height: 10px; border-radius: 2px; background: var(--card); border: 1px solid var(--scan); }
@@ -68,7 +69,7 @@ main.page.board-page { max-width: 1200px; font-size: 13px; padding: 0; backgroun
 .board-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 8px 0 0; }
 .board-lines, .board-list { list-style: none; margin: 0; padding: 0; }
 .board-lines li { display: flex; gap: 6px; align-items: center; min-height: var(--row); border-bottom: 1px solid var(--line-d); }
-.board-lines li > :nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.board-lines li > :nth-child(2) { position: relative; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
 .board-src { flex: none; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--ink-2); padding: 0 4px; border: 1px solid var(--line-d); border-radius: var(--r-sm); }
 .board-lines time { flex: none; font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .board-list { display: grid; gap: 2px; }

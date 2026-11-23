@@ -54,7 +54,8 @@ export function QuickChips({ nodes, view, canMine, login, trendFailed, onView, o
   const errs = count((x) => !!x.collectErrorKind), hots = count((x) => x.hot), risky = count((x) => x.grade === "danger" || x.grade === "caution");
   return (
     <>
-      <span className="map-seg" role="group" aria-label="새 기술(들어온 때)">
+      {/* P-12y M3: 이 수는 지도에 올린 기술만 센다(새 기술은 최근 NEW_QUOTA개까지). 프로젝트 화면 "오늘의 새 기술"은 들어온 전체 수 */}
+      <span className="map-seg" role="group" aria-label="지도에 보이는 새 기술(들어온 때)" title={`지도에 보이는 기술만 세요(새 기술은 최근 ${NEW_QUOTA}개까지). 프로젝트 화면의 "오늘의 새 기술"은 들어온 전체 수예요.`}>
         <span className="map-seg-label" aria-hidden="true">새 기술</span>
         {PERIODS.map((p) => { const n = count((x) => inPeriod(x, p)); return ( // 0개는 눌러도 빈 지도뿐이라 막는다(켜져 있으면 끌 수 있게 둠)
           <button key={p} type="button" className="chip" aria-pressed={f.period === p} disabled={!n && f.period !== p} onClick={() => set({ period: f.period === p ? "" : p })}>
