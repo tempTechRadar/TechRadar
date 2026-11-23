@@ -6,6 +6,21 @@
 
 ---
 
+## I-P-12n-ux-polish · 2026-11-23 · 화면 다듬기: 단추 규칙 · 공통 색 뜻 · 지도 · 메뉴 · 상태 줄 + R2 · R3 합치기 (P-12n, FrontLead 세션, 김영식)
+- 브랜치: `feat/P-12n-ux-polish`(#216 머리 0e2b870에서 갈라짐, 로컬. DevAssi2 feat/P-12n-blueprint · DevAssi1 feat/P-12n-board · DocsChecker docs/P-12n-records · QA docs/qa-p12m · origin/main 950fc71 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12n-ux-polish.md` · 확정 목록 `p12n-list.md`("전부 진행, 높음부터"), Maestro 배정. ADR 0044 · IA-3 · IA-4 · IA-10 · PRD-NF5 · 불변 1 · 2 · 5 · 6
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 주 행동 단추 색이 여러 가지(흰 채움 · 청록 · 흰 테두리)이고 청록이 종류색과 겹친다. 지도 위 손잡이 · 이름이 붐비고, 상태 줄 말이 영어 · "단계"라 뜻이 흐리다. 사이드 패널 순서가 담기보다 태그가 먼저다 |
+| 기대 결과 | 주 행동 = 청록 채움 하나, 보조 = 어두운 판 + 테두리, 위험 = 빨강 테두리. 고른 것 = 카드 + 청록 테두리, 판단 대기 = 얼음 파랑, 완료 = 회색, 수집 오류 = 회색 점선. 상태 줄 "마지막 수집 hh:mm │ 출처 m │ 수집 오류 k"(출처 = fetch_* 단계, 수집 오류 = 출처 실패만, 처리 실패는 따로). 지도 잡음 줄이기 · 표시 뜻 한 줄 · 사이드 패널 순서 |
+| 영향 범위 | tokens.css · page.css · site-nav.css · nav(scan-status · alert-bell) · lib/server/scan-status.ts · tech-map(draw · controls · filter-panel · side-panel · canvas-map · map.css · ready-gate.css · cart.css) · views.css · first-check-banner.tsx · page.tsx, 시험 contrast · scan-status |
+| 제약 | 화면만 바꾸고 불변 1~6 · 데이터 규칙은 그대로. Claude API 없음. 로컬 커밋, 고친 시험 + tsc, 전체 검사는 R4 |
+| 열린 질문 | "출처 7 중 n 정상"은 collect_error와 출처 이름 짝을 확인하지 못해 넣지 않음. 고리 이름(--faint 10px)은 대비 약 3.4 |
+
+**결과:** 로컬 커밋. R1 10개 + 공통 색 뜻 + 단추 규칙 + 토스트, R2 · R3 · 기록 · QA · main 합침(충돌 없음). 자체 리뷰 10건 중 제 영역 7건 고침, R2 1건은 DevAssi2가 고침, R3 2건은 DevAssi1에게 넘김. 전체 시험 1,787 · tsc · build · precheck 통과.
+**확인하지 못함:** 관리자 실계정 · 손가락 기기 · 화면 읽기(사람 QA PN-1~8).
+
 ## I-P-12n-blueprint · 2026-11-23 · P-12n R2 청사진 다듬기: 단추 규칙 · 빈 판 첫 안내 · 손님 띠 · 위 막대 위계 · 미니맵 · 캔버스 설명 (DevAssi2 세션, 김영식)
 - 브랜치: `feat/P-12n-blueprint`(feat/P-12n-ux-polish 755e90f 위 + FrontLead 공통 토큰 40f46c4 병합, 로컬)
 - 출처: 사용자 승인 확정 목록 `.claude/plans-share/p12n-list.md` R2 1~6 · 공통 색 뜻(11-23 "전부 진행, 높음부터"), Maestro 배정. IA-4 청사진
