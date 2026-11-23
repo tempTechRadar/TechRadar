@@ -68,7 +68,7 @@ function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
   );
 }
 
-function CompareList({ n, compare, onGo }: { n: MapNode; compare: Compare[]; onGo: (key: string) => void }) {
+function CompareList({ compare, onGo }: { compare: Compare[]; onGo: (key: string) => void }) {
   if (!compare.length) return <p className="muted">확인된 비교군이 아직 없어요.</p>;
   return (
     <ul className="map-near">{compare.map(({ item: ci, node: m, quote }) => (
@@ -114,7 +114,7 @@ export function TechPanel({ item, compare, login, busy, onMark, onGo, onTags }: 
         </p>
       ) : null}
       <TagEditor key={n.key} techId={n.techId} tags={n.tags} login={login} onChange={onTags} facts={{ field: n.attrs.field, sub: n.attrs.sub, kind: n.attrs.kind, official: n.official }} />
-      {n.mine ? <Card title={`비교군 ${compare.length}`}><CompareList n={n} compare={compare} onGo={onGo} /></Card> : null}
+      {n.mine ? <Card title={`비교군 ${compare.length}`}><CompareList compare={compare} onGo={onGo} /></Card> : null}
       <Card title="출처">
         {n.oneLiner ? <p>{n.oneLiner}</p> : null}
         <dl className="side-facts">

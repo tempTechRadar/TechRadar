@@ -17,14 +17,14 @@ export async function ScanStatusLine({ admin }: { admin: boolean }) {
     <>
       <span className="scan-k">마지막 수집</span> <time dateTime={s.at}>{kstTime(s.at)}</time>
       <span className="scan-sep" aria-hidden="true">│</span>
-      <span className={s.runFailed ? "scan-errpart" : undefined}><i className="scan-dot" data-tone={s.runFailed ? "err" : s.running ? "none" : "ok"} aria-hidden="true" />출처 {s.sources}{s.runFailed ? " · 실행 실패" : s.running ? " · 진행 중" : ""}</span>
+      <span className={s.runFailed || s.otherFailed ? "scan-errpart" : undefined}><i className="scan-dot" data-tone={s.runFailed || s.otherFailed ? "err" : s.running ? "none" : "ok"} aria-hidden="true" />출처 {s.sources}{s.runFailed ? " · 실행 실패" : s.otherFailed ? ` · 처리 실패 ${s.otherFailed}` : s.running ? " · 진행 중" : ""}</span>
       <span className="scan-sep" aria-hidden="true">│</span>
       <span className="scan-errpart"><i className="scan-dot" data-tone={s.errors ? "err" : "none"} aria-hidden="true" />수집 오류 {s.errors}</span>
     </>
   ) : <span className={s.state === "fail" ? "scan-errpart" : undefined}><span className="scan-k">마지막 수집</span> {s.state === "none" ? "— 아직 없음" : "— 읽지 못함"}</span>;
-  const label = s.state === "ok" ? `마지막 정기 수집 ${kstTime(s.at)}${s.runFailed ? "(실행 실패)" : s.running ? "(진행 중)" : ""}, 출처 ${s.sources}곳, 출처 수집 오류 ${s.errors}건` : s.state === "none" ? "정기 수집 기록이 아직 없어요" : "수집 상태를 읽지 못했어요";
+  const label = s.state === "ok" ? `마지막 정기 수집 ${kstTime(s.at)}${s.runFailed ? "(실행 실패)" : s.running ? "(진행 중)" : ""}, 출처 ${s.sources}곳, 출처 수집 오류 ${s.errors}건${s.otherFailed ? `, 처리 단계 실패 ${s.otherFailed}건` : ""}` : s.state === "none" ? "정기 수집 기록이 아직 없어요" : "수집 상태를 읽지 못했어요";
   // 좁은 화면에서는 줄을 숨기되 알릴 것(수집 오류 · 실행 실패 · 읽지 못함)이 있으면 그 부분만 남긴다(site-nav.css, 불변 2)
-  const alert = s.state === "fail" || (s.state === "ok" && (s.errors > 0 || s.runFailed)) ? "" : undefined;
+  const alert = s.state === "fail" || (s.state === "ok" && (s.errors > 0 || s.runFailed || s.otherFailed > 0)) ? "" : undefined;
   return admin && s.state === "ok"
     ? <a className="scan-status" data-err={alert} href={`/admin/flow?run=${s.runId}`} aria-label={`${label}. 흐름 보기`}>{body}</a>
     : <span className="scan-status" data-err={alert} role="status" aria-label={label}>{body}</span>;

@@ -171,6 +171,7 @@ function drawTechs({ c, S, vis, P, alphaOf, sc, now, z, track }: Frame) {
 
 // 묶음(1 육각 · 2 마름모 · 3 네모). 누르면 사이드바, 오른쪽 아래 작은 +/− 손잡이 = 펼치기·접기
 function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   S.hubLabels = []; S.handles = [];
   const jobs: { it: Item & { type: "g" }; x: number; y: number; r: number; a: number; shut: boolean; must: boolean }[] = [];
   for (const it of vis) {
@@ -188,7 +189,7 @@ function drawHubs({ c, S, vis, P, alphaOf, sc, now, z }: Frame) {
     c.fillStyle = col(filled ? "--on-ink" : "--on-paper"); c.font = `700 ${it.level === 1 ? 11 : 10}px ${col("--font")}`; c.textAlign = "center"; c.textBaseline = "middle";
     const shown = Math.round(it.count * Math.min(1, grow(S, now, it) ** 2)); // 처음 열 때 수가 0부터 차오름
     if (r >= 9) c.fillText(shut ? `+${shown}` : String(shown), x, y + 0.5);
-    if (shut || it.id === S.focusId || it.id === S.sel) { // 접기 ⊖는 올리거나 고른 묶음에만, 펼치기 +는 늘(P-12n: 손잡이가 지도를 덮던 잡음)
+    if (shut || touch || it.id === S.focusId || it.id === S.sel) { // 접기 ⊖는 올리거나 고른 묶음에만, 펼치기 +는 늘(P-12n: 손잡이가 지도를 덮던 잡음). 손가락 화면은 올리기가 없어 늘
       const hx = x + r * 0.9 + 3, hy = y + r * 0.9 + 3;
       c.fillStyle = col("--panel"); c.strokeStyle = col("--on-paper"); c.lineWidth = 1.2; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
       c.strokeStyle = col("--on-paper"); c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx - 3.5, hy); c.lineTo(hx + 3.5, hy); if (shut) { c.moveTo(hx, hy - 3.5); c.lineTo(hx, hy + 3.5); } c.stroke();
@@ -281,8 +282,9 @@ function leafLabels({ c, S, vis, P, sc, now, z, boxes }: Frame) {
   const dated = S.view.filter.period !== ""; // 기간 보기에서는 이름 옆에 들어온 날(F②)
   const justLanded = (it: Item) => now - (S.landed.get(it.id) ?? -99) < LAND_SEC; // "이번 주" 다시 보기로 방금 닿은 점: 이름(들어온 날)을 잠깐 진하게
   const want = vis.filter((it): it is TechItem => it.type === "t" && (it.id === S.focusId || it.id === S.sel || justLanded(it)
-    || (!quiet && onScreen(it) && (S.W < 640 ? it.node.grade === "danger" // 좁은 화면은 위험 · 고른 것만(P-12n, 390에서 이름이 겹침)
-      : S.lit ? S.lit.has(it.id) && S.lit.size < 60 : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
+    || (!quiet && onScreen(it) && (S.lit ? S.lit.has(it.id) && S.lit.size < 60 // 찾기 · 올림이 먼저(좁은 화면에서도)
+      : S.W < 640 ? it.node.grade === "danger" // 좁은 화면은 위험 · 고른 것만(P-12n, 390에서 이름이 겹침)
+      : names > 0 || alone?.has(it.id) || it.node.mine || it.node.grade === "danger" || (z >= TIER.far && it.node.isNew)))));
   const rank = (it: TechItem) => (it.id === S.focusId || it.id === S.sel ? 0 : it.node.grade === "danger" ? 1 : it.node.mine ? 2 : it.node.isNew ? 3 : 4);
   want.sort((a, b) => rank(a) - rank(b));
   // 판단 꼬리표(점 왼쪽 아래, 칩과 같은 기준 decided): 자리를 먼저 잡아 이름표가 피해 가고, 이름표 테두리에 덮이지 않게 맨 나중에 그린다

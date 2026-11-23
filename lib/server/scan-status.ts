@@ -6,18 +6,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ScanStatus =
-  | { state: "ok"; runId: string; at: string; sources: number; errors: number; runFailed: boolean; running: boolean }
+  | { state: "ok"; runId: string; at: string; sources: number; errors: number; otherFailed: number; runFailed: boolean; running: boolean }
   | { state: "none" }
   | { state: "fail" };
 
 type Step = { step_name: string; status: string; error_kind: string | null; output_summary: string | null };
 
-/** 수집 오류 수: collect_error 단계 + 짝(같은 출처의 collect_error)이 없는 실패 단계 */
+const failed = (s: Step) => s.status === "failed" || !!s.error_kind;
+/** 출처 수집 오류 수: collect_error 단계 + 짝(같은 출처의 collect_error)이 없는 가져오기(fetch_*) 실패 단계 */
 export function countErrors(steps: Step[]): number {
   const ce = steps.filter((s) => s.step_name === "collect_error");
   const paired = new Set(ce.map((s) => s.output_summary?.replace(/ 수집 오류$/, "")));
-  return ce.length + steps.filter((s) => s.step_name !== "collect_error" && (s.status === "failed" || !!s.error_kind) && !paired.has(s.step_name)).length;
+  return ce.length + steps.filter((s) => s.step_name.startsWith("fetch_") && failed(s) && !paired.has(s.step_name)).length;
 }
+/** 출처가 아닌 처리 단계(알림 · 등급 등)의 실패 수: "수집 오류"와 섞지 않고 따로 알린다(자체 리뷰) */
+export const countOtherFailed = (steps: Step[]) => steps.filter((s) => s.step_name !== "collect_error" && !s.step_name.startsWith("fetch_") && failed(s)).length;
 
 export async function readScanStatus(db: SupabaseClient | null): Promise<ScanStatus> {
   if (!db) return { state: "fail" };
@@ -29,7 +32,7 @@ export async function readScanStatus(db: SupabaseClient | null): Promise<ScanSta
   if (steps.error || !steps.data) return { state: "fail" };
   const st = steps.data as Step[];
   return { state: "ok", runId: r.id, at: r.finished_at ?? r.created_at, sources: st.filter((s) => s.step_name.startsWith("fetch_")).length, // 출처 = 가져오기(fetch_*) 단계만(normalize · grade 같은 처리 단계는 빼고, Maestro 운영 확인)
-     errors: countErrors(st), runFailed: r.status === "failed", running: r.status === "queued" || r.status === "running" };
+     errors: countErrors(st), otherFailed: countOtherFailed(st), runFailed: r.status === "failed", running: r.status === "queued" || r.status === "running" };
 }
 
 const KST = { timeZone: "Asia/Seoul" } as const;

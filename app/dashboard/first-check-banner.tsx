@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { FirstCheckBand } from "@/lib/alerts/first-check-band";
 import { dismissFirstCheck } from "./actions";
 
@@ -9,7 +8,8 @@ export function FirstCheckBanner({ band, riskyHref }: { band: FirstCheckBand; ri
     <section className="notice first-check" role="status" aria-label="첫 점검 요약">
       <strong>{band.text}</strong>
       {band.notes.map((note) => <span key={note} className="muted">{note}</span>)}
-      {riskyHref ? <Link className="btn btn-primary" href={riskyHref}>위험·주의 보기</Link> : null}
+      {/* 지도는 처음 주소로 보기를 한 번만 만든다: 같은 화면 안 이동(Link)이면 필터가 안 걸려서 전체 이동(a). 주 행동은 화면에 하나라 보조 단추(자체 리뷰) */}
+      {riskyHref ? <a className="btn" href={riskyHref}>위험·주의 보기</a> : null}
       <form action={dismissFirstCheck}>
         <input type="hidden" name="runId" value={band.runId} />
         <button type="submit" className="btn">확인</button>
