@@ -1,6 +1,7 @@
 "use client";
 // 청사진 스튜디오 오른쪽 속성 패널(P-12e 조각 K): 캔버스 · 목록에서 고른 단계 또는 기술을 자세히.
 // 단계 = 이름 바꾸기 · 앞 / 다음 단계 · 붙은 기술(빼기) · 지우기. 기술 = 탭 개요 · 관계 · 검증 · 이력(P-12j H3, inspector-tabs.tsx) + 내 태그(TagEditor) · 사용기 상위 3개(SideNotes).
+// P-12t: 하단 패널에서 누른 기술(detail)은 판에 없어도 같은 탭으로 보이고, [판에 넣기]는 끌어 놓기와 같은 길(onPlace = 관문 규칙 그대로).
 // 그래프는 apply로만 바꾼다(되돌리기 · 저장은 studio).
 import Link from "next/link";
 import { SECTION } from "@/lib/blueprint/sections";
@@ -8,7 +9,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_NAME_MAX } from "@/lib/blueprint/board";
 import { disconnect, removeStage, removeTech, renameStage, setStageNote, STAGE_NOTE_MAX, type Stage } from "@/lib/blueprint/graph";
 import { linkSaid, nameProblem, neighbors, removeSaid, renamedSaid, parallelProblem } from "@/lib/blueprint/panel-view";
-import { GRADE_KO } from "@/lib/map/build-map";
+import { GRADE_KO, isConcept } from "@/lib/map/build-map";
 import { SideNotes } from "../tech-map/side-notes";
 import { TagEditor } from "../tech-map/tag-editor";
 import type { PanelProps } from "./studio-types";
@@ -20,6 +21,8 @@ import "./inspector.css";
 /** 지운 · 뺀 · 고르는 중인 단추가 사라지거나 막혀도 초점이 문서 맨 위로 떨어지지 않게 패널로 */
 const focusPanel = () => document.querySelector<HTMLElement>(".insp")?.focus();
 const Card = ({ title, children }: { title: ReactNode; children: ReactNode }) => <section className="side-card"><h3>{title}</h3>{children}</section>;
+/** 서랍 머리 등급: 개념(작업 방식)은 등급이 없다(지도 사이드 패널과 같게, ADR 0008 2항) */
+const GradeTag = ({ t }: { t: { grade: keyof typeof GRADE_KO; type: string } }) => <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>{isConcept(null, t.type) ? "등급 없음(작업 방식)" : `보안 ${GRADE_KO[t.grade]}`}</span></p>;
 
 export function Inspector(p: PanelProps) {
   const stage = p.picked ? p.graph.stages.find((s) => s.id === p.picked!.stageId) : undefined;
@@ -29,6 +32,7 @@ export function Inspector(p: PanelProps) {
         <p className="muted">여럿 고른 것은 함께 옮기거나(단계만) 함께 지울 수 있어요. 하나를 고르면 자세히 보여요.</p>
         {p.multi.onGroup && p.multi.stages >= 2 ? <GroupForm stages={p.multi.stages} onGroup={p.multi.onGroup} /> : null}
         <p className="insp-row insp-actions"><button type="button" className="btn btn-sm btn-danger" onClick={p.multi.remove}>{p.multi.count}개 지우기</button></p></>
+        : p.detail ? <DetailInfo key={p.detail} {...p} techId={p.detail} />
         : !p.picked || !stage ? <p className="muted">캔버스나 목록에서 단계 · 기술을 고르면 여기에 자세히 보여요.</p>
         : p.picked.kind === "tech" ? <TechInfo {...p} stageId={stage.id} techId={p.picked.techId} />
         : <StageInfo key={`${stage.id}:${stage.name}`} {...p} stageId={stage.id} />}
@@ -118,6 +122,36 @@ function Links({ label, list, onCut, onInsert }: { label: string; list: Stage[];
   );
 }
 
+/** 하단 패널에서 누른 기술(P-12t): 판에 있든 없든. 이름 · 등급 · 갈래 · 하는 일은 서랍 목록(내 것 · 지도 전체 · 손님 담은 것)에서, 나머지는 탭이 읽는다 */
+function DetailInfo(p: PanelProps & { techId: string }) {
+  const { graph, pool, catalog, guestPicks, techId, onPlace } = p;
+  const t = [...pool, ...(catalog ?? []), ...(guestPicks?.techs ?? [])].find((x) => x.id === techId);
+  const name = t?.name ?? "이름 모름";
+  const where = graph.stages.filter((s) => s.techs.some((x) => x.id === techId));
+  const [to, setTo] = useState("");
+  return (
+    <>
+      <header className="insp-head">
+        <p className="muted">하단 패널의 기술{where.length ? ` · ${where.map((s) => s.name).join(", ")}에 있음` : " · 아직 판에 없음"}</p>
+        <h2 tabIndex={-1}>{name}</h2>
+        {t ? <GradeTag t={t} /> : null}
+        {t ? <dl className="side-facts"><dt>갈래</dt><dd>{t.sub ?? "정보 없음"}</dd><dt>하는 일</dt><dd>{t.field ?? "정보 없음"}</dd></dl> : null}
+      </header>
+      {graph.stages.length ? (
+        <form className="insp-row" onSubmit={(e) => { e.preventDefault(); if (to) onPlace(to, techId); else p.say("넣을 단계를 먼저 골라 주세요."); }}>
+          <label>넣을 단계 <select value={to} onChange={(e) => setTo(e.target.value)}><option value="">고르기</option>{graph.stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          <button type="submit" className="btn btn-sm" aria-disabled={to ? undefined : true}>판에 넣기</button>
+        </form>
+      ) : <p className="muted">단계를 먼저 만들면 여기서 판에 넣을 수 있어요.</p>}
+      <TechTabs {...p} techId={techId} name={name} />
+      <p className="insp-row insp-actions">
+        <Link className="btn btn-sm" href={`/tech/${techId}`}>기술 상세 페이지</Link>
+        <Link className="bp-link" href={`/?sel=${encodeURIComponent(`tech:${techId}`)}`}>지도에서 보기</Link>
+      </p>
+    </>
+  );
+}
+
 function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
   const { graph, apply, onPick, pool, tags, onTags, stageId, techId, guest = false } = p;
   const s = graph.stages.find((x) => x.id === stageId)!;
@@ -130,7 +164,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
       <header className="insp-head">
         <p className="muted"><button type="button" className="bp-link" onClick={() => onPick({ kind: "stage", stageId: s.id })}>{s.name}</button> 단계의 기술</p>
         <h2 tabIndex={-1}>{name}</h2>
-        {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
+        {t ? <GradeTag t={t} /> : null}
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
       <TechTabs key={techId} {...p} techId={techId} name={name} />

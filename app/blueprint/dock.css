@@ -12,7 +12,7 @@
 .dock-end { display: inline-flex; align-items: center; gap: var(--sp-3); }
 .dock-end .bp-link { font-size: var(--fs-sm); color: var(--ink-2); }
 .dock-tab:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.dock-body { overflow: auto; padding: var(--sp-2) var(--sp-3) var(--sp-3); display: grid; gap: var(--sp-2); align-content: start; font-size: var(--fs-sm); }
+.dock-body { overflow: auto; overflow-x: hidden; padding: var(--sp-2) var(--sp-3) var(--sp-3); display: grid; gap: var(--sp-2); align-content: start; font-size: var(--fs-sm); }
 .dock-body p { margin: 0; }
 .dock-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .dock-row input, .dock-row select { min-height: var(--hit-sm); font: inherit; }
@@ -52,7 +52,11 @@
 .tt-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 4px 0 6px; border-radius: var(--r-sm); cursor: grab; }
 .tt-row:hover { background: var(--sunken); }
 .tt-row .tc-icon { width: 18px; height: 18px; font-size: 10px; }
-.tt-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+.tt-row-name { position: relative; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+/* P-12t 가로 스크롤: 줄 끝 이름 속 화면 읽기 글(.sr-only, 절대 위치)이 패널 밖으로 삐져나가 하단 패널이 옆으로 밀렸다 → 이름 칸이 품고, 패널은 가로를 숨김 */
+/* P-12t: 이름 · 칩을 누르면 서랍에 상세. 단추 모양은 지우고 글자 그대로(초점 테두리는 tokens.css 공통) */
+.tt-open { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tt-open:hover .tc-name, .tt-row-name.tt-open:hover { text-decoration: underline; }
 .tt-row-grade { font-size: var(--fs-sm); } .tt-row-grade.g-danger { color: var(--ink-danger); } .tt-row-grade.g-caution { color: var(--ink-caution); }
 .tt-row-in { color: var(--scan); font-size: var(--fs-sm); }
 .tt-row-add { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid var(--ring); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }

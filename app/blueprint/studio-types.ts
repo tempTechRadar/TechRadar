@@ -30,6 +30,7 @@ export type PanelProps = {
   /** 앞(-1) · 다음(1) 단계 더하기(P-12o: 카드 옆 +의 키보드 짝) */ onSide?: (stageId: string, dir: -1 | 1) => void;
   /** 선 사이에 단계 넣기(U2, 캔버스 선 위 +의 키보드 짝): 옅은 블록을 연다. 캔버스가 없으면(목록 모드) 없음 */ onInsert?: (from: string, to: string) => void;
   /** 이 화면에서 판을 바꾼 일(되돌리기 칸의 알림 글, 되돌린 것 포함 · 최근 50개). Inspector 이력 탭 · H4 변경 이력 */ log?: string[];
+  /** 하단 패널 기술을 눌러 연 상세(P-12t): 판에 없어도 서랍에 그 기술. picked가 바뀌면 지워진다 */ detail?: string | null; onDetail?: (techId: string) => void;
   /** 캔버스에서 여럿 고름(H5): 서랍은 "n개 골랐어요"와 함께 지우기 · 섹션으로 묶기(P-12o, 단계 2개 이상, 성공이면 true) */ multi?: { count: number; remove: () => void; stages: number; onGroup?: (name: string) => boolean };
 };
 
