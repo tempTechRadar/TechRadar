@@ -5,11 +5,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { MapNode } from "@/lib/map/build-map";
 import type { MapLayout } from "@/lib/map/layout";
-import { DEFAULT_VIEW, DIM_KO, filterCount, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
+import { DEFAULT_VIEW, DIM_KO, filterCount, filterNames, type Dim, type ViewConfig, type ViewFilter } from "@/lib/map/view-config";
 
 type ListKey = "kinds" | "fields" | "subs";
 const LIST_DIM: Record<ListKey, Dim> = { kinds: "kind", fields: "field", subs: "sub" };
 const OPEN_KEY = "techradar-map-filter-open";
+const NARROW = "(max-width: 640px)";
 const sortKo = (a: string, b: string) => a.localeCompare(b, "ko");
 
 type Props = {
@@ -22,10 +23,14 @@ export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFail
   useEffect(() => { // 브라우저 기억은 붙은 뒤에 읽는다(서버 첫 화면과 같게)
     let s: string | null = null;
     try { s = localStorage.getItem(OPEN_KEY); } catch { /* 저장소를 못 쓰면 기본 */ }
-    setOpen(s ? s === "1" : !matchMedia("(max-width: 860px)").matches);
+    // 폰 폭에서는 기억과 상관없이 접어서 연다: 펼치면 지도를 다 가린다(P-12x H1)
+    setOpen(!matchMedia(NARROW).matches && (s ? s === "1" : !matchMedia("(max-width: 860px)").matches));
   }, []);
-  const toggle = () => { const next = !open; setOpen(next); try { localStorage.setItem(OPEN_KEY, next ? "1" : "0"); } catch { /* 이번 화면에서만 */ } };
-  const f = view.filter, n = filterCount(view);
+  const toggle = () => {
+    const next = !open; setOpen(next);
+    if (!matchMedia(NARROW).matches) try { localStorage.setItem(OPEN_KEY, next ? "1" : "0"); } catch { /* 이번 화면에서만 */ } // 폰에서 접고 편 것은 넓은 화면 기억을 바꾸지 않는다
+  };
+  const f = view.filter, n = filterCount(view), names = filterNames(view, (id) => projects.find((p) => p.id === id)?.name).join(" · ");
   const setFilter = (patch: Partial<ViewFilter>) => onView({ ...view, filter: { ...f, ...patch } });
   // 값마다 개수: 들어간 분류 안에서 센다(Glama 필터 칩 참고)
   const base = nodes.filter((x) => view.scope.every((s) => x.attrs[s.dim] === s.value));
@@ -47,8 +52,8 @@ export function FilterPanel({ L, nodes, view, projects, canMine, login, tagsFail
   );
   return (
     <section className="map-filter" data-open={open ? "" : undefined} aria-label="필터">
-      <button type="button" className="map-filter-toggle" aria-expanded={open} onClick={toggle} aria-label={open ? "필터 접기" : "필터 펼치기"}>
-        <span>필터{n ? <b> {n}</b> : null}</span><span aria-hidden="true">{open ? "‹" : "›"}</span>
+      <button type="button" className="map-filter-toggle" aria-expanded={open} onClick={toggle} aria-label={`${open ? "필터 접기" : "필터 펼치기"}${names ? ` (켜짐: ${names})` : ""}`}>
+        <span>필터{n ? <b> {n}</b> : null}</span>{n ? <small className="map-filter-on" title={names}>{names}</small> : null}<span aria-hidden="true">{open ? "‹" : "›"}</span>
       </button>
       {open ? null : <button type="button" className="map-filter-reset" onClick={onReset}>보기 초기화</button>/* 접어도 처음 보기로 돌아갈 길 */}
       {open ? (

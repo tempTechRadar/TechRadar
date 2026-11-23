@@ -5,6 +5,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { GuideReply } from "@/lib/ai/parse-guide-response";
 import { BLUEPRINT_GUIDE_PER_USER_PER_DAY } from "@/lib/ai/decide-ai-call";
+import { Bot } from "../ai-bot";
 import { guideTurnAction } from "./guide-actions";
 import "./guide.css";
 
@@ -34,19 +35,6 @@ function load(who: string): Msg[] {
 /** AI에게 넘기는 대화: 가이드 말은 say + ask만 */
 const asTurn = (m: Msg) => ({ role: m.role, text: m.reply ? [m.reply.say, m.reply.ask].filter(Boolean).join(" ") : m.text });
 
-function Bot({ hop }: { hop: number }) {
-  return (
-    <svg key={hop} className="guide-bot" data-hop={hop ? "" : undefined} viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
-      <path className="guide-dish" d="M10 15 A14 9 0 0 0 38 15 Z" />
-      <line x1="24" y1="15" x2="24" y2="6" className="guide-mast" /><circle cx="24" cy="5" r="2.4" className="guide-beacon" />
-      <rect x="12" y="17" width="24" height="20" rx="8" className="guide-body" />
-      <circle cx="19.5" cy="26" r="2.6" className="guide-eye" /><circle cx="28.5" cy="26" r="2.6" className="guide-eye" />
-      <path d="M20 31.5 Q24 34 28 31.5" className="guide-mouth" />
-      <rect x="17" y="37" width="4" height="5" rx="2" className="guide-body" /><rect x="27" y="37" width="4" height="5" rx="2" className="guide-body" />
-    </svg>
-  );
-}
-
 export function Guide({ who, guest, stages, drawer, onStages, onTech, placed }: Props) {
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState<Msg[]>(START);
@@ -67,8 +55,8 @@ export function Guide({ who, guest, stages, drawer, onStages, onTech, placed }: 
     setLog(next); setDraft(""); setBusy(true); setError(null);
     const r = await guideTurnAction(next.map(asTurn), stages).catch(() => ({ ok: false as const, message: "가이드에게 보내지 못했어요. 잠시 뒤 다시 말해 주세요." }));
     setBusy(false);
-    if (!r.ok) { setLog(log); setDraft(t); return setError(r.message); } // 보내지 못한 말은 대화에서 빼고 입력칸으로(다시 보낼 때 두 번 쌓이지 않게)
-    setLog((l) => [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }]); setHop((h) => h + 1);
+    if (!r.ok) { setLog((l) => (l === next ? log : l)); setDraft(t); return setError(r.message); } // 보내지 못한 말은 대화에서 빼고 입력칸으로(다시 보낼 때 두 번 쌓이지 않게)
+    setLog((l) => (l === next ? [...l, { role: "guide", text: r.reply.say, reply: r.reply, techs: r.techs }] : l)); // 그사이 "새로 시작"했으면 옛 답은 버림 setHop((h) => h + 1);
   }
   const mark = (i: number, k: string) => setLog((l) => l.map((m, j) => (j === i ? { ...m, done: [...(m.done ?? []), k] } : m)));
   const close = () => { setOpen(false); btn.current?.focus(); };

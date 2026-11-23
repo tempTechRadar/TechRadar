@@ -54,8 +54,8 @@ export function AdminShell({ tab, title, lead, proves, blocked, error, toolbar, 
   if (blocked === "no_db") shellNotes.push({ tone: "danger", text: "Supabase 연결 전이에요. .env.local을 확인해 주세요." });
   if (error) shellNotes.push({ tone: "danger", text: `불러오지 못했어요(없는 게 아니에요): ${error}` });
   return (
-    <main className="admin">
-      <AdminNav tab={tab} />
+    <main className="admin" data-solo={blocked === "forbidden" ? "" : undefined}>
+      {blocked === "forbidden" ? null : <AdminNav tab={tab} />}{/* P-12y M2: 관리자가 아니면 메뉴를 보이지 않고 안내만 */}
       <div className="admin-main">
         <header className="admin-head">
           <p className="admin-eyebrow">{tab === "" ? "관리자" : groupLabelOf(tab)}</p>

@@ -13,6 +13,18 @@ export const BUILTIN_PRESETS: BuiltinPreset[] = [
   { name: "사용 중", query: "mine=1", mine: true },
   { name: "LS점프업", query: "pick=ls" }, // 바이브코딩에 바로 쓰는 것(규칙 + 고른 목록, isLsJumpUp)
 ];
+/** 보기 탭이 켜졌는지(P-12x H2): 탭의 조건이 지금 보기에 다 들어 있으면 켜짐(LS점프업 + 다른 필터도 LS점프업 켜짐). 조건 없는 탭은 똑같을 때만. 둘 다 viewQuery 모양 */
+export function presetOn(current: string, preset: string): boolean {
+  const now = new URLSearchParams(current), want = [...new URLSearchParams(preset)];
+  return want.length ? want.every(([k, v]) => now.get(k) === v) : current === preset;
+}
+/** 켜진 탭을 끌 때: 그 탭의 조건만 빼고 나머지 필터는 남긴다 */
+export function presetOff(current: string, preset: string): string {
+  const now = new URLSearchParams(current);
+  for (const k of new URLSearchParams(preset).keys()) now.delete(k);
+  return now.toString();
+}
+
 /** LS점프업 보기의 한 줄 설명(보기 탭 title) */
 export const LS_NOTE = "바이브코딩에 바로 쓰는 것: 클로드코드 스킬 · 플러그인 · 개념 · 코딩 도구 · AI 작업 방식 + 고른 목록";
 

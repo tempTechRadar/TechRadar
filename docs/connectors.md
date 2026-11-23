@@ -130,3 +130,4 @@
 | 2026-11-23 | Supabase (MCP 커넥터, 읽기만, DocsChecker, 사전 허가 D) | erd 4차 대조(작업 `I-erd-1123`) | `list_migrations` 1번 · `execute_sql` SELECT 2번: 오늘 칸 · 제약 · 함수 5개 · 실행 권한 · LS 시드 2줄 · 번역 수, 공개 표 34개의 칸 이름 · 칸 수 · 정책 수 · RLS. 개인정보 · 프로필 칸 값은 읽지 않음 | 표 34 = erd 34, 빠진 칸 3(한국어 개요), ai_calls 값 7개 → erd 7절 4차 표 | 아니요 |
 | 2026-11-23 | abbsbook (MCP 커넥터, 쓰기 1, DocsChecker) | PR #228 단계 기록(개인 설정 자동 기록) | `save_session` 1번(요약 카드 이미지 1장) | 실패 0 | 아니요 |
 | 2026-11-23 | Supabase (MCP 커넥터, 읽기만, DocsChecker, 사전 허가 D) | P-12w `map_find` 운영 적용 확인(작업 `I-erd-1123`) | `execute_sql` SELECT 1번: `ai_calls_purpose_check` 정의와 마이그레이션 기록 이름 | 허용 값 8개, `P-12w_map_find_purpose` 20261123084812 → erd 2.6절 | 아니요 |
+| 2026-11-23 | Supabase (MCP 커넥터, 운영 읽기 1, FrontLead) | 지도 찾기 도우미 실제 API 확인용 목록 모양 보기(작업 `I-P-12w-map-finder`) | `execute_sql` 읽기 1번: 공개 기술 220개(id · 이름 · 종류 · 등급 · 개요 80자). 확인 스크립트는 앱과 같은 서비스 키 읽기로 500개를 다시 읽고 ai_calls는 가짜 DB(운영 쓰기 없음) | `feat/P-12w-map-finder` | 아니요 |
