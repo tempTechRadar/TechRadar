@@ -182,7 +182,7 @@
 /* 판단 저장 피드백(P-12g C1 · C2). 시간은 --dur(움직임 줄이기면 0s라 처음부터 놓인 모양), 이동은 translate(transform과 겹치지 않게) */
 @keyframes rise-in { from { opacity: 0; translate: 0 4px; } }
 .alert-head form .notice-error { animation: rise-in var(--dur) var(--ease) 1; } /* 판단 폼 안 오류 상자만(다른 화면 오류 상자는 그대로) */
-.page .judged-card:focus { outline: none; } .page .judged-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.page .judged-card:focus { outline: none; } .page .judged-card:focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; }
 .page .judge-stamp { display: inline-block; max-width: 100%; margin: 0 0 var(--sp-2); padding: 2px var(--sp-2); border: 3px double var(--ink); border-radius: var(--r-sm); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @keyframes stamp-in { from { opacity: 0; scale: 1.08; } }
 .page .judged-card[data-fresh] .judge-stamp { animation: stamp-in var(--dur) var(--ease) 1; transform-origin: left center; }
