@@ -66,7 +66,6 @@ export function draw(c: Ctx, S: MapState, now: number) {
 
   sectorLight(F, [ox, oy]);
   rings(F, [ox, oy]);
-  if (S.radar.idle && !S.still) idleLine(F, [ox, oy]);
   if (moving(S)) ripples(F, [ox, oy]);
 
   // 선: 위아래 단계(가운데 → 1단계 → … → 기술). 비교군 선은 지도에 없음(P-12m, 사이드 패널에서만)
@@ -127,8 +126,13 @@ function ripples({ c, S, sc, now }: Frame, o: Pt) {
   c.globalAlpha = 1;
 }
 
-/** 뒤에서 늘 도는 옅은 선(P-12p, ⚙ 여운 · 속도 · 밝기 · 굵기): 꾸밈이라 점을 켜지 않는다. 뒤로 trail도 옅어지는 --scan 꼬리 + 끝 선 */
-function idleLine({ c, S, now }: Frame, [ox, oy]: Pt) {
+/** 뒤에서 늘 도는 옅은 선(P-12p, ⚙ 여운 · 속도 · 밝기 · 굵기): 꾸밈이라 점을 켜지 않는다. 뒤로 trail도 옅어지는 --scan 꼬리 + 끝 선.
+ *  P-12u(사용자 "버벅거린다"): 지도 위 겹 캔버스에 매 장 따로 그린다(지도는 바뀔 때만 다시 그림). 가운데 · 배율은 지도와 같은 카메라를 따른다.
+ *  ⚙ 끄기 · 움직임 줄이기면 비우기만 한다 */
+export function drawIdle(c: Ctx, S: MapState, now: number) {
+  c.clearRect(0, 0, S.W, S.H);
+  if (!S.radar.idle || S.still) return;
+  const sc = S.scale(), ox = S.W / 2 - S.cam.x * sc, oy = S.H / 2 - S.cam.y * sc;
   const { trail, speed, alpha, width } = S.radar, ang = idleAngle(now, speed), far = farOf(S, [ox, oy]), scan = col("--scan");
   const tail = c.createConicGradient(ang, ox, oy);
   tail.addColorStop(1 - trail / 360, rgba(scan, 0)); tail.addColorStop(1, rgba(scan, alpha));
