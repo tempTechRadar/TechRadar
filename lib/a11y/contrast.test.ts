@@ -84,6 +84,9 @@ test("관측소 테마(P-12m): 바탕 · 판 · 카드 위 글자 4.5 이상, �
     ...["blue", "purple", "green", "orange", "pink", "teal", "yellow", "red", "gray"].map((c): [string, string, string, number] => [`chip-${c}`, t(`chip-${c}-ink`), t(`chip-${c}`), 4.5]),
     ["밝은 칠 단추(--ink) 위 --on-ink", t("on-ink"), t("ink"), 4.5],
     ["청록 칠 위 바탕색 글자", t("paper"), t("scan"), 4.5],
+    ["주 행동 단추(청록 채움) 글자 --on-ink", t("on-ink"), t("scan"), 4.5],
+    ["위험한 일 단추 글자 --ink-danger(판 · 빨강 바탕)", t("ink-danger"), t("bg-danger"), 4.5],
+    ["위험한 일 단추 테두리 --danger(판 위, 표시 3 이상)", t("danger"), t("surface"), 3],
     ["레이더 선 · 파동(--scan)", t("scan"), t("paper"), 3],
   ];
   const bad = pairs.filter(([, fg, bg, min]) => contrastRatio(fg, bg) < min).map(([n, fg, bg]) => `${n} ${contrastRatio(fg, bg).toFixed(2)}`);
