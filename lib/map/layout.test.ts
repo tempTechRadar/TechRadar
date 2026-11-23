@@ -54,18 +54,17 @@ test("필터: 위험·주의만, 종류, 수집 오류만", () => {
   assert.deepEqual(names(layoutMap(m, view("err=1"))), ["e"]);
 });
 
-test("내 기술과 비교군(한 단계): 내 기술과 확정 비교군만 남고 나머지 모은 기술은 빠진다(ADR 0027)", () => {
+test("사용 중(P-12m): 사용 중인 항목만 남고, 비교군은 지도에서 따로 남지 않는다(사이드 패널에서만, ADR 0044)", () => {
   const m = buildTechMap({ ...catalog, mine: [mine("m1", "a")], relations: [{ a: "a", b: "d", quote: "같은 일" }] }, NOW);
-  assert.equal(leaves(layoutMap(m, DEFAULT_VIEW)).length, 4, "기본은 전체 지도");
-  assert.deepEqual(names(layoutMap(m, view("mine=1"))).sort(), ["a", "d"]);
-  assert.deepEqual(names(layoutMap(m, view("mine=1&risky=1"))), ["d"], "위험한 비교군은 위험만에서도 보인다");
+  assert.equal(leaves(layoutMap(m, DEFAULT_VIEW)).length, 4, "기본은 전체 지도(비교군 기술도 모은 기술로는 보임)");
+  assert.deepEqual(names(layoutMap(m, view("mine=1"))), ["a"]);
+  assert.deepEqual(names(layoutMap(m, view("mine=1&risky=1"))), [], "위험한 비교군도 사용 중 필터에는 없음");
+  assert.deepEqual(m.edges, [["tech:a", "tech:d"]], "비교군 관계는 모델에 남아 사이드 패널이 읽는다");
 });
 
-test("프로젝트 필터: 그 프로젝트의 내 기술과, 거기에 이어진 비교군만(다른 프로젝트의 비교군은 빠짐)", () => {
+test("프로젝트 필터: 그 프로젝트의 사용 중인 항목만(비교군은 지도에 두지 않음, P-12m)", () => {
   const m = buildTechMap({ ...catalog, mine: [mine("m1", "a"), mine("m2", "c", { projectId: "p2" })], relations: [{ a: "a", b: "b", quote: null }, { a: "c", b: "d", quote: null }] }, NOW);
-  const l = layoutMap(m, view("p=p1"));
-  assert.deepEqual(names(l).sort(), ["a", "b"]);
-  assert.deepEqual(l.edges, [["tech:a", "tech:b"]]);
+  assert.deepEqual(names(layoutMap(m, view("p=p1"))), ["a"]);
 });
 
 test("이 분류만 보기: 그 안만 원반 전체로, 들어간 기준은 묶기에서 빠지고 색은 다음 기준으로", () => {
@@ -75,14 +74,14 @@ test("이 분류만 보기: 그 안만 원반 전체로, 들어간 기준은 묶
   assert.equal(l.color, "kind");
 });
 
-test("올리면 이어진 것: 묶음 → 위로 가는 길 + 아래 전부, 기술 → 위로 가는 길 + 비교군", () => {
+test("올리면 이어진 것: 묶음 → 위로 가는 길 + 아래 전부, 기술 → 위로 가는 길만(비교군 선은 지도에 없음, P-12m)", () => {
   const model = buildTechMap({ ...catalog, mine: [mine("m1", "a")], relations: [{ a: "a", b: "c", quote: null }] }, NOW);
   const l = layoutMap(model, FIELD_VIEW);
   const top = groups(l).find((g) => g.level === 1 && g.value === "백엔드·데이터")!;
   const lit = connected(l, top.id);
   assert.ok(lit.has("tech:a") && !lit.has("tech:c"));
   const leaf = connected(l, "tech:a");
-  assert.ok(leaf.has(top.id) && leaf.has("tech:c"));
+  assert.ok(leaf.has(top.id) && !leaf.has("tech:c"));
 });
 
 test("기술이 많으면 바깥을 여러 줄로 쌓고, 700개를 넘으면 맨 안쪽 묶음을 접어 둔다(접힌 묶음 아래는 숨김)", () => {

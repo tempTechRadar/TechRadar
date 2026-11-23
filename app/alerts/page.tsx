@@ -52,20 +52,20 @@ function List({ records, params }: { records: Awaited<ReturnType<typeof listMyAl
       <p className="summary">
         {pending > 0 ? <><strong>{pending}건</strong> 판단 대기 중이에요.</> : <>판단 기다리는 알림이 없어요.</>}
       </p>
-      <nav className="alert-chips" aria-label="빠른 거르기">
+      <nav className="alert-chips" aria-label="빠른 필터">
         <div role="group" aria-label="상태">{chip("status", "pending", `판단 대기 ${scopedPending}`)}{chip("status", "done", `완료 ${inScope.length - scopedPending}`)}{chip("status", "", `상태 전체 ${inScope.length}`)}</div>
         <div role="group" aria-label="종류">{chip("kind", "security", "보안 경고")}{chip("kind", "opportunity", "적용 기회")}{chip("kind", "model_eol", "모델 종료")}{chip("kind", "", "종류 전체")}</div>
       </nav>
       {/* 칩으로 주소가 바뀌면 고르기 칸도 새 값으로(key가 바뀌면 다시 그림) */}
-      <form key={JSON.stringify(params)} className="filters" aria-label="알림 거르기">
+      <form key={JSON.stringify(params)} className="filters" aria-label="알림 필터">
         <FilterSelect label="종류" name="kind" value={params.kind} options={KIND_OPTIONS} />
         <FilterSelect label="상태" name="status" value={params.status} options={[["", "전체"], ["pending", "판단 대기"], ["done", "완료"]]} />
         <FilterSelect label="프로젝트" name="project" value={params.project} options={projectOptions(records)} />
         <FilterSelect label="기간" name="period" value={params.period} options={PERIOD_OPTIONS} />
-        <button type="submit" className="btn">거르기</button>
+        <button type="submit" className="btn">필터</button>
       </form>
       {shown.length === 0 ? (
-        <div className="notice notice-empty"><strong>이 조건에 맞는 알림이 없어요.</strong> <Link href="/alerts">거르기 풀기</Link></div>
+        <div className="notice notice-empty"><strong>이 조건에 맞는 알림이 없어요.</strong> <Link href="/alerts">필터 풀기</Link></div>
       ) : (
         <ul className="alert-list">
           {shown.map((a) => (

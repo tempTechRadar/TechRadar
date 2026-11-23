@@ -7,8 +7,8 @@ import { GRADE_KO } from "@/lib/eval/score";
 import type { StoredEdges } from "@/lib/eval/stored-edges";
 import { runEvalAction, type EvalState } from "./eval-actions";
 
-const btn = { minHeight: 44, padding: "0 16px" } as const;
-const cell = { padding: "4px 8px", borderBottom: "1px solid #e5e7eb", textAlign: "left" as const };
+const btn = { minHeight: "var(--hit)", padding: "0 16px" } as const;
+const cell = { padding: "4px 8px", borderBottom: "1px solid var(--line-d)", textAlign: "left" as const };
 
 export function EvalPanel({ style }: { style: React.CSSProperties }) {
   const [state, action, pending] = useActionState<EvalState>(runEvalAction, null);
@@ -82,7 +82,7 @@ function StoredEdgesTables({ when, edges }: { when: string; edges: EdgeScore }) 
       <p style={{ margin: "8px 0 4px" }}>{wrong.length === 0 ? "맞음이 아닌 사례는 없어요." : `맞음이 아닌 사례 ${wrong.length}건:`}</p>
       {wrong.length > 0 ? <EdgeRows rows={wrong} /> : null}
       <details style={{ marginTop: 8 }}>
-        <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer" }}>사례 {edges.rows.length}건 모두 보기</summary>
+        <summary style={{ minHeight: "var(--hit)", display: "flex", alignItems: "center", cursor: "pointer" }}>사례 {edges.rows.length}건 모두 보기</summary>
         <EdgeRows rows={edges.rows} />
       </details>
     </>

@@ -35,12 +35,12 @@ export function AdminShell({ tab, title, lead, blocked, error, children }: Props
   );
 }
 
-/** 거르기 칸(주소 값으로 보낸다. 자바스크립트 없이도 동작). */
+/** 필터 칸(주소 값으로 보낸다. 자바스크립트 없이도 동작). */
 export function FilterForm({ children }: { children: ReactNode }) {
   return (
     <form method="get" className="admin-filter">
       {children}
-      <button type="submit">거르기</button>
+      <button type="submit">필터</button>
     </form>
   );
 }

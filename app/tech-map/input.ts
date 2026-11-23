@@ -37,11 +37,11 @@ export function attachInput(canvas: HTMLCanvasElement, stage: HTMLElement, ctl: 
     hooks.hover(id, sx, sy);
   }
 
-  // 끌기 시작: 묶음이면 그 아래 전체를 단단히(대형 유지), 기술이면 이웃(위 묶음·비교군)이 줄에 끌려온다
+  // 끌기 시작: 묶음이면 그 아래 전체를 단단히(대형 유지), 기술이면 이웃(위 묶음)이 줄에 끌려온다
   function startDrag(d: Down) {
     const it = S.L.byId.get(d.id!)!;
     const team = it.type === "g" ? new Set(S.L.items.filter((x) => !S.hidden.has(x.id) && isUnder(S.L, x, it.id)).map((x) => x.id)) : null;
-    const pairs = S.L.items.filter((x) => x.parent && !S.hidden.has(x.id)).map((x) => [x.parent!, x.id] as [string, string]).concat(S.L.edges);
+    const pairs = S.L.items.filter((x) => x.parent && !S.hidden.has(x.id)).map((x) => [x.parent!, x.id] as [string, string]);
     phys.kick(d.id!, team, pairs);
     const b = phys.B.get(d.id!)!, [wx, wy] = ctl.toWorld(d.x, d.y);
     d.off = [b.x - wx, b.y - wy]; d.drag = true;

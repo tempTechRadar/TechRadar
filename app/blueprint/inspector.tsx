@@ -112,8 +112,7 @@ function TechInfo(p: PanelProps & { stageId: string; techId: string }) {
         {t ? <p className="side-tags"><span className={`tag${t.grade === "danger" || t.grade === "caution" ? ` tag-${t.grade}` : ""}`}>보안 {GRADE_KO[t.grade]}</span></p> : null}
         {facts ? <p className="muted">{facts}</p> : null}
       </header>
-      {/* 검증 항목으로 오면 n이 바뀌어 새로 열리며 검증 탭부터 */}
-      <TechTabs key={p.checkFor?.techId === techId ? `${techId}:${p.checkFor.n}` : techId} {...p} techId={techId} name={name} />
+      <TechTabs key={techId} {...p} techId={techId} name={name} />
       <Card title="내 태그">
         {tags === null ? <p className="notice notice-error" role="alert">내 태그를 불러오지 못했어요. 없다는 뜻이 아니에요.</p>
           : guest ? <p className="muted">로그인하면 나만 보는 태그를 붙일 수 있어요.</p>

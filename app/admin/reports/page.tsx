@@ -39,7 +39,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {missing ? <p role="alert" className="admin-note warning">사용기 표가 아직 DB에 없어요(마이그레이션 적용 대기). 다른 관리자 탭은 그대로예요.</p> : null}
       {view ? (
         <>
-          <nav aria-label="거르기" className="admin-filter">
+          <nav aria-label="필터" className="admin-filter">
             {FILTERS.map((x) => (
               <Link key={x.id} href={`/admin/reports?f=${x.id}`} aria-current={x.id === filter ? "true" : undefined} className="admin-seg">
                 {x.label} ({view.counts[x.id]})

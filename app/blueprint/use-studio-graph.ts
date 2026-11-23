@@ -1,11 +1,11 @@
 "use client";
 // 스튜디오 그래프 상태: 되돌리기 · 다시(50단계, 단추) + 이 브라우저 · 이 계정의 초안(blueprint-draft-v2). 초안은 편의 기억이라 못 쓰면 새로 고칠 때 사라질 뿐.
-// 처음엔 null(서버 그림과 맞춤) → 브라우저에서 v2 초안, 없으면 옛 격자 초안을 한 번 바꿔 읽고(lib/blueprint/draft.ts), 그것도 없으면 첫 템플릿.
+// 처음엔 null(서버 그림과 맞춤) → 브라우저에서 v2 초안, 없으면 옛 격자 초안을 한 번 바꿔 읽고(lib/blueprint/draft.ts), 그것도 없으면 빈 단계 하나(blankGraph).
 // 이름도 되돌리기 칸에 함께 둔다: 판과 이름을 같이 바꾼 일(이력 불러오기 · 템플릿)은 되돌리면 이름도 돌아가고, 이름 칸에 친 글은 판만 되돌려도 남는다.
 // shortcut: 같은 계정으로 탭 두 개를 열면 나중에 고친 탭의 초안이 저장된다(storage 이벤트로 맞추지 않음). 여러 탭 편집이 흔해지면 storage 이벤트로 알린다
 import { useCallback, useEffect, useState } from "react";
 import { fromNames } from "@/lib/blueprint/board";
-import { guestOffer, readDraft, type Saved } from "@/lib/blueprint/draft";
+import { blankGraph, guestOffer, readDraft, type Saved } from "@/lib/blueprint/draft";
 import { fromV1, type Graph } from "@/lib/blueprint/graph";
 import { TEMPLATES } from "@/lib/blueprint/knowledge";
 
@@ -19,7 +19,6 @@ export type Unread = { kept: boolean } | null;
 /** 로그인 전(P-12f 손님 모드)의 who. 그 초안은 blueprint-draft-v2:guest에 두고, 로그인하면 한 번 가져올지 묻는다 */
 export const GUEST = "guest";
 const key = (who: string) => `blueprint-draft-v2:${who}`;
-const blank = () => fromV1(fromNames(TEMPLATES[0].cols));
 /** 읽지 못한 v2 초안은 덮어쓰기 전에 이 키로 옮겨 둔다(초안이 말없이 사라지지 않게, 불변 4 취지) */
 const unreadKey = (who: string) => `blueprint-draft-v2-unread:${who}`;
 
@@ -40,9 +39,13 @@ export function useStudioGraph(who: string) {
   const [guest, setGuest] = useState<Saved | null>(null); // 로그인한 사람에게 가져올지 물을 손님 초안
   useEffect(() => {
     const r = load(who);
-    setH({ past: [], now: { graph: r.saved?.graph ?? blank(), name: r.saved?.name ?? "내 청사진", renamed: false }, future: [] });
+    setH({ past: [], now: { graph: r.saved?.graph ?? blankGraph(), name: r.saved?.name ?? "내 청사진", renamed: false }, future: [] });
     setUnread(r.unread);
-    if (who !== GUEST) try { setGuest(guestOffer(localStorage.getItem(key(GUEST)), blank())); } catch { /* 저장소를 못 쓰면 물을 것도 없다 */ }
+    if (who !== GUEST) try {
+      // P-12l 전 처음 판(첫 템플릿)을 손대지 않은 손님 초안도 묻지 않는다(그때 들른 손님 브라우저엔 모두 남아 있다)
+      const raw = localStorage.getItem(key(GUEST));
+      setGuest(guestOffer(raw, blankGraph()) && guestOffer(raw, fromV1(fromNames(TEMPLATES[0].cols))));
+    } catch { /* 저장소를 못 쓰면 물을 것도 없다 */ }
   }, [who]);
   useEffect(() => {
     // 보관하지 못한 초안은 사람이 고치기 전까지 덮지 않는다(처음 연 새 판으로 말없이 지우지 않게)

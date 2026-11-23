@@ -27,6 +27,7 @@ import { cartChanged } from "@/lib/blueprint/cart-event";
 import { AskDialog } from "../c-dialog";
 import { InterviewDialog } from "./dialogs";
 import { Dock } from "./dock";
+import { LoadMenu } from "./load-menu";
 import { GuideLines, useDragAssist } from "./drag-assist";
 import { GhostStage, type Ghost } from "./ghost-stage";
 import { Inspector } from "./inspector";
@@ -108,8 +109,6 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   }, []);
   // 서랍(P-12h-2 T1): 기본 닫힘, 기술 칩 · 카드를 고르면 열림. 열면 초점이 서랍으로, 닫으면 연 자리로(P-12j H1 고정 패널은 11-22 사용자 요청으로 되돌림)
   const [drawer, setDrawer] = useState(false), drawerFrom = useRef<HTMLElement | null>(null), drawerBox = useRef<HTMLElement>(null);
-  const [checkAsk, setCheckAsk] = useState(0); // 위 막대 "검증"을 누른 횟수: 하단 패널을 검증 탭으로
-  const [checkFor, setCheckFor] = useState<{ techId: string; n: number } | null>(null); // 검증 항목을 누름: 그 기술의 서랍을 검증 탭으로
   // 열 때마다 n이 늘어 이미 열린 서랍도 초점을 옮김. at = 초점 갈 곳(카드를 눌러 연 것은 초점을 캔버스에 둠: Delete · 화살표가 그대로 되게)
   const [drawerAt, setDrawerAt] = useState<{ n: number; at: "insp" | "note" | "stay" }>({ n: 0, at: "insp" });
   useEffect(() => { if (drawer && drawerAt.at !== "stay") drawerBox.current?.querySelector<HTMLElement>(drawerAt.at === "note" ? "#insp-note" : ".insp")?.focus(); }, [drawer, drawerAt]);
@@ -362,7 +361,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const keepEdge = (id: string) => { clearTimeout(edgeTimer.current); setHoverEdge(id); };
   const edges: (FlowEdge | SeqEdgeType)[] = g.edges.map((e) => {
     const id = `${e.from}>${e.to}`, on = selEdges.has(id) || sel.has(e.from) || sel.has(e.to);
-    return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10 },
+    return { id, type: "seq", source: e.from, target: e.to, selected: selEdges.has(id), className: `${on ? "se se-on" : "se"}${drawing ? " se-draw" : ""}`, markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: "var(--scan)" },
       data: { label: `${stageOf(e.from)?.name ?? ""} → ${stageOf(e.to)?.name ?? ""}`, hover: hoverEdge === id, onKeep: () => keepEdge(id), onLeave: leaveEdge,
         // 속성 패널 "끊기"와 같게: 고른 단계는 그대로, 사라지는 단추 대신 캔버스로 초점
         onInsert: readOnly ? undefined : () => { setHoverEdge(null); insertGhost(e.from, e.to); },
@@ -483,14 +482,13 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
     e.preventDefault();
     onDelete({ nodes: [...sel, ...selTechs].map((id) => ({ id })), edges: edges.filter((x) => selEdges.has(x.id)) });
   }
-  // 검증(P-12j H4): 검증 탭과 확정 창 "고칠 것"이 같은 함수. 관문 밖 기술은 막고(DB도 거절, 손님은 관문이 없어 안 막음), 위험 · 수집 오류 · 빈 단계는 알리기만
+  // 검증(P-12j H4): 확정 창 "고칠 것" · "알아 둘 것". 관문 밖 기술은 막고(DB도 거절, 손님은 관문이 없어 안 막음), 위험 · 수집 오류 · 빈 단계는 알리기만
   const issues = validateGraph(g, info, { guest });
   const problems = issues.filter((i) => i.blocks).map((i) => i.message), notices = issues.filter((i) => !i.blocks).map((i) => i.message);
-  /** 검증 항목 · 변경 이력 이름을 누름: 그 단계 · 기술을 고르고, 화면을 그쪽으로, 서랍을 연다(기술이면 검증 탭). 초점은 서랍으로(키보드) */
+  /** 변경 이력 이름을 누름: 그 단계 · 기술을 고르고, 화면을 그쪽으로, 서랍을 연다. 초점은 서랍으로(키보드) */
   function goTo(t: Issue["target"]) {
     if (!t || !stageOf(t.stageId)) return;
     setPicked(t.techId ? { kind: "tech", stageId: t.stageId, techId: t.techId } : { kind: "stage", stageId: t.stageId }); setSel(new Set([t.stageId]));
-    if (t.techId) setCheckFor((x) => ({ techId: t.techId!, n: (x?.n ?? 0) + 1 }));
     if (!listMode) void flow.fitView({ nodes: [{ id: t.stageId }], padding: 0.6, maxZoom: 1.1, duration: calm() ? 0 : 200 });
     openDrawer();
   }
@@ -510,7 +508,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
   const chosen = [...[...sel].filter((id) => stageOf(id)), ...[...selTechs].filter((e) => endsNow.includes(e))];
   const panel: PanelProps = { graph: g, picked, onPick: pick, onAsk: () => setAsking(true), projects, apply, pool, tags, onTags: (id, t) => setTags((x) => (x ? { ...x, [id]: t } : x)), history, say,
     onCandidate: (tid, tn) => void markCandidate(tid, tn), marking: busyId,
-    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, checkFor, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
+    guest, guestPicks: guest ? { ids: pickedIds, techs: pickedTechs, remove: unpickGuest } : undefined, onInsert: listMode || readOnly ? undefined : insertGhost, log, multi: chosen.length > 1 ? { count: chosen.length, remove: () => onDelete({ nodes: chosen.map((id) => ({ id })), edges: [] }) } : undefined };
 
   return (
     <div className="studio" onKeyDown={(e) => { if (e.key === "Escape" && !(e.target instanceof HTMLInputElement)) unpick(); }}>
@@ -534,12 +532,12 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
             </form>
           ) : null}
         </span>
+        <LoadMenu {...panel} blocked={readOnly ? READ_ONLY : null} />
         <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : readOnly ? READ_ONLY : null, arrange)}>자동 정렬</button>
         <button type="button" className="btn" {...gate(listMode ? NO_CANVAS : null, () => void flow.fitView({ ...FIT, duration: calm() ? 0 : 200 }))}>보기 초기화</button>
         {narrow ? <button type="button" className="btn" aria-pressed={phoneView} onClick={() => setPhoneView(!phoneView)}>그림으로 보기</button>
           : null}{/* 넓은 화면의 목록 편집 켜기는 하단 패널 탭 줄 끝 작은 링크로(11-22 사용자: 기능은 두고 단추만 내리기) */}
         <span className="studio-grow" />
-        <button type="button" className="btn" onClick={() => setCheckAsk((n) => n + 1)}>검증</button>
         <button type="button" className="btn btn-primary" onClick={() => { done.reset(); setConfirming(true); }}>확정 · 내보내기</button>
       </div>
       {unread ? <p className="notice studio-note" role="status">{unread.kept ? "지난 초안을 읽지 못해 새 판으로 열었어요. 지난 초안은 지우지 않고 이 브라우저에 따로 보관했어요."
@@ -556,7 +554,8 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
               onDelete={onDelete} onPaneClick={() => { setGhost(null); unpick(); }} deleteKeyCode={null} multiSelectionKeyCode="Shift" selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} panActivationKeyCode="Space"
               nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable={!readOnly} edgesFocusable={false}
               nodeDragThreshold={4} minZoom={0.3} maxZoom={2} fitView fitViewOptions={FIT} zoomOnDoubleClick={false} proOptions={{ hideAttribution: true }}>
-              <Background gap={16} size={1} />
+              {/* P-12m: 도면 격자(확대 · 이동을 따라감) */}
+              <Background gap={24} size={1.5} color="var(--line-d)" />
               <GuideLines guides={assist.guides} />
               {ghost && !readOnly ? <GhostStage key={`${ghost.at.x},${ghost.at.y}`} ghost={ghost} back={() => ghostBack(ghost)}
                 onCommit={(nm) => commitGhost(ghost, nm)} onCancel={() => setGhost(null)} /> : null}
@@ -571,7 +570,7 @@ function StudioInner({ who, pool, history, projects, tags: tags0, add, template,
           </section>
         )}
       </div>
-      <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} check={{ issues, ask: checkAsk, go: goTo }} />
+      <Dock {...panel} listEdit={narrow ? undefined : { on: listOn, flip: () => setListOn(!listOn) }} go={goTo} />
       <ToastLine toast={toast} clear={clear} className="c-toast-float" />
       {asking ? <InterviewDialog replacing={g.stages.length > 0} onClose={() => setAsking(false)} onMake={(cols) => makeFromAnswers(cols)} /> : null}
       {confirming ? <ResultDialog name={name.trim() || "이름 없는 청사진"} board={board} graph={g} changes={changes} problems={problems} notices={notices} projects={projects} busy={done.busy} error={done.error} guest={guest}

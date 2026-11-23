@@ -31,7 +31,7 @@ export function PanelsSample({ pool, history, tags: start }: { pool: PoolTech[];
         <ListMode {...p} />
         <Inspector {...p} />
       </div>
-      <Dock {...p} />
+      <Dock {...p} go={() => {}} />
       <style>{"@media (max-width: 860px) { .sample-cols { grid-template-columns: 1fr !important; } }"}</style>
     </div>
   );
