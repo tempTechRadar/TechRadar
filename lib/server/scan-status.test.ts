@@ -27,7 +27,7 @@ const step = (step_name: string, status = "succeeded", error_kind: string | null
 
 test("값: 마지막 정기 실행의 끝난 시각 · 단계 수 · 수집 오류 수(실패한 단계도 오류)", async () => {
   const { db } = fakeDb({ data: [RUN], error: null }, { data: [step("fetch_osv"), step("grade"), step("notify", "failed", "network"), step("save_change", "running")], error: null });
-  assert.deepEqual(await readScanStatus(db), { state: "ok", runId: "r1", at: RUN.finished_at, sources: 4, errors: 1, runFailed: false, running: false });
+  assert.deepEqual(await readScanStatus(db), { state: "ok", runId: "r1", at: RUN.finished_at, sources: 1, errors: 1, runFailed: false, running: false });
   assert.equal(kstTime(RUN.finished_at, new Date("2026-11-23T03:00:00Z")), "06:04", "오늘(서울)이면 시각만");
   assert.equal(kstTime(RUN.finished_at, new Date("2026-11-25T03:00:00Z")), "11-23 06:04", "지난 날이면 날짜도(멈춘 정기 수집이 오늘 것처럼 보이지 않게)");
 });
@@ -47,8 +47,9 @@ test("손님: 정기 수집(schedule)만, 사람 · 프로젝트 칸은 고르�
 });
 
 test("수집 오류: collect_error 단계는 status가 succeeded여도 오류로 센다(11-23 운영 06:07: 25단계 모두 succeeded · collect_error 2), 실행 실패도 따로", async () => {
-  const steps = [...Array.from({ length: 23 }, (_, i) => step(`s${i}`)), step("collect_error", "succeeded", "timeout"), step("collect_error", "succeeded", "parse")];
-  assert.deepEqual(await readScanStatus(fakeDb({ data: [RUN], error: null }, { data: steps, error: null }).db), { state: "ok", runId: "r1", at: RUN.finished_at, sources: 23, errors: 2, runFailed: false, running: false });
+  const FETCH = ["osv", "github", "stars", "registry", "downloads", "popularity", "news"].map((n) => step(`fetch_${n}`)); // 06:07 실행처럼 가져오기 7 + 처리 단계가 섞임
+  const steps = [...FETCH, ...Array.from({ length: 16 }, (_, i) => step(i % 2 ? "grade" : "normalize")), step("collect_error", "succeeded", "timeout"), step("collect_error", "succeeded", "parse")];
+  assert.deepEqual(await readScanStatus(fakeDb({ data: [RUN], error: null }, { data: steps, error: null }).db), { state: "ok", runId: "r1", at: RUN.finished_at, sources: 7, errors: 2, runFailed: false, running: false });
   const failed = await readScanStatus(fakeDb({ data: [{ ...RUN, status: "failed" }], error: null }, { data: [step("fetch_osv")], error: null }).db);
   assert.equal(failed.state === "ok" && failed.runFailed, true);
 });
