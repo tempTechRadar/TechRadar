@@ -6,6 +6,45 @@
 
 ---
 
+## I-P-12r-ko-view · 2026-11-23 · 기술마다 한국어 개요 — 화면 표시 (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12r-ko-view`(`feat/P-12r-ko-overview` 위, 433d7b18을 합침 → PR 하나로)
+- 출처: Maestro 배정(사용자 승인), 붙일 곳 정리 `.claude/plans-share/p12r-ko-overview-spots.md`, 백엔드 I-P-12r-ko-overview
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 한국어 개요(`oneLinerKo`)가 저장돼도 화면은 영어 원문이나 분류로 만든 한 줄(describeKo)만 보인다 |
+| 기대 결과 | 지도 사이드 패널 · 기술 상세 두 곳 · 청사진 서랍 "설명"이 한국어 개요를 먼저 보이고 "AI 번역" 표시와 [원문 보기](영어 원문 + 출처 링크)를 붙인다. 개요가 없으면 지금 그대로 |
+| 영향 범위 | `lib/views/ko-overview.ts`(고르기) · `app/ko-overview.tsx`(표시 조각) · `app/tech-map/side-panel.tsx` · `app/tech/[id]/catalog-tech-view.tsx` · `app/projects/tech/[id]/tech-detail.tsx` · `app/blueprint/inspector-tabs.tsx` · `lib/server/my-tech.ts`(칸 4개 더 읽기) · `app/page.css` · 개발용 샘플 2곳 |
+| 제약 | 옛 번역 거르기는 서버(koOf)에 한 곳만 둔다. FrontLead P-12p 지도 파일 7개는 안 건드림. 로컬 커밋만 |
+| 열린 질문 | 없음 |
+
+**정한 것 · 이유:**
+- 지도 사이드 패널은 describeKo 첫 줄 자리를 한국어 개요로 바꾼다(인기 · 보안 줄은 그대로): 같은 자리에 두 설명이 겹치지 않게.
+- 출처 링크는 http(s)만 건다: DB 글이라 다른 주소 형식이 들어와도 링크가 되지 않게.
+- `/projects/tech/[id]`는 snake 칸을 직접 읽고 백엔드의 `koOf`로 같은 규칙을 쓴다.
+
+**결과:** 커밋 8326cea0 feat · 92e0c0f4 test · b3e3be75 merge(433d7b18). tsc 통과, 관련 시험 138개 통과(새 시험 3개, 기록 검사 포함). 화면은 로그인 미리보기 지도와 `/dev/my-tech-sample?view=detail`에서 샘플 번역으로 확인. `/tech/[id]`와 청사진 서랍은 미리보기가 DB를 안 읽어서 화면으로는 확인하지 못함(같은 조각 · 같은 함수).
+
+## I-P-12r-ko-overview · 2026-11-24 · 기술마다 한국어 개요 — 백엔드(번역기 · 칸 · 내보내기) (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12r-ko-overview`(origin/main 5f16103e에서 갈라짐)
+- 출처: Maestro 배정(사용자 승인 "번역 · 표시까지만, 매일 번역은 제출 뒤", "API 이제 써"), DevAssi1이 화면 쪽(`p12r-ko-overview-spots.md`)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기술 한 줄 설명(one_liner)이 영어라 한국어 사용자가 읽기 어렵다 |
+| 기대 결과 | 지도 몫 공개 목록 기술의 한 줄 설명이 한국어 개요로 번역돼 저장되고, 지도 · 기술 상세가 `oneLinerKo` · `oneLinerKoAt` · `oneLinerKoSrc` · `oneLinerSource`를 함께 준다 |
+| 영향 범위 | `supabase/migrations/202611240400_P-12r_one_liner_ko.sql`(칸 3개 + ai_calls.purpose `translate`), `lib/ai/translate-one-liners.ts`(프롬프트 · 파서 · 대상 판정), `lib/server/translate-one-liners.ts`(번역기), `lib/server/{map-queries,catalog-tech}.ts` · `lib/map/build-map.ts`(내보내기), `lib/server/anthropic-client.ts` · `lib/ai/ai-client.ts`(maxTokens), `scripts/translate-one-liners.mts`(한 번 돌리기) |
+| 제약 | 번역만(없는 사실을 더하지 않음). 불변 3: 번역된 줄은 다시 부르지 않음. 불변 4: 실패한 묶음 · 줄은 건너뛰고 있던 값은 지우지 않음, 저장은 원문이 그대로일 때만. 운영 쓰기(마이그레이션 · 백필)는 Maestro가 사용자 승인으로. 키는 .env.local에서만, 출력에 안 찍음 |
+| 열린 질문 | 매일 번역(정기 실행에 넣기)은 제출 뒤. 파서가 받는 길이 상한(120자)과 묶음 수 상한(실행당 30번)은 팀 추정 |
+
+**정한 것 · 이유:**
+- 원문이 바뀐 뒤에는 옛 번역을 내보내지 않는다(`one_liner_ko_src ≠ one_liner`면 `oneLinerKo`는 null, 출처 `oneLinerSource`는 그대로): 옛 번역이 현재 설명처럼 보이지 않게.
+- 번역 대상은 지도 몫(`readCatalog` 500개)과 같은 목록이고, 한 번 실행에 최대 30묶음(= 600줄)까지만 부른다.
+- 원문이 400자를 넘는 줄은 잘라서 번역하지 않고 건너뛴다(잘린 글을 원문처럼 저장하지 않게).
+- 답이 길어 어댑터 기본 한도(2048토큰)가 모자라서 호출마다 `maxTokens`(번역은 4096)를 줄 수 있게 했다(기본 동작은 그대로).
+- ai_calls에는 `translate`로 남기고 user_id는 null. 서비스 하루 한도(200)는 ai_calls 전체를 세므로 500줄 한 번 돌리면 25번이 거기에 들어간다.
+**결과:** 코드 됨(로컬 커밋, 미푸시 · 운영 미적용). `npm test` 1815 통과 · 0 실패(새 시험 21개), tsc 0 오류, precheck 겹침 없음.
+**확인하지 못함:** 되돌림 시험 SQL 실제 실행(운영 적용 전 Maestro가 사용자 승인으로), 실제 Claude 번역 품질(미리 보기 실행이 자동 권한 확인에서 막혀 사용자 확인 대기), 지도 · 상세 화면 표시(DevAssi1).
 ## I-qa-sync-1123 · 2026-11-23 · QA 시트 사본을 최신 main md와 맞춤 (황재웅)
 - 브랜치: `docs/qa-sync-1123`
 - 출처: 사용자 "기존 main에 있는 qa랑 어느점들이 다른지 다 확인하고 충돌되는거 없는지", "새 브랜치에서 3개 다 진행해줘"(11-23)

@@ -9,6 +9,8 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12r-ko-view | 한국어 개요 화면 표시: 지도 사이드 패널 · 기술 상세 두 곳 · 청사진 서랍이 한국어 개요를 먼저 보이고 "AI 번역" + [원문 보기](영어 원문 · 출처 링크). 개요가 없거나 원문이 바뀌었으면 지금 그대로. 고르기 함수 시험 3개. DataCollector 브랜치를 합쳐 PR 하나로 | Claude(DevAssi1)가 코드 · 시험, 영식 승인 | `lib/views/ko-overview.ts` · `app/ko-overview.tsx` · 화면 4곳 |
+| I-P-12r-ko-overview | 기술마다 한국어 개요 백엔드: 마이그레이션 `202611240400`(technologies 칸 3개 `one_liner_ko` · `_src` · `_at` + ai_calls.purpose `translate`, 초안 · 운영 적용 전) + 되돌림 시험 SQL, 번역기(20개씩 묶음 · 파서가 id · 길이 · 한 줄 · 없는 주소를 거름 · 실패 묶음은 건너뜀 · 원문이 그대로일 때만 저장), 지도 · 기술 상세 내보내기, 한 번 돌리기 스크립트(미리 보기 기본). 시험 새로 약 19개 | Claude(DataCollector)가 코드 · 시험, 영식 승인 | `lib/ai/translate-one-liners.ts` · `lib/server/translate-one-liners.ts` · `scripts/translate-one-liners.mts` · `supabase/migrations/202611240400_P-12r_one_liner_ko.sql` |
 | I-qa-sync-1123 | QA 시트 사본을 최신 main md와 맞춤: 빠진 행 5개(숨긴 사용기 1 · 관리자 지정/되돌리기 4) 끼움, 묶음 E 표가 qa.md 결과 행을 가리키게, 쪼개진 qa.md 행 하나를 이음. md 대조 어긋남 0 | 황재웅 / Claude | `docs/qa/`, `docs/qa-final.md`, `docs/qa.md` |
 | I-P-12q-ai-diagnosis | P-12q 청사진 AI 프롬프트 진단: "점검 받기"가 내보낼 프롬프트 원문까지 보고 중복 · 간섭 · 충돌 · 순서 · 다듬은 프롬프트(4000자)를 함께 줌. "AI 제안 · 검증 아님" 표시 · [다듬은 프롬프트 복사], 파서가 지어낸 기술 · 주소 · 설치 명령을 버림. 실제 호출 2번 확인 | Maestro(배정) · Claude DevAssi2(구현 · 시험) | `feat/P-12q-ai-diagnosis` 로컬 |
 | I-P-12o-section-gate | 자동 보안 검토 지적 반영: 공개 목록 밖 기술 검사가 섹션 공통 기술도 보게 `template_unlisted_techs`를 같은 모양으로 다시 정의 + 이미 공개된 그런 조합 비공개로, 되돌림 시험 SQL | Claude(FrontLead) | `fix/P-12o-section-gate` |

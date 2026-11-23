@@ -7,6 +7,7 @@ import { NEW_QUOTA } from "../map/view-config.ts";
 import { rowsOrThrow, type Row } from "./alert-db.ts";
 import { isBulkFilled, NOT_BULK_FILTER } from "../domain/registry.ts";
 import { fixedNote } from "../domain/services.ts";
+import { koOf } from "../ai/translate-one-liners.ts";
 import { buildKanban } from "../views/kanban.ts";
 
 
@@ -19,15 +20,15 @@ export const ID_CHUNK = 40;
  *  shortcut: 고정 시각, 카탈로그를 다시 처음부터 채우면 이 값을 바꾼다 */
 export const CATALOG_FIRST_FILL = "2026-11-20T00:00:00Z";
 /** 지도가 쓰는 기술 칸 = 로그인 전에도 내보내는 공개 칸(ADR 0029). 등급 근거 원문·두께 이유·상태를 정한 주체 같은 내부 칸은 넣지 않는다 */
-export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, license, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated, is_official";
+export const TECH_COLUMNS = "id, tech_key, created_at, display_name, type, hosts, category_id, grade, grade_reason, one_liner, repo_url, license, last_activity_at, last_activity_kind, last_checked_ok_at, collect_error_kind, signals, status, depth, is_simulated, is_official, one_liner_source, one_liner_ko, one_liner_ko_src, one_liner_ko_at";
 
-/** NEW를 정하려고 서버에서만 더 읽는 칸. toTech가 버려서 화면 · 캐시로 나가지 않는다(공개 칸은 TECH_COLUMNS 그대로) */
-const READ_COLUMNS = `${TECH_COLUMNS}, one_liner_source`;
+// 한국어 개요(P-12r)와 한 줄 설명 출처(원문 보기 링크)도 공개 칸이다: 공개 목록 조건(one_liner_source 있음)에 든 줄만 읽는다
+const READ_COLUMNS = TECH_COLUMNS;
 
 // 연동 서비스 · 개념은 카탈로그에 설명을 쓰지 않고 정해 둔 글로(ADR 0029 4항). createdAt은 NEW 기준으로만 쓴다. 레지스트리 대량 채우기분은 null(11-20 하루에 3,700여 개가 NEW가 됐던 일)
 const toTech = (r: Row): CatalogTech => ({
   id: r.id, techKey: r.tech_key, createdAt: isBulkFilled(r) ? null : r.created_at, name: r.display_name, type: r.type, hosts: r.hosts, categoryId: r.category_id, grade: r.grade as Grade, gradeReason: r.grade_reason,
-  oneLiner: r.one_liner ?? fixedNote(r.tech_key)?.text ?? null, repoUrl: r.repo_url, license: r.license ?? null, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
+  oneLiner: r.one_liner ?? fixedNote(r.tech_key)?.text ?? null, ...koOf(r), repoUrl: r.repo_url, license: r.license ?? null, lastActivityAt: r.last_activity_at, lastActivityKind: r.last_activity_kind,
   lastCheckedOkAt: r.last_checked_ok_at, collectErrorKind: r.collect_error_kind, official: r.is_official === true,
   signals: { stars: r.signals?.stars ?? null, weekly_downloads: r.signals?.weekly_downloads ?? null }, // 수집 오류 문장 같은 나머지는 화면·캐시로 보내지 않는다(ADR 0029)
 });
@@ -77,7 +78,7 @@ const sinceDays = (now: Date, days: number) => { const at = new Date(now.getTime
  * ④ 개발 분야 · 스킬 · 플러그인 · 개념을 두꺼운 것 → 별 많은 순 ⑤ 자리가 남으면 나머지를 같은 순(생활 · 업무 연동 등). 겹치면 한 번.
  * 사라진 기술, (시연 계정이 아니면) 시뮬레이터 기술은 뺀다. 공개 목록(소개 출처가 있음)만(불변 5, ADR 0029). 내 기술은 readMapInput이 id로 따로 읽어 늘 보인다
  */
-async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]): Promise<CatalogTech[]> {
+export async function readCatalog(db: SupabaseClient, isDemo: boolean, cats: Category[]): Promise<CatalogTech[]> {
   const listed = () => listedTechs(db, READ_COLUMNS, isDemo);
   // 두꺼운 것 먼저(글자순 thick < thin), 별이 많은 순(없으면 뒤로), 같으면 최근에 들어온 것
   const ranked = <Q extends ReturnType<typeof listed>>(q: Q) => q.order("depth").order("signals->stars", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).order("id");

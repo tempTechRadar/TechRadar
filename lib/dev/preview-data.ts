@@ -30,7 +30,7 @@ const t = (name: string, categoryId: string | null, type: string, o: Partial<Cat
 const TECHS = [
   t("mcp-remote", "API", "mcp", { grade: "danger", gradeReason: "GHSA-6xpm-ggf7-wc3p — 0.1.16에서 고침" }), t("mcp-proxy-lite", "API", "mcp", { createdAt: ago(2) }),
   t("@supabase/mcp-server", "DB", "mcp", { official: true }), t("postgres-mcp", "DB", "mcp", { grade: "caution", gradeReason: "12개월 넘게 활동 없음" }), t("csv-reader", "DB", "sdk"),
-  t("firecrawl-mcp", "웹 검색", "mcp"), t("deep-research", "웹 검색", "skill", { createdAt: ago(1) }), t("arxiv-mcp", "리서치", "mcp"),
+  t("firecrawl-mcp", "웹 검색", "mcp", { oneLiner: "Web scraping and crawling MCP server (sample)", oneLinerKo: "웹 페이지를 긁어 오고 크롤링하는 MCP 서버(샘플 번역)", oneLinerSource: "https://github.com/mendableai/firecrawl-mcp-server" }), t("deep-research", "웹 검색", "skill", { createdAt: ago(1) }), t("arxiv-mcp", "리서치", "mcp"),
   t("doc-coauthoring", "문서 작성", "skill"), t("notion-mcp", "기획·문서", "mcp"), t("figma-mcp", "디자인 도구", "mcp"), t("frontend-design", "디자인", "skill"),
   t("storybook-mcp", "컴포넌트", "mcp"), t("design-tokens", "컴포넌트", "sdk", { createdAt: ago(3) }), t("a11y-skill", "프론트엔드", "skill", { grade: "unknown", gradeReason: "근거를 찾지 못했어요" }),
   t("secret-scan", "코드 검사", "mcp", { collectErrorKind: "http_5xx", lastCheckedOkAt: ago(3) }), t("code-review", "코드 검사", "skill"), t("osv-mcp", "검사·보안", "mcp"),

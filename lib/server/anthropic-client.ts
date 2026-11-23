@@ -9,7 +9,9 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 const API_VERSION = "2023-06-01";
 const DEFAULT_MODEL = "claude-sonnet-5-5"; // 비용·품질은 ANTHROPIC_MODEL로 바꾼다(열린 질문, 황재웅이 정함)
 const MAX_TOKENS = 2048; // 초안은 1000자 이내 JSON이고, 한국어는 글자당 토큰이 많아 넉넉히 둔다(모자라면 JSON이 잘려 초안이 "만들지 못함"이 된다)
+const MAX_TOKENS_CEILING = 8192; // 호출하는 쪽이 올릴 수 있는 한도(maxTokens)의 위
 const TIMEOUT_MS = 30_000; // 멈춘 호출이 알림 만들기를 붙잡지 않게(알림은 초안 뒤에 만든다)
+const LONG_TIMEOUT_MS = 120_000; // 답이 긴 호출(maxTokens가 기본보다 큼, 번역 묶음 · 서버 일회성 일)만: 기본 30초 안에 못 끝난다
 // 헤더 값에 그대로 들어가므로 글자를 좁게 잡는다(줄바꿈·공백·따옴표가 섞이면 fetch가 그 값을 오류 문구에 그대로 되풀이한다)
 const KEY_SHAPE = /^[A-Za-z0-9_-]{20,255}$/;
 const MODEL_SHAPE = /^[A-Za-z0-9._-]{3,100}$/;
@@ -32,7 +34,7 @@ export function createAnthropicClient(env: Env = process.env, fetchImpl: typeof 
   const model = requested && MODEL_SHAPE.test(requested) ? requested : DEFAULT_MODEL;
   const scrub = (text: string) => maskSecrets(text.split(key).join("[가림]"));
   return {
-    async complete({ system, user, maxTokens = MAX_TOKENS, timeoutMs = TIMEOUT_MS }) {
+    async complete({ system, user, maxTokens, timeoutMs }) {
       let raw: string;
       let res: Response;
       try {
@@ -40,8 +42,8 @@ export function createAnthropicClient(env: Env = process.env, fetchImpl: typeof 
           method: "POST",
           cache: "no-store",
           headers: { "x-api-key": key, "anthropic-version": API_VERSION, "content-type": "application/json" },
-          body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
-          signal: AbortSignal.timeout(timeoutMs),
+          body: JSON.stringify({ model, max_tokens: maxTokens && maxTokens > 0 ? Math.min(maxTokens, MAX_TOKENS_CEILING) : MAX_TOKENS, system, messages: [{ role: "user", content: user }] }),
+          signal: AbortSignal.timeout(timeoutMs ?? (maxTokens && maxTokens > MAX_TOKENS ? LONG_TIMEOUT_MS : TIMEOUT_MS)),
         });
         raw = await res.text(); // 시간 제한은 본문 읽기에도 걸린다: 읽다가 끊겨도 "부르지 못함"으로 던진다(빈 설명으로 숨기지 않음)
       } catch (error) {

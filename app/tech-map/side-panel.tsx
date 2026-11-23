@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { GRADE_KO, isConcept, UNSORTED, type MapNode } from "@/lib/map/build-map";
 import { describeKo } from "@/lib/map/describe";
+import { koOverview } from "@/lib/views/ko-overview";
+import { KoOverviewText } from "../ko-overview";
 import type { GroupItem, TechItem } from "@/lib/map/layout";
 import { SideNotes } from "./side-notes";
 import { TagEditor } from "./tag-editor";
@@ -57,12 +59,13 @@ function Props({ n }: { n: MapNode }) {
 
 function TechHead({ n, star }: { n: MapNode; star: ReactNode }) {
   const [what, facts] = describeKo(n);
+  const ko = koOverview(n);
   // "왜 여기"(소속 · 쓰는 곳)를 기본 정보 줄과 같은 자리로(11-22 사용자)
   const where = `${pathOf(n)} · 쓰는 곳 ${n.attrs.host}${n.hostGuessed ? "(추정)" : ""}${n.mine ? ` · 프로젝트 ${n.projectNames.join(", ")}` : ""}`;
   return (
     <header className="side-head">
       <div className="side-title"><h2 id="map-side-title" tabIndex={-1}>{n.name}</h2>{star}</div>
-      <p>{what}</p>
+      {ko ? <KoOverviewText v={ko} /> : <p>{what}</p>}
       <p className="muted">{facts ? `${facts} · ` : ""}{where}</p>
     </header>
   );
