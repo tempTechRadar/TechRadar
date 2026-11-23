@@ -1,8 +1,11 @@
-// 관리자 화면 공통 틀: 탭, 제목, 막힘·읽기 실패 안내. 판단 버튼은 어느 탭에도 없다(불변 1, PRD-F27).
+// 관리자 화면 공통 틀(11-23 리뉴얼): 넓은 화면은 왼쪽 묶음 메뉴 + 오른쪽 본문, 좁은 화면(760px 이하)은 위쪽 가로 밀기 메뉴.
+// 본문 머리 = 묶음 이름 · 제목 · 설명 · "이 화면이 증명하는 것". 막힘 · 읽기 실패 안내는 그대로. 판단 버튼은 어느 탭에도 없다(불변 1, PRD-F27).
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { groupLabelOf, groupTabs } from "./admin-nav";
 import "./admin.css";
 
+// 기존 9개의 id · href · label은 그대로(다른 파일 · 시험이 읽는다). 탭 밖이던 두 화면(지금 실행 · 실패 시연)을 메뉴에 더했다. 묶음은 admin-nav.ts
 export const ADMIN_TABS = [
   { id: "members", href: "/admin/members", label: "회원과 권한" },
   { id: "observations", href: "/admin/observations", label: "수집 자료" },
@@ -13,24 +16,49 @@ export const ADMIN_TABS = [
   { id: "reports", href: "/admin/reports", label: "사용기 신고" },
   { id: "simulator", href: "/admin/simulator", label: "시뮬레이터" },
   { id: "chat", href: "/admin/chat", label: "위키 챗봇" },
+  { id: "run-now", href: "/admin/run-now", label: "지금 한 번 실행" },
+  { id: "demo", href: "/admin/demo", label: "실패 시연과 채점" },
 ] as const;
 
-type Props = { tab: string; title: string; lead?: string; blocked?: "forbidden" | "no_db"; error?: string | null; children?: ReactNode };
+const NAV = groupTabs(ADMIN_TABS);
 
-export function AdminShell({ tab, title, lead, blocked, error, children }: Props) {
+/** proves: 이 화면이 심사 · 시연에서 증명하는 것 한 줄(선택) */
+type Props = { tab: string; title: string; lead?: string; proves?: string; blocked?: "forbidden" | "no_db"; error?: string | null; children?: ReactNode };
+
+function AdminNav({ tab }: { tab: string }) {
+  return (
+    <nav aria-label="관리자 메뉴" className="admin-side">
+      <Link href="/admin" className="admin-home" aria-current={tab === "" ? "page" : undefined}>관제 요약</Link>
+      {NAV.map((g) => (
+        <div key={g.id} className="admin-group">
+          <p className="admin-group-name" id={`admin-group-${g.id}`}>{g.label}{g.note ? <span> · {g.note}</span> : null}</p>
+          <ul aria-labelledby={`admin-group-${g.id}`}>
+            {g.items.map((t) => (
+              <li key={t.id}><Link href={t.href} aria-current={t.id === tab ? "page" : undefined}>{t.label}</Link></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+export function AdminShell({ tab, title, lead, proves, blocked, error, children }: Props) {
   return (
     <main className="admin">
-      <nav aria-label="관리자 메뉴" className="admin-tabs">
-        {ADMIN_TABS.map((t) => (
-          <Link key={t.id} href={t.href} aria-current={t.id === tab ? "page" : undefined}>{t.label}</Link>
-        ))}
-      </nav>
-      <h1>{title}</h1>
-      {lead ? <p className="admin-lead">{lead}</p> : null}
-      {blocked === "forbidden" ? <p role="alert" className="admin-note danger">관리자만 볼 수 있어요.</p> : null}
-      {blocked === "no_db" ? <p role="alert" className="admin-note danger">Supabase 연결 전이에요. .env.local을 확인해 주세요.</p> : null}
-      {error ? <p role="alert" className="admin-note danger">불러오지 못했어요(없는 게 아니에요): {error}</p> : null}
-      {blocked || error ? null : children}
+      <AdminNav tab={tab} />
+      <div className="admin-main">
+        <header className="admin-head">
+          <p className="admin-eyebrow">{tab === "" ? "관리자" : groupLabelOf(tab)}</p>
+          <h1>{title}</h1>
+          {lead ? <p className="admin-lead">{lead}</p> : null}
+          {proves ? <p className="admin-proves"><b>이 화면이 증명하는 것</b> {proves}</p> : null}
+        </header>
+        {blocked === "forbidden" ? <p role="alert" className="admin-note danger">관리자만 볼 수 있어요.</p> : null}
+        {blocked === "no_db" ? <p role="alert" className="admin-note danger">Supabase 연결 전이에요. .env.local을 확인해 주세요.</p> : null}
+        {error ? <p role="alert" className="admin-note danger">불러오지 못했어요(없는 게 아니에요): {error}</p> : null}
+        {blocked || error ? null : children}
+      </div>
     </main>
   );
 }

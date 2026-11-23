@@ -6,6 +6,7 @@ import type { Row } from "@/lib/server/alert-db";
 import { AdminShell, when } from "../admin-shell";
 import { ChatForm } from "./chat-form";
 
+const PROVES = "답이 위키 안의 출처 쪽에서만 오고, 없으면 지어내지 않고, 문서끼리 다르면 양쪽 출처를 함께 말한다는 것";
 const LEAD = "프로젝트 위키(wiki/)에서 맞는 쪽을 찾아 그 쪽만 Claude에 보내 답해요. 답 아래에 출처 쪽이 나오고, 위키에 없으면 \"위키에 없습니다\"라고 해요.";
 
 export default async function ChatPage() {
@@ -21,14 +22,14 @@ export default async function ChatPage() {
   const since = new Date(startOfKoreanDay(new Date())).getTime();
   const usedToday = recent.filter((r) => new Date(r.created_at).getTime() >= since).length;
   return (
-    <AdminShell tab="chat" title="위키 챗봇" lead={LEAD} error={error}>
+    <AdminShell tab="chat" title="위키 챗봇" lead={LEAD} proves={PROVES} error={error}>
       <p className="muted">오늘 남은 질문: {Math.max(0, CHATBOT_PER_USER_PER_DAY - usedToday)} / {CHATBOT_PER_USER_PER_DAY}개 · 답은 800자 안</p>
       <ChatForm />
       <h2>내 최근 질문</h2>
       {recent.length === 0 ? <p>아직 없어요.</p> : (
-        <ul>
+        <ul className="admin-recent">
           {recent.map((r) => (
-            <li key={r.id} style={{ marginBottom: 8 }}>
+            <li key={r.id}>
               <span className="muted">{when(r.created_at)}</span> {r.question}
               <br />→ {r.answer}{Array.isArray(r.wiki_pages) && r.wiki_pages.length ? <span className="muted"> (출처: {r.wiki_pages.join(", ")})</span> : null}
             </li>
