@@ -104,6 +104,7 @@ test("공개 칸은 정해 둔 목록 그대로다: 칸을 더하면 이 시험�
   assert.deepEqual(TECH_COLUMNS.split(",").map((c) => c.trim()), [
     "id", "tech_key", "created_at", "display_name", "type", "hosts", "category_id", "grade", "grade_reason", "one_liner", "repo_url", "license",
     "last_activity_at", "last_activity_kind", "last_checked_ok_at", "collect_error_kind", "signals", "status", "depth", "is_simulated", "is_official",
+    "one_liner_source", "one_liner_ko", "one_liner_ko_src", "one_liner_ko_at", // P-12r(11-24): 한국어 개요 · 한 줄 설명 출처(원문 보기). ADR 0029 3항
   ]);
 });
 

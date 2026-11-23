@@ -6,6 +6,8 @@ import { koreanTime } from "@/lib/flow/run-list";
 import { GRADE_KO, KIND_KO } from "@/lib/map/build-map";
 import type { CatalogTechDetail } from "@/lib/server/catalog-tech";
 import type { NoteSummary } from "@/lib/server/usage-notes";
+import { koOverview } from "@/lib/views/ko-overview";
+import { KoOverviewText } from "../../ko-overview";
 
 // 카탈로그 기술 상세의 본문(design.md 17절 2차). 머리 + 2단은 내 기술 상세와 같은 틀, 읽기만 하는 화면 조각.
 const NONE = "확인하지 못함";
@@ -17,6 +19,7 @@ const when = (iso: string | null) => (iso ? koreanTime(iso) : NONE);
 export function CatalogTechView({ d, star, markBar, usingText, notes, guest = false }: { d: CatalogTechDetail; star?: ReactNode; markBar: ReactNode; usingText: string; notes?: NoteSummary | null; guest?: boolean }) {
   const t = d.tech;
   const note = t.oneLiner ? null : fixedNote(t.techKey);
+  const ko = koOverview(t);
   return (
     <main className="page tech-detail">
       <header className="td-head">
@@ -28,7 +31,7 @@ export function CatalogTechView({ d, star, markBar, usingText, notes, guest = fa
           {d.mine.length ? <span className="badge badge-neutral">사용 중</span> : null}{" "}
           {STATUS_KO[t.status] ? <span className="badge badge-warning">{STATUS_KO[t.status]}</span> : null}
         </p>
-        {t.oneLiner ? <p>{t.oneLiner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
+        {ko ? <KoOverviewText v={ko} /> : t.oneLiner ? <p>{t.oneLiner}</p> : note ? <p>{note.text}{note.source ? <> (<a href={note.source} target="_blank" rel="noopener noreferrer">공식 레지스트리</a>)</> : null}</p> : null}
         {markBar}
       </header>
 

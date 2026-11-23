@@ -198,3 +198,9 @@
 @media (hover: hover) { .c-toast:hover .c-toast-time { animation-play-state: paused; } } /* 터치는 탭 뒤 :hover가 남아 계속 멈춰 있으니 빼고 [data-hold]로 */
 .c-toast-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* .sr-only와 같음: 화면 읽기에는 늘 읽힘 */
 @media (prefers-reduced-motion: reduce) { .c-toast-time { visibility: hidden; } .c-toast-note { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; } }
+/* 한국어 개요(P-12r): 번역 표시 · 원문 보기는 작게 */
+.ko-overview > p { margin: 0; }
+.ko-overview .tag { margin-left: var(--sp-1); vertical-align: 1px; }
+.ko-overview details { margin-top: var(--sp-1); font-size: var(--fs-sm); color: var(--muted); }
+.ko-overview summary { cursor: pointer; width: fit-content; line-height: var(--hit-sm); } /* 기본 펼침 화살표를 남겨 눌리는 줄로 보이게 */
+.ko-overview details > p { margin: 0 0 var(--sp-1); }

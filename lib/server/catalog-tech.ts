@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { maskSecrets } from "../domain/redact.ts";
 import { isListed, listedTechs } from "./map-queries.ts";
+import { koOf } from "../ai/translate-one-liners.ts";
 
 type Row = Record<string, any>;
 export type CatalogTechDetail = {
@@ -12,6 +13,8 @@ export type CatalogTechDetail = {
     id: string; techKey: string; name: string; type: string; status: string; grade: "pass" | "caution" | "danger" | "unknown"; gradeReason: string | null;
     oneLiner: string | null; repoUrl: string | null; license: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
     isOfficial: boolean; lastCheckedOkAt: string | null; collectErrorKind: string | null;
+    /** 한국어 개요(P-12r): 지금 원문을 번역한 것만, 없으면 null. Src = 번역한 영어 원문, Source = 그 한 줄 설명의 출처 주소 */
+    oneLinerKo?: string | null; oneLinerKoAt?: string | null; oneLinerKoSrc?: string | null; oneLinerSource?: string | null;
   };
   /** 이 기술을 쓰는 내 줄(내 기술 상세로 가는 길). 보관한 프로젝트 것은 뺀다 */
   mine: { id: string; projectName: string }[];
@@ -21,7 +24,7 @@ export type CatalogTechDetail = {
   events: { at: string; status: "interest" | "candidate" | "hold" | null; reason: string | null }[];
 };
 
-const COLUMNS = "id, tech_key, display_name, type, status, grade, grade_reason, one_liner, one_liner_source, repo_url, license, last_activity_at, last_activity_kind, is_official, last_checked_ok_at, collect_error_kind, is_simulated";
+const COLUMNS = "id, tech_key, display_name, type, status, grade, grade_reason, one_liner, one_liner_source, repo_url, license, last_activity_at, last_activity_kind, is_official, last_checked_ok_at, collect_error_kind, is_simulated, one_liner_ko, one_liner_ko_src, one_liner_ko_at";
 const fail = (what: string, e: { message: string }) => new Error(`${what}: ${maskSecrets(e.message)}`);
 
 /** 없거나 볼 수 없으면 null(화면은 404), 읽기에 실패하면 던진다 */
@@ -61,7 +64,7 @@ export async function getCatalogTechDetail(db: SupabaseClient, user: { id: strin
     tech: {
       id: row.id, techKey: row.tech_key, name: row.display_name, type: row.type, status: row.status, grade: row.grade, gradeReason: row.grade_reason,
       oneLiner: row.one_liner, repoUrl: row.repo_url, license: row.license, lastActivityAt: row.last_activity_at, lastActivityKind: row.last_activity_kind,
-      isOfficial: row.is_official === true, lastCheckedOkAt: row.last_checked_ok_at, collectErrorKind: row.collect_error_kind,
+      isOfficial: row.is_official === true, lastCheckedOkAt: row.last_checked_ok_at, collectErrorKind: row.collect_error_kind, ...koOf(row),
     },
     mine: mineRows.map((m) => ({ id: m.id, projectName: m.projects?.name ?? "" })),
     peers,

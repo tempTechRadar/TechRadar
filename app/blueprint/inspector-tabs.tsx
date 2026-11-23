@@ -9,6 +9,8 @@ import { GRADE_KO } from "@/lib/map/build-map";
 import { inspectorTechAction, type InspectorRead } from "./actions";
 import type { PanelProps } from "./studio-types";
 import { TYPE_KO } from "./tech-chip";
+import { koOverview } from "@/lib/views/ko-overview";
+import { KoOverviewText } from "../ko-overview";
 
 type Tab = "info" | "rel" | "check" | "log";
 const TABS: [Tab, string][] = [["info", "개요"], ["rel", "관계"], ["check", "검증"], ["log", "이력"]];
@@ -40,6 +42,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
   const inPool = pool.some((t) => t.id === techId);
   const got = useInspectorTech(techId, `${techId}:${inPool}:${guest ? "guest" : "user"}`); // 로그인 전에 읽은 것(내 판단 · 관문 없음)을 로그인 뒤 다시 쓰지 않게
   const tech = got?.ok ? got.tech : null;
+  const ko = tech ? koOverview(tech.tech) : null;
   const stages = graph.stages.filter((s) => s.techs.some((t) => t.id === techId));
   const ends = new Set(stages.map((s) => linkEnd(techId, s.id)));
   const nameOf = (end: string) => { for (const s of graph.stages) for (const t of s.techs) if (linkEnd(t.id, s.id) === end) return `${t.name}(${s.name})`; return "이름 모름"; };
@@ -66,7 +69,7 @@ export function TechTabs(p: PanelProps & { techId: string; name: string }) {
       </> : body ?? (!tech ? <p className="muted">카탈로그에서 이 기술을 찾지 못했어요(이름만 넣은 기술이거나 공개 목록 밖).</p>
         : tab === "info" ? (
           <dl className="side-facts">
-            <Row k="설명">{tech.tech.oneLiner ?? NONE}</Row>
+            <Row k="설명">{ko ? <KoOverviewText v={ko} /> : tech.tech.oneLiner ?? NONE}</Row>
             <Row k="종류">{TYPE_KO[tech.tech.type] ?? tech.tech.type}</Row>
             <Row k="버전">{NONE}</Row>
             <Row k="출처">{tech.tech.isOfficial ? "공식" : "공식 표시 없음"}</Row>
