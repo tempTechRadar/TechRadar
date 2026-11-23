@@ -9,6 +9,7 @@
 ### 한 일
 | 시간 순 | 한 일 | 누가 | 결과물 |
 |---|---|---|---|
+| I-P-12r-ko-overview | 기술마다 한국어 개요 백엔드: 마이그레이션 `202611240300`(technologies 칸 3개 `one_liner_ko` · `_src` · `_at` + ai_calls.purpose `translate`, 초안 · 운영 적용 전) + 되돌림 시험 SQL, 번역기(20개씩 묶음 · 파서가 id · 길이 · 한 줄 · 없는 주소를 거름 · 실패 묶음은 건너뜀 · 원문이 그대로일 때만 저장), 지도 · 기술 상세 내보내기, 한 번 돌리기 스크립트(미리 보기 기본). 시험 새로 약 19개 | Claude(DataCollector)가 코드 · 시험, 영식 승인 | `lib/ai/translate-one-liners.ts` · `lib/server/translate-one-liners.ts` · `scripts/translate-one-liners.mts` · `supabase/migrations/202611240300_P-12r_one_liner_ko.sql` |
 | I-P-12o-sections | P-12o 2단계 청사진 섹션: 여러 단계를 섹션으로 묶고 섹션이 공통 기술을 가짐(서랍 [섹션으로 묶기] · 캔버스 틀 · 머리에 기술 놓기 · 풀기 · 내보내기 머리 줄), 마이그레이션 202611240100 · 권한 시험 SQL. 운영 적용은 Maestro(사용자 승인, 시험 14/14) | 사용자(인터뷰) · Claude FrontLead(구현) · Maestro(운영 적용) | `feat/P-12o-sections` 로컬 |
 | I-qa-sheet-copy-1123 | QA 시트 사본(xlsx)과 11-23 운영 사람 QA(ego 브라우저, 관리자 계정): Pass 19 → 33, No Run 34 → 20. `qa.md` 사람 QA 16줄 상태 갱신·묶음 E 요약 1줄, 남은 No Run은 막는 이유를 적음 | 황재웅 / Claude | `docs/qa.md`, `docs/qa/` |
 | I-P-12o-blueprint-polish | P-12o 청사진 다듬기 1단계(사용자 요청 · 인터뷰): 카드 + 단추 4개 뺌 · 같은 순서 단계는 서랍 단추, 빈 곳 끌면 화면 이동 · Shift + 끌기 고르기, 새 단계 임시 창 208px, 서랍 "묶기" → "분류기준", 서랍 "지도 전체"(손님 포함, 끌면 담고 넣기) | 사용자(요청) · Claude FrontLead(인터뷰 · 구현) | `feat/P-12o-blueprint-polish` 로컬, tsc · 고친 시험 108 통과 |

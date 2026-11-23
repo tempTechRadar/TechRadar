@@ -6,6 +6,29 @@
 
 ---
 
+## I-P-12r-ko-overview · 2026-11-24 · 기술마다 한국어 개요 — 백엔드(번역기 · 칸 · 내보내기) (DataCollector 세션, 김영식)
+- 브랜치: `feat/P-12r-ko-overview`(origin/main 5f16103e에서 갈라짐)
+- 출처: Maestro 배정(사용자 승인 "번역 · 표시까지만, 매일 번역은 제출 뒤", "API 이제 써"), DevAssi1이 화면 쪽(`p12r-ko-overview-spots.md`)
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 기술 한 줄 설명(one_liner)이 영어라 한국어 사용자가 읽기 어렵다 |
+| 기대 결과 | 지도 몫 공개 목록 기술의 한 줄 설명이 한국어 개요로 번역돼 저장되고, 지도 · 기술 상세가 `oneLinerKo` · `oneLinerKoAt` · `oneLinerKoSrc` · `oneLinerSource`를 함께 준다 |
+| 영향 범위 | `supabase/migrations/202611240300_P-12r_one_liner_ko.sql`(칸 3개 + ai_calls.purpose `translate`), `lib/ai/translate-one-liners.ts`(프롬프트 · 파서 · 대상 판정), `lib/server/translate-one-liners.ts`(번역기), `lib/server/{map-queries,catalog-tech}.ts` · `lib/map/build-map.ts`(내보내기), `lib/server/anthropic-client.ts` · `lib/ai/ai-client.ts`(maxTokens), `scripts/translate-one-liners.mts`(한 번 돌리기) |
+| 제약 | 번역만(없는 사실을 더하지 않음). 불변 3: 번역된 줄은 다시 부르지 않음. 불변 4: 실패한 묶음 · 줄은 건너뛰고 있던 값은 지우지 않음, 저장은 원문이 그대로일 때만. 운영 쓰기(마이그레이션 · 백필)는 Maestro가 사용자 승인으로. 키는 .env.local에서만, 출력에 안 찍음 |
+| 열린 질문 | 매일 번역(정기 실행에 넣기)은 제출 뒤. 파서가 받는 길이 상한(100자)과 묶음 수 상한(실행당 30번)은 팀 추정 |
+
+**정한 것 · 이유:**
+- 원문이 바뀐 뒤에는 옛 번역을 내보내지 않는다(`one_liner_ko_src ≠ one_liner`면 `oneLinerKo`는 null, 출처 `oneLinerSource`는 그대로): 옛 번역이 현재 설명처럼 보이지 않게.
+- 번역 대상은 지도 몫(`readCatalog` 500개)과 같은 목록이고, 한 번 실행에 최대 30묶음(= 600줄)까지만 부른다.
+- 원문이 400자를 넘는 줄은 잘라서 번역하지 않고 건너뛴다(잘린 글을 원문처럼 저장하지 않게).
+- 답이 길어 어댑터 기본 한도(2048토큰)가 모자라서 호출마다 `maxTokens`(번역은 4096)를 줄 수 있게 했다(기본 동작은 그대로).
+- ai_calls에는 `translate`로 남기고 user_id는 null. 서비스 하루 한도(200)는 ai_calls 전체를 세므로 500줄 한 번 돌리면 25번이 거기에 들어간다.
+**결과:** 코드 됨(로컬 커밋, 미푸시 · 운영 미적용). `npm test` 1815 통과 · 0 실패(새 시험 21개), tsc 0 오류, precheck 겹침 없음.
+**확인하지 못함:** 되돌림 시험 SQL 실제 실행(운영 적용 전 Maestro가 사용자 승인으로), 실제 Claude 번역 품질(미리 보기 실행이 자동 권한 확인에서 막혀 사용자 확인 대기), 지도 · 상세 화면 표시(DevAssi1).
+
+---
+
 ## I-P-12o-sections · 2026-11-23 · 청사진 섹션: 여러 단계를 묶고 섹션이 공통 기술을 가짐 (P-12o 2단계, FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12o-sections`(feat/P-12o-blueprint-polish 500e930 위, 로컬)
 - 출처: 사용자 인터뷰(11-23 오후: Shift + 끌기로 여러 개 고르면 섹션으로 묶기, 섹션이 기술을 따로 가짐, 내보내기는 섹션 머리에 한 번, 한 단계는 한 섹션에만) · 승인 계획 P-12o 2단계 · Maestro 배정("오늘 시도", 17:00까지). IA-4 · 불변 1 · 4 · 5
