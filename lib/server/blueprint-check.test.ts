@@ -279,3 +279,24 @@ test("점검 결과 읽기: 가장 최근 끝난 점검을 돌려주고, 없으�
   const latest = await readLatestCheck(fakeDb(tables({ blueprint_checks: [done, { ...done, id: "c2", status: "failed" }] })).db, BP);
   assert.deepEqual(latest, { id: "c1", body: done.body, sources: ["https://example.com"], finishedAt: TODAY });
 });
+
+test("점검(P-12q): 내보낼 프롬프트 원문을 진단 재료로 넘기고, 진단은 body.diagnosis에 저장한다(프롬프트에 없는 기술은 버림)", async () => {
+  const user = fakeDb(tables());
+  const service = fakeDb(tables());
+  const answer = JSON.stringify({
+    ...JSON.parse(goodAnswer),
+    overlaps: [{ a: "기술A", b: "기술B", reason: "개발 단계에 같이 있어 겹칠 수 있어요" }, { a: "기술A", b: "없는기술", reason: "지어냄" }],
+    conflicts: [], order: ["기획 다음에 개발"], revisedPrompt: "1. 기획\n2. 개발(기술A)",
+  });
+  const seen: { maxTokens?: number }[] = [];
+  const ai: AiClient = { async complete(p) { seen.push(p); return { text: answer }; } };
+
+  assert.equal((await run(user, service, ai)).status, "created");
+  assert.equal(seen[0].maxTokens, 8000, "다듬은 프롬프트까지 잘리지 않게 길게 받는다");
+  assert.match((seen[0] as { user: string }).user, /<자료 출처="내보낼 프롬프트">\n아래 청사진대로 작업해 줘[\s\S]*2\. 개발\(기술A, 기술B\)/);
+  const saved = wrote(service.writes, "blueprint_checks", "update").find((v) => v.status === "done")!;
+  assert.deepEqual(saved.body.diagnosis, {
+    overlaps: [{ a: "기술A", b: "기술B", reason: "개발 단계에 같이 있어 겹칠 수 있어요" }],
+    conflicts: [], order: ["기획 다음에 개발"], revisedPrompt: "1. 기획\n2. 개발(기술A)",
+  });
+});

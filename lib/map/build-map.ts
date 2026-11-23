@@ -39,7 +39,7 @@ export type Mark = { techId: string; status: MarkStatus; reason: string | null }
 export type MapInput = { mine: MyTechRow[]; techs: CatalogTech[]; relations: Relation[]; categories: Category[]; marks?: Mark[]; decided?: Record<string, MarkStatus>; tags?: Record<string, string[]> | null; trending?: string[] | null; newSince?: string };
 
 export type MapNode = {
-  key: string; name: string; mine: boolean; techId: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
+  key: string; name: string; mine: boolean; techId: string | null; /** 기술 키(npm: · github: · concept: …, LS점프업 고른 목록) */ techKey: string | null; myTechIds: string[]; projectIds: string[]; projectNames: string[];
   attrs: Attrs; hostGuessed: boolean; grade: Grade; gradeReason: string | null; collectErrorKind: string | null; lastCheckedOkAt: string | null;
   oneLiner: string | null; type: string | null; hosts: string[]; repoUrl: string | null; license: string | null; lastActivityAt: string | null; lastActivityKind: string | null;
   stars: number | null; weeklyDownloads: number | null; isNew: boolean; lonely: boolean; label: string;
@@ -107,7 +107,7 @@ function baseNode(key: string, name: string, t: CatalogTech | undefined, cats: M
   const { host, guessed } = hostOf(t?.techKey ?? null, t?.type ?? null, t?.hosts ?? null);
   const grade = t?.grade ?? "unknown", added = addedDaysOf(t?.createdAt ?? null, now, newSince);
   return {
-    key, name, mine: false, techId: t?.id ?? null, myTechIds: [], projectIds: [], projectNames: [],
+    key, name, mine: false, techId: t?.id ?? null, techKey: t?.techKey ?? null, myTechIds: [], projectIds: [], projectNames: [],
     attrs: { ...categoryNames(t?.categoryId ?? null, cats), kind: t ? KIND_KO[t.type] ?? t.type : MANUAL_KIND, host, grade: isConcept(t?.techKey, t?.type) ? NO_GRADE : GRADE_KO[grade], project: "프로젝트 없음" }, // 개념은 등급이 없다(ADR 0008)
     hostGuessed: guessed, grade, gradeReason: t?.gradeReason ?? null, collectErrorKind: t?.collectErrorKind ?? null, lastCheckedOkAt: t?.lastCheckedOkAt ?? null,
     oneLiner: t?.oneLiner ?? null, oneLinerKo: t?.oneLinerKo ?? null, oneLinerKoAt: t?.oneLinerKoAt ?? null, oneLinerKoSrc: t?.oneLinerKoSrc ?? null, oneLinerSource: t?.oneLinerSource ?? null, type: t?.type ?? null, hosts: t?.hosts ?? [], repoUrl: t?.repoUrl ?? null, license: t?.license ?? null,
