@@ -28,6 +28,53 @@
 
 ---
 
+## I-P-12i-project-board · 2026-11-22 · 프로젝트 관리 보드 D1: 캔버스 틀 · 배치 · W1 숫자 · W2 판단함 · W3 레포 보드 · 메뉴 이름 (DevAssi1 세션, 김영식)
+- 브랜치: `feat/P-12i-project-board`(feat/P-12h-blueprint-revamp dee2c96 위 + origin/main 병합, 로컬)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md`(11-22 20시 인터뷰) D1, Maestro 배정. IA-5 · PRD-F22(숫자 4칸 · 거르기 · 없음과 실패 구분) · 불변 2 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | "현황"은 세로로 죽 늘어놓은 양산형 대시보드라, 내 레포가 안전한지 · 지금 판단할 것 · 바뀐 것을 한눈에 못 본다. 위젯을 원하는 자리에 둘 수 없다 |
+| 기대 결과 | 메뉴 "프로젝트"(화면 "프로젝트 관리", 주소 /dashboard). 위젯 캔버스(Monday식): 배치 바꾸기에서만 끌기 · 크기 · 키보드, 배치는 이 브라우저, 기본 배치로. W1 숫자 4칸(누르면 같은 조건 목록) · W2 판단함(오래된 순 · 레포 라벨 · 새로 옴) · W3 레포 보드(AI 도구 구성 · 등급 배터리 · 모델 종료 · 판단 대기 · 다시 읽기). 보드 전체 거르기. 위젯마다 읽는 중 · 없음 · 읽지 못함 |
+| 영향 범위 | app/dashboard(page · board · widgets · board.css · status-tabs), app/layout · nav/tab-bar · history(이름), lib/dashboard(board-layout · repo-summary · status-view), lib/server/status-queries(repo_url · source_file 더 읽음) |
+| 제약 | 새 라이브러리 · DB 변경 없음(React Flow 그대로, 배치는 localStorage). Claude API · Workflow 없음. 고친 시험 · tsc만, 전체는 D4. FrontLead 파일(layout · tab-bar)은 이름만 |
+| 열린 질문 | 설명 · 언어 · 마지막 푸시는 D1'(DevAssi2) 마이그레이션 뒤 채움. W4~W9 · 위젯 라이브러리 · 레포 서랍은 D2. "내 프로젝트" 흡수 · 현황 탭 정리는 D3 |
+
+**결과(D1):** 로컬 커밋 7e0baa6 feat · 3eec1e3 test · 이 docs. tsc 통과, 고친 시험(board-layout 5 · repo-summary 2 · status-view · status-queries · 미리보기 막기 등) 20개 통과. 3108 미리보기로 확인: 메뉴 "프로젝트" · 제목 "프로젝트 관리", 위젯 숫자 · 판단함 · 레포 보드(숫자 10 · 5 · 3 · 2, 판단함 3건 먼저 온 것부터 · 레포 라벨, 레포 카드 MCP 5 · 개념 1 · 배터리 "위험 1 · 주의 0 · 통과 4 · 찾지 못함 0"), 편집 모드에서 판단함에 Tab → ↓ 한 칸 · Shift+→ 넓힘, 숫자 위젯을 끌어 내리면 아래 위젯이 밀림, 새로 고쳐도 배치 유지(localStorage project-board-v1:00000000), "기본 배치로" 되돌림, Delete로 빼기 → "뺀 위젯: 레포 보드 다시 넣기", 크게 보기(닫기에 초점 · Esc), 390px 한 줄 쌓기(숫자 → 판단함 → 레포) 가로 넘침 0, 로그인 전 세 위젯 "로그인하면 내 레포가 보여요" + 소식 위젯 실제 값.
+**확인하지 못함:** 실계정 데이터(레포 여럿 · 수집 오류 · 모델 종료 알림), [다시 읽기] 실제 실행(누르면 /projects로 감 — D3에서 /dashboard로), 화면 읽기 프로그램 · 실제 휴대폰, 끌어서 크기 바꾸기(모서리 손잡이)는 눈으로만. 개요의 옛 칸(적용한 기술 · 이번 주 · 회고 · 추천)은 이번 보드에서 빠짐 → D2 위젯(W4~W9)으로. 배터리의 "모름"은 지도와 같은 "찾지 못함" 글자를 씀.
+
+**D2(덧붙임, 11-22, 사용자가 D1 확인 뒤 "다음", 배터리 표기는 "찾지 못함" 유지):** 먼저 `feat/P-12i-repo-meta`(DevAssi2 D1', 53de4b9) 합침 — 충돌 2곳(status-view · status-queries, 양쪽이 칸을 더하기만)은 Maestro 승인으로 합집합(2b68439). 운영에는 202611232100이 사용자 승인으로 이미 적용됨.
+- 위젯 6개: W4 바뀐 것(보드 거르기 따름, 지금 = 최근 8건 · 추이 = 주별 6칸 표, `weeklyChanges`) · W5 옮기기 진행(담은 기술 `readCandidateIds` → 확정한 청사진 레포별 → 내보내기 수, 이어진 단계) · W6 점검한 비율(`grade_views`, `checkedRatio`: 카탈로그 기술만 · 개념 · 이름만 뺌, 셀 것이 없으면 "없음", 안 본 것 바로가기) · W7 소식 · W8 요즘 뜨는 대안(`readTrendingForMe`: 같은 갈래, 없으면 전체라고 말함, 손님은 공개 뜨는 것) · W9 기록 찾기(찾기 칸 → /history, 최근 판단 · 담기 기록, 30일 지난 보류).
+- "+ 위젯"(9개 체크, 켜면 기억한 자리) — 뺀 위젯 "다시 넣기"는 이것으로 바꿈. 기본 배치 9개(계획 12열을 48칸으로: 숫자 → 레포 · 판단함 → 바뀐 것 · 옮기기 · 점검 → 소식 · 뜨는 대안 · 기록, 겹침 없음 시험).
+- 레포 카드: 이름 → 오른쪽 레포 서랍(문서 맨 위 포털 — 위젯 노드의 transform 안에서는 fixed가 노드 기준이 돼서): 내 기술 표(이름 · 종류 · 출처 파일 · 등급 색+글자 · 판단 · 최근 바뀜 · 마지막 확인, 행 → 기술 상세) + 확정한 청사진, Esc · 닫기 → 초점은 레포 이름 단추로. 레포 정보 줄(`repoMetaLine`): 설명 · 주 언어 · 마지막 푸시(n일 전 + 날짜), 한 번도 못 읽었으면 "아직 읽지 않았어요", 읽기 실패면 "레포 정보를 읽지 못했어요(종류)"와 지난 값.
+- 옛 개요 칸: 이번 주 요약 → W4 머리 "최근 7일 n건", 보류 회고 → W9 "30일 지난 보류 n건", 추천 → W8 "추천 보기", 적용한 기술 → 레포 서랍 표. 그래서 `app/dashboard/overview.tsx` · `extra-cards.tsx`는 이제 아무 곳에서도 안 씀(지우기는 사용자 확인 뒤).
+- 결과: 로컬 커밋 a608e5e feat · 733a4bb test · 이 docs. tsc 통과, 고친 시험(board-layout 5 · board-stats 2 · repo-summary 3 · status-view · status-queries · 미리보기 막기) 20개 통과. 3108 미리보기 확인: 위젯 9개 값, 추이 표, 레포 서랍(제목 초점 · 표 7칸 6행 · Esc → 초점 단추), "+ 위젯 9/9" 소식 끄기 → 8/9 · 켜기 → 9, 손님은 소식 · 뜨는 대안만 실제 값.
+- 확인 못 함: 실계정(레포 정보 실제 값 · 읽기 실패 · 확정 청사진 · 내보내기 · grade_views), 요즘 뜨는 대안(미리보기는 샘플이 없어 "없어요"), 화면 읽기 · 실제 휴대폰.
+
+**D3(덧붙임, 11-22, 사용자가 D2 확인 뒤 "다음(D3) + 옛 파일 삭제"):** 옛 /projects 목록 본문(레포 등록 · 내 기술 표 · 숨기기 · 되돌리기 · 이름 · 메모 고치기 · 보관 · 되살리기 · 프로젝트 밖 칸 · 직접 추가 = 안내서 "직접 입력")을 보드 10번째 위젯 "레포 관리 · 내 기술"(`app/dashboard/repo-manage.tsx`, 기본 배치 맨 아래 한 줄)로 옮김. `/projects`는 거르기 · 검색 · 결과 코드를 싣고 `/dashboard#w-manage`로 보냄(`/projects/install · runs · tech/[id]`는 그대로). 등록 · 다시 읽기 · 프로젝트 · 기술 동작이 `/dashboard`로 돌아오고 결과 알림은 보드 맨 위(`ManageNotices`). 계정 메뉴 "내 프로젝트" 뺌, 현황 탭(개요 | 일지 | 소식) 없앰 → `/history` 제목 "기록 찾기" + "← 프로젝트 관리". /projects 링크 정리: 지도 · 비교 · 찾기 대화상자 · 시작하기 · 숫자 "내 기술"(`/dashboard#techs`) · 옛 소식 주소. 위젯 틀에 id(`w-<위젯>`). 옛 파일 3개(overview · extra-cards · status-tabs)는 쓰는 곳 없음을 grep으로 본 뒤 사용자 확인으로 지움.
+- 결과: 로컬 커밋 97aa1a6 feat · ff5f93e test · 87caa42 chore(삭제) · 이 docs. tsc 통과, 고친 시험(project-wiring · guest-pages · summarize-dashboard · nav · dashboard · a11y · 미리보기 막기 · 기록 등) 통과(65 + 39). 3108 확인: /projects?project=p1&notice=hidden → /dashboard?notice=hidden&project=p1#w-manage, 맨 위 "숨겼어요…", 탭 줄 없음, 계정 메뉴 "알림 모두 보기 · 설정", /history 제목 "기록 찾기" · 뒤로 링크, 손님 레포 관리 자리는 로그인 안내.
+- 확인 못 함: 실계정으로 등록 · 다시 읽기 · 숨기기 · 보관 · 되살리기 · 직접 추가를 보드에서 실제로(미리보기는 DB를 안 불러 레포 관리를 안내만), 화면 읽기 · 실제 휴대폰.
+
+**D4 몰아서 한 검사 · 결과(11-22, 사용자가 D3 확인 뒤 "다음(D4)", 서랍 · 레포 관리 표는 그대로 둠):** 전체 npm test 1,740개 모두 통과, `tsc` 통과, `next build --webpack` 통과, `npm run precheck` main과 충돌 없음(이 브랜치 마이그레이션 1개 = 202611232100, 운영 적용됨). 자체 code-review(서브에이전트 없이): ① 안내서 W1 — 숫자는 `summarizeDashboard` 그대로라 알림 목록과 같은 거르기, "내 기술"은 보드 레포 관리 표(숨김 · 보관 제외로 같은 기준, `/dashboard#techs`), 못 읽으면 "불러오지 못했어요"(0과 다르게) ② 손님 · 미리보기 개인 데이터 0 — 손님은 내 데이터 위젯이 로그인 안내 · 소식(공개) · 뜨는 대안(공개 목록 규칙)만, 미리보기는 샘플이고 레포 관리 · 뜨는 대안은 DB를 안 부름 ③ /projects 보내기 뒤 링크 — 설치 프롬프트 · 실행 기록 · 기술 상세의 "← 내 프로젝트"(보내기로 동작은 했음)를 "← 프로젝트 관리"로 고침, 직접 추가 찾기 폼이 보드 맨 위로 튀던 것을 직접 추가 칸으로(0b3bf60). 사람 QA 초안: `docs/qa-final.md` 3절 묶음 E(8줄: 등록 · 다시 읽기 · 숨기기 · 직접 추가 · 보관 · 레포 정보 4번 · 배치 저장 · 점검한 비율 · 숫자 = 목록 · 손님). 
+## I-P-12i-repo-meta · 2026-11-22 · P-12i D1' 레포 기본 정보: 설명 · 주 언어 · 마지막 푸시 (DevAssi2 세션, 김영식)
+- 브랜치: `feat/P-12i-repo-meta`(`feat/P-12h-blueprint-revamp` dee2c96 + origin/main, 로컬, 미푸시 → DevAssi1 D1 브랜치로 합침)
+- 출처: 사용자 승인 계획 `.claude/plans-share/p12i-project-board.md` "레포 기본 정보", Maestro 배정. 불변 2 · 4 · 5
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | 레포 카드(W3)에 레포가 무엇인지(설명 · 언어 · 마지막 푸시)가 없음 |
+| 기대 결과 | 등록 · 다시 읽기 때 GitHub 저장소 API 응답에서 세 값을 projects에 저장, 실패는 예전 값 두고 수집 오류 종류만, readStatusData가 함께 읽음 |
+| 영향 범위 | 마이그레이션 `202611232100_P-12i_project_repo_meta.sql` + 시험 `supabase/tests/project_repo_meta_p12i.sql`, `lib/domain/github-repo.ts`(parseRepoMeta), `lib/server/{collect-fetch,first-read,status-queries}.ts`, `lib/dashboard/status-view.ts`(타입) + 시험 |
+| 제약 | Claude API 없음, 고친 시험 · tsc만, 운영 적용은 사용자 승인 뒤 Maestro. app/dashboard/* 안 건드림 |
+| 열린 질문 | 없음 |
+
+**결정 · 이유(사용자 11-22):**
+- 다시 읽기에서도 저장소 API를 1번 부른다: 지금 코드는 새 등록 때만 불러서, 안 부르면 이미 등록된 레포는 정보가 비어 있음. 사람이 누르는 다시 읽기만 늘고 정기 실행은 그대로.
+- 화면 읽기는 새 함수 없이 readStatusData 칸 목록에 더한다 → **운영 적용을 병합 전에** 해야 한다(적용 전에 배포되면 현황 읽기가 실패).
+- 계획의 4칸에 `repo_meta_error`를 하나 더했다: 실패를 "정보 없음"과 구분하려고(불변 2).
+
+**결과:** 됨(로컬 커밋). `tsc` 오류 0, 고친 곳 시험 115개 통과(parseRepoMeta 2 · assertRepoPublic 2 · first-read 레포 정보 4 포함), precheck 번호 겹침 없음. 권한 시험 SQL은 운영 적용 때 Maestro가 돌림.
+**확인하지 못함:** 운영 DB에서 권한 시험 결과(적용 전), 실제 GitHub 응답으로 저장되는지(로컬 서버 안 띄움).
 ## I-P-12j-links-core · 2026-11-22 · 청사진 Hybrid Editor H2 미리 준비: 기술 관계선 · 순서 · 옮기기 순수 함수 + DB (FrontLead 세션, 김영식)
 - 브랜치: `feat/P-12j-links-core`(`feat/P-12j-hybrid-editor` b729a1c에서 갈라짐, 나중에 DevAssi2 쪽으로 합침)
 - 출처: 계획 `p12j-hybrid-editor.md` H2(사용자 결정 "제출 전 전부") · 데이터 정직성 규칙 1 · 5, Maestro 배정, 불변 2 · 5

@@ -10,7 +10,7 @@ export type StatusData = { projects: StatusProjectRow[]; tags: Map<string, strin
 export async function readStatusData(db: SupabaseClient, userId: string): Promise<StatusData> {
   const [res, tags] = await Promise.all([
     db.from("projects")
-      .select("id, name, kind, my_technologies(id, tech_id, manual_name, hidden_at, read_at, collect_error_kind, grade, technologies(display_name, tech_key, type)), runs!runs_project_id_fkey(status, created_at)")
+      .select("id, name, kind, repo_url, repo_description, repo_language, repo_pushed_at, repo_meta_at, repo_meta_error, my_technologies(id, tech_id, manual_name, hidden_at, read_at, collect_error_kind, grade, source_file, technologies(display_name, tech_key, type)), runs!runs_project_id_fkey(status, created_at)")
       .eq("owner_id", userId).is("archived_at", null).order("created_at"),
     readMyTechTagMap(db, userId).catch((e: unknown) => { console.error("현황: 내 태그를 읽지 못함", e instanceof Error ? maskSecrets(e.message) : e); return null; }),
   ]);

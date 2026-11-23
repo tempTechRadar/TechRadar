@@ -62,8 +62,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <nav aria-label="주 메뉴" className="site-nav">
           <div className="site-nav-main">
             <NavLink href="/" className="site-nav-logo" label="TechRadar, 기술 지도">TechRadar</NavLink>
-            {/* P-12f 사용자 결정: 현황(지키고) · 지도(고르고) · 청사진(옮긴다). 일지(/history)는 현황의 탭이라 "현황"이 현재 */}
-            <NavLink href="/dashboard" also={["/history"]}>현황</NavLink>
+            {/* P-12f 사용자 결정: 프로젝트(지키고, P-12i 옛 "현황") · 지도(고르고) · 청사진(옮긴다). 일지(/history)는 프로젝트 관리의 탭이라 "프로젝트"가 현재 */}
+            <NavLink href="/dashboard" also={["/history"]}>프로젝트</NavLink>
             <NavLink href="/">지도</NavLink>
             <NavLink href="/blueprint">청사진{cartBadge}</NavLink>
           </div>

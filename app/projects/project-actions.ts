@@ -19,9 +19,9 @@ async function context(): Promise<Ctx> {
 
 /** 실패면 이유 코드를, 성공이면 안내를 싣고 돌아간다. 이미 그 상태였으면(바뀐 것 없음) 그렇게 알린다. */
 function finish(result: ProjectResult, notice: string): never {
-  revalidatePath("/projects");
-  if (!result.ok) redirect(`/projects?error=project_${result.code}`);
-  redirect(`/projects?notice=${result.changed ? notice : "project_same"}${result.auditFailed ? "&audit=0" : ""}`);
+  revalidatePath("/dashboard");
+  if (!result.ok) redirect(`/dashboard?error=project_${result.code}`);
+  redirect(`/dashboard?notice=${result.changed ? notice : "project_same"}${result.auditFailed ? "&audit=0" : ""}`);
 }
 
 const idOf = (formData: FormData) => String(formData.get("id") ?? "");

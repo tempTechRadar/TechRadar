@@ -10,9 +10,14 @@ const respond = (t: { mock: { method: (o: object, n: "fetch", f: unknown) => unk
     return r;
   });
 
-test("공개 저장소(200, private 아님)면 통과한다", async (t) => {
-  respond(t, () => new Response('{"private":false}', { status: 200 }));
-  await assertRepoPublic(repo);
+test("공개 저장소(200, private 아님)면 통과하고, 같은 응답의 레포 기본 정보를 돌려준다(P-12i)", async (t) => {
+  respond(t, () => new Response('{"private":false,"description":"d","language":"Go","pushed_at":null}', { status: 200 }));
+  assert.deepEqual(await assertRepoPublic(repo), { description: "d", language: "Go", pushedAt: null });
+});
+
+test("응답이 객체가 아니어도(null) 깨지지 않고 정보는 null", async (t) => {
+  respond(t, () => new Response("null", { status: 200 }));
+  assert.equal(await assertRepoPublic(repo), null);
 });
 
 test("404는 '주소가 틀렸거나 비공개'다(RepoNotPublicError)", async (t) => {

@@ -1,6 +1,6 @@
 // 바깥 호출 어댑터(GitHub·OSV). 실패는 오류 종류(SPEC-8)로 나눠 던진다. 주인: 김영식 A.
 // 상대 경로 import·파라미터 프로퍼티 없음: `@/` 별칭이나 그 문법이 있으면 node --test가 불러오지 못한다.
-import { repoApiUrl } from "../domain/github-repo.ts";
+import { parseRepoMeta, repoApiUrl, type RepoMeta } from "../domain/github-repo.ts";
 import { forPackage, type OsvVuln } from "../domain/grade.ts";
 import type { StepRecord } from "./run-log.ts";
 
@@ -122,18 +122,20 @@ export async function queryOsv(name: string, ecosystem: "npm" | "PyPI", version:
 /**
  * 공개 저장소인지 확인한다. 안 열리면(404·비공개) RepoNotPublicError.
  * 한도 초과·네트워크 같은 실패는 CollectError 그대로 던진다: 없다고 단정하지 않는다(불변 2).
+ * 같은 응답의 설명 · 언어 · 마지막 푸시를 돌려준다(P-12i, 호출을 늘리지 않게). 그 칸 모양이 다르면 null.
  */
-export async function assertRepoPublic(repo: { owner: string; repo: string }): Promise<void> {
+export async function assertRepoPublic(repo: { owner: string; repo: string }): Promise<RepoMeta | null> {
   const path = `${repo.owner}/${repo.repo}`;
   // shortcut: 인증 없이 부름(시간당 60회). 서버 토큰(ADR 0008 4번)은 P-9에서 붙이면서 함께
   const url = repoApiUrl(repo); // `.`·`..` 이름을 막는 주소 만들기를 한 곳에 둔다
   const text = await fetchText(url, { headers: { accept: "application/vnd.github+json" } });
   if (text === null) throw new RepoNotPublicError(path);
-  let info: { private?: boolean };
+  let info: unknown;
   try {
     info = JSON.parse(text);
   } catch {
     throw new CollectError("parse", `${path}: GitHub 응답을 해석하지 못함`);
   }
-  if (info.private) throw new RepoNotPublicError(path);
+  if ((info as { private?: unknown } | null)?.private) throw new RepoNotPublicError(path);
+  return parseRepoMeta(info);
 }

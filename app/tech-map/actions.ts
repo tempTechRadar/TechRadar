@@ -84,6 +84,6 @@ export async function addMapTechAction(name: string, projectId: string): Promise
   const r = await addTech({ db, audit: getServiceSupabase(), userId: user.id }, { projectId: target, techId: null, name: String(name ?? ""), version: "" });
   if (!r.ok) return { ok: false, message: TECH_ERROR_TEXT[r.code] ?? TECH_ERROR_TEXT.failed };
   if (r.auditFailed) console.error("지도 직접 추가: 감사 기록을 남기지 못함(추가는 됨)");
-  revalidatePath("/"); revalidatePath("/projects");
+  revalidatePath("/"); revalidatePath("/dashboard");
   return { ok: true };
 }
