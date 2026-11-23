@@ -33,6 +33,7 @@
 .studio-insp .insp { border-left: 0; }
 .studio-list { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); }
 .studio-canvas { min-height: 320px; position: relative; background: var(--paper); }
+.studio-pan-hint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 4; margin: 0; padding: 2px 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 80%, transparent); color: var(--on-paper-2); font-size: var(--fs-cap); pointer-events: none; white-space: nowrap; } /* P-12v */
 /* React Flow가 붙이는 인라인 높이 100%는 flex로 정해진 부모에서 0이 된다: 칸을 꽉 채우게(인라인을 이기려 !important) */
 .studio-canvas > .react-flow { position: absolute !important; inset: 0; width: auto !important; height: auto !important; }
 
