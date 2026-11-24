@@ -4,6 +4,13 @@
 
 표의 첫 칸(시간 순)은 옛 행은 번호, **새 행은 작업 ID**(`I-…`, intent와 같은 것)다. 번호를 새로 매기지 않는다(동시에 만들면 겹침, ADR 0017).
 
+## 2026-11-24 (화)
+
+### 한 일
+| 시간 순 | 한 일 | 누가 | 결과물 |
+|---|---|---|---|
+| I-slides-fonts-deploy | 발표 주소(techradar-slides.vercel.app)가 11-19 초안을 보여 주던 것을 D 스코프판으로 다시 운영 배포(`slides/d`만 복사해 배포 — 루트 `vercel.json` · 앱 제외). Pretendard 서브셋 · JetBrains Mono를 `slides/d/fonts/`에 실어 글꼴 없는 PC에서도 같은 모양, 두 해상도 × 22장 캡처로 확인, README 발표 자료 줄 갱신 | 나(요청 · 판단) · Claude(배포 · 글꼴 · 캡처 확인) | `slides/d/fonts/`, `slides/d/index.html`, `README.md`, 운영 https://techradar-slides.vercel.app |
+
 ## 2026-11-23 (월)
 
 ### 한 일

@@ -6,6 +6,22 @@
 
 ---
 
+## I-slides-fonts-deploy · 2026-11-24 · 발표 주소를 최신 D판으로 다시 올리고 글꼴을 함께 싣기
+- 브랜치: `fix/slides-fonts-deploy`(origin/main a462833에서)
+- 출처: 사용자 지시(11-24 "발표자료도 Vercel로 README에 · 강사님이 열었을 때 문제없게, 글꼴까지")
+
+| 칸 | 내용 |
+|---|---|
+| 문제 | README의 발표 주소(techradar-slides.vercel.app)가 11-19 초안(`slides/index.html`, 17쪽)을 보여 준다. D판은 Pretendard · JetBrains Mono를 이름으로만 불러 보는 PC에 글꼴이 없으면 다른 모양이 된다 |
+| 기대 결과 | 같은 주소에 `slides/d`(D 스코프판)를 운영 배포, 글꼴 파일을 `slides/d/fonts/`에 실어 어느 PC에서나 같은 모양, README 발표 자료 줄을 최신으로 |
+| 영향 범위 | `slides/d/index.html`(글꼴 선언 · 미리 불러오기 · 고정폭 대체에 Pretendard), `slides/d/fonts/`(Pretendard 서브셋 158KB · JetBrains Mono 2개 · OFL 라이선스 2개), `README.md` 한 줄. 앱 코드 · DB 변경 없음 |
+| 제약 | 저장소 루트의 `vercel.json` · 앱이 함께 배포되지 않게 `slides/d`만 복사해서 배포. 공개 주소는 로그인 없이 열려야 함(개별 배포 주소는 보호됨) |
+| 열린 질문 | 제출 마감(11-23 23:59) 뒤 README 수정을 인정하는지 — 강사님 확인 |
+
+**결과:** 11-24 운영 배포 3번(마지막이 글꼴 포함판), 공개 주소 200 · 글꼴 파일 `font/woff2` 200. 1366×768 · 1920×1080에서 표지 + 21쪽 전체 캡처 확인(움직임 줄이기 켜고 끝 화면), 글꼴 적용은 굵기 300 · 800 대조로 확인.
+
+---
+
 ## I-erd-1123 · 2026-11-23 · 병합 마감 전 문서 PR(A): erd 4차 대조 반영 · AI 쓰는 곳 일곱 · QA 결과 · 위키 · README 최종 (DocsChecker 세션)
 - 브랜치: `docs/erd-1123`(origin/main ba1d873에서)
 - 출처: Maestro 배정(사용자 결정 11-23 오후: 문서 PR 두 번 — A는 20:00 전 병합, B는 동결 뒤 서명만), erd 4차 대조 초안 `.claude/plans-share/erd-4th-draft-1123.md`, 위키 계획 `.claude/plans-share/wiki-plan-afternoon-1123.md`, PR #230(P-12s 가이드)

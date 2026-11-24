@@ -2,16 +2,21 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<link rel="preload" href="fonts/PretendardVariable-subset.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TechRadar 발표 — SCOPE</title>
 <style>
+/* 글꼴을 함께 배포: 보는 PC에 Pretendard · JetBrains Mono가 없어도 같은 모양(OFL-1.1, fonts/ 안 라이선스) */
+@font-face{font-family:"Pretendard Variable";src:url("fonts/PretendardVariable-subset.woff2") format("woff2-variations"),url("fonts/PretendardVariable-subset.woff2") format("woff2");font-weight:45 920;font-style:normal;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");font-weight:500 900;font-style:normal;font-display:swap}
 [hidden]{display:none!important}
 :root{
   /* 눈이 편한 저채도 남회색: 밝기 차를 줄이고 강조는 청회색 하나 */
   --bg:#0f1622; --bg2:#141d2b; --line:#26344a; --dim:#8494ab; --amb:#79b4c4; --hi:#e8eef5; --tx:#c8d3e0;
   --red:#e0907f; --redbg:#2a1d22;
   --cond:"Pretendard Variable",Pretendard,"SUIT Variable",SUIT,"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
-  --mono:"JetBrains Mono","D2Coding",Consolas,"Malgun Gothic",monospace;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"Pretendard Variable","Malgun Gothic",monospace;
 }
 *{box-sizing:border-box}
 html{font-size:min(1.25vw,2.2222vh);background:var(--bg)}
@@ -454,7 +459,7 @@ kbd{font-family:var(--mono);border:1px solid var(--dim);color:var(--hi);padding:
 .still *{animation:none!important;transition:none!important}
 @media print{
   html{font-size:10pt;background:#fff}body{display:block;height:auto;overflow:visible;background:#fff;color:#000}
-  .stage{display:none}#print{display:block;color:#000;font-family:"Malgun Gothic",sans-serif}
+  .stage{display:none}#print{display:block;color:#000;font-family:"Pretendard Variable","Malgun Gothic",sans-serif}
   #print section{break-inside:avoid;border-bottom:1px solid #999;padding:8pt 0}
   #print *{color:#000!important;background:transparent!important;animation:none!important;border-color:#999!important}
   #print img{max-width:45%;height:auto}#print .shots{display:block}

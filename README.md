@@ -10,7 +10,7 @@ AI 코딩 도구(Claude Code·Cursor·Codex 등)로 만드는 사람이 **내가
 | 무엇 | 위치 |
 |---|---|
 | 서비스(배포 주소) | https://techradar-theta.vercel.app |
-| 발표 자료 | [`slides/index.html`](slides/index.html) (17쪽, "▢ 채울 것" 빈칸 11곳 남음, 11-23 오후). **발표 주소: https://techradar-slides.vercel.app** (서비스와 별개 Vercel 프로젝트, `slides/index.html` 한 파일. 외부 파일 없이 열려 그대로 오프라인 파일로 씀). 슬라이드를 고치면 다시 올린다 |
+| 발표 자료 | **발표 주소: https://techradar-slides.vercel.app** (최신 D 스코프판 · 표적 21개, 11-24 배포. 서비스와 별개 Vercel 프로젝트). 원본은 [`slides/d/index.html`](slides/d/index.html) + `images/` · `fonts/`(글꼴을 함께 실어 어느 PC에서나 같은 모양). 조작: 클릭 · Enter로 시작, → ← 쪽 넘기기, `O` 전체 목록, `?` 도움말. 고르기 전 6안은 [`slides/choose.html`](slides/choose.html) |
 | QA | [QA(영역 A·B·공용)](docs/qa.md) · [QA(영역 C)](docs/qa-c.md) · [위키 챗봇 정답표](docs/wiki-chat.md). 구글 QA 시트는 없음(표를 위 md 파일로 대신함) |
 | 관리자 쓰는 법 | [관리자 사용설명서](docs/관리자-사용설명서.md) |
 | 위키 | [위키 목차](wiki/index.md) (출처 달린 팀 문서 요약 18쪽), 챗봇은 배포 주소의 `/admin/chat`(관리자만) |
