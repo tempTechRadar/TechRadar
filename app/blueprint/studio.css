@@ -13,16 +13,20 @@
 .studio-loadpop .muted { font-weight: 400; }
 .studio-loadpop hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* 결과물 창(result-dialog): 고칠 것 → 내보내기 → 확정 → AI 점검 */
-.rd { display: grid; gap: var(--sp-3); }
+/* 가독성(11-25 사용자): 창을 넓히고 구역을 선으로 나눔, 미리보기는 본문 글꼴 14px(pre 기본 고정폭은 한글이 굴림체로 띄엄띄엄 보였음) */
+.c-dialog:has(.rd) { width: min(760px, calc(100% - 32px)); }
+.rd { display: grid; gap: var(--sp-4); font-size: 14px; line-height: 1.6; }
 .rd p { margin: 0; }
-.rd-h { margin: 0 0 6px; font-size: var(--fs-h3); }
+.rd > section + section { padding-top: var(--sp-4); border-top: 1px solid var(--line); }
+.rd-h { margin: 0 0 var(--sp-2); font-size: var(--fs-h2); }
 .rd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; }
-.rd-row label { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.rd-row label { display: grid; gap: 4px; font-size: var(--fs-sm); color: var(--muted); }
 .rd-row select { min-height: var(--hit); font: inherit; }
-.rd-preview { max-height: 30vh; overflow: auto; margin: 6px 0 0; padding: var(--sp-3); background: var(--sunken); border-radius: var(--r-md); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rd-preview { max-height: 40vh; overflow: auto; margin: var(--sp-2) 0 0; padding: var(--sp-3) var(--sp-4); background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r-md); font-family: var(--font); font-size: 14px; line-height: 1.7; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rd .notice { margin: 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-body); }
+.rd .notice:not(.notice-error) { border-color: var(--line); color: var(--ink-2); } /* "알아 둘 것"은 안내라 흰 테두리 대신 옅게(오류 상자만 빨강으로 눈에 띄게) */
+.c-dialog .rd .muted { font-size: var(--fs-body); } /* .page .muted(12px)보다 한 단계 크게 */
 .rd ul { margin: 4px 0 0; padding-left: 1.2em; }
-.rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
-.rd-diff p { margin: 0; }
 .rd-diff { padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); } /* 지난 확정과 달라진 것(T4) */
 .rd-diff p { margin: 0; }
 /* P-12j H1 에디터: 왼쪽 Library(250) · 가운데(캔버스 또는 목록 + 아래 검증 독) · 오른쪽 Inspector(300). 좌우는 접으면 40px 띠 */
